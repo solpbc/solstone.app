@@ -1,0 +1,24 @@
+# solstone
+
+> solstone is an open source AI life journal that captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data resides on your machine. made by sol pbc, a public benefit corporation that can never be sold and can never sell your data. supported on linux and macOS. python 3.10+, installed via git clone + make install.
+
+solstone captures screen activity and audio continuously in the background, then uses AI to transcribe conversations, extract entities (people, companies, projects), detect meetings, build knowledge graphs, and surface daily insights. everything is stored in daily journal directories on your filesystem. the web interface provides full-text search, transcript browsing, entity tracking, AI chat, and calendar views.
+
+the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the company's founding documents contain irrevocable covenants: owner data can never be sold or shared, and the company can never be acquired. the code is open source — every claim is verifiable.
+
+## Docs
+
+- [Installation guide](https://solstone.app/install): Complete setup instructions for linux and macOS — prerequisites, installation, API key configuration, first run, and verification
+- [README](https://github.com/solpbc/solstone/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
+- [Observer documentation](https://github.com/solpbc/solstone/blob/main/docs/OBSERVE.md): Screen and audio capture pipeline — platform detection, observer modes, output formats
+- [Journal structure](https://github.com/solpbc/solstone/blob/main/docs/JOURNAL.md): Data model and daily directory layout
+- [AI providers](https://github.com/solpbc/solstone/blob/main/docs/PROVIDERS.md): Configuring Google Gemini, OpenAI, and Anthropic backends
+- [Web interface](https://github.com/solpbc/solstone/blob/main/docs/CONVEY.md): The 17-app web UI for browsing journal data
+- [Troubleshooting](https://github.com/solpbc/solstone/blob/main/docs/DOCTOR.md): Diagnostics and common issues
+
+## Optional
+
+- [Agent runtime](https://github.com/solpbc/solstone/blob/main/docs/CORTEX.md): How the 30 AI agent templates work
+- [Message bus](https://github.com/solpbc/solstone/blob/main/docs/CALLOSUM.md): Inter-service communication architecture
+- [App development](https://github.com/solpbc/solstone/blob/main/docs/APPS.md): Building custom web UI apps
+- [Roadmap](https://github.com/solpbc/solstone/blob/main/docs/ROADMAP.md): What is planned next

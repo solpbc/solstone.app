@@ -4,7 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>solstone</title>
+    <meta name="description" content="solstone — AI life journal. Captures everything you see and hear, processes it with AI, gives you superhuman memory. Open source, privacy-first. Install on Linux or macOS via git clone + make install. Made by sol pbc, a public benefit corporation.">
+    <meta property="og:title" content="solstone — your co-brain">
+    <meta property="og:description" content="AI life journal that captures everything you see and hear. Open source, privacy-first, yours.">
+    <meta property="og:url" content="https://solstone.app">
+    <meta property="og:type" content="website">
     <link rel="icon" type="image/png" href="static/logo.png">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "solstone",
+      "description": "AI life journal that captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. Open source, privacy-first, locally owned.",
+      "url": "https://solstone.app",
+      "applicationCategory": "LifestyleApplication",
+      "operatingSystem": "Linux, macOS",
+      "softwareRequirements": "Python 3.10+, git, ffmpeg, uv",
+      "installUrl": "https://solstone.app/install",
+      "downloadUrl": "https://github.com/solpbc/solstone",
+      "codeRepository": "https://github.com/solpbc/solstone",
+      "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "author": {
+        "@type": "Organization",
+        "name": "sol pbc",
+        "url": "https://solpbc.org",
+        "legalName": "sol pbc",
+        "description": "Public benefit corporation dedicated to digital self-determination"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -59,9 +92,20 @@
             text-align: center;
             margin-bottom: 1.5rem;
         }
+        .trust {
+            max-width: 500px;
+            width: 90vw;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #888;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
         .cta {
+            display: block;
             color: #888;
             font-size: 0.95rem;
+            margin-bottom: 0.5rem;
         }
         .cta:hover {
             text-decoration: underline;
@@ -72,7 +116,9 @@
     <a href="https://github.com/solpbc/solstone"><img src="static/logo.png" alt="solstone logo" class="logo"></a>
     <h1>solstone</h1>
     <p class="tagline">captures everything you see and hear, processes it with AI, and gives you a searchable memory of your entire digital life. open source, privacy-first, yours.</p>
-    <a href="https://github.com/solpbc/solstone" class="cta">get started on github →</a>
+    <p class="trust">your data resides on your computer. sol pbc can never be sold and can never sell your data — these are irrevocable legal covenants in the founding documents.</p>
+    <a href="/install" class="cta">installation guide →</a>
+    <a href="https://github.com/solpbc/solstone" class="cta">source code on github →</a>
     <footer>© 2026 <a href="https://solpbc.org">sol pbc</a> · solstone is a trademark of sol pbc.</footer>
 </body>
 </html>
