@@ -1,0 +1,7 @@
+name = "solstone-app"
+account_id = "3f2c1528c7d4d9685819ea9e9e307c92"
+compatibility_date = "2025-04-01"
+routes = [{ pattern = "solstone.app", custom_domain = true }]
+
+[assets]
+directory = "./public"
