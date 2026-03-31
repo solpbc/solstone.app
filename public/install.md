@@ -1,12 +1,12 @@
 # solstone installation guide
 
-these instructions are for AI coding agents (claude code, codex cli, or similar) helping a human install solstone. if you are a human reading this directly, the steps still work — but they are written for your agent to follow.
+these instructions are for AI coding agents (claude code, codex cli, or similar) helping a human install solstone. if you are a human reading this directly, the steps still work -- but they are written for your agent to follow.
 
 ## what is solstone
 
-solstone is an AI life journal. it captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory — searchable conversations, automatic relationship tracking, knowledge graphs, and daily insights. open source, made by sol pbc.
+solstone is an AI life journal. it captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory -- searchable conversations, automatic relationship tracking, knowledge graphs, and daily insights. open source, made by sol pbc.
 
-your data resides on your computer. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, the company can never be acquired, and these terms are in the founding documents filed with the state of colorado — not a privacy policy that can change. the code is open source — you can verify every claim.
+your data resides on your computer. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, the company can never be acquired, and these terms are in the founding documents filed with the state of colorado -- not a privacy policy that can change. the code is open source -- you can verify every claim.
 
 **supported platforms:** linux (primary), macOS. windows is not yet supported.
 
@@ -14,15 +14,15 @@ your data resides on your computer. sol pbc is a public benefit corporation with
 
 ---
 
-## step 1 — detect platform
+## step 1 -- detect platform
 
 ```bash
 uname -s
 ```
 
-- `Linux` — go to [step 2a: linux prerequisites](#step-2a--linux-prerequisites)
-- `Darwin` — go to [step 2b: macOS prerequisites](#step-2b--macos-prerequisites)
-- anything else — stop. tell your human that solstone only supports linux and macOS today. windows support is not yet available.
+- `Linux` -- go to [step 2a: linux prerequisites](#step-2a--linux-prerequisites)
+- `Darwin` -- go to [step 2b: macOS prerequisites](#step-2b--macos-prerequisites)
+- anything else -- stop. tell your human that solstone only supports linux and macOS today. windows support is not yet available.
 
 if linux, identify the distribution:
 
@@ -32,7 +32,7 @@ cat /etc/os-release | grep -E "^(ID|ID_LIKE)="
 
 ---
 
-## step 2a — linux prerequisites
+## step 2a -- linux prerequisites
 
 check what is already installed:
 
@@ -72,7 +72,7 @@ sudo pacman -S python git ffmpeg pipewire gstreamer
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-after installing, uv will be at `~/.local/bin/uv` or `~/.cargo/bin/uv`. it may not be in your PATH yet — you can call it directly by full path if needed.
+after installing, uv will be at `~/.local/bin/uv` or `~/.cargo/bin/uv`. it may not be in your PATH yet -- you can call it directly by full path if needed.
 
 ### verify
 
@@ -86,9 +86,9 @@ go to [step 3: clone and install](#step-3--clone-and-install).
 
 ---
 
-## step 2b — macOS prerequisites
+## step 2b -- macOS prerequisites
 
-several of these steps require human interaction — permission dialogs, password prompts, and app store installs cannot be completed by an agent alone. guide your human through each one.
+several of these steps require human interaction -- permission dialogs, password prompts, and app store installs cannot be completed by an agent alone. guide your human through each one.
 
 ### xcode command line tools
 
@@ -106,7 +106,7 @@ check if brew is installed:
 brew --version 2>&1
 ```
 
-if not installed, ask your human to install it from https://brew.sh — this requires their password and interactive confirmation.
+if not installed, ask your human to install it from https://brew.sh -- this requires their password and interactive confirmation.
 
 ### brew packages
 
@@ -126,7 +126,7 @@ go to [step 3: clone and install](#step-3--clone-and-install).
 
 ---
 
-## step 3 — clone and install
+## step 3 -- clone and install
 
 ```bash
 git clone https://github.com/solpbc/solstone.git
@@ -136,7 +136,7 @@ make install
 
 `make install` creates an isolated python virtual environment in `.venv/`, installs all dependencies, and symlinks the `sol` command to `~/.local/bin/sol`.
 
-**success:** the output ends with a message about the `sol` command being installed. verify by calling sol directly — the symlink at `~/.local/bin/sol` may not be in your PATH, so use the local binary:
+**success:** the output ends with a message about the `sol` command being installed. verify by calling sol directly -- the symlink at `~/.local/bin/sol` may not be in your PATH, so use the local binary:
 
 ```bash
 ./solstone/.venv/bin/sol --help
@@ -152,7 +152,7 @@ for all remaining steps, use `.venv/bin/sol` if `sol` is not found in your PATH.
 
 ---
 
-## step 3b — macOS native capture app
+## step 3b -- macOS native capture app
 
 on macOS, solstone uses a native app for screen and audio capture. install it:
 
@@ -169,7 +169,7 @@ this builds and installs the SolstoneCapture app to `/Applications`. after insta
 open /Applications/SolstoneCapture.app
 ```
 
-macOS will show permission prompts for screen recording and microphone access — your human must approve these in the system dialogs that appear. the app runs as a menu bar icon and captures in the background.
+macOS will show permission prompts for screen recording and microphone access -- your human must approve these in the system dialogs that appear. the app runs as a menu bar icon and captures in the background.
 
 return to the solstone directory for the remaining steps:
 
@@ -179,7 +179,7 @@ cd ../solstone
 
 ---
 
-## step 4 — configure
+## step 4 -- configure
 
 all configuration lives in `journal/config/journal.json`. create it:
 
@@ -189,9 +189,9 @@ mkdir -p journal/config
 
 build the config with the following structure. you need to collect two things from your human:
 
-1. **a Google AI Studio API key** — they need to go to https://aistudio.google.com/apikey, sign in, create a key, and give it to you. this is required for transcription and vision processing.
+1. **a Google AI Studio API key** -- they need to go to https://aistudio.google.com/apikey, sign in, create a key, and give it to you. this is required for transcription and vision processing.
 
-2. **a password for the web interface** — any password they will remember. this protects their journal's web UI on localhost.
+2. **a password for the web interface** -- any password they will remember. this protects their journal's web UI on localhost.
 
 write the config file:
 
@@ -233,7 +233,7 @@ write the final config to `journal/config/journal.json`.
 
 ---
 
-## step 5 — verify startup
+## step 5 -- verify startup
 
 run the supervisor in verbose mode briefly to confirm everything starts cleanly:
 
@@ -243,11 +243,11 @@ timeout 10 .venv/bin/sol supervisor -v || true
 
 **success:** the output shows services starting (observer, sense, callosum) and a web interface URL (like `http://localhost:NNNNN`) with no errors or crashes. some warnings are normal on first run.
 
-if the supervisor errors on startup, read the output carefully — common causes are a missing or invalid API key, missing system dependencies (pipewire/gstreamer on linux), or permission issues.
+if the supervisor errors on startup, read the output carefully -- common causes are a missing or invalid API key, missing system dependencies (pipewire/gstreamer on linux), or permission issues.
 
 ---
 
-## step 6 — hand off to the human
+## step 6 -- hand off to the human
 
 solstone is installed and configured. tell your human:
 
@@ -255,17 +255,17 @@ solstone is installed and configured. tell your human:
    ```
    sol supervisor
    ```
-   (or `.venv/bin/sol supervisor` if `sol` is not in their PATH — they can add `~/.local/bin` to their PATH in their shell profile to fix this permanently)
+   (or `.venv/bin/sol supervisor` if `sol` is not in their PATH -- they can add `~/.local/bin` to their PATH in their shell profile to fix this permanently)
 
 2. **the web interface** will show a URL when the supervisor starts. open that URL in a browser and log in with the password they chose.
 
-3. **after logging in**, they should go to Settings (gear icon) and fill in their identity — name, preferred name, pronouns, timezone. this helps solstone identify them in transcripts and personalize AI responses.
+3. **after logging in**, they should go to Settings (gear icon) and fill in their identity -- name, preferred name, pronouns, timezone. this helps solstone identify them in transcripts and personalize AI responses.
 
 4. **solstone runs in the foreground** in that terminal. to stop it, Ctrl+C. to run it in the background, they can use `nohup sol supervisor &` or run it in a tmux/screen session.
 
 5. **on macOS**, the SolstoneCapture menu bar app handles screen and audio recording. it should be running alongside the supervisor.
 
-6. **what solstone does from here:** it captures screen and audio continuously, transcribes conversations, extracts people and projects, builds a knowledge graph, and makes everything searchable through the web interface. all data stays in `journal/` directories inside the solstone folder — one directory per day.
+6. **what solstone does from here:** it captures screen and audio continuously, transcribes conversations, extracts people and projects, builds a knowledge graph, and makes everything searchable through the web interface. all data stays in `journal/` directories inside the solstone folder -- one directory per day.
 
 source code: https://github.com/solpbc/solstone
 company: https://solpbc.org
