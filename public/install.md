@@ -37,10 +37,10 @@ cat /etc/os-release | grep -E "^(ID|ID_LIKE)="
 check what is already installed:
 
 ```bash
-python3 --version 2>&1; git --version 2>&1; ffmpeg -version 2>&1 | head -1; uv --version 2>&1
+python3 --version 2>&1; git --version 2>&1; ffmpeg -version 2>&1 | head -1; uv --version 2>&1; pipx --version 2>&1
 ```
 
-**success:** python 3.10+, git, ffmpeg, and uv all produce version output. if any are missing or python is below 3.10, install below.
+**success:** python 3.10+, git, ffmpeg, uv, and pipx all produce version output. if any are missing or python is below 3.10, install below.
 
 ### system packages
 
@@ -49,19 +49,19 @@ these require `sudo`. if you do not have sudo access, ask your human to run thes
 **fedora / rhel / centos stream:**
 
 ```bash
-sudo dnf install python3 git ffmpeg pipewire gstreamer1-plugins-base
+sudo dnf install python3 python3-gobject git ffmpeg pipewire pipewire-gstreamer pipewire-pulseaudio gstreamer1-plugins-base gtk4 alsa-lib-devel pulseaudio-utils pipx
 ```
 
 **ubuntu / debian:**
 
 ```bash
-sudo apt install python3 git ffmpeg pipewire gstreamer1.0-tools
+sudo apt install python3 python3-gi git ffmpeg pipewire pipewire-pulse gstreamer1.0-pipewire gir1.2-gdk-4.0 gir1.2-gtk-4.0 libasound2-dev pulseaudio-utils pipx
 ```
 
 **arch / manjaro:**
 
 ```bash
-sudo pacman -S python git ffmpeg pipewire gstreamer
+sudo pacman -S python python-gobject git ffmpeg pipewire pipewire-pulse gstreamer gtk4 alsa-lib python-pipx
 ```
 
 **note:** if system packages were just installed, the new commands may not be in your current PATH. call them by their full path (e.g., `/usr/bin/python3 --version`) or run `hash -r` to refresh your shell's command cache.
@@ -77,10 +77,10 @@ after installing, uv will be at `~/.local/bin/uv` or `~/.cargo/bin/uv`. it may n
 ### verify
 
 ```bash
-python3 --version && git --version && ffmpeg -version 2>&1 | head -1 && uv --version
+python3 --version && git --version && ffmpeg -version 2>&1 | head -1 && uv --version && pipx --version
 ```
 
-**success:** all four produce version output. python is 3.10 or later.
+**success:** all five produce version output. python is 3.10 or later.
 
 go to [step 3: clone and install](#step-3--clone-and-install).
 
@@ -139,43 +139,10 @@ make install
 **success:** the output ends with a message about the `sol` command being installed. verify by calling sol directly -- the symlink at `~/.local/bin/sol` may not be in your PATH, so use the local binary:
 
 ```bash
-./solstone/.venv/bin/sol --help
-```
-
-or if you are already inside the solstone directory:
-
-```bash
 .venv/bin/sol --help
 ```
 
 for all remaining steps, use `.venv/bin/sol` if `sol` is not found in your PATH.
-
----
-
-## step 3b -- macOS native capture app
-
-on macOS, solstone uses a native app for screen and audio capture. install it:
-
-```bash
-cd ..
-git clone https://github.com/solpbc/solstone-macos.git
-cd solstone-macos
-make install
-```
-
-this builds and installs the SolstoneCapture app to `/Applications`. after install, open it:
-
-```bash
-open /Applications/SolstoneCapture.app
-```
-
-macOS will show permission prompts for screen recording and microphone access -- your human must approve these in the system dialogs that appear. the app runs as a menu bar icon and captures in the background.
-
-return to the solstone directory for the remaining steps:
-
-```bash
-cd ../solstone
-```
 
 ---
 
@@ -233,37 +200,146 @@ write the final config to `journal/config/journal.json`.
 
 ---
 
-## step 5 -- verify startup
+## step 5 -- register observer
 
-run the supervisor in verbose mode briefly to confirm everything starts cleanly:
+solstone's capture pipeline uses standalone observer apps that upload to the solstone server. register one now so you have the API key for the observer install in the next step.
 
 ```bash
-timeout 10 .venv/bin/sol supervisor -v || true
+.venv/bin/sol remote create observer
 ```
 
-**success:** the output shows services starting (observer, sense, callosum) and a web interface URL (like `http://localhost:NNNNN`) with no errors or crashes. some warnings are normal on first run.
-
-if the supervisor errors on startup, read the output carefully -- common causes are a missing or invalid API key, missing system dependencies (pipewire/gstreamer on linux), or permission issues.
+this prints an API key. **save it** -- you will need it in the next step. the server URL is `http://localhost:5015` (the default convey port).
 
 ---
 
-## step 6 -- hand off to the human
+## step 6 -- install platform observer
 
-solstone is installed and configured. tell your human:
+observers capture screen and audio and upload to the solstone server. each platform has its own observer.
 
-1. **to start solstone**, open a terminal, go to the solstone directory, and run:
+### linux observer
+
+install the standalone linux observer:
+
+```bash
+pipx install --system-site-packages solstone-linux
+```
+
+the `--system-site-packages` flag is required because the observer uses PyGObject and GStreamer bindings that must come from system packages.
+
+configure it with the server URL and API key from step 5:
+
+```bash
+mkdir -p ~/.local/share/solstone-linux/config
+```
+
+write the config file at `~/.local/share/solstone-linux/config/config.json`:
+
+```json
+{
+  "server_url": "http://localhost:5015",
+  "key": "THE_API_KEY_FROM_STEP_5"
+}
+```
+
+install and start the systemd user service:
+
+```bash
+solstone-linux install-service
+```
+
+**success:** `systemctl --user status solstone-linux` shows the service active and running.
+
+go to [step 7: start solstone](#step-7--start-solstone).
+
+### macOS observer
+
+on macOS, solstone uses a native app for screen and audio capture. build and install it:
+
+```bash
+cd ..
+git clone https://github.com/solpbc/solstone-macos.git
+cd solstone-macos
+make install
+```
+
+this builds and installs the SolstoneCapture app to `/Applications`. open it:
+
+```bash
+open /Applications/SolstoneCapture.app
+```
+
+the app will show a setup screen on first launch. tell your human to:
+
+1. enter the **server URL**: `http://localhost:5015`
+2. enter the **API key** from step 5
+3. approve the **screen recording** and **microphone** permission prompts that macOS shows
+
+the app runs as a menu bar icon and captures in the background.
+
+return to the solstone directory for the remaining steps:
+
+```bash
+cd ../solstone
+```
+
+go to [step 7: start solstone](#step-7--start-solstone).
+
+---
+
+## step 7 -- start solstone
+
+install solstone as a background service:
+
+```bash
+make install-service
+```
+
+this installs, enables, and starts a systemd user service (linux) or launchd agent (macOS) with the web interface on port 5015.
+
+verify everything is running:
+
+```bash
+.venv/bin/sol service status
+```
+
+then open the web interface:
+
+```bash
+.venv/bin/sol health
+```
+
+**success:** `sol service status` shows the service running. `sol health` shows healthy services. the web interface is available at `http://localhost:5015`.
+
+if the service fails to start, check the logs:
+
+```bash
+.venv/bin/sol service logs
+```
+
+common causes are a missing or invalid API key, missing system dependencies (pipewire/gstreamer on linux), or permission issues.
+
+---
+
+## step 8 -- hand off to the human
+
+solstone is installed and running as a background service. tell your human:
+
+1. **solstone is running** as a background service that starts automatically on login. they can manage it with:
    ```
-   sol supervisor
+   sol service status    # check if running
+   sol service restart   # restart
+   sol service stop      # stop
+   sol service logs -f   # follow logs
    ```
-   (or `.venv/bin/sol supervisor` if `sol` is not in their PATH -- they can add `~/.local/bin` to their PATH in their shell profile to fix this permanently)
+   (or use `.venv/bin/sol` if `sol` is not in their PATH -- they can add `~/.local/bin` to their PATH in their shell profile to fix this permanently)
 
-2. **the web interface** will show a URL when the supervisor starts. open that URL in a browser and log in with the password they chose.
+2. **the web interface** is at `http://localhost:5015`. open it in a browser and log in with the password they chose.
 
 3. **after logging in**, they should go to Settings (gear icon) and fill in their identity -- name, preferred name, pronouns, timezone. this helps solstone identify them in transcripts and personalize AI responses.
 
-4. **solstone runs in the foreground** in that terminal. to stop it, Ctrl+C. to run it in the background, they can use `nohup sol supervisor &` or run it in a tmux/screen session.
+4. **on macOS**, the SolstoneCapture menu bar app handles screen and audio recording. it should be running alongside the solstone service (it shows as a menu bar icon).
 
-5. **on macOS**, the SolstoneCapture menu bar app handles screen and audio recording. it should be running alongside the supervisor.
+5. **on linux**, the solstone-linux observer runs as a separate systemd service alongside the main solstone service. check it with `systemctl --user status solstone-linux`.
 
 6. **what solstone does from here:** it captures screen and audio continuously, transcribes conversations, extracts people and projects, builds a knowledge graph, and makes everything searchable through the web interface. all data stays in `journal/` directories inside the solstone folder -- one directory per day.
 
