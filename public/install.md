@@ -200,15 +200,24 @@ write the final config to `journal/config/journal.json`.
 
 ---
 
-## step 5 -- register observer
+## step 5 -- register observers
 
-solstone's capture pipeline uses standalone observer apps that upload to the solstone server. register one now so you have the API key for the observer install in the next step.
+solstone's capture pipeline uses standalone observer apps that upload to the solstone server. register them now so you have the API keys for the observer installs in the next step.
+
+on **linux**, register two observers (screen/audio + terminal):
 
 ```bash
-.venv/bin/sol remote create observer
+.venv/bin/sol remote create solstone-linux
+.venv/bin/sol remote create solstone-tmux
 ```
 
-this prints an API key. **save it** -- you will need it in the next step. the server URL is `http://localhost:5015` (the default convey port).
+on **macOS**, register one observer (the native app handles screen/audio):
+
+```bash
+.venv/bin/sol remote create solstone-macos
+```
+
+each command prints an API key. **save them** -- you will need them in the next step. the server URL is `http://localhost:5015` (the default convey port).
 
 ---
 
@@ -216,9 +225,11 @@ this prints an API key. **save it** -- you will need it in the next step. the se
 
 observers capture screen and audio and upload to the solstone server. each platform has its own observer.
 
-### linux observer
+### linux observers
 
-install the standalone linux observer:
+linux uses two standalone observers: **solstone-linux** for screen and audio capture, and **solstone-tmux** for terminal session capture. install both.
+
+#### solstone-linux (screen + audio)
 
 ```bash
 pipx install --system-site-packages solstone-linux
@@ -226,7 +237,7 @@ pipx install --system-site-packages solstone-linux
 
 the `--system-site-packages` flag is required because the observer uses PyGObject and GStreamer bindings that must come from system packages.
 
-configure it with the server URL and API key from step 5:
+configure it with the server URL and API key from step 5. replace `HOSTNAME` with your machine's hostname (run `hostname` to check):
 
 ```bash
 mkdir -p ~/.local/share/solstone-linux/config
@@ -237,7 +248,8 @@ write the config file at `~/.local/share/solstone-linux/config/config.json`:
 ```json
 {
   "server_url": "http://localhost:5015",
-  "key": "THE_API_KEY_FROM_STEP_5"
+  "key": "THE_SOLSTONE_LINUX_API_KEY_FROM_STEP_5",
+  "stream": "HOSTNAME"
 }
 ```
 
@@ -248,6 +260,44 @@ solstone-linux install-service
 ```
 
 **success:** `systemctl --user status solstone-linux` shows the service active and running.
+
+#### solstone-tmux (terminal capture)
+
+```bash
+pipx install solstone-tmux
+```
+
+no `--system-site-packages` needed -- this is pure Python.
+
+```bash
+mkdir -p ~/.local/share/solstone-tmux/config
+```
+
+write the config file at `~/.local/share/solstone-tmux/config/config.json`:
+
+```json
+{
+  "server_url": "http://localhost:5015",
+  "key": "THE_SOLSTONE_TMUX_API_KEY_FROM_STEP_5",
+  "stream": "HOSTNAME.tmux"
+}
+```
+
+install and start the systemd user service:
+
+```bash
+solstone-tmux install-service
+```
+
+**success:** `systemctl --user status solstone-tmux` shows the service active and running.
+
+#### verify both observers
+
+```bash
+.venv/bin/sol remote list
+```
+
+**success:** both `solstone-linux` and `solstone-tmux` show as `connected`.
 
 go to [step 7: start solstone](#step-7--start-solstone).
 
@@ -339,7 +389,10 @@ solstone is installed and running as a background service. tell your human:
 
 4. **on macOS**, the SolstoneCapture menu bar app handles screen and audio recording. it should be running alongside the solstone service (it shows as a menu bar icon).
 
-5. **on linux**, the solstone-linux observer runs as a separate systemd service alongside the main solstone service. check it with `systemctl --user status solstone-linux`.
+5. **on linux**, two observer services run alongside the main solstone service:
+      - `systemctl --user status solstone-linux` -- screen and audio capture
+      - `systemctl --user status solstone-tmux` -- terminal session capture
+      - `sol remote list` -- shows both observers and their sync status
 
 6. **what solstone does from here:** it captures screen and audio continuously, transcribes conversations, extracts people and projects, builds a knowledge graph, and makes everything searchable through the web interface. all data stays in `journal/` directories inside the solstone folder -- one directory per day.
 
