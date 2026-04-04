@@ -1,0 +1,12 @@
+name = "scouts"
+account_id = "3f2c1528c7d4d9685819ea9e9e307c92"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+main = "src/index.js"
+
+routes = [{ pattern = "scouts.solstone.app", custom_domain = true }]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "scouts-portal"
+database_id = "PLACEHOLDER_CTO_WILL_SET"

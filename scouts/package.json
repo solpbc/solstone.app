@@ -1,0 +1,15 @@
+{
+  "name": "scouts-portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "schema": "wrangler d1 execute scouts-portal --file=schema.sql --remote",
+    "schema:local": "wrangler d1 execute scouts-portal --file=schema.sql --local"
+  },
+  "dependencies": {
+    "jose": "^6.0.11"
+  }
+}
