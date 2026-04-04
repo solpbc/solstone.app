@@ -55,7 +55,7 @@ sudo dnf install python3 python3-gobject git ffmpeg pipewire pipewire-gstreamer 
 **ubuntu / debian:**
 
 ```bash
-sudo apt install python3 python3-gi git ffmpeg pipewire pipewire-pulse gstreamer1.0-pipewire gir1.2-gdk-4.0 gir1.2-gtk-4.0 libasound2-dev pulseaudio-utils pipx
+sudo apt install python3 python3-gi git ffmpeg pipewire pipewire-pulse gstreamer1.0-pipewire gstreamer1.0-plugins-good gir1.2-gdk-4.0 gir1.2-gtk-4.0 libasound2-dev pulseaudio-utils pipx
 ```
 
 **arch / manjaro:**
@@ -208,109 +208,9 @@ chmod 600 journal/config/journal.json
 
 ---
 
-## step 5 -- register observer
+## step 5 -- start solstone
 
-solstone's capture pipeline uses standalone observer apps that upload to the solstone server. register one now so you have the API key for the observer install in the next step.
-
-```bash
-.venv/bin/sol remote create solstone-linux   # on linux
-.venv/bin/sol remote create solstone-macos   # on macOS
-```
-
-this prints an API key. **save it** -- you will need it in the next step. the server URL is `http://localhost:5015` (the default convey port).
-
----
-
-## step 6 -- install platform observer
-
-observers capture screen and audio and upload to the solstone server. each platform has its own observer.
-
-### linux observer
-
-install the standalone linux observer from source (packages are not yet on PyPI):
-
-```bash
-cd ..
-git clone https://github.com/solpbc/solstone-linux.git
-cd solstone-linux
-pipx install --system-site-packages .
-cd ../solstone
-```
-
-the `--system-site-packages` flag is required because the observer uses PyGObject and GStreamer bindings that must come from system packages.
-
-**note:** activity detection (idle timeout, screen lock, power save) currently requires a GNOME desktop. on other desktops (KDE, Sway, Hyprland), screen and audio capture works but activity-based segment boundaries won't trigger.
-
-configure it with the server URL and API key from step 5. replace `HOSTNAME` with your machine's hostname (run `hostname` to check):
-
-```bash
-mkdir -p ~/.local/share/solstone-linux/config
-```
-
-write the config file at `~/.local/share/solstone-linux/config/config.json`:
-
-```json
-{
-  "server_url": "http://localhost:5015",
-  "key": "THE_API_KEY_FROM_STEP_5",
-  "stream": "HOSTNAME"
-}
-```
-
-install and start the systemd user service:
-
-```bash
-solstone-linux install-service
-```
-
-**success:** `systemctl --user status solstone-linux` shows the service active and running. `.venv/bin/sol remote list` shows it as `connected`.
-
-go to [step 7: start solstone](#step-7--start-solstone).
-
-### macOS observer
-
-on macOS, solstone uses a native app for screen and audio capture. this requires the full Xcode IDE (not just command line tools) to build.
-
-```bash
-cd ..
-git clone https://github.com/solpbc/solstone-macos.git
-cd solstone-macos
-make install
-```
-
-this builds a release binary, creates an app bundle, and copies it to `/Applications`. if macOS blocks the app because it's unsigned, tell your human to either right-click the app and choose "Open", or run:
-
-```bash
-xattr -cr /Applications/solstone.app
-```
-
-open the app:
-
-```bash
-open /Applications/solstone.app
-```
-
-the app will show a setup screen on first launch. tell your human to:
-
-1. enter the **server URL**: `http://localhost:5015`
-2. enter the **API key** from step 5
-3. approve the **screen recording** and **microphone** permission prompts that macOS shows
-
-the app runs as a menu bar icon and captures in the background.
-
-return to the solstone directory for the remaining steps:
-
-```bash
-cd ../solstone
-```
-
-go to [step 7: start solstone](#step-7--start-solstone).
-
----
-
-## step 7 -- start solstone
-
-install solstone as a background service:
+install solstone as a background service. this must happen before the observer so the server is running when the observer tries to connect.
 
 ```bash
 make install-service
@@ -339,6 +239,108 @@ if the service fails to start, check the logs:
 ```
 
 common causes are a missing or invalid API key, missing system dependencies (pipewire/gstreamer on linux), or permission issues.
+
+---
+
+## step 6 -- register observer
+
+solstone's capture pipeline uses standalone observer apps that upload to the solstone server. register one now so you have the API key for the observer install in the next step.
+
+```bash
+.venv/bin/sol remote create solstone-linux   # on linux
+.venv/bin/sol remote create solstone-macos   # on macOS
+```
+
+this prints an API key. **save it** -- you will need it in the next step. the server URL is `http://localhost:5015` (the default convey port).
+
+---
+
+## step 7 -- install platform observer
+
+observers capture screen and audio and upload to the solstone server. each platform has its own observer.
+
+### linux observer
+
+install the standalone linux observer from source (packages are not yet on PyPI):
+
+```bash
+cd ..
+git clone https://github.com/solpbc/solstone-linux.git
+cd solstone-linux
+pipx install --system-site-packages .
+cd ../solstone
+```
+
+the `--system-site-packages` flag is required because the observer uses PyGObject and GStreamer bindings that must come from system packages.
+
+**note:** activity detection (idle timeout, screen lock, power save) currently requires a GNOME desktop. on other desktops (KDE, Sway, Hyprland), screen and audio capture works but activity-based segment boundaries won't trigger.
+
+configure it with the server URL and API key from step 6. replace `HOSTNAME` with your machine's hostname (run `hostname` to check):
+
+```bash
+mkdir -p ~/.local/share/solstone-linux/config
+```
+
+write the config file at `~/.local/share/solstone-linux/config/config.json`:
+
+```json
+{
+  "server_url": "http://localhost:5015",
+  "key": "THE_API_KEY_FROM_STEP_6",
+  "stream": "HOSTNAME"
+}
+```
+
+install and start the systemd user service:
+
+```bash
+solstone-linux install-service
+```
+
+**success:** `systemctl --user status solstone-linux` shows the service active and running. `.venv/bin/sol remote list` shows it as `connected`.
+
+go to [step 8: hand off to the human](#step-8--hand-off-to-the-human).
+
+### macOS observer
+
+on macOS, solstone uses a native app for screen and audio capture. this requires the full Xcode IDE (not just command line tools) to build.
+
+```bash
+cd ..
+git clone https://github.com/solpbc/solstone-macos.git
+cd solstone-macos
+make install
+```
+
+this builds a release binary, creates an app bundle, and copies it to `/Applications`. if macOS blocks the app because it's unsigned, tell your human to either right-click the app and choose "Open", or run:
+
+```bash
+xattr -cr /Applications/solstone.app
+```
+
+open the app:
+
+```bash
+open /Applications/solstone.app
+```
+
+the app auto-registers with the solstone server on first launch using the `sol` CLI. it will:
+
+1. detect the server at `http://localhost:5015`
+2. register itself and obtain an API key automatically
+3. prompt the human to approve **screen recording** and **microphone** permissions
+
+if auto-registration fails (e.g., server not reachable), the app falls back to a manual setup screen where the human can enter the server URL and API key from step 6.
+
+the app runs as a menu bar icon and captures in the background.
+
+return to the solstone directory for the remaining steps:
+
+```bash
+cd ../solstone
+```
+
+go to [step 8: hand off to the human](#step-8--hand-off-to-the-human).
 
 ---
 
