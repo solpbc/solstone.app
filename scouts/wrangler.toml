@@ -9,4 +9,7 @@ routes = [{ pattern = "scouts.solstone.app", custom_domain = true }]
 [[d1_databases]]
 binding = "DB"
 database_name = "scouts-portal"
-database_id = "PLACEHOLDER_CTO_WILL_SET"
+database_id = "42812399-198d-4d04-af8e-f094125b5588"
+
+[triggers]
+crons = ["0 */6 * * *"]
