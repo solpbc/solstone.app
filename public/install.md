@@ -49,7 +49,7 @@ these require `sudo`. if you do not have sudo access, ask your human to run thes
 **fedora / rhel / centos stream:**
 
 ```bash
-sudo dnf install python3 python3-gobject git ffmpeg pipewire pipewire-gstreamer pipewire-pulseaudio gstreamer1-plugins-base gtk4 alsa-lib-devel pulseaudio-utils pipx
+sudo dnf install python3 python3-gobject git ffmpeg pipewire pipewire-gstreamer pipewire-pulseaudio gstreamer1-plugins-base gstreamer1-plugin-pipewire gtk4 alsa-lib-devel pulseaudio-utils pipx
 ```
 
 **ubuntu / debian:**
@@ -61,7 +61,7 @@ sudo apt install python3 python3-gi git ffmpeg pipewire pipewire-pulse gstreamer
 **arch / manjaro:**
 
 ```bash
-sudo pacman -S python python-gobject git ffmpeg pipewire pipewire-pulse gstreamer gtk4 alsa-lib python-pipx
+sudo pacman -S python python-gobject git ffmpeg pipewire pipewire-pulse gstreamer gst-plugin-pipewire libpulse gtk4 alsa-lib python-pipx
 ```
 
 **note:** if system packages were just installed, the new commands may not be in your current PATH. call them by their full path (e.g., `/usr/bin/python3 --version`) or run `hash -r` to refresh your shell's command cache.
@@ -90,7 +90,11 @@ go to [step 3: clone and install](#step-3--clone-and-install).
 
 several of these steps require human interaction -- permission dialogs, password prompts, and app store installs cannot be completed by an agent alone. guide your human through each one.
 
-### xcode command line tools
+### xcode
+
+the macOS observer (solstone-macos) requires the full Xcode IDE, not just command line tools. ask your human to install Xcode from the Mac App Store if they haven't already. this is a large download and requires an Apple ID.
+
+after Xcode is installed, also install the command line tools:
 
 ```bash
 xcode-select --install
@@ -194,9 +198,13 @@ example with both gemini and anthropic:
 }
 ```
 
-write the final config to `journal/config/journal.json`.
+write the final config to `journal/config/journal.json`, then restrict its permissions -- it contains API keys and a password:
 
-**success:** `cat journal/config/journal.json` shows the config with real keys (not placeholders) and a real password.
+```bash
+chmod 600 journal/config/journal.json
+```
+
+**success:** `cat journal/config/journal.json` shows the config with real keys (not placeholders) and a real password. `stat -c %a journal/config/journal.json` (linux) or `stat -f %Lp journal/config/journal.json` (macOS) shows `600`.
 
 ---
 
@@ -219,13 +227,19 @@ observers capture screen and audio and upload to the solstone server. each platf
 
 ### linux observer
 
-install the standalone linux observer:
+install the standalone linux observer from source (packages are not yet on PyPI):
 
 ```bash
-pipx install --system-site-packages solstone-linux
+cd ..
+git clone https://github.com/solpbc/solstone-linux.git
+cd solstone-linux
+pipx install --system-site-packages .
+cd ../solstone
 ```
 
 the `--system-site-packages` flag is required because the observer uses PyGObject and GStreamer bindings that must come from system packages.
+
+**note:** activity detection (idle timeout, screen lock, power save) currently requires a GNOME desktop. on other desktops (KDE, Sway, Hyprland), screen and audio capture works but activity-based segment boundaries won't trigger.
 
 configure it with the server URL and API key from step 5. replace `HOSTNAME` with your machine's hostname (run `hostname` to check):
 
@@ -255,7 +269,7 @@ go to [step 7: start solstone](#step-7--start-solstone).
 
 ### macOS observer
 
-on macOS, solstone uses a native app for screen and audio capture. build and install it:
+on macOS, solstone uses a native app for screen and audio capture. this requires the full Xcode IDE (not just command line tools) to build.
 
 ```bash
 cd ..
@@ -264,10 +278,16 @@ cd solstone-macos
 make install
 ```
 
-this builds and installs the SolstoneCapture app to `/Applications`. open it:
+this builds a release binary, creates an app bundle, and copies it to `/Applications`. if macOS blocks the app because it's unsigned, tell your human to either right-click the app and choose "Open", or run:
 
 ```bash
-open /Applications/SolstoneCapture.app
+xattr -cr /Applications/solstone.app
+```
+
+open the app:
+
+```bash
+open /Applications/solstone.app
 ```
 
 the app will show a setup screen on first launch. tell your human to:
