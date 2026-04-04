@@ -35,7 +35,7 @@ export async function cleanupExpiredSessions(db) {
 // --- Scout operations ---
 
 export async function upsertScout(db, did, handle) {
-  // If scout already exists, update handle. Otherwise insert as unknown.
+  // If scout already exists by DID, update handle.
   const existing = await db
     .prepare('SELECT * FROM scouts WHERE did = ?')
     .bind(did)
@@ -46,6 +46,19 @@ export async function upsertScout(db, did, handle) {
       .bind(handle, did)
       .run();
     return { ...existing, handle };
+  }
+  // Check for a pre-approved record by handle (stored with pending: DID prefix).
+  // If found, upgrade it to the real DID so the scout inherits the pre-approval.
+  const preApproved = await db
+    .prepare("SELECT * FROM scouts WHERE handle = ? AND did LIKE 'pending:%'")
+    .bind(handle)
+    .first();
+  if (preApproved) {
+    await db
+      .prepare('UPDATE scouts SET did = ?, handle = ? WHERE did = ?')
+      .bind(did, handle, preApproved.did)
+      .run();
+    return { ...preApproved, did, handle };
   }
   await db
     .prepare('INSERT INTO scouts (did, handle, status) VALUES (?, ?, ?)')
@@ -133,6 +146,13 @@ export async function listScouts(db) {
     .prepare('SELECT did, handle, email, status, use_case, applied_at, approved_at, created_at FROM scouts ORDER BY created_at DESC')
     .all();
   return results;
+}
+
+export async function acknowledgeData(db, did) {
+  await db
+    .prepare("UPDATE scouts SET data_acknowledged = 1 WHERE did = ? AND status = 'approved'")
+    .bind(did)
+    .run();
 }
 
 // --- Feedback operations ---

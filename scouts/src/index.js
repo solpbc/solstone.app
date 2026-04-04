@@ -10,6 +10,7 @@ import {
   getScout,
   applyScout,
   getGeminiKey,
+  acknowledgeData,
   submitFeedback,
   listNews,
 } from './db.js';
@@ -21,6 +22,7 @@ import {
   renderApplied,
   renderApproved,
   renderRevoked,
+  renderDataDisclosure,
 } from './html.js';
 
 const SESSION_COOKIE = 'scouts_session';
@@ -140,6 +142,19 @@ export default {
         return redirect('/', {
           'Set-Cookie': sessionCookie('', 0),
         });
+      }
+
+      // Data disclosure page
+      if (path === '/data' && method === 'GET') {
+        if (scout.status !== 'approved') return redirect('/dashboard');
+        return html(renderDataDisclosure(scout));
+      }
+
+      // Acknowledge data disclosure
+      if (path === '/data/acknowledge' && method === 'POST') {
+        if (scout.status !== 'approved') return redirect('/dashboard');
+        await acknowledgeData(db, scout.did);
+        return redirect('/dashboard');
       }
 
       // Dashboard

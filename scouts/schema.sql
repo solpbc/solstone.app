@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS scouts (
   email TEXT,
   status TEXT NOT NULL DEFAULT 'unknown' CHECK(status IN ('unknown','applied','approved','revoked')),
   gemini_key TEXT,
+  data_acknowledged INTEGER NOT NULL DEFAULT 0,
   use_case TEXT,
   applied_at TEXT,
   approved_at TEXT,

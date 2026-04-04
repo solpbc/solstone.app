@@ -266,8 +266,17 @@ export function renderApproved(scout, geminiKey, news) {
       }
     </script>`;
 
-  const tokenHtml = geminiKey
-    ? `<div class="card">
+  const dataLink = `<p style="font-size:0.8rem; color:#aaa; margin-top:0.5rem;"><a href="/data" style="color:#aaa;">how your data is handled</a></p>`;
+
+  let tokenHtml;
+  if (!scout.data_acknowledged && geminiKey) {
+    // Gate: must acknowledge data disclosure before revealing key
+    tokenHtml = `<div class="card">
+    <h2>your gemini token</h2>
+    <p>before your token — <a href="/data">read how your data is handled</a> when you use this key.</p>
+  </div>`;
+  } else if (geminiKey) {
+    tokenHtml = `<div class="card">
     <h2>your gemini token</h2>
     <p>this is your personal API key. it powers solstone's thinking layer. don't share it.</p>
     <div class="token-box">
@@ -275,11 +284,14 @@ export function renderApproved(scout, geminiKey, news) {
       <button class="copy-btn" id="copy-btn" onclick="copyToken()">copy</button>
     </div>
     <button class="btn btn-secondary" id="reveal-btn" onclick="toggleToken()" style="font-size:0.85rem;">reveal</button>
-  </div>`
-    : `<div class="card">
+    ${dataLink}
+  </div>`;
+  } else {
+    tokenHtml = `<div class="card">
     <h2>your gemini token</h2>
     <p>your token is being set up. check back soon.</p>
   </div>`;
+  }
 
   const installHtml = `<div class="card">
     <h2>get started</h2>
@@ -328,6 +340,67 @@ export function renderRevoked(scout) {
   <h1>access revoked</h1>
   <p>your scout access has been revoked. questions? <a href="mailto:jer@solpbc.org">jer@solpbc.org</a></p>
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
+</div>`
+  );
+}
+
+export function renderDataDisclosure(scout) {
+  const ackButton = scout.data_acknowledged
+    ? ''
+    : `<form method="POST" action="/data/acknowledge" style="margin-top:2rem;">
+    <button type="submit" class="btn">i've read this</button>
+  </form>`;
+
+  return layout(
+    'your data — solstone scouts',
+    `<div class="container">
+  ${nav(scout.handle)}
+  <h1>your gemini key and your data</h1>
+
+  <p><strong>the short version</strong></p>
+  <p>your gemini key connects solstone's thinking layer to google's gemini API. when solstone thinks on your behalf, it sends content from your journal to google and gets responses back. google does not use any of that to train their models — your key is on a paid tier that explicitly prohibits it. sol pbc can't see what you send or what comes back. we see a bill at the end of the month, not your journal.</p>
+
+  <hr style="border:none; border-top:1px solid #eee; margin:2rem 0;">
+
+  <h2>what happens when solstone calls gemini</h2>
+  <p>solstone runs on your machine. when it needs to think — reflect on what you've captured, generate insights, connect ideas — it sends prompts to google's gemini API using your key. those prompts contain content derived from your journal. google processes them and sends responses back to solstone on your device.</p>
+  <p>your journal content travels directly between your machine and google. sol pbc is not in that path.</p>
+
+  <h2>google doesn't train on your data</h2>
+  <p>your key is provisioned under a paid google cloud project. under google's <a href="https://ai.google.dev/gemini-api/terms">gemini API terms</a>, paid-tier data is explicitly excluded from training:</p>
+  <blockquote style="border-left:3px solid #eee; padding-left:1rem; color:#666; margin:1rem 0; font-style:italic;">"google doesn't use your prompts (including associated system instructions, cached content, and files such as images, videos, or documents) or responses to improve our products."</blockquote>
+  <p>nobody at google reads your content either. on the paid tier, there's no human review of what flows through the API.</p>
+
+  <h2>how long google keeps it</h2>
+  <p>google stores prompts and responses for up to <strong>55 days</strong> for safety monitoring — checking for violations of their <a href="https://ai.google.dev/gemini-api/docs/usage-policies">usage policy</a>. only authorized google personnel can access this data, and only when investigating potential policy violations. it's automatically deleted after 55 days.</p>
+  <p>google also keeps a temporary copy in memory (RAM, not disk) for up to 24 hours to speed up responses. that's isolated to our project and clears itself.</p>
+  <p>we've applied to google for zero data retention on the project that provisions scout keys. if approved, google will stop storing prompts and responses entirely — eliminating the 55-day window. we'll update this page when that's in effect.</p>
+
+  <h2>sol pbc can't see your data</h2>
+  <p>sol pbc <strong>does not have access to the content</strong> of your API calls. we can't read your prompts. we can't read gemini's responses. we see billing — how many calls were made, how many tokens, what it cost. that's it.</p>
+  <p>we gave you the key and we can revoke it. we cannot see what flows through it. this is intentional — our <a href="https://solpbc.org/bylaws">bylaws</a> prohibit us from using your data for anything other than providing the service directly to you, and we've built the architecture to match.</p>
+
+  <h2>what you control</h2>
+  <p>solstone runs on your hardware. you decide what it observes and what it sends to gemini. you can stop using the key anytime. if you want it revoked, email <a href="mailto:jer@solpbc.org">jer@solpbc.org</a> and we'll delete it from google's systems.</p>
+  <p>one thing: don't share your key. it's provisioned specifically for you and tied to your scout account.</p>
+
+  <h2>the covenants behind this</h2>
+  <p>sol pbc is a colorado public benefit corporation. our <a href="https://solpbc.org/bylaws">bylaws</a> contain irrevocable data governance covenants — not policies that can be quietly updated, but structural commitments baked into how the company is built:</p>
+  <ul style="padding-left:1.25rem; color:#555; margin-bottom:1rem;">
+    <li style="margin-bottom:0.5rem;"><strong>we will never sell your data.</strong> not anonymized, not aggregated, not de-identified. no third-party access, no exceptions. (bylaws, article IV, section 4.1)</li>
+    <li style="margin-bottom:0.5rem;"><strong>we will never use your data for anything other than the service.</strong> no analytics, no tracking, no profiling, no advertising. ever. (bylaws, article IV, section 4.2)</li>
+  </ul>
+  <p>these can't be changed without 90% shareholder approval and the founder's personal written consent. they survive any change in management. they're the reason sol pbc exists as a public benefit corporation in the first place.</p>
+  <p>google's role here is what the bylaws call a permitted processor — they handle your data solely to provide the gemini API service, under <a href="https://cloud.google.com/terms/data-processing-addendum">contractual terms</a> that prohibit them from using it for their own purposes.</p>
+
+  <h2>questions?</h2>
+  <p><a href="mailto:jer@solpbc.org">jer@solpbc.org</a> — always.</p>
+
+  ${ackButton}
+
+  <footer>
+    <p><a href="/dashboard">back to dashboard</a> · <a href="https://solpbc.org">sol pbc</a></p>
+  </footer>
 </div>`
   );
 }
