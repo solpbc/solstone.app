@@ -66,8 +66,9 @@ function layout(title, body, extraHead = '') {
       display: inline-block;
       background: ${SOL_ORANGE};
       color: #fff;
-      padding: 0.65rem 1.5rem;
+      padding: 0.75rem 1.5rem;
       border-radius: 6px;
+      min-height: 44px;
       border: none;
       font-size: 0.95rem;
       cursor: pointer;
@@ -82,7 +83,8 @@ function layout(title, body, extraHead = '') {
     .btn-secondary:hover { background: #eee; }
     input[type="text"], input[type="email"], textarea, select {
       width: 100%;
-      padding: 0.6rem 0.75rem;
+      padding: 0.65rem 0.75rem;
+      min-height: 44px;
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 0.95rem;
@@ -135,7 +137,7 @@ function layout(title, body, extraHead = '') {
       border-radius: 4px;
       font-size: 0.75rem;
       font-weight: 600;
-      text-transform: uppercase;
+      text-transform: lowercase;
     }
     .status-unknown { background: #f0f0f0; color: #888; }
     .status-applied { background: #fef3cd; color: #856404; }
@@ -178,18 +180,19 @@ export function renderLanding(error) {
   return layout(
     'solstone scouts',
     `<div class="container">
-  <div class="logo">${SOL_WORDMARK}</div>
+  <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
   <h1>solstone scouts</h1>
   <p>help shape what comes next. sign in with your atmosphere account to get started.</p>
-  <p style="font-size:0.85rem; color:#888;">if you have a Bluesky account, you already have one.</p>
+  <p style="font-size:0.85rem; color:#888;">if you're on bluesky, you already have one — it runs on the atmosphere network. don't have one? <a href="https://bsky.app">create one at bsky.app</a> — takes 30 seconds.</p>
   ${errorHtml}
+  <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">no analytics, no tracking, no third parties</p>
   <form method="POST" action="/login" style="margin-top: 1.5rem;">
     <label for="handle">your handle</label>
     <input type="text" id="handle" name="handle" placeholder="yourname.bsky.social" required>
     <button type="submit" class="btn">sign in with atmosphere</button>
   </form>
   <footer>
-    <p>solstone scouts is a program by <a href="https://solpbc.org">sol pbc</a>. your data stays with us — no analytics, no tracking, no third parties. <a href="https://solpbc.org/bylaws">read our bylaws</a>.</p>
+    <p>solstone scouts is a program by <a href="https://solpbc.org">sol pbc</a>. your data stays with us — no analytics, no tracking, no third parties. <a href="https://solpbc.org/covenants">read our covenants</a>.</p>
   </footer>
 </div>`
   );
@@ -221,7 +224,7 @@ export function renderUnknown(scout) {
     <label for="email">email</label>
     <input type="email" id="email" name="email" required placeholder="you@example.com">
     <label for="use_case">what do you want to use solstone for? (optional)</label>
-    <textarea id="use_case" name="use_case" placeholder="tell us about your use case..."></textarea>
+    <textarea id="use_case" name="use_case" placeholder="what are you hoping it helps with?"></textarea>
     <button type="submit" class="btn">apply</button>
   </form>
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
@@ -295,12 +298,12 @@ export function renderApproved(scout, geminiKey, news) {
 
   const installHtml = `<div class="card">
     <h2>get started</h2>
-    <p>install solstone and configure your token:</p>
-    <ol style="padding-left:1.25rem; color:#555; margin-bottom:0.5rem;">
-      <li style="margin-bottom:0.5rem;">follow the <a href="https://solstone.app/install">install guide</a></li>
-      <li style="margin-bottom:0.5rem;">set <code style="background:#f5f5f5;padding:0.15rem 0.3rem;border-radius:3px;">providers.auth.google: "api_key"</code> in your journal config</li>
-      <li>set your gemini token as <code style="background:#f5f5f5;padding:0.15rem 0.3rem;border-radius:3px;">GOOGLE_API_KEY</code> in your environment</li>
-    </ol>
+    <p>open your terminal and paste this to your coding agent (claude code, codex cli, or similar):</p>
+    <div class="token-box" style="font-size:0.85rem; margin-bottom:0.75rem;">
+      <span>follow https://solstone.app/install to install and configure solstone with my gemini token</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('follow https://solstone.app/install to install and configure solstone with my gemini token').then(()=>{this.textContent='copied!';setTimeout(()=>this.textContent='copy',1500)})">copy</button>
+    </div>
+    <p style="font-size:0.85rem; color:#888;">don't have a coding agent? <a href="https://docs.anthropic.com/en/docs/claude-code/overview">install claude code</a> first — it takes 2 minutes.</p>
   </div>`;
 
   return layout(

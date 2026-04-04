@@ -38,8 +38,13 @@
       }
     }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        @font-face {
+            font-family: 'Comfortaa';
+            src: url('static/Comfortaa-Variable.woff2') format('woff2');
+            font-weight: 400 700;
+            font-display: swap;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -106,19 +111,22 @@
             color: #888;
             font-size: 0.95rem;
             margin-bottom: 0.5rem;
+            transition: color 0.15s;
         }
         .cta:hover {
-            text-decoration: underline;
+            color: #E8923A;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
     <a href="https://github.com/solpbc/solstone"><img src="static/sol-wordmark.svg" alt="solstone logo" class="logo"></a>
     <h1>solstone</h1>
-    <p class="tagline">captures everything you see and hear, processes it with AI, and gives you a searchable memory of your entire digital life. open source, privacy-first, yours.</p>
-    <p class="trust">your data resides on your computer. sol pbc can never be sold and can never sell your data — these are irrevocable legal covenants in the founding documents.</p>
+    <p class="tagline">captures everything you see and hear, processes it with AI, and gives you a co-brain for your entire digital life. open source, privacy-first, yours.</p>
+    <p class="trust">your data resides on your computer. sol pbc can never be sold and can never sell your data — these are irrevocable legal covenants in the <a href="https://solpbc.org/covenants" style="color:#888;">articles of incorporation</a>.</p>
     <a href="/install" class="cta">installation guide for coding agents →</a>
     <a href="https://github.com/solpbc/solstone" class="cta">source code on github →</a>
-    <footer>© 2026 <a href="https://solpbc.org">sol pbc</a> · solstone is a trademark of sol pbc.</footer>
+    <a href="https://scouts.solstone.app" class="cta">get early access →</a>
+    <footer>© 2026 <a href="https://solpbc.org">sol pbc</a> · your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
 </body>
 </html>
