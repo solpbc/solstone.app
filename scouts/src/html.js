@@ -327,7 +327,7 @@ export function renderApproved(scout, geminiKey, news) {
     'solstone scouts',
     `<div class="container">
   ${nav(scout.handle)}
-  <h1>welcome, scout</h1>
+  <h1>⛺ welcome, scout</h1>
   ${tokenHtml}
   ${installHtml}
   <div class="card">
