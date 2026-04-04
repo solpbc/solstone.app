@@ -180,12 +180,13 @@ export function renderLanding(error) {
     `<div class="container">
   <div class="logo">${SOL_WORDMARK}</div>
   <h1>solstone scouts</h1>
-  <p>help shape what comes next. sign in with your Bluesky account to get started.</p>
+  <p>help shape what comes next. sign in with your atmosphere account to get started.</p>
+  <p style="font-size:0.85rem; color:#888;">if you have a Bluesky account, you already have one.</p>
   ${errorHtml}
   <form method="POST" action="/login" style="margin-top: 1.5rem;">
-    <label for="handle">your bluesky handle</label>
+    <label for="handle">your handle</label>
     <input type="text" id="handle" name="handle" placeholder="yourname.bsky.social" required>
-    <button type="submit" class="btn">sign in with bluesky</button>
+    <button type="submit" class="btn">sign in with atmosphere</button>
   </form>
   <footer>
     <p>solstone scouts is a program by <a href="https://solpbc.org">sol pbc</a>. your data stays with us — no analytics, no tracking, no third parties. <a href="https://solpbc.org/bylaws">read our bylaws</a>.</p>

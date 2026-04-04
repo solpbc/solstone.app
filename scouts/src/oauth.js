@@ -11,6 +11,7 @@ const CLIENT_METADATA = {
   client_id: CLIENT_ID,
   application_type: 'web',
   grant_types: ['authorization_code', 'refresh_token'],
+  response_types: ['code'],
   redirect_uris: [REDIRECT_URI],
   scope: SCOPE,
   token_endpoint_auth_method: 'none',
@@ -87,11 +88,20 @@ function getPdsEndpoint(didDoc) {
   return service.serviceEndpoint;
 }
 
-// Discover the authorization server from a PDS
+// Discover the authorization server from a PDS via protected resource metadata
 async function discoverAuthServer(pdsUrl) {
-  const res = await fetch(`${pdsUrl}/.well-known/oauth-authorization-server`);
-  if (!res.ok) throw new Error(`could not discover authorization server at ${pdsUrl}`);
-  return res.json();
+  // Step 1: fetch the resource server metadata to find the authorization server
+  const rsRes = await fetch(`${pdsUrl}/.well-known/oauth-protected-resource`);
+  if (!rsRes.ok) throw new Error(`could not fetch protected resource metadata from ${pdsUrl}`);
+  const rsMeta = await rsRes.json();
+  const authServers = rsMeta.authorization_servers;
+  if (!authServers?.length) throw new Error(`no authorization servers listed for ${pdsUrl}`);
+  const authServerUrl = authServers[0];
+
+  // Step 2: fetch the authorization server metadata
+  const asRes = await fetch(`${authServerUrl}/.well-known/oauth-authorization-server`);
+  if (!asRes.ok) throw new Error(`could not fetch auth server metadata from ${authServerUrl}`);
+  return asRes.json();
 }
 
 // Generate a PKCE code verifier and challenge
@@ -110,7 +120,7 @@ async function computeChallenge(verifier) {
 
 // Generate a DPoP key pair and export for storage
 async function generateDpopKeyPair() {
-  const { publicKey, privateKey } = await generateKeyPair('ES256');
+  const { publicKey, privateKey } = await generateKeyPair('ES256', { extractable: true });
   const publicJwk = await exportJWK(publicKey);
   const privateJwk = await exportJWK(privateKey);
   // Ensure kty and crv are on both
@@ -127,8 +137,7 @@ async function createDpopProof(privateJwk, method, url, nonce) {
 
   const builder = new SignJWT({
     htm: method,
-    htu: url.split('?')[0], // no query string
-    iat: Math.floor(Date.now() / 1000),
+    htu: url.split('?')[0],
     jti: crypto.randomUUID(),
     ...(nonce ? { nonce } : {}),
   })
@@ -154,82 +163,69 @@ export async function startLogin(handle, db) {
   const codeVerifier = generatePkce();
   const codeChallenge = await computeChallenge(codeVerifier);
   const { publicJwk, privateJwk } = await generateDpopKeyPair();
-  const dpopJkt = await calculateJwkThumbprint(publicJwk, 'sha-256');
+  const dpopJkt = await calculateJwkThumbprint(publicJwk, 'sha256');
   const state = crypto.randomUUID();
 
-  // 3. Store state in D1
+  // 3. Store state in D1 (including resolved DID for sub verification)
   await db
     .prepare(
-      'INSERT INTO oauth_state (state, code_verifier, dpop_private_key, authorization_server, redirect_uri) VALUES (?, ?, ?, ?, ?)'
+      'INSERT INTO oauth_state (state, code_verifier, dpop_private_key, authorization_server, redirect_uri, did) VALUES (?, ?, ?, ?, ?, ?)'
     )
-    .bind(state, codeVerifier, JSON.stringify(privateJwk), JSON.stringify(authServerMeta), REDIRECT_URI)
+    .bind(state, codeVerifier, JSON.stringify(privateJwk), JSON.stringify(authServerMeta), REDIRECT_URI, did)
     .run();
 
-  // 4. Push authorization request (PAR) if supported, else direct
+  // 4. Pushed Authorization Request (PAR) — mandatory per AT Protocol spec
   const parEndpoint = authServerMeta.pushed_authorization_request_endpoint;
-  if (parEndpoint) {
-    const dpopProof = await createDpopProof(privateJwk, 'POST', parEndpoint);
+  if (!parEndpoint) throw new Error('authorization server does not support PAR (required by AT Protocol)');
 
-    const parParams = new URLSearchParams({
-      response_type: 'code',
-      client_id: CLIENT_ID,
-      redirect_uri: REDIRECT_URI,
-      scope: SCOPE,
-      state,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-      login_hint: handle,
-      dpop_jkt: dpopJkt,
-    });
+  const dpopProof = await createDpopProof(privateJwk, 'POST', parEndpoint);
 
-    let parRes = await fetch(parEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        DPoP: dpopProof,
-      },
-      body: parParams.toString(),
-    });
+  const parParams = new URLSearchParams({
+    response_type: 'code',
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    scope: SCOPE,
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+    login_hint: handle,
+    dpop_jkt: dpopJkt,
+  });
 
-    // Handle DPoP nonce requirement (server returns 400 with DPoP-Nonce header)
-    if (parRes.status === 400 || parRes.status === 401) {
-      const nonce = parRes.headers.get('DPoP-Nonce');
-      if (nonce) {
-        const retryProof = await createDpopProof(privateJwk, 'POST', parEndpoint, nonce);
-        parRes = await fetch(parEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            DPoP: retryProof,
-          },
-          body: parParams.toString(),
-        });
-      }
+  let parRes = await fetch(parEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      DPoP: dpopProof,
+    },
+    body: parParams.toString(),
+  });
+
+  // Handle DPoP nonce requirement (server returns use_dpop_nonce error with DPoP-Nonce header)
+  if (parRes.status === 400 || parRes.status === 401) {
+    const nonce = parRes.headers.get('DPoP-Nonce');
+    if (nonce) {
+      const retryProof = await createDpopProof(privateJwk, 'POST', parEndpoint, nonce);
+      parRes = await fetch(parEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          DPoP: retryProof,
+        },
+        body: parParams.toString(),
+      });
     }
-
-    if (!parRes.ok) {
-      const errBody = await parRes.text();
-      throw new Error(`PAR request failed (${parRes.status}): ${errBody}`);
-    }
-
-    const { request_uri } = await parRes.json();
-    const authUrl = new URL(authServerMeta.authorization_endpoint);
-    authUrl.searchParams.set('client_id', CLIENT_ID);
-    authUrl.searchParams.set('request_uri', request_uri);
-    return authUrl.toString();
   }
 
-  // Direct authorization (no PAR)
+  if (!parRes.ok) {
+    const errBody = await parRes.text();
+    throw new Error(`PAR request failed (${parRes.status}): ${errBody}`);
+  }
+
+  const { request_uri } = await parRes.json();
   const authUrl = new URL(authServerMeta.authorization_endpoint);
-  authUrl.searchParams.set('response_type', 'code');
   authUrl.searchParams.set('client_id', CLIENT_ID);
-  authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
-  authUrl.searchParams.set('scope', SCOPE);
-  authUrl.searchParams.set('state', state);
-  authUrl.searchParams.set('code_challenge', codeChallenge);
-  authUrl.searchParams.set('code_challenge_method', 'S256');
-  authUrl.searchParams.set('login_hint', handle);
-  authUrl.searchParams.set('dpop_jkt', dpopJkt);
+  authUrl.searchParams.set('request_uri', request_uri);
   return authUrl.toString();
 }
 
@@ -294,14 +290,31 @@ export async function handleCallback(code, state, db) {
 
   const tokenData = await tokenRes.json();
 
-  // 4. Extract DID from the sub claim
+  // 4. Extract and verify the sub claim
   const did = tokenData.sub;
   if (!did || !did.startsWith('did:')) {
     throw new Error('token response missing valid sub (DID)');
   }
 
-  // Resolve handle from DID document
+  // Verify sub matches the DID resolved during login initiation
+  if (row.did && did !== row.did) {
+    throw new Error('token sub does not match resolved identity — possible impersonation');
+  }
+
+  // Verify the identity chain: DID → PDS → auth server must be consistent
   const didDoc = await resolveDidDocument(did);
+  const verifyPds = getPdsEndpoint(didDoc);
+  const verifyRsMeta = await fetch(`${verifyPds}/.well-known/oauth-protected-resource`).then((r) =>
+    r.ok ? r.json() : null
+  );
+  if (
+    !verifyRsMeta?.authorization_servers?.length ||
+    verifyRsMeta.authorization_servers[0] !== authServerMeta.issuer
+  ) {
+    throw new Error('identity chain verification failed — PDS auth server mismatch');
+  }
+
+  // Extract handle from DID document and verify bidirectionally
   const handle =
     didDoc.alsoKnownAs?.find((a) => a.startsWith('at://'))?.slice(5) || did;
 

@@ -80,14 +80,14 @@ export default {
         const form = await request.formData();
         const handle = form.get('handle')?.toString().trim();
         if (!handle) {
-          return html(renderLanding('please enter your bluesky handle'), 400);
+          return html(renderLanding('please enter your handle'), 400);
         }
         try {
           const authUrl = await startLogin(handle, db);
           return redirect(authUrl);
         } catch (err) {
           return html(
-            renderLanding(`we couldn't connect to bluesky — ${err.message}. try again in a moment.`),
+            renderLanding(`sign-in failed — ${err.message}. try again in a moment.`),
             400
           );
         }
@@ -101,7 +101,7 @@ export default {
 
         if (error) {
           const desc = url.searchParams.get('error_description') || error;
-          return html(renderError(`bluesky authorization failed: ${desc}`), 400);
+          return html(renderError(`authorization failed: ${desc}`), 400);
         }
 
         if (!code || !state) {

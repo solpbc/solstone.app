@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS oauth_state (
   dpop_private_key TEXT NOT NULL,
   authorization_server TEXT NOT NULL,
   redirect_uri TEXT NOT NULL,
+  did TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
