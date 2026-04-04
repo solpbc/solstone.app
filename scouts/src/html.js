@@ -28,7 +28,7 @@ function layout(title, body, extraHead = '') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${esc(title)}</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodeURIComponent(SOL_WORDMARK)}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛺</text></svg>">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -178,10 +178,10 @@ function nav(handle) {
 export function renderLanding(error) {
   const errorHtml = error ? `<div class="error">${esc(error)}</div>` : '';
   return layout(
-    'solstone scouts',
+    '⛺ solstone scouts',
     `<div class="container">
   <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
-  <h1>solstone scouts</h1>
+  <h1>⛺ solstone scouts</h1>
   <p>help shape what comes next. sign in with your atmosphere account to get started.</p>
   <p style="font-size:0.85rem; color:#888;">if you're on bluesky, you already have one — it runs on the atmosphere network. don't have one? <a href="https://bsky.app">create one at bsky.app</a> — takes 30 seconds.</p>
   ${errorHtml}
@@ -200,7 +200,7 @@ export function renderLanding(error) {
 
 export function renderError(message) {
   return layout(
-    'error — solstone scouts',
+    '⛺ solstone scouts — error',
     `<div class="container">
   <div class="logo">${SOL_WORDMARK}</div>
   <h1>something went wrong</h1>
@@ -215,7 +215,7 @@ export function renderError(message) {
 
 export function renderUnknown(scout) {
   return layout(
-    'apply — solstone scouts',
+    '⛺ solstone scouts — apply',
     `<div class="container">
   ${nav(scout.handle)}
   <h1>join the scouts</h1>
@@ -234,7 +234,7 @@ export function renderUnknown(scout) {
 
 export function renderApplied(scout, news) {
   return layout(
-    'application received — solstone scouts',
+    '⛺ solstone scouts',
     `<div class="container">
   ${nav(scout.handle)}
   <h1>we've got your application</h1>
@@ -307,10 +307,10 @@ export function renderApproved(scout, geminiKey, news) {
   </div>`;
 
   return layout(
-    'dashboard — solstone scouts',
+    '⛺ solstone scouts',
     `<div class="container">
   ${nav(scout.handle)}
-  <h1>welcome, scout</h1>
+  <h1>⛺ welcome, scout</h1>
   ${tokenHtml}
   ${installHtml}
   <div class="card">
@@ -337,7 +337,7 @@ export function renderApproved(scout, geminiKey, news) {
 
 export function renderRevoked(scout) {
   return layout(
-    'access revoked — solstone scouts',
+    '⛺ solstone scouts',
     `<div class="container">
   ${nav(scout.handle)}
   <h1>access revoked</h1>
@@ -355,7 +355,7 @@ export function renderDataDisclosure(scout) {
   </form>`;
 
   return layout(
-    'your data — solstone scouts',
+    '⛺ solstone scouts — your data',
     `<div class="container">
   ${nav(scout.handle)}
   <h1>your gemini key and your data</h1>
