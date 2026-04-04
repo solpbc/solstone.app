@@ -18,11 +18,14 @@ const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
 const ISSUER = 'https://solpbc.cloudflareaccess.com';
 const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
 
-async function validateCfAccess(request) {
+async function validateCfAccess(request, env) {
   const token = request.headers.get('Cf-Access-Jwt-Assertion');
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, JWKS, { issuer: ISSUER });
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: ISSUER,
+      audience: env.CF_ACCESS_AUD,
+    });
     if (typeof payload.email === 'string') {
       return { email: payload.email.toLowerCase() };
     }
@@ -33,7 +36,7 @@ async function validateCfAccess(request) {
 }
 
 export async function handleAdmin(request, env, path) {
-  const admin = await validateCfAccess(request);
+  const admin = await validateCfAccess(request, env);
   if (!admin) {
     return new Response('unauthorized — Cloudflare Access required', { status: 403 });
   }
