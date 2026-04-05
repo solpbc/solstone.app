@@ -38,17 +38,31 @@ function sessionCookie(sessionId, maxAge = SESSION_MAX_AGE) {
   return `${SESSION_COOKIE}=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
 }
 
+const SECURITY_HEADERS = {
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none'",
+};
+
 function html(body, status = 200) {
   return new Response(body, {
     status,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: { 'Content-Type': 'text/html; charset=utf-8', ...SECURITY_HEADERS },
   });
 }
 
 function redirect(url, headers = {}) {
   return new Response(null, {
     status: 303,
-    headers: { Location: url, ...headers },
+    headers: {
+      Location: url,
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      ...headers,
+    },
   });
 }
 
@@ -65,7 +79,11 @@ export default {
       // Client metadata (AT Protocol OAuth discovery)
       if (path === '/client-metadata.json') {
         return new Response(JSON.stringify(getClientMetadata()), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            ...SECURITY_HEADERS,
+          },
         });
       }
 
@@ -212,7 +230,7 @@ export default {
       if (path === '/api/news' && method === 'GET') {
         const news = await listNews(db);
         return new Response(JSON.stringify(news), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...SECURITY_HEADERS },
         });
       }
 

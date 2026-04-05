@@ -19,10 +19,20 @@ const ISSUER = 'https://solpbc.cloudflareaccess.com';
 const EXPECTED_AUD = '46f64ab0a7fe4148e2a36e4c6952e95026aa26cfcf01513ccabdbe8eb2f554e4';
 const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
 
+const SECURITY_HEADERS = {
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none'",
+};
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...SECURITY_HEADERS },
   });
 }
 
