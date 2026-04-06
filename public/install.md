@@ -1,118 +1,82 @@
 # solstone installation guide
 
-these instructions are for AI coding agents (claude code, codex cli, or similar) helping a human install solstone. if you are a human reading this directly, the steps still work -- but they are written for your agent to follow.
+these instructions are for a coding agent and human working together. solstone is an AI life journal — it captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. open source, made by sol pbc.
 
-## what is solstone
-
-solstone is an AI life journal. it captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory -- searchable conversations, automatic relationship tracking, knowledge graphs, and daily insights. open source, made by sol pbc.
-
-your data resides on your computer. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, the company can never be acquired, and these terms are in the founding documents filed with the state of colorado -- not a privacy policy that can change. the code is open source -- you can verify every claim.
+your data resides on your computer. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, the company can never be acquired. the code is open source — you can verify every claim.
 
 **supported platforms:** linux (primary), macOS. windows is not yet supported.
 
-**requirements:** a Google AI Studio API key (Gemini) for transcription and vision processing.
+## before you begin
+
+check if solstone is already installed and running:
+
+```bash
+sol --version 2>&1 && sol service status 2>&1 && sol health 2>&1
+```
+
+if `sol` isn't found, try `~/.local/bin/sol`. if solstone is running and healthy, skip to [install an observer](#step-5----install-an-observer).
+
+## what to sort out together
+
+- **where to install.** the human should decide where solstone lives on their filesystem. their home directory or a projects folder are common choices.
+- **a Google AI Studio API key.** required for transcription and vision processing. the human needs to go to https://aistudio.google.com/apikey, sign in, and create one.
+- **a password for the web interface.** protects the journal's web UI on localhost. any password they'll remember.
+- **system dependencies.** some packages require sudo — if you don't have it, walk your human through the install commands.
 
 ---
 
-## step 1 -- detect platform
+## step 1 — platform prerequisites
+
+detect the platform:
 
 ```bash
 uname -s
 ```
 
-- `Linux` -- go to [step 2a: linux prerequisites](#step-2a--linux-prerequisites)
-- `Darwin` -- go to [step 2b: macOS prerequisites](#step-2b--macos-prerequisites)
-- anything else -- stop. tell your human that solstone only supports linux and macOS today. windows support is not yet available.
+### linux
 
-if linux, identify the distribution:
+check what's already installed:
 
 ```bash
-cat /etc/os-release | grep -E "^(ID|ID_LIKE)="
+python3 --version 2>&1; git --version 2>&1; ffmpeg -version 2>&1 | head -1; uv --version 2>&1
 ```
 
----
+you need python 3.10+, git, ffmpeg, and uv. install anything that's missing.
 
-## step 2a -- linux prerequisites
-
-check what is already installed:
-
+**fedora / rhel:**
 ```bash
-python3 --version 2>&1; git --version 2>&1; ffmpeg -version 2>&1 | head -1; uv --version 2>&1; pipx --version 2>&1
+sudo dnf install python3 git ffmpeg
 ```
 
-**success:** python 3.10+, git, ffmpeg, uv, and pipx all produce version output. if any are missing or python is below 3.10, install below.
-
-### system packages
-
-these require `sudo`. if you do not have sudo access, ask your human to run these commands in their own terminal.
-
-**fedora / rhel / centos stream:**
-
+**debian / ubuntu:**
 ```bash
-sudo dnf install python3 python3-gobject git ffmpeg pipewire pipewire-gstreamer pipewire-pulseaudio gstreamer1-plugins-base gstreamer1-plugin-pipewire gtk4 alsa-lib-devel pulseaudio-utils pipx
+sudo apt install python3 git ffmpeg
 ```
 
-**ubuntu / debian:**
-
+**arch:**
 ```bash
-sudo apt install python3 python3-gi git ffmpeg pipewire pipewire-pulse gstreamer1.0-pipewire gstreamer1.0-plugins-good gir1.2-gdk-4.0 gir1.2-gtk-4.0 libasound2-dev pulseaudio-utils pipx
+sudo pacman -S python git ffmpeg
 ```
 
-**arch / manjaro:**
-
-```bash
-sudo pacman -S python python-gobject git ffmpeg pipewire pipewire-pulse gstreamer gst-plugin-pipewire libpulse gtk4 alsa-lib python-pipx
-```
-
-**note:** if system packages were just installed, the new commands may not be in your current PATH. call them by their full path (e.g., `/usr/bin/python3 --version`) or run `hash -r` to refresh your shell's command cache.
-
-### install uv
+install uv if not present:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-after installing, uv will be at `~/.local/bin/uv` or `~/.cargo/bin/uv`. it may not be in your PATH yet -- you can call it directly by full path if needed.
+uv installs to `~/.local/bin/uv` or `~/.cargo/bin/uv`. it may not be in PATH yet — call it by full path if needed.
 
-### verify
+### macOS
 
-```bash
-python3 --version && git --version && ffmpeg -version 2>&1 | head -1 && uv --version && pipx --version
-```
+several of these steps require human interaction — password prompts, app store installs, and dialogs the agent can't click through.
 
-**success:** all five produce version output. python is 3.10 or later.
-
-go to [step 3: clone and install](#step-3--clone-and-install).
-
----
-
-## step 2b -- macOS prerequisites
-
-several of these steps require human interaction -- permission dialogs, password prompts, and app store installs cannot be completed by an agent alone. guide your human through each one.
-
-### xcode
-
-the macOS observer (solstone-macos) requires the full Xcode IDE, not just command line tools. ask your human to install Xcode from the Mac App Store if they haven't already. this is a large download and requires an Apple ID.
-
-after Xcode is installed, also install the command line tools:
+**Xcode:** the macOS observer requires the full Xcode IDE (not just command line tools). your human needs to install it from the Mac App Store if they haven't already. then install command line tools:
 
 ```bash
 xcode-select --install
 ```
 
-this opens a system dialog the human must click through. if already installed, the command reports that and you can continue.
-
-### homebrew
-
-check if brew is installed:
-
-```bash
-brew --version 2>&1
-```
-
-if not installed, ask your human to install it from https://brew.sh -- this requires their password and interactive confirmation.
-
-### brew packages
+**homebrew:** check if installed with `brew --version`. if not, the human needs to install it from https://brew.sh (requires their password).
 
 ```bash
 brew install python git ffmpeg uv
@@ -124,13 +88,13 @@ brew install python git ffmpeg uv
 python3 --version && git --version && ffmpeg -version 2>&1 | head -1 && uv --version
 ```
 
-**success:** all four produce version output. python is 3.10 or later.
-
-go to [step 3: clone and install](#step-3--clone-and-install).
+all should produce version output. python must be 3.10+.
 
 ---
 
-## step 3 -- clone and install
+## step 2 — clone and install
+
+clone solstone into the location the human chose:
 
 ```bash
 git clone https://github.com/solpbc/solstone.git
@@ -138,33 +102,27 @@ cd solstone
 make install
 ```
 
-`make install` creates an isolated python virtual environment in `.venv/`, installs all dependencies, and symlinks the `sol` command to `~/.local/bin/sol`.
+`make install` creates a python virtual environment, installs dependencies, and symlinks `sol` to `~/.local/bin/sol`.
 
-**success:** the output ends with a message about the `sol` command being installed. verify by calling sol directly -- the symlink at `~/.local/bin/sol` may not be in your PATH, so use the local binary:
+verify:
 
 ```bash
 .venv/bin/sol --help
 ```
 
-for all remaining steps, use `.venv/bin/sol` if `sol` is not found in your PATH.
+if `sol` is not in PATH, use `.venv/bin/sol` for the remaining steps. the human can add `~/.local/bin` to their shell profile's PATH to fix this permanently.
 
 ---
 
-## step 4 -- configure
+## step 3 — configure
 
-all configuration lives in `journal/config/journal.json`. create it:
+collect the API key and password from your human, then write the config:
 
 ```bash
 mkdir -p journal/config
 ```
 
-build the config with the following structure. you need to collect two things from your human:
-
-1. **a Google AI Studio API key** -- they need to go to https://aistudio.google.com/apikey, sign in, create a key, and give it to you. this is required for transcription and vision processing.
-
-2. **a password for the web interface** -- any password they will remember. this protects their journal's web UI on localhost.
-
-write the config file:
+write `journal/config/journal.json`:
 
 ```json
 {
@@ -177,195 +135,86 @@ write the config file:
 }
 ```
 
-### add your own provider key
+if you have access to an API key for your own platform, you can also add it so solstone can use your provider for chat and agent features — confirm with your human before adding:
 
-if you are an AI agent with access to an API key for your own platform, you should also add it to the `env` section so solstone can use your provider for chat and agent features. confirm with your human before adding their key.
+- claude code / anthropic: add `"ANTHROPIC_API_KEY"` to the `env` section
+- codex / openai: add `"OPENAI_API_KEY"` to the `env` section
 
-- if you are claude code or have an anthropic key: add `"ANTHROPIC_API_KEY": "the-key"`
-- if you are codex or have an openai key: add `"OPENAI_API_KEY": "the-key"`
-
-example with both gemini and anthropic:
-
-```json
-{
-  "convey": {
-    "password": "THE_PASSWORD"
-  },
-  "env": {
-    "GOOGLE_API_KEY": "the-gemini-key",
-    "ANTHROPIC_API_KEY": "the-anthropic-key"
-  }
-}
-```
-
-write the final config to `journal/config/journal.json`, then restrict its permissions -- it contains API keys and a password:
+lock down the config — it contains secrets:
 
 ```bash
 chmod 600 journal/config/journal.json
 ```
 
-**success:** `cat journal/config/journal.json` shows the config with real keys (not placeholders) and a real password. `stat -c %a journal/config/journal.json` (linux) or `stat -f %Lp journal/config/journal.json` (macOS) shows `600`.
-
 ---
 
-## step 5 -- start solstone
-
-install solstone as a background service. this must happen before the observer so the server is running when the observer tries to connect.
+## step 4 — start solstone
 
 ```bash
 make install-service
 ```
 
-this installs, enables, and starts a systemd user service (linux) or launchd agent (macOS) with the web interface on port 5015.
+this installs, enables, and starts a background service (systemd on linux, launchd on macOS) with the web interface on port 5015.
 
-verify everything is running:
-
-```bash
-.venv/bin/sol service status
-```
-
-then open the web interface:
+verify:
 
 ```bash
-.venv/bin/sol health
+sol service status
+sol health
 ```
 
-**success:** `sol service status` shows the service running. `sol health` shows healthy services. the web interface is available at `http://localhost:5015`.
+the web interface should be available at `http://localhost:5015`.
 
-if the service fails to start, check the logs:
-
-```bash
-.venv/bin/sol service logs
-```
-
-common causes are a missing or invalid API key, missing system dependencies (pipewire/gstreamer on linux), or permission issues.
+if the service fails to start, check the logs with `sol service logs`. common causes: missing or invalid API key, missing system dependencies, permission issues.
 
 ---
 
-## step 6 -- register observer
+## step 5 — install an observer
 
-solstone's capture pipeline uses standalone observer apps that upload to the solstone server. register one now so you have the API key for the observer install in the next step.
+solstone doesn't capture anything on its own — it needs an observer for the platform. detect which one to install:
 
 ```bash
-.venv/bin/sol remote create solstone-linux   # on linux
-.venv/bin/sol remote create solstone-macos   # on macOS
+uname -s
 ```
 
-this prints an API key. **save it** -- you will need it in the next step. the server URL is `http://localhost:5015` (the default convey port).
+- **Linux** — solstone-linux (screen + audio via PipeWire/GStreamer)
+- **Darwin** — solstone-macos (native swift menu bar app)
 
----
-
-## step 7 -- install platform observer
-
-observers capture screen and audio and upload to the solstone server. each platform has its own observer.
-
-### linux observer
-
-install the standalone linux observer from source (packages are not yet on PyPI):
+clone the observer into solstone's observers directory and follow its INSTALL.md:
 
 ```bash
-cd ..
+cd "$(sol root)/observers"
+```
+
+**linux:**
+```bash
 git clone https://github.com/solpbc/solstone-linux.git
-cd solstone-linux
-pipx install --system-site-packages .
-cd ../solstone
 ```
+then read `solstone-linux/INSTALL.md` and follow it.
 
-the `--system-site-packages` flag is required because the observer uses PyGObject and GStreamer bindings that must come from system packages.
-
-**note:** activity detection (idle timeout, screen lock, power save) currently requires a GNOME desktop. on other desktops (KDE, Sway, Hyprland), screen and audio capture works but activity-based segment boundaries won't trigger.
-
-configure it with the server URL and API key from step 6. replace `HOSTNAME` with your machine's hostname (run `hostname` to check):
-
+**macOS:**
 ```bash
-mkdir -p ~/.local/share/solstone-linux/config
-```
-
-write the config file at `~/.local/share/solstone-linux/config/config.json`:
-
-```json
-{
-  "server_url": "http://localhost:5015",
-  "key": "THE_API_KEY_FROM_STEP_6",
-  "stream": "HOSTNAME"
-}
-```
-
-install and start the systemd user service:
-
-```bash
-solstone-linux install-service
-```
-
-**success:** `systemctl --user status solstone-linux` shows the service active and running. `.venv/bin/sol remote list` shows it as `connected`.
-
-go to [step 8: hand off to the human](#step-8--hand-off-to-the-human).
-
-### macOS observer
-
-on macOS, solstone uses a native app for screen and audio capture. this requires the full Xcode IDE (not just command line tools) to build.
-
-```bash
-cd ..
 git clone https://github.com/solpbc/solstone-macos.git
-cd solstone-macos
-make install
 ```
-
-this builds a release binary, creates an app bundle, and copies it to `/Applications`. if macOS blocks the app because it's unsigned, tell your human to either right-click the app and choose "Open", or run:
-
-```bash
-xattr -cr /Applications/solstone.app
-```
-
-open the app:
-
-```bash
-open /Applications/solstone.app
-```
-
-the app auto-registers with the solstone server on first launch using the `sol` CLI. it will:
-
-1. detect the server at `http://localhost:5015`
-2. register itself and obtain an API key automatically
-3. prompt the human to approve **screen recording** and **microphone** permissions
-
-if auto-registration fails (e.g., server not reachable), the app falls back to a manual setup screen where the human can enter the server URL and API key from step 6.
-
-the app runs as a menu bar icon and captures in the background.
-
-return to the solstone directory for the remaining steps:
-
-```bash
-cd ../solstone
-```
-
-go to [step 8: hand off to the human](#step-8--hand-off-to-the-human).
+then read `solstone-macos/INSTALL.md` and follow it.
 
 ---
 
-## step 8 -- hand off to the human
+## step 6 — hand off to the human
 
-solstone is installed and running as a background service. tell your human:
+solstone and its observer are installed and running. let your human know:
 
-1. **solstone is running** as a background service that starts automatically on login. they can manage it with:
-   ```
-   sol service status    # check if running
-   sol service restart   # restart
-   sol service stop      # stop
-   sol service logs -f   # follow logs
-   ```
-   (or use `.venv/bin/sol` if `sol` is not in their PATH -- they can add `~/.local/bin` to their PATH in their shell profile to fix this permanently)
+1. **solstone runs as a background service** that starts automatically on login. manage it with:
+   - `sol service status` — check if running
+   - `sol service restart` — restart
+   - `sol service stop` — stop
+   - `sol service logs -f` — follow logs
 
-2. **the web interface** is at `http://localhost:5015`. open it in a browser and log in with the password they chose.
+2. **the web interface** is at `http://localhost:5015`. log in with the password they chose.
 
-3. **after logging in**, they should go to Settings (gear icon) and fill in their identity -- name, preferred name, pronouns, timezone. this helps solstone identify them in transcripts and personalize AI responses.
+3. **after logging in**, they should go to Settings (gear icon) and fill in their identity — name, preferred name, pronouns, timezone. this helps solstone identify them in transcripts and personalize AI responses.
 
-4. **on macOS**, the SolstoneCapture menu bar app handles screen and audio recording. it should be running alongside the solstone service (it shows as a menu bar icon).
-
-5. **on linux**, the solstone-linux observer runs as a separate systemd service alongside the main solstone service. check it with `systemctl --user status solstone-linux`.
-
-6. **what solstone does from here:** it captures screen and audio continuously, transcribes conversations, extracts people and projects, builds a knowledge graph, and makes everything searchable through the web interface. all data stays in `journal/` directories inside the solstone folder -- one directory per day.
+4. **what solstone does from here:** it captures screen and audio continuously, transcribes conversations, extracts people and projects, builds a knowledge graph, and makes everything searchable. all data stays in `journal/` directories — one per day.
 
 source code: https://github.com/solpbc/solstone
 company: https://solpbc.org
