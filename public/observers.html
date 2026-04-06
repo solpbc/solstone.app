@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>observers — solstone</title>
+    <meta name="description" content="solstone observers — screen and audio capture for macOS, Linux, and tmux. Pick your platform, copy the prompt, hand it to your coding agent.">
+    <link rel="icon" type="image/svg+xml" href="static/sol-wordmark.svg">
+    <style>
+        @font-face {
+            font-family: 'Comfortaa';
+            src: url('static/Comfortaa-Variable.woff2') format('woff2');
+            font-weight: 400 700;
+            font-display: swap;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #fff;
+            color: #333;
+        }
+        header {
+            text-align: center;
+            padding: 3rem 1.5rem 2rem;
+            max-width: 640px;
+        }
+        header h1 {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 1rem;
+        }
+        header p {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #555;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            max-width: 820px;
+            width: 90vw;
+            padding: 0 1.5rem;
+        }
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .card h2 {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 0.35rem;
+        }
+        .card .subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+        .card ul {
+            list-style: none;
+            margin-bottom: 1.25rem;
+            flex-grow: 1;
+        }
+        .card ul li {
+            font-size: 0.88rem;
+            color: #555;
+            line-height: 1.5;
+            padding-left: 1rem;
+            position: relative;
+        }
+        .card ul li::before {
+            content: "·";
+            position: absolute;
+            left: 0;
+            color: #bbb;
+            font-weight: 700;
+        }
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: auto;
+        }
+        .copy-btn {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+            color: #555;
+        }
+        .copy-btn:hover {
+            border-color: #E8923A;
+            color: #E8923A;
+        }
+        .copy-btn.copied {
+            border-color: #E8923A;
+            color: #E8923A;
+        }
+        .gh-link {
+            font-size: 0.82rem;
+            color: #888;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+        .gh-link:hover {
+            color: #E8923A;
+        }
+        .supplemental {
+            max-width: 820px;
+            width: 90vw;
+            padding: 0 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .supplemental .card {
+            border-color: #eee;
+            background: #fafafa;
+        }
+        .supplemental .card h2 {
+            font-size: 1.05rem;
+            color: #555;
+        }
+        .supplemental .card .subtitle {
+            color: #999;
+        }
+        .blurb {
+            display: none;
+        }
+        footer {
+            margin-top: auto;
+            padding: 3rem 0 2rem;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.85rem;
+            color: #888;
+            text-align: center;
+        }
+        footer a {
+            color: #888;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 640px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+            header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>solstone needs eyes and ears.</h1>
+        <p>solstone doesn't capture anything on its own — it needs an observer. pick the one for your platform, copy the prompt below into your coding agent, and it handles the rest.</p>
+    </header>
+
+    <div class="cards">
+        <div class="card">
+            <h2>solstone-macos</h2>
+            <p class="subtitle">native macOS screen and audio capture</p>
+            <ul>
+                <li>captures all connected displays at 1 FPS</li>
+                <li>records system audio and microphone separately</li>
+                <li>runs as a menu bar app, starts at login</li>
+            </ul>
+            <div class="card-actions">
+                <button class="copy-btn" data-target="blurb-macos">copy for your agent</button>
+                <a href="https://github.com/solpbc/solstone-macos" class="gh-link">github →</a>
+            </div>
+            <pre class="blurb" id="blurb-macos">install the solstone-macos observer. it's a native swift menu bar app that captures screen and audio.
+
+1. clone and build:
+   git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos && make install
+2. if macOS blocks the unsigned app:
+   xattr -cr /Applications/solstone.app
+3. launch:
+   open /Applications/solstone.app
+4. the app auto-registers with the solstone server at http://localhost:5015.
+   approve screen recording and microphone permissions when prompted.
+5. verify the menu bar icon appears. confirm with:
+   sol remote list
+   (if sol is not in PATH, try ~/.local/bin/sol or find the solstone repo and use .venv/bin/sol)
+
+if auto-registration fails, register manually first:
+   sol remote create solstone-macos
+then enter the server URL and API key in the app's setup screen.
+
+repo: https://github.com/solpbc/solstone-macos
+full install guide: https://solstone.app/install</pre>
+        </div>
+
+        <div class="card">
+            <h2>solstone-linux</h2>
+            <p class="subtitle">linux desktop screen and audio capture</p>
+            <ul>
+                <li>captures every monitor via PipeWire at 1 FPS</li>
+                <li>records microphone and system audio</li>
+                <li>detects idle, screen lock, and power save (GNOME)</li>
+            </ul>
+            <div class="card-actions">
+                <button class="copy-btn" data-target="blurb-linux">copy for your agent</button>
+                <a href="https://github.com/solpbc/solstone-linux" class="gh-link">github →</a>
+            </div>
+            <pre class="blurb" id="blurb-linux">install the solstone-linux observer. it captures screen and audio on linux desktops.
+
+1. install system dependencies (needs PyGObject and GStreamer from system packages).
+   ask the human to run the appropriate command if you don't have sudo:
+   - fedora: sudo dnf install python3-gobject gtk4 gstreamer1-plugins-base gstreamer1-plugin-pipewire pipewire-gstreamer alsa-lib-devel pulseaudio-utils pipewire-pulseaudio
+   - debian/ubuntu: sudo apt install python3-gi gir1.2-gdk-4.0 gir1.2-gtk-4.0 gstreamer1.0-pipewire libasound2-dev pulseaudio-utils pipewire-pulse
+   - arch: sudo pacman -S python-gobject gtk4 gstreamer gst-plugin-pipewire libpulse alsa-lib
+
+2. register the observer with solstone (save the API key it prints):
+   sol remote create solstone-linux
+   (if sol is not in PATH, try ~/.local/bin/sol or find the solstone repo and use .venv/bin/sol)
+
+3. clone and install:
+   git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux && pipx install --system-site-packages .
+   (--system-site-packages is required for PyGObject/GStreamer bindings)
+
+4. write the config file at ~/.local/share/solstone-linux/config/config.json:
+   {
+     "server_url": "http://localhost:5015",
+     "key": "THE_API_KEY_FROM_STEP_2",
+     "stream": "HOSTNAME"
+   }
+   replace HOSTNAME with the machine's hostname (run: hostname)
+
+5. start the service:
+   solstone-linux install-service
+
+6. verify:
+   systemctl --user status solstone-linux
+   sol remote list
+
+note: activity detection (idle/lock) requires GNOME. other desktops capture fine but won't get activity-based segment boundaries.
+
+repo: https://github.com/solpbc/solstone-linux
+full install guide: https://solstone.app/install</pre>
+        </div>
+    </div>
+
+    <div class="supplemental">
+        <div class="card">
+            <h2>+ add terminal capture</h2>
+            <p class="subtitle">solstone-tmux captures all active tmux sessions and panes every 5 seconds. lightweight, pure python, no system dependencies. works alongside either desktop observer.</p>
+            <div class="card-actions">
+                <button class="copy-btn" data-target="blurb-tmux">copy for your agent</button>
+                <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">github →</a>
+            </div>
+            <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer. it captures tmux terminal sessions.
+
+1. register the observer with solstone (save the API key it prints):
+   sol remote create solstone-tmux
+   (if sol is not in PATH, try ~/.local/bin/sol or find the solstone repo and use .venv/bin/sol)
+
+2. clone and install:
+   git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux && pipx install .
+
+3. write the config file at ~/.local/share/solstone-tmux/config/config.json:
+   {
+     "server_url": "http://localhost:5015",
+     "key": "THE_API_KEY_FROM_STEP_1",
+     "stream": "HOSTNAME.tmux"
+   }
+   replace HOSTNAME with the machine's hostname (run: hostname)
+
+4. start the service:
+   solstone-tmux install-service
+
+5. verify:
+   systemctl --user status solstone-tmux
+   sol remote list
+
+this observer is supplemental. install it alongside solstone-linux or solstone-macos for terminal-specific capture, or run it standalone for terminal-only capture.
+
+repo: https://github.com/solpbc/solstone-tmux
+full install guide: https://solstone.app/install</pre>
+        </div>
+    </div>
+
+    <footer>© 2026 <a href="https://solpbc.org">sol pbc</a> · your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+
+    <script>
+        document.querySelectorAll('.copy-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var blurb = document.getElementById(btn.dataset.target);
+                if (!blurb) return;
+                var text = blurb.textContent;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(function() {
+                        btn.textContent = 'copied!';
+                        btn.classList.add('copied');
+                        setTimeout(function() {
+                            btn.textContent = 'copy for your agent';
+                            btn.classList.remove('copied');
+                        }, 2000);
+                    }, function() {
+                        showFallback(blurb);
+                    });
+                } else {
+                    showFallback(blurb);
+                }
+            });
+        });
+        function showFallback(blurb) {
+            blurb.style.display = 'block';
+            blurb.style.whiteSpace = 'pre-wrap';
+            blurb.style.background = '#f5f5f5';
+            blurb.style.border = '1px solid #ddd';
+            blurb.style.borderRadius = '6px';
+            blurb.style.padding = '1rem';
+            blurb.style.fontSize = '0.8rem';
+            blurb.style.color = '#555';
+            blurb.style.marginTop = '1rem';
+            blurb.style.fontFamily = 'monospace';
+            blurb.style.maxHeight = '300px';
+            blurb.style.overflow = 'auto';
+            var sel = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(blurb);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    </script>
+</body>
+</html>
