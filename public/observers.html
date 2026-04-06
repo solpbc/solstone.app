@@ -189,26 +189,11 @@
                 <button class="copy-btn" data-target="blurb-macos">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-macos" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-macos">install the solstone-macos observer. it's a native swift menu bar app that captures screen and audio.
+            <pre class="blurb" id="blurb-macos">install the solstone-macos observer — a native swift menu bar app that captures screen and audio. requires Xcode (full IDE, not just command line tools).
 
-1. clone and build:
-   git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos && make install
-2. if macOS blocks the unsigned app:
-   xattr -cr /Applications/solstone.app
-3. launch:
-   open /Applications/solstone.app
-4. the app auto-registers with the solstone server at http://localhost:5015.
-   approve screen recording and microphone permissions when prompted.
-5. verify the menu bar icon appears. confirm with:
-   sol remote list
-   (if sol is not in PATH, try ~/.local/bin/sol or find the solstone repo and use .venv/bin/sol)
+cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos
 
-if auto-registration fails, register manually first:
-   sol remote create solstone-macos
-then enter the server URL and API key in the app's setup screen.
-
-repo: https://github.com/solpbc/solstone-macos
-full install guide: https://solstone.app/install</pre>
+then read INSTALL.md and follow it.</pre>
         </div>
 
         <div class="card">
@@ -223,41 +208,11 @@ full install guide: https://solstone.app/install</pre>
                 <button class="copy-btn" data-target="blurb-linux">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-linux" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-linux">install the solstone-linux observer. it captures screen and audio on linux desktops.
+            <pre class="blurb" id="blurb-linux">install the solstone-linux observer — captures screen and audio on linux desktops using PipeWire and GStreamer.
 
-1. install system dependencies (needs PyGObject and GStreamer from system packages).
-   ask the human to run the appropriate command if you don't have sudo:
-   - fedora: sudo dnf install python3-gobject gtk4 gstreamer1-plugins-base gstreamer1-plugin-pipewire pipewire-gstreamer alsa-lib-devel pulseaudio-utils pipewire-pulseaudio
-   - debian/ubuntu: sudo apt install python3-gi gir1.2-gdk-4.0 gir1.2-gtk-4.0 gstreamer1.0-pipewire libasound2-dev pulseaudio-utils pipewire-pulse
-   - arch: sudo pacman -S python-gobject gtk4 gstreamer gst-plugin-pipewire libpulse alsa-lib
+cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux
 
-2. register the observer with solstone (save the API key it prints):
-   sol remote create solstone-linux
-   (if sol is not in PATH, try ~/.local/bin/sol or find the solstone repo and use .venv/bin/sol)
-
-3. clone and install:
-   git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux && pipx install --system-site-packages .
-   (--system-site-packages is required for PyGObject/GStreamer bindings)
-
-4. write the config file at ~/.local/share/solstone-linux/config/config.json:
-   {
-     "server_url": "http://localhost:5015",
-     "key": "THE_API_KEY_FROM_STEP_2",
-     "stream": "HOSTNAME"
-   }
-   replace HOSTNAME with the machine's hostname (run: hostname)
-
-5. start the service:
-   solstone-linux install-service
-
-6. verify:
-   systemctl --user status solstone-linux
-   sol remote list
-
-note: activity detection (idle/lock) requires GNOME. other desktops capture fine but won't get activity-based segment boundaries.
-
-repo: https://github.com/solpbc/solstone-linux
-full install guide: https://solstone.app/install</pre>
+then read INSTALL.md and follow it.</pre>
         </div>
     </div>
 
@@ -269,34 +224,11 @@ full install guide: https://solstone.app/install</pre>
                 <button class="copy-btn" data-target="blurb-tmux">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer. it captures tmux terminal sessions.
+            <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer — captures all active tmux sessions and panes. lightweight, pure python, no system dependencies.
 
-1. register the observer with solstone (save the API key it prints):
-   sol remote create solstone-tmux
-   (if sol is not in PATH, try ~/.local/bin/sol or find the solstone repo and use .venv/bin/sol)
+cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux
 
-2. clone and install:
-   git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux && pipx install .
-
-3. write the config file at ~/.local/share/solstone-tmux/config/config.json:
-   {
-     "server_url": "http://localhost:5015",
-     "key": "THE_API_KEY_FROM_STEP_1",
-     "stream": "HOSTNAME.tmux"
-   }
-   replace HOSTNAME with the machine's hostname (run: hostname)
-
-4. start the service:
-   solstone-tmux install-service
-
-5. verify:
-   systemctl --user status solstone-tmux
-   sol remote list
-
-this observer is supplemental. install it alongside solstone-linux or solstone-macos for terminal-specific capture, or run it standalone for terminal-only capture.
-
-repo: https://github.com/solpbc/solstone-tmux
-full install guide: https://solstone.app/install</pre>
+then read INSTALL.md and follow it.</pre>
         </div>
     </div>
 
