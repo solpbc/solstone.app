@@ -3,7 +3,9 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/install") {
-      return Response.redirect(`${url.origin}/install.md`, 301);
+      const rewritten = new URL(request.url);
+      rewritten.pathname = "/install.html";
+      return env.ASSETS.fetch(new Request(rewritten, request));
     }
 
     const response = await env.ASSETS.fetch(request);
