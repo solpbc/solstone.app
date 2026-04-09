@@ -208,7 +208,7 @@ export function renderLanding(error) {
     <button type="submit" class="btn">sign in with atmosphere</button>
   </form>
   <footer>
-    <p>solstone scouts is a program by <a href="https://solpbc.org">sol pbc</a>. your data stays with us — no analytics, no tracking, no third parties. <a href="https://solpbc.org/covenants">read our covenants</a>.</p>
+    <p>solstone scouts is a program by <a href="https://solpbc.org">sol pbc</a>. your data stays on your machine — no analytics, no tracking, no third parties. <a href="https://solpbc.org/articles">read our covenants</a>.</p>
   </footer>
 </div>`,
     landingStyles

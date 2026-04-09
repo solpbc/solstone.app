@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>page not found — solstone</title>
+    <link rel="icon" type="image/svg+xml" href="static/sol-wordmark.svg">
+    <style>
+        @font-face {
+            font-family: 'Comfortaa';
+            src: url('static/Comfortaa-Variable.woff2') format('woff2');
+            font-weight: 400 700;
+            font-display: swap;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #fff;
+        }
+        h1 {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: lowercase;
+            color: #222;
+            margin-bottom: 1.5rem;
+        }
+        .logo {
+            height: 40px;
+            margin-bottom: 2rem;
+        }
+        a {
+            text-decoration: none;
+        }
+        .message {
+            max-width: 500px;
+            width: 90vw;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #555;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .links {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .links a {
+            display: block;
+            color: #888;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            transition: color 0.15s;
+        }
+        .links a:hover {
+            color: #E8923A;
+            text-decoration: none;
+        }
+        footer {
+            margin-top: auto;
+            padding: 2rem 0;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        footer a {
+            color: #888;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <a href="/"><img src="static/sol-wordmark.svg" alt="solstone" class="logo"></a>
+    <h1>page not found.</h1>
+    <p class="message">this page doesn't exist. here are some places that do:</p>
+    <div class="links">
+        <a href="/install">get started &rarr;</a>
+        <a href="/observers">browse observers &rarr;</a>
+        <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
+        <a href="/">back to solstone.app &rarr;</a>
+    </div>
+    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+</body>
+</html>
