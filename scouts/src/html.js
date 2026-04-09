@@ -111,8 +111,8 @@ function layout(title, body, extraHead = '') {
     .card {
       background: #fafafa;
       border: 1px solid #eee;
-      border-radius: 8px;
-      padding: 1.25rem;
+      border-radius: 10px;
+      padding: 1.75rem;
       margin-bottom: 1rem;
     }
     .token-box {
@@ -154,10 +154,11 @@ function layout(title, body, extraHead = '') {
     .status-approved { background: #d4edda; color: #155724; }
     .status-revoked { background: #f8d7da; color: #721c24; }
     footer {
-      margin-top: 3rem;
-      padding-top: 1.5rem;
+      margin-top: auto;
+      padding: 3rem 0 2rem;
       border-top: 1px solid #eee;
-      font-size: 0.8rem;
+      font-family: 'Comfortaa', system-ui, sans-serif;
+      font-size: 0.85rem;
       color: #767676;
     }
     footer a { color: #767676; }
@@ -165,7 +166,7 @@ function layout(title, body, extraHead = '') {
     .nav { display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center; }
     .nav .logo { margin-bottom: 0; width: 40px; height: 40px; }
     .nav-right { margin-left: auto; font-size: 0.85rem; }
-    @media (max-width: 600px) {
+    @media (max-width: 640px) {
       .container { padding: 2rem 1rem; }
       h1 { font-size: 1.4rem; }
     }
