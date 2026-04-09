@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>solstone</title>
-    <meta name="description" content="solstone — AI life journal. Captures everything you see and hear, processes it with AI, gives you superhuman memory. Open source, privacy-first. Install on Linux or macOS via git clone + make install. Made by sol pbc, a public benefit corporation.">
+    <meta name="description" content="solstone — AI life journal. captures everything you see and hear, processes it with AI, gives you superhuman memory. open source, privacy-first. install on linux or macOS. made by sol pbc, a public benefit corporation.">
     <meta property="og:title" content="solstone — your co-brain">
-    <meta property="og:description" content="AI life journal that captures everything you see and hear. Open source, privacy-first, yours.">
+    <meta property="og:description" content="AI life journal that captures everything you see and hear. open source, privacy-first, yours.">
     <meta property="og:url" content="https://solstone.app">
     <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="720">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" type="image/svg+xml" href="static/sol-wordmark.svg">
     <script type="application/ld+json">
     {
@@ -117,13 +121,22 @@
             color: #E8923A;
             text-decoration: none;
         }
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 1.8rem;
+                letter-spacing: 0.05em;
+            }
+            .logo {
+                max-width: 280px;
+            }
+        }
     </style>
 </head>
 <body>
     <a href="/"><img src="static/sol-wordmark.svg" alt="solstone logo" class="logo"></a>
     <h1>solstone</h1>
     <p class="tagline">captures everything you see and hear, processes it with AI, and gives you a co-brain for your entire digital life. open source, privacy-first, yours.</p>
-    <p class="trust">your data resides on your computer. sol pbc can never be sold and can never sell your data — these are irrevocable legal covenants in the <a href="https://solpbc.org/articles" style="color:#767676;">articles of incorporation</a>.</p>
+    <p class="trust">your data stays on your machine. sol pbc can never be sold and can never sell your data — these are irrevocable legal covenants in the <a href="https://solpbc.org/articles" style="color:#767676;">articles of incorporation</a>.</p>
     <a href="/install" class="cta">get started →</a>
     <a href="/observers" class="cta">browse observers →</a>
     <a href="https://github.com/solpbc/solstone" class="cta">source code on github →</a>

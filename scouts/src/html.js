@@ -105,7 +105,7 @@ function layout(title, body, extraHead = '') {
     label {
       display: block;
       font-size: 0.85rem;
-      color: #888;
+      color: #767676;
       margin-bottom: 0.25rem;
     }
     .card {
@@ -140,7 +140,7 @@ function layout(title, body, extraHead = '') {
     }
     .news-item { border-bottom: 1px solid #eee; padding: 1rem 0; }
     .news-item:last-child { border-bottom: none; }
-    .news-date { font-size: 0.8rem; color: #aaa; }
+    .news-date { font-size: 0.8rem; color: #767676; }
     .status-badge {
       display: inline-block;
       padding: 0.15rem 0.5rem;
@@ -149,7 +149,7 @@ function layout(title, body, extraHead = '') {
       font-weight: 600;
       text-transform: lowercase;
     }
-    .status-unknown { background: #f0f0f0; color: #888; }
+    .status-unknown { background: #f0f0f0; color: #767676; }
     .status-applied { background: #fef3cd; color: #856404; }
     .status-approved { background: #d4edda; color: #155724; }
     .status-revoked { background: #f8d7da; color: #721c24; }
@@ -158,9 +158,9 @@ function layout(title, body, extraHead = '') {
       padding-top: 1.5rem;
       border-top: 1px solid #eee;
       font-size: 0.8rem;
-      color: #aaa;
+      color: #767676;
     }
-    footer a { color: #aaa; }
+    footer a { color: #767676; }
     .error { color: #c0392b; background: #fdf0ef; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
     .nav { display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center; }
     .nav .logo { margin-bottom: 0; width: 40px; height: 40px; }
@@ -199,9 +199,9 @@ export function renderLanding(error) {
   <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
   <h1>solstone scouts</h1>
   <p>help shape what comes next. sign in with your atmosphere account to get started.</p>
-  <p style="font-size:0.85rem; color:#888;">if you're on bluesky, you already have one — it runs on the atmosphere network. don't have one? <a href="https://bsky.app">create one at bsky.app</a> — takes 30 seconds.</p>
+  <p style="font-size:0.85rem; color:#767676;">if you're on bluesky, you already have one — it runs on the atmosphere network. don't have one? <a href="https://bsky.app">create one at bsky.app</a> — takes 30 seconds.</p>
   ${errorHtml}
-  <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">no analytics, no tracking, no third parties</p>
+  <p style="font-size:0.8rem; color:#767676; margin-bottom:1.5rem;">no analytics, no tracking, no third parties</p>
   <form method="POST" action="/login" style="margin-top: 1.5rem;">
     <label for="handle">your handle</label>
     <input type="text" id="handle" name="handle" placeholder="yourname.bsky.social" required>
@@ -286,7 +286,7 @@ export function renderApproved(scout, geminiKey, news) {
       }
     </script>`;
 
-  const dataLink = `<p style="font-size:0.8rem; color:#aaa; margin-top:0.5rem;"><a href="/data" style="color:#aaa;">how your data is handled</a></p>`;
+  const dataLink = `<p style="font-size:0.8rem; color:#767676; margin-top:0.5rem;"><a href="/data" style="color:#767676;">how your data is handled</a></p>`;
 
   let tokenHtml;
   if (!scout.data_acknowledged && geminiKey) {
@@ -320,7 +320,7 @@ export function renderApproved(scout, geminiKey, news) {
       <span>follow https://solstone.app/install to install and configure solstone with my gemini token</span>
       <button class="copy-btn" onclick="navigator.clipboard.writeText('follow https://solstone.app/install to install and configure solstone with my gemini token').then(()=>{this.textContent='copied!';setTimeout(()=>this.textContent='copy',1500)})">copy</button>
     </div>
-    <p style="font-size:0.85rem; color:#888;">don't have a coding agent? <a href="https://docs.anthropic.com/en/docs/claude-code/overview">install claude code</a> first — it takes 2 minutes.</p>
+    <p style="font-size:0.85rem; color:#767676;">don't have a coding agent? <a href="https://docs.anthropic.com/en/docs/claude-code/overview">install claude code</a> first — it takes 2 minutes.</p>
   </div>`;
 
   return layout(
