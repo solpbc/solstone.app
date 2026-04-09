@@ -12,7 +12,7 @@ export default {
 
     if (response.status === 404) {
       const notFoundUrl = new URL(request.url);
-      notFoundUrl.pathname = "/404.html";
+      notFoundUrl.pathname = "/404";
       const notFoundResponse = await env.ASSETS.fetch(new Request(notFoundUrl, request));
       return new Response(notFoundResponse.body, {
         status: 404,
