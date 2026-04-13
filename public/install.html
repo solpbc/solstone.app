@@ -126,35 +126,59 @@
         .supplemental .card .subtitle {
             color: #767676;
         }
-        .architecture {
+        .diagram-switcher {
             max-width: 820px;
             width: 90vw;
-            padding: 2rem 1.5rem 0;
-        }
-        .architecture h2 {
-            font-family: 'Comfortaa', system-ui, sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #222;
-            margin-bottom: 1.25rem;
-        }
-        .arch-diagram {
+            padding: 0 1.5rem;
             margin-bottom: 1.5rem;
+            text-align: center;
         }
-        .arch-label {
-            font-size: 0.88rem;
-            color: #555;
-            margin-bottom: 0.5rem;
+        .diagram-switcher input[type="radio"] {
+            display: none;
         }
-        .arch-diagram img {
+        .mode-toggle {
+            display: inline-flex;
+            border: 1px solid #e0e0e0;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .mode-toggle label {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.4rem 1.1rem;
+            cursor: pointer;
+            color: #999;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+        }
+        .mode-toggle label:hover {
+            color: #767676;
+        }
+        #mode-single:checked ~ .mode-toggle label[for="mode-single"],
+        #mode-multi:checked ~ .mode-toggle label[for="mode-multi"] {
+            background: #f5f5f5;
+            color: #222;
+        }
+        .diagram-panel {
+            display: none;
+        }
+        #mode-single:checked ~ .diagram-single {
+            display: block;
+        }
+        #mode-multi:checked ~ .diagram-multi {
+            display: block;
+        }
+        .diagram-panel img {
             width: 100%;
             height: auto;
         }
-        .arch-detail {
+        .diagram-caption {
             font-size: 0.85rem;
             color: #767676;
-            line-height: 1.6;
-            margin-top: 0.5rem;
+            margin-top: 0.75rem;
+            line-height: 1.5;
         }
         .blurb {
             display: none;
@@ -165,11 +189,24 @@
     <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/sol-wordmark.svg" alt="solstone" style="height:40px;"></a>
     <header>
         <h1>get started with solstone.</h1>
-        <p>solstone captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. open source, local-first, linux and macOS. the best way to install is with a coding agent helping — copy the instructions below and paste them into yours.</p>
+        <p>open source, local-first, linux and macOS. the best way to install is with a coding agent — copy the instructions below and paste them into yours.</p>
     </header>
 
-    <div style="max-width:820px;width:90vw;padding:0 1.5rem;margin-bottom:1.5rem;">
-      <img src="static/screenshot-home.png" alt="solstone journal view showing messages, meetings, and detected entities" style="width:100%;border-radius:10px;border:1px solid #e0e0e0;">
+    <div class="diagram-switcher">
+        <input type="radio" id="mode-single" name="arch-mode" checked>
+        <input type="radio" id="mode-multi" name="arch-mode">
+        <div class="mode-toggle">
+            <label for="mode-single">single machine</label>
+            <label for="mode-multi">multi-machine</label>
+        </div>
+        <div class="diagram-panel diagram-single">
+            <img src="static/diagram-single-machine.svg" alt="solstone single machine architecture: observers capture screen and audio, the journal processes with AI and serves your dashboard">
+            <p class="diagram-caption">everything runs on one computer — observers and journal side by side.</p>
+        </div>
+        <div class="diagram-panel diagram-multi">
+            <img src="static/diagram-multi-machine.svg" alt="solstone multi-machine architecture: linux and macos desktops with observers upload to a dedicated journal server, mobile coming soon">
+            <p class="diagram-caption">observers on each desktop upload to a dedicated journal server on your network.</p>
+        </div>
     </div>
 
     <div class="cards">
@@ -197,19 +234,6 @@ then read INSTALL.md in the cloned repo and follow it.</pre>
     </div>
 
     <p class="note">you'll need a coding agent (claude code, codex cli, or similar), a linux or macOS machine, and about 15 minutes. your agent handles the technical setup — you make the decisions about where things live and which AI provider to use.</p>
-
-    <div class="architecture">
-        <h2>how it works</h2>
-        <div class="arch-diagram">
-            <p class="arch-label">single machine — everything on one computer</p>
-            <img src="static/diagram-single-machine.svg" alt="solstone single machine architecture: observers capture screen and audio, the journal processes with AI and serves your dashboard">
-        </div>
-        <div class="arch-diagram">
-            <p class="arch-label">multi-machine — dedicated journal server</p>
-            <img src="static/diagram-multi-machine.svg" alt="solstone multi-machine architecture: linux and macos desktops with observers upload to a dedicated journal server, mobile coming soon">
-        </div>
-        <p class="arch-detail">observers capture your screen and audio in 5-minute segments, uploading them via HTTP to the journal service. the journal processes everything with AI — transcription, vision analysis, entity extraction — and serves your web dashboard. that's where your co-brain runs.</p>
-    </div>
 
     <div class="supplemental">
         <div class="card">
