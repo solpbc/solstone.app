@@ -247,7 +247,8 @@
             margin-bottom: 0.85rem;
             overflow-x: auto;
             line-height: 1.55;
-            white-space: pre;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
         .install-finish {
             font-size: 0.88rem;
@@ -315,51 +316,22 @@ then read INSTALL.md in the cloned repo and follow it.</pre>
 
             <div class="platform-panel platform-macos">
                 <p class="platform-prereq">prereqs: xcode command-line tools (<code>xcode-select --install</code>), homebrew (<a href="https://brew.sh" class="gh-link" style="text-decoration:underline;">brew.sh</a>), then <code>brew install git uv</code>.</p>
-                <pre class="install-steps">git clone https://github.com/solpbc/solstone.git
-cd solstone
-make install
-make install-service</pre>
-                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>.</p>
+                <pre class="install-steps" id="steps-macos">git clone https://github.com/solpbc/solstone.git &amp;&amp; cd solstone &amp;&amp; make install-service</pre>
                 <div class="card-actions">
-                    <button class="copy-btn" data-target="blurb-macos" data-default-label="copy for human">copy for human</button>
+                    <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human">copy for human</button>
                     <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                 </div>
-                <pre class="blurb" id="blurb-macos">prereqs (macOS):
-- xcode command-line tools: xcode-select --install
-- homebrew: install from https://brew.sh
-- brew install git uv
-
-install:
-git clone https://github.com/solpbc/solstone.git
-cd solstone
-make install
-make install-service
-
-then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at ~/Documents/journal.</pre>
+                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>.</p>
             </div>
 
             <div class="platform-panel platform-linux">
                 <p class="platform-prereq">prereqs: git from your distro's package manager, <code>uv</code> from astral.sh: <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code>.</p>
-                <pre class="install-steps">git clone https://github.com/solpbc/solstone.git
-cd solstone
-make install
-make install-service</pre>
-                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>.</p>
+                <pre class="install-steps" id="steps-linux">git clone https://github.com/solpbc/solstone.git &amp;&amp; cd solstone &amp;&amp; make install-service</pre>
                 <div class="card-actions">
-                    <button class="copy-btn" data-target="blurb-linux" data-default-label="copy for human">copy for human</button>
+                    <button class="copy-btn" data-target="steps-linux" data-default-label="copy for human">copy for human</button>
                     <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                 </div>
-                <pre class="blurb" id="blurb-linux">prereqs (linux):
-- git: install via your distro's package manager
-- uv: curl -LsSf https://astral.sh/uv/install.sh | sh
-
-install:
-git clone https://github.com/solpbc/solstone.git
-cd solstone
-make install
-make install-service
-
-then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at ~/Documents/journal.</pre>
+                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>.</p>
             </div>
         </div>
     </div>
