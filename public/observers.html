@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>observers — solstone</title>
-    <meta name="description" content="solstone observers — screen and audio capture for macOS, linux, and tmux. pick your platform, copy the prompt, hand it to your coding agent.">
+    <meta name="description" content="solstone observers — they experience your screen and audio along with you on macOS, linux, and tmux. pick your platform, copy the prompt, hand it to your coding agent.">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
@@ -135,24 +135,24 @@
 <body>
     <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/sol-wordmark.svg" alt="solstone" style="height:40px;"></a>
     <header>
-        <h1>solstone needs eyes and ears.</h1>
-        <p>solstone doesn't capture anything on its own — it needs an observer. pick the one for your platform, copy the prompt below into your coding agent, and it handles the rest.</p>
+        <h1>solstone needs to experience your life with you.</h1>
+        <p>solstone doesn't observe anything on its own — it needs an observer to experience your day along with you. pick the one for your platform, copy the prompt below into your coding agent, and it handles the rest.</p>
     </header>
 
     <div class="cards">
         <div class="card">
             <h2>solstone-macos</h2>
-            <p class="subtitle">native macOS screen and audio capture</p>
+            <p class="subtitle">native macOS screen and audio observer</p>
             <ul>
-                <li>captures all connected displays at 1 FPS</li>
-                <li>records system audio and microphone separately</li>
+                <li>observes all connected displays at 1 FPS</li>
+                <li>takes in system audio and microphone separately</li>
                 <li>runs as a menu bar app, starts at login</li>
             </ul>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-macos">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-macos" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-macos">install the solstone-macos observer — a native swift menu bar app that captures screen and audio. requires Xcode (full IDE, not just command line tools).
+            <pre class="blurb" id="blurb-macos">install the solstone-macos observer — a native swift menu bar app that observes screen and audio along with you. requires Xcode (full IDE, not just command line tools).
 
 cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos
 
@@ -161,17 +161,17 @@ then read INSTALL.md and follow it.</pre>
 
         <div class="card">
             <h2>solstone-linux</h2>
-            <p class="subtitle">linux desktop screen and audio capture</p>
+            <p class="subtitle">linux desktop screen and audio observer</p>
             <ul>
-                <li>captures every monitor via PipeWire at 1 FPS</li>
-                <li>records microphone and system audio</li>
+                <li>observes every monitor via PipeWire at 1 FPS</li>
+                <li>takes in microphone and system audio</li>
                 <li>detects idle, screen lock, and power save (GNOME)</li>
             </ul>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-linux">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-linux" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-linux">install the solstone-linux observer — captures screen and audio on linux desktops using PipeWire and GStreamer.
+            <pre class="blurb" id="blurb-linux">install the solstone-linux observer — observes screen and audio on linux desktops using PipeWire and GStreamer.
 
 cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux
 
@@ -181,13 +181,13 @@ then read INSTALL.md and follow it.</pre>
 
     <div class="supplemental">
         <div class="card">
-            <h2>+ add terminal capture</h2>
-            <p class="subtitle">solstone-tmux captures all active tmux sessions and panes every 5 seconds. lightweight, pure python, no system dependencies. works alongside either desktop observer.</p>
+            <h2>+ add a terminal observer</h2>
+            <p class="subtitle">solstone-tmux observes all active tmux sessions and panes every 5 seconds. lightweight, pure python, no system dependencies. works alongside either desktop observer.</p>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-tmux">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer — captures all active tmux sessions and panes. lightweight, pure python, no system dependencies.
+            <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer — observes all active tmux sessions and panes. lightweight, pure python, no system dependencies.
 
 cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux
 
