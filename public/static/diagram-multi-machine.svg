@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 430" role="img" aria-label="solstone multi-machine architecture: observers run on each desktop (linux, macos, tmux; windows and mobile coming soon) and report to your server, which contains sol agent and the journal at ~/Documents/journal">
   <title>solstone — multi-machine</title>
 
-  <!-- desktops label -->
-  <text x="420" y="14" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">desktops</text>
+  <!-- desktops & devices label -->
+  <text x="420" y="14" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">desktops &amp; devices</text>
 
   <!-- linux device -->
   <rect x="16" y="24" width="152" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>

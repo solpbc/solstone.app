@@ -6,13 +6,18 @@ your data stays on your machine. sol pbc is a public benefit corporation with ir
 
 ## install with a coding agent
 
-paste this prompt into claude code, codex cli, gemini cli, or similar. the human should decide where solstone lives on their filesystem, then clone it:
+paste this prompt into claude code, codex cli, gemini cli, or similar.
+
+solstone is a system, three named parts:
+- observers experience your screen and audio along with you
+- sol agent processes everything and curates your memories
+- the journal holds your memories
 
 ```
 git clone https://github.com/solpbc/solstone.git
 ```
 
-then read INSTALL.md in the cloned repo and follow it. the journal lives at `~/Documents/journal` by default; the first-run wizard at http://localhost:5015 confirms the location.
+then read INSTALL.md in the cloned repo and follow it.
 
 ## install yourself
 
