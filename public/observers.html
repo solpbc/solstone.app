@@ -122,11 +122,41 @@
         .supplemental .card .subtitle {
             color: #767676;
         }
+        .section-title {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #555;
+            text-align: center;
+            margin: 1.75rem 0 0.75rem;
+            max-width: 820px;
+            width: 90vw;
+            letter-spacing: 0.02em;
+        }
+        .cards.placeholders {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        .card.placeholder {
+            border: 1px dashed #999;
+        }
+        .card.placeholder h2 {
+            color: #999;
+        }
+        .card.placeholder .subtitle {
+            color: #999;
+            margin-bottom: 0.5rem;
+        }
+        .card.placeholder .coming-soon {
+            font-size: 0.88rem;
+            color: #999;
+            margin: 0;
+        }
         .blurb {
             display: none;
         }
         @media (max-width: 640px) {
-            .cards {
+            .cards,
+            .cards.placeholders {
                 grid-template-columns: 1fr;
             }
         }
@@ -176,6 +206,28 @@ then read INSTALL.md and follow it.</pre>
 cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux
 
 then read INSTALL.md and follow it.</pre>
+        </div>
+    </div>
+
+    <div class="section-title">coming soon</div>
+
+    <div class="cards placeholders">
+        <div class="card placeholder">
+            <h2>windows</h2>
+            <p class="subtitle">native windows screen and audio observer</p>
+            <p class="coming-soon"><em>coming soon</em></p>
+        </div>
+
+        <div class="card placeholder">
+            <h2>iPhone/iPad</h2>
+            <p class="subtitle">for multiple sensors</p>
+            <p class="coming-soon"><em>coming soon</em></p>
+        </div>
+
+        <div class="card placeholder">
+            <h2>android</h2>
+            <p class="subtitle">for multiple sensors</p>
+            <p class="coming-soon"><em>coming soon</em></p>
         </div>
     </div>
 
