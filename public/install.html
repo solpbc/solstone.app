@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>get started — solstone</title>
-    <meta name="description" content="get started with solstone — install the open source AI life journal with help from your coding agent. copy the instructions, paste into your agent, running in 15 minutes.">
+    <meta name="description" content="get started with solstone — install the open source AI life journal with help from your coding agent or step through the commands yourself.">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
@@ -25,6 +25,17 @@
             line-height: 1.6;
             color: #555;
         }
+        .install-section-title {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #555;
+            text-align: center;
+            margin: 1.75rem 0 0.75rem;
+            max-width: 820px;
+            width: 90vw;
+            letter-spacing: 0.02em;
+        }
         .cards {
             max-width: 820px;
             width: 90vw;
@@ -37,41 +48,17 @@
             display: flex;
             flex-direction: column;
         }
-        .card h2 {
-            font-family: 'Comfortaa', system-ui, sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #222;
-            margin-bottom: 0.35rem;
-        }
         .card .subtitle {
-            font-size: 0.9rem;
-            color: #767676;
-            margin-bottom: 1rem;
-        }
-        .card ul {
-            list-style: none;
-            margin-bottom: 1.25rem;
-            flex-grow: 1;
-        }
-        .card ul li {
-            font-size: 0.88rem;
+            font-size: 0.92rem;
             color: #555;
-            padding-left: 1rem;
-            position: relative;
-        }
-        .card ul li::before {
-            content: "\00b7";
-            position: absolute;
-            left: 0;
-            color: #bbb;
-            font-weight: 700;
+            line-height: 1.55;
+            margin-bottom: 1.25rem;
         }
         .card-actions {
             display: flex;
             align-items: center;
             gap: 1rem;
-            margin-top: auto;
+            margin-top: 1rem;
         }
         .copy-btn {
             font-family: 'Comfortaa', system-ui, sans-serif;
@@ -104,14 +91,6 @@
         .gh-link:hover {
             color: #b06a1a;
         }
-        .note {
-            max-width: 820px;
-            width: 90vw;
-            padding: 1.5rem 1.5rem 0;
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
-            color: #767676;
-        }
         .supplemental {
             max-width: 820px;
             width: 90vw;
@@ -123,12 +102,17 @@
             background: #fafafa;
         }
         .supplemental .card h2 {
+            font-family: 'Comfortaa', system-ui, sans-serif;
             font-size: 1.05rem;
             color: #555;
+            margin-bottom: 0.4rem;
         }
         .supplemental .card .subtitle {
             color: #767676;
+            font-size: 0.88rem;
+            margin-bottom: 0.75rem;
         }
+        /* Diagram switcher (single machine / multi-machine) */
         .diagram-switcher {
             max-width: 820px;
             width: 90vw;
@@ -186,11 +170,90 @@
             width: 100%;
             height: auto;
         }
-        .diagram-caption {
-            font-size: 0.85rem;
+        /* Platform tabs (mirrors the diagram toggle) */
+        .platform-card {
+            position: relative;
+        }
+        .platform-card input[type="radio"] {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            clip: rect(0,0,0,0);
+            overflow: hidden;
+        }
+        .platform-toggle {
+            display: inline-flex;
+            border: 1px solid #e0e0e0;
+            border-radius: 999px;
+            overflow: hidden;
+            margin: 0 auto 1.25rem;
+            align-self: center;
+        }
+        .platform-toggle label {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.4rem 1.1rem;
+            cursor: pointer;
+            color: #999;
+            transition: background 0.15s, color 0.15s;
+            user-select: none;
+        }
+        .platform-toggle label:hover {
             color: #767676;
-            margin-top: 0.75rem;
-            line-height: 1.5;
+        }
+        #plat-macos:checked ~ .platform-toggle label[for="plat-macos"],
+        #plat-linux:checked ~ .platform-toggle label[for="plat-linux"] {
+            background: #222;
+            color: #fff;
+        }
+        .platform-card input[type="radio"]:focus-visible + .platform-toggle label,
+        .platform-toggle label:focus-visible {
+            outline: 2px solid #E8923A;
+            outline-offset: 2px;
+        }
+        .platform-panel {
+            display: none;
+        }
+        #plat-macos:checked ~ .platform-macos {
+            display: block;
+        }
+        #plat-linux:checked ~ .platform-linux {
+            display: block;
+        }
+        .platform-prereq {
+            font-size: 0.88rem;
+            color: #555;
+            margin-bottom: 0.85rem;
+            line-height: 1.55;
+        }
+        .platform-prereq code,
+        .install-finish code {
+            font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+            font-size: 0.84em;
+            background: #f5f5f5;
+            padding: 0.05rem 0.35rem;
+            border-radius: 3px;
+            color: #333;
+        }
+        .install-steps {
+            font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+            font-size: 0.82rem;
+            color: #333;
+            background: #f7f7f7;
+            border: 1px solid #ececec;
+            border-radius: 6px;
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.85rem;
+            overflow-x: auto;
+            line-height: 1.55;
+            white-space: pre;
+        }
+        .install-finish {
+            font-size: 0.88rem;
+            color: #555;
+            line-height: 1.55;
+            margin-bottom: 0.5rem;
         }
         .blurb {
             display: none;
@@ -201,7 +264,7 @@
     <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/sol-wordmark.svg" alt="solstone" style="height:40px;"></a>
     <header>
         <h1>get started with solstone.</h1>
-        <p>open source, local-first, linux and macOS. the best way to install is with a coding agent — copy the instructions below and paste them into yours.</p>
+        <p>open source, local-first, linux and macOS. install with a coding agent or step through the commands yourself.</p>
     </header>
 
     <div class="diagram-switcher">
@@ -212,48 +275,96 @@
             <label for="mode-multi">multi-machine</label>
         </div>
         <div class="diagram-panel diagram-single">
-            <img src="static/diagram-single-machine.svg" alt="solstone single machine architecture: observers experience along with you, sol agent processes everything, the journal holds your memories">
-            <p class="diagram-caption">everything runs on one computer — observers and journal side by side.</p>
+            <img src="static/diagram-single-machine.svg" alt="solstone single machine architecture: observers experience your screen and audio along with you, sol agent processes everything, the journal holds your memories at ~/Documents/journal">
         </div>
         <div class="diagram-panel diagram-multi">
-            <img src="static/diagram-multi-machine.svg" alt="solstone multi-machine architecture: linux and macos desktops with observers upload to a dedicated journal server, mobile coming soon">
-            <p class="diagram-caption">observers on each desktop upload to a dedicated journal server on your network.</p>
+            <img src="static/diagram-multi-machine.svg" alt="solstone multi-machine architecture: observers run on each device (linux, macos, tmux) and report to a single home machine that contains sol agent and the journal at ~/Documents/journal">
         </div>
     </div>
 
+    <h2 class="install-section-title">install with a coding agent</h2>
     <div class="cards">
         <div class="card">
-            <h2>solstone</h2>
-            <p class="subtitle">the core service — AI life journal</p>
-            <ul>
-                <li>open source — every line of code verifiable</li>
-                <li>your data stays on your machine, always</li>
-                <li>works on linux and macOS</li>
-                <li>~15 minutes to set up with a coding agent</li>
-            </ul>
+            <p class="subtitle">paste this prompt into claude code, codex cli, gemini cli, or similar. ~15 minutes from clone to running.</p>
             <div class="card-actions">
-                <button class="copy-btn" data-target="blurb-solstone">copy for your agent</button>
+                <button class="copy-btn" data-target="blurb-agent" data-default-label="copy for agent">copy for agent</button>
                 <a href="https://github.com/solpbc/solstone" class="gh-link">github &rarr;</a>
             </div>
-            <pre class="blurb" id="blurb-solstone">install solstone — an open source AI life journal that experiences everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data stays on your machine. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, the company can never be acquired.
+            <pre class="blurb" id="blurb-agent">install solstone — an open source AI life journal that experiences everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data stays on your machine. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, the company can never be acquired.
 
 the human should decide where solstone lives on their filesystem, then clone it:
 
 git clone https://github.com/solpbc/solstone.git
 
-then read INSTALL.md in the cloned repo and follow it.</pre>
+then read INSTALL.md in the cloned repo and follow it. the journal lives at ~/Documents/journal by default; the first-run wizard at http://localhost:5015 confirms the location.</pre>
         </div>
     </div>
 
-    <p class="note">you'll need a coding agent (claude code, codex cli, or similar), a linux or macOS machine, and about 15 minutes. your agent handles the technical setup — you make the decisions about where things live and which AI provider to use.</p>
+    <h2 class="install-section-title">install yourself</h2>
+    <div class="cards">
+        <div class="card platform-card">
+            <input type="radio" id="plat-macos" name="platform" checked>
+            <input type="radio" id="plat-linux" name="platform">
+            <div class="platform-toggle">
+                <label for="plat-macos">macOS</label>
+                <label for="plat-linux">linux</label>
+            </div>
+
+            <div class="platform-panel platform-macos">
+                <p class="platform-prereq">prereqs: xcode command-line tools (<code>xcode-select --install</code>), homebrew (<a href="https://brew.sh" class="gh-link" style="text-decoration:underline;">brew.sh</a>), then <code>brew install git uv</code>.</p>
+                <pre class="install-steps">git clone https://github.com/solpbc/solstone.git
+cd solstone
+make install
+make install-service</pre>
+                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>.</p>
+                <div class="card-actions">
+                    <button class="copy-btn" data-target="blurb-macos" data-default-label="copy for human">copy for human</button>
+                    <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
+                </div>
+                <pre class="blurb" id="blurb-macos">prereqs (macOS):
+- xcode command-line tools: xcode-select --install
+- homebrew: install from https://brew.sh
+- brew install git uv
+
+install:
+git clone https://github.com/solpbc/solstone.git
+cd solstone
+make install
+make install-service
+
+then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at ~/Documents/journal.</pre>
+            </div>
+
+            <div class="platform-panel platform-linux">
+                <p class="platform-prereq">prereqs: git from your distro's package manager, <code>uv</code> from astral.sh: <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code>.</p>
+                <pre class="install-steps">git clone https://github.com/solpbc/solstone.git
+cd solstone
+make install
+make install-service</pre>
+                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>.</p>
+                <div class="card-actions">
+                    <button class="copy-btn" data-target="blurb-linux" data-default-label="copy for human">copy for human</button>
+                    <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
+                </div>
+                <pre class="blurb" id="blurb-linux">prereqs (linux):
+- git: install via your distro's package manager
+- uv: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+install:
+git clone https://github.com/solpbc/solstone.git
+cd solstone
+make install
+make install-service
+
+then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at ~/Documents/journal.</pre>
+            </div>
+        </div>
+    </div>
 
     <div class="supplemental">
         <div class="card">
-            <h2>already have solstone running?</h2>
-            <p class="subtitle">solstone needs observers to experience your screen and audio along with you. browse the available observers for your platform and let your agent install them.</p>
-            <div class="card-actions">
-                <a href="/observers" class="gh-link">browse observers &rarr;</a>
-            </div>
+            <h2>already have your sol agent installed?</h2>
+            <p class="subtitle">find available observers at <a href="/observers" class="gh-link" style="text-decoration:underline;">solstone.app/observers</a>.</p>
         </div>
     </div>
 
@@ -275,12 +386,13 @@ then read INSTALL.md in the cloned repo and follow it.</pre>
                 var blurb = document.getElementById(btn.dataset.target);
                 if (!blurb) return;
                 var text = blurb.textContent;
+                var defaultLabel = btn.dataset.defaultLabel || 'copy';
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(text).then(function() {
                         btn.textContent = 'copied!';
                         btn.classList.add('copied');
                         setTimeout(function() {
-                            btn.textContent = 'copy for your agent';
+                            btn.textContent = defaultLabel;
                             btn.classList.remove('copied');
                         }, 2000);
                     }, function() {

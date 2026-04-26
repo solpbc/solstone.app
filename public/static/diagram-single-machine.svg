@@ -1,30 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 296" role="img" aria-label="solstone single machine architecture: observers capture screen and audio, the journal processes with AI and serves your dashboard">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 380" role="img" aria-label="solstone single machine architecture: observers experience your screen and audio along with you, sol agent processes everything, the journal holds your memories at ~/Documents/journal">
   <title>solstone — single machine</title>
 
   <!-- machine label -->
   <text x="240" y="14" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">your machine</text>
 
   <!-- machine container -->
-  <rect x="24" y="24" width="432" height="256" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="24" y="24" width="432" height="344" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
 
   <!-- observers card -->
-  <rect x="48" y="52" width="384" height="68" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="48" y="56" width="4" height="60" fill="#E8923A" rx="1"/>
+  <rect x="48" y="52" width="384" height="72" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="48" y="56" width="4" height="64" fill="#E8923A" rx="1"/>
   <text x="68" y="78" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">observers</text>
-  <text x="68" y="98" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">screen + audio capture</text>
-  <text x="68" y="114" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">linux · macos · tmux</text>
+  <text x="68" y="98" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">screen + audio, observed alongside you</text>
+  <text x="68" y="115" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">macos · linux · tmux</text>
 
-  <!-- flow line -->
-  <line x1="240" y1="120" x2="240" y2="164" stroke="#d0d0d0" stroke-width="1.5"/>
-  <polygon points="240,166 236,158 244,158" fill="#c0c0c0"/>
-  <rect x="247" y="137" width="54" height="16" rx="8" fill="#f0f0f0"/>
-  <text x="274" y="149" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">segments</text>
+  <!-- arrow: observers -> sol agent -->
+  <line x1="240" y1="124" x2="240" y2="158" stroke="#d0d0d0" stroke-width="1.5"/>
+  <polygon points="240,160 236,152 244,152" fill="#c0c0c0"/>
 
-  <!-- journal card -->
-  <rect x="48" y="172" width="384" height="92" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="48" y="176" width="4" height="84" fill="#F5C740" rx="1"/>
-  <text x="68" y="198" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">journal</text>
-  <text x="68" y="218" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">AI processing · transcription · vision · search</text>
-  <text x="68" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">web dashboard — your co-brain runs here</text>
-  <text x="68" y="256" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">faster-whisper · gemini · sqlite</text>
+  <!-- sol agent card -->
+  <rect x="48" y="170" width="384" height="74" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="48" y="174" width="4" height="66" fill="#222" rx="1"/>
+  <text x="68" y="196" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">sol agent</text>
+  <text x="68" y="216" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">processes, organizes, surfaces — your co-brain runs here</text>
+  <text x="68" y="233" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
+
+  <!-- arrow: sol agent -> journal -->
+  <line x1="240" y1="244" x2="240" y2="278" stroke="#d0d0d0" stroke-width="1.5"/>
+  <polygon points="240,280 236,272 244,272" fill="#c0c0c0"/>
+
+  <!-- journal cylinder body (bottom curve + sides) -->
+  <path d="M 48 290 L 48 348 A 192 8 0 0 0 432 348 L 432 290" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- journal cylinder top ellipse -->
+  <ellipse cx="240" cy="290" rx="192" ry="8" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- gold accent stripe (left side) -->
+  <line x1="50" y1="290" x2="50" y2="348" stroke="#F5C740" stroke-width="2"/>
+  <!-- journal label and path -->
+  <text x="240" y="316" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">journal</text>
+  <text x="240" y="334" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="11" fill="#767676">~/Documents/journal</text>
 </svg>

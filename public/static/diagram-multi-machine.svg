@@ -1,47 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 328" role="img" aria-label="solstone multi-machine architecture: linux and macos desktops with observers upload to a dedicated journal server, mobile coming soon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 420" role="img" aria-label="solstone multi-machine architecture: observers run on each device (linux, macos, tmux) and report to a single home machine that contains sol agent and the journal at ~/Documents/journal">
   <title>solstone — multi-machine</title>
 
-  <!-- linux desktop -->
-  <rect x="16" y="16" width="172" height="80" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="16" y="20" width="4" height="72" fill="#E8923A" rx="1"/>
-  <text x="36" y="44" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">linux</text>
-  <text x="36" y="62" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: screen + audio</text>
-  <text x="36" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">solstone-linux</text>
+  <!-- linux device -->
+  <rect x="24" y="24" width="160" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="24" y="28" width="4" height="72" fill="#E8923A" rx="1"/>
+  <text x="44" y="48" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">linux</text>
+  <text x="44" y="66" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: screen + audio</text>
+  <text x="44" y="84" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-linux</text>
 
-  <!-- macos desktop -->
-  <rect x="204" y="16" width="172" height="80" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="204" y="20" width="4" height="72" fill="#E8923A" rx="1"/>
-  <text x="224" y="44" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">macos</text>
-  <text x="224" y="62" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: screen + audio</text>
-  <text x="224" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">solstone-macos</text>
+  <!-- macos device -->
+  <rect x="210" y="24" width="160" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="210" y="28" width="4" height="72" fill="#E8923A" rx="1"/>
+  <text x="230" y="48" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">macos</text>
+  <text x="230" y="66" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: screen + audio</text>
+  <text x="230" y="84" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-macos</text>
 
-  <!-- mobile (coming soon) -->
-  <rect x="392" y="16" width="172" height="80" rx="4" fill="white" stroke="#999" stroke-width="1" stroke-dasharray="6,4"/>
-  <text x="412" y="44" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#999" font-weight="700">mobile</text>
-  <text x="412" y="62" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#999">iOS + android</text>
-  <text x="412" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999" font-style="italic">coming soon</text>
+  <!-- tmux device -->
+  <rect x="396" y="24" width="160" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="396" y="28" width="4" height="72" fill="#E8923A" rx="1"/>
+  <text x="416" y="48" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">tmux</text>
+  <text x="416" y="66" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: terminal sessions</text>
+  <text x="416" y="84" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-tmux</text>
 
-  <!-- vertical lines from devices to bus -->
-  <line x1="102" y1="96" x2="102" y2="144" stroke="#d0d0d0" stroke-width="1.5"/>
-  <line x1="290" y1="96" x2="290" y2="144" stroke="#d0d0d0" stroke-width="1.5"/>
-  <line x1="478" y1="96" x2="478" y2="144" stroke="#bbb" stroke-width="1" stroke-dasharray="6,4"/>
+  <!-- vertical lines from each device down to bus -->
+  <line x1="104" y1="104" x2="104" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
+  <line x1="290" y1="104" x2="290" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
+  <line x1="476" y1="104" x2="476" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
 
-  <!-- horizontal bus: solid (linux to macos) + dashed (macos to mobile) -->
-  <line x1="102" y1="144" x2="290" y2="144" stroke="#d0d0d0" stroke-width="1.5"/>
-  <line x1="290" y1="144" x2="478" y2="144" stroke="#bbb" stroke-width="1" stroke-dasharray="6,4"/>
+  <!-- horizontal bus -->
+  <line x1="104" y1="138" x2="476" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
 
-  <!-- junction dot + down to journal -->
-  <circle cx="290" cy="144" r="3" fill="#d0d0d0"/>
-  <line x1="290" y1="147" x2="290" y2="196" stroke="#d0d0d0" stroke-width="1.5"/>
-  <polygon points="290,198 286,190 294,190" fill="#c0c0c0"/>
-  <rect x="297" y="165" width="54" height="16" rx="8" fill="#f0f0f0"/>
-  <text x="324" y="177" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">segments</text>
+  <!-- junction down to home machine -->
+  <circle cx="290" cy="138" r="3" fill="#d0d0d0"/>
+  <line x1="290" y1="141" x2="290" y2="180" stroke="#d0d0d0" stroke-width="1.5"/>
+  <polygon points="290,182 286,174 294,174" fill="#c0c0c0"/>
 
-  <!-- journal server -->
-  <rect x="72" y="204" width="436" height="108" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="72" y="208" width="4" height="100" fill="#F5C740" rx="1"/>
-  <text x="92" y="232" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">journal server</text>
-  <text x="92" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">AI processing · transcription · vision · search</text>
-  <text x="92" y="272" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">web dashboard — your co-brain runs here</text>
-  <text x="92" y="296" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#767676" font-style="italic">access your dashboard from any device on your network</text>
+  <!-- home machine label -->
+  <text x="290" y="200" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">home machine</text>
+
+  <!-- home machine container -->
+  <rect x="48" y="210" width="484" height="196" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
+
+  <!-- sol agent (inside home) -->
+  <rect x="72" y="234" width="436" height="74" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="72" y="238" width="4" height="66" fill="#222" rx="1"/>
+  <text x="92" y="258" font-family="'Comfortaa', system-ui, sans-serif" font-size="14" fill="#222" font-weight="700">sol agent</text>
+  <text x="92" y="276" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">processes, organizes, surfaces — your co-brain runs here</text>
+  <text x="92" y="294" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
+
+  <!-- arrow: sol agent -> journal -->
+  <line x1="290" y1="308" x2="290" y2="334" stroke="#d0d0d0" stroke-width="1.5"/>
+  <polygon points="290,336 286,328 294,328" fill="#c0c0c0"/>
+
+  <!-- journal cylinder body (inside home) -->
+  <path d="M 72 344 L 72 386 A 218 8 0 0 0 508 386 L 508 344" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- journal cylinder top ellipse -->
+  <ellipse cx="290" cy="344" rx="218" ry="8" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- gold accent stripe (left side) -->
+  <line x1="74" y1="344" x2="74" y2="386" stroke="#F5C740" stroke-width="2"/>
+  <!-- journal label and path -->
+  <text x="290" y="364" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="14" fill="#222" font-weight="700">journal</text>
+  <text x="290" y="382" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#767676">~/Documents/journal</text>
 </svg>

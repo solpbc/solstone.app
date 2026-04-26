@@ -4,10 +4,56 @@ these instructions are for a coding agent and human working together. solstone i
 
 your data stays on your machine. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, the company can never be acquired.
 
-the human should decide where solstone lives on their filesystem, then clone it:
+## install with a coding agent
+
+paste this prompt into claude code, codex cli, gemini cli, or similar. the human should decide where solstone lives on their filesystem, then clone it:
 
 ```
 git clone https://github.com/solpbc/solstone.git
 ```
 
-then read INSTALL.md in the cloned repo and follow it.
+then read INSTALL.md in the cloned repo and follow it. the journal lives at `~/Documents/journal` by default; the first-run wizard at http://localhost:5015 confirms the location.
+
+## install yourself
+
+### macOS
+
+prereqs: xcode command-line tools (`xcode-select --install`), homebrew (https://brew.sh), then:
+
+```
+brew install git uv
+```
+
+install:
+
+```
+git clone https://github.com/solpbc/solstone.git
+cd solstone
+make install
+make install-service
+```
+
+then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/Documents/journal`.
+
+### linux
+
+prereqs: git from your distro's package manager, `uv` from astral.sh:
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+install:
+
+```
+git clone https://github.com/solpbc/solstone.git
+cd solstone
+make install
+make install-service
+```
+
+then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/Documents/journal`.
+
+## already have your sol agent installed?
+
+find available observers at https://solstone.app/observers.
