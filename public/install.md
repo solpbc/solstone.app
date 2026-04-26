@@ -13,11 +13,13 @@ solstone is a system, three named parts:
 - sol agent processes everything and curates your memories
 - the journal holds your memories
 
+start here with the sol agent install:
+
 ```
 git clone https://github.com/solpbc/solstone.git
 ```
 
-then read INSTALL.md in the cloned repo and follow it.
+then read INSTALL.md in the cloned repo and follow it, it includes instructions for installing observer(s) as well.
 
 ## install yourself
 
