@@ -1,64 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 420" role="img" aria-label="solstone multi-machine architecture: observers run on each device (linux, macos, tmux) and report to a single home machine that contains sol agent and the journal at ~/Documents/journal">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 430" role="img" aria-label="solstone multi-machine architecture: observers run on each desktop (linux, macos, tmux; windows and mobile coming soon) and report to your server, which contains sol agent and the journal at ~/Documents/journal">
   <title>solstone — multi-machine</title>
 
+  <!-- desktops label -->
+  <text x="420" y="14" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">desktops</text>
+
   <!-- linux device -->
-  <rect x="24" y="24" width="160" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="24" y="28" width="4" height="72" fill="#E8923A" rx="1"/>
-  <text x="44" y="48" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">linux</text>
-  <text x="44" y="66" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: screen + audio</text>
-  <text x="44" y="84" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-linux</text>
+  <rect x="16" y="24" width="152" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="92" y="48" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">linux</text>
+  <text x="92" y="68" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: screen + audio</text>
+  <text x="92" y="86" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-linux</text>
 
   <!-- macos device -->
-  <rect x="210" y="24" width="160" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="210" y="28" width="4" height="72" fill="#E8923A" rx="1"/>
-  <text x="230" y="48" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">macos</text>
-  <text x="230" y="66" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: screen + audio</text>
-  <text x="230" y="84" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-macos</text>
+  <rect x="180" y="24" width="152" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="256" y="48" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">macos</text>
+  <text x="256" y="68" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: screen + audio</text>
+  <text x="256" y="86" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-macos</text>
 
   <!-- tmux device -->
-  <rect x="396" y="24" width="160" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="396" y="28" width="4" height="72" fill="#E8923A" rx="1"/>
-  <text x="416" y="48" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">tmux</text>
-  <text x="416" y="66" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: terminal sessions</text>
-  <text x="416" y="84" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-tmux</text>
+  <rect x="344" y="24" width="152" height="80" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="420" y="48" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#222" font-weight="700">tmux</text>
+  <text x="420" y="68" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">observer: terminal sessions</text>
+  <text x="420" y="86" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#999">solstone-tmux</text>
+
+  <!-- windows device (coming soon) -->
+  <rect x="508" y="24" width="152" height="80" rx="6" fill="white" stroke="#999" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="584" y="56" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#999" font-weight="700">windows</text>
+  <text x="584" y="76" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999" font-style="italic">coming soon</text>
+
+  <!-- mobile device (coming soon) -->
+  <rect x="672" y="24" width="152" height="80" rx="6" fill="white" stroke="#999" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="748" y="56" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="13" fill="#999" font-weight="700">mobile</text>
+  <text x="748" y="76" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999" font-style="italic">coming soon</text>
 
   <!-- vertical lines from each device down to bus -->
-  <line x1="104" y1="104" x2="104" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
-  <line x1="290" y1="104" x2="290" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
-  <line x1="476" y1="104" x2="476" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
+  <line x1="92" y1="104" x2="92" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
+  <line x1="256" y1="104" x2="256" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
+  <line x1="420" y1="104" x2="420" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
+  <line x1="584" y1="104" x2="584" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
+  <line x1="748" y1="104" x2="748" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
 
   <!-- horizontal bus -->
-  <line x1="104" y1="138" x2="476" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
+  <line x1="92" y1="138" x2="748" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
 
-  <!-- junction down to home machine -->
-  <circle cx="290" cy="138" r="3" fill="#d0d0d0"/>
-  <line x1="290" y1="141" x2="290" y2="180" stroke="#d0d0d0" stroke-width="1.5"/>
-  <polygon points="290,182 286,174 294,174" fill="#c0c0c0"/>
+  <!-- junction down to your server -->
+  <circle cx="420" cy="138" r="3" fill="#d0d0d0"/>
+  <line x1="420" y1="141" x2="420" y2="180" stroke="#d0d0d0" stroke-width="1.5"/>
+  <polygon points="420,182 416,174 424,174" fill="#c0c0c0"/>
 
-  <!-- home machine label -->
-  <text x="290" y="200" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">home machine</text>
+  <!-- your server label -->
+  <text x="420" y="200" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">your server</text>
 
-  <!-- home machine container -->
-  <rect x="48" y="210" width="484" height="196" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- your server container -->
+  <rect x="120" y="210" width="600" height="200" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
 
-  <!-- sol agent (inside home) -->
-  <rect x="72" y="234" width="436" height="74" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <rect x="72" y="238" width="4" height="66" fill="#222" rx="1"/>
-  <text x="92" y="258" font-family="'Comfortaa', system-ui, sans-serif" font-size="14" fill="#222" font-weight="700">sol agent</text>
-  <text x="92" y="276" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">processes, organizes, surfaces — your co-brain runs here</text>
-  <text x="92" y="294" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
+  <!-- sol agent (inside server) -->
+  <rect x="144" y="234" width="552" height="74" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="420" y="258" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="14" fill="#222" font-weight="700">sol agent</text>
+  <text x="420" y="276" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">processes, organizes, surfaces — your co-brain runs here</text>
+  <text x="420" y="294" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
 
   <!-- arrow: sol agent -> journal -->
-  <line x1="290" y1="308" x2="290" y2="334" stroke="#d0d0d0" stroke-width="1.5"/>
-  <polygon points="290,336 286,328 294,328" fill="#c0c0c0"/>
+  <line x1="420" y1="308" x2="420" y2="334" stroke="#d0d0d0" stroke-width="1.5"/>
+  <polygon points="420,336 416,328 424,328" fill="#c0c0c0"/>
 
-  <!-- journal cylinder body (inside home) -->
-  <path d="M 72 344 L 72 386 A 218 8 0 0 0 508 386 L 508 344" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- journal cylinder body (inside server) -->
+  <path d="M 144 344 L 144 386 A 276 8 0 0 0 696 386 L 696 344" fill="white" stroke="#e0e0e0" stroke-width="1"/>
   <!-- journal cylinder top ellipse -->
-  <ellipse cx="290" cy="344" rx="218" ry="8" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <!-- gold accent stripe (left side) -->
-  <line x1="74" y1="344" x2="74" y2="386" stroke="#F5C740" stroke-width="2"/>
+  <ellipse cx="420" cy="344" rx="276" ry="8" fill="white" stroke="#e0e0e0" stroke-width="1"/>
   <!-- journal label and path -->
-  <text x="290" y="364" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="14" fill="#222" font-weight="700">journal</text>
-  <text x="290" y="382" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#767676">~/Documents/journal</text>
+  <text x="420" y="364" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="14" fill="#222" font-weight="700">journal</text>
+  <text x="420" y="382" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#767676">~/Documents/journal</text>
 </svg>
