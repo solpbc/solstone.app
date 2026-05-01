@@ -1,10 +1,10 @@
 # solstone
 
-> solstone is an open source AI life journal that captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data resides on your machine. made by sol pbc, a public benefit corporation that can never be sold and can never sell your data. supported on linux and macOS. python 3.10+, installed via git clone + make install.
+> solstone is an open source AI life journal that captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data resides on your machine. made by sol pbc, a public benefit corporation with irrevocable data covenants — customer data can never be sold, and any acquisition must preserve the same protections. supported on linux and macOS. python 3.10+, installed via git clone + make install.
 
 solstone captures screen activity and audio continuously in the background, then uses AI to transcribe conversations, extract entities (people, companies, projects), detect meetings, build knowledge graphs, and surface daily insights. everything is stored in daily journal directories on your filesystem. the web interface provides full-text search, transcript browsing, entity tracking, AI chat, and calendar views.
 
-the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the company's founding documents contain irrevocable covenants: owner data can never be sold or shared, and the company can never be acquired. the code is open source — every claim is verifiable.
+the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the company's founding documents contain irrevocable covenants: customer data can never be sold or shared, and any acquisition is conditional on the successor preserving the benefit purpose and assuming covenants no less protective than Article 8. the code is open source — every claim is verifiable.
 
 ## Docs
 

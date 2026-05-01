@@ -11,7 +11,7 @@ metadata:
 
 # solstone installation
 
-solstone is an open source AI life journal — captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data resides on your machine. made by sol pbc, a public benefit corporation that can never be sold and can never sell your data. supported on linux and macOS.
+solstone is an open source AI life journal — captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data resides on your machine. made by sol pbc, a public benefit corporation with irrevocable data covenants — your data can never be sold, and any acquisition must preserve the same protections. supported on linux and macOS.
 
 ## instructions
 

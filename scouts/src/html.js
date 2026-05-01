@@ -408,11 +408,11 @@ export function renderDataDisclosure(scout) {
   <h2>the covenants behind this</h2>
   <p>sol pbc is a colorado public benefit corporation. our <a href="https://solpbc.org/bylaws">bylaws</a> contain irrevocable data governance covenants — not policies that can be quietly updated, but structural commitments baked into how the company is built:</p>
   <ul style="padding-left:1.25rem; color:#555; margin-bottom:1rem;">
-    <li style="margin-bottom:0.5rem;"><strong>we will never sell your data.</strong> not anonymized, not aggregated, not de-identified. no third-party access, no exceptions. (bylaws, article IV, section 4.1)</li>
-    <li style="margin-bottom:0.5rem;"><strong>we will never use your data for anything other than the service.</strong> no analytics, no tracking, no profiling, no advertising. ever. (bylaws, article IV, section 4.2)</li>
+    <li style="margin-bottom:0.5rem;"><strong>we will never sell your data.</strong> not anonymized, not aggregated, not de-identified. no third-party access, no exceptions. (Restated Article 8 §8.3(a)(1))</li>
+    <li style="margin-bottom:0.5rem;"><strong>we will never use your data for anything other than the service.</strong> no analytics, no tracking, no profiling, no advertising. ever. (Restated Article 8 §8.3(a)(2)–(b))</li>
   </ul>
-  <p>these can't be changed without 90% shareholder approval and the founder's personal written consent. they survive any change in management. they're the reason sol pbc exists as a public benefit corporation in the first place.</p>
-  <p>google's role here is what the bylaws call a permitted processor — they handle your data solely to provide the gemini API service, under <a href="https://cloud.google.com/terms/data-processing-addendum">contractual terms</a> that prohibit them from using it for their own purposes.</p>
+  <p>during the founder's stewardship, any amendment requires the founder's personal, non-delegable consent. after the founder ceases to serve, amendments are permitted only to <em>strengthen</em> these protections (or to comply with mandatory law to the minimum extent strictly required) — weakening amendments are foreclosed forever. they survive any change in management. they're the reason sol pbc exists as a public benefit corporation.</p>
+  <p>google's role here is what Article 8 §8.1 calls a Service Provider — they handle data solely to provide the gemini API service, under <a href="https://cloud.google.com/terms/data-processing-addendum">contractual terms</a> that prohibit them from using it for their own purposes.</p>
 
   <h2>questions?</h2>
   <p><a href="mailto:jer@solpbc.org">jer@solpbc.org</a> — always.</p>
