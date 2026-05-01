@@ -399,7 +399,7 @@ export function renderDataDisclosure(scout) {
 
   <h2>sol pbc can't see your data</h2>
   <p>sol pbc <strong>does not have access to the content</strong> of your API calls. we can't read your prompts. we can't read gemini's responses. we see billing — how many calls were made, how many tokens, what it cost. that's it.</p>
-  <p>we gave you the key and we can revoke it. we cannot see what flows through it. this is intentional — our <a href="https://solpbc.org/bylaws">bylaws</a> prohibit us from using your data for anything other than providing the service directly to you, and we've built the architecture to match.</p>
+  <p>we gave you the key and we can revoke it. we cannot see what flows through it. this is intentional — our <a href="https://solpbc.org/articles">articles §8.3</a> prohibit us from using your data for anything other than providing the service directly to you, and we've built the architecture to match.</p>
 
   <h2>what you control</h2>
   <p>solstone runs on your hardware. you decide what it observes and what it sends to gemini. you can stop using the key anytime. if you want it revoked, email <a href="mailto:jer@solpbc.org">jer@solpbc.org</a> and we'll delete it from google's systems.</p>
@@ -408,11 +408,11 @@ export function renderDataDisclosure(scout) {
   <h2>the covenants behind this</h2>
   <p>sol pbc is a colorado public benefit corporation. our <a href="https://solpbc.org/bylaws">bylaws</a> contain irrevocable data governance covenants — not policies that can be quietly updated, but structural commitments baked into how the company is built:</p>
   <ul style="padding-left:1.25rem; color:#555; margin-bottom:1rem;">
-    <li style="margin-bottom:0.5rem;"><strong>we will never sell your data.</strong> not anonymized, not aggregated, not de-identified. no third-party access, no exceptions. (Restated Article 8 §8.3(a)(1))</li>
-    <li style="margin-bottom:0.5rem;"><strong>we will never use your data for anything other than the service.</strong> no analytics, no tracking, no profiling, no advertising. ever. (Restated Article 8 §8.3(a)(2)–(b))</li>
+    <li style="margin-bottom:0.5rem;"><strong>we will never sell your data.</strong> not anonymized, not aggregated, not de-identified. no third-party access, no exceptions. (articles §8.3(a)(1) — Customer Privacy Covenant, absolute zone)</li>
+    <li style="margin-bottom:0.5rem;"><strong>we will never use your data for anything other than the service.</strong> no analytics, no tracking, no profiling, no advertising. ever. (articles §8.3(b) — behavioral-advertising prohibition)</li>
   </ul>
   <p>during the founder's stewardship, any amendment requires the founder's personal, non-delegable consent. after the founder ceases to serve, amendments are permitted only to <em>strengthen</em> these protections (or to comply with mandatory law to the minimum extent strictly required) — weakening amendments are foreclosed forever. they survive any change in management. they're the reason sol pbc exists as a public benefit corporation.</p>
-  <p>google's role here is what Article 8 §8.1 calls a Service Provider — they handle data solely to provide the gemini API service, under <a href="https://cloud.google.com/terms/data-processing-addendum">contractual terms</a> that prohibit them from using it for their own purposes.</p>
+  <p>google's role here is what <strong>Article 8 §8.1 defines as a Service Provider</strong> — they handle data solely to provide the gemini API service, under <a href="https://cloud.google.com/terms/data-processing-addendum">contractual terms</a> that prohibit them from using it for their own purposes.</p>
 
   <h2>questions?</h2>
   <p><a href="mailto:jer@solpbc.org">jer@solpbc.org</a> — always.</p>
