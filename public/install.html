@@ -256,6 +256,23 @@
             line-height: 1.55;
             margin-bottom: 0.5rem;
         }
+        .stage-note {
+            max-width: 820px;
+            width: 90vw;
+            padding: 0 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .stage-note p {
+            font-size: 0.92rem;
+            color: #555;
+            line-height: 1.6;
+            margin: 0;
+        }
+        .stage-note .stage-label {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-weight: 700;
+            color: #222;
+        }
         .blurb {
             display: none;
         }
@@ -281,6 +298,10 @@
         <div class="diagram-panel diagram-multi">
             <img src="static/diagram-multi-machine.svg" alt="solstone multi-machine architecture: observers run on each desktop and device (linux, macos, tmux; windows and mobile coming soon) and report to your server, which contains sol agent and the journal at ~/Documents/journal">
         </div>
+    </div>
+
+    <div class="stage-note">
+        <p><span class="stage-label">early days.</span> solstone is open source and hands-on. you'll spend time in the terminal, you'll find rough edges, and we'll fix them together as we go.</p>
     </div>
 
     <h2 class="install-section-title">install with a coding agent</h2>
@@ -348,7 +369,7 @@ then read INSTALL.md in the cloned repo and follow it, it includes instructions 
     <div class="supplemental">
         <div class="card">
             <h2>want to help shape what comes next?</h2>
-            <p class="subtitle">solstone scouts is our alpha testing program. get early access, give feedback, help us build the co-brain you actually want. sign in with your bluesky account.</p>
+            <p class="subtitle">solstone is being built in the open. scouts get early access, a direct line to the founder, and a hand in shaping the co-brain you actually want. sign in with your bluesky account.</p>
             <div class="card-actions">
                 <a href="https://scouts.solstone.app" class="gh-link">apply as a scout &rarr;</a>
             </div>
