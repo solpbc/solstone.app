@@ -50,3 +50,24 @@ footer a:hover {
         font-size: 1.5rem;
     }
 }
+.early-days {
+    background: #FFF4DE;
+    border: 1px solid #F0C97A;
+    border-left: 3px solid #E8923A;
+    border-radius: 6px;
+    padding: 0.85rem 1.1rem;
+    color: #5a4422;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    text-align: left;
+    max-width: 600px;
+    width: 90vw;
+    margin: 0.5rem auto 1rem;
+    font-style: normal;
+}
+.early-days .stage-label {
+    font-family: 'Comfortaa', system-ui, sans-serif;
+    font-weight: 700;
+    color: #B36A1D;
+    letter-spacing: 0.01em;
+}
