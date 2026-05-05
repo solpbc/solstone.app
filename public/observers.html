@@ -105,6 +105,57 @@
         .gh-link:hover {
             color: #E8923A;
         }
+        .primary-action {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-top: auto;
+            margin-bottom: 1rem;
+        }
+        .download-btn {
+            display: inline-block;
+            align-self: flex-start;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            background: #E8923A;
+            color: #fff;
+            text-decoration: none;
+            border: none;
+            border-radius: 6px;
+            padding: 0.65rem 1.1rem;
+            transition: background-color 0.15s;
+        }
+        .download-btn:hover {
+            background: #d27f2c;
+            color: #fff;
+        }
+        .download-clarifier {
+            font-size: 0.82rem;
+            color: #555;
+            margin: 0;
+            line-height: 1.4;
+        }
+        .trust-signal {
+            font-size: 0.78rem;
+            color: #888;
+            margin: 0;
+            line-height: 1.4;
+        }
+        .secondary-action {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid #eee;
+        }
+        .secondary-action .copy-btn {
+            font-size: 0.74rem;
+            padding: 0.35rem 0.75rem;
+        }
+        .secondary-action .gh-link {
+            font-size: 0.74rem;
+        }
         .supplemental {
             max-width: 820px;
             width: 90vw;
@@ -180,11 +231,16 @@
                 <li>takes in system audio and microphone separately</li>
                 <li>runs as a menu bar app, starts at login</li>
             </ul>
-            <div class="card-actions">
+            <div class="primary-action">
+                <a href="https://solstone.app/download/macos" class="download-btn">download for macOS</a>
+                <p class="download-clarifier">the macOS observer. the sol agent installs separately — bundling is on the roadmap.</p>
+                <p class="trust-signal">signed by sol pbc, notarized by Apple. updates over a signed channel.</p>
+            </div>
+            <div class="secondary-action">
                 <button class="copy-btn" data-target="blurb-macos">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-macos" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-macos">install the solstone-macos observer — a native swift menu bar app that observes screen and audio along with you. requires Xcode (full IDE, not just command line tools).
+            <pre class="blurb" id="blurb-macos">developer build (build from source). most people should download the DMG above. this path requires Xcode (full IDE, not just command line tools) and is here for developers who want to build, modify, or hand the install to a coding agent.
 
 cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos
 
