@@ -1,8 +1,8 @@
 # solstone
 
-> solstone is an open source AI life journal that captures everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data resides on your machine. made by sol pbc, a public benefit corporation with irrevocable data covenants — customer data can never be sold, and any acquisition must preserve the same protections. supported on linux and macOS. python 3.10+, installed via git clone + make install.
+> solstone is an open source AI co-brain that experiences your screen and audio along with you, processes the observations with AI, and gives you superhuman memory. your data resides on your machine. made by sol pbc, a public benefit corporation with irrevocable data covenants — customer data can never be sold, and any acquisition must preserve the same protections. supported on linux and macOS. python 3.10+, installed via git clone + make install.
 
-solstone captures screen activity and audio continuously in the background, then uses AI to transcribe conversations, extract entities (people, companies, projects), detect meetings, build knowledge graphs, and surface daily insights. everything is stored in daily journal directories on your filesystem. the web interface provides full-text search, transcript browsing, entity tracking, AI chat, and calendar views.
+observers run quietly in the background, experiencing your screen and audio along with you. sol agent uses AI to transcribe conversations, extract entities (people, companies, projects), detect meetings, build knowledge graphs, and surface daily insights. everything is stored in daily journal directories on your filesystem. the web interface provides full-text search, transcript browsing, entity tracking, AI chat, and calendar views.
 
 the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the company's founding documents contain irrevocable covenants: customer data can never be sold or shared, and any acquisition is conditional on the successor preserving the benefit purpose and assuming covenants no less protective than Article 8. the code is open source — every claim is verifiable.
 
@@ -10,7 +10,7 @@ the project is maintained by sol pbc (https://solpbc.org), a colorado public ben
 
 - [Get started](https://solstone.app/install): Human-friendly install page with copy-for-your-agent instructions. For raw agent-only instructions, use [install.md](https://solstone.app/install.md).
 - [README](https://github.com/solpbc/solstone/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
-- [Observers](https://solstone.app/observers): Screen and audio capture components for macOS, Linux, and tmux — pick your platform and copy the prompt for your agent
+- [Observers](https://solstone.app/observers): Screen and audio observers for macOS, Linux, and tmux — pick your platform and copy the prompt for your agent
 - [Journal structure](https://github.com/solpbc/solstone/blob/main/docs/JOURNAL.md): Data model and daily directory layout
 - [AI providers](https://github.com/solpbc/solstone/blob/main/docs/PROVIDERS.md): Configuring Google Gemini, OpenAI, and Anthropic backends
 - [Web interface](https://github.com/solpbc/solstone/blob/main/docs/CONVEY.md): The 17-app web UI for browsing journal data
