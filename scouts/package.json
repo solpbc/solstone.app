@@ -10,7 +10,6 @@
     "schema:local": "wrangler d1 execute scouts-portal --file=schema.sql --local"
   },
   "dependencies": {
-    "jose": "^6.0.11",
-    "mimetext": "^3.0.28"
+    "jose": "^6.0.11"
   }
 }

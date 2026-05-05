@@ -204,19 +204,20 @@ export function renderLanding(error, opts = {}) {
   const emailBlock = emailDisabled
     ? ''
     : `<div class="or-rule">or</div>
-  <a href="/email" class="email-link">sign in with email</a>
+  <a href="/email" class="email-link">continue with email</a>
   <p style="font-size:0.8rem; color:#767676; margin-top:0.5rem;">we'll send you a 6-digit code.</p>`;
   return layout(
     'solstone scouts',
     `<div class="container">
   <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
-  <h1>solstone scouts</h1>
-  <p>help shape what comes next.</p>
+  <h1>⛺ join the scouts</h1>
+  <p>help shape what comes next. solstone is in alpha and we're inviting people in by hand.</p>
+  <p style="font-size:0.9rem; color:#555;">apply or sign back in below — we'll know if you've been here before.</p>
   ${errorHtml}
   <form method="POST" action="/login" style="margin-top: 1.5rem;">
     <label for="handle">your atmosphere handle</label>
     <input type="text" id="handle" name="handle" placeholder="yourname.bsky.social" required>
-    <button type="submit" class="btn">sign in with atmosphere</button>
+    <button type="submit" class="btn">continue with atmosphere</button>
   </form>
   <p style="font-size:0.8rem; color:#767676; margin-top:0.75rem;">if you're on bluesky, you already have one — it runs on the atmosphere network. don't have one? <a href="https://bsky.app">create one at bsky.app</a> — takes 30 seconds.</p>
   ${emailBlock}
@@ -240,10 +241,10 @@ export function renderEmailStart({ siteKey, error, email }) {
     .cf-turnstile { margin: 1rem 0; display: flex; justify-content: center; }
   </style>${turnstileScript}`;
   return layout(
-    'solstone scouts — sign in with email',
+    'solstone scouts — continue with email',
     `<div class="container">
   <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
-  <h1>⛺ sign in with email</h1>
+  <h1>⛺ continue with email</h1>
   <p>we'll send you a 6-digit code.</p>
   ${errorHtml}
   <form method="POST" action="/email/start">
@@ -295,8 +296,9 @@ export function renderEmailVerify({ email, error, locked }) {
     <input type="hidden" name="email" value="${esc(email || '')}">
     <label for="code">code</label>
     <input type="text" id="code" name="code"
-           inputmode="numeric" pattern="[0-9]*" maxlength="6"
+           inputmode="numeric" pattern="[0-9]*"
            autocomplete="one-time-code" autofocus
+           oninput="this.value = this.value.replace(/\\D/g, '').slice(0, 6)"
            ${lockedAttr}
            style="font-family: ui-monospace, Menlo, monospace; font-size: 1.5rem; letter-spacing: 0.5rem; text-align: center;">
     <button type="submit" class="btn" ${lockedAttr}>verify</button>

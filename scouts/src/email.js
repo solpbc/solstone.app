@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 sol pbc
 
-// Thin abstraction over CF Email Sending. Wrapping the binding lets us swap
-// to SES / Resend / REST API in one file if the public-beta API moves.
-
-import { EmailMessage } from 'cloudflare:email';
-import { createMimeMessage } from 'mimetext';
+// Thin abstraction over CF Email Sending (public beta). Wrapping the binding
+// lets us swap to SES / Resend / REST API in one file if the API moves.
 
 const FROM_ADDRESS = 'scouts@solstone.app';
 const FROM_NAME = 'solstone scouts';
@@ -13,23 +10,20 @@ const REPLY_TO = 'jer@solpbc.org';
 
 export async function sendTransactionalEmail(env, { to, subject, text, html }) {
   if (env.EMAIL_PATH_DISABLED === 'true') {
-    // Kill switch — silently no-op so callers can keep flat-time behavior.
     return { sent: false, reason: 'email_path_disabled' };
   }
 
-  const msg = createMimeMessage();
-  msg.setSender({ name: FROM_NAME, addr: FROM_ADDRESS });
-  msg.setRecipient(to);
-  msg.setSubject(subject);
-  msg.setHeader('Reply-To', REPLY_TO);
-  msg.addMessage({ contentType: 'text/plain', data: text });
-  if (html) {
-    msg.addMessage({ contentType: 'text/html', data: html });
-  }
-
-  const message = new EmailMessage(FROM_ADDRESS, to, msg.asRaw());
-  await env.EMAIL.send(message);
-  return { sent: true };
+  // CF Email Sending public-beta binding: structured payload, not MIME.
+  // Reply-To is supported via the `replyTo` field on the message object.
+  const response = await env.EMAIL.send({
+    to,
+    from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+    replyTo: REPLY_TO,
+    subject,
+    text,
+    html,
+  });
+  return { sent: true, messageId: response?.messageId };
 }
 
 export function renderOtpEmail(code) {
