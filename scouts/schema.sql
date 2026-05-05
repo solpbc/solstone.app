@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS scouts (
   applied_at      TEXT,
   approved_at     TEXT,
   revoked_at      TEXT,
+  approval_email_sent_at TEXT,
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -53,9 +54,28 @@ CREATE TABLE IF NOT EXISTS oauth_state (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS otp_tokens (
+  email_lower TEXT PRIMARY KEY,
+  code_hash   TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  attempts    INTEGER NOT NULL DEFAULT 0,
+  consumed    INTEGER NOT NULL DEFAULT 0,
+  started_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS rate_buckets (
+  scope        TEXT NOT NULL,
+  key_hash     TEXT NOT NULL,
+  window_start TEXT NOT NULL,
+  count        INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (scope, key_hash, window_start)
+);
+
 CREATE INDEX IF NOT EXISTS idx_scouts_email_lower ON scouts(email_lower);
 CREATE INDEX IF NOT EXISTS idx_scouts_status ON scouts(status);
 CREATE INDEX IF NOT EXISTS idx_feedback_scout ON feedback(scout_did);
 CREATE INDEX IF NOT EXISTS idx_news_posted ON news(posted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_oauth_state_created ON oauth_state(created_at);
+CREATE INDEX IF NOT EXISTS idx_otp_expires ON otp_tokens(expires_at);
+CREATE INDEX IF NOT EXISTS idx_rate_buckets_window ON rate_buckets(window_start);

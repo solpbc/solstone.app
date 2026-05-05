@@ -161,6 +161,166 @@ export async function acknowledgeData(db, id) {
     .run();
 }
 
+// --- Email-path scout operations ---
+
+export async function findScoutByEmailLower(db, emailLower) {
+  return db
+    .prepare('SELECT * FROM scouts WHERE email_lower = ?')
+    .bind(emailLower)
+    .first();
+}
+
+// Upsert an email scout on first OTP verify. Three branches mirror the atproto
+// helper: existing email row → return; pre-approved (id LIKE 'pending-email:...')
+// → upgrade to a real id; new → INSERT with status='unknown'.
+export async function upsertEmailScout(db, emailLower) {
+  const existing = await findScoutByEmailLower(db, emailLower);
+  if (existing) {
+    if (existing.id.startsWith('pending-email:')) {
+      const newId = `email-${crypto.randomUUID()}`;
+      await db
+        .prepare("UPDATE scouts SET id = ? WHERE id = ?")
+        .bind(newId, existing.id)
+        .run();
+      return { ...existing, id: newId };
+    }
+    return existing;
+  }
+  const id = `email-${crypto.randomUUID()}`;
+  await db
+    .prepare(
+      "INSERT INTO scouts (id, auth_kind, email, email_lower, status) VALUES (?, 'email', ?, ?, 'unknown')"
+    )
+    .bind(id, emailLower, emailLower)
+    .run();
+  return {
+    id,
+    auth_kind: 'email',
+    email: emailLower,
+    email_lower: emailLower,
+    status: 'unknown',
+  };
+}
+
+export async function applyEmailScout(db, id, useCase, profileLink) {
+  await db
+    .prepare(
+      "UPDATE scouts SET use_case = ?, profile_link = ?, status = 'applied', applied_at = datetime('now') WHERE id = ? AND status = 'unknown'"
+    )
+    .bind(useCase || null, profileLink || null, id)
+    .run();
+}
+
+// --- OTP operations ---
+//
+// One row per email_lower — UPSERTs invalidate any prior unconsumed code.
+
+export async function upsertOtpToken(db, emailLower, codeHash, expiresAt) {
+  await db
+    .prepare(
+      `INSERT INTO otp_tokens (email_lower, code_hash, expires_at, attempts, consumed, started_at)
+       VALUES (?, ?, ?, 0, 0, datetime('now'))
+       ON CONFLICT(email_lower) DO UPDATE SET
+         code_hash = excluded.code_hash,
+         expires_at = excluded.expires_at,
+         attempts = 0,
+         consumed = 0,
+         started_at = datetime('now')`
+    )
+    .bind(emailLower, codeHash, expiresAt)
+    .run();
+}
+
+export async function getOtpToken(db, emailLower) {
+  return db
+    .prepare('SELECT * FROM otp_tokens WHERE email_lower = ?')
+    .bind(emailLower)
+    .first();
+}
+
+export async function incrementOtpAttempts(db, emailLower) {
+  await db
+    .prepare('UPDATE otp_tokens SET attempts = attempts + 1 WHERE email_lower = ?')
+    .bind(emailLower)
+    .run();
+}
+
+export async function consumeOtpToken(db, emailLower) {
+  await db
+    .prepare('UPDATE otp_tokens SET consumed = 1 WHERE email_lower = ?')
+    .bind(emailLower)
+    .run();
+}
+
+// --- Rate buckets ---
+//
+// scope ∈ {'ip', 'email'}; key_hash is HMAC(scope, value, pepper) so values
+// never store at rest. window_start is bucketed at the granularity of the
+// caller's choosing (1h for IP, 1d for email-cap).
+
+export async function bumpRateBucket(db, scope, keyHash, windowStart) {
+  await db
+    .prepare(
+      `INSERT INTO rate_buckets (scope, key_hash, window_start, count)
+       VALUES (?, ?, ?, 1)
+       ON CONFLICT(scope, key_hash, window_start) DO UPDATE SET
+         count = count + 1`
+    )
+    .bind(scope, keyHash, windowStart)
+    .run();
+}
+
+export async function getRateBucketCount(db, scope, keyHash, windowStart) {
+  const row = await db
+    .prepare(
+      'SELECT count FROM rate_buckets WHERE scope = ? AND key_hash = ? AND window_start = ?'
+    )
+    .bind(scope, keyHash, windowStart)
+    .first();
+  return row?.count || 0;
+}
+
+// --- Cleanup helpers used by the scheduled cron handler ---
+
+export async function cleanupExpiredOtp(db) {
+  await db
+    .prepare(
+      "DELETE FROM otp_tokens WHERE consumed = 0 AND expires_at < datetime('now')"
+    )
+    .run();
+  await db
+    .prepare(
+      "DELETE FROM otp_tokens WHERE consumed = 1 AND started_at < datetime('now', '-24 hours')"
+    )
+    .run();
+}
+
+export async function cleanupOldRateBuckets(db) {
+  await db
+    .prepare("DELETE FROM rate_buckets WHERE window_start < datetime('now', '-24 hours')")
+    .run();
+}
+
+export async function expireStaleApplications(db) {
+  // Silent 30-day expiration for unknown / applied / revoked rows.
+  // No notification — re-apply works for both auth kinds.
+  await db
+    .prepare(
+      "DELETE FROM scouts WHERE status = 'unknown' AND created_at < datetime('now', '-30 days')"
+    )
+    .run();
+  await db
+    .prepare(
+      "DELETE FROM scouts WHERE status = 'applied' AND applied_at < datetime('now', '-30 days')"
+    )
+    .run();
+  await db
+    .prepare(
+      "DELETE FROM scouts WHERE status = 'revoked' AND revoked_at IS NOT NULL AND revoked_at < datetime('now', '-30 days')"
+    )
+    .run();
+}
+
 // --- Feedback operations ---
 
 export async function submitFeedback(db, scoutDid, category, body) {

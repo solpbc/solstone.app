@@ -7,12 +7,24 @@ import {
   getSession,
   deleteSession,
   upsertAtprotoScout,
+  upsertEmailScout,
+  applyEmailScout,
+  findScoutByEmailLower,
   getScout,
   applyScout,
   getGeminiKey,
   acknowledgeData,
   submitFeedback,
   listNews,
+  upsertOtpToken,
+  getOtpToken,
+  incrementOtpAttempts,
+  consumeOtpToken,
+  bumpRateBucket,
+  getRateBucketCount,
+  cleanupExpiredOtp,
+  cleanupOldRateBuckets,
+  expireStaleApplications,
 } from './db.js';
 import { handleAdmin } from './admin.js';
 import {
@@ -23,7 +35,20 @@ import {
   renderApproved,
   renderRevoked,
   renderDataDisclosure,
+  renderEmailStart,
+  renderEmailVerify,
+  renderEmailCheckInbox,
 } from './html.js';
+import { sendTransactionalEmail, renderOtpEmail } from './email.js';
+import {
+  generateOtp,
+  hashCode,
+  hashKey,
+  otpExpiresAtIso,
+  timingSafeEqual,
+  normalizeCode,
+  OTP_MAX_ATTEMPTS,
+} from './otp.js';
 
 const SESSION_COOKIE = 'scouts_session';
 const SESSION_MAX_AGE = 14 * 24 * 60 * 60; // 2 weeks in seconds
@@ -45,8 +70,50 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   'Content-Security-Policy':
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; frame-ancestors 'none'",
 };
+
+const ORIGIN = 'https://scouts.solstone.app';
+const IP_HOUR_LIMIT = 10;       // /email/start per IP per hour
+const EMAIL_DAY_LIMIT = 5;      // OTP starts per email per day
+const RESEND_COOLDOWN_MS = 60 * 1000;
+
+function originAllowed(request) {
+  const origin = request.headers.get('Origin');
+  const referer = request.headers.get('Referer');
+  if (origin) return origin === ORIGIN;
+  if (referer) return referer.startsWith(`${ORIGIN}/`);
+  return false;
+}
+
+function getClientIp(request) {
+  return request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+}
+
+function hourBucket() {
+  return new Date().toISOString().slice(0, 13);  // 'YYYY-MM-DDTHH'
+}
+
+function dayBucket() {
+  return new Date().toISOString().slice(0, 10);  // 'YYYY-MM-DD'
+}
+
+function isValidEmail(s) {
+  return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && s.length <= 254;
+}
+
+async function verifyTurnstile(env, token, ip) {
+  const body = new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token || '' });
+  if (ip) body.set('remoteip', ip);
+  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  if (!res.ok) return false;
+  const json = await res.json();
+  return json.success === true;
+}
 
 function html(body, status = 200) {
   return new Response(body, {
@@ -140,6 +207,209 @@ export default {
         }
       }
 
+      // --- Email + OTP path ---
+
+      const emailPathDisabled = env.EMAIL_PATH_DISABLED === 'true';
+
+      // GET /email — start form
+      if (path === '/email' && method === 'GET') {
+        if (emailPathDisabled) return redirect('/');
+        // If already logged in, dashboard wins.
+        const existing = await getSession(db, getSessionId(request));
+        if (existing) return redirect('/dashboard');
+        return html(renderEmailStart({ siteKey: env.TURNSTILE_SITE_KEY }));
+      }
+
+      // POST /email/start
+      if (path === '/email/start' && method === 'POST') {
+        if (!originAllowed(request)) return html(renderError('invalid request'), 403);
+        const form = await request.formData();
+        const emailRaw = form.get('email')?.toString().trim() || '';
+        const turnstileToken = form.get('cf-turnstile-response')?.toString();
+        const emailLower = emailRaw.toLowerCase();
+
+        if (!isValidEmail(emailLower)) {
+          return html(
+            renderEmailStart({
+              siteKey: env.TURNSTILE_SITE_KEY,
+              error: "that doesn't look like an email address.",
+              email: emailRaw,
+            }),
+            400
+          );
+        }
+
+        const ip = getClientIp(request);
+        const ipKey = await hashKey('ip', ip, env.ENCRYPTION_SECRET);
+        const emailKey = await hashKey('email', emailLower, env.ENCRYPTION_SECRET);
+
+        const turnstileOk = await verifyTurnstile(env, turnstileToken, ip);
+        if (!turnstileOk) {
+          return html(
+            renderEmailStart({
+              siteKey: env.TURNSTILE_SITE_KEY,
+              error: "couldn't verify you're not a bot. try again.",
+              email: emailRaw,
+            }),
+            400
+          );
+        }
+
+        const ipCount = await getRateBucketCount(db, 'ip', ipKey, hourBucket());
+        const emailCount = await getRateBucketCount(db, 'email', emailKey, dayBucket());
+        const ipBlocked = ipCount >= IP_HOUR_LIMIT;
+        const emailBlocked = emailCount >= EMAIL_DAY_LIMIT;
+        const killed = emailPathDisabled;
+
+        // Always bump IP/email buckets so an attacker pays the cost.
+        await bumpRateBucket(db, 'ip', ipKey, hourBucket());
+        await bumpRateBucket(db, 'email', emailKey, dayBucket());
+
+        if (!ipBlocked && !emailBlocked && !killed) {
+          const code = generateOtp();
+          const codeHash = await hashCode(code, env.ENCRYPTION_SECRET);
+          await upsertOtpToken(db, emailLower, codeHash, otpExpiresAtIso());
+          try {
+            const { subject, text, html: htmlBody } = renderOtpEmail(code);
+            await sendTransactionalEmail(env, {
+              to: emailLower,
+              subject,
+              text,
+              html: htmlBody,
+            });
+          } catch (err) {
+            console.error('email send failed:', err.message);
+            // Generic response regardless — no enumeration.
+          }
+        }
+
+        return html(renderEmailCheckInbox({ email: emailLower }));
+      }
+
+      // GET /email/verify — show verify form (email pre-filled from query if present)
+      if (path === '/email/verify' && method === 'GET') {
+        if (emailPathDisabled) return redirect('/');
+        const email = url.searchParams.get('email')?.toLowerCase() || '';
+        return html(renderEmailVerify({ email }));
+      }
+
+      // POST /email/verify
+      if (path === '/email/verify' && method === 'POST') {
+        if (!originAllowed(request)) return html(renderError('invalid request'), 403);
+        const form = await request.formData();
+        const emailLower = form.get('email')?.toString().trim().toLowerCase() || '';
+        const codeInput = normalizeCode(form.get('code')?.toString());
+
+        if (!isValidEmail(emailLower) || codeInput.length !== 6 || !/^\d{6}$/.test(codeInput)) {
+          return html(
+            renderEmailVerify({
+              email: emailLower,
+              error: 'enter the 6-digit code from your email.',
+            }),
+            400
+          );
+        }
+
+        const otp = await getOtpToken(db, emailLower);
+        if (!otp || otp.consumed === 1 || new Date(otp.expires_at) < new Date()) {
+          return html(
+            renderEmailVerify({
+              email: emailLower,
+              error: 'that code expired. request a new one.',
+            }),
+            400
+          );
+        }
+
+        await incrementOtpAttempts(db, emailLower);
+        const candidateHash = await hashCode(codeInput, env.ENCRYPTION_SECRET);
+        const matches = timingSafeEqual(candidateHash, otp.code_hash);
+
+        if (!matches) {
+          const remaining = OTP_MAX_ATTEMPTS - (otp.attempts + 1);
+          if (remaining <= 0) {
+            await consumeOtpToken(db, emailLower);
+            return html(
+              renderEmailVerify({
+                email: emailLower,
+                error: 'this code is locked. request a new one in 15 minutes.',
+                locked: true,
+              }),
+              400
+            );
+          }
+          return html(
+            renderEmailVerify({
+              email: emailLower,
+              error: `that code didn't match. ${remaining} attempts left.`,
+            }),
+            400
+          );
+        }
+
+        // Match. Consume the OTP, upsert/find the scout, create a session.
+        await consumeOtpToken(db, emailLower);
+        const scout = await upsertEmailScout(db, emailLower);
+        const session = await createSession(db, scout.id);
+        return redirect('/dashboard', {
+          'Set-Cookie': sessionCookie(session.id),
+        });
+      }
+
+      // POST /email/resend
+      if (path === '/email/resend' && method === 'POST') {
+        if (!originAllowed(request)) return html(renderError('invalid request'), 403);
+        const form = await request.formData();
+        const emailLower = form.get('email')?.toString().trim().toLowerCase() || '';
+        const turnstileToken = form.get('cf-turnstile-response')?.toString();
+
+        if (!isValidEmail(emailLower)) {
+          return html(renderEmailCheckInbox({ email: emailLower }));
+        }
+
+        const ip = getClientIp(request);
+        const ipKey = await hashKey('ip', ip, env.ENCRYPTION_SECRET);
+        const emailKey = await hashKey('email', emailLower, env.ENCRYPTION_SECRET);
+
+        // Cooldown: reject if last started_at was within 60s.
+        const prior = await getOtpToken(db, emailLower);
+        if (prior && Date.now() - new Date(prior.started_at).getTime() < RESEND_COOLDOWN_MS) {
+          return html(renderEmailCheckInbox({ email: emailLower }));
+        }
+
+        // Light Turnstile re-check; resends face the same bot pressure.
+        const turnstileOk = turnstileToken
+          ? await verifyTurnstile(env, turnstileToken, ip)
+          : true; // resend may not always include turnstile (button click); rely on cooldown + caps
+        if (!turnstileOk) {
+          return html(renderEmailCheckInbox({ email: emailLower }));
+        }
+
+        const ipCount = await getRateBucketCount(db, 'ip', ipKey, hourBucket());
+        const emailCount = await getRateBucketCount(db, 'email', emailKey, dayBucket());
+        await bumpRateBucket(db, 'ip', ipKey, hourBucket());
+        await bumpRateBucket(db, 'email', emailKey, dayBucket());
+
+        if (ipCount < IP_HOUR_LIMIT && emailCount < EMAIL_DAY_LIMIT && !emailPathDisabled) {
+          const code = generateOtp();
+          const codeHash = await hashCode(code, env.ENCRYPTION_SECRET);
+          await upsertOtpToken(db, emailLower, codeHash, otpExpiresAtIso());
+          try {
+            const { subject, text, html: htmlBody } = renderOtpEmail(code);
+            await sendTransactionalEmail(env, {
+              to: emailLower,
+              subject,
+              text,
+              html: htmlBody,
+            });
+          } catch (err) {
+            console.error('email send failed:', err.message);
+          }
+        }
+
+        return html(renderEmailCheckInbox({ email: emailLower }));
+      }
+
       // --- Admin routes (CF Access protected) ---
 
       if (path.startsWith('/admin')) {
@@ -198,12 +468,18 @@ export default {
       // Apply
       if (path === '/apply' && method === 'POST') {
         const form = await request.formData();
-        const email = form.get('email')?.toString().trim();
         const useCase = form.get('use_case')?.toString().trim();
-        if (!email) {
-          return html(renderError('email is required'), 400);
+        if (scout.auth_kind === 'email') {
+          // Email already verified; only use_case + profile_link are user-supplied.
+          const profileLink = form.get('profile_link')?.toString().trim();
+          await applyEmailScout(db, scout.id, useCase, profileLink);
+        } else {
+          const email = form.get('email')?.toString().trim();
+          if (!email) {
+            return html(renderError('email is required'), 400);
+          }
+          await applyScout(db, scout.id, email, useCase);
         }
-        await applyScout(db, scout.id, email, useCase);
         return redirect('/dashboard');
       }
 
@@ -249,12 +525,15 @@ export default {
     }
   },
 
-  // Scheduled cleanup of expired sessions and OAuth state
+  // Scheduled cleanup — sessions, OAuth state, OTP, rate buckets, expirations
   async scheduled(event, env) {
     const db = env.DB;
     await Promise.all([
       db.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run(),
       cleanupOAuthState(db),
+      cleanupExpiredOtp(db),
+      cleanupOldRateBuckets(db),
+      expireStaleApplications(db),
     ]);
   },
 };

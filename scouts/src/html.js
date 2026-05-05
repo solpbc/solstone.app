@@ -186,33 +186,134 @@ function nav(handle) {
 
 // --- Public pages ---
 
-export function renderLanding(error) {
+export function renderLanding(error, opts = {}) {
+  const emailDisabled = opts.emailDisabled === true;
   const errorHtml = error ? `<div class="error">${esc(error)}</div>` : '';
   const landingStyles = `<style>
     body { display: flex; align-items: center; justify-content: center; }
     .container { text-align: center; }
     .container form { text-align: left; }
     .container .btn { width: 100%; display: block; }
+    .or-rule { display: flex; align-items: center; margin: 1.5rem 0; color: #999; font-size: 0.8rem; }
+    .or-rule::before, .or-rule::after { content: ""; flex: 1; border-bottom: 1px solid #eee; }
+    .or-rule::before { margin-right: 0.75rem; }
+    .or-rule::after { margin-left: 0.75rem; }
+    .email-link { display: block; padding: 0.6rem; border: 1px solid #E8923A; color: #E8923A; text-align: center; border-radius: 8px; text-decoration: none; font-size: 0.95rem; }
+    .email-link:hover { background: #FBF6F0; }
   </style>`;
+  const emailBlock = emailDisabled
+    ? ''
+    : `<div class="or-rule">or</div>
+  <a href="/email" class="email-link">sign in with email</a>
+  <p style="font-size:0.8rem; color:#767676; margin-top:0.5rem;">we'll send you a 6-digit code.</p>`;
   return layout(
     'solstone scouts',
     `<div class="container">
   <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
   <h1>solstone scouts</h1>
-  <p>help shape what comes next. sign in with your atmosphere account to get started.</p>
-  <p style="font-size:0.85rem; color:#767676;">if you're on bluesky, you already have one — it runs on the atmosphere network. don't have one? <a href="https://bsky.app">create one at bsky.app</a> — takes 30 seconds.</p>
+  <p>help shape what comes next.</p>
   ${errorHtml}
-  <p style="font-size:0.8rem; color:#767676; margin-bottom:1.5rem;">no analytics, no tracking, no third parties</p>
   <form method="POST" action="/login" style="margin-top: 1.5rem;">
-    <label for="handle">your handle</label>
+    <label for="handle">your atmosphere handle</label>
     <input type="text" id="handle" name="handle" placeholder="yourname.bsky.social" required>
     <button type="submit" class="btn">sign in with atmosphere</button>
   </form>
+  <p style="font-size:0.8rem; color:#767676; margin-top:0.75rem;">if you're on bluesky, you already have one — it runs on the atmosphere network. don't have one? <a href="https://bsky.app">create one at bsky.app</a> — takes 30 seconds.</p>
+  ${emailBlock}
+  <p style="font-size:0.8rem; color:#767676; margin-top:1.5rem;">no analytics, no tracking, no third parties</p>
   <footer>
-    <p>solstone scouts is a program by <a href="https://solpbc.org">sol pbc</a>. your data stays on your machine — no analytics, no tracking, no third parties. <a href="https://solpbc.org/articles">read our covenants</a>.</p>
+    <p>solstone scouts is a program by <a href="https://solpbc.org">sol pbc</a>. <a href="https://solpbc.org/articles">read our covenants</a>.</p>
   </footer>
 </div>`,
     landingStyles
+  );
+}
+
+export function renderEmailStart({ siteKey, error, email }) {
+  const errorHtml = error ? `<div class="error">${esc(error)}</div>` : '';
+  const turnstileScript = `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`;
+  const styles = `<style>
+    body { display: flex; align-items: center; justify-content: center; }
+    .container { text-align: center; }
+    .container form { text-align: left; }
+    .container .btn { width: 100%; display: block; }
+    .cf-turnstile { margin: 1rem 0; display: flex; justify-content: center; }
+  </style>${turnstileScript}`;
+  return layout(
+    'solstone scouts — sign in with email',
+    `<div class="container">
+  <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
+  <h1>⛺ sign in with email</h1>
+  <p>we'll send you a 6-digit code.</p>
+  ${errorHtml}
+  <form method="POST" action="/email/start">
+    <label for="email">email</label>
+    <input type="email" id="email" name="email" required placeholder="you@example.com" maxlength="254" value="${esc(email || '')}">
+    <div class="cf-turnstile" data-sitekey="${esc(siteKey || '')}" data-theme="light"></div>
+    <button type="submit" class="btn">send me a 6-digit code</button>
+  </form>
+  <p style="font-size:0.8rem; color:#767676; margin-top:1rem;">by continuing, you agree we'll email you only about the scouts program. no marketing, no third parties.</p>
+  <p style="margin-top:1rem;"><a href="/" style="color:#767676; font-size:0.85rem;">← back</a></p>
+  <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
+</div>`,
+    styles
+  );
+}
+
+export function renderEmailCheckInbox({ email }) {
+  const display = email ? esc(email).replace('@', '-at-').replace(/\./g, '-dot-') : 'that address';
+  return layout(
+    'solstone scouts — check your inbox',
+    `<div class="container">
+  <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
+  <h1>⛺ check your inbox</h1>
+  <p>if <strong>${display}</strong> is a valid address, we sent a 6-digit code. it expires in 10 minutes.</p>
+  <p style="margin-top:1.5rem;"><a href="/email/verify?email=${encodeURIComponent(email || '')}" class="btn">enter your code →</a></p>
+  <p style="font-size:0.85rem; color:#767676; margin-top:1.5rem;">didn't get it? request another from <a href="/email/verify?email=${encodeURIComponent(email || '')}">the verify page</a> after 60 seconds.</p>
+  <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
+</div>`,
+    `<style>
+      body { display: flex; align-items: center; justify-content: center; }
+      .container { text-align: center; max-width: 480px; }
+      .container .btn { display: inline-block; }
+    </style>`
+  );
+}
+
+export function renderEmailVerify({ email, error, locked }) {
+  const errorHtml = error ? `<div class="error">${esc(error)}</div>` : '';
+  const lockedAttr = locked ? 'disabled' : '';
+  return layout(
+    'solstone scouts — enter your code',
+    `<div class="container">
+  <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
+  <h1>⛺ enter your code</h1>
+  <p>we sent a 6-digit code to <strong>${esc(email || 'your inbox')}</strong>.</p>
+  <p style="font-size:0.85rem; color:#767676;">it expires 10 minutes after we sent it.</p>
+  ${errorHtml}
+  <form method="POST" action="/email/verify" style="margin-top:1rem;">
+    <input type="hidden" name="email" value="${esc(email || '')}">
+    <label for="code">code</label>
+    <input type="text" id="code" name="code"
+           inputmode="numeric" pattern="[0-9]*" maxlength="6"
+           autocomplete="one-time-code" autofocus
+           ${lockedAttr}
+           style="font-family: ui-monospace, Menlo, monospace; font-size: 1.5rem; letter-spacing: 0.5rem; text-align: center;">
+    <button type="submit" class="btn" ${lockedAttr}>verify</button>
+  </form>
+  <form method="POST" action="/email/resend" style="margin-top:1rem;">
+    <input type="hidden" name="email" value="${esc(email || '')}">
+    <button type="submit" class="btn btn-secondary" style="font-size: 0.85rem;">resend code</button>
+  </form>
+  <p style="margin-top:1rem;"><a href="/email" style="color:#767676; font-size:0.85rem;">← wrong email?</a></p>
+  <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
+</div>`,
+    `<style>
+      body { display: flex; align-items: center; justify-content: center; }
+      .container { text-align: center; max-width: 480px; }
+      .container form { text-align: left; }
+      .container .btn { width: 100%; display: block; }
+    </style>`
   );
 }
 
@@ -232,31 +333,45 @@ export function renderError(message) {
 // --- Dashboard pages (authenticated) ---
 
 export function renderUnknown(scout) {
+  const isEmail = scout.auth_kind === 'email';
+  const navHandle = scout.handle || scout.email || '';
+  const emailField = isEmail
+    ? `<label>email</label>
+    <p style="margin: 0.25rem 0 1rem 0; padding: 0.6rem 0.75rem; background: #FBF6F0; border-radius: 8px; color: #555; font-size: 0.95rem;">${esc(scout.email)} <span style="color:#7a7;">✓ verified</span></p>`
+    : `<label for="email">email</label>
+    <input type="email" id="email" name="email" required placeholder="you@example.com">`;
+  const profileField = isEmail
+    ? `<label for="profile_link">where can we find your work? (optional)</label>
+    <input type="text" id="profile_link" name="profile_link" placeholder="github username, blog url, project link, anything">`
+    : '';
   return layout(
     'solstone scouts — apply',
     `<div class="container">
-  ${nav(scout.handle)}
+  ${nav(navHandle)}
   <h1>join the scouts</h1>
-  <p>leave your email so we can reach you. it's only used for scout program updates — nothing else.</p>
+  <p>${isEmail ? "tell us a bit about yourself so we can match you well." : "leave your email so we can reach you. it's only used for scout program updates — nothing else."}</p>
   <form method="POST" action="/apply">
-    <label for="email">email</label>
-    <input type="email" id="email" name="email" required placeholder="you@example.com">
+    ${emailField}
     <label for="use_case">what do you want to use solstone for? (optional)</label>
     <textarea id="use_case" name="use_case" placeholder="what are you hoping it helps with?"></textarea>
+    ${profileField}
     <button type="submit" class="btn">apply</button>
   </form>
+  <p style="font-size:0.8rem; color:#767676; margin-top:1rem;">applications that aren't picked up within 30 days are removed automatically — re-apply anytime.</p>
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
 </div>`
   );
 }
 
 export function renderApplied(scout, news) {
+  const navLabel = scout.handle || scout.email || '';
   return layout(
     'solstone scouts',
     `<div class="container">
-  ${nav(scout.handle)}
+  ${nav(navLabel)}
   <h1>we've got your application</h1>
   <p>you'll hear from us soon.</p>
+  <p style="font-size:0.85rem; color:#767676;">applications that aren't picked up within 30 days are removed automatically — re-apply anytime.</p>
   ${renderNewsFeed(news)}
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
 </div>`
@@ -327,7 +442,7 @@ export function renderApproved(scout, geminiKey, news) {
   return layout(
     'solstone scouts',
     `<div class="container">
-  ${nav(scout.handle)}
+  ${nav(scout.handle || scout.email || "")}
   <h1>⛺ welcome, scout</h1>
   ${tokenHtml}
   ${installHtml}
@@ -357,7 +472,7 @@ export function renderRevoked(scout) {
   return layout(
     'solstone scouts',
     `<div class="container">
-  ${nav(scout.handle)}
+  ${nav(scout.handle || scout.email || "")}
   <h1>access revoked</h1>
   <p>your scout access has been revoked. questions? <a href="mailto:jer@solpbc.org">jer@solpbc.org</a></p>
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
@@ -375,7 +490,7 @@ export function renderDataDisclosure(scout) {
   return layout(
     'solstone scouts — your data',
     `<div class="container">
-  ${nav(scout.handle)}
+  ${nav(scout.handle || scout.email || "")}
   <h1>your gemini key and your data</h1>
 
   <p><strong>the short version</strong></p>

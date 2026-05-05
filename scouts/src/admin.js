@@ -13,6 +13,7 @@ import {
   listNews,
   postNews,
 } from './db.js';
+import { sendTransactionalEmail, renderApprovalEmail } from './email.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
 const ISSUER = 'https://solpbc.cloudflareaccess.com';
@@ -98,7 +99,31 @@ export async function handleAdmin(request, env, path) {
   if (approveMatch && method === 'POST') {
     const id = decodeURIComponent(approveMatch[1]);
     await approveScout(db, id);
-    return json({ ok: true, id, action: 'approved' });
+
+    // Auto-send approval email — idempotent via approval_email_sent_at.
+    // Only sends if the scout has an email and we haven't sent one before.
+    let emailSent = false;
+    try {
+      const scout = await getScout(db, id);
+      if (scout?.email && !scout.approval_email_sent_at) {
+        const { subject, text, html: htmlBody } = renderApprovalEmail();
+        await sendTransactionalEmail(env, {
+          to: scout.email,
+          subject,
+          text,
+          html: htmlBody,
+        });
+        await db
+          .prepare("UPDATE scouts SET approval_email_sent_at = datetime('now') WHERE id = ?")
+          .bind(id)
+          .run();
+        emailSent = true;
+      }
+    } catch (err) {
+      console.error('approval email failed:', err.message);
+    }
+
+    return json({ ok: true, id, action: 'approved', approval_email_sent: emailSent });
   }
 
   // POST /admin/scouts/:id/revoke

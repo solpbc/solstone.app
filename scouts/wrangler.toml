@@ -14,3 +14,10 @@ migrations_dir = "migrations"
 
 [triggers]
 crons = ["0 */6 * * *"]
+
+[[send_email]]
+name = "EMAIL"
+
+[vars]
+TURNSTILE_SITE_KEY = "0x4AAAAAADJneUy2jVC8NPC4"
+EMAIL_PATH_DISABLED = "false"
