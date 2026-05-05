@@ -6,7 +6,7 @@ import {
   createSession,
   getSession,
   deleteSession,
-  upsertScout,
+  upsertAtprotoScout,
   getScout,
   applyScout,
   getGeminiKey,
@@ -130,8 +130,8 @@ export default {
 
         try {
           const { did, handle } = await handleCallback(code, state, db);
-          await upsertScout(db, did, handle);
-          const session = await createSession(db, did);
+          const scout = await upsertAtprotoScout(db, did, handle);
+          const session = await createSession(db, scout.id);
           return redirect('/dashboard', {
             'Set-Cookie': sessionCookie(session.id),
           });
@@ -153,7 +153,7 @@ export default {
         return redirect('/');
       }
 
-      const scout = await getScout(db, session.did);
+      const scout = await getScout(db, session.scout_id);
       if (!scout) {
         // Session exists but scout was deleted — clear session
         await deleteSession(db, session.id);
@@ -171,7 +171,7 @@ export default {
       // Acknowledge data disclosure
       if (path === '/data/acknowledge' && method === 'POST') {
         if (scout.status !== 'approved') return redirect('/dashboard');
-        await acknowledgeData(db, scout.did);
+        await acknowledgeData(db, scout.id);
         return redirect('/dashboard');
       }
 
@@ -185,7 +185,7 @@ export default {
           case 'applied':
             return html(renderApplied(scout, news));
           case 'approved': {
-            const geminiKey = await getGeminiKey(db, scout.did, env.ENCRYPTION_SECRET);
+            const geminiKey = await getGeminiKey(db, scout.id, env.ENCRYPTION_SECRET);
             return html(renderApproved(scout, geminiKey, news));
           }
           case 'revoked':
@@ -203,7 +203,7 @@ export default {
         if (!email) {
           return html(renderError('email is required'), 400);
         }
-        await applyScout(db, scout.did, email, useCase);
+        await applyScout(db, scout.id, email, useCase);
         return redirect('/dashboard');
       }
 
@@ -222,7 +222,7 @@ export default {
         if (!validCategories.includes(category)) {
           return html(renderError('invalid feedback category'), 400);
         }
-        await submitFeedback(db, scout.did, category, body);
+        await submitFeedback(db, scout.id, category, body);
         return redirect('/dashboard');
       }
 

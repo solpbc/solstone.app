@@ -93,33 +93,33 @@ export async function handleAdmin(request, env, path) {
     return json({ ok: true, did, action: 'pre-approved' });
   }
 
-  // POST /admin/scouts/:did/approve
+  // POST /admin/scouts/:id/approve  (path param is the scout id; for atproto scouts this equals the DID — extro-scout sends DIDs unchanged and they still match)
   const approveMatch = path.match(/^\/admin\/scouts\/(.+)\/approve$/);
   if (approveMatch && method === 'POST') {
-    const did = decodeURIComponent(approveMatch[1]);
-    await approveScout(db, did);
-    return json({ ok: true, did, action: 'approved' });
+    const id = decodeURIComponent(approveMatch[1]);
+    await approveScout(db, id);
+    return json({ ok: true, id, action: 'approved' });
   }
 
-  // POST /admin/scouts/:did/revoke
+  // POST /admin/scouts/:id/revoke
   const revokeMatch = path.match(/^\/admin\/scouts\/(.+)\/revoke$/);
   if (revokeMatch && method === 'POST') {
-    const did = decodeURIComponent(revokeMatch[1]);
-    await revokeScout(db, did);
-    return json({ ok: true, did, action: 'revoked' });
+    const id = decodeURIComponent(revokeMatch[1]);
+    await revokeScout(db, id);
+    return json({ ok: true, id, action: 'revoked' });
   }
 
-  // POST /admin/scouts/:did/token
+  // POST /admin/scouts/:id/token
   const tokenMatch = path.match(/^\/admin\/scouts\/(.+)\/token$/);
   if (tokenMatch && method === 'POST') {
-    const did = decodeURIComponent(tokenMatch[1]);
+    const id = decodeURIComponent(tokenMatch[1]);
     const body = await getJsonBody(request);
     const key = body.gemini_key;
     if (!key) {
       return json({ error: 'gemini_key required' }, 400);
     }
-    await setGeminiKey(db, did, key, env.ENCRYPTION_SECRET);
-    return json({ ok: true, did, action: 'token_set' });
+    await setGeminiKey(db, id, key, env.ENCRYPTION_SECRET);
+    return json({ ok: true, id, action: 'token_set' });
   }
 
   // POST /admin/news
@@ -154,16 +154,16 @@ export async function handleAdmin(request, env, path) {
     return json({ news });
   }
 
-  // GET /admin/scouts/:did — scout detail with feedback (catch-all, must be last)
+  // GET /admin/scouts/:id — scout detail with feedback (catch-all, must be last)
   const detailMatch = path.match(/^\/admin\/scouts\/(.+)$/);
   if (detailMatch && method === 'GET') {
-    const did = decodeURIComponent(detailMatch[1]);
-    const scout = await getScout(db, did);
+    const id = decodeURIComponent(detailMatch[1]);
+    const scout = await getScout(db, id);
     if (!scout) {
       return json({ error: 'scout not found' }, 404);
     }
     const allFeedback = await listFeedback(db);
-    const scoutFeedback = allFeedback.filter((f) => f.scout_did === did);
+    const scoutFeedback = allFeedback.filter((f) => f.scout_did === id);
     return json({ scout, feedback: scoutFeedback });
   }
 

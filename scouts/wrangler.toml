@@ -10,6 +10,7 @@ routes = [{ pattern = "scouts.solstone.app", custom_domain = true }]
 binding = "DB"
 database_name = "scouts-portal"
 database_id = "42812399-198d-4d04-af8e-f094125b5588"
+migrations_dir = "migrations"
 
 [triggers]
 crons = ["0 */6 * * *"]
