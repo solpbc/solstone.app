@@ -227,6 +227,44 @@
             margin-bottom: 0.85rem;
             line-height: 1.55;
         }
+        .step-label {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #222;
+            margin: 0 0 0.6rem;
+            letter-spacing: 0.01em;
+        }
+        .step-block + .step-block {
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid #eee;
+        }
+        .download-btn {
+            display: inline-block;
+            align-self: flex-start;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            background: #E8923A;
+            color: #fff;
+            text-decoration: none;
+            border: none;
+            border-radius: 6px;
+            padding: 0.65rem 1.1rem;
+            transition: background-color 0.15s;
+            margin-bottom: 0.5rem;
+        }
+        .download-btn:hover {
+            background: #d27f2c;
+            color: #fff;
+        }
+        .trust-signal {
+            font-size: 0.78rem;
+            color: #888;
+            margin: 0;
+            line-height: 1.4;
+        }
         .platform-prereq code,
         .install-finish code {
             font-family: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -319,23 +357,38 @@ then read INSTALL.md in the cloned repo and follow it, it includes instructions 
             </div>
 
             <div class="platform-panel platform-macos">
-                <p class="platform-prereq">prereqs: xcode command-line tools (<code>xcode-select --install</code>), homebrew (<a href="https://brew.sh" class="gh-link" style="text-decoration:underline;">brew.sh</a>), then <code>brew install git uv</code>.</p>
-                <pre class="install-steps" id="steps-macos">git clone https://github.com/solpbc/solstone.git &amp;&amp; cd solstone</pre>
-                <div class="card-actions">
-                    <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human">copy for human</button>
-                    <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
+                <div class="step-block">
+                    <p class="step-label">1 — install the native observer app</p>
+                    <a href="https://solstone.app/download/macos" class="download-btn">download for macOS</a>
+                    <p class="trust-signal">signed by sol pbc, notarized by Apple. updates over a signed channel.</p>
                 </div>
-                <p class="install-finish">then follow <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link" style="text-decoration:underline;">INSTALL.md</a> in the cloned repo — it's the source of truth for install steps and observer setup. when you're up, the first-run wizard runs at <code>http://localhost:5015</code> to set your password and confirm the journal location at <code>~/Documents/journal</code>.</p>
+
+                <div class="step-block">
+                    <p class="step-label">2 — install the sol agent (service)</p>
+                    <p class="platform-prereq">prereqs: xcode command-line tools (<code>xcode-select --install</code>), homebrew (<a href="https://brew.sh" class="gh-link" style="text-decoration:underline;">brew.sh</a>), then <code>brew install git uv</code>.</p>
+                    <pre class="install-steps" id="steps-macos">git clone https://github.com/solpbc/solstone.git
+cd solstone
+make install
+.venv/bin/sol setup</pre>
+                    <div class="card-actions">
+                        <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human">copy for human</button>
+                        <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
+                    </div>
+                    <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>.</p>
+                </div>
             </div>
 
             <div class="platform-panel platform-linux">
                 <p class="platform-prereq">prereqs: git from your distro's package manager, <code>uv</code> from astral.sh: <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code>.</p>
-                <pre class="install-steps" id="steps-linux">git clone https://github.com/solpbc/solstone.git &amp;&amp; cd solstone</pre>
+                <pre class="install-steps" id="steps-linux">git clone https://github.com/solpbc/solstone.git
+cd solstone
+make install
+.venv/bin/sol setup</pre>
                 <div class="card-actions">
                     <button class="copy-btn" data-target="steps-linux" data-default-label="copy for human">copy for human</button>
                     <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                 </div>
-                <p class="install-finish">then follow <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link" style="text-decoration:underline;">INSTALL.md</a> in the cloned repo — it's the source of truth for install steps and observer setup. when you're up, the first-run wizard runs at <code>http://localhost:5015</code> to set your password and confirm the journal location at <code>~/Documents/journal</code>.</p>
+                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>. for a linux observer, see <a href="/observers" class="gh-link" style="text-decoration:underline;">solstone.app/observers</a>.</p>
             </div>
         </div>
     </div>
