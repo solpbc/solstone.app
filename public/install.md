@@ -28,20 +28,20 @@ then read INSTALL.md in the cloned repo and follow it, it includes instructions 
 prereqs: xcode command-line tools (`xcode-select --install`), homebrew (https://brew.sh), then `brew install git uv`.
 
 ```
-git clone https://github.com/solpbc/solstone.git && cd solstone && make install-service
+git clone https://github.com/solpbc/solstone.git && cd solstone
 ```
 
-then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/Documents/journal`.
+then follow [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) in the cloned repo — it's the source of truth for install steps and observer setup. when you're up, the first-run wizard runs at http://localhost:5015 to set your password and confirm the journal location at `~/Documents/journal`.
 
 ### linux
 
 prereqs: git from your distro's package manager, `uv` from astral.sh: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 
 ```
-git clone https://github.com/solpbc/solstone.git && cd solstone && make install-service
+git clone https://github.com/solpbc/solstone.git && cd solstone
 ```
 
-then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/Documents/journal`.
+then follow [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) in the cloned repo — it's the source of truth for install steps and observer setup. when you're up, the first-run wizard runs at http://localhost:5015 to set your password and confirm the journal location at `~/Documents/journal`.
 
 ## already have your sol agent installed?
 
