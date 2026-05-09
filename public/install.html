@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>get started — solstone</title>
-    <meta name="description" content="get started with solstone — install the open source AI life journal with help from your coding agent or step through the commands yourself.">
+    <meta name="description" content="get started with solstone — your co-brain: observers experience your day along with you, sol curates your memories, and your journal holds everything.">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
@@ -303,7 +303,7 @@
     <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/sol-wordmark.svg" alt="solstone" style="height:40px;"></a>
     <header>
         <h1>get started with solstone.</h1>
-        <p>open source, local-first, linux and macOS. install with a coding agent or step through the commands yourself.</p>
+        <p>solstone is your co-brain — your observers experience your day along with you, sol curates your memories, and your journal holds everything. open source, made by sol pbc.</p>
     </header>
 
     <div class="diagram-switcher">
@@ -326,23 +326,12 @@
     <h2 class="install-section-title">install with a coding agent</h2>
     <div class="cards">
         <div class="card">
-            <p class="subtitle">paste this prompt into claude code, codex cli, gemini cli, or similar. ~15 minutes from clone to running.</p>
+            <p class="subtitle">paste this prompt into claude code, codex cli, gemini cli, or similar. ~15 minutes start to finish.</p>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-agent" data-default-label="copy for agent">copy for agent</button>
                 <a href="https://github.com/solpbc/solstone" class="gh-link">github &rarr;</a>
             </div>
-            <pre class="blurb" id="blurb-agent">install solstone — an open source AI life journal that experiences everything you see and hear on your computer, processes it with AI, and gives you superhuman memory. your data stays on your machine. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, and any acquisition is conditional on the successor being legally bound to preserve the benefit purpose and assume covenants no less protective than Article 8.
-
-solstone is a system, three named parts:
-- observers experience your screen and audio along with you
-- sol agent processes everything and curates your memories
-- the journal holds your memories
-
-start here with the sol agent install:
-
-git clone https://github.com/solpbc/solstone.git
-
-then read INSTALL.md in the cloned repo and follow it, it includes instructions for installing observer(s) as well.</pre>
+            <pre class="blurb" id="blurb-agent">install solstone from https://solstone.app/install</pre>
         </div>
     </div>
 
@@ -365,25 +354,22 @@ then read INSTALL.md in the cloned repo and follow it, it includes instructions 
 
                 <div class="step-block">
                     <p class="step-label">2 — install the sol agent (service)</p>
-                    <p class="platform-prereq">prereqs: xcode command-line tools (<code>xcode-select --install</code>), homebrew (<a href="https://brew.sh" class="gh-link" style="text-decoration:underline;">brew.sh</a>), then <code>brew install git uv</code>.</p>
-                    <pre class="install-steps" id="steps-macos">git clone https://github.com/solpbc/solstone.git
-cd solstone
-make install
-.venv/bin/sol setup</pre>
+                    <p class="platform-prereq">prereqs: xcode command-line tools (<code>xcode-select --install</code>), homebrew (<a href="https://brew.sh" class="gh-link" style="text-decoration:underline;">brew.sh</a>), then <code>brew install uv</code>. if you prefer pipx, use <code>pipx install solstone && sol setup</code>.</p>
+                    <pre class="install-steps" id="steps-macos">uv tool install solstone
+sol setup</pre>
                     <div class="card-actions">
                         <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human">copy for human</button>
                         <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                     </div>
                     <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/Documents/journal</code>.</p>
+                    <p class="install-finish">note for macOS Apple Silicon users: the CoreML-accelerated transcription path requires a source-checkout install — see <a href="https://github.com/solpbc/solstone/blob/main/CONTRIBUTING.md" class="gh-link" style="text-decoration:underline;">CONTRIBUTING.md</a>. the packaged install runs the on-disk ONNX path instead, which is also fast.</p>
                 </div>
             </div>
 
             <div class="platform-panel platform-linux">
-                <p class="platform-prereq">prereqs: git from your distro's package manager, <code>uv</code> from astral.sh: <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code>.</p>
-                <pre class="install-steps" id="steps-linux">git clone https://github.com/solpbc/solstone.git
-cd solstone
-make install
-.venv/bin/sol setup</pre>
+                <p class="platform-prereq">prereqs: <code>uv</code> from astral.sh: <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code>. if you prefer pipx, use <code>pipx install solstone && sol setup</code>.</p>
+                <pre class="install-steps" id="steps-linux">uv tool install solstone
+sol setup</pre>
                 <div class="card-actions">
                     <button class="copy-btn" data-target="steps-linux" data-default-label="copy for human">copy for human</button>
                     <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
