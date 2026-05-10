@@ -29,7 +29,7 @@ sol setup
 
 note for macOS Apple Silicon users: the CoreML-accelerated transcription path requires a source-checkout install — see [CONTRIBUTING.md](https://github.com/solpbc/solstone/blob/main/CONTRIBUTING.md). the packaged install runs the on-disk ONNX path instead, which is also fast.
 
-then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/Documents/journal`. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting.
+then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/journal`. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting.
 
 ### linux
 
@@ -42,7 +42,7 @@ sol setup
 
 (or `pipx install solstone && sol setup` if you prefer pipx.)
 
-then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/Documents/journal`. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. for a linux observer, see [solstone.app/observers](https://solstone.app/observers).
+then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/journal`. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. for a linux observer, see [solstone.app/observers](https://solstone.app/observers).
 
 ## already have your sol agent installed?
 
