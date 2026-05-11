@@ -25,8 +25,10 @@ import {
   cleanupExpiredOtp,
   cleanupOldRateBuckets,
   expireStaleApplications,
+  hasActivePasskey,
 } from './db.js';
 import { handleAdmin } from './admin.js';
+import { handlePasskeyRoute, cleanupPasskeyChallenges } from './passkey.js';
 import {
   renderLanding,
   renderError,
@@ -217,7 +219,10 @@ export default {
         // If already logged in, dashboard wins.
         const existing = await getSession(db, getSessionId(request));
         if (existing) return redirect('/dashboard');
-        return html(renderEmailStart({ siteKey: env.TURNSTILE_SITE_KEY }));
+        return html(renderEmailStart({
+          siteKey: env.TURNSTILE_SITE_KEY,
+          passkeyEnabled: env.PASSKEY_PATH_DISABLED !== 'true',
+        }));
       }
 
       // POST /email/start
@@ -234,6 +239,7 @@ export default {
               siteKey: env.TURNSTILE_SITE_KEY,
               error: "that doesn't look like an email address.",
               email: emailRaw,
+              passkeyEnabled: env.PASSKEY_PATH_DISABLED !== 'true',
             }),
             400
           );
@@ -250,6 +256,7 @@ export default {
               siteKey: env.TURNSTILE_SITE_KEY,
               error: "couldn't verify you're not a bot. try again.",
               email: emailRaw,
+              passkeyEnabled: env.PASSKEY_PATH_DISABLED !== 'true',
             }),
             400
           );
@@ -410,6 +417,22 @@ export default {
         return html(renderEmailCheckInbox({ email: emailLower }));
       }
 
+      // --- Passkey routes (WebAuthn) ---
+
+      if (path.startsWith('/passkey/auth/')) {
+        return handlePasskeyRoute(request, env, path, {});
+      }
+
+      if (path.startsWith('/passkey/')) {
+        // Register endpoints require a valid session — look it up before
+        // dispatching so the handler can read scout context.
+        const passkeySession = await getSession(db, getSessionId(request));
+        const passkeyScout = passkeySession
+          ? await getScout(db, passkeySession.scout_id)
+          : null;
+        return handlePasskeyRoute(request, env, path, { scout: passkeyScout });
+      }
+
       // --- Admin routes (CF Access protected) ---
 
       if (path.startsWith('/admin')) {
@@ -448,20 +471,29 @@ export default {
       // Dashboard
       if (path === '/dashboard' && method === 'GET') {
         const news = await listNews(db);
+        const passkeyEnabled = env.PASSKEY_PATH_DISABLED !== 'true';
+        // Render the enrollment modal only on dashboards (not revoked) when
+        // the passkey path is live and this scout has no active passkey yet.
+        // Client-side gating (feature detect + localStorage seen-flag) handles
+        // the "browser supports / already dismissed" cases.
+        const passkeyEnrollmentEligible =
+          passkeyEnabled &&
+          scout.status !== 'revoked' &&
+          !(await hasActivePasskey(db, scout.id));
 
         switch (scout.status) {
           case 'unknown':
-            return html(renderUnknown(scout));
+            return html(renderUnknown(scout, { passkeyEnrollmentEligible }));
           case 'applied':
-            return html(renderApplied(scout, news));
+            return html(renderApplied(scout, news, { passkeyEnrollmentEligible }));
           case 'approved': {
             const geminiKey = await getGeminiKey(db, scout.id, env.ENCRYPTION_SECRET);
-            return html(renderApproved(scout, geminiKey, news));
+            return html(renderApproved(scout, geminiKey, news, { passkeyEnrollmentEligible }));
           }
           case 'revoked':
             return html(renderRevoked(scout));
           default:
-            return html(renderUnknown(scout));
+            return html(renderUnknown(scout, { passkeyEnrollmentEligible }));
         }
       }
 
@@ -534,6 +566,7 @@ export default {
       cleanupExpiredOtp(db),
       cleanupOldRateBuckets(db),
       expireStaleApplications(db),
+      cleanupPasskeyChallenges(db),
     ]);
   },
 };

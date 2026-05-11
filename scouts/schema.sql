@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS scouts (
   approved_at     TEXT,
   revoked_at      TEXT,
   approval_email_sent_at TEXT,
+  passkey_user_handle TEXT UNIQUE,                        -- 32 random bytes (base64url), lazy on first passkey enroll
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -71,6 +72,31 @@ CREATE TABLE IF NOT EXISTS rate_buckets (
   PRIMARY KEY (scope, key_hash, window_start)
 );
 
+CREATE TABLE IF NOT EXISTS passkey_credentials (
+  credential_id     TEXT PRIMARY KEY,
+  scout_id          TEXT NOT NULL REFERENCES scouts(id) ON DELETE CASCADE,
+  public_key        TEXT NOT NULL,
+  counter           INTEGER NOT NULL DEFAULT 0,
+  aaguid            TEXT,
+  transports        TEXT,
+  is_discoverable   INTEGER NOT NULL DEFAULT 1,
+  backup_eligible   INTEGER NOT NULL DEFAULT 0,
+  backup_state      INTEGER NOT NULL DEFAULT 0,
+  friendly_name     TEXT,
+  created_at        INTEGER NOT NULL,
+  last_used_at      INTEGER,
+  revoked_at        INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS passkey_challenges (
+  challenge      TEXT PRIMARY KEY,
+  scout_id       TEXT REFERENCES scouts(id) ON DELETE CASCADE,
+  purpose        TEXT NOT NULL CHECK (purpose IN ('register','authenticate')),
+  expires_at     INTEGER NOT NULL,
+  used_at        INTEGER,
+  created_at     INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_scouts_email_lower ON scouts(email_lower);
 CREATE INDEX IF NOT EXISTS idx_scouts_status ON scouts(status);
 CREATE INDEX IF NOT EXISTS idx_feedback_scout ON feedback(scout_did);
@@ -79,3 +105,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_oauth_state_created ON oauth_state(created_at);
 CREATE INDEX IF NOT EXISTS idx_otp_expires ON otp_tokens(expires_at);
 CREATE INDEX IF NOT EXISTS idx_rate_buckets_window ON rate_buckets(window_start);
+CREATE INDEX IF NOT EXISTS idx_passkey_credentials_scout
+  ON passkey_credentials(scout_id) WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_passkey_challenges_expires
+  ON passkey_challenges(expires_at);

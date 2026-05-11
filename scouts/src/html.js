@@ -184,6 +184,225 @@ function nav(handle) {
   return `<div class="nav"><div class="logo" style="flex-shrink:0;">${SOL_WORDMARK}</div>${handleHtml}</div>`;
 }
 
+// --- Passkey (WebAuthn) client surface ---
+//
+// Hand-rolled minimal client: base64url <-> ArrayBuffer + thin wrappers around
+// navigator.credentials.create/get. Matches the behavior of
+// @simplewebauthn/browser without the bundle cost (~5KB minified would still
+// require a static-asset binding the worker doesn't have today).
+//
+// `<script nonce>` is not used — the project's CSP allows 'unsafe-inline' for
+// the same reasons documented at the top of index.js (server-rendered
+// templates, no third-party JS).
+
+const PASSKEY_MODAL_STYLES = `<style>
+  .passkey-modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(20, 18, 14, 0.55);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 1000; padding: 1rem;
+  }
+  .passkey-modal-backdrop.visible { display: flex; }
+  .passkey-modal {
+    background: #fff;
+    border-radius: 14px;
+    max-width: 420px; width: 100%;
+    padding: 2rem 1.75rem;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    text-align: center;
+  }
+  .passkey-modal h2 {
+    font-family: 'Comfortaa', system-ui, sans-serif;
+    font-size: 1.2rem;
+    color: ${SOL_ORANGE};
+    text-transform: lowercase;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: 0.03em;
+  }
+  .passkey-modal p { color: #555; margin: 0 0 1.25rem 0; font-size: 0.95rem; line-height: 1.5; }
+  .passkey-modal p.muted { color: #767676; font-size: 0.8rem; margin-bottom: 0.5rem; }
+  .passkey-modal .actions { display: flex; flex-direction: column; gap: 0.5rem; }
+  .passkey-modal .actions .btn { width: 100%; }
+  .passkey-modal .err { color: #c0392b; font-size: 0.85rem; margin-top: 0.75rem; min-height: 1.1em; }
+</style>`;
+
+function renderPasskeyEnrollmentModal() {
+  return `<div id="passkey-modal" class="passkey-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="passkey-modal-title" hidden>
+  <div class="passkey-modal">
+    <h2 id="passkey-modal-title">⛺ sign in faster next time</h2>
+    <p>add a passkey to this device — it ties to solstone, not just this portal, and you'll never need to type a code again.</p>
+    <p class="muted">passkeys are tied to solstone.app — they can't be tricked into signing in elsewhere.</p>
+    <div class="actions">
+      <button type="button" class="btn" id="passkey-modal-add">add passkey</button>
+      <button type="button" class="btn btn-secondary" id="passkey-modal-skip">not now</button>
+    </div>
+    <div class="err" id="passkey-modal-err" aria-live="polite"></div>
+  </div>
+</div>`;
+}
+
+const PASSKEY_CLIENT_SCRIPT = `<script>
+(function(){
+  if (typeof window.PublicKeyCredential !== 'function') return;
+
+  // --- base64url <-> ArrayBuffer ---
+  function b64uToBuf(s){
+    var pad = s.length % 4 === 2 ? '==' : s.length % 4 === 3 ? '=' : '';
+    var std = s.replace(/-/g,'+').replace(/_/g,'/') + pad;
+    var bin = atob(std);
+    var out = new Uint8Array(bin.length);
+    for (var i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+    return out.buffer;
+  }
+  function bufToB64u(buf){
+    var bytes = new Uint8Array(buf);
+    var s = '';
+    for (var i=0;i<bytes.length;i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+  }
+  function decodeRegOptions(o){
+    o.challenge = b64uToBuf(o.challenge);
+    o.user.id = b64uToBuf(o.user.id);
+    if (Array.isArray(o.excludeCredentials)) {
+      o.excludeCredentials = o.excludeCredentials.map(function(c){
+        return Object.assign({}, c, { id: b64uToBuf(c.id) });
+      });
+    }
+    return o;
+  }
+  function decodeAuthOptions(o){
+    o.challenge = b64uToBuf(o.challenge);
+    if (Array.isArray(o.allowCredentials)) {
+      o.allowCredentials = o.allowCredentials.map(function(c){
+        return Object.assign({}, c, { id: b64uToBuf(c.id) });
+      });
+    }
+    return o;
+  }
+  function encodeRegResponse(cred){
+    var att = cred.response;
+    var transports = (typeof att.getTransports === 'function') ? att.getTransports() : undefined;
+    return {
+      id: cred.id,
+      rawId: bufToB64u(cred.rawId),
+      type: cred.type,
+      authenticatorAttachment: cred.authenticatorAttachment || null,
+      clientExtensionResults: cred.getClientExtensionResults ? cred.getClientExtensionResults() : {},
+      response: {
+        clientDataJSON: bufToB64u(att.clientDataJSON),
+        attestationObject: bufToB64u(att.attestationObject),
+        transports: transports,
+      },
+    };
+  }
+  function encodeAuthResponse(cred){
+    var a = cred.response;
+    return {
+      id: cred.id,
+      rawId: bufToB64u(cred.rawId),
+      type: cred.type,
+      authenticatorAttachment: cred.authenticatorAttachment || null,
+      clientExtensionResults: cred.getClientExtensionResults ? cred.getClientExtensionResults() : {},
+      response: {
+        clientDataJSON: bufToB64u(a.clientDataJSON),
+        authenticatorData: bufToB64u(a.authenticatorData),
+        signature: bufToB64u(a.signature),
+        userHandle: a.userHandle ? bufToB64u(a.userHandle) : null,
+      },
+    };
+  }
+
+  // --- modal wiring (enrollment) ---
+  var modal = document.getElementById('passkey-modal');
+  if (modal) {
+    var seen = false;
+    try { seen = localStorage.getItem('scouts_passkey_modal_seen') === '1'; } catch(_) {}
+    if (!seen) {
+      modal.hidden = false;
+      modal.classList.add('visible');
+    }
+    var errEl = document.getElementById('passkey-modal-err');
+    function dismiss(){
+      try { localStorage.setItem('scouts_passkey_modal_seen', '1'); } catch(_) {}
+      modal.classList.remove('visible');
+      modal.hidden = true;
+    }
+    var skipBtn = document.getElementById('passkey-modal-skip');
+    if (skipBtn) skipBtn.addEventListener('click', dismiss);
+
+    var addBtn = document.getElementById('passkey-modal-add');
+    if (addBtn) addBtn.addEventListener('click', async function(){
+      errEl.textContent = '';
+      addBtn.disabled = true;
+      skipBtn.disabled = true;
+      try {
+        var startRes = await fetch('/passkey/register/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: '{}',
+        });
+        if (!startRes.ok) throw new Error('start_failed');
+        var startData = await startRes.json();
+        var cred = await navigator.credentials.create({ publicKey: decodeRegOptions(startData.options) });
+        if (!cred) throw new Error('no_credential');
+        var finishRes = await fetch('/passkey/register/finish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ response: encodeRegResponse(cred) }),
+        });
+        if (!finishRes.ok) throw new Error('finish_failed');
+        dismiss();
+        window.location.reload();
+      } catch (e) {
+        errEl.textContent = "couldn't add a passkey. try again, or use email / bluesky as usual.";
+        addBtn.disabled = false;
+        skipBtn.disabled = false;
+      }
+    });
+  }
+
+  // --- conditional UI (sign-in autofill on the email form) ---
+  var emailInput = document.querySelector('input[autocomplete*="webauthn"]');
+  if (emailInput && PublicKeyCredential.isConditionalMediationAvailable) {
+    PublicKeyCredential.isConditionalMediationAvailable().then(function(available){
+      if (!available) return;
+      var ac = new AbortController();
+      // Cancel the background passkey prompt if the form submits normally.
+      var form = emailInput.form;
+      if (form) form.addEventListener('submit', function(){ ac.abort(); });
+
+      fetch('/passkey/auth/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: '{}',
+      }).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+        if (!d || !d.options) return;
+        return navigator.credentials.get({
+          publicKey: decodeAuthOptions(d.options),
+          mediation: 'conditional',
+          signal: ac.signal,
+        });
+      }).then(function(cred){
+        if (!cred) return;
+        return fetch('/passkey/auth/finish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ response: encodeAuthResponse(cred) }),
+        }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+          if (j && j.redirect) window.location.href = j.redirect;
+          else if (j && j.ok) window.location.href = '/dashboard';
+        });
+      }).catch(function(){ /* user cancelled or unsupported — silently fall through to OTP */ });
+    }).catch(function(){ /* feature-detect failed — skip */ });
+  }
+})();
+</script>`;
+
 // --- Public pages ---
 
 export function renderLanding(error, opts = {}) {
@@ -230,7 +449,7 @@ export function renderLanding(error, opts = {}) {
   );
 }
 
-export function renderEmailStart({ siteKey, error, email }) {
+export function renderEmailStart({ siteKey, error, email, passkeyEnabled }) {
   const errorHtml = error ? `<div class="error">${esc(error)}</div>` : '';
   const turnstileScript = `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`;
   const styles = `<style>
@@ -240,6 +459,11 @@ export function renderEmailStart({ siteKey, error, email }) {
     .container .btn { width: 100%; display: block; }
     .cf-turnstile { margin: 1rem 0; display: flex; justify-content: center; }
   </style>${turnstileScript}`;
+  // Conditional UI: an enrolled passkey can sign the owner in directly via the
+  // email-input autofill dropdown. Falls back silently when no passkey exists
+  // for solstone.app on this device, or when the browser doesn't support it.
+  const emailAutocomplete = passkeyEnabled === false ? 'email' : 'email webauthn';
+  const passkeyScript = passkeyEnabled === false ? '' : PASSKEY_CLIENT_SCRIPT;
   return layout(
     'solstone scouts — continue with email',
     `<div class="container">
@@ -249,14 +473,14 @@ export function renderEmailStart({ siteKey, error, email }) {
   ${errorHtml}
   <form method="POST" action="/email/start">
     <label for="email">email</label>
-    <input type="email" id="email" name="email" required placeholder="you@example.com" maxlength="254" value="${esc(email || '')}">
+    <input type="email" id="email" name="email" required placeholder="you@example.com" maxlength="254" value="${esc(email || '')}" autocomplete="${emailAutocomplete}">
     <div class="cf-turnstile" data-sitekey="${esc(siteKey || '')}" data-theme="light"></div>
     <button type="submit" class="btn">send me a 6-digit code</button>
   </form>
   <p style="font-size:0.8rem; color:#767676; margin-top:1rem;">by continuing, you agree we'll email you only about the scouts program. no marketing, no third parties.</p>
   <p style="margin-top:1rem;"><a href="/" style="color:#767676; font-size:0.85rem;">← back</a></p>
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
-</div>`,
+</div>${passkeyScript}`,
     styles
   );
 }
@@ -334,7 +558,7 @@ export function renderError(message) {
 
 // --- Dashboard pages (authenticated) ---
 
-export function renderUnknown(scout) {
+export function renderUnknown(scout, opts = {}) {
   const isEmail = scout.auth_kind === 'email';
   const navHandle = scout.handle || scout.email || '';
   const emailField = isEmail
@@ -345,6 +569,9 @@ export function renderUnknown(scout) {
   const profileField = isEmail
     ? `<label for="profile_link">where can we find your work? (optional)</label>
     <input type="text" id="profile_link" name="profile_link" placeholder="github username, blog url, project link, anything">`
+    : '';
+  const passkeyChunk = opts.passkeyEnrollmentEligible
+    ? `${renderPasskeyEnrollmentModal()}${PASSKEY_CLIENT_SCRIPT}`
     : '';
   return layout(
     'solstone scouts — apply',
@@ -361,12 +588,16 @@ export function renderUnknown(scout) {
   </form>
   <p style="font-size:0.8rem; color:#767676; margin-top:1rem;">applications that aren't picked up within 30 days are removed automatically — re-apply anytime.</p>
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
-</div>`
+</div>${passkeyChunk}`,
+    opts.passkeyEnrollmentEligible ? PASSKEY_MODAL_STYLES : ''
   );
 }
 
-export function renderApplied(scout, news) {
+export function renderApplied(scout, news, opts = {}) {
   const navLabel = scout.handle || scout.email || '';
+  const passkeyChunk = opts.passkeyEnrollmentEligible
+    ? `${renderPasskeyEnrollmentModal()}${PASSKEY_CLIENT_SCRIPT}`
+    : '';
   return layout(
     'solstone scouts',
     `<div class="container">
@@ -376,11 +607,12 @@ export function renderApplied(scout, news) {
   <p style="font-size:0.85rem; color:#767676;">applications that aren't picked up within 30 days are removed automatically — re-apply anytime.</p>
   ${renderNewsFeed(news)}
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
-</div>`
+</div>${passkeyChunk}`,
+    opts.passkeyEnrollmentEligible ? PASSKEY_MODAL_STYLES : ''
   );
 }
 
-export function renderApproved(scout, geminiKey, news) {
+export function renderApproved(scout, geminiKey, news, opts = {}) {
   const tokenScript = `
     <script>
       function toggleToken() {
@@ -441,6 +673,12 @@ export function renderApproved(scout, geminiKey, news) {
     <p style="font-size:0.85rem; color:#767676;">don't have a coding agent? <a href="https://docs.anthropic.com/en/docs/claude-code/overview">install claude code</a> first — it takes 2 minutes.</p>
   </div>`;
 
+  const passkeyChunk = opts.passkeyEnrollmentEligible
+    ? `${renderPasskeyEnrollmentModal()}${PASSKEY_CLIENT_SCRIPT}`
+    : '';
+  const extraHead = opts.passkeyEnrollmentEligible
+    ? `${tokenScript}${PASSKEY_MODAL_STYLES}`
+    : tokenScript;
   return layout(
     'solstone scouts',
     `<div class="container">
@@ -465,8 +703,8 @@ export function renderApproved(scout, geminiKey, news) {
   </div>
   ${renderNewsFeed(news)}
   <footer><p><a href="https://solpbc.org">sol pbc</a></p></footer>
-</div>`,
-    tokenScript
+</div>${passkeyChunk}`,
+    extraHead
   );
 }
 

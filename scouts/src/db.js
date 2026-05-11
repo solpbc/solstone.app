@@ -321,6 +321,105 @@ export async function expireStaleApplications(db) {
     .run();
 }
 
+// --- Passkey operations ---
+
+export async function getActivePasskeysForScout(db, scoutId) {
+  const { results } = await db
+    .prepare(
+      'SELECT credential_id, scout_id, public_key, counter, aaguid, transports, friendly_name, created_at, last_used_at FROM passkey_credentials WHERE scout_id = ? AND revoked_at IS NULL ORDER BY created_at DESC'
+    )
+    .bind(scoutId)
+    .all();
+  return results || [];
+}
+
+export async function insertPasskeyCredential(db, c) {
+  await db
+    .prepare(
+      `INSERT INTO passkey_credentials (
+         credential_id, scout_id, public_key, counter, aaguid, transports,
+         is_discoverable, backup_eligible, backup_state, friendly_name, created_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      c.credentialId,
+      c.scoutId,
+      c.publicKey,
+      c.counter,
+      c.aaguid,
+      c.transports,
+      c.isDiscoverable ? 1 : 0,
+      c.backupEligible ? 1 : 0,
+      c.backupState ? 1 : 0,
+      c.friendlyName,
+      c.createdAt
+    )
+    .run();
+}
+
+export async function getPasskeyCredentialById(db, credentialId) {
+  return db
+    .prepare(
+      'SELECT credential_id, scout_id, public_key, counter, aaguid, transports, friendly_name, created_at, last_used_at, revoked_at FROM passkey_credentials WHERE credential_id = ? AND revoked_at IS NULL'
+    )
+    .bind(credentialId)
+    .first();
+}
+
+export async function updatePasskeyCredentialOnAuth(db, credentialId, newCounter, lastUsedAt) {
+  await db
+    .prepare(
+      'UPDATE passkey_credentials SET counter = ?, last_used_at = ? WHERE credential_id = ?'
+    )
+    .bind(newCounter, lastUsedAt, credentialId)
+    .run();
+}
+
+export async function insertPasskeyChallenge(db, c) {
+  await db
+    .prepare(
+      'INSERT INTO passkey_challenges (challenge, scout_id, purpose, expires_at, used_at, created_at) VALUES (?, ?, ?, ?, NULL, ?)'
+    )
+    .bind(c.challenge, c.scoutId, c.purpose, c.expiresAt, c.createdAt)
+    .run();
+}
+
+// Single-use enforcement: atomic UPDATE ... WHERE used_at IS NULL returns the
+// row only if we won the race. Strong consistency in D1 makes this race-free.
+export async function consumePasskeyChallenge(db, challenge, purpose) {
+  const now = Date.now();
+  const result = await db
+    .prepare(
+      'UPDATE passkey_challenges SET used_at = ? WHERE challenge = ? AND purpose = ? AND used_at IS NULL AND expires_at > ? RETURNING challenge, scout_id, purpose, expires_at, used_at, created_at'
+    )
+    .bind(now, challenge, purpose, now)
+    .first();
+  return result || null;
+}
+
+export async function setPasskeyUserHandleIfMissing(db, scoutId, encodedHandle) {
+  await db
+    .prepare('UPDATE scouts SET passkey_user_handle = ? WHERE id = ? AND passkey_user_handle IS NULL')
+    .bind(encodedHandle, scoutId)
+    .run();
+}
+
+export async function getPasskeyUserHandle(db, scoutId) {
+  const row = await db
+    .prepare('SELECT passkey_user_handle FROM scouts WHERE id = ?')
+    .bind(scoutId)
+    .first();
+  return row?.passkey_user_handle || null;
+}
+
+export async function hasActivePasskey(db, scoutId) {
+  const row = await db
+    .prepare('SELECT 1 AS one FROM passkey_credentials WHERE scout_id = ? AND revoked_at IS NULL LIMIT 1')
+    .bind(scoutId)
+    .first();
+  return !!row;
+}
+
 // --- Feedback operations ---
 
 export async function submitFeedback(db, scoutDid, category, body) {

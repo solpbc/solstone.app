@@ -14,6 +14,7 @@ import {
   postNews,
 } from './db.js';
 import { sendTransactionalEmail, renderApprovalEmail } from './email.js';
+import { handleAdminPasskey } from './passkey.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
 const ISSUER = 'https://solpbc.cloudflareaccess.com';
@@ -80,6 +81,13 @@ export async function handleAdmin(request, env, path) {
 
   const db = env.DB;
   const method = request.method;
+
+  // --- Passkey admin routes (specific patterns; delegate to passkey.js) ---
+
+  if (path.includes('/passkey/')) {
+    const handled = await handleAdminPasskey(request, env, path);
+    if (handled) return handled;
+  }
 
   // --- POST routes (specific patterns first) ---
 
