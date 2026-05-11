@@ -14,8 +14,15 @@
 --     enforcement race-free.
 --   * Spec called this 0004; that slot was taken by today's rollback-drop
 --     migration. Bumped to 0005 (no behavioral change).
+--   * UNIQUE is enforced via a partial UNIQUE INDEX rather than inline on
+--     the ALTER, because SQLite/D1 rejects `ALTER TABLE ADD COLUMN ... UNIQUE`
+--     (SQLITE_ERROR code 7500). Partial form (`WHERE ... IS NOT NULL`) matches
+--     the lazy-population semantics exactly.
 
-ALTER TABLE scouts ADD COLUMN passkey_user_handle TEXT UNIQUE;
+ALTER TABLE scouts ADD COLUMN passkey_user_handle TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_scouts_passkey_user_handle
+  ON scouts(passkey_user_handle)
+  WHERE passkey_user_handle IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS passkey_credentials (
   credential_id     TEXT PRIMARY KEY,                 -- base64url, <=1023 bytes raw

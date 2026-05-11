@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS scouts (
   approved_at     TEXT,
   revoked_at      TEXT,
   approval_email_sent_at TEXT,
-  passkey_user_handle TEXT UNIQUE,                        -- 32 random bytes (base64url), lazy on first passkey enroll
+  passkey_user_handle TEXT,                               -- 32 random bytes (base64url), lazy on first passkey enroll; UNIQUE enforced via partial index below
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -109,3 +109,5 @@ CREATE INDEX IF NOT EXISTS idx_passkey_credentials_scout
   ON passkey_credentials(scout_id) WHERE revoked_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_passkey_challenges_expires
   ON passkey_challenges(expires_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_scouts_passkey_user_handle
+  ON scouts(passkey_user_handle) WHERE passkey_user_handle IS NOT NULL;
