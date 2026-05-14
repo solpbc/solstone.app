@@ -27,9 +27,7 @@ sol setup
 
 (or `pipx install solstone && sol setup` if you prefer pipx.)
 
-note for macOS Apple Silicon users: the CoreML-accelerated transcription path requires a source-checkout install — see [CONTRIBUTING.md](https://github.com/solpbc/solstone/blob/main/CONTRIBUTING.md). the packaged install runs the on-disk ONNX path instead, which is also fast.
-
-then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/journal`. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting.
+then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting.
 
 ### linux
 
@@ -42,7 +40,9 @@ sol setup
 
 (or `pipx install solstone && sol setup` if you prefer pipx.)
 
-then open http://localhost:5015 in a browser. the first-run wizard sets your password and confirms the journal location at `~/journal`. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. for a linux observer, see [solstone.app/observers](https://solstone.app/observers).
+on linux, local parakeet transcription needs `solstone[parakeet-onnx-cpu]` (or `[parakeet-onnx-cuda]` for NVIDIA GPUs); install or upgrade the same way as other extras.
+
+then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. for a linux observer, see [solstone.app/observers](https://solstone.app/observers).
 
 ## already have your sol agent installed?
 

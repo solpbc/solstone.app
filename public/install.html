@@ -361,8 +361,7 @@ sol setup</pre>
                         <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human">copy for human</button>
                         <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                     </div>
-                    <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/journal</code>.</p>
-                    <p class="install-finish">note for macOS Apple Silicon users: the CoreML-accelerated transcription path requires a source-checkout install — see <a href="https://github.com/solpbc/solstone/blob/main/CONTRIBUTING.md" class="gh-link" style="text-decoration:underline;">CONTRIBUTING.md</a>. the packaged install runs the on-disk ONNX path instead, which is also fast.</p>
+                    <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and connecting a gemini API key.</p>
                 </div>
             </div>
 
@@ -374,7 +373,8 @@ sol setup</pre>
                     <button class="copy-btn" data-target="steps-linux" data-default-label="copy for human">copy for human</button>
                     <a href="https://github.com/solpbc/solstone/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                 </div>
-                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard sets your password and confirms the journal location at <code>~/journal</code>. for a linux observer, see <a href="/observers" class="gh-link" style="text-decoration:underline;">solstone.app/observers</a>.</p>
+                <p class="install-finish">on linux, local parakeet transcription needs <code>solstone[parakeet-onnx-cpu]</code> (or <code>[parakeet-onnx-cuda]</code> for NVIDIA GPUs); install or upgrade the same way as other extras.</p>
+                <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and connecting a gemini API key. for a linux observer, see <a href="/observers" class="gh-link" style="text-decoration:underline;">solstone.app/observers</a>.</p>
             </div>
         </div>
     </div>
