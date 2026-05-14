@@ -198,8 +198,8 @@ export default {
         }
 
         try {
-          const { did, handle } = await handleCallback(code, state, db);
-          const scout = await upsertAtprotoScout(db, did, handle);
+          const { did, handle, email } = await handleCallback(code, state, db);
+          const scout = await upsertAtprotoScout(db, did, handle, email);
           const session = await createSession(db, scout.id);
           return redirect('/dashboard', {
             'Set-Cookie': sessionCookie(session.id),

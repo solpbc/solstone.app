@@ -39,17 +39,58 @@ export async function cleanupExpiredSessions(db) {
 //   - email:         id = 'email-<uuid>' (set on first verify)
 //   - pre-approved:  id = 'pending:<handle>' or 'pending-email:<email_lower>'
 
-export async function upsertAtprotoScout(db, did, handle) {
+function isEmailLowerUniqueViolation(error) {
+  return (
+    typeof error?.message === 'string' &&
+    error.message.includes('UNIQUE constraint failed: scouts.email_lower')
+  );
+}
+
+export async function upsertAtprotoScout(db, did, handle, email = null) {
+  let emailLower = email ? email.trim().toLowerCase() : null;
+  let emailToStore = email ? email.trim() : null;
+  if (!emailLower) {
+    emailLower = null;
+    emailToStore = null;
+  }
+
   // If scout already exists by id (= did), update handle.
   const existing = await db
     .prepare("SELECT * FROM scouts WHERE id = ? AND auth_kind = 'atproto'")
     .bind(did)
     .first();
   if (existing) {
-    await db
-      .prepare('UPDATE scouts SET handle = ? WHERE id = ?')
-      .bind(handle, did)
-      .run();
+    // Captured OAuth email is opportunistic; never overwrite a scout email.
+    if (existing.email_lower != null || emailLower === null) {
+      await db
+        .prepare('UPDATE scouts SET handle = ? WHERE id = ?')
+        .bind(handle, did)
+        .run();
+      return { ...existing, handle };
+    }
+
+    const emailCollision = await findScoutByEmailLower(db, emailLower);
+    if (emailCollision && emailCollision.id !== existing.id) {
+      await db
+        .prepare('UPDATE scouts SET handle = ? WHERE id = ?')
+        .bind(handle, did)
+        .run();
+      return { ...existing, handle };
+    }
+
+    try {
+      await db
+        .prepare('UPDATE scouts SET handle = ?, email = ?, email_lower = ? WHERE id = ?')
+        .bind(handle, emailToStore, emailLower, did)
+        .run();
+      return { ...existing, handle };
+    } catch (error) {
+      if (!isEmailLowerUniqueViolation(error)) throw error;
+      await db
+        .prepare('UPDATE scouts SET handle = ? WHERE id = ?')
+        .bind(handle, did)
+        .run();
+    }
     return { ...existing, handle };
   }
   // Check for a pre-approved record by handle (stored with pending: id prefix).
@@ -59,17 +100,69 @@ export async function upsertAtprotoScout(db, did, handle) {
     .bind(handle)
     .first();
   if (preApproved) {
-    await db
-      .prepare('UPDATE scouts SET id = ?, did = ?, handle = ? WHERE id = ?')
-      .bind(did, did, handle, preApproved.id)
-      .run();
+    if (emailLower === null) {
+      await db
+        .prepare('UPDATE scouts SET id = ?, did = ?, handle = ? WHERE id = ?')
+        .bind(did, did, handle, preApproved.id)
+        .run();
+      return { ...preApproved, id: did, did, handle };
+    }
+
+    const emailCollision = await findScoutByEmailLower(db, emailLower);
+    if (emailCollision && emailCollision.id !== preApproved.id) {
+      await db
+        .prepare('UPDATE scouts SET id = ?, did = ?, handle = ? WHERE id = ?')
+        .bind(did, did, handle, preApproved.id)
+        .run();
+      return { ...preApproved, id: did, did, handle };
+    }
+
+    try {
+      await db
+        .prepare('UPDATE scouts SET id = ?, did = ?, handle = ?, email = ?, email_lower = ? WHERE id = ?')
+        .bind(did, did, handle, emailToStore, emailLower, preApproved.id)
+        .run();
+      return { ...preApproved, id: did, did, handle };
+    } catch (error) {
+      if (!isEmailLowerUniqueViolation(error)) throw error;
+      await db
+        .prepare('UPDATE scouts SET id = ?, did = ?, handle = ? WHERE id = ?')
+        .bind(did, did, handle, preApproved.id)
+        .run();
+    }
     return { ...preApproved, id: did, did, handle };
   }
-  await db
-    .prepare("INSERT INTO scouts (id, auth_kind, did, handle, status) VALUES (?, 'atproto', ?, ?, 'unknown')")
-    .bind(did, did, handle)
-    .run();
-  return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
+  if (emailLower === null) {
+    await db
+      .prepare("INSERT INTO scouts (id, auth_kind, did, handle, status) VALUES (?, 'atproto', ?, ?, 'unknown')")
+      .bind(did, did, handle)
+      .run();
+    return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
+  }
+
+  const emailCollision = await findScoutByEmailLower(db, emailLower);
+  if (emailCollision) {
+    await db
+      .prepare("INSERT INTO scouts (id, auth_kind, did, handle, status) VALUES (?, 'atproto', ?, ?, 'unknown')")
+      .bind(did, did, handle)
+      .run();
+    return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
+  }
+
+  try {
+    await db
+      .prepare("INSERT INTO scouts (id, auth_kind, did, handle, email, email_lower, status) VALUES (?, 'atproto', ?, ?, ?, ?, 'unknown')")
+      .bind(did, did, handle, emailToStore, emailLower)
+      .run();
+    return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
+  } catch (error) {
+    if (!isEmailLowerUniqueViolation(error)) throw error;
+    await db
+      .prepare("INSERT INTO scouts (id, auth_kind, did, handle, status) VALUES (?, 'atproto', ?, ?, 'unknown')")
+      .bind(did, did, handle)
+      .run();
+    return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
+  }
 }
 
 export async function getScout(db, id) {

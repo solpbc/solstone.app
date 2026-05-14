@@ -5,7 +5,8 @@ import { SignJWT, exportJWK, importJWK, generateKeyPair, calculateJwkThumbprint 
 
 const CLIENT_ID = 'https://scouts.solstone.app/client-metadata.json';
 const REDIRECT_URI = 'https://scouts.solstone.app/callback';
-const SCOPE = 'atproto transition:generic';
+const SCOPE = 'atproto transition:generic transition:email';
+const SCOPE_FALLBACK = 'atproto transition:generic';
 
 const CLIENT_METADATA = {
   client_id: CLIENT_ID,
@@ -113,7 +114,11 @@ function generatePkce() {
 }
 
 async function computeChallenge(verifier) {
-  const encoded = new TextEncoder().encode(verifier);
+  return computeSha256Base64url(verifier);
+}
+
+async function computeSha256Base64url(value) {
+  const encoded = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest('SHA-256', encoded);
   return base64url(new Uint8Array(digest));
 }
@@ -130,25 +135,27 @@ async function generateDpopKeyPair() {
 }
 
 // Create a DPoP proof JWT
-async function createDpopProof(privateJwk, method, url, nonce) {
+async function createDpopProof(privateJwk, method, url, nonce, accessToken) {
   const privateKey = await importJWK(privateJwk, 'ES256');
   const publicJwk = { ...privateJwk };
   delete publicJwk.d;
 
-  const builder = new SignJWT({
+  const claims = {
     htm: method,
     htu: url.split('?')[0],
-    jti: crypto.randomUUID(),
     ...(nonce ? { nonce } : {}),
-  })
+    ...(accessToken ? { ath: await computeSha256Base64url(accessToken) } : {}),
+  };
+
+  return new SignJWT(claims)
     .setProtectedHeader({
       alg: 'ES256',
       typ: 'dpop+jwt',
       jwk: publicJwk,
     })
-    .setIssuedAt();
-
-  return builder.sign(privateKey);
+    .setIssuedAt()
+    .setJti(crypto.randomUUID())
+    .sign(privateKey);
 }
 
 // Start the OAuth login flow — returns a redirect URL
@@ -178,45 +185,65 @@ export async function startLogin(handle, db) {
   const parEndpoint = authServerMeta.pushed_authorization_request_endpoint;
   if (!parEndpoint) throw new Error('authorization server does not support PAR (required by AT Protocol)');
 
-  const dpopProof = await createDpopProof(privateJwk, 'POST', parEndpoint);
+  let scope = SCOPE;
+  let downgraded = false;
 
-  const parParams = new URLSearchParams({
-    response_type: 'code',
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    scope: SCOPE,
-    state,
-    code_challenge: codeChallenge,
-    code_challenge_method: 'S256',
-    login_hint: handle,
-    dpop_jkt: dpopJkt,
-  });
+  const sendParRequest = async () => {
+    const dpopProof = await createDpopProof(privateJwk, 'POST', parEndpoint);
+    const parParams = new URLSearchParams({
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      redirect_uri: REDIRECT_URI,
+      scope,
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+      login_hint: handle,
+      dpop_jkt: dpopJkt,
+    });
 
-  let parRes = await fetch(parEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      DPoP: dpopProof,
-    },
-    body: parParams.toString(),
-  });
+    let res = await fetch(parEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        DPoP: dpopProof,
+      },
+      body: parParams.toString(),
+    });
 
-  // Handle DPoP nonce requirement (server returns use_dpop_nonce error with DPoP-Nonce header)
-  if (parRes.status === 400 || parRes.status === 401) {
-    const nonce = parRes.headers.get('DPoP-Nonce');
-    if (nonce) {
-      const retryProof = await createDpopProof(privateJwk, 'POST', parEndpoint, nonce);
-      parRes = await fetch(parEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          DPoP: retryProof,
-        },
-        body: parParams.toString(),
-      });
+    // Handle DPoP nonce requirement (server returns use_dpop_nonce error with DPoP-Nonce header)
+    if (res.status === 400 || res.status === 401) {
+      const nonce = res.headers.get('DPoP-Nonce');
+      if (nonce) {
+        const retryProof = await createDpopProof(privateJwk, 'POST', parEndpoint, nonce);
+        res = await fetch(parEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            DPoP: retryProof,
+          },
+          body: parParams.toString(),
+        });
+      }
+    }
+
+    return res;
+  };
+
+  let parRes = await sendParRequest();
+
+  // Some PDS auth servers may not recognize the email transition scope yet.
+  if (!parRes.ok && parRes.status === 400 && !downgraded && scope === SCOPE) {
+    let parsed = null;
+    try {
+      parsed = await parRes.clone().json();
+    } catch {}
+    if (parsed?.error === 'invalid_scope') {
+      downgraded = true;
+      scope = SCOPE_FALLBACK;
+      parRes = await sendParRequest();
     }
   }
-
   if (!parRes.ok) {
     const errBody = await parRes.text();
     throw new Error(`PAR request failed (${parRes.status}): ${errBody}`);
@@ -229,7 +256,47 @@ export async function startLogin(handle, db) {
   return authUrl.toString();
 }
 
-// Handle the OAuth callback — returns { did, handle }
+async function fetchPdsEmail(pdsUrl, accessToken, privateJwk) {
+  try {
+    if (!pdsUrl || !accessToken) return null;
+    const url = `${pdsUrl.replace(/\/$/, '')}/xrpc/com.atproto.server.getSession`;
+    const headersFor = async (nonce) => {
+      const proof = await createDpopProof(privateJwk, 'GET', url, nonce, accessToken);
+      return {
+        Authorization: `DPoP ${accessToken}`,
+        DPoP: proof,
+        Accept: 'application/json',
+      };
+    };
+
+    let res = await fetch(url, {
+      method: 'GET',
+      headers: await headersFor(),
+    });
+
+    if (res.status === 400 || res.status === 401) {
+      const nonce = res.headers.get('DPoP-Nonce');
+      if (nonce) {
+        res = await fetch(url, {
+          method: 'GET',
+          headers: await headersFor(nonce),
+        });
+      }
+    }
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.emailConfirmed === true && typeof data.email === 'string') {
+      const trimmed = data.email.trim();
+      return trimmed || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Handle the OAuth callback — returns { did, handle, email }
 export async function handleCallback(code, state, db) {
   // 1. Look up state
   const row = await db
@@ -314,11 +381,13 @@ export async function handleCallback(code, state, db) {
     throw new Error('identity chain verification failed — PDS auth server mismatch');
   }
 
+  const email = await fetchPdsEmail(verifyPds, tokenData.access_token, privateJwk);
+
   // Extract handle from DID document and verify bidirectionally
   const handle =
     didDoc.alsoKnownAs?.find((a) => a.startsWith('at://'))?.slice(5) || did;
 
-  return { did, handle };
+  return { did, handle, email };
 }
 
 // Clean up expired OAuth states (call periodically)
