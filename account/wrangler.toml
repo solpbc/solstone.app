@@ -1,0 +1,20 @@
+name = "account-portal"
+account_id = "3f2c1528c7d4d9685819ea9e9e307c92"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+main = "src/index.js"
+
+routes = [{ pattern = "account.solstone.app", custom_domain = true }]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "account-portal"
+database_id = "5ab8e5a8-685c-4f20-9169-047d2778fa73"
+migrations_dir = "migrations"
+
+[[send_email]]
+name = "EMAIL"
+
+[vars]
+# VPE may swap this for an account-domain-specific Turnstile key post-deploy.
+TURNSTILE_SITE_KEY = "0x4AAAAAADJneUy2jVC8NPC4"
