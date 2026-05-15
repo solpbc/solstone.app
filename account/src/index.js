@@ -128,6 +128,7 @@ export default {
         if (!consumed) return html(renderInvalidLink());
 
         const existing = await findEmailByHash(db, consumed.emailLowerHash);
+        const isNew = !existing;
         const accountId = existing
           ? existing.account_id
           : (await createAccountWithEmail(db, {
@@ -140,7 +141,7 @@ export default {
         const sessionToken = generateSessionToken();
         const idHash = await hashWithPepper(sessionToken, env);
         await createSession(db, { idHash, accountId, nowMs });
-        return redirect('/dashboard?welcome=1', 303, {
+        return redirect(isNew ? '/dashboard?welcome=1' : '/dashboard', 303, {
           'Set-Cookie': sessionCookie(sessionToken),
         });
       }

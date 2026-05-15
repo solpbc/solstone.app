@@ -1,5 +1,5 @@
 const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
-const NONCE_TTL_MS = 15 * 60 * 1000;
+const NONCE_TTL_MS = 10 * 60 * 1000;
 
 export async function findEmailByHash(db, addressLowerHash) {
   return db

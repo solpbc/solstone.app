@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS account_emails (
   address_encrypted TEXT NOT NULL,
   address_lower_hash TEXT NOT NULL UNIQUE,
   is_primary INTEGER NOT NULL DEFAULT 1,
-  verified_at INTEGER NOT NULL,
+  verified_at INTEGER,
   created_at INTEGER NOT NULL,
   FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
