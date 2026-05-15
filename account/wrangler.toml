@@ -14,7 +14,7 @@ migrations_dir = "migrations"
 
 [[send_email]]
 name = "EMAIL"
+remote = true
 
 [vars]
-# VPE may swap this for an account-domain-specific Turnstile key post-deploy.
-TURNSTILE_SITE_KEY = "0x4AAAAAADJneUy2jVC8NPC4"
+TURNSTILE_SITE_KEY = "0x4AAAAAADPn7-wnLZnFjshK"
