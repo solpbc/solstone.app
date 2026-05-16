@@ -319,7 +319,7 @@ ${sessionHtml || '<p>no sessions.</p>'}
   <li>no IP geolocation stored separately</li>
   <li>no third-party tracking</li>
 </ul>
-<p class="disclosure">these are sol pbc's structural data commitments under Article 8 of the articles of incorporation (restated 2026-05-01) and bylaws Article IV. See <a href="https://solstone.app/legal/articles">the canonical text</a>.</p>`,
+<p class="disclosure">these are sol pbc's structural data commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of the articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`,
   });
 }
 
