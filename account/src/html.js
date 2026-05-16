@@ -65,9 +65,9 @@ export function renderLanding(turnstileSiteKey) {
     body: `<h1>sign in to your solstone account</h1>
 <form method="post" action="/signin/start">
   <label for="email">email</label>
-  <input id="email" type="email" name="email" autocomplete="email" required>
+  <input id="email" type="email" name="email" autocomplete="email webauthn" required placeholder="you@example.com" maxlength="254">
   <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}"></div>
-  <button type="submit">[ send sign-in link ]</button>
+  <button type="submit">continue</button>
 </form>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`,
   });
@@ -94,15 +94,15 @@ export function renderDashboard({ welcome }) {
     ? `<div class="welcome">
   <h2>add a passkey to this device?</h2>
   <p class="helper">coming in the next update</p>
-  <button disabled>[ add a passkey ]</button>
-  <button onclick="history.replaceState({}, '', '/dashboard'); this.closest('.welcome').remove();">[ not now ]</button>
+  <button disabled>add a passkey</button>
+  <button onclick="history.replaceState({}, '', '/dashboard'); this.closest('.welcome').remove();">not now</button>
 </div>`
     : '';
   return layout({
     title: 'dashboard',
     body: `${welcomePanel}<h1>dashboard</h1>
 <p>you're signed in.</p>
-<form method="post" action="/signout"><button type="submit">[ sign out ]</button></form>`,
+<form method="post" action="/signout"><button type="submit">sign out</button></form>`,
   });
 }
 
