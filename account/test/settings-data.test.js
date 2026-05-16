@@ -87,10 +87,11 @@ describe('settings transparency data view', () => {
     expect(body).toContain('no behavioral data');
     expect(body).toContain('no IP geolocation stored separately');
     expect(body).toContain('no third-party tracking');
-    expect(body).toContain("sol pbc's structural data commitments under Article 8");
-    expect(body).toContain('bylaws Article IV');
-    expect(body).toContain('href="https://solstone.app/legal/articles"');
-    expect(body).toContain('the canonical text');
+    expect(body).toContain("sol pbc's structural data commitments under");
+    expect(body).toContain('Article 8 of the articles of incorporation');
+    expect(body).toContain('Article III of the bylaws');
+    expect(body).toContain('href="https://solpbc.org/articles#s8-3"');
+    expect(body).toContain('href="https://solpbc.org/bylaws#art-3"');
     expect(body).toContain('href="/settings"');
   });
 
