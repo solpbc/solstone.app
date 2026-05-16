@@ -1,37 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 380" role="img" aria-label="solstone single machine architecture: observer experiences your screen and audio along with you, sol agent processes everything, the journal holds your memories at ~/Documents/journal">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 448" role="img" aria-label="solstone single machine architecture: an observer experiences your screen and audio along with you on your machine and sends to your journal at ~/Documents/journal, where sol tends your memories">
   <title>solstone — single machine</title>
 
   <!-- machine label -->
-  <text x="240" y="14" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">your machine</text>
+  <text x="360" y="14" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">your machine</text>
 
-  <!-- machine container -->
-  <rect x="24" y="24" width="432" height="344" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- your machine container — the physical-location wrapper; everything is colocated on one box -->
+  <rect x="24" y="24" width="672" height="400" rx="8" fill="white" stroke="#e0e0e0" stroke-width="1"/>
 
-  <!-- observer card -->
-  <rect x="48" y="52" width="384" height="72" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <text x="240" y="78" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">observer</text>
-  <text x="240" y="98" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">screen + audio, observed alongside you</text>
-  <text x="240" y="115" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">macos · linux · tmux</text>
+  <!-- observer card (unchanged) -->
+  <rect x="72" y="52" width="576" height="72" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="360" y="78" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">observer</text>
+  <text x="360" y="98" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">screen + audio, observed alongside you</text>
+  <text x="360" y="115" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">macos · linux · tmux</text>
 
-  <!-- arrow: observer -> sol agent -->
-  <line x1="240" y1="124" x2="240" y2="158" stroke="#d0d0d0" stroke-width="1.5"/>
-  <polygon points="240,160 236,152 244,152" fill="#c0c0c0"/>
+  <!-- one arrow: observer -> your journal -->
+  <line x1="360" y1="124" x2="360" y2="168" stroke="#d0d0d0" stroke-width="1.5"/>
+  <polygon points="360,170 356,162 364,162" fill="#c0c0c0"/>
 
-  <!-- sol agent card -->
-  <rect x="48" y="170" width="384" height="74" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <text x="240" y="196" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">sol agent</text>
-  <text x="240" y="216" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">processes, organizes, surfaces — your co-brain runs here</text>
-  <text x="240" y="233" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
+  <!-- your journal label -->
+  <text x="360" y="190" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">your journal</text>
 
-  <!-- arrow: sol agent -> journal -->
-  <line x1="240" y1="244" x2="240" y2="278" stroke="#d0d0d0" stroke-width="1.5"/>
-  <polygon points="240,280 236,272 244,272" fill="#c0c0c0"/>
+  <!-- your journal sub-container — a living place you own, nested inside your machine -->
+  <rect x="60" y="200" width="600" height="200" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- the journal is this place you own -->
+  <text x="360" y="227" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="11" fill="#767676">~/Documents/journal</text>
 
-  <!-- journal cylinder body (bottom curve + sides) -->
-  <path d="M 48 290 L 48 348 A 192 8 0 0 0 432 348 L 432 290" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <!-- journal cylinder top ellipse -->
-  <ellipse cx="240" cy="290" rx="192" ry="8" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <!-- journal label and path -->
-  <text x="240" y="316" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">journal</text>
-  <text x="240" y="334" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="11" fill="#767676">~/Documents/journal</text>
+  <!-- sol agent — the keeper, living and working inside your journal -->
+  <rect x="92" y="246" width="536" height="104" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="360" y="282" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">sol agent</text>
+  <text x="360" y="304" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">lives in your journal — tends, organizes, and surfaces your memories</text>
+  <text x="360" y="324" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
+
+  <!-- the journal holds everything sol experiences alongside you -->
+  <text x="360" y="380" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#999">everything sol experiences alongside you is kept here</text>
 </svg>
