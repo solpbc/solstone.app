@@ -1,32 +1,38 @@
 import {
   encryptEmail,
-  generateNonce,
+  generateOtp,
   generateSessionToken,
+  hashKey,
   hashWithPepper,
+  normalizeCode,
 } from './crypto.js';
 import {
+  bumpOtpAttempts,
   bumpRateBucket,
-  consumeNonce,
   createAccountWithEmail,
   createSession,
+  deleteOtp,
   deleteSession,
   findEmailByHash,
   getSessionAccount,
-  insertNonce,
+  matchOtp,
+  upsertOtp,
   updateAccountLastSignin,
 } from './db.js';
-import { sendMagicLinkEmail } from './email.js';
+import { sendOtpEmail } from './email.js';
 import {
-  renderCheckInbox,
   renderDashboard,
+  renderError,
   renderGoodbye,
-  renderInvalidLink,
   renderLanding,
+  renderVerify,
+  VERIFY_ERROR,
 } from './html.js';
 
 const SESSION_COOKIE = 'account_session';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 14; // 14 days
-const SESSION_TTL_MS = SESSION_MAX_AGE * 1000;
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
 const ORIGIN = 'https://account.solstone.app';
 const IP_HOUR_LIMIT = 10;
 const EMAIL_DAY_LIMIT = 5;
@@ -54,14 +60,6 @@ export function originAllowed(req) {
 
 export function getClientIp(req) {
   return req.headers.get('CF-Connecting-IP') || req.headers.get('x-forwarded-for') || 'unknown';
-}
-
-export function hourBucket(nowMs = Date.now()) {
-  return Math.floor(nowMs / HOUR_MS);
-}
-
-export function dayBucket(nowMs = Date.now()) {
-  return Math.floor(nowMs / DAY_MS);
 }
 
 export async function verifyTurnstile(env, token, ip) {
@@ -119,31 +117,12 @@ export default {
         return handleSigninStart(req, env);
       }
 
-      if (url.pathname === '/signin/finish' && req.method === 'GET') {
-        const nonce = url.searchParams.get('nonce') || '';
-        if (!nonce) return html(renderInvalidLink());
-        const nowMs = Date.now();
-        const nonceHash = await hashWithPepper(nonce, env);
-        const consumed = await consumeNonce(db, nonceHash, nowMs);
-        if (!consumed) return html(renderInvalidLink());
+      if (url.pathname === '/signin/verify' && req.method === 'GET') {
+        return handleSigninVerifyGet(req);
+      }
 
-        const existing = await findEmailByHash(db, consumed.emailLowerHash);
-        const isNew = !existing;
-        const accountId = existing
-          ? existing.account_id
-          : (await createAccountWithEmail(db, {
-              addressEncrypted: consumed.emailEncrypted,
-              addressLowerHash: consumed.emailLowerHash,
-              nowMs,
-            })).accountId;
-        await updateAccountLastSignin(db, accountId, nowMs);
-
-        const sessionToken = generateSessionToken();
-        const idHash = await hashWithPepper(sessionToken, env);
-        await createSession(db, { idHash, accountId, nowMs });
-        return redirect(isNew ? '/dashboard?welcome=1' : '/dashboard', 303, {
-          'Set-Cookie': sessionCookie(sessionToken),
-        });
+      if (url.pathname === '/signin/verify' && req.method === 'POST') {
+        return handleSigninVerifyPost(req, env);
       }
 
       if (url.pathname === '/dashboard' && req.method === 'GET') {
@@ -171,17 +150,17 @@ export default {
       return new Response(null, { status: 404, headers: SECURITY_HEADERS });
     } catch (error) {
       console.error('account portal request failed');
-      return html(renderInvalidLink(), { status: 500 });
+      return html(renderError(), { status: 500 });
     }
   },
 };
 
 async function handleSigninStart(req, env) {
-  // Lode A contract invariants for /signin/start:
+  // Lode A.1 contract invariants for /signin/start:
   //   1. NEVER read account_emails before mint/send (no enumeration).
-  //   2. Rate buckets bumped BEFORE nonce write.
-  //   3. Nonce row written on every admit, regardless of whether an account exists for the email.
-  //   4. Response bytes (body + headers) are byte-identical across admit/reject/turnstile-fail/ratecapped.
+  //   2. Four hash calls run before every non-origin branch return.
+  //   3. Rate buckets bumped BEFORE OTP write.
+  //   4. OTP row written on every admit, regardless of whether an account exists for the email.
   //   5. NO Set-Cookie under any branch.
   if (!originAllowed(req)) return forbidden();
 
@@ -190,36 +169,95 @@ async function handleSigninStart(req, env) {
   const turnstileToken = form.get('cf-turnstile-response')?.toString() || '';
   const nowMs = Date.now();
   const ip = getClientIp(req);
+  const code = generateOtp();
   const turnstileOk = await verifyTurnstile(env, turnstileToken, ip);
+  const codeHash = await hashWithPepper(code, env);
+  const emailLowerHash = await hashWithPepper(emailLower, env);
+  const ipBucketKey = await hashKey('signin_ip', ip, env);
+  const emailBucketKey = await hashKey('signin_email', emailLower, env);
+  const emailOk = isValidEmail(emailLower);
+  const verifyLocation = emailOk ? `/signin/verify?email=${encodeURIComponent(emailLower)}` : '/signin/verify';
 
-  if (turnstileOk && isValidEmail(emailLower)) {
-    const addressLowerHash = await hashWithPepper(emailLower, env);
-    const ipBucketKey = await hashWithPepper(
-      `signin_start:ip:${ip}:${hourBucket(nowMs)}`,
-      env
-    );
-    const ipCount = await bumpRateBucket(env.DB, ipBucketKey, HOUR_MS, nowMs);
+  if (!turnstileOk) return redirect(verifyLocation);
+  if (!emailOk) return redirect('/signin/verify');
 
-    if (ipCount <= IP_HOUR_LIMIT) {
-      const emailBucketKey = `signin_start:email:${addressLowerHash}:${dayBucket(nowMs)}`;
-      const emailCount = await bumpRateBucket(env.DB, emailBucketKey, DAY_MS, nowMs);
+  const ipCount = await bumpRateBucket(env.DB, ipBucketKey, HOUR_MS, nowMs);
+  if (ipCount > IP_HOUR_LIMIT) return redirect(verifyLocation);
 
-      if (emailCount <= EMAIL_DAY_LIMIT) {
-        const nonce = generateNonce();
-        const nonceHash = await hashWithPepper(nonce, env);
-        const emailEncrypted = await encryptEmail(emailLower, env);
-        await insertNonce(env.DB, { nonceHash, emailLowerHash: addressLowerHash, emailEncrypted, nowMs });
-        const link = `${ORIGIN}/signin/finish?nonce=${encodeURIComponent(nonce)}`;
-        try {
-          await sendMagicLinkEmail(env, emailLower, link);
-        } catch {
-          console.error('magic-link send failed');
-        }
-      }
-    }
+  const emailCount = await bumpRateBucket(env.DB, emailBucketKey, DAY_MS, nowMs);
+  if (emailCount > EMAIL_DAY_LIMIT) return redirect(verifyLocation);
+
+  await upsertOtp(env.DB, { emailLowerHash, emailLower, codeHash, nowMs, ttlMs: OTP_TTL_MS });
+  try {
+    await sendOtpEmail({ env, address: emailLower, code });
+  } catch {
+    console.error('otp_email_send_failed');
+    await deleteOtp(env.DB, { emailLowerHash, codeHash });
   }
 
-  return html(renderCheckInbox());
+  return redirect(verifyLocation);
+}
+
+function handleSigninVerifyGet(req) {
+  const url = new URL(req.url);
+  const emailLower = (url.searchParams.get('email') || '').trim().toLowerCase();
+  const email = isValidEmail(emailLower) ? emailLower : '';
+  return html(renderVerify({ email, error: null }));
+}
+
+async function handleSigninVerifyPost(req, env) {
+  // Lode A.1 contract invariants for /signin/verify:
+  //   1. Origin guard applies to POST only.
+  //   2. Success uses atomic UPDATE ... RETURNING; misses use a second UPDATE for attempts.
+  //   3. Failure responses never reveal account presence.
+  //   4. NO PII in logs.
+  //   5. Session-cookie format remains unchanged from Lode A.
+  if (!originAllowed(req)) return forbidden();
+
+  const form = await req.formData();
+  const rawEmail = form.get('email')?.toString() || '';
+  const emailForEcho = rawEmail.trim();
+  const emailLower = emailForEcho.toLowerCase();
+  const code = normalizeCode(form.get('code')?.toString() || '');
+  const emailOk = isValidEmail(emailLower);
+  const codeOk = /^\d{6}$/.test(code);
+  const renderEmail = emailOk ? emailLower : '';
+
+  if (!emailOk || !codeOk) {
+    return html(renderVerify({
+      email: renderEmail,
+      emailInputValue: emailOk ? '' : emailForEcho,
+      error: VERIFY_ERROR,
+    }));
+  }
+
+  const nowMs = Date.now();
+  const codeHash = await hashWithPepper(code, env);
+  const emailLowerHash = await hashWithPepper(emailLower, env);
+  const matched = await matchOtp(env.DB, { emailLowerHash, codeHash, nowMs });
+
+  if (!matched) {
+    await bumpOtpAttempts(env.DB, { emailLowerHash, nowMs, maxAttempts: OTP_MAX_ATTEMPTS });
+    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR }));
+  }
+
+  const existing = await findEmailByHash(env.DB, emailLowerHash);
+  const isNew = !existing;
+  const accountId = existing
+    ? existing.account_id
+    : (await createAccountWithEmail(env.DB, {
+        addressEncrypted: await encryptEmail(matched.emailLower, env),
+        addressLowerHash: emailLowerHash,
+        nowMs,
+      })).accountId;
+  await updateAccountLastSignin(env.DB, accountId, nowMs);
+
+  const sessionToken = generateSessionToken();
+  const idHash = await hashWithPepper(sessionToken, env);
+  await createSession(env.DB, { idHash, accountId, nowMs });
+  return redirect(isNew ? '/dashboard?welcome=1' : '/dashboard', 303, {
+    'Set-Cookie': sessionCookie(sessionToken),
+  });
 }
 
 async function getValidSession(req, env, nowMs) {

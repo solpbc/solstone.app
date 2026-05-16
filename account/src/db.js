@@ -1,5 +1,4 @@
 const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
-const NONCE_TTL_MS = 10 * 60 * 1000;
 
 export async function findEmailByHash(db, addressLowerHash) {
   return db
@@ -65,30 +64,59 @@ export async function deleteSession(db, idHash) {
   await db.prepare('DELETE FROM sessions WHERE id_hash = ?').bind(idHash).run();
 }
 
-export async function insertNonce(db, { nonceHash, emailLowerHash, emailEncrypted, nowMs }) {
+export async function upsertOtp(db, { emailLowerHash, emailLower, codeHash, nowMs, ttlMs }) {
   await db
     .prepare(
-      'INSERT INTO magic_link_nonces (nonce_hash, email_lower_hash, email_encrypted, created_at, expires_at, consumed, consumed_at) VALUES (?, ?, ?, ?, ?, 0, NULL)'
+      `INSERT INTO otp_tokens (email_lower_hash, email_lower, code_hash, expires_at, attempts, consumed, started_at)
+       VALUES (?, ?, ?, ?, 0, 0, ?)
+       ON CONFLICT(email_lower_hash) DO UPDATE SET
+         email_lower = excluded.email_lower,
+         code_hash = excluded.code_hash,
+         expires_at = excluded.expires_at,
+         attempts = 0,
+         consumed = 0,
+         started_at = excluded.started_at`
     )
-    .bind(nonceHash, emailLowerHash, emailEncrypted, nowMs, nowMs + NONCE_TTL_MS)
+    .bind(emailLowerHash, emailLower, codeHash, nowMs + ttlMs, nowMs)
     .run();
 }
 
-export async function consumeNonce(db, nonceHash, nowMs) {
-  const result = await db
-    .prepare(
-      'UPDATE magic_link_nonces SET consumed = 1, consumed_at = ? WHERE nonce_hash = ? AND consumed = 0 AND expires_at > ?'
-    )
-    .bind(nowMs, nonceHash, nowMs)
-    .run();
-  if (result.meta?.changes !== 1) return null;
+export async function matchOtp(db, { emailLowerHash, codeHash, nowMs }) {
   const row = await db
-    .prepare('SELECT email_lower_hash, email_encrypted FROM magic_link_nonces WHERE nonce_hash = ?')
-    .bind(nonceHash)
+    .prepare(
+      `UPDATE otp_tokens
+       SET consumed = 1
+       WHERE email_lower_hash = ?
+         AND code_hash = ?
+         AND consumed = 0
+         AND expires_at > ?
+       RETURNING email_lower`
+    )
+    .bind(emailLowerHash, codeHash, nowMs)
     .first();
-  return row
-    ? { emailLowerHash: row.email_lower_hash, emailEncrypted: row.email_encrypted }
-    : null;
+  return row ? { emailLower: row.email_lower } : null;
+}
+
+export async function bumpOtpAttempts(db, { emailLowerHash, nowMs, maxAttempts }) {
+  await db
+    .prepare(
+      `UPDATE otp_tokens
+       SET
+         attempts = attempts + 1,
+         consumed = CASE WHEN attempts + 1 >= ? THEN 1 ELSE consumed END
+       WHERE email_lower_hash = ?
+         AND consumed = 0
+         AND expires_at > ?`
+    )
+    .bind(maxAttempts, emailLowerHash, nowMs)
+    .run();
+}
+
+export async function deleteOtp(db, { emailLowerHash, codeHash }) {
+  await db
+    .prepare('DELETE FROM otp_tokens WHERE email_lower_hash = ? AND code_hash = ?')
+    .bind(emailLowerHash, codeHash)
+    .run();
 }
 
 export async function bumpRateBucket(db, key, windowMs, nowMs) {

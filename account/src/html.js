@@ -2,6 +2,7 @@
 // Sol orange accent: #E8923A. Lowercase voice throughout.
 
 const SOL_ORANGE = '#E8923A';
+export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
 
 export function layout({ title, body }) {
   return `<!DOCTYPE html>
@@ -37,6 +38,13 @@ export function layout({ title, body }) {
       font: inherit;
       margin-bottom: 14px;
     }
+    input.code {
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 1.35rem;
+      letter-spacing: 4px;
+      text-align: center;
+    }
+    input.code:focus { border-color: ${SOL_ORANGE}; outline: 2px solid #FBF6F0; }
     button {
       min-height: 44px;
       padding: 10px 16px;
@@ -52,6 +60,7 @@ export function layout({ title, body }) {
     .cf-turnstile { margin: 4px 0 18px; min-height: 65px; }
     .welcome { border: 1px solid #eee; border-radius: 8px; padding: 18px; margin-bottom: 24px; }
     .helper { color: #767676; margin-bottom: 14px; }
+    .error { color: #9f2d2d; margin-bottom: 14px; }
     .welcome button + button { margin-left: 8px; background: #eee; color: #333; }
   </style>
 </head>
@@ -73,18 +82,32 @@ export function renderLanding(turnstileSiteKey) {
   });
 }
 
-export function renderCheckInbox() {
+export function renderVerify({ email = '', emailInputValue = '', error = '' }) {
+  const escapedEmail = esc(email);
+  const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
+  const emailFieldHtml = email
+    ? `<input type="hidden" name="email" value="${escAttr(email)}">`
+    : `<input type="email" name="email" value="${escAttr(emailInputValue)}" required autocomplete="email" placeholder="you@example.com" maxlength="254">`;
+  const subhead = email
+    ? `code sent to <strong>${escapedEmail}</strong>. expires 10 minutes after we sent it.`
+    : 'enter your email and the 6-digit code we sent you.';
   return layout({
-    title: 'check your inbox',
-    body: `<h1>check your inbox</h1>
-<p>check your inbox. if there's an account for that address, a sign-in link is on its way.</p>`,
+    title: 'verify your code',
+    body: `<h1>verify your code</h1>
+<p>${subhead}</p>
+${errorHtml}
+<form method="post" action="/signin/verify">
+  ${emailFieldHtml}
+  <input class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
+  <button type="submit">verify</button>
+</form>`,
   });
 }
 
-export function renderInvalidLink() {
+export function renderError() {
   return layout({
-    title: 'that link did not work',
-    body: `<h1>that link did not work</h1>
+    title: 'something went wrong',
+    body: `<h1>something went wrong</h1>
 <p><a href="/">start over</a></p>`,
   });
 }

@@ -1,0 +1,221 @@
+import { env as workerEnv } from 'cloudflare:test';
+import { beforeEach, describe, expect, it } from 'vitest';
+import worker from '../src/index.js';
+import { VERIFY_ERROR } from '../src/html.js';
+import {
+  extractCookieToken,
+  makeTestEnv,
+  resetDb,
+  responseSnapshot,
+  rowCount,
+  seedOtp,
+  verifyRequest,
+} from './helpers.js';
+
+describe('/signin/verify', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('renders a hidden email field for a valid email query', async () => {
+    const response = await worker.fetch(
+      new Request('https://account.solstone.app/signin/verify?email=Person%40Example.com'),
+      makeTestEnv()
+    );
+    const body = await response.text();
+    expect(response.status).toBe(200);
+    expect(body).toContain('code sent to <strong>person@example.com</strong>');
+    expect(body).toContain('type="hidden" name="email" value="person@example.com"');
+    expect(body).not.toContain('type="email"');
+  });
+
+  it('treats an invalid email query as the bare verify form', async () => {
+    const response = await worker.fetch(
+      new Request('https://account.solstone.app/signin/verify?email=not-an-email'),
+      makeTestEnv()
+    );
+    const body = await response.text();
+    expect(response.status).toBe(200);
+    expect(body).toContain('enter your email and the 6-digit code we sent you.');
+    expect(body).toContain('type="email"');
+  });
+
+  it('falls through to 404 for the deleted finish route', async () => {
+    const response = await worker.fetch(
+      new Request('https://account.solstone.app/signin/finish?n=anything'),
+      makeTestEnv()
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it('requires an allowed origin on POST', async () => {
+    const response = await worker.fetch(
+      verifyRequest({ email: 'origin@example.com', code: '123456', origin: null }),
+      makeTestEnv()
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it('rejects malformed email with the generic error and echoes the form value', async () => {
+    const response = await worker.fetch(
+      verifyRequest({ email: 'not-an-email', code: '123456' }),
+      makeTestEnv()
+    );
+    const body = await response.text();
+    expect(response.status).toBe(200);
+    expect(body).toContain(VERIFY_ERROR);
+    expect(body).toContain('type="email" name="email" value="not-an-email"');
+    expect(await rowCount('accounts')).toBe(0);
+    expect(await rowCount('sessions')).toBe(0);
+  });
+
+  it('rejects malformed code with the generic error and no account or session', async () => {
+    const response = await worker.fetch(
+      verifyRequest({ email: 'code@example.com', code: '12 34' }),
+      makeTestEnv()
+    );
+    const body = await response.text();
+    expect(response.status).toBe(200);
+    expect(body).toContain(VERIFY_ERROR);
+    expect(await rowCount('accounts')).toBe(0);
+    expect(await rowCount('sessions')).toBe(0);
+  });
+
+  it('returns the generic error for a code with no matching row', async () => {
+    const testEnv = makeTestEnv();
+    const noRow = await worker.fetch(
+      verifyRequest({ email: 'missing@example.com', code: '123456' }),
+      testEnv
+    );
+    const noRowSnapshot = await responseSnapshot(noRow);
+
+    await seedOtp({ email: 'missing@example.com', options: { code: '111111' } });
+    const wrongCode = await worker.fetch(
+      verifyRequest({ email: 'missing@example.com', code: '222222' }),
+      testEnv
+    );
+    const wrongCodeSnapshot = await responseSnapshot(wrongCode);
+    const body = await noRow.text();
+
+    expect(noRow.status).toBe(200);
+    expect(noRow.headers.has('Set-Cookie')).toBe(false);
+    expect(body).toContain(VERIFY_ERROR);
+    expect(noRowSnapshot).toEqual(wrongCodeSnapshot);
+    expect(await rowCount('accounts')).toBe(0);
+    expect(await rowCount('sessions')).toBe(0);
+  });
+
+  it('verifies a correct OTP once and redirects a new account to the welcome dashboard', async () => {
+    const testEnv = makeTestEnv();
+    const seeded = await seedOtp({ email: 'new@example.com', options: { code: '123456' } });
+    const response = await worker.fetch(
+      verifyRequest({ email: 'new@example.com', code: seeded.code }),
+      testEnv
+    );
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(extractCookieToken(response.headers.get('Set-Cookie') || '')).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(await rowCount('accounts')).toBe(1);
+    expect(await rowCount('account_emails')).toBe(1);
+    expect(await rowCount('sessions')).toBe(1);
+    await expect(otpRow(seeded.emailLowerHash)).resolves.toMatchObject({ consumed: 1 });
+  });
+
+  it('verifies a correct OTP for an existing account and redirects to the dashboard', async () => {
+    const testEnv = makeTestEnv();
+    const first = await seedOtp({ email: 'existing@example.com', options: { code: '111111' } });
+    await worker.fetch(verifyRequest({ email: 'existing@example.com', code: first.code }), testEnv);
+
+    const second = await seedOtp({ email: 'existing@example.com', options: { code: '222222' } });
+    const response = await worker.fetch(
+      verifyRequest({ email: 'existing@example.com', code: second.code }),
+      testEnv
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/dashboard');
+    expect(await rowCount('accounts')).toBe(1);
+    expect(await rowCount('account_emails')).toBe(1);
+    expect(await rowCount('sessions')).toBe(2);
+  });
+
+  it('rejects a reused OTP after atomic consume', async () => {
+    const testEnv = makeTestEnv();
+    const seeded = await seedOtp({ email: 'reuse@example.com', options: { code: '123456' } });
+    const first = await worker.fetch(verifyRequest({ email: 'reuse@example.com', code: seeded.code }), testEnv);
+    const second = await worker.fetch(verifyRequest({ email: 'reuse@example.com', code: seeded.code }), testEnv);
+    const body = await second.text();
+
+    expect(first.status).toBe(303);
+    expect(second.status).toBe(200);
+    expect(body).toContain(VERIFY_ERROR);
+    expect(await rowCount('accounts')).toBe(1);
+  });
+
+  it('rejects an expired OTP without incrementing attempts', async () => {
+    const seeded = await seedOtp({
+      email: 'expired@example.com',
+      options: { code: '123456', expired: true },
+    });
+    const response = await worker.fetch(
+      verifyRequest({ email: 'expired@example.com', code: seeded.code }),
+      makeTestEnv()
+    );
+    const body = await response.text();
+    const row = await otpRow(seeded.emailLowerHash);
+
+    expect(response.status).toBe(200);
+    expect(body).toContain(VERIFY_ERROR);
+    expect(row.attempts).toBe(0);
+    expect(row.consumed).toBe(0);
+    expect(await rowCount('accounts')).toBe(0);
+  });
+
+  it('increments attempts on a wrong code', async () => {
+    const seeded = await seedOtp({ email: 'wrong@example.com', options: { code: '123456' } });
+    const response = await worker.fetch(
+      verifyRequest({ email: 'wrong@example.com', code: '654321' }),
+      makeTestEnv()
+    );
+    const row = await otpRow(seeded.emailLowerHash);
+
+    expect(response.status).toBe(200);
+    expect(row.attempts).toBe(1);
+    expect(row.consumed).toBe(0);
+  });
+
+  it('consumes an OTP on the fifth wrong attempt', async () => {
+    const seeded = await seedOtp({
+      email: 'lockout@example.com',
+      options: { code: '123456', attempts: 4 },
+    });
+    const response = await worker.fetch(
+      verifyRequest({ email: 'lockout@example.com', code: '654321' }),
+      makeTestEnv()
+    );
+    const row = await otpRow(seeded.emailLowerHash);
+
+    expect(response.status).toBe(200);
+    expect(row.attempts).toBe(5);
+    expect(row.consumed).toBe(1);
+  });
+
+  it('concurrent verifies for the same OTP create exactly one account and one email row', async () => {
+    const testEnv = makeTestEnv();
+    const seeded = await seedOtp({ email: 'race@example.com', options: { code: '123456' } });
+    const responses = await Promise.all([
+      worker.fetch(verifyRequest({ email: 'race@example.com', code: seeded.code }), testEnv),
+      worker.fetch(verifyRequest({ email: 'race@example.com', code: seeded.code }), testEnv),
+    ]);
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 303]);
+    expect(await rowCount('accounts')).toBe(1);
+    expect(await rowCount('account_emails')).toBe(1);
+  });
+});
+
+async function otpRow(emailLowerHash) {
+  return workerEnv.DB.prepare('SELECT attempts, consumed FROM otp_tokens WHERE email_lower_hash = ?')
+    .bind(emailLowerHash)
+    .first();
+}

@@ -1,8 +1,8 @@
 import { env } from 'cloudflare:test';
 import { vi } from 'vitest';
 import schema from '../schema.sql?raw';
-import { encryptEmail, generateNonce, hashWithPepper } from '../src/crypto.js';
-import { insertNonce } from '../src/db.js';
+import { generateOtp, hashWithPepper } from '../src/crypto.js';
+import { upsertOtp } from '../src/db.js';
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
 const TEST_PEPPER = 'test-hmac-pepper';
@@ -28,7 +28,7 @@ export function makeTestEnv(overrides = {}) {
 }
 
 export async function resetDb() {
-  for (const table of ['rate_buckets', 'magic_link_nonces', 'sessions', 'account_emails', 'accounts']) {
+  for (const table of ['rate_buckets', 'otp_tokens', 'sessions', 'account_emails', 'accounts']) {
     await env.DB.prepare(`DROP TABLE IF EXISTS ${table}`).run();
   }
   // Tests apply the checked-in schema text directly so schema.sql remains the source of truth.
@@ -67,10 +67,6 @@ export function startRequest(email, headers = {}) {
   });
 }
 
-export function finishRequest(nonce) {
-  return new Request(`https://account.solstone.app/signin/finish?nonce=${encodeURIComponent(nonce)}`);
-}
-
 export async function responseSnapshot(response) {
   const bytes = Array.from(new Uint8Array(await response.clone().arrayBuffer()));
   const headers = Array.from(response.headers.entries()).sort(([a], [b]) => a.localeCompare(b));
@@ -91,33 +87,47 @@ export async function rowCount(table) {
   return row.count;
 }
 
-export async function seedNonce(email, options = {}) {
+export async function seedOtp({ email, options = {} }) {
   const testEnv = makeTestEnv();
   const nowMs = options.nowMs ?? Date.now();
   const emailLower = email.trim().toLowerCase();
-  const nonce = options.nonce || generateNonce();
-  const nonceHash = await hashWithPepper(nonce, testEnv);
+  const code = options.code || generateOtp();
+  const codeHash = await hashWithPepper(code, testEnv);
   const emailLowerHash = await hashWithPepper(emailLower, testEnv);
-  const emailEncrypted = await encryptEmail(emailLower, testEnv);
 
-  if (options.expired) {
+  await upsertOtp(env.DB, {
+    emailLowerHash,
+    emailLower,
+    codeHash,
+    nowMs,
+    ttlMs: options.expired ? -1 : 10 * 60 * 1000,
+  });
+
+  if (options.consumed || options.attempts) {
     await env.DB
-      .prepare(
-        'INSERT INTO magic_link_nonces (nonce_hash, email_lower_hash, email_encrypted, created_at, expires_at, consumed, consumed_at) VALUES (?, ?, ?, ?, ?, 0, NULL)'
-      )
-      .bind(nonceHash, emailLowerHash, emailEncrypted, nowMs - 1_000_000, nowMs - 1)
+      .prepare('UPDATE otp_tokens SET consumed = ?, attempts = ? WHERE email_lower_hash = ?')
+      .bind(options.consumed ? 1 : 0, options.attempts || 0, emailLowerHash)
       .run();
-  } else {
-    await insertNonce(env.DB, { nonceHash, emailLowerHash, emailEncrypted, nowMs });
-    if (options.consumed) {
-      await env.DB
-        .prepare('UPDATE magic_link_nonces SET consumed = 1, consumed_at = ? WHERE nonce_hash = ?')
-        .bind(nowMs, nonceHash)
-        .run();
-    }
   }
 
-  return { nonce, nonceHash, emailLowerHash, emailEncrypted };
+  return { code, codeHash, emailLowerHash, emailLower };
+}
+
+export function verifyRequest({ email, code, origin = 'https://account.solstone.app', headers = {} }) {
+  const body = new URLSearchParams({
+    email,
+    code,
+  });
+  const requestHeaders = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    ...headers,
+  };
+  if (origin !== null) requestHeaders.Origin = origin;
+  return new Request('https://account.solstone.app/signin/verify', {
+    method: 'POST',
+    headers: requestHeaders,
+    body,
+  });
 }
 
 export function extractCookieToken(setCookie) {
@@ -125,7 +135,7 @@ export function extractCookieToken(setCookie) {
 }
 
 export async function dbDumpText() {
-  const tables = ['accounts', 'account_emails', 'sessions', 'magic_link_nonces', 'rate_buckets'];
+  const tables = ['accounts', 'account_emails', 'sessions', 'otp_tokens', 'rate_buckets'];
   const dumped = {};
   for (const table of tables) {
     const { results } = await env.DB.prepare(`SELECT * FROM ${table}`).all();

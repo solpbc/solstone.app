@@ -1,4 +1,4 @@
--- account-portal D1 schema (Lode A — magic-link auth)
+-- account-portal D1 schema (Lode A.1 - OTP auth)
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -38,15 +38,18 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_account_id
   ON sessions(account_id);
 
-CREATE TABLE IF NOT EXISTS magic_link_nonces (
-  nonce_hash TEXT PRIMARY KEY,
-  email_lower_hash TEXT NOT NULL,
-  email_encrypted TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
+CREATE TABLE IF NOT EXISTS otp_tokens (
+  email_lower_hash TEXT PRIMARY KEY,
+  email_lower TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
   expires_at INTEGER NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
   consumed INTEGER NOT NULL DEFAULT 0,
-  consumed_at INTEGER
+  started_at INTEGER NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_otp_tokens_expires
+  ON otp_tokens(expires_at);
 
 CREATE TABLE IF NOT EXISTS rate_buckets (
   key TEXT PRIMARY KEY,

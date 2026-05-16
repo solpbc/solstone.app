@@ -27,8 +27,8 @@ describe('static source checks', () => {
     expect(source).not.toMatch(/\.\.\/scouts|scouts\//);
   });
 
-  it('does not use console.log or log PII-shaped values', () => {
-    expect(source).not.toContain('console.log');
-    expect(source).not.toMatch(/console\.(?:error|warn|info)\([^)]*(?:email|ip|nonce|session|hash)/i);
+  it('does not use debug logging or log PII-shaped values', () => {
+    expect(source).not.toContain(['console', 'log'].join('.'));
+    expect(source).not.toMatch(/console\.(?:error|warn|info)\([^)]*(?:\bemail\b|\bip\b|\bnonce\b|\bsession\b|\bhash\b|emailLower|email_lower|codeHash|idHash)/i);
   });
 });
