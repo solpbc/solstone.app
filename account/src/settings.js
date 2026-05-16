@@ -1,5 +1,6 @@
 import { decryptEmail } from './crypto.js';
 import {
+  countAccountEmails,
   countActivePasskeys,
   countActiveSessions,
   listPasskeyCredentialsForAccount,
@@ -10,6 +11,7 @@ import {
   revokeSession,
 } from './db.js';
 import {
+  formatDate,
   formatRelativeTime,
   renderSettingsPasskeys,
   renderSettingsSessions,
@@ -49,7 +51,8 @@ export async function handleSettingsShell(req, env) {
   const { session } = guard;
   const sessionCount = await countActiveSessions(env.DB, session.account_id);
   const passkeyCount = await countActivePasskeys(env.DB, session.account_id);
-  return settingsHtml(renderSettingsShell({ sessionCount, passkeyCount }));
+  const emailCount = await countAccountEmails(env.DB, session.account_id);
+  return settingsHtml(renderSettingsShell({ sessionCount, passkeyCount, emailCount }));
 }
 
 export async function handleSettingsSessions(req, env) {
@@ -127,7 +130,7 @@ export async function handleRemovePasskey(req, env, credentialId) {
   return settingsRedirect('/settings/passkeys');
 }
 
-async function requireSettingsSession(req, env) {
+export async function requireSettingsSession(req, env) {
   const nowMs = Date.now();
   const session = await getValidSession(req, env, nowMs);
   if (!session) {
@@ -136,15 +139,18 @@ async function requireSettingsSession(req, env) {
   return { session, nowMs };
 }
 
-function settingsHtml(body) {
-  return html(body, { headers: NO_STORE });
+export function settingsHtml(body, init = {}) {
+  return html(body, {
+    ...init,
+    headers: { ...NO_STORE, ...(init.headers || {}) },
+  });
 }
 
-function settingsRedirect(to, headers = {}) {
+export function settingsRedirect(to, headers = {}) {
   return redirect(to, 303, { ...NO_STORE, ...headers });
 }
 
-function noStore(response) {
+export function noStore(response) {
   response.headers.set('Cache-Control', 'no-store');
   return response;
 }
@@ -181,7 +187,7 @@ function passkeyViewRow(row, nowMs) {
   };
 }
 
-function uaLabel(ua) {
+export function uaLabel(ua) {
   const value = typeof ua === 'string' ? ua.trim() : '';
   if (!value) return 'unknown device';
   const browser = detectBrowser(value);
@@ -206,7 +212,7 @@ function detectOs(ua) {
   return 'device';
 }
 
-function aaguidLabel(aaguid) {
+export function aaguidLabel(aaguid) {
   const value = typeof aaguid === 'string' ? aaguid.trim().toLowerCase() : '';
   if (!value || value === ZERO_AAGUID) return null;
   const label = AAGUID_LABELS[value];
@@ -215,7 +221,7 @@ function aaguidLabel(aaguid) {
   return null;
 }
 
-function truncateIp(ip) {
+export function truncateIp(ip) {
   const value = typeof ip === 'string' ? ip.trim() : '';
   if (!value || value === 'unknown') return '—';
   if (value.includes(':')) return truncateIpv6(value);
@@ -243,10 +249,4 @@ function expandIpv6(value) {
   if (parts.length === 1 && missing !== 0) return null;
   if (parts.length === 2 && missing < 1) return null;
   return [...left, ...Array(Math.max(0, missing)).fill('0'), ...right];
-}
-
-function formatDate(tsMs) {
-  const ts = Number(tsMs);
-  if (!Number.isFinite(ts)) return '—';
-  return new Date(ts).toISOString().slice(0, 10);
 }

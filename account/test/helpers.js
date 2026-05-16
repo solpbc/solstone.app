@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:test';
+import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test';
 import { vi } from 'vitest';
 import schema from '../schema.sql?raw';
 import { encryptEmail, generateOtp, generateSessionToken, hashWithPepper } from '../src/crypto.js';
@@ -31,6 +31,13 @@ export function makeTestEnv(overrides = {}) {
     TURNSTILE_SECRET: 'test-turnstile-secret',
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
   };
+}
+
+export async function fetchWithCtx(worker, request, testEnv) {
+  const ctx = createExecutionContext();
+  const response = await worker.fetch(request, testEnv, ctx);
+  await waitOnExecutionContext(ctx);
+  return { response, ctx };
 }
 
 export async function resetDb() {
@@ -81,6 +88,25 @@ export function startRequest(email, headers = {}) {
   });
 }
 
+export function emailAddRequest({
+  address,
+  cookie,
+  origin = 'https://account.solstone.app',
+  headers = {},
+}) {
+  const requestHeaders = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    ...headers,
+  };
+  if (origin !== null) requestHeaders.Origin = origin;
+  if (cookie) requestHeaders.Cookie = cookie;
+  return new Request('https://account.solstone.app/settings/emails/add', {
+    method: 'POST',
+    headers: requestHeaders,
+    body: new URLSearchParams({ address }),
+  });
+}
+
 export async function responseSnapshot(response) {
   const bytes = Array.from(new Uint8Array(await response.clone().arrayBuffer()));
   const headers = Array.from(response.headers.entries()).sort(([a], [b]) => a.localeCompare(b));
@@ -92,6 +118,10 @@ export function recordingDb(db, statements) {
     prepare(sql) {
       statements.push(sql);
       return db.prepare(sql);
+    },
+    batch(batchStatements) {
+      statements.push('[batch]');
+      return db.batch(batchStatements);
     },
   };
 }
@@ -144,6 +174,26 @@ export function verifyRequest({ email, code, origin = 'https://account.solstone.
   });
 }
 
+export function emailVerifyRequest({
+  address,
+  code,
+  cookie,
+  origin = 'https://account.solstone.app',
+  headers = {},
+}) {
+  const requestHeaders = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    ...headers,
+  };
+  if (origin !== null) requestHeaders.Origin = origin;
+  if (cookie) requestHeaders.Cookie = cookie;
+  return new Request('https://account.solstone.app/settings/emails/verify', {
+    method: 'POST',
+    headers: requestHeaders,
+    body: new URLSearchParams({ address, code }),
+  });
+}
+
 export function extractCookieToken(setCookie) {
   return setCookie.match(/^account_session=([^;]*);/)?.[1] || '';
 }
@@ -176,6 +226,69 @@ export async function seedAccount({ email = 'person@example.com', nowMs = Date.n
     nowMs,
   });
   return { ...created, emailLower, addressLowerHash, addressEncrypted, nowMs, testEnv };
+}
+
+export async function seedAccountEmail({
+  accountId,
+  address = 'secondary@example.com',
+  id = crypto.randomUUID(),
+  verifiedAt = null,
+  isPrimary = 0,
+  code = null,
+  expiresAt = null,
+  attempts = 0,
+  createdAt = Date.now(),
+  testEnv = makeTestEnv(),
+} = {}) {
+  const addressLower = address.trim().toLowerCase();
+  const addressLowerHash = await hashWithPepper(addressLower, testEnv);
+  const addressEncrypted = await encryptEmail(addressLower, testEnv);
+  const codeHash = code == null ? null : await hashWithPepper(code, testEnv);
+  if (isPrimary) {
+    await env.DB
+      .prepare('UPDATE account_emails SET is_primary = 0 WHERE account_id = ?')
+      .bind(accountId)
+      .run();
+  }
+  await env.DB
+    .prepare(
+      `INSERT INTO account_emails (
+        id, account_id, address_encrypted, address_lower_hash, is_primary,
+        verified_at, created_at, verification_code_hash, verification_expires_at,
+        verification_attempts
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      id,
+      accountId,
+      addressEncrypted,
+      addressLowerHash,
+      isPrimary ? 1 : 0,
+      verifiedAt,
+      createdAt,
+      codeHash,
+      expiresAt,
+      attempts
+    )
+    .run();
+  if (isPrimary) {
+    await env.DB
+      .prepare('UPDATE accounts SET primary_email_id = ? WHERE id = ?')
+      .bind(id, accountId)
+      .run();
+  }
+  return {
+    id,
+    accountId,
+    addressLower,
+    addressLowerHash,
+    addressEncrypted,
+    code,
+    codeHash,
+    expiresAt,
+    verifiedAt,
+    isPrimary: isPrimary ? 1 : 0,
+  };
 }
 
 export async function seedSession(accountId, { nowMs = Date.now(), testEnv = makeTestEnv() } = {}) {

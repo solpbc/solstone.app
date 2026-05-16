@@ -7,6 +7,175 @@ export async function findEmailByHash(db, addressLowerHash) {
     .first();
 }
 
+export async function findEmailEligibilityByHash(db, addressLowerHash) {
+  return db
+    .prepare('SELECT id, account_id, verified_at FROM account_emails WHERE address_lower_hash = ?')
+    .bind(addressLowerHash)
+    .first();
+}
+
+export async function insertAccountEmailVerification(db, {
+  id,
+  accountId,
+  addressEncrypted,
+  addressLowerHash,
+  codeHash,
+  expiresAt,
+  nowMs,
+}) {
+  await db
+    .prepare(
+      `INSERT INTO account_emails (
+         id, account_id, address_encrypted, address_lower_hash, is_primary,
+         verified_at, created_at, verification_code_hash, verification_expires_at,
+         verification_attempts
+       ) VALUES (?, ?, ?, ?, 0, NULL, ?, ?, ?, 0)`
+    )
+    .bind(id, accountId, addressEncrypted, addressLowerHash, nowMs, codeHash, expiresAt)
+    .run();
+}
+
+export async function resetAccountEmailVerification(db, { id, accountId, codeHash, expiresAt }) {
+  await db
+    .prepare(
+      `UPDATE account_emails
+       SET verification_code_hash = ?,
+           verification_expires_at = ?,
+           verification_attempts = 0
+       WHERE id = ? AND account_id = ?`
+    )
+    .bind(codeHash, expiresAt, id, accountId)
+    .run();
+}
+
+export async function matchAndVerifyAccountEmail(db, {
+  accountId,
+  addressLowerHash,
+  codeHash,
+  nowMs,
+}) {
+  const row = await db
+    .prepare(
+      `UPDATE account_emails
+       SET verified_at = ?,
+           verification_code_hash = NULL,
+           verification_expires_at = NULL
+       WHERE account_id = ?
+         AND address_lower_hash = ?
+         AND verification_code_hash = ?
+         AND verified_at IS NULL
+         AND verification_expires_at > ?
+       RETURNING id`
+    )
+    .bind(nowMs, accountId, addressLowerHash, codeHash, nowMs)
+    .first();
+  return row || null;
+}
+
+export async function bumpAccountEmailVerificationAttempts(db, {
+  accountId,
+  addressLowerHash,
+  nowMs,
+  maxAttempts,
+}) {
+  await db
+    .prepare(
+      `UPDATE account_emails
+       SET verification_attempts = verification_attempts + 1,
+           verification_code_hash = CASE
+             WHEN verification_attempts + 1 >= ? THEN NULL
+             ELSE verification_code_hash
+           END,
+           verification_expires_at = CASE
+             WHEN verification_attempts + 1 >= ? THEN NULL
+             ELSE verification_expires_at
+           END
+       WHERE account_id = ?
+         AND address_lower_hash = ?
+         AND verified_at IS NULL
+         AND verification_expires_at > ?
+         AND verification_code_hash IS NOT NULL`
+    )
+    .bind(maxAttempts, maxAttempts, accountId, addressLowerHash, nowMs)
+    .run();
+}
+
+export async function findAccountEmailByAddressHash(db, { accountId, addressLowerHash }) {
+  return db
+    .prepare('SELECT id, verified_at FROM account_emails WHERE account_id = ? AND address_lower_hash = ?')
+    .bind(accountId, addressLowerHash)
+    .first();
+}
+
+export async function listAccountEmails(db, accountId) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, address_encrypted, is_primary, verified_at, created_at,
+              verification_expires_at
+       FROM account_emails
+       WHERE account_id = ?
+       ORDER BY is_primary DESC, created_at DESC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+export async function countAccountEmails(db, accountId) {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS count FROM account_emails WHERE account_id = ?')
+    .bind(accountId)
+    .first();
+  return row?.count || 0;
+}
+
+export async function findVerifiedAccountEmailById(db, { id, accountId }) {
+  return db
+    .prepare('SELECT id FROM account_emails WHERE id = ? AND account_id = ? AND verified_at IS NOT NULL')
+    .bind(id, accountId)
+    .first();
+}
+
+export async function makeAccountEmailPrimary(db, { id, accountId }) {
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE account_emails
+         SET is_primary = CASE WHEN id = ? THEN 1 ELSE 0 END
+         WHERE account_id = ?`
+      )
+      .bind(id, accountId),
+    db
+      .prepare('UPDATE accounts SET primary_email_id = ? WHERE id = ?')
+      .bind(id, accountId),
+  ]);
+}
+
+export async function removeAccountEmail(db, { id, accountId }) {
+  const result = await db
+    .prepare(
+      `DELETE FROM account_emails
+       WHERE id = ?
+         AND account_id = ?
+         AND is_primary = 0
+         AND (
+           verified_at IS NULL
+           OR (SELECT COUNT(*) FROM account_emails
+                 WHERE account_id = ? AND verified_at IS NOT NULL) >= 2
+         )`
+    )
+    .bind(id, accountId, accountId)
+    .run();
+  return result?.meta?.changes || 0;
+}
+
+export async function findAccountEmailById(db, { id, accountId }) {
+  return db
+    .prepare('SELECT id FROM account_emails WHERE id = ? AND account_id = ?')
+    .bind(id, accountId)
+    .first();
+}
+
 export async function createAccountWithEmail(db, { addressEncrypted, addressLowerHash, nowMs }) {
   const accountId = crypto.randomUUID();
   const accountEmailId = crypto.randomUUID();
@@ -126,6 +295,14 @@ export async function countActivePasskeys(db, accountId) {
     .bind(accountId)
     .first();
   return row?.count || 0;
+}
+
+export async function getAccountTransparencyRow(db, accountId) {
+  const row = await db
+    .prepare('SELECT id, created_at, last_signin_at FROM accounts WHERE id = ?')
+    .bind(accountId)
+    .first();
+  return row || null;
 }
 
 export async function upsertOtp(db, { emailLowerHash, emailLower, codeHash, nowMs, ttlMs }) {
@@ -269,6 +446,35 @@ export async function listPasskeyCredentialsForAccount(db, accountId) {
        FROM passkey_credentials
        WHERE account_id = ? AND revoked_at IS NULL
        ORDER BY created_at DESC, credential_id DESC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+export async function listTransparencyPasskeys(db, accountId) {
+  const { results } = await db
+    .prepare(
+      `SELECT credential_id, account_id, public_key, counter, aaguid, transports,
+              backup_eligible, backup_state, device_type, friendly_name, created_at,
+              last_used_at, revoked_at
+       FROM passkey_credentials
+       WHERE account_id = ?
+       ORDER BY created_at DESC, credential_id DESC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+export async function listTransparencySessions(db, accountId) {
+  const { results } = await db
+    .prepare(
+      `SELECT id_hash, created_at, expires_at, last_active_at, last_ip_encrypted,
+              last_user_agent, revoked_at
+       FROM sessions
+       WHERE account_id = ?
+       ORDER BY last_active_at DESC, id_hash DESC`
     )
     .bind(accountId)
     .all();

@@ -19,6 +19,7 @@ describe('static source checks', () => {
       'crypto.js',
       'db.js',
       'email.js',
+      'emails.js',
       'html.js',
       'index.js',
       'inline/passkey-enroll.js',

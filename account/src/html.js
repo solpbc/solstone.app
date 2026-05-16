@@ -163,7 +163,7 @@ ${welcomePanel}`,
   });
 }
 
-export function renderSettingsShell({ sessionCount, passkeyCount }) {
+export function renderSettingsShell({ sessionCount, passkeyCount, emailCount = 0 }) {
   return layout({
     title: 'account settings',
     body: `<h1>account settings</h1>
@@ -176,7 +176,150 @@ export function renderSettingsShell({ sessionCount, passkeyCount }) {
   <strong>passkeys</strong>
   <span>${esc(countLabel(passkeyCount, 'passkey', 'passkeys'))}</span>
 </a>
+<a class="settings-card" href="/settings/emails">
+  <strong>email addresses</strong>
+  <span>${esc(countLabel(emailCount, 'email', 'emails'))}</span>
+</a>
+<p class="disclosure"><a href="/settings/data">what we have about you</a></p>
 <form method="post" action="/signout"><button type="submit">sign out</button></form>`,
+  });
+}
+
+export function renderSettingsEmails({ rows, addError = '', removeError = '' }) {
+  const rowHtml = rows.map((row) => {
+    const actionBase = `/settings/emails/${escAttr(row.id)}`;
+    const badge = `<span class="sticker">${esc(row.badge)}</span>`;
+    const expiry = row.expiryText ? `<p class="meta">${esc(row.expiryText)}</p>` : '';
+    const makePrimary = row.badge === 'verified'
+      ? `<form method="post" action="${actionBase}/make-primary" class="inline-form"><button type="submit">make primary</button></form>`
+      : '';
+    const remove = row.badge === 'primary'
+      ? ''
+      : `<form method="post" action="${actionBase}/remove" class="inline-form"><button class="danger" type="submit">remove</button></form>`;
+    const verify = row.badge === 'unverified'
+      ? `<p class="meta"><a href="/settings/emails/verify?address=${escAttr(row.encodedAddress)}">verify</a></p>`
+      : '';
+    return `<section class="settings-row">
+  <h2>${esc(row.address)}${badge}</h2>
+  <p class="meta">${esc(row.addedText)}</p>
+  ${expiry}
+  ${verify}
+  ${makePrimary}
+  ${remove}
+</section>`;
+  }).join('');
+  const addErrorHtml = addError ? `<p class="error">${esc(addError)}</p>` : '';
+  const removeErrorHtml = removeError ? `<p class="error">${esc(removeError)}</p>` : '';
+  const emptyState = rows.length === 0 ? '<p>no email addresses on this account.</p>' : '';
+  return layout({
+    title: 'email addresses',
+    body: `<h1>email addresses</h1>
+<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+${removeErrorHtml}
+${emptyState}
+${rowHtml}
+<div class="welcome">
+  <h2>add an email</h2>
+  ${addErrorHtml}
+  <form method="post" action="/settings/emails/add">
+    <label for="address">email</label>
+    <input id="address" type="email" name="address" autocomplete="email" required placeholder="you@example.com" maxlength="254">
+    <button type="submit">add an email</button>
+  </form>
+</div>`,
+  });
+}
+
+export function renderEmailVerify({
+  address = '',
+  addressInputValue = '',
+  error = '',
+  alreadyVerified = false,
+}) {
+  if (alreadyVerified) {
+    return layout({
+      title: 'verify email',
+      body: `<h1>verify email</h1>
+<p class="notice">this email is already verified on this account.</p>
+<p><a href="/settings/emails">back to email addresses</a></p>`,
+    });
+  }
+  const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
+  const addressFieldHtml = address
+    ? `<input type="hidden" name="address" value="${escAttr(address)}">`
+    : `<input type="email" name="address" value="${escAttr(addressInputValue)}" required autocomplete="email" placeholder="you@example.com" maxlength="254">`;
+  const subhead = address
+    ? `we sent a code to <strong>${esc(address)}</strong>. enter it below.`
+    : 'enter the email address and the 6-digit code we sent you.';
+  return layout({
+    title: 'verify email',
+    body: `<h1>verify email</h1>
+<p>${subhead}</p>
+${errorHtml}
+<form method="post" action="/settings/emails/verify">
+  ${addressFieldHtml}
+  <input class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
+  <button type="submit">verify</button>
+</form>`,
+  });
+}
+
+export function renderTransparency({
+  accountId,
+  accountCreatedAt,
+  lastSigninAt,
+  emails,
+  passkeys,
+  sessions,
+}) {
+  const emailHtml = emails.map((row) => `<section class="settings-row">
+  <h2>${esc(row.address)}${row.isPrimary ? '<span class="sticker">primary</span>' : ''}</h2>
+  <p class="meta">${row.verifiedAt == null ? 'unverified' : 'verified'}</p>
+  <p class="meta">added ${esc(formatDate(row.createdAt))}</p>
+</section>`).join('');
+  const passkeyHtml = passkeys.map((row) => `<section class="settings-row">
+  <h2>${esc(row.name)}</h2>
+  <p class="meta">aaguid ${esc(row.aaguid || '—')}</p>
+  <p class="meta">credential ${esc(row.credentialId)}</p>
+  <p class="meta">created ${esc(formatDate(row.createdAt))}</p>
+  <p class="meta">last used ${esc(row.lastUsedAt == null ? 'never used' : formatDate(row.lastUsedAt))}</p>
+  <p class="meta">${esc(row.revokedAt == null ? 'active' : `revoked ${formatDate(row.revokedAt)}`)}</p>
+</section>`).join('');
+  const sessionHtml = sessions.map((row) => `<section class="settings-row">
+  <h2>${esc(row.deviceLabel)}</h2>
+  <p class="meta">${esc(row.ipLabel)}</p>
+  <p class="meta">created ${esc(formatDate(row.createdAt))}</p>
+  <p class="meta">last active ${esc(formatDate(row.lastActiveAt))}</p>
+  <p class="meta">expires ${esc(formatDate(row.expiresAt))}</p>
+  <p class="meta">${esc(row.revokedAt == null ? 'active' : `revoked ${formatDate(row.revokedAt)}`)}</p>
+</section>`).join('');
+  return layout({
+    title: 'what we have about you',
+    body: `<h1>what we have about you</h1>
+<nav class="settings-nav"><a href="/settings">back to settings</a></nav>
+<section class="settings-row">
+  <h2>account</h2>
+  <p class="meta">id ${esc(accountId)}</p>
+  <p class="meta">created ${esc(formatDate(accountCreatedAt))}</p>
+  <p class="meta">last sign-in ${esc(lastSigninAt == null ? '—' : formatDate(lastSigninAt))}</p>
+</section>
+<h2>emails</h2>
+${emailHtml}
+<h2>passkeys</h2>
+${passkeyHtml || '<p>no passkeys.</p>'}
+<h2>sessions</h2>
+${sessionHtml || '<p>no sessions.</p>'}
+<h2>what we don't have</h2>
+<ul>
+  <li>no name</li>
+  <li>no phone</li>
+  <li>no address</li>
+  <li>no analytics</li>
+  <li>no behavioral data</li>
+  <li>no IP geolocation stored separately</li>
+  <li>no third-party tracking</li>
+</ul>
+<p class="disclosure">these are sol pbc's structural data commitments under Article 8 of the articles of incorporation (restated 2026-05-01) and bylaws Article IV. See <a href="https://solstone.app/legal/articles">the canonical text</a>.</p>`,
   });
 }
 
@@ -296,7 +439,7 @@ function countLabel(count, singular, plural) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function formatDate(tsMs) {
+export function formatDate(tsMs) {
   const ts = Number(tsMs);
   if (!Number.isFinite(ts)) return '—';
   return new Date(ts).toISOString().slice(0, 10);

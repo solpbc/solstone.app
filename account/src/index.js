@@ -23,6 +23,15 @@ import {
 } from './db.js';
 import { sendOtpEmail } from './email.js';
 import {
+  handleAddEmail,
+  handleMakeEmailPrimary,
+  handleRemoveEmail,
+  handleSettingsData,
+  handleSettingsEmails,
+  handleVerifyEmailGet,
+  handleVerifyEmailPost,
+} from './emails.js';
+import {
   renderDashboard,
   renderError,
   renderGoodbye,
@@ -111,7 +120,7 @@ export function redirect(to, status = 303, headers = {}) {
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const parts = url.pathname.split('/');
     const db = env.DB;
@@ -194,6 +203,74 @@ export default {
 
       if (parts.length === 2 && parts[1] === 'settings' && req.method === 'GET') {
         return handleSettingsShell(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'emails' &&
+        req.method === 'GET'
+      ) {
+        return handleSettingsEmails(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'emails' &&
+        parts[3] === 'add' &&
+        req.method === 'POST'
+      ) {
+        return handleAddEmail(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'emails' &&
+        parts[3] === 'verify' &&
+        req.method === 'GET'
+      ) {
+        return handleVerifyEmailGet(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'emails' &&
+        parts[3] === 'verify' &&
+        req.method === 'POST'
+      ) {
+        return handleVerifyEmailPost(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'data' &&
+        req.method === 'GET'
+      ) {
+        return handleSettingsData(req, env);
+      }
+
+      if (
+        parts.length === 5 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'emails' &&
+        parts[4] === 'make-primary' &&
+        req.method === 'POST'
+      ) {
+        return handleMakeEmailPrimary(req, env, parts[3]);
+      }
+
+      if (
+        parts.length === 5 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'emails' &&
+        parts[4] === 'remove' &&
+        req.method === 'POST'
+      ) {
+        return handleRemoveEmail(req, env, parts[3]);
       }
 
       if (
@@ -367,7 +444,7 @@ async function handleSigninVerifyPost(req, env) {
   });
 }
 
-function isValidEmail(value) {
+export function isValidEmail(value) {
   return /.+@.+\..+/.test(value);
 }
 

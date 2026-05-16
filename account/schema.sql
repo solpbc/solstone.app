@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0004 — session metadata
+-- account-portal D1 schema after 0005 — email verification
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS account_emails (
   address_lower_hash TEXT NOT NULL UNIQUE,
   is_primary INTEGER NOT NULL DEFAULT 1,
   verified_at INTEGER,
+  verification_code_hash TEXT,
+  verification_expires_at INTEGER,
+  verification_attempts INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
