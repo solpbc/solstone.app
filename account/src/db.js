@@ -48,16 +48,62 @@ export async function updateAccountLastSignin(db, accountId, nowMs) {
 
 export async function createSession(db, { idHash, accountId, nowMs }) {
   await db
-    .prepare('INSERT INTO sessions (id_hash, account_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
-    .bind(idHash, accountId, nowMs, nowMs + SESSION_TTL_MS)
+    .prepare('INSERT INTO sessions (id_hash, account_id, created_at, expires_at, last_active_at) VALUES (?, ?, ?, ?, ?)')
+    .bind(idHash, accountId, nowMs, nowMs + SESSION_TTL_MS, nowMs)
     .run();
 }
 
 export async function getSessionAccount(db, idHash) {
   return db
-    .prepare('SELECT account_id, expires_at FROM sessions WHERE id_hash = ?')
+    .prepare('SELECT account_id, expires_at FROM sessions WHERE id_hash = ? AND revoked_at IS NULL')
     .bind(idHash)
     .first();
+}
+
+export async function bumpSessionActivity(db, { idHash, accountId, nowMs, ipEncrypted, userAgent }) {
+  await db
+    .prepare(
+      `UPDATE sessions
+       SET last_active_at = ?, last_ip_encrypted = ?, last_user_agent = ?
+       WHERE id_hash = ? AND account_id = ? AND revoked_at IS NULL`
+    )
+    .bind(nowMs, ipEncrypted, userAgent, idHash, accountId)
+    .run();
+}
+
+export async function listSessionsForAccount(db, accountId) {
+  const { results } = await db
+    .prepare(
+      `SELECT id_hash, created_at, last_active_at, last_ip_encrypted, last_user_agent
+       FROM sessions
+       WHERE account_id = ? AND revoked_at IS NULL
+       ORDER BY last_active_at DESC, id_hash DESC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+export async function revokeSession(db, { idHash, accountId, nowMs }) {
+  await db
+    .prepare('UPDATE sessions SET revoked_at = ? WHERE id_hash = ? AND account_id = ? AND revoked_at IS NULL')
+    .bind(nowMs, idHash, accountId)
+    .run();
+}
+
+export async function revokeOtherSessions(db, { accountId, currentIdHash, nowMs }) {
+  await db
+    .prepare('UPDATE sessions SET revoked_at = ? WHERE account_id = ? AND id_hash != ? AND revoked_at IS NULL')
+    .bind(nowMs, accountId, currentIdHash)
+    .run();
+}
+
+export async function countActiveSessions(db, accountId) {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS count FROM sessions WHERE account_id = ? AND revoked_at IS NULL')
+    .bind(accountId)
+    .first();
+  return row?.count || 0;
 }
 
 export async function deleteSession(db, idHash) {
@@ -72,6 +118,14 @@ export async function hasAnyActivePasskey(db, accountId) {
     .bind(accountId)
     .first();
   return row != null;
+}
+
+export async function countActivePasskeys(db, accountId) {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS count FROM passkey_credentials WHERE account_id = ? AND revoked_at IS NULL')
+    .bind(accountId)
+    .first();
+  return row?.count || 0;
 }
 
 export async function upsertOtp(db, { emailLowerHash, emailLower, codeHash, nowMs, ttlMs }) {
@@ -214,11 +268,25 @@ export async function listPasskeyCredentialsForAccount(db, accountId) {
               backup_eligible, backup_state, device_type, friendly_name, created_at, last_used_at
        FROM passkey_credentials
        WHERE account_id = ? AND revoked_at IS NULL
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC, credential_id DESC`
     )
     .bind(accountId)
     .all();
   return results || [];
+}
+
+export async function renamePasskey(db, { credentialId, accountId, friendlyName }) {
+  await db
+    .prepare('UPDATE passkey_credentials SET friendly_name = ? WHERE credential_id = ? AND account_id = ? AND revoked_at IS NULL')
+    .bind(friendlyName, credentialId, accountId)
+    .run();
+}
+
+export async function removePasskey(db, { credentialId, accountId, nowMs }) {
+  await db
+    .prepare('UPDATE passkey_credentials SET revoked_at = ? WHERE credential_id = ? AND account_id = ? AND revoked_at IS NULL')
+    .bind(nowMs, credentialId, accountId)
+    .run();
 }
 
 export async function getPasskeyCredential(db, credentialId) {

@@ -69,6 +69,16 @@ export function layout({ title, body, afterMain = '' }) {
     .notice { border-left: 3px solid ${SOL_ORANGE}; padding-left: 10px; color: #555; }
     .disclosure { margin-top: 24px; color: #767676; font-size: 0.9rem; }
     .welcome button + button { margin-left: 8px; background: #eee; color: #333; }
+    .settings-nav { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 20px; }
+    .settings-card, .settings-row { border: 1px solid #eee; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .settings-card { display: block; color: #222; }
+    .settings-card:hover { text-decoration: none; border-color: ${SOL_ORANGE}; }
+    .settings-card strong { display: block; margin-bottom: 4px; }
+    .meta { color: #767676; font-size: 0.92rem; margin-bottom: 8px; }
+    .sticker { display: inline-block; color: ${SOL_ORANGE}; font-size: 0.82rem; margin-left: 8px; }
+    .inline-form { margin-top: 10px; }
+    .inline-form input { margin-bottom: 8px; }
+    .danger { background: #9f2d2d; }
   </style>
 </head>
 <body><main>${body}</main>${afterMain}</body>
@@ -153,19 +163,95 @@ ${welcomePanel}`,
   });
 }
 
+export function renderSettingsShell({ sessionCount, passkeyCount }) {
+  return layout({
+    title: 'account settings',
+    body: `<h1>account settings</h1>
+<nav class="settings-nav"><a href="/dashboard">back to dashboard</a></nav>
+<a class="settings-card" href="/settings/sessions">
+  <strong>sessions</strong>
+  <span>${esc(countLabel(sessionCount, 'active session', 'active sessions'))}</span>
+</a>
+<a class="settings-card" href="/settings/passkeys">
+  <strong>passkeys</strong>
+  <span>${esc(countLabel(passkeyCount, 'passkey', 'passkeys'))}</span>
+</a>
+<form method="post" action="/signout"><button type="submit">sign out</button></form>`,
+  });
+}
+
+export function renderSettingsSessions({ rows, currentIdHash, now }) {
+  const hasOtherSessions = rows.some((row) => row.id_hash !== currentIdHash);
+  const revokeOthers = hasOtherSessions
+    ? `<form method="post" action="/settings/sessions/revoke-others" class="inline-form">
+  <button class="danger" type="submit" onclick="return confirm('revoke all other sessions?')">revoke all other sessions</button>
+</form>`
+    : '';
+  const rowHtml = rows.map((row) => {
+    const isCurrent = row.id_hash === currentIdHash;
+    const action = `/settings/sessions/${escAttr(row.id_hash)}/revoke`;
+    const revoke = isCurrent
+      ? ''
+      : `<form method="post" action="${action}" class="inline-form"><button class="danger" type="submit">revoke</button></form>`;
+    return `<section class="settings-row">
+  <h2>${esc(row.deviceLabel)}${isCurrent ? '<span class="sticker">current</span>' : ''}</h2>
+  <p class="meta">${esc(row.ipLabel)}</p>
+  <p class="meta">last active ${esc(formatRelativeTime(row.last_active_at, now))}</p>
+  <p class="meta">created ${esc(formatDate(row.created_at))}</p>
+  ${revoke}
+</section>`;
+  }).join('');
+  return layout({
+    title: 'sessions',
+    body: `<h1>sessions</h1>
+<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+${revokeOthers}
+${rowHtml}`,
+  });
+}
+
+export function renderSettingsPasskeys({ rows, enrollJsIncluded }) {
+  const emptyState = rows.length === 0
+    ? `<p>no passkeys enrolled. next time you sign in, you'll use an email code.</p>`
+    : '';
+  const rowHtml = rows.map((row) => {
+    const renameAction = `/settings/passkeys/${escAttr(row.credential_id)}/rename`;
+    const removeAction = `/settings/passkeys/${escAttr(row.credential_id)}/remove`;
+    return `<section class="settings-row">
+  <h2>${esc(row.name)}</h2>
+  <p class="meta">${esc(row.addedText)}</p>
+  <p class="meta">${esc(row.lastUsedText)}</p>
+  <form method="post" action="${renameAction}" class="inline-form">
+    <label for="friendly-name-${escAttr(row.credential_id)}">name</label>
+    <input id="friendly-name-${escAttr(row.credential_id)}" name="friendly_name" value="${escAttr(row.friendlyNameInput)}" maxlength="64" autocomplete="off">
+    <button type="submit">rename</button>
+  </form>
+  <form method="post" action="${removeAction}" class="inline-form">
+    <button class="danger" type="submit" onclick="return confirm('remove this passkey?')">remove</button>
+  </form>
+</section>`;
+  }).join('');
+  return layout({
+    title: 'passkeys',
+    body: `<h1>passkeys</h1>
+<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+${emptyState}
+<div class="welcome">
+  <h2>add a passkey</h2>
+  <label for="passkey-friendly-name">device name</label>
+  <input id="passkey-friendly-name" maxlength="64" placeholder="device name (optional)" autocomplete="off">
+  <button id="passkey-add" type="button">add a passkey</button>
+  <div id="passkey-enroll-error" class="error" hidden></div>
+</div>
+${rowHtml}
+${enrollJsIncluded ? `<script>${ENROLL_JS}</script>` : ''}`,
+  });
+}
+
 export function renderGoodbye() {
   return layout({
     title: 'signed out',
     body: `<h1>signed out.</h1><p>see you next time.</p><p><a href="/">start over</a></p>`,
-  });
-}
-
-export function renderSettingsPlaceholder() {
-  return layout({
-    title: 'account settings',
-    body: `<h1>account settings</h1>
-<p>session, passkey, and email management ship in the next update.</p>
-<p><a href="/dashboard">back to dashboard</a></p>`,
   });
 }
 
@@ -204,4 +290,14 @@ function esc(value) {
 
 function escAttr(value) {
   return esc(value).replace(/"/g, '&quot;');
+}
+
+function countLabel(count, singular, plural) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatDate(tsMs) {
+  const ts = Number(tsMs);
+  if (!Number.isFinite(ts)) return '—';
+  return new Date(ts).toISOString().slice(0, 10);
 }

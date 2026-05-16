@@ -28,7 +28,6 @@ import {
   renderGoodbye,
   renderLanding,
   renderNotFound,
-  renderSettingsPlaceholder,
   renderVerify,
   VERIFY_ERROR,
 } from './html.js';
@@ -39,6 +38,15 @@ import {
   passkeyRegisterStart,
 } from './passkey.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
+import {
+  handleRemovePasskey,
+  handleRenamePasskey,
+  handleRevokeOtherSessions,
+  handleRevokeSession,
+  handleSettingsPasskeys,
+  handleSettingsSessions,
+  handleSettingsShell,
+} from './settings.js';
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
@@ -105,6 +113,7 @@ export function redirect(to, status = 303, headers = {}) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    const parts = url.pathname.split('/');
     const db = env.DB;
 
     try {
@@ -183,12 +192,66 @@ export default {
         return html(renderGoodbye());
       }
 
-      if (url.pathname === '/settings' && req.method === 'GET') {
-        const session = await getValidSession(req, env, Date.now());
-        if (!session) {
-          return redirect('/', 303, { 'Set-Cookie': clearSessionCookie() });
-        }
-        return html(renderSettingsPlaceholder());
+      if (parts.length === 2 && parts[1] === 'settings' && req.method === 'GET') {
+        return handleSettingsShell(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'sessions' &&
+        req.method === 'GET'
+      ) {
+        return handleSettingsSessions(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'passkeys' &&
+        req.method === 'GET'
+      ) {
+        return handleSettingsPasskeys(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'sessions' &&
+        parts[3] === 'revoke-others' &&
+        req.method === 'POST'
+      ) {
+        return handleRevokeOtherSessions(req, env);
+      }
+
+      if (
+        parts.length === 5 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'sessions' &&
+        parts[4] === 'revoke' &&
+        req.method === 'POST'
+      ) {
+        return handleRevokeSession(req, env, parts[3]);
+      }
+
+      if (
+        parts.length === 5 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'passkeys' &&
+        parts[4] === 'rename' &&
+        req.method === 'POST'
+      ) {
+        return handleRenamePasskey(req, env, parts[3]);
+      }
+
+      if (
+        parts.length === 5 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'passkeys' &&
+        parts[4] === 'remove' &&
+        req.method === 'POST'
+      ) {
+        return handleRemovePasskey(req, env, parts[3]);
       }
 
       return html(renderNotFound(), { status: 404 });
@@ -308,6 +371,6 @@ function isValidEmail(value) {
   return /.+@.+\..+/.test(value);
 }
 
-function forbidden() {
+export function forbidden() {
   return new Response(null, { status: 403, headers: SECURITY_HEADERS });
 }

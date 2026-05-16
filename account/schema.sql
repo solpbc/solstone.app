@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0003 — passkeys
+-- account-portal D1 schema after 0004 — session metadata
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -32,11 +32,19 @@ CREATE TABLE IF NOT EXISTS sessions (
   account_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
+  last_active_at INTEGER NOT NULL DEFAULT 0,
+  revoked_at INTEGER,
+  last_ip_encrypted TEXT,
+  last_user_agent TEXT,
   FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_account_id
   ON sessions(account_id);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_account_active
+  ON sessions(account_id)
+  WHERE revoked_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS rate_buckets (
   key TEXT PRIMARY KEY,

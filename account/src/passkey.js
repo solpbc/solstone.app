@@ -335,7 +335,7 @@ async function parseJsonBody(req, tag) {
   }
 }
 
-function normalizeFriendlyName(value) {
+export function normalizeFriendlyName(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed ? trimmed.slice(0, 64) : null;

@@ -1,5 +1,6 @@
-import { hashWithPepper } from './crypto.js';
-import { deleteSession, getSessionAccount } from './db.js';
+import { encryptEmail, hashWithPepper } from './crypto.js';
+import { bumpSessionActivity, deleteSession, getSessionAccount } from './db.js';
+import { getClientIp } from './index.js';
 
 export const SESSION_COOKIE = 'account_session';
 export const SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
@@ -22,7 +23,21 @@ export async function getValidSession(req, env, nowMs) {
     await deleteSession(env.DB, idHash);
     return null;
   }
-  return row;
+  try {
+    const ipEncrypted = await encryptEmail(getClientIp(req), env);
+    const rawUserAgent = req.headers.get('User-Agent');
+    const userAgent = rawUserAgent == null ? null : rawUserAgent.slice(0, 512);
+    await bumpSessionActivity(env.DB, {
+      idHash,
+      accountId: row.account_id,
+      nowMs,
+      ipEncrypted,
+      userAgent,
+    });
+  } catch {
+    console.error('activity_bump_failed');
+  }
+  return { ...row, id_hash: idHash };
 }
 
 export function getSessionToken(req) {

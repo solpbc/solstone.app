@@ -25,6 +25,7 @@ describe('static source checks', () => {
       'inline/passkey-landing.js',
       'passkey.js',
       'session.js',
+      'settings.js',
     ]);
   });
 
