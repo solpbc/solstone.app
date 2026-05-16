@@ -146,7 +146,7 @@ export function renderDashboard({ welcome, email, lastSignInAt, now, decryptOk }
 <p>signed in as: ${emailText}</p>
 ${notice}
 <p>last sign-in: ${esc(formatRelativeTime(lastSignInAt, now))}</p>
-<p>account.solstone.app is the foundation for your sol pbc account. more capability ships in upcoming releases — gemini key handoff to solstone, cross-device push, hosted services.</p>
+<p>account.solstone.app is the foundation for managing your solstone cloud services.</p>
 <p><a href="/settings">account settings</a></p>
 <form method="post" action="/signout"><button type="submit">sign out</button></form>
 ${welcomePanel}`,
