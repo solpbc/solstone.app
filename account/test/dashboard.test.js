@@ -25,22 +25,39 @@ describe('dashboard rendering', () => {
     expect(body).toContain('<form method="post" action="/signout">');
   });
 
-  it('renders the welcome passkey panel only when requested', async () => {
+  it('renders the welcome passkey panel when requested OR when no passkey is enrolled', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const normal = await worker.fetch(dashboardRequest(session.cookie), testEnv);
-    const welcome = await worker.fetch(dashboardRequest(session.cookie, '/dashboard?welcome=1'), testEnv);
-    const normalBody = await normal.text();
-    const welcomeBody = await welcome.text();
+    // No passkey yet → panel shows on bare /dashboard so the owner has a
+    // discoverable path to enroll (otherwise existing-session owners who
+    // signed in pre-passkey have no way to reach the affordance).
+    const beforeEnroll = await worker.fetch(dashboardRequest(session.cookie), testEnv);
+    const beforeBody = await beforeEnroll.text();
+    expect(beforeBody).toContain('id="passkey-add"');
+    expect(beforeBody).toContain('set up a passkey for next time');
 
-    expect(normalBody).not.toContain('id="passkey-add"');
-    expect(welcomeBody).toContain('set up a passkey for next time');
+    // Welcome=1 still works regardless of passkey state.
+    const welcome = await worker.fetch(dashboardRequest(session.cookie, '/dashboard?welcome=1'), testEnv);
+    const welcomeBody = await welcome.text();
     expect(welcomeBody).toContain('id="passkey-friendly-name"');
     expect(welcomeBody).toContain('id="passkey-add"');
     expect(welcomeBody).toContain('id="passkey-skip"');
     expect(welcomeBody).toContain('/passkey/register/start');
+
+    // Insert an active passkey row → panel hides on bare /dashboard.
+    await workerEnv.DB
+      .prepare(
+        `INSERT INTO passkey_credentials (credential_id, account_id, public_key, counter, aaguid, transports, backup_eligible, backup_state, friendly_name, created_at, last_used_at, revoked_at)
+         VALUES (?, ?, 'pk', 0, NULL, NULL, 0, 0, NULL, ?, NULL, NULL)`
+      )
+      .bind('cred-1', account.accountId, Date.now())
+      .run();
+
+    const afterEnroll = await worker.fetch(dashboardRequest(session.cookie), testEnv);
+    const afterBody = await afterEnroll.text();
+    expect(afterBody).not.toContain('id="passkey-add"');
   });
 
   it('keeps dashboard and sign-out available when email decrypt fails', async () => {

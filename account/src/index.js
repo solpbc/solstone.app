@@ -16,6 +16,7 @@ import {
   deleteSession,
   findEmailByHash,
   getDashboardData,
+  hasAnyActivePasskey,
   matchOtp,
   upsertOtp,
   updateAccountLastSignin,
@@ -26,6 +27,8 @@ import {
   renderError,
   renderGoodbye,
   renderLanding,
+  renderNotFound,
+  renderSettingsPlaceholder,
   renderVerify,
   VERIFY_ERROR,
 } from './html.js';
@@ -156,8 +159,9 @@ export default {
             console.error('dashboard_decrypt_failed');
           }
         }
+        const hasPasskey = await hasAnyActivePasskey(db, session.account_id);
         return html(renderDashboard({
-          welcome: url.searchParams.get('welcome') === '1',
+          welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
           email,
           lastSignInAt: data?.lastSigninAt ?? null,
           now,
@@ -179,7 +183,15 @@ export default {
         return html(renderGoodbye());
       }
 
-      return new Response(null, { status: 404, headers: SECURITY_HEADERS });
+      if (url.pathname === '/settings' && req.method === 'GET') {
+        const session = await getValidSession(req, env, Date.now());
+        if (!session) {
+          return redirect('/', 303, { 'Set-Cookie': clearSessionCookie() });
+        }
+        return html(renderSettingsPlaceholder());
+      }
+
+      return html(renderNotFound(), { status: 404 });
     } catch (error) {
       console.error('account portal request failed');
       return html(renderError(), { status: 500 });

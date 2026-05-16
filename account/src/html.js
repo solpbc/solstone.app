@@ -146,7 +146,7 @@ export function renderDashboard({ welcome, email, lastSignInAt, now, decryptOk }
 <p>signed in as: ${emailText}</p>
 ${notice}
 <p>last sign-in: ${esc(formatRelativeTime(lastSignInAt, now))}</p>
-<p>this is your solstone account control panel. for now, a stub.</p>
+<p>account.solstone.app is the foundation for your sol pbc account. more capability ships in upcoming releases — gemini key handoff to solstone, cross-device push, hosted services.</p>
 <p><a href="/settings">account settings</a></p>
 <form method="post" action="/signout"><button type="submit">sign out</button></form>
 ${welcomePanel}`,
@@ -157,6 +157,24 @@ export function renderGoodbye() {
   return layout({
     title: 'signed out',
     body: `<h1>signed out.</h1><p>see you next time.</p><p><a href="/">start over</a></p>`,
+  });
+}
+
+export function renderSettingsPlaceholder() {
+  return layout({
+    title: 'account settings',
+    body: `<h1>account settings</h1>
+<p>session, passkey, and email management ship in the next update.</p>
+<p><a href="/dashboard">back to dashboard</a></p>`,
+  });
+}
+
+export function renderNotFound() {
+  return layout({
+    title: 'not found',
+    body: `<h1>not found</h1>
+<p>nothing at this address.</p>
+<p><a href="/">back to home</a></p>`,
   });
 }
 

@@ -64,6 +64,16 @@ export async function deleteSession(db, idHash) {
   await db.prepare('DELETE FROM sessions WHERE id_hash = ?').bind(idHash).run();
 }
 
+export async function hasAnyActivePasskey(db, accountId) {
+  const row = await db
+    .prepare(
+      'SELECT 1 FROM passkey_credentials WHERE account_id = ? AND revoked_at IS NULL LIMIT 1'
+    )
+    .bind(accountId)
+    .first();
+  return row != null;
+}
+
 export async function upsertOtp(db, { emailLowerHash, emailLower, codeHash, nowMs, ttlMs }) {
   await db
     .prepare(
