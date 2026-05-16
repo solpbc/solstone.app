@@ -151,3 +151,112 @@ export async function getRateBucketCount(db, key, windowMs, nowMs) {
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
 }
+
+// --- passkey helpers ---
+
+export async function insertPasskeyChallenge(db, { challenge, accountId, purpose, createdAt, expiresAt }) {
+  await db
+    .prepare(
+      'INSERT INTO passkey_challenges (challenge, account_id, purpose, created_at, expires_at, used_at) VALUES (?, ?, ?, ?, ?, NULL)'
+    )
+    .bind(challenge, accountId, purpose, createdAt, expiresAt)
+    .run();
+}
+
+export async function consumePasskeyChallenge(db, { challenge, purpose, nowMs }) {
+  const row = await db
+    .prepare(
+      'UPDATE passkey_challenges SET used_at = ? WHERE challenge = ? AND purpose = ? AND used_at IS NULL AND expires_at > ? RETURNING challenge, account_id, purpose, created_at, expires_at, used_at'
+    )
+    .bind(nowMs, challenge, purpose, nowMs)
+    .first();
+  return row || null;
+}
+
+export async function insertPasskeyCredential(db, credential) {
+  await db
+    .prepare(
+      `INSERT INTO passkey_credentials (
+         credential_id, account_id, public_key, counter, aaguid, transports,
+         backup_eligible, backup_state, device_type, friendly_name, created_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      credential.credentialId,
+      credential.accountId,
+      credential.publicKey,
+      credential.counter,
+      credential.aaguid,
+      credential.transports,
+      credential.backupEligible ? 1 : 0,
+      credential.backupState ? 1 : 0,
+      credential.deviceType,
+      credential.friendlyName,
+      credential.createdAt
+    )
+    .run();
+}
+
+export async function listPasskeyCredentialsForAccount(db, accountId) {
+  const { results } = await db
+    .prepare(
+      `SELECT credential_id, account_id, public_key, counter, aaguid, transports,
+              backup_eligible, backup_state, device_type, friendly_name, created_at, last_used_at
+       FROM passkey_credentials
+       WHERE account_id = ? AND revoked_at IS NULL
+       ORDER BY created_at DESC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+export async function getPasskeyCredential(db, credentialId) {
+  const row = await db
+    .prepare(
+      `SELECT credential_id, account_id, public_key, counter, aaguid, transports,
+              backup_eligible, backup_state, device_type, friendly_name, created_at, last_used_at, revoked_at
+       FROM passkey_credentials
+       WHERE credential_id = ? AND revoked_at IS NULL`
+    )
+    .bind(credentialId)
+    .first();
+  return row || null;
+}
+
+export async function updatePasskeyCredentialCounter(db, credentialId, counter, lastUsedAt) {
+  await db
+    .prepare('UPDATE passkey_credentials SET counter = ?, last_used_at = ? WHERE credential_id = ?')
+    .bind(counter, lastUsedAt, credentialId)
+    .run();
+}
+
+export async function setPasskeyUserHandleIfMissing(db, accountId, encodedHandle) {
+  await db
+    .prepare('UPDATE accounts SET passkey_user_handle = ? WHERE id = ? AND passkey_user_handle IS NULL')
+    .bind(encodedHandle, accountId)
+    .run();
+}
+
+export async function getPasskeyUserHandle(db, accountId) {
+  const row = await db
+    .prepare('SELECT passkey_user_handle FROM accounts WHERE id = ?')
+    .bind(accountId)
+    .first();
+  return row?.passkey_user_handle || null;
+}
+
+// --- dashboard helpers ---
+
+export async function getDashboardData(db, accountId) {
+  const row = await db
+    .prepare(
+      `SELECT e.address_encrypted AS addressEncrypted, a.last_signin_at AS lastSigninAt
+       FROM accounts a
+       LEFT JOIN account_emails e ON e.id = a.primary_email_id AND e.account_id = a.id
+       WHERE a.id = ?`
+    )
+    .bind(accountId)
+    .first();
+  return row || null;
+}

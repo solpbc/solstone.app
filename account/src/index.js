@@ -1,4 +1,5 @@
 import {
+  decryptEmail,
   encryptEmail,
   generateOtp,
   generateSessionToken,
@@ -14,7 +15,7 @@ import {
   deleteOtp,
   deleteSession,
   findEmailByHash,
-  getSessionAccount,
+  getDashboardData,
   matchOtp,
   upsertOtp,
   updateAccountLastSignin,
@@ -28,9 +29,14 @@ import {
   renderVerify,
   VERIFY_ERROR,
 } from './html.js';
+import {
+  passkeyAuthFinish,
+  passkeyAuthStart,
+  passkeyRegisterFinish,
+  passkeyRegisterStart,
+} from './passkey.js';
+import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 
-const SESSION_COOKIE = 'account_session';
-const SESSION_MAX_AGE = 60 * 60 * 24 * 14; // 14 days
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const ORIGIN = 'https://account.solstone.app';
@@ -93,14 +99,6 @@ export function redirect(to, status = 303, headers = {}) {
   });
 }
 
-export function sessionCookie(value, maxAge = SESSION_MAX_AGE) {
-  return `${SESSION_COOKIE}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAge}`;
-}
-
-export function clearSessionCookie() {
-  return sessionCookie('', 0);
-}
-
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -125,12 +123,46 @@ export default {
         return handleSigninVerifyPost(req, env);
       }
 
+      if (url.pathname === '/passkey/register/start') {
+        return passkeyRegisterStart(req, env);
+      }
+
+      if (url.pathname === '/passkey/register/finish') {
+        return passkeyRegisterFinish(req, env);
+      }
+
+      if (url.pathname === '/passkey/auth/start') {
+        return passkeyAuthStart(req, env);
+      }
+
+      if (url.pathname === '/passkey/auth/finish') {
+        return passkeyAuthFinish(req, env);
+      }
+
       if (url.pathname === '/dashboard' && req.method === 'GET') {
         const session = await getValidSession(req, env, Date.now());
         if (!session) {
           return redirect('/', 303, { 'Set-Cookie': clearSessionCookie() });
         }
-        return html(renderDashboard({ welcome: url.searchParams.get('welcome') === '1' }));
+        const now = Date.now();
+        const data = await getDashboardData(db, session.account_id);
+        let email = null;
+        let decryptOk = false;
+        if (data?.addressEncrypted) {
+          try {
+            email = await decryptEmail(data.addressEncrypted, env);
+            decryptOk = true;
+          } catch {
+            console.error('dashboard_decrypt_failed');
+          }
+        }
+        return html(renderDashboard({
+          welcome: url.searchParams.get('welcome') === '1',
+          email,
+          lastSignInAt: data?.lastSigninAt ?? null,
+          now,
+          decryptOk,
+        }));
       }
 
       if (url.pathname === '/signout' && req.method === 'POST') {
@@ -191,7 +223,7 @@ async function handleSigninStart(req, env) {
   try {
     await sendOtpEmail({ env, address: emailLower, code });
   } catch {
-    console.error('otp_email_send_failed');
+    console.error('otp_send_failed');
     await deleteOtp(env.DB, { emailLowerHash, codeHash });
   }
 
@@ -258,25 +290,6 @@ async function handleSigninVerifyPost(req, env) {
   return redirect(isNew ? '/dashboard?welcome=1' : '/dashboard', 303, {
     'Set-Cookie': sessionCookie(sessionToken),
   });
-}
-
-async function getValidSession(req, env, nowMs) {
-  const token = getSessionToken(req);
-  if (!token) return null;
-  const idHash = await hashWithPepper(token, env);
-  const row = await getSessionAccount(env.DB, idHash);
-  if (!row) return null;
-  if (row.expires_at < nowMs) {
-    await deleteSession(env.DB, idHash);
-    return null;
-  }
-  return row;
-}
-
-function getSessionToken(req) {
-  const cookie = req.headers.get('Cookie') || '';
-  const match = cookie.match(new RegExp(`${SESSION_COOKIE}=([^;]+)`));
-  return match ? match[1] : null;
 }
 
 function isValidEmail(value) {

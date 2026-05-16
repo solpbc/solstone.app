@@ -1,8 +1,14 @@
 import { env } from 'cloudflare:test';
 import { vi } from 'vitest';
 import schema from '../schema.sql?raw';
-import { generateOtp, hashWithPepper } from '../src/crypto.js';
-import { upsertOtp } from '../src/db.js';
+import { encryptEmail, generateOtp, generateSessionToken, hashWithPepper } from '../src/crypto.js';
+import {
+  createAccountWithEmail,
+  createSession,
+  insertPasskeyChallenge,
+  insertPasskeyCredential,
+  upsertOtp,
+} from '../src/db.js';
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
 const TEST_PEPPER = 'test-hmac-pepper';
@@ -28,7 +34,15 @@ export function makeTestEnv(overrides = {}) {
 }
 
 export async function resetDb() {
-  for (const table of ['rate_buckets', 'otp_tokens', 'sessions', 'account_emails', 'accounts']) {
+  for (const table of [
+    'passkey_challenges',
+    'passkey_credentials',
+    'rate_buckets',
+    'otp_tokens',
+    'sessions',
+    'account_emails',
+    'accounts',
+  ]) {
     await env.DB.prepare(`DROP TABLE IF EXISTS ${table}`).run();
   }
   // Tests apply the checked-in schema text directly so schema.sql remains the source of truth.
@@ -135,11 +149,79 @@ export function extractCookieToken(setCookie) {
 }
 
 export async function dbDumpText() {
-  const tables = ['accounts', 'account_emails', 'sessions', 'otp_tokens', 'rate_buckets'];
+  const tables = [
+    'accounts',
+    'account_emails',
+    'sessions',
+    'otp_tokens',
+    'rate_buckets',
+    'passkey_credentials',
+    'passkey_challenges',
+  ];
   const dumped = {};
   for (const table of tables) {
     const { results } = await env.DB.prepare(`SELECT * FROM ${table}`).all();
     dumped[table] = results;
   }
   return JSON.stringify(dumped);
+}
+
+export async function seedAccount({ email = 'person@example.com', nowMs = Date.now(), testEnv = makeTestEnv() } = {}) {
+  const emailLower = email.trim().toLowerCase();
+  const addressLowerHash = await hashWithPepper(emailLower, testEnv);
+  const addressEncrypted = await encryptEmail(emailLower, testEnv);
+  const created = await createAccountWithEmail(env.DB, {
+    addressEncrypted,
+    addressLowerHash,
+    nowMs,
+  });
+  return { ...created, emailLower, addressLowerHash, addressEncrypted, nowMs, testEnv };
+}
+
+export async function seedSession(accountId, { nowMs = Date.now(), testEnv = makeTestEnv() } = {}) {
+  const token = generateSessionToken();
+  const idHash = await hashWithPepper(token, testEnv);
+  await createSession(env.DB, { idHash, accountId, nowMs });
+  return { token, cookie: `account_session=${token}`, idHash };
+}
+
+export async function seedCredential({
+  accountId,
+  credentialId = 'credential-id',
+  publicKey = new Uint8Array([1, 2, 3, 4]),
+  counter = 0,
+  userHandle = null,
+  createdAt = Date.now(),
+} = {}) {
+  if (userHandle) {
+    await env.DB
+      .prepare('UPDATE accounts SET passkey_user_handle = ? WHERE id = ?')
+      .bind(userHandle, accountId)
+      .run();
+  }
+  await insertPasskeyCredential(env.DB, {
+    credentialId,
+    accountId,
+    publicKey,
+    counter,
+    aaguid: null,
+    transports: JSON.stringify(['internal']),
+    backupEligible: true,
+    backupState: true,
+    deviceType: 'multiDevice',
+    friendlyName: null,
+    createdAt,
+  });
+  return { credentialId, publicKey, counter };
+}
+
+export async function seedPasskeyChallenge({
+  challenge = 'challenge',
+  accountId = null,
+  purpose,
+  createdAt = Date.now(),
+  expiresAt = createdAt + 5 * 60 * 1000,
+} = {}) {
+  await insertPasskeyChallenge(env.DB, { challenge, accountId, purpose, createdAt, expiresAt });
+  return { challenge, accountId, purpose, createdAt, expiresAt };
 }

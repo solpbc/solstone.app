@@ -1,10 +1,13 @@
 // Page renderers with lean inline styles. No external font, no wordmark blob.
 // Sol orange accent: #E8923A. Lowercase voice throughout.
 
+import { ENROLL_JS } from './inline/passkey-enroll.js';
+import { LANDING_JS } from './inline/passkey-landing.js';
+
 const SOL_ORANGE = '#E8923A';
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
 
-export function layout({ title, body }) {
+export function layout({ title, body, afterMain = '' }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,6 +28,8 @@ export function layout({ title, body }) {
     h1, h2 { margin: 0 0 16px; line-height: 1.2; text-transform: lowercase; }
     h1 { font-size: 1.65rem; }
     h2 { font-size: 1.2rem; color: ${SOL_ORANGE}; }
+    .brand { color: ${SOL_ORANGE}; font-size: 2rem; margin-bottom: 6px; }
+    .subhead { color: #444; margin-bottom: 24px; }
     p { margin: 0 0 18px; color: #555; }
     a { color: ${SOL_ORANGE}; text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -61,24 +66,30 @@ export function layout({ title, body }) {
     .welcome { border: 1px solid #eee; border-radius: 8px; padding: 18px; margin-bottom: 24px; }
     .helper { color: #767676; margin-bottom: 14px; }
     .error { color: #9f2d2d; margin-bottom: 14px; }
+    .notice { border-left: 3px solid ${SOL_ORANGE}; padding-left: 10px; color: #555; }
+    .disclosure { margin-top: 24px; color: #767676; font-size: 0.9rem; }
     .welcome button + button { margin-left: 8px; background: #eee; color: #333; }
   </style>
 </head>
-<body><main>${body}</main></body>
+<body><main>${body}</main>${afterMain}</body>
 </html>`;
 }
 
 export function renderLanding(turnstileSiteKey) {
   return layout({
     title: 'sign in to your solstone account',
-    body: `<h1>sign in to your solstone account</h1>
+    body: `<h1 class="brand">solstone</h1>
+<p class="subhead">one place to manage your sol pbc account.</p>
+<div id="passkey-error" class="error" hidden></div>
 <form method="post" action="/signin/start">
   <label for="email">email</label>
   <input id="email" type="email" name="email" autocomplete="email webauthn" required placeholder="you@example.com" maxlength="254">
   <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}"></div>
   <button type="submit">continue</button>
 </form>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`,
+<p class="disclosure">no analytics, no tracking, no third parties.</p>`,
+    afterMain: `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script>${LANDING_JS}</script>`,
   });
 }
 
@@ -112,29 +123,58 @@ export function renderError() {
   });
 }
 
-export function renderDashboard({ welcome }) {
+export function renderDashboard({ welcome, email, lastSignInAt, now, decryptOk }) {
+  const emailText = email ? esc(email) : '—';
+  const notice = decryptOk === false
+    ? `<p class="notice">we couldn't decrypt your email address. you're still signed in.</p>`
+    : '';
   const welcomePanel = welcome
     ? `<div class="welcome">
-  <h2>add a passkey to this device?</h2>
-  <p class="helper">coming in the next update</p>
-  <button disabled>add a passkey</button>
-  <button onclick="history.replaceState({}, '', '/dashboard'); this.closest('.welcome').remove();">not now</button>
-</div>`
+  <h2>set up a passkey for next time</h2>
+  <p class="helper">use this device to sign in without typing a code.</p>
+  <label for="passkey-friendly-name">device name</label>
+  <input id="passkey-friendly-name" maxlength="64" placeholder="device name (optional)" autocomplete="off">
+  <button id="passkey-add" type="button">add a passkey</button>
+  <button id="passkey-skip" type="button">not now</button>
+  <div id="passkey-enroll-error" class="error" hidden></div>
+</div>
+<script>${ENROLL_JS}</script>`
     : '';
   return layout({
     title: 'dashboard',
-    body: `${welcomePanel}<h1>dashboard</h1>
-<p>you're signed in.</p>
-<form method="post" action="/signout"><button type="submit">sign out</button></form>`,
+    body: `<h1>⟡ welcome</h1>
+<p>signed in as: ${emailText}</p>
+${notice}
+<p>last sign-in: ${esc(formatRelativeTime(lastSignInAt, now))}</p>
+<p>this is your solstone account control panel. for now, a stub.</p>
+<p><a href="/settings">account settings</a></p>
+<form method="post" action="/signout"><button type="submit">sign out</button></form>
+${welcomePanel}`,
   });
 }
 
 export function renderGoodbye() {
   return layout({
     title: 'signed out',
-    body: `<h1>signed out</h1>
-<p>you're signed out. <a href="/">sign in again</a></p>`,
+    body: `<h1>signed out.</h1><p>see you next time.</p><p><a href="/">start over</a></p>`,
   });
+}
+
+export function formatRelativeTime(tsMs, nowMs) {
+  if (tsMs == null) return '—';
+  const ts = Number(tsMs);
+  const now = Number(nowMs);
+  if (!Number.isFinite(ts) || !Number.isFinite(now)) return '—';
+  const diff = Math.max(0, now - ts);
+  if (diff < 60_000) return 'just now';
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  if (hours < 48) return 'yesterday';
+  const days = Math.floor(hours / 24);
+  if (days >= 30) return new Date(ts).toISOString().slice(0, 10);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
 function esc(value) {
