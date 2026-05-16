@@ -1,6 +1,6 @@
 ---
 name: solstone-install
-description: Install and configure solstone, the co-brain made of observers, sol agent, and journal. Use when the user asks to install solstone, set up solstone, or mentions solstone.app. Supports linux and macOS.
+description: Install and configure solstone, the co-brain made of observers and your journal, where sol lives and tends your memories. Use when the user asks to install solstone, set up solstone, or mentions solstone.app. Supports linux and macOS.
 license: AGPL-3.0-only
 metadata:
   author: sol-pbc

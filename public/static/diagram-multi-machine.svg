@@ -55,9 +55,9 @@
   <!-- the journal is this place you own -->
   <text x="420" y="237" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="11" fill="#767676">~/Documents/journal</text>
 
-  <!-- sol agent — the keeper, living and working inside your journal -->
+  <!-- sol — the keeper, living and working inside your journal -->
   <rect x="152" y="256" width="536" height="104" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <text x="420" y="292" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">sol agent</text>
+  <text x="420" y="292" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">sol</text>
   <text x="420" y="314" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">lives in your journal — tends, organizes, and surfaces your memories</text>
   <text x="420" y="334" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
 
