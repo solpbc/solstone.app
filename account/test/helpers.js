@@ -12,6 +12,7 @@ import {
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
 const TEST_PEPPER = 'test-hmac-pepper';
+export const TEST_CF_ACCESS_AUD = 'test-cf-access-aud';
 
 export function makeTestEnv(overrides = {}) {
   const sent = [];
@@ -30,6 +31,9 @@ export function makeTestEnv(overrides = {}) {
     HMAC_PEPPER: TEST_PEPPER,
     TURNSTILE_SECRET: 'test-turnstile-secret',
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
+    CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
+    EMAIL_PATH_DISABLED: overrides.EMAIL_PATH_DISABLED || 'false',
+    SIGNUP_DISABLED: overrides.SIGNUP_DISABLED || 'false',
   };
 }
 

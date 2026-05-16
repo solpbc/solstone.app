@@ -7,6 +7,7 @@ import {
   hashWithPepper,
   normalizeCode,
 } from './crypto.js';
+import { handleAdmin } from './admin.js';
 import {
   bumpOtpAttempts,
   bumpRateBucket,
@@ -46,6 +47,7 @@ import {
   passkeyRegisterFinish,
   passkeyRegisterStart,
 } from './passkey.js';
+import { runRetention } from './retention.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -331,11 +333,18 @@ export default {
         return handleRemovePasskey(req, env, parts[3]);
       }
 
+      if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {
+        return handleAdmin(req, env, url);
+      }
+
       return html(renderNotFound(), { status: 404 });
     } catch (error) {
       console.error('account portal request failed');
       return html(renderError(), { status: 500 });
     }
+  },
+  async scheduled(event, env, ctx) {
+    await runRetention(env);
   },
 };
 
@@ -364,6 +373,7 @@ async function handleSigninStart(req, env) {
 
   if (!turnstileOk) return redirect(verifyLocation);
   if (!emailOk) return redirect('/signin/verify');
+  if (env.EMAIL_PATH_DISABLED === 'true') return redirect(verifyLocation);
 
   const ipCount = await bumpRateBucket(env.DB, ipBucketKey, HOUR_MS, nowMs);
   if (ipCount > IP_HOUR_LIMIT) return redirect(verifyLocation);
@@ -427,6 +437,14 @@ async function handleSigninVerifyPost(req, env) {
 
   const existing = await findEmailByHash(env.DB, emailLowerHash);
   const isNew = !existing;
+  if (isNew && env.SIGNUP_DISABLED === 'true') {
+    console.warn(JSON.stringify({
+      event: 'signup_disabled_rejection',
+      email_lower_hash_prefix: emailLowerHash.slice(0, 12),
+      ts: nowMs,
+    }));
+    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR }));
+  }
   const accountId = existing
     ? existing.account_id
     : (await createAccountWithEmail(env.DB, {

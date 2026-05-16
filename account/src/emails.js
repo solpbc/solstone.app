@@ -76,6 +76,11 @@ export async function handleAddEmail(req, env, ctx) {
   const rateKey = await hashKey('add_email_per_day', guard.session.account_id, env);
   const verifyLocation = `/settings/emails/verify?address=${encodeURIComponent(addressLower)}`;
 
+  if (env.EMAIL_PATH_DISABLED === 'true') {
+    logAddCollision(guard.session.account_id, nowMs);
+    return settingsRedirect(verifyLocation);
+  }
+
   const addCount = await bumpRateBucket(env.DB, rateKey, DAY_MS, nowMs);
   if (addCount > ADD_EMAIL_DAY_LIMIT) {
     logAddCollision(guard.session.account_id, nowMs);

@@ -13,6 +13,7 @@
     "wrangler": "^3.100.0"
   },
   "dependencies": {
-    "@simplewebauthn/server": "^13.3.0"
+    "@simplewebauthn/server": "^13.3.0",
+    "jose": "^6.0.11"
   }
 }

@@ -18,3 +18,9 @@ remote = true
 
 [vars]
 TURNSTILE_SITE_KEY = "0x4AAAAAADPn7-wnLZnFjshK"
+CF_ACCESS_AUD = "a48343311f9157cfb056e5aa70878dc8aab4962769a8e1743486b6a884054104"
+EMAIL_PATH_DISABLED = "false"
+SIGNUP_DISABLED = "false"
+
+[triggers]
+crons = ["0 */6 * * *"]
