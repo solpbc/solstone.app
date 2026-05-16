@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 430" role="img" aria-label="solstone multi-machine architecture: observers run on each desktop (linux, macos, tmux; windows and mobile coming soon) and report to your server, which contains sol agent and the journal at ~/Documents/journal">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 430" role="img" aria-label="solstone multi-machine architecture: observers run on each desktop (linux, macos, tmux; windows and mobile coming soon) and send to your journal at ~/Documents/journal, where sol tends your memories">
   <title>solstone — multi-machine</title>
 
   <!-- desktops & devices label -->
@@ -42,32 +42,25 @@
   <!-- horizontal bus -->
   <line x1="92" y1="138" x2="748" y2="138" stroke="#d0d0d0" stroke-width="1.5"/>
 
-  <!-- junction down to your server -->
+  <!-- junction down to your journal -->
   <circle cx="420" cy="138" r="3" fill="#d0d0d0"/>
   <line x1="420" y1="141" x2="420" y2="180" stroke="#d0d0d0" stroke-width="1.5"/>
   <polygon points="420,182 416,174 424,174" fill="#c0c0c0"/>
 
-  <!-- your server label -->
-  <text x="420" y="200" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">your server</text>
+  <!-- your journal label -->
+  <text x="420" y="200" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="11" fill="#999" font-weight="600" letter-spacing="0.08em">your journal</text>
 
-  <!-- your server container -->
+  <!-- your journal container -->
   <rect x="120" y="210" width="600" height="200" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
+  <!-- the journal is this place you own -->
+  <text x="420" y="237" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="11" fill="#767676">~/Documents/journal</text>
 
-  <!-- sol agent (inside server) -->
-  <rect x="144" y="234" width="552" height="74" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <text x="420" y="258" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="14" fill="#222" font-weight="700">sol agent</text>
-  <text x="420" y="276" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#555">processes, organizes, surfaces — your co-brain runs here</text>
-  <text x="420" y="294" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
+  <!-- sol agent — the keeper, living and working inside your journal -->
+  <rect x="152" y="256" width="536" height="104" rx="4" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="420" y="292" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="15" fill="#222" font-weight="700">sol agent</text>
+  <text x="420" y="314" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#555">lives in your journal — tends, organizes, and surfaces your memories</text>
+  <text x="420" y="334" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#999">transcription · vision · search · dashboard</text>
 
-  <!-- arrow: sol agent -> journal -->
-  <line x1="420" y1="308" x2="420" y2="334" stroke="#d0d0d0" stroke-width="1.5"/>
-  <polygon points="420,336 416,328 424,328" fill="#c0c0c0"/>
-
-  <!-- journal cylinder body (inside server) -->
-  <path d="M 144 344 L 144 386 A 276 8 0 0 0 696 386 L 696 344" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <!-- journal cylinder top ellipse -->
-  <ellipse cx="420" cy="344" rx="276" ry="8" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-  <!-- journal label and path -->
-  <text x="420" y="364" text-anchor="middle" font-family="'Comfortaa', system-ui, sans-serif" font-size="14" fill="#222" font-weight="700">journal</text>
-  <text x="420" y="382" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="10" fill="#767676">~/Documents/journal</text>
+  <!-- the journal holds everything sol experiences alongside you -->
+  <text x="420" y="390" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#999">everything sol experiences alongside you is kept here</text>
 </svg>

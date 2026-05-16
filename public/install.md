@@ -16,7 +16,9 @@ paste this prompt into claude code, codex cli, gemini cli, or similar: `install 
 
 [download for macOS](https://solstone.app/download/macos) — signed by sol pbc, notarized by Apple. updates over a signed channel.
 
-**2. install the sol agent (service)**
+**2. set up sol and your journal**
+
+this sets up sol and creates your journal — the place on your machine where sol tends your memories.
 
 prereqs: xcode command-line tools (`xcode-select --install`), homebrew (https://brew.sh), then `brew install uv`.
 
@@ -44,6 +46,6 @@ on linux, local parakeet transcription needs `solstone[parakeet-onnx-cpu]` (or `
 
 then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. for a linux observer, see [solstone.app/observers](https://solstone.app/observers).
 
-## already have your sol agent installed?
+## already have solstone installed?
 
 find available observers at https://solstone.app/observers.
