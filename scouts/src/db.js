@@ -46,6 +46,18 @@ function isEmailLowerUniqueViolation(error) {
   );
 }
 
+// An atproto handle is a DNS-style name and a DID starts with 'did:'; neither
+// ever contains '@'. So an identifier that looks like an email address is a
+// distinct identity kind and must never be stored as an atproto handle.
+// Mirrors isValidEmail() in index.js.
+function looksLikeEmail(s) {
+  return (
+    typeof s === 'string' &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) &&
+    s.length <= 254
+  );
+}
+
 export async function upsertAtprotoScout(db, did, handle, email = null) {
   let emailLower = email ? email.trim().toLowerCase() : null;
   let emailToStore = email ? email.trim() : null;
@@ -195,6 +207,35 @@ export async function revokeScout(db, id) {
 }
 
 export async function preApproveScout(db, didOrHandle) {
+  // Email address → the email-auth pre-approval lane. The contractor signs in
+  // with their email (OTP/passkey), and upsertEmailScout already upgrades a
+  // 'pending-email:<email_lower>' row to a real 'email-<uuid>' id, inheriting
+  // the approved status and the provisioned Gemini key. Routing here is what
+  // makes operator-provision and contractor-email-sign-in converge on one
+  // record. (Previously an email string was stored as an atproto handle on a
+  // 'pending:<handle>' row that the email sign-in path could never join —
+  // stranding the key. CSO req_6d2ejzzg / VPE req_dcmfz3lc.)
+  if (looksLikeEmail(didOrHandle)) {
+    const emailLower = didOrHandle.trim().toLowerCase();
+    const existing = await findScoutByEmailLower(db, emailLower);
+    if (existing) {
+      await db
+        .prepare(
+          "UPDATE scouts SET status = 'approved', approved_at = datetime('now') WHERE id = ?"
+        )
+        .bind(existing.id)
+        .run();
+      return existing.id;
+    }
+    const id = `pending-email:${emailLower}`;
+    await db
+      .prepare(
+        "INSERT INTO scouts (id, auth_kind, email, email_lower, status, approved_at) VALUES (?, 'email', ?, ?, 'approved', datetime('now'))"
+      )
+      .bind(id, emailLower, emailLower)
+      .run();
+    return id;
+  }
   // Check if already exists by id (which equals did for atproto rows) or by handle.
   const existing = await db
     .prepare('SELECT * FROM scouts WHERE id = ? OR handle = ?')
