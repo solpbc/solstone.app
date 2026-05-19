@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>download solstone for macOS</title>
+    <meta name="description" content="download solstone for macOS — your AI co-brain that experiences your world alongside you, on your machine. nothing to connect, no services to authorize. open source, self-hostable.">
+    <meta property="og:title" content="download solstone for macOS">
+    <meta property="og:description" content="your AI co-brain — it experiences your world alongside you, on your machine. nothing to connect, no services to authorize. download the macOS app.">
+    <meta property="og:url" content="https://solstone.app/download/macos">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="720">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/download/macos">
+    <link rel="icon" type="image/svg+xml" href="/static/sol-wordmark.svg">
+    <style>
+        @font-face {
+            font-family: 'Comfortaa';
+            src: url('/static/Comfortaa-Variable.woff2') format('woff2');
+            font-weight: 400 700;
+            font-display: swap;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #fff;
+            padding: 2rem 0;
+        }
+        a {
+            text-decoration: none;
+        }
+        .logo {
+            height: 40px;
+            margin-bottom: 2.5rem;
+        }
+        h1 {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: lowercase;
+            color: #222;
+            margin-bottom: 1.25rem;
+            text-align: center;
+        }
+        .message {
+            max-width: 480px;
+            width: 90vw;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #555;
+            text-align: center;
+            margin-bottom: 2.25rem;
+        }
+        .download-btn {
+            display: inline-block;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            text-transform: lowercase;
+            letter-spacing: 0.03em;
+            color: #fff;
+            background: #E8923A;
+            padding: 0.85rem 2rem;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+        .download-btn:hover {
+            background: #d97e25;
+        }
+        .fallback {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #767676;
+            text-align: center;
+        }
+        .fallback a {
+            color: #767676;
+            text-decoration: underline;
+        }
+        .fallback a:hover {
+            color: #E8923A;
+        }
+        .links {
+            margin-top: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .links a {
+            display: block;
+            color: #767676;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            transition: color 0.15s;
+        }
+        .links a:hover {
+            color: #E8923A;
+        }
+        footer {
+            margin-top: auto;
+            padding-top: 3rem;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.85rem;
+            color: #767676;
+            text-align: center;
+            max-width: 520px;
+            width: 90vw;
+            line-height: 1.6;
+        }
+        footer a {
+            color: #767676;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <a href="/"><img src="/static/sol-wordmark.svg" alt="solstone" class="logo"></a>
+    <h1>download solstone for macOS</h1>
+    <p class="message">your download should start automatically. solstone runs entirely on your machine — nothing to connect, no services to authorize.</p>
+    <a href="/download/macos/latest" class="download-btn" id="dl">download for macOS</a>
+    <p class="fallback">didn't start? <a href="/download/macos/latest">click here to download</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
+    <div class="links">
+        <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
+        <a href="/">back to solstone.app &rarr;</a>
+    </div>
+    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <script>
+        // Humans get an automatic download; the visible button is the always-present
+        // fallback (browsers can block scripted navigation). Crawlers/unfurlers
+        // don't run JS — they read the Open Graph tags above and render a card.
+        setTimeout(function () {
+            window.location.href = '/download/macos/latest';
+        }, 600);
+    </script>
+</body>
+</html>

@@ -16,7 +16,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname === "/download/macos" || url.pathname === "/download/macos.dmg") {
+    // Binary URL: /download/macos/latest (and the legacy .dmg alias) 302 to the
+    // current versioned DMG on updates.solstone.app. Sparkle auto-update does
+    // NOT use this path — it reads updates.solstone.app/.../appcast.xml directly.
+    if (url.pathname === "/download/macos/latest" || url.pathname === "/download/macos.dmg") {
       const dmgUrl = await latestMacosDmgUrl();
       if (!dmgUrl) {
         return new Response("Latest macOS download is temporarily unavailable. Try again shortly.", {
@@ -25,6 +28,19 @@ export default {
         });
       }
       return Response.redirect(dmgUrl, 302);
+    }
+
+    // Human-shareable URL: /download/macos is an HTML page so link unfurlers
+    // (Slack, iMessage, Bluesky, etc.) get Open Graph tags and render a rich
+    // preview. The page auto-downloads via JS and shows a visible button;
+    // the binary itself lives at /download/macos/latest.
+    if (url.pathname === "/download/macos") {
+      const pageUrl = new URL(request.url);
+      pageUrl.pathname = "/download-macos";
+      const pageResponse = await env.ASSETS.fetch(new Request(pageUrl, request));
+      const headers = new Headers(pageResponse.headers);
+      headers.set("Content-Type", "text/html; charset=utf-8");
+      return new Response(pageResponse.body, { status: 200, headers });
     }
 
     if (url.pathname === "/install") {
