@@ -1,7 +1,7 @@
 import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test';
 import { vi } from 'vitest';
 import schema from '../schema.sql?raw';
-import { encryptEmail, generateOtp, generateSessionToken, hashWithPepper } from '../src/crypto.js';
+import { encryptEmail, generateOtp, generateSessionToken, hashKey, hashWithPepper } from '../src/crypto.js';
 import {
   createAccountWithEmail,
   createSession,
@@ -12,6 +12,7 @@ import {
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
 const TEST_PEPPER = 'test-hmac-pepper';
+export const TEST_CSRF = await hashKey('csrf', 'account', { HMAC_PEPPER: TEST_PEPPER });
 export const TEST_CF_ACCESS_AUD = 'test-cf-access-aud';
 
 export function makeTestEnv(overrides = {}) {
@@ -75,11 +76,12 @@ export function stubTurnstile(success = true) {
   );
 }
 
-export function startRequest(email, headers = {}) {
+export function startRequest(email, headers = {}, { csrf = TEST_CSRF } = {}) {
   const body = new URLSearchParams({
     email,
     'cf-turnstile-response': 'turnstile-token',
   });
+  if (csrf !== null) body.set('csrf', csrf);
   return new Request('https://account.solstone.app/signin/start', {
     method: 'POST',
     headers: {
@@ -161,11 +163,18 @@ export async function seedOtp({ email, options = {} }) {
   return { code, codeHash, emailLowerHash, emailLower };
 }
 
-export function verifyRequest({ email, code, origin = 'https://account.solstone.app', headers = {} }) {
+export function verifyRequest({
+  email,
+  code,
+  origin = 'https://account.solstone.app',
+  headers = {},
+  csrf = TEST_CSRF,
+}) {
   const body = new URLSearchParams({
     email,
     code,
   });
+  if (csrf !== null) body.set('csrf', csrf);
   const requestHeaders = {
     'Content-Type': 'application/x-www-form-urlencoded',
     ...headers,

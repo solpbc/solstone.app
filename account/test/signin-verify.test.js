@@ -48,12 +48,69 @@ describe('/signin/verify', () => {
     expect(response.status).toBe(404);
   });
 
-  it('requires an allowed origin on POST', async () => {
+  it('rejects a missing csrf token before account or session writes', async () => {
     const response = await worker.fetch(
-      verifyRequest({ email: 'origin@example.com', code: '123456', origin: null }),
+      verifyRequest({ email: 'missing-csrf@example.com', code: '123456', csrf: null }),
       makeTestEnv()
     );
-    expect(response.status).toBe(403);
+    await expectVerifyCsrfRejected(response);
+  });
+
+  it('rejects a wrong csrf token before account or session writes', async () => {
+    const response = await worker.fetch(
+      verifyRequest({ email: 'wrong-csrf@example.com', code: '123456', csrf: 'wrong' }),
+      makeTestEnv()
+    );
+    await expectVerifyCsrfRejected(response);
+  });
+
+  it('rejects an unparseable csrf body before account or session writes', async () => {
+    const response = await worker.fetch(
+      new Request('https://account.solstone.app/signin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"email":"json@example.com","code":"123456"}',
+      }),
+      makeTestEnv()
+    );
+    await expectVerifyCsrfRejected(response);
+  });
+
+  it('admits a valid csrf token with rewritten origin and referer headers', async () => {
+    const rewritten = 'https://urldefense.com/v3/__https://account.solstone.app__;!!';
+    const testEnv = makeTestEnv();
+    const seeded = await seedOtp({ email: 'rewritten@example.com', options: { code: '123456' } });
+    const response = await worker.fetch(
+      verifyRequest({
+        email: 'rewritten@example.com',
+        code: seeded.code,
+        origin: rewritten,
+        headers: { Referer: rewritten },
+      }),
+      testEnv
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(extractCookieToken(response.headers.get('Set-Cookie') || '')).toMatch(/^[A-Za-z0-9_-]+$/);
+  });
+
+  it('accepts the csrf token rendered on the verify form', async () => {
+    const testEnv = makeTestEnv();
+    const seeded = await seedOtp({ email: 'roundtrip@example.com', options: { code: '123456' } });
+    const page = await worker.fetch(
+      new Request('https://account.solstone.app/signin/verify?email=roundtrip%40example.com'),
+      testEnv
+    );
+    const csrf = extractCsrf(await page.text());
+    const response = await worker.fetch(
+      verifyRequest({ email: 'roundtrip@example.com', code: seeded.code, csrf }),
+      testEnv
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(extractCookieToken(response.headers.get('Set-Cookie') || '')).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
   it('rejects malformed email with the generic error and echoes the form value', async () => {
@@ -218,4 +275,18 @@ async function otpRow(emailLowerHash) {
   return workerEnv.DB.prepare('SELECT attempts, consumed FROM otp_tokens WHERE email_lower_hash = ?')
     .bind(emailLowerHash)
     .first();
+}
+
+async function expectVerifyCsrfRejected(response) {
+  const body = await response.text();
+  expect(response.status).toBe(403);
+  expect(body).toContain('sign-in request expired');
+  expect(body).toContain('https://account.solstone.app');
+  expect(await rowCount('accounts')).toBe(0);
+  expect(await rowCount('sessions')).toBe(0);
+  expect(response.headers.has('Set-Cookie')).toBe(false);
+}
+
+function extractCsrf(body) {
+  return body.match(/name="csrf" value="([^"]+)"/)?.[1] || '';
 }

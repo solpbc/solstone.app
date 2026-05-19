@@ -6,6 +6,7 @@ import {
   hashKey,
   hashWithPepper,
   normalizeCode,
+  timingSafeEqual,
 } from './crypto.js';
 import { handleAdmin } from './admin.js';
 import {
@@ -35,6 +36,7 @@ import {
 import {
   renderDashboard,
   renderError,
+  renderForbidden,
   renderGoodbye,
   renderLanding,
   renderNotFound,
@@ -121,6 +123,18 @@ export function redirect(to, status = 303, headers = {}) {
   });
 }
 
+async function csrfToken(env) {
+  return hashKey('csrf', 'account', env);
+}
+
+async function readForm(req) {
+  try {
+    return await req.formData();
+  } catch {
+    return new FormData();
+  }
+}
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
@@ -131,7 +145,8 @@ export default {
       if (url.pathname === '/' && req.method === 'GET') {
         const session = await getValidSession(req, env, Date.now());
         if (session) return redirect('/dashboard');
-        return html(renderLanding(env.TURNSTILE_SITE_KEY));
+        const csrf = await csrfToken(env);
+        return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf));
       }
 
       if (url.pathname === '/signin/start' && req.method === 'POST') {
@@ -139,7 +154,7 @@ export default {
       }
 
       if (url.pathname === '/signin/verify' && req.method === 'GET') {
-        return handleSigninVerifyGet(req);
+        return handleSigninVerifyGet(req, env);
       }
 
       if (url.pathname === '/signin/verify' && req.method === 'POST') {
@@ -190,7 +205,7 @@ export default {
       }
 
       if (url.pathname === '/signout' && req.method === 'POST') {
-        if (!originAllowed(req)) return forbidden();
+        // No CSRF token here: the session cookie is SameSite=Lax, so a cross-site POST sends no cookie and falls through to the /goodbye no-op below.
         const token = getSessionToken(req);
         if (token) {
           const idHash = await hashWithPepper(token, env);
@@ -350,14 +365,18 @@ export default {
 
 async function handleSigninStart(req, env) {
   // Lode A.1 contract invariants for /signin/start:
-  //   1. NEVER read account_emails before mint/send (no enumeration).
-  //   2. Four hash calls run before every non-origin branch return.
-  //   3. Rate buckets bumped BEFORE OTP write.
-  //   4. OTP row written on every admit, regardless of whether an account exists for the email.
-  //   5. NO Set-Cookie under any branch.
-  if (!originAllowed(req)) return forbidden();
+  //   1. CSRF synchronizer token verified before any other work.
+  //   2. NEVER read account_emails before mint/send (no enumeration).
+  //   3. Four sign-in hash calls run before every token-admitted branch return.
+  //   4. Rate buckets bumped BEFORE OTP write.
+  //   5. OTP row written on every admit, regardless of whether an account exists for the email.
+  //   6. NO Set-Cookie under any branch.
+  const form = await readForm(req);
+  const csrf = await csrfToken(env);
+  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
+    return html(renderForbidden(), { status: 403 });
+  }
 
-  const form = await req.formData();
   const emailLower = (form.get('email')?.toString() || '').trim().toLowerCase();
   const turnstileToken = form.get('cf-turnstile-response')?.toString() || '';
   const nowMs = Date.now();
@@ -392,23 +411,27 @@ async function handleSigninStart(req, env) {
   return redirect(verifyLocation);
 }
 
-function handleSigninVerifyGet(req) {
+async function handleSigninVerifyGet(req, env) {
   const url = new URL(req.url);
   const emailLower = (url.searchParams.get('email') || '').trim().toLowerCase();
   const email = isValidEmail(emailLower) ? emailLower : '';
-  return html(renderVerify({ email, error: null }));
+  const csrf = await csrfToken(env);
+  return html(renderVerify({ email, error: null, csrf }));
 }
 
 async function handleSigninVerifyPost(req, env) {
   // Lode A.1 contract invariants for /signin/verify:
-  //   1. Origin guard applies to POST only.
+  //   1. CSRF synchronizer token verified before any other work.
   //   2. Success uses atomic UPDATE ... RETURNING; misses use a second UPDATE for attempts.
   //   3. Failure responses never reveal account presence.
   //   4. NO PII in logs.
   //   5. Session-cookie format remains unchanged from Lode A.
-  if (!originAllowed(req)) return forbidden();
+  const form = await readForm(req);
+  const csrf = await csrfToken(env);
+  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
+    return html(renderForbidden(), { status: 403 });
+  }
 
-  const form = await req.formData();
   const rawEmail = form.get('email')?.toString() || '';
   const emailForEcho = rawEmail.trim();
   const emailLower = emailForEcho.toLowerCase();
@@ -422,6 +445,7 @@ async function handleSigninVerifyPost(req, env) {
       email: renderEmail,
       emailInputValue: emailOk ? '' : emailForEcho,
       error: VERIFY_ERROR,
+      csrf,
     }));
   }
 
@@ -432,7 +456,7 @@ async function handleSigninVerifyPost(req, env) {
 
   if (!matched) {
     await bumpOtpAttempts(env.DB, { emailLowerHash, nowMs, maxAttempts: OTP_MAX_ATTEMPTS });
-    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR }));
+    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR, csrf }));
   }
 
   const existing = await findEmailByHash(env.DB, emailLowerHash);
@@ -443,7 +467,7 @@ async function handleSigninVerifyPost(req, env) {
       email_lower_hash_prefix: emailLowerHash.slice(0, 12),
       ts: nowMs,
     }));
-    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR }));
+    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR, csrf }));
   }
   const accountId = existing
     ? existing.account_id

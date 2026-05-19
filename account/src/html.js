@@ -85,13 +85,14 @@ export function layout({ title, body, afterMain = '' }) {
 </html>`;
 }
 
-export function renderLanding(turnstileSiteKey) {
+export function renderLanding(turnstileSiteKey, csrf) {
   return layout({
     title: 'sign in to your solstone account',
     body: `<h1 class="brand">solstone</h1>
 <p class="subhead">one place to manage your sol pbc account.</p>
 <div id="passkey-error" class="error" hidden></div>
 <form method="post" action="/signin/start">
+  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
   <label for="email">email</label>
   <input id="email" type="email" name="email" autocomplete="email webauthn" required placeholder="you@example.com" maxlength="254">
   <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}"></div>
@@ -103,7 +104,7 @@ export function renderLanding(turnstileSiteKey) {
   });
 }
 
-export function renderVerify({ email = '', emailInputValue = '', error = '' }) {
+export function renderVerify({ email = '', emailInputValue = '', error = '', csrf = '' }) {
   const escapedEmail = esc(email);
   const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
   const emailFieldHtml = email
@@ -118,6 +119,7 @@ export function renderVerify({ email = '', emailInputValue = '', error = '' }) {
 <p>${subhead}</p>
 ${errorHtml}
 <form method="post" action="/signin/verify">
+  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
   ${emailFieldHtml}
   <input class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
   <button type="submit">verify</button>
@@ -395,6 +397,15 @@ export function renderGoodbye() {
   return layout({
     title: 'signed out',
     body: `<h1>signed out.</h1><p>see you next time.</p><p><a href="/">start over</a></p>`,
+  });
+}
+
+export function renderForbidden() {
+  return layout({
+    title: 'sign-in request expired',
+    body: `<h1>sign-in request expired</h1>
+<p>this sign-in page may have expired. start again from account.solstone.app.</p>
+<p><a href="https://account.solstone.app">back to account.solstone.app</a></p>`,
   });
 }
 

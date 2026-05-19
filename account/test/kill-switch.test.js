@@ -41,7 +41,8 @@ describe('kill switches', () => {
     const disabled = await worker.fetch(startRequest('disabled@example.com'), disabledEnv);
     const disabledSnapshot = await responseSnapshot(disabled);
 
-    expect(hashInputs).toHaveLength(4);
+    expect(hashInputs).toHaveLength(5);
+    expect(hashInputs[0]).toBe('csrf:accounttest-hmac-pepper');
     expect(await rowCount('otp_tokens')).toBe(0);
     expect(await rowCount('rate_buckets')).toBe(0);
     expect(disabledEnv.EMAIL.sent).toHaveLength(0);

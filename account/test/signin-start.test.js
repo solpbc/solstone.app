@@ -106,6 +106,49 @@ describe('/signin/start', () => {
     expect(response.headers.has('Set-Cookie')).toBe(false);
   });
 
+  it('rejects a missing csrf token before side effects', async () => {
+    const response = await worker.fetch(
+      startRequest('missing-csrf@example.com', {}, { csrf: null }),
+      makeTestEnv()
+    );
+    await expectStartCsrfRejected(response);
+  });
+
+  it('rejects a wrong csrf token before side effects', async () => {
+    const response = await worker.fetch(
+      startRequest('wrong-csrf@example.com', {}, { csrf: 'wrong' }),
+      makeTestEnv()
+    );
+    await expectStartCsrfRejected(response);
+  });
+
+  it('rejects an unparseable csrf body before side effects', async () => {
+    const response = await worker.fetch(
+      new Request('https://account.solstone.app/signin/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"email":"json@example.com"}',
+      }),
+      makeTestEnv()
+    );
+    await expectStartCsrfRejected(response);
+  });
+
+  it('accepts the csrf token rendered on the landing form', async () => {
+    const testEnv = makeTestEnv();
+    const landing = await worker.fetch(new Request('https://account.solstone.app/'), testEnv);
+    const csrf = extractCsrf(await landing.text());
+    const response = await worker.fetch(
+      startRequest('roundtrip@example.com', {}, { csrf }),
+      testEnv
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/signin/verify?email=roundtrip%40example.com');
+    expect(await rowCount('otp_tokens')).toBe(1);
+    expect(testEnv.EMAIL.sent).toHaveLength(1);
+  });
+
   it('bumps rate buckets before writing the OTP row', async () => {
     const statements = [];
     const testEnv = makeTestEnv({ DB: recordingDb(workerEnv.DB, statements) });
@@ -116,7 +159,7 @@ describe('/signin/start', () => {
     expect(firstOtp).toBeGreaterThan(firstRateBucket);
   });
 
-  it('runs the four start hash operations on every non-origin branch', async () => {
+  it('runs the csrf hash plus four start hash operations on every token-admitted branch', async () => {
     await expectHashWorkForBranch({
       email: 'admit@example.com',
       ip: '203.0.113.51',
@@ -217,12 +260,27 @@ async function expectHashWorkForBranch({ email, ip, setup, env = makeTestEnv() }
 
   await worker.fetch(startRequest(email, { 'CF-Connecting-IP': ip }), env);
 
-  expect(inputs).toHaveLength(4);
-  expect(inputs[0]).toMatch(/^\d{6}test-hmac-pepper$/);
-  expect(inputs[1]).toBe(`${email.trim().toLowerCase()}test-hmac-pepper`);
-  expect(inputs[2]).toBe(`signin_ip:${ip}test-hmac-pepper`);
-  expect(inputs[3]).toBe(`signin_email:${email.trim().toLowerCase()}test-hmac-pepper`);
+  expect(inputs).toHaveLength(5);
+  expect(inputs[0]).toBe('csrf:accounttest-hmac-pepper');
+  expect(inputs[1]).toMatch(/^\d{6}test-hmac-pepper$/);
+  expect(inputs[2]).toBe(`${email.trim().toLowerCase()}test-hmac-pepper`);
+  expect(inputs[3]).toBe(`signin_ip:${ip}test-hmac-pepper`);
+  expect(inputs[4]).toBe(`signin_email:${email.trim().toLowerCase()}test-hmac-pepper`);
   vi.restoreAllMocks();
+}
+
+async function expectStartCsrfRejected(response) {
+  const body = await response.text();
+  expect(response.status).toBe(403);
+  expect(body).toContain('sign-in request expired');
+  expect(body).toContain('https://account.solstone.app');
+  expect(await rowCount('otp_tokens')).toBe(0);
+  expect(await rowCount('rate_buckets')).toBe(0);
+  expect(response.headers.has('Set-Cookie')).toBe(false);
+}
+
+function extractCsrf(body) {
+  return body.match(/name="csrf" value="([^"]+)"/)?.[1] || '';
 }
 
 function codeFromSubject(subject) {
