@@ -280,7 +280,7 @@ async function otpRow(emailLowerHash) {
 async function expectVerifyCsrfRejected(response) {
   const body = await response.text();
   expect(response.status).toBe(403);
-  expect(body).toContain('sign-in request expired');
+  expect(body).toContain('email security');
   expect(body).toContain('https://account.solstone.app');
   expect(await rowCount('accounts')).toBe(0);
   expect(await rowCount('sessions')).toBe(0);

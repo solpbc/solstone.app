@@ -272,7 +272,7 @@ async function expectHashWorkForBranch({ email, ip, setup, env = makeTestEnv() }
 async function expectStartCsrfRejected(response) {
   const body = await response.text();
   expect(response.status).toBe(403);
-  expect(body).toContain('sign-in request expired');
+  expect(body).toContain('email security');
   expect(body).toContain('https://account.solstone.app');
   expect(await rowCount('otp_tokens')).toBe(0);
   expect(await rowCount('rate_buckets')).toBe(0);

@@ -400,12 +400,18 @@ export function renderGoodbye() {
   });
 }
 
+// Shown when the CSRF synchronizer token is missing or doesn't match — the
+// rare residual case once the body-carried token defeats the common
+// email-security link/header rewriting. Actionable and deliberately
+// state-free (no host or account input) so the body is byte-identical on
+// every token failure and leaks no enumeration signal.
 export function renderForbidden() {
   return layout({
-    title: 'sign-in request expired',
-    body: `<h1>sign-in request expired</h1>
-<p>this sign-in page may have expired. start again from account.solstone.app.</p>
-<p><a href="https://account.solstone.app">back to account.solstone.app</a></p>`,
+    title: "we couldn't verify this sign-in",
+    body: `<h1>we couldn't verify this sign-in</h1>
+<p>your email security may have modified the link you used to get here.</p>
+<p>to continue, open <strong>https://account.solstone.app</strong> directly in a new browser tab and request a new code.</p>
+<p><a href="https://account.solstone.app">open account.solstone.app</a></p>`,
   });
 }
 
