@@ -259,11 +259,17 @@ then read INSTALL.md and follow it.</pre>
                 <button class="copy-btn" data-target="blurb-linux">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-linux" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-linux">install the solstone-linux observer — observes screen and audio on linux desktops using PipeWire and GStreamer.
+            <pre class="blurb" id="blurb-linux">install the solstone-linux observer — it experiences your screen and audio along with you on linux desktops using PipeWire and GStreamer, and sends to your journal.
 
-cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux
+run this from your solstone host:
 
-then read INSTALL.md and follow it.</pre>
+sol observer install --platform linux
+
+that installs the observer from PyPI, runs the system-package preflight, registers it, and writes the systemd unit. add --dry-run first to preview every step.
+
+building from source instead? (developers only) clone the repo and follow its INSTALL.md:
+
+cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux</pre>
         </div>
     </div>
 
@@ -297,11 +303,17 @@ then read INSTALL.md and follow it.</pre>
                 <button class="copy-btn" data-target="blurb-tmux">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">github →</a>
             </div>
-            <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer — observes all active tmux sessions and panes. lightweight, pure python, no system dependencies.
+            <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer — it experiences your tmux sessions along with you, taking in what's on each pane every 5 seconds. lightweight, pure python, no system dependencies.
 
-cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux
+run this from your solstone host:
 
-then read INSTALL.md and follow it.</pre>
+sol observer install --platform tmux
+
+that installs the observer from PyPI, registers it, writes its config, and installs the systemd unit. add --dry-run first to preview every step.
+
+building from source instead? (developers only) clone the repo and follow its INSTALL.md:
+
+cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux</pre>
         </div>
     </div>
 
