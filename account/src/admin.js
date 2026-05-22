@@ -1,6 +1,7 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { decryptEmail, hashWithPepper } from './crypto.js';
 import { findEmailByHash } from './db.js';
+import { json } from './index.js';
 import { aaguidLabel, uaLabel, truncateIp } from './settings.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
@@ -17,17 +18,6 @@ const SECURITY_HEADERS = {
   'Content-Security-Policy':
     "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none'",
 };
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store',
-      ...SECURITY_HEADERS,
-    },
-  });
-}
 
 async function validateCfAccess(request, env) {
   const token = request.headers.get('Cf-Access-Jwt-Assertion');
@@ -47,18 +37,22 @@ async function validateCfAccess(request, env) {
 
 export async function handleAdmin(request, env, url) {
   const admin = await validateCfAccess(request, env);
-  if (!admin) return json({ error: 'cloudflare access required' }, 403);
+  if (!admin) {
+    return json({ error: 'cloudflare access required' }, { status: 403, headers: SECURITY_HEADERS });
+  }
 
   try {
-    if (request.method !== 'GET') return json({ error: 'account not found' }, 404);
+    if (request.method !== 'GET') {
+      return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
+    }
     if (url.pathname === '/admin/accounts') return await listAccounts(env);
     const parts = url.pathname.split('/');
     if (parts.length === 4 && parts[1] === 'admin' && parts[2] === 'accounts') {
       return await showAccount(env, decodeURIComponent(parts[3]));
     }
-    return json({ error: 'account not found' }, 404);
+    return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   } catch {
-    return json({ error: 'account not found' }, 404);
+    return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
 }
 
@@ -93,12 +87,12 @@ async function listAccounts(env) {
     created_at: isoOrNull(row.created_at),
     last_signin_at: isoOrNull(row.last_signin_at),
   })));
-  return json({ accounts });
+  return json({ accounts }, { headers: SECURITY_HEADERS });
 }
 
 async function showAccount(env, seg) {
   const account = await resolveAccount(env, seg);
-  if (!account) return json({ error: 'account not found' }, 404);
+  if (!account) return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
 
   const [primaryEmail, emails, passkeys, sessions] = await Promise.all([
     getPrimaryEmail(env, account),
@@ -107,17 +101,20 @@ async function showAccount(env, seg) {
     listSessions(env, account.id),
   ]);
 
-  return json({
-    account: {
-      id: account.id,
-      primary_email: primaryEmail,
-      created_at: isoOrNull(account.created_at),
-      last_signin_at: isoOrNull(account.last_signin_at),
+  return json(
+    {
+      account: {
+        id: account.id,
+        primary_email: primaryEmail,
+        created_at: isoOrNull(account.created_at),
+        last_signin_at: isoOrNull(account.last_signin_at),
+      },
+      emails,
+      passkeys,
+      sessions,
     },
-    emails,
-    passkeys,
-    sessions,
-  });
+    { headers: SECURITY_HEADERS }
+  );
 }
 
 async function resolveAccount(env, seg) {

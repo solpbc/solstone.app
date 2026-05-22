@@ -19,6 +19,7 @@ describe('static source checks', () => {
       'admin.js',
       'crypto.js',
       'db.js',
+      'devices.js',
       'email.js',
       'emails.js',
       'html.js',

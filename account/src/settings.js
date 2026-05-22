@@ -1,6 +1,7 @@
 import { decryptEmail } from './crypto.js';
 import {
   countAccountEmails,
+  countActiveDevices,
   countActivePasskeys,
   countActiveSessions,
   listPasskeyCredentialsForAccount,
@@ -52,7 +53,8 @@ export async function handleSettingsShell(req, env) {
   const sessionCount = await countActiveSessions(env.DB, session.account_id);
   const passkeyCount = await countActivePasskeys(env.DB, session.account_id);
   const emailCount = await countAccountEmails(env.DB, session.account_id);
-  return settingsHtml(renderSettingsShell({ sessionCount, passkeyCount, emailCount }));
+  const deviceCount = await countActiveDevices(env.DB, session.account_id);
+  return settingsHtml(renderSettingsShell({ sessionCount, passkeyCount, emailCount, deviceCount }));
 }
 
 export async function handleSettingsSessions(req, env) {

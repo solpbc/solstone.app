@@ -25,6 +25,15 @@ import {
 } from './db.js';
 import { sendOtpEmail } from './email.js';
 import {
+  handleDeregisterDevice,
+  handleListDevices,
+  handleMintDispatchToken,
+  handleRegisterDevice,
+  handleRevokeAllDevices,
+  handleRevokeDevice,
+  handleSettingsDevices,
+} from './devices.js';
+import {
   handleAddEmail,
   handleMakeEmailPrimary,
   handleRemoveEmail,
@@ -113,6 +122,18 @@ export function html(body, init = {}) {
   return new Response(body, {
     status: init.status || 200,
     headers: { 'Content-Type': 'text/html; charset=utf-8', ...SECURITY_HEADERS, ...init.headers },
+  });
+}
+
+export function json(data, init = {}) {
+  return new Response(JSON.stringify(data), {
+    status: init.status ?? 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      ...SECURITY_HEADERS,
+      ...(init.headers || {}),
+    },
   });
 }
 
@@ -309,6 +330,15 @@ export default {
       }
 
       if (
+        parts.length === 3 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'devices' &&
+        req.method === 'GET'
+      ) {
+        return handleSettingsDevices(req, env);
+      }
+
+      if (
         parts.length === 4 &&
         parts[1] === 'settings' &&
         parts[2] === 'sessions' &&
@@ -319,6 +349,16 @@ export default {
       }
 
       if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'devices' &&
+        parts[3] === 'revoke-all' &&
+        req.method === 'POST'
+      ) {
+        return handleRevokeAllDevices(req, env);
+      }
+
+      if (
         parts.length === 5 &&
         parts[1] === 'settings' &&
         parts[2] === 'sessions' &&
@@ -326,6 +366,16 @@ export default {
         req.method === 'POST'
       ) {
         return handleRevokeSession(req, env, parts[3]);
+      }
+
+      if (
+        parts.length === 5 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'devices' &&
+        parts[4] === 'revoke' &&
+        req.method === 'POST'
+      ) {
+        return handleRevokeDevice(req, env, parts[3]);
       }
 
       if (
@@ -346,6 +396,44 @@ export default {
         req.method === 'POST'
       ) {
         return handleRemovePasskey(req, env, parts[3]);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'account' &&
+        parts[2] === 'devices' &&
+        req.method === 'GET'
+      ) {
+        return handleListDevices(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'account' &&
+        parts[2] === 'devices' &&
+        parts[3] === 'register' &&
+        req.method === 'POST'
+      ) {
+        return handleRegisterDevice(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'account' &&
+        parts[2] === 'devices' &&
+        parts[3] === 'deregister' &&
+        req.method === 'POST'
+      ) {
+        return handleDeregisterDevice(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'account' &&
+        parts[2] === 'dispatch-token' &&
+        req.method === 'POST'
+      ) {
+        return handleMintDispatchToken(req, env);
       }
 
       if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {

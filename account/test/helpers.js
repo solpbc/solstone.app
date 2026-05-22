@@ -30,6 +30,7 @@ export function makeTestEnv(overrides = {}) {
     EMAIL: overrides.EMAIL || emailBinding,
     ENCRYPTION_SECRET: TEST_SECRET,
     HMAC_PEPPER: TEST_PEPPER,
+    DISPATCH_TOKEN_PEPPER: 'test-dispatch-token-pepper',
     TURNSTILE_SECRET: 'test-turnstile-secret',
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
@@ -47,6 +48,8 @@ export async function fetchWithCtx(worker, request, testEnv) {
 
 export async function resetDb() {
   for (const table of [
+    'account_dispatch_tokens',
+    'account_devices',
     'passkey_challenges',
     'passkey_credentials',
     'rate_buckets',
@@ -309,6 +312,55 @@ export async function seedSession(accountId, { nowMs = Date.now(), testEnv = mak
   const idHash = await hashWithPepper(token, testEnv);
   await createSession(env.DB, { idHash, accountId, nowMs });
   return { token, cookie: `account_session=${token}`, idHash };
+}
+
+export async function seedDevice({
+  deviceId = crypto.randomUUID(),
+  accountId,
+  platform = 'ios',
+  pushToken = `push-${deviceId}`,
+  pushTokenEnv = 'production',
+  bundleId = 'app.solstone.swift',
+  deviceLabel = 'test device',
+  appVersion = '1.0.0',
+  registeredAt = Date.now(),
+  lastSeenAt = registeredAt,
+  revokedAt = null,
+} = {}) {
+  await env.DB
+    .prepare(
+      `INSERT INTO account_devices (
+        device_id, account_id, platform, push_token, push_token_env, bundle_id,
+        device_label, app_version, registered_at, last_seen_at, revoked_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      deviceId,
+      accountId,
+      platform,
+      pushToken,
+      pushTokenEnv,
+      bundleId,
+      deviceLabel,
+      appVersion,
+      registeredAt,
+      lastSeenAt,
+      revokedAt
+    )
+    .run();
+  return {
+    deviceId,
+    accountId,
+    platform,
+    pushToken,
+    pushTokenEnv,
+    bundleId,
+    deviceLabel,
+    appVersion,
+    registeredAt,
+    lastSeenAt,
+    revokedAt,
+  };
 }
 
 export async function seedCredential({

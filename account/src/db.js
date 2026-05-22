@@ -275,6 +275,155 @@ export async function countActiveSessions(db, accountId) {
   return row?.count || 0;
 }
 
+export async function insertDevice(db, {
+  deviceId,
+  accountId,
+  platform,
+  pushToken,
+  pushTokenEnv,
+  bundleId,
+  deviceLabel,
+  appVersion,
+  nowMs,
+}) {
+  await db
+    .prepare(
+      `INSERT INTO account_devices (
+         device_id, account_id, platform, push_token, push_token_env, bundle_id,
+         device_label, app_version, registered_at, last_seen_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      deviceId,
+      accountId,
+      platform,
+      pushToken,
+      pushTokenEnv,
+      bundleId,
+      deviceLabel,
+      appVersion,
+      nowMs,
+      nowMs
+    )
+    .run();
+}
+
+export async function findDeviceByPushKey(db, { pushToken, bundleId, pushTokenEnv }) {
+  const row = await db
+    .prepare(
+      `SELECT device_id, account_id, platform, push_token_env, bundle_id,
+              device_label, app_version, registered_at, last_seen_at, revoked_at
+       FROM account_devices
+       WHERE push_token = ? AND bundle_id = ? AND push_token_env = ? AND revoked_at IS NULL`
+    )
+    .bind(pushToken, bundleId, pushTokenEnv)
+    .first();
+  return row || null;
+}
+
+export async function bumpDeviceLastSeen(db, { deviceId, nowMs }) {
+  await db
+    .prepare('UPDATE account_devices SET last_seen_at = ? WHERE device_id = ?')
+    .bind(nowMs, deviceId)
+    .run();
+}
+
+export async function revokeDevicePriorAndInsertNew(db, { priorDeviceId, newDevice, nowMs }) {
+  return db.batch([
+    db
+      .prepare('UPDATE account_devices SET revoked_at = ? WHERE device_id = ? AND revoked_at IS NULL')
+      .bind(nowMs, priorDeviceId),
+    db
+      .prepare(
+        `INSERT INTO account_devices (
+           device_id, account_id, platform, push_token, push_token_env, bundle_id,
+           device_label, app_version, registered_at, last_seen_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        newDevice.deviceId,
+        newDevice.accountId,
+        newDevice.platform,
+        newDevice.pushToken,
+        newDevice.pushTokenEnv,
+        newDevice.bundleId,
+        newDevice.deviceLabel,
+        newDevice.appVersion,
+        newDevice.nowMs,
+        newDevice.nowMs
+      ),
+  ]);
+}
+
+export async function revokeDevice(db, { deviceId, accountId, nowMs }) {
+  const result = await db
+    .prepare(
+      'UPDATE account_devices SET revoked_at = ? WHERE device_id = ? AND account_id = ? AND revoked_at IS NULL'
+    )
+    .bind(nowMs, deviceId, accountId)
+    .run();
+  return result?.meta || {};
+}
+
+export async function revokeDeviceById(db, { deviceId, nowMs }) {
+  await db
+    .prepare('UPDATE account_devices SET revoked_at = ? WHERE device_id = ? AND revoked_at IS NULL')
+    .bind(nowMs, deviceId)
+    .run();
+}
+
+export async function revokeAllDevicesForAccount(db, { accountId, nowMs }) {
+  await db
+    .prepare('UPDATE account_devices SET revoked_at = ? WHERE account_id = ? AND revoked_at IS NULL')
+    .bind(nowMs, accountId)
+    .run();
+}
+
+export async function listDevicesForAccount(db, accountId) {
+  const { results } = await db
+    .prepare(
+      `SELECT device_id, platform, push_token_env, bundle_id, device_label,
+              app_version, registered_at, last_seen_at
+       FROM account_devices
+       WHERE account_id = ? AND revoked_at IS NULL
+       ORDER BY last_seen_at DESC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+export async function countActiveDevices(db, accountId) {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS c FROM account_devices WHERE account_id = ? AND revoked_at IS NULL')
+    .bind(accountId)
+    .first();
+  return Number(row?.c || 0);
+}
+
+export async function getDeviceById(db, deviceId) {
+  const row = await db
+    .prepare('SELECT device_id, account_id, revoked_at FROM account_devices WHERE device_id = ?')
+    .bind(deviceId)
+    .first();
+  return row || null;
+}
+
+export async function insertDispatchToken(db, { tokenHash, accountId, nowMs }) {
+  await db
+    .prepare('INSERT INTO account_dispatch_tokens (token_hash, account_id, created_at) VALUES (?, ?, ?)')
+    .bind(tokenHash, accountId, nowMs)
+    .run();
+}
+
+export async function findActiveDispatchToken(db, tokenHash) {
+  const row = await db
+    .prepare('SELECT account_id FROM account_dispatch_tokens WHERE token_hash = ? AND revoked_at IS NULL')
+    .bind(tokenHash)
+    .first();
+  return row || null;
+}
+
 export async function deleteSession(db, idHash) {
   await db.prepare('DELETE FROM sessions WHERE id_hash = ?').bind(idHash).run();
 }

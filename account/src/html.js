@@ -165,7 +165,7 @@ ${welcomePanel}`,
   });
 }
 
-export function renderSettingsShell({ sessionCount, passkeyCount, emailCount = 0 }) {
+export function renderSettingsShell({ sessionCount, passkeyCount, emailCount = 0, deviceCount = 0 }) {
   return layout({
     title: 'account settings',
     body: `<h1>account settings</h1>
@@ -181,6 +181,10 @@ export function renderSettingsShell({ sessionCount, passkeyCount, emailCount = 0
 <a class="settings-card" href="/settings/emails">
   <strong>email addresses</strong>
   <span>${esc(countLabel(emailCount, 'email', 'emails'))}</span>
+</a>
+<a class="settings-card" href="/settings/devices">
+  <strong>devices</strong>
+  <span>${esc(countLabel(deviceCount, 'device', 'devices'))}</span>
 </a>
 <p class="disclosure"><a href="/settings/data">what we have about you</a></p>
 <form method="post" action="/signout"><button type="submit">sign out</button></form>`,
@@ -351,6 +355,38 @@ export function renderSettingsSessions({ rows, currentIdHash, now }) {
     body: `<h1>sessions</h1>
 <nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
 ${revokeOthers}
+${rowHtml}`,
+  });
+}
+
+export function renderSettingsDevices({ devices, nowMs }) {
+  const revokeAll = devices.length > 0
+    ? `<form method="post" action="/settings/devices/revoke-all" class="inline-form">
+  <button class="danger" type="submit">revoke all devices</button>
+</form>`
+    : '';
+  const emptyState = devices.length === 0 ? '<p>no devices registered.</p>' : '';
+  const rowHtml = devices.map((row) => {
+    const label = row.device_label || 'unnamed device';
+    const appVersion = row.app_version || '—';
+    const action = `/settings/devices/${escAttr(row.device_id)}/revoke`;
+    return `<section class="settings-row">
+  <h2>${esc(label)}</h2>
+  <p class="meta">platform ${esc(row.platform)}</p>
+  <p class="meta">bundle ${esc(row.bundle_id)}</p>
+  <p class="meta">environment ${esc(row.push_token_env)}</p>
+  <p class="meta">app version ${esc(appVersion)}</p>
+  <p class="meta">last seen ${esc(formatRelativeTime(row.last_seen_at, nowMs))}</p>
+  <p class="meta">registered ${esc(formatDate(row.registered_at))}</p>
+  <form method="post" action="${action}" class="inline-form"><button class="danger" type="submit">revoke this device</button></form>
+</section>`;
+  }).join('');
+  return layout({
+    title: 'your devices',
+    body: `<h1>your devices</h1>
+<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+${revokeAll}
+${emptyState}
 ${rowHtml}`,
   });
 }

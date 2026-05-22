@@ -29,9 +29,9 @@ export async function decryptEmail(b64, env) {
   return textDecoder.decode(plaintext);
 }
 
-export async function hashWithPepper(value, env) {
+export async function hashWithPepper(value, env, pepperKey = 'HMAC_PEPPER') {
   const valueBytes = textEncoder.encode(value);
-  const pepperBytes = textEncoder.encode(env.HMAC_PEPPER);
+  const pepperBytes = textEncoder.encode(env[pepperKey]);
   const input = new Uint8Array(valueBytes.length + pepperBytes.length);
   input.set(valueBytes);
   input.set(pepperBytes, valueBytes.length);
