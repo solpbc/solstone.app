@@ -1,5 +1,5 @@
 import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 import schema from '../schema.sql?raw';
 import { encryptEmail, generateOtp, generateSessionToken, hashKey, hashWithPepper } from '../src/crypto.js';
 import {
@@ -7,11 +7,15 @@ import {
   createSession,
   insertPasskeyChallenge,
   insertPasskeyCredential,
+  insertOauthCode,
+  insertOauthTokenPair,
   upsertOtp,
 } from '../src/db.js';
+import { SA_JSON_STRING } from './sa-helper.js';
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
 const TEST_PEPPER = 'test-hmac-pepper';
+export const TEST_OAUTH_TOKEN_PEPPER = 'test-oauth-token-pepper';
 export const TEST_CSRF = await hashKey('csrf', 'account', { HMAC_PEPPER: TEST_PEPPER });
 export const TEST_CF_ACCESS_AUD = 'test-cf-access-aud';
 
@@ -30,7 +34,10 @@ export function makeTestEnv(overrides = {}) {
     EMAIL: overrides.EMAIL || emailBinding,
     ENCRYPTION_SECRET: TEST_SECRET,
     HMAC_PEPPER: TEST_PEPPER,
+    OAUTH_TOKEN_PEPPER: TEST_OAUTH_TOKEN_PEPPER,
     DISPATCH_TOKEN_PEPPER: 'test-dispatch-token-pepper',
+    GCP_SERVICE_ACCOUNT_JSON: overrides.GCP_SERVICE_ACCOUNT_JSON || SA_JSON_STRING,
+    GCP_TOKEN_CACHE: overrides.GCP_TOKEN_CACHE || makeFakeKv(),
     TURNSTILE_SECRET: 'test-turnstile-secret',
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
@@ -46,8 +53,39 @@ export async function fetchWithCtx(worker, request, testEnv) {
   return { response, ctx };
 }
 
+export function makeFakeKv() {
+  const store = new Map();
+  const binding = {
+    puts: [],
+    async get(key) {
+      const entry = store.get(key);
+      if (!entry) return null;
+      if (entry.expiresAt != null && entry.expiresAt <= Date.now()) {
+        store.delete(key);
+        return null;
+      }
+      return entry.value;
+    },
+    async put(key, value, options = {}) {
+      const ttl = options.expirationTtl;
+      binding.puts.push({ key, value, options });
+      store.set(key, {
+        value,
+        expiresAt: Number.isFinite(ttl) ? Date.now() + ttl * 1000 : null,
+      });
+    },
+    async delete(key) {
+      store.delete(key);
+    },
+  };
+  return binding;
+}
+
 export async function resetDb() {
   for (const table of [
+    'oauth_tokens',
+    'oauth_codes',
+    'provisioned_keys',
     'account_dispatch_tokens',
     'account_devices',
     'passkey_challenges',
@@ -79,12 +117,56 @@ export function stubTurnstile(success = true) {
   );
 }
 
-export function startRequest(email, headers = {}, { csrf = TEST_CSRF } = {}) {
+export function installGcpFetchMock(handlers = {}) {
+  const calls = [];
+  const fetchMock = vi.fn(async (input, init = {}) => {
+    const href = typeof input === 'string' ? input : input.url;
+    const url = new URL(href);
+    const method = (init.method || 'GET').toUpperCase();
+    calls.push({ method, url, init });
+    if (!['oauth2.googleapis.com', 'apikeys.googleapis.com'].includes(url.host)) {
+      throw new Error(`disallowed host reached fetch: ${url.host}`);
+    }
+    const keys = [
+      `${method} ${url.host}${url.pathname}${url.search}`,
+      `${method} ${url.host}${url.pathname}`,
+      `${method} ${url.host}`,
+      url.host,
+      'default',
+    ];
+    const handler = keys.map((key) => handlers[key]).find(Boolean);
+    if (!handler) throw new Error(`unhandled gcp fetch: ${method} ${url.href}`);
+    return handler({ method, url, init, calls });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return { calls, fetchMock };
+}
+
+export function installConsoleSpy() {
+  const calls = [];
+  const spies = ['error', 'warn', 'log', 'info'].map((level) => vi.spyOn(console, level).mockImplementation((...args) => {
+    calls.push({ level, args });
+  }));
+  return {
+    calls,
+    assertNoSecrets(secrets) {
+      const text = calls.map(({ args }) => args.map(formatConsoleArg).join(' ')).join('\n');
+      for (const secret of secrets.filter(Boolean)) expect(text).not.toContain(secret);
+    },
+    restore() {
+      for (const spy of spies) spy.mockRestore();
+    },
+  };
+}
+
+export function startRequest(email, headers = {}, { csrf = TEST_CSRF, next = null, nextSig = null } = {}) {
   const body = new URLSearchParams({
     email,
     'cf-turnstile-response': 'turnstile-token',
   });
   if (csrf !== null) body.set('csrf', csrf);
+  if (next !== null) body.set('next', next);
+  if (nextSig !== null) body.set('next_sig', nextSig);
   return new Request('https://account.solstone.app/signin/start', {
     method: 'POST',
     headers: {
@@ -140,6 +222,101 @@ export async function rowCount(table) {
   return row.count;
 }
 
+export function validConnectParams(overrides = {}) {
+  return {
+    response_type: 'code',
+    client_id: 'solstone-cli',
+    redirect_uri: 'http://127.0.0.1:5015/callback',
+    scope: 'solstone.gemini',
+    state: 'state-123',
+    code_challenge: 'a'.repeat(43),
+    code_challenge_method: 'S256',
+    ...overrides,
+  };
+}
+
+export async function pkcePair(verifier = generateSessionToken()) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return { verifier, challenge: base64Url(new Uint8Array(digest)) };
+}
+
+export async function seedOAuthCode({
+  accountId,
+  testEnv = makeTestEnv(),
+  nowMs = Date.now(),
+  code = generateSessionToken(),
+  clientId = 'solstone-cli',
+  redirectUri = 'http://127.0.0.1:5015/callback',
+  scope = 'solstone.gemini',
+  verifier = null,
+  codeChallenge = null,
+  codeChallengeMethod = 'S256',
+} = {}) {
+  const pair = codeChallenge ? { verifier, challenge: codeChallenge } : await pkcePair(verifier || undefined);
+  const codeHash = await hashWithPepper(code, testEnv, 'HMAC_PEPPER');
+  await insertOauthCode(env.DB, {
+    codeHash,
+    accountId,
+    clientId,
+    redirectUri,
+    scope,
+    codeChallenge: pair.challenge,
+    codeChallengeMethod,
+    nowMs,
+  });
+  return {
+    code,
+    codeHash,
+    verifier: pair.verifier,
+    codeChallenge: pair.challenge,
+    clientId,
+    redirectUri,
+    scope,
+    nowMs,
+  };
+}
+
+export async function seedOauthToken({
+  accountId,
+  testEnv = makeTestEnv(),
+  nowMs = Date.now(),
+  accessToken = generateSessionToken(),
+  refreshToken = generateSessionToken(),
+  familyId = randomBase64Url(16),
+  scope = 'solstone.gemini',
+  accessTtlMs = 60 * 60 * 1000,
+  refreshTtlMs = 30 * 24 * 60 * 60 * 1000,
+  revokedAt = null,
+} = {}) {
+  const accessHash = await hashWithPepper(accessToken, testEnv, 'OAUTH_TOKEN_PEPPER');
+  const refreshHash = await hashWithPepper(refreshToken, testEnv, 'OAUTH_TOKEN_PEPPER');
+  await insertOauthTokenPair(env.DB, {
+    accountId,
+    familyId,
+    accessHash,
+    refreshHash,
+    scope,
+    nowMs,
+    accessTtlMs,
+    refreshTtlMs,
+  });
+  if (revokedAt != null) {
+    await env.DB
+      .prepare('UPDATE oauth_tokens SET revoked_at = ? WHERE refresh_token_hash = ?')
+      .bind(revokedAt, refreshHash)
+      .run();
+  }
+  return {
+    accessToken,
+    refreshToken,
+    familyId,
+    accessHash,
+    refreshHash,
+    scope,
+    nowMs,
+  };
+}
+
 export async function seedOtp({ email, options = {} }) {
   const testEnv = makeTestEnv();
   const nowMs = options.nowMs ?? Date.now();
@@ -172,12 +349,16 @@ export function verifyRequest({
   origin = 'https://account.solstone.app',
   headers = {},
   csrf = TEST_CSRF,
+  next = null,
+  nextSig = null,
 }) {
   const body = new URLSearchParams({
     email,
     code,
   });
   if (csrf !== null) body.set('csrf', csrf);
+  if (next !== null) body.set('next', next);
+  if (nextSig !== null) body.set('next_sig', nextSig);
   const requestHeaders = {
     'Content-Type': 'application/x-www-form-urlencoded',
     ...headers,
@@ -402,4 +583,24 @@ export async function seedPasskeyChallenge({
 } = {}) {
   await insertPasskeyChallenge(env.DB, { challenge, accountId, purpose, createdAt, expiresAt });
   return { challenge, accountId, purpose, createdAt, expiresAt };
+}
+
+function formatConsoleArg(value) {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function randomBase64Url(size) {
+  const bytes = crypto.getRandomValues(new Uint8Array(size));
+  return base64Url(bytes);
+}
+
+function base64Url(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }

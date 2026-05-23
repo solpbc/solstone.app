@@ -2,6 +2,7 @@ import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
 import { VERIFY_ERROR } from '../src/html.js';
+import { signNext } from '../src/oauth.js';
 import {
   extractCookieToken,
   makeTestEnv,
@@ -9,6 +10,7 @@ import {
   responseSnapshot,
   rowCount,
   seedOtp,
+  validConnectParams,
   verifyRequest,
 } from './helpers.js';
 
@@ -194,6 +196,44 @@ describe('/signin/verify', () => {
     expect(await rowCount('accounts')).toBe(1);
     expect(await rowCount('account_emails')).toBe(1);
     expect(await rowCount('sessions')).toBe(2);
+  });
+
+  it('redirects to /connect after OTP success when resume fields validate', async () => {
+    const testEnv = makeTestEnv();
+    const query = new URLSearchParams(validConnectParams()).toString();
+    const resume = await signNext(query, testEnv);
+    const seeded = await seedOtp({ email: 'resume@example.com', options: { code: '123456' } });
+    const response = await worker.fetch(
+      verifyRequest({
+        email: 'resume@example.com',
+        code: seeded.code,
+        next: resume.next,
+        nextSig: resume.nextSig,
+      }),
+      testEnv
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe(`/connect?${query}`);
+  });
+
+  it('falls back to dashboard after OTP success when resume signature is invalid', async () => {
+    const testEnv = makeTestEnv();
+    const query = new URLSearchParams(validConnectParams()).toString();
+    const resume = await signNext(query, testEnv);
+    const seeded = await seedOtp({ email: 'bad-resume@example.com', options: { code: '123456' } });
+    const response = await worker.fetch(
+      verifyRequest({
+        email: 'bad-resume@example.com',
+        code: seeded.code,
+        next: resume.next,
+        nextSig: 'bad-signature',
+      }),
+      testEnv
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
   });
 
   it('rejects a reused OTP after atomic consume', async () => {

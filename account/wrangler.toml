@@ -12,6 +12,12 @@ database_name = "account-portal"
 database_id = "5ab8e5a8-685c-4f20-9169-047d2778fa73"
 migrations_dir = "migrations"
 
+# Replace this placeholder with the real namespace id from
+# `wrangler kv namespace create GCP_TOKEN_CACHE` during deploy provisioning.
+[[kv_namespaces]]
+binding = "GCP_TOKEN_CACHE"
+id = "PLACEHOLDER_BIND_AT_DEPLOY"
+
 [[send_email]]
 name = "EMAIL"
 remote = true

@@ -538,6 +538,216 @@ export async function getRateBucketCount(db, key, windowMs, nowMs) {
   return row.count;
 }
 
+// --- OAuth + Provisioning ---
+
+export async function insertOauthCode(db, {
+  codeHash,
+  accountId,
+  clientId,
+  redirectUri,
+  scope,
+  codeChallenge,
+  codeChallengeMethod,
+  nowMs,
+}) {
+  // Authorization codes are short-lived bearer material; keep the TTL at 60s.
+  const expiresAt = nowMs + 60_000;
+  await db
+    .prepare(
+      `INSERT INTO oauth_codes (
+         code_hash, account_id, client_id, redirect_uri, scope,
+         code_challenge, code_challenge_method, created_at, expires_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(codeHash, accountId, clientId, redirectUri, scope, codeChallenge, codeChallengeMethod, nowMs, expiresAt)
+    .run();
+}
+
+export async function consumeOauthCode(db, { codeHash, nowMs }) {
+  const row = await db
+    .prepare(
+      `UPDATE oauth_codes
+       SET consumed_at = ?
+       WHERE code_hash = ?
+         AND consumed_at IS NULL
+         AND expires_at > ?
+       RETURNING account_id, client_id, redirect_uri, scope, code_challenge, code_challenge_method`
+    )
+    .bind(nowMs, codeHash, nowMs)
+    .first();
+  return row || null;
+}
+
+export async function insertOauthTokenPair(db, {
+  accountId,
+  familyId,
+  accessHash,
+  refreshHash,
+  scope,
+  nowMs,
+  accessTtlMs,
+  refreshTtlMs,
+}) {
+  await db
+    .prepare(
+      `INSERT INTO oauth_tokens (
+         account_id, family_id, access_token_hash, refresh_token_hash, scope,
+         created_at, access_expires_at, refresh_expires_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(accountId, familyId, accessHash, refreshHash, scope, nowMs, nowMs + accessTtlMs, nowMs + refreshTtlMs)
+    .run();
+}
+
+export async function findOauthTokenByRefreshHash(db, { refreshHash }) {
+  const row = await db
+    .prepare(
+      `SELECT id, account_id, family_id, scope, created_at, refresh_expires_at, revoked_at
+       FROM oauth_tokens
+       WHERE refresh_token_hash = ?`
+    )
+    .bind(refreshHash)
+    .first();
+  return row || null;
+}
+
+export async function rotateOauthRefreshToken(db, {
+  oldId,
+  accountId,
+  familyId,
+  newAccessHash,
+  newRefreshHash,
+  scope,
+  nowMs,
+  accessTtlMs,
+  refreshTtlMs,
+}) {
+  const results = await db.batch([
+    db
+      .prepare('UPDATE oauth_tokens SET revoked_at = ? WHERE id = ? AND account_id = ? AND revoked_at IS NULL')
+      .bind(nowMs, oldId, accountId),
+    db
+      .prepare(
+        `INSERT INTO oauth_tokens (
+           account_id, family_id, access_token_hash, refresh_token_hash, scope,
+           created_at, access_expires_at, refresh_expires_at
+         )
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE changes() = 1`
+      )
+      .bind(
+        accountId,
+        familyId,
+        newAccessHash,
+        newRefreshHash,
+        scope,
+        nowMs,
+        nowMs + accessTtlMs,
+        nowMs + refreshTtlMs
+      ),
+  ]);
+  return (results?.[1]?.meta?.changes || 0) === 1;
+}
+
+export async function findActiveSameFamilyTokenNewerThan(db, { familyId, createdAt, nowMs }) {
+  const row = await db
+    .prepare(
+      `SELECT id
+       FROM oauth_tokens
+       WHERE family_id = ?
+         AND created_at > ?
+         AND refresh_expires_at > ?
+         AND revoked_at IS NULL
+       LIMIT 1`
+    )
+    .bind(familyId, createdAt, nowMs)
+    .first();
+  return row || null;
+}
+
+export async function revokeOauthTokenFamily(db, { familyId, nowMs }) {
+  await db
+    .prepare('UPDATE oauth_tokens SET revoked_at = ? WHERE family_id = ? AND revoked_at IS NULL')
+    .bind(nowMs, familyId)
+    .run();
+}
+
+export async function findActiveProvisionedKey(db, { accountId, provider }) {
+  const row = await db
+    .prepare(
+      `SELECT id, account_id, provider, display_name, key_resource_name,
+              key_string_encrypted, created_at, last_used_at, revoked_at
+       FROM provisioned_keys
+       WHERE account_id = ? AND provider = ? AND revoked_at IS NULL`
+    )
+    .bind(accountId, provider)
+    .first();
+  return row || null;
+}
+
+export async function insertProvisioningPlaceholder(db, { id, accountId, provider, displayName, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO provisioned_keys (
+         id, account_id, provider, display_name, key_resource_name,
+         key_string_encrypted, created_at
+       ) VALUES (?, ?, ?, ?, '', '', ?)`
+    )
+    .bind(id, accountId, provider, displayName, nowMs)
+    .run();
+}
+
+export async function claimAbandonedProvisioningPlaceholder(db, {
+  id,
+  accountId,
+  provider,
+  nowMs,
+  abandonedBeforeMs,
+}) {
+  const row = await db
+    .prepare(
+      `UPDATE provisioned_keys
+       SET created_at = ?
+       WHERE id = ?
+         AND account_id = ?
+         AND provider = ?
+         AND created_at < ?
+         AND revoked_at IS NULL
+         AND key_string_encrypted = ''
+       RETURNING id, display_name`
+    )
+    .bind(nowMs, id, accountId, provider, abandonedBeforeMs)
+    .first();
+  return row || null;
+}
+
+export async function updateProvisionedKeyMaterial(db, { id, keyResourceName, keyStringEncrypted, nowMs }) {
+  await db
+    .prepare(
+      `UPDATE provisioned_keys
+       SET key_resource_name = ?,
+           key_string_encrypted = ?,
+           last_used_at = ?
+       WHERE id = ? AND revoked_at IS NULL`
+    )
+    .bind(keyResourceName, keyStringEncrypted, nowMs, id)
+    .run();
+}
+
+export async function deleteProvisioningPlaceholder(db, { id }) {
+  await db
+    .prepare("DELETE FROM provisioned_keys WHERE id = ? AND key_string_encrypted = ''")
+    .bind(id)
+    .run();
+}
+
+export async function touchProvisionedKeyLastUsed(db, { id, nowMs }) {
+  await db
+    .prepare('UPDATE provisioned_keys SET last_used_at = ? WHERE id = ? AND revoked_at IS NULL')
+    .bind(nowMs, id)
+    .run();
+}
+
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
 }

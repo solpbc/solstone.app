@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { env as workerEnv } from 'cloudflare:test';
 import worker from '../src/index.js';
+import { signNext } from '../src/oauth.js';
 import {
   makeTestEnv,
   recordingDb,
@@ -9,6 +10,7 @@ import {
   rowCount,
   startRequest,
   stubTurnstile,
+  validConnectParams,
   verifyRequest,
 } from './helpers.js';
 
@@ -147,6 +149,22 @@ describe('/signin/start', () => {
     expect(response.headers.get('Location')).toBe('/signin/verify?email=roundtrip%40example.com');
     expect(await rowCount('otp_tokens')).toBe(1);
     expect(testEnv.EMAIL.sent).toHaveLength(1);
+  });
+
+  it('preserves valid resume fields on the verify redirect', async () => {
+    const testEnv = makeTestEnv();
+    const resume = await signNext(new URLSearchParams(validConnectParams()).toString(), testEnv);
+    const response = await worker.fetch(
+      startRequest('resume@example.com', {}, {
+        next: resume.next,
+        nextSig: resume.nextSig,
+      }),
+      testEnv
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toContain(`next=${encodeURIComponent(resume.next)}`);
+    expect(response.headers.get('Location')).toContain(`next_sig=${encodeURIComponent(resume.nextSig)}`);
   });
 
   it('bumps rate buckets before writing the OTP row', async () => {

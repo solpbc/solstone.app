@@ -25,6 +25,13 @@ import {
 } from './db.js';
 import { sendOtpEmail } from './email.js';
 import {
+  decodeNext,
+  handleConnectConfirm,
+  handleConnectGet,
+  handleOauthToken,
+  verifyNext,
+} from './oauth.js';
+import {
   handleDeregisterDevice,
   handleListDevices,
   handleMintDispatchToken,
@@ -148,6 +155,26 @@ async function csrfToken(env) {
   return hashKey('csrf', 'account', env);
 }
 
+async function validResumeFromParams(params, env) {
+  const next = params.get('next') || '';
+  const nextSig = params.get('next_sig') || '';
+  if (!next || !nextSig) return null;
+  return await verifyNext(next, nextSig, env) ? { next, nextSig } : null;
+}
+
+async function validResumeFromForm(form, env) {
+  const next = form.get('next')?.toString() || '';
+  const nextSig = form.get('next_sig')?.toString() || '';
+  if (!next || !nextSig) return null;
+  return await verifyNext(next, nextSig, env) ? { next, nextSig } : null;
+}
+
+function withResume(location, resume) {
+  if (!resume) return location;
+  const separator = location.includes('?') ? '&' : '?';
+  return `${location}${separator}next=${encodeURIComponent(resume.next)}&next_sig=${encodeURIComponent(resume.nextSig)}`;
+}
+
 async function readForm(req) {
   try {
     return await req.formData();
@@ -165,9 +192,13 @@ export default {
     try {
       if (url.pathname === '/' && req.method === 'GET') {
         const session = await getValidSession(req, env, Date.now());
-        if (session) return redirect('/dashboard');
+        const resume = await validResumeFromParams(url.searchParams, env);
+        if (session) {
+          if (resume) return redirect(`/connect?${decodeNext(resume.next)}`);
+          return redirect('/dashboard');
+        }
         const csrf = await csrfToken(env);
-        return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf));
+        return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}));
       }
 
       if (url.pathname === '/signin/start' && req.method === 'POST') {
@@ -180,6 +211,31 @@ export default {
 
       if (url.pathname === '/signin/verify' && req.method === 'POST') {
         return handleSigninVerifyPost(req, env);
+      }
+
+      if (
+        parts.length === 2 &&
+        parts[1] === 'connect' &&
+        req.method === 'GET'
+      ) {
+        return handleConnectGet(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'connect' &&
+        parts[2] === 'confirm'
+      ) {
+        return handleConnectConfirm(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'oauth' &&
+        parts[2] === 'token' &&
+        req.method === 'POST'
+      ) {
+        return handleOauthToken(req, env);
       }
 
       if (url.pathname === '/passkey/register/start') {
@@ -476,10 +532,14 @@ async function handleSigninStart(req, env) {
   const ipBucketKey = await hashKey('signin_ip', ip, env);
   const emailBucketKey = await hashKey('signin_email', emailLower, env);
   const emailOk = isValidEmail(emailLower);
-  const verifyLocation = emailOk ? `/signin/verify?email=${encodeURIComponent(emailLower)}` : '/signin/verify';
+  const resume = await validResumeFromForm(form, env);
+  const verifyLocation = withResume(
+    emailOk ? `/signin/verify?email=${encodeURIComponent(emailLower)}` : '/signin/verify',
+    resume
+  );
 
   if (!turnstileOk) return redirect(verifyLocation);
-  if (!emailOk) return redirect('/signin/verify');
+  if (!emailOk) return redirect(verifyLocation);
   if (env.EMAIL_PATH_DISABLED === 'true') return redirect(verifyLocation);
 
   const ipCount = await bumpRateBucket(env.DB, ipBucketKey, HOUR_MS, nowMs);
@@ -504,7 +564,14 @@ async function handleSigninVerifyGet(req, env) {
   const emailLower = (url.searchParams.get('email') || '').trim().toLowerCase();
   const email = isValidEmail(emailLower) ? emailLower : '';
   const csrf = await csrfToken(env);
-  return html(renderVerify({ email, error: null, csrf }));
+  const resume = await validResumeFromParams(url.searchParams, env);
+  return html(renderVerify({
+    email,
+    error: null,
+    csrf,
+    next: resume?.next || '',
+    nextSig: resume?.nextSig || '',
+  }));
 }
 
 async function handleSigninVerifyPost(req, env) {
@@ -527,6 +594,7 @@ async function handleSigninVerifyPost(req, env) {
   const emailOk = isValidEmail(emailLower);
   const codeOk = /^\d{6}$/.test(code);
   const renderEmail = emailOk ? emailLower : '';
+  const resume = await validResumeFromForm(form, env);
 
   if (!emailOk || !codeOk) {
     return html(renderVerify({
@@ -534,6 +602,8 @@ async function handleSigninVerifyPost(req, env) {
       emailInputValue: emailOk ? '' : emailForEcho,
       error: VERIFY_ERROR,
       csrf,
+      next: resume?.next || '',
+      nextSig: resume?.nextSig || '',
     }));
   }
 
@@ -544,7 +614,13 @@ async function handleSigninVerifyPost(req, env) {
 
   if (!matched) {
     await bumpOtpAttempts(env.DB, { emailLowerHash, nowMs, maxAttempts: OTP_MAX_ATTEMPTS });
-    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR, csrf }));
+    return html(renderVerify({
+      email: emailLower,
+      error: VERIFY_ERROR,
+      csrf,
+      next: resume?.next || '',
+      nextSig: resume?.nextSig || '',
+    }));
   }
 
   const existing = await findEmailByHash(env.DB, emailLowerHash);
@@ -555,7 +631,13 @@ async function handleSigninVerifyPost(req, env) {
       email_lower_hash_prefix: emailLowerHash.slice(0, 12),
       ts: nowMs,
     }));
-    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR, csrf }));
+    return html(renderVerify({
+      email: emailLower,
+      error: VERIFY_ERROR,
+      csrf,
+      next: resume?.next || '',
+      nextSig: resume?.nextSig || '',
+    }));
   }
   const accountId = existing
     ? existing.account_id
@@ -569,7 +651,8 @@ async function handleSigninVerifyPost(req, env) {
   const sessionToken = generateSessionToken();
   const idHash = await hashWithPepper(sessionToken, env);
   await createSession(env.DB, { idHash, accountId, nowMs });
-  return redirect(isNew ? '/dashboard?welcome=1' : '/dashboard', 303, {
+  const location = resume ? `/connect?${decodeNext(resume.next)}` : (isNew ? '/dashboard?welcome=1' : '/dashboard');
+  return redirect(location, 303, {
     'Set-Cookie': sessionCookie(sessionToken),
   });
 }

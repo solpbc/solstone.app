@@ -85,15 +85,20 @@ export function layout({ title, body, afterMain = '' }) {
 </html>`;
 }
 
-export function renderLanding(turnstileSiteKey, csrf) {
+export function renderLanding(turnstileSiteKey, csrf, resume = {}) {
+  const resumeHtml = resume.next && resume.nextSig
+    ? `<input type="hidden" name="next" value="${escAttr(resume.next)}">
+  <input type="hidden" name="next_sig" value="${escAttr(resume.nextSig)}">`
+    : '';
   return layout({
     title: 'sign in to your solstone account',
     body: `<h1 class="brand">solstone</h1>
-<p class="subhead">one place to manage your sol pbc account.</p>
-<div id="passkey-error" class="error" hidden></div>
-<form method="post" action="/signin/start">
-  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-  <label for="email">email</label>
+	<p class="subhead">one place to manage your sol pbc account.</p>
+	<div id="passkey-error" class="error" hidden></div>
+	<form method="post" action="/signin/start">
+	  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+	  ${resumeHtml}
+	  <label for="email">email</label>
   <input id="email" type="email" name="email" autocomplete="email webauthn" required placeholder="you@example.com" maxlength="254">
   <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}"></div>
   <button type="submit">continue</button>
@@ -104,9 +109,13 @@ export function renderLanding(turnstileSiteKey, csrf) {
   });
 }
 
-export function renderVerify({ email = '', emailInputValue = '', error = '', csrf = '' }) {
+export function renderVerify({ email = '', emailInputValue = '', error = '', csrf = '', next = '', nextSig = '' }) {
   const escapedEmail = esc(email);
   const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
+  const resumeHtml = next && nextSig
+    ? `<input type="hidden" name="next" value="${escAttr(next)}">
+  <input type="hidden" name="next_sig" value="${escAttr(nextSig)}">`
+    : '';
   const emailFieldHtml = email
     ? `<input type="hidden" name="email" value="${escAttr(email)}">`
     : `<input type="email" name="email" value="${escAttr(emailInputValue)}" required autocomplete="email" placeholder="you@example.com" maxlength="254">`;
@@ -118,9 +127,10 @@ export function renderVerify({ email = '', emailInputValue = '', error = '', csr
     body: `<h1>verify your code</h1>
 <p>${subhead}</p>
 ${errorHtml}
-<form method="post" action="/signin/verify">
-  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-  ${emailFieldHtml}
+	<form method="post" action="/signin/verify">
+	  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+	  ${resumeHtml}
+	  ${emailFieldHtml}
   <input class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
   <button type="submit">verify</button>
 </form>`,
