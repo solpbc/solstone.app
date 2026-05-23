@@ -30,6 +30,7 @@ describe('static source checks', () => {
       'oauth.js',
       'passkey.js',
       'provisioning.js',
+      'push.js',
       'retention.js',
       'session.js',
       'settings.js',

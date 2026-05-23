@@ -395,6 +395,19 @@ export async function listDevicesForAccount(db, accountId) {
   return results || [];
 }
 
+export async function listDispatchableDevicesForAccount(db, accountId) {
+  const { results } = await db
+    .prepare(
+      `SELECT device_id, push_token, push_token_env
+       FROM account_devices
+       WHERE account_id = ? AND revoked_at IS NULL
+       ORDER BY last_seen_at DESC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
 export async function countActiveDevices(db, accountId) {
   const row = await db
     .prepare('SELECT COUNT(*) AS c FROM account_devices WHERE account_id = ? AND revoked_at IS NULL')

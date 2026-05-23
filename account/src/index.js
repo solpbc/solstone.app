@@ -46,6 +46,7 @@ import {
   handleRevokeDevice,
   handleSettingsDevices,
 } from './devices.js';
+import { handlePushDedup, handlePushDispatch } from './push.js';
 import {
   handleAddEmail,
   handleMakeEmailPrimary,
@@ -600,6 +601,24 @@ export default {
         req.method === 'POST'
       ) {
         return handleMintDispatchToken(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'push' &&
+        parts[2] === 'dispatch' &&
+        req.method === 'POST'
+      ) {
+        return handlePushDispatch(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'push' &&
+        parts[2] === 'dedup' &&
+        req.method === 'POST'
+      ) {
+        return handlePushDedup(req, env);
       }
 
       if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {

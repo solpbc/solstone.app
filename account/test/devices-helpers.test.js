@@ -1,5 +1,6 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { listDispatchableDevicesForAccount } from '../src/db.js';
 import { deviceRevoke } from '../src/devices.js';
 import { makeTestEnv, resetDb, seedAccount, seedDevice } from './helpers.js';
 
@@ -43,6 +44,34 @@ describe('device helpers', () => {
     const row = await deviceRow(device.deviceId);
 
     expect(row.revoked_at).toBe(1_000);
+  });
+
+  it('listDispatchableDevicesForAccount includes push tokens and omits revoked devices', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    await seedDevice({
+      accountId: account.accountId,
+      deviceId: 'active-device',
+      pushToken: 'active-push-token',
+      bundleId: BUNDLE_ID,
+    });
+    await seedDevice({
+      accountId: account.accountId,
+      deviceId: 'revoked-device',
+      pushToken: 'revoked-push-token',
+      bundleId: BUNDLE_ID,
+      revokedAt: 1_000,
+    });
+
+    const rows = await listDispatchableDevicesForAccount(testEnv.DB, account.accountId);
+
+    expect(rows).toEqual([
+      {
+        device_id: 'active-device',
+        push_token: 'active-push-token',
+        push_token_env: 'production',
+      },
+    ]);
   });
 });
 

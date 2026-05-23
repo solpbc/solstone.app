@@ -18,6 +18,11 @@ const TEST_PEPPER = 'test-hmac-pepper';
 export const TEST_OAUTH_TOKEN_PEPPER = 'test-oauth-token-pepper';
 export const TEST_CSRF = await hashKey('csrf', 'account', { HMAC_PEPPER: TEST_PEPPER });
 export const TEST_CF_ACCESS_AUD = 'test-cf-access-aud';
+export const TEST_APNS_P8_PEM = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg+Zj7Bk6Dzp080/PU
+jTZnJ6kP4KtlHErFO/WuVRTQvkShRANCAARW8djY5HF7K8noSZQRfjP38mIzaufi
+/YPI38YuaWmiPIqRmwDOu5rICl4PPLem4k+qtb950rlYCGx3J+MQN9tO
+-----END PRIVATE KEY-----`;
 
 export function makeTestEnv(overrides = {}) {
   const sent = [];
@@ -43,6 +48,11 @@ export function makeTestEnv(overrides = {}) {
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
     EMAIL_PATH_DISABLED: overrides.EMAIL_PATH_DISABLED || 'false',
     SIGNUP_DISABLED: overrides.SIGNUP_DISABLED || 'false',
+    APNS_TEAM_ID: overrides.APNS_TEAM_ID,
+    APNS_KEY_ID: overrides.APNS_KEY_ID,
+    APNS_P8_PEM: overrides.APNS_P8_PEM,
+    APNS_BUNDLE_ID: overrides.APNS_BUNDLE_ID,
+    APNS_ENV: overrides.APNS_ENV,
   };
 }
 
@@ -57,6 +67,7 @@ export function makeFakeKv() {
   const store = new Map();
   const binding = {
     puts: [],
+    deletes: [],
     async get(key) {
       const entry = store.get(key);
       if (!entry) return null;
@@ -75,6 +86,7 @@ export function makeFakeKv() {
       });
     },
     async delete(key) {
+      binding.deletes.push(key);
       store.delete(key);
     },
   };
@@ -126,7 +138,7 @@ export function installGcpFetchMock(handlers = {}) {
     const url = new URL(href);
     const method = (init.method || 'GET').toUpperCase();
     calls.push({ method, url, init });
-    if (!['oauth2.googleapis.com', 'apikeys.googleapis.com'].includes(url.host)) {
+    if (!['oauth2.googleapis.com', 'apikeys.googleapis.com', 'api.push.apple.com', 'api.sandbox.push.apple.com'].includes(url.host)) {
       throw new Error(`disallowed host reached fetch: ${url.host}`);
     }
     const keys = [

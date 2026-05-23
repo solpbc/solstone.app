@@ -18,6 +18,13 @@ migrations_dir = "migrations"
 binding = "GCP_TOKEN_CACHE"
 id = "PLACEHOLDER_BIND_AT_DEPLOY"
 
+# APNs push dispatch secrets (set via `wrangler secret put`):
+# APNS_TEAM_ID — Apple Developer Team ID (used as JWT issuer).
+# APNS_KEY_ID — Apple APNs auth key id (scopes the KV JWT cache key).
+# APNS_P8_PEM — APNs Auth Key .p8 private key PEM contents.
+# APNS_BUNDLE_ID — App bundle id used as apns-topic (e.g. app.solstone.swift).
+# APNS_ENV — APNs environment: "production" or "sandbox".
+
 [[send_email]]
 name = "EMAIL"
 remote = true
