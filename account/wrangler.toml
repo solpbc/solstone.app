@@ -16,7 +16,7 @@ migrations_dir = "migrations"
 # `wrangler kv namespace create GCP_TOKEN_CACHE` during deploy provisioning.
 [[kv_namespaces]]
 binding = "GCP_TOKEN_CACHE"
-id = "PLACEHOLDER_BIND_AT_DEPLOY"
+id = "9707e650b35847f5aaf180ae0164e90b"
 
 # APNs push dispatch secrets (set via `wrangler secret put`):
 # APNS_TEAM_ID — Apple Developer Team ID (used as JWT issuer).
