@@ -1,3 +1,5 @@
+import { hashWithPepper } from './crypto.js';
+
 const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 export async function findEmailByHash(db, addressLowerHash) {
@@ -578,6 +580,147 @@ export async function consumeOauthCode(db, { codeHash, nowMs }) {
   return row || null;
 }
 
+export async function insertDeviceCode(db, {
+  deviceCodeHash,
+  userCode,
+  clientId,
+  scope,
+  codeChallenge = null,
+  codeChallengeMethod = null,
+  intervalSeconds = 5,
+  createdAt,
+  expiresAt,
+}) {
+  try {
+    const row = await db
+      .prepare(
+        `INSERT INTO device_codes (
+           device_code_hash, user_code, client_id, scope, code_challenge,
+           code_challenge_method, interval_seconds, created_at, expires_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         RETURNING device_code_hash, user_code, client_id, scope, code_challenge,
+                   code_challenge_method, interval_seconds, created_at, expires_at`
+      )
+      .bind(
+        deviceCodeHash,
+        userCode,
+        clientId,
+        scope,
+        codeChallenge,
+        codeChallengeMethod,
+        intervalSeconds,
+        createdAt,
+        expiresAt
+      )
+      .first();
+    return row || null;
+  } catch (error) {
+    if (isUniqueViolation(error)) return null;
+    throw error;
+  }
+}
+
+export async function findDeviceCodeByHash(db, deviceCodeHash) {
+  const row = await db
+    .prepare(
+      `SELECT device_code_hash, user_code, account_id, client_id, scope,
+              code_challenge, code_challenge_method, interval_seconds,
+              created_at, expires_at, last_polled_at, approved_at, denied_at,
+              consumed_at
+       FROM device_codes
+       WHERE device_code_hash = ?`
+    )
+    .bind(deviceCodeHash)
+    .first();
+  return row || null;
+}
+
+export async function findDeviceCodeByUserCode(db, userCode) {
+  const row = await db
+    .prepare(
+      `SELECT device_code_hash, user_code, account_id, client_id, scope,
+              code_challenge, code_challenge_method, interval_seconds,
+              created_at, expires_at, last_polled_at, approved_at, denied_at,
+              consumed_at
+       FROM device_codes
+       WHERE user_code = ?
+         AND consumed_at IS NULL
+         AND denied_at IS NULL`
+    )
+    .bind(userCode)
+    .first();
+  return row || null;
+}
+
+export async function markDeviceCodeApproved(db, { deviceCodeHash, accountId, approvedAt, nowMs = approvedAt }) {
+  const row = await db
+    .prepare(
+      `UPDATE device_codes
+       SET approved_at = ?,
+           account_id = ?
+       WHERE device_code_hash = ?
+         AND approved_at IS NULL
+         AND denied_at IS NULL
+         AND consumed_at IS NULL
+         AND expires_at > ?
+       RETURNING device_code_hash`
+    )
+    .bind(approvedAt, accountId, deviceCodeHash, nowMs)
+    .first();
+  return row != null;
+}
+
+export async function markDeviceCodeDenied(db, { deviceCodeHash, deniedAt, nowMs = deniedAt }) {
+  const row = await db
+    .prepare(
+      `UPDATE device_codes
+       SET denied_at = ?
+       WHERE device_code_hash = ?
+         AND approved_at IS NULL
+         AND denied_at IS NULL
+         AND consumed_at IS NULL
+         AND expires_at > ?
+       RETURNING device_code_hash`
+    )
+    .bind(deniedAt, deviceCodeHash, nowMs)
+    .first();
+  return row != null;
+}
+
+export async function consumeDeviceCode(db, { deviceCodeHash, consumedAt, nowMs }) {
+  const row = await db
+    .prepare(
+      `UPDATE device_codes
+       SET consumed_at = ?
+       WHERE device_code_hash = ?
+         AND approved_at IS NOT NULL
+         AND denied_at IS NULL
+         AND consumed_at IS NULL
+         AND expires_at > ?
+       RETURNING device_code_hash, user_code, account_id, client_id, scope,
+                 code_challenge, code_challenge_method, interval_seconds,
+                 created_at, expires_at, last_polled_at, approved_at`
+    )
+    .bind(consumedAt, deviceCodeHash, nowMs)
+    .first();
+  return row || null;
+}
+
+export async function bumpDeviceCodePolled(db, { deviceCodeHash, nowMs, incrementInterval = false }) {
+  await db
+    .prepare(
+      `UPDATE device_codes
+       SET last_polled_at = ?,
+           interval_seconds = CASE
+             WHEN ? THEN MIN(interval_seconds + 5, 60)
+             ELSE interval_seconds
+           END
+       WHERE device_code_hash = ?`
+    )
+    .bind(nowMs, incrementInterval ? 1 : 0, deviceCodeHash)
+    .run();
+}
+
 export async function insertOauthTokenPair(db, {
   accountId,
   familyId,
@@ -607,6 +750,22 @@ export async function findOauthTokenByRefreshHash(db, { refreshHash }) {
        WHERE refresh_token_hash = ?`
     )
     .bind(refreshHash)
+    .first();
+  return row || null;
+}
+
+export async function verifyOauthAccessToken(env, bearerToken, nowMs = Date.now()) {
+  if (typeof bearerToken !== 'string' || !bearerToken) return null;
+  const accessHash = await hashWithPepper(bearerToken, env, 'OAUTH_TOKEN_PEPPER');
+  const row = await env.DB
+    .prepare(
+      `SELECT id, account_id, family_id, scope, created_at, access_expires_at, revoked_at
+       FROM oauth_tokens
+       WHERE access_token_hash = ?
+         AND revoked_at IS NULL
+         AND access_expires_at > ?`
+    )
+    .bind(accessHash, nowMs)
     .first();
   return row || null;
 }
@@ -685,6 +844,21 @@ export async function findActiveProvisionedKey(db, { accountId, provider }) {
   return row || null;
 }
 
+export async function listProvisionedKeysAudit(db, { accountId, provider }) {
+  const { results } = await db
+    .prepare(
+      `SELECT id, account_id, provider, display_name, key_resource_name,
+              key_string_encrypted, created_at, last_used_at,
+              last_used_fetched_at, revoked_at
+       FROM provisioned_keys
+       WHERE account_id = ? AND provider = ?
+       ORDER BY created_at DESC, id DESC`
+    )
+    .bind(accountId, provider)
+    .all();
+  return results || [];
+}
+
 export async function insertProvisioningPlaceholder(db, { id, accountId, provider, displayName, nowMs }) {
   await db
     .prepare(
@@ -734,6 +908,18 @@ export async function updateProvisionedKeyMaterial(db, { id, keyResourceName, ke
     .run();
 }
 
+export async function updateProvisionedKeyGcpLastUse(db, { id, accountId, lastUsedAt = null, fetchedAt }) {
+  await db
+    .prepare(
+      `UPDATE provisioned_keys
+       SET last_used_at = COALESCE(?, last_used_at),
+           last_used_fetched_at = ?
+       WHERE id = ? AND account_id = ? AND revoked_at IS NULL`
+    )
+    .bind(lastUsedAt, fetchedAt, id, accountId)
+    .run();
+}
+
 export async function deleteProvisioningPlaceholder(db, { id }) {
   await db
     .prepare("DELETE FROM provisioned_keys WHERE id = ? AND key_string_encrypted = ''")
@@ -748,8 +934,96 @@ export async function touchProvisionedKeyLastUsed(db, { id, nowMs }) {
     .run();
 }
 
+export async function rotateGeminiBatch(db, { accountId, oldKeyId, newRow, nowMs }) {
+  let results;
+  try {
+    results = await db.batch([
+      db
+        .prepare(
+          `UPDATE provisioned_keys
+           SET revoked_at = ?
+           WHERE id = ?
+             AND account_id = ?
+             AND provider = 'gemini'
+             AND revoked_at IS NULL
+           RETURNING id, account_id, provider, display_name, key_resource_name,
+                     key_string_encrypted, created_at, last_used_at,
+                     last_used_fetched_at, revoked_at`
+        )
+        .bind(nowMs, oldKeyId, accountId),
+      db
+        .prepare(
+          `INSERT INTO provisioned_keys (
+             id, account_id, provider, display_name, key_resource_name,
+             key_string_encrypted, created_at, last_used_at, last_used_fetched_at
+           )
+           SELECT ?, ?, 'gemini', ?, ?, ?, ?, ?, ?
+           WHERE changes() = 1
+           RETURNING id, account_id, provider, display_name, key_resource_name,
+                     key_string_encrypted, created_at, last_used_at,
+                     last_used_fetched_at, revoked_at`
+        )
+        .bind(
+          newRow.id,
+          accountId,
+          newRow.displayName,
+          newRow.keyResourceName,
+          newRow.keyStringEncrypted,
+          newRow.createdAt,
+          newRow.lastUsedAt ?? null,
+          newRow.lastUsedFetchedAt ?? null
+        ),
+    ]);
+  } catch (error) {
+    if (isActiveProvisionedKeyUniqueViolation(error)) return { ok: false, reason: 'conflict', oldRow: null, newRow: null };
+    throw error;
+  }
+  const oldRow = results?.[0]?.results?.[0] || null;
+  const insertedRow = results?.[1]?.results?.[0] || null;
+  if (!insertedRow) return { ok: false, reason: 'conflict', oldRow, newRow: null };
+  return { ok: true, oldRow, newRow: insertedRow };
+}
+
+export async function deleteRevokedProvisionedKey(db, { accountId, keyId }) {
+  const result = await db
+    .prepare('DELETE FROM provisioned_keys WHERE account_id = ? AND id = ? AND revoked_at IS NOT NULL')
+    .bind(accountId, keyId)
+    .run();
+  return (result?.meta?.changes || 0) === 1;
+}
+
+export async function insertGeminiRevealAck(db, { accountId, ackedAt }) {
+  await db
+    .prepare(
+      `INSERT INTO gemini_reveal_acks (account_id, acked_at)
+       VALUES (?, ?)
+       ON CONFLICT(account_id, acked_at) DO NOTHING`
+    )
+    .bind(accountId, ackedAt)
+    .run();
+}
+
+export async function findRecentGeminiRevealAck(db, { accountId, since }) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, acked_at
+       FROM gemini_reveal_acks
+       WHERE account_id = ? AND acked_at > ?
+       ORDER BY acked_at DESC
+       LIMIT 1`
+    )
+    .bind(accountId, since)
+    .first();
+  return row || null;
+}
+
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
+}
+
+function isActiveProvisionedKeyUniqueViolation(error) {
+  return typeof error?.message === 'string'
+    && error.message.includes('UNIQUE constraint failed: provisioned_keys.account_id, provisioned_keys.provider');
 }
 
 // --- passkey helpers ---

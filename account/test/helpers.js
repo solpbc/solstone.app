@@ -83,6 +83,8 @@ export function makeFakeKv() {
 
 export async function resetDb() {
   for (const table of [
+    'gemini_reveal_acks',
+    'device_codes',
     'oauth_tokens',
     'oauth_codes',
     'provisioned_keys',

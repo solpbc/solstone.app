@@ -1,29 +1,51 @@
-import { decryptEmail } from './crypto.js';
+import { decryptEmail, encryptEmail } from './crypto.js';
 import {
   countAccountEmails,
   countActiveDevices,
   countActivePasskeys,
   countActiveSessions,
+  deleteRevokedProvisionedKey,
+  findActiveProvisionedKey,
+  findRecentGeminiRevealAck,
+  insertGeminiRevealAck,
   listPasskeyCredentialsForAccount,
+  listProvisionedKeysAudit,
   listSessionsForAccount,
   removePasskey,
   renamePasskey,
+  rotateGeminiBatch,
   revokeOtherSessions,
   revokeSession,
+  updateProvisionedKeyGcpLastUse,
+  verifyOauthAccessToken,
 } from './db.js';
+import {
+  gcpCreateApiKey,
+  gcpDeleteKey,
+  gcpFetchKeyString,
+  gcpFindKeyByDisplayName,
+  gcpPollOperation,
+} from './gcp.js';
 import {
   formatDate,
   formatRelativeTime,
+  renderGeminiReveal,
+  renderGeminiSettings,
   renderSettingsPasskeys,
   renderSettingsSessions,
   renderSettingsShell,
 } from './html.js';
-import { forbidden, html, originAllowed, redirect } from './index.js';
+import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { normalizeFriendlyName } from './passkey.js';
+import { computeDisplayName } from './provisioning.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const ZERO_AAGUID = '00000000-0000-0000-0000-000000000000';
+const GEMINI_PROVIDER = 'gemini';
+const REVEAL_ACK_TTL_MS = 24 * 60 * 60 * 1000;
+const ROTATION_DELETE_GRACE_MS = 30_000;
+const ROTATION_SUFFIX_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
 const AAGUID_LABELS = {
   'fbfc3007-154e-4ecc-8c0b-6e020557d7bd': 'icloud keychain',
   'dd4ec289-e01d-41c9-bb89-70fa845d4bf2': 'icloud keychain',
@@ -54,7 +76,14 @@ export async function handleSettingsShell(req, env) {
   const passkeyCount = await countActivePasskeys(env.DB, session.account_id);
   const emailCount = await countAccountEmails(env.DB, session.account_id);
   const deviceCount = await countActiveDevices(env.DB, session.account_id);
-  return settingsHtml(renderSettingsShell({ sessionCount, passkeyCount, emailCount, deviceCount }));
+  const geminiKey = await findActiveProvisionedKey(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER });
+  return settingsHtml(renderSettingsShell({
+    sessionCount,
+    passkeyCount,
+    emailCount,
+    deviceCount,
+    geminiCount: geminiKey ? 1 : null,
+  }));
 }
 
 export async function handleSettingsSessions(req, env) {
@@ -79,6 +108,129 @@ export async function handleSettingsPasskeys(req, env) {
     rows: rows.map((row) => passkeyViewRow(row, nowMs)),
     enrollJsIncluded: true,
   }));
+}
+
+export async function handleSettingsGemini(req, env) {
+  const guard = await requireSettingsSession(req, env);
+  if (guard instanceof Response) return guard;
+  const { session, nowMs } = guard;
+  const url = new URL(req.url);
+  const rows = await listProvisionedKeysAudit(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER });
+  const active = rows.find((row) => row.revoked_at == null) || null;
+  if (active) await refreshGcpLastUse(env, active, nowMs);
+  const recentAck = await findRecentGeminiRevealAck(env.DB, {
+    accountId: session.account_id,
+    since: nowMs - REVEAL_ACK_TTL_MS,
+  });
+  return settingsHtml(renderGeminiSettings({
+    active,
+    rows,
+    hasRecentAck: recentAck != null,
+    nowMs,
+    flash: {
+      rotated: url.searchParams.get('rotated') || '',
+      reveal: url.searchParams.get('reveal') || '',
+      ack: url.searchParams.get('ack') || '',
+      forget: url.searchParams.get('forget') || '',
+    },
+  }));
+}
+
+export async function handleGeminiRotate(req, env, ctx, { allowBearer = true, responseMode = 'json' } = {}) {
+  const nowMs = Date.now();
+  const auth = await rotationAuth(req, env, { allowBearer, responseMode, nowMs });
+  if (auth instanceof Response) return auth;
+
+  const oldKey = await findActiveProvisionedKey(env.DB, { accountId: auth.accountId, provider: GEMINI_PROVIDER });
+  if (!oldKey) return rotationError(responseMode, 'no_active_key', 400);
+
+  const newDisplayName = computeRotationDisplayName(auth.accountId, nowMs);
+  let newKeyResourceName = null;
+  let newKeyString = null;
+  let rotationCommitted = false;
+  try {
+    const operationName = await gcpCreateApiKey({
+      env,
+      displayName: newDisplayName,
+      requestId: crypto.randomUUID(),
+    });
+    newKeyResourceName = await gcpPollOperation({ env, opName: operationName });
+    newKeyString = await gcpFetchKeyString({ env, keyName: newKeyResourceName });
+    const keyStringEncrypted = await encryptEmail(newKeyString, env);
+    const newRow = {
+      id: crypto.randomUUID(),
+      displayName: newDisplayName,
+      keyResourceName: newKeyResourceName,
+      keyStringEncrypted,
+      createdAt: nowMs,
+      lastUsedAt: null,
+      lastUsedFetchedAt: null,
+    };
+    const rotated = await rotateGeminiBatch(env.DB, {
+      accountId: auth.accountId,
+      oldKeyId: oldKey.id,
+      newRow,
+      nowMs,
+    });
+    if (!rotated.ok) {
+      await cleanupOrphanKey(env, newKeyResourceName);
+      if (rotated.reason === 'conflict') return rotationConflict(responseMode);
+      throw new Error('gemini rotation batch failed');
+    }
+    rotationCommitted = true;
+
+    ctx.waitUntil(new Promise((resolve) => {
+      setTimeout(resolve, ROTATION_DELETE_GRACE_MS);
+    }).then(() => gcpDeleteKey({ env, keyName: oldKey.key_resource_name })
+      .catch(() => console.error('gemini_rotate_old_key_delete_failed', { key_resource_name: oldKey.key_resource_name }))));
+
+    if (responseMode === 'redirect') return settingsRedirect('/settings/gemini?rotated=ok');
+    return json({ ok: true, key_id: rotated.newRow.id, rotated_at: nowMs });
+  } catch (error) {
+    if (newKeyResourceName && !rotationCommitted) await cleanupOrphanKey(env, newKeyResourceName);
+    return rotationError(responseMode, 'rotation_failed', 500);
+  }
+}
+
+export async function handleSettingsGeminiRotate(req, env, ctx) {
+  return handleGeminiRotate(req, env, ctx, { allowBearer: false, responseMode: 'redirect' });
+}
+
+export async function handleSettingsGeminiAck(req, env) {
+  if (!originAllowed(req)) return noStore(forbidden());
+  const guard = await requireSettingsSession(req, env);
+  if (guard instanceof Response) return guard;
+  await insertGeminiRevealAck(env.DB, { accountId: guard.session.account_id, ackedAt: guard.nowMs });
+  return settingsRedirect('/settings/gemini?ack=ok');
+}
+
+export async function handleSettingsGeminiReveal(req, env) {
+  if (!originAllowed(req)) return noStore(forbidden());
+  const guard = await requireSettingsSession(req, env);
+  if (guard instanceof Response) return guard;
+  const recentAck = await findRecentGeminiRevealAck(env.DB, {
+    accountId: guard.session.account_id,
+    since: guard.nowMs - REVEAL_ACK_TTL_MS,
+  });
+  if (!recentAck) return settingsRedirect('/settings/gemini?reveal=ack_required');
+
+  const active = await findActiveProvisionedKey(env.DB, { accountId: guard.session.account_id, provider: GEMINI_PROVIDER });
+  if (!active?.key_string_encrypted) return settingsRedirect('/settings/gemini?reveal=missing');
+  const apiKey = await decryptEmail(active.key_string_encrypted, env);
+  return settingsHtml(renderGeminiReveal({ apiKey }));
+}
+
+export async function handleSettingsGeminiForget(req, env) {
+  if (!originAllowed(req)) return noStore(forbidden());
+  const guard = await requireSettingsSession(req, env);
+  if (guard instanceof Response) return guard;
+  const form = await safeForm(req);
+  const keyId = form?.get('key_id')?.toString() || '';
+  const deleted = keyId
+    ? await deleteRevokedProvisionedKey(env.DB, { accountId: guard.session.account_id, keyId })
+    : false;
+  if (!deleted) return settingsHtml('<h1>could not forget key</h1><p>rotate before removing an active key.</p>', { status: 400 });
+  return settingsRedirect('/settings/gemini?forget=ok');
 }
 
 export async function handleRevokeSession(req, env, idHash) {
@@ -155,6 +307,99 @@ export function settingsRedirect(to, headers = {}) {
 export function noStore(response) {
   response.headers.set('Cache-Control', 'no-store');
   return response;
+}
+
+async function rotationAuth(req, env, { allowBearer, responseMode, nowMs }) {
+  const authHeader = req.headers.get('Authorization') || '';
+  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
+  if (allowBearer && bearer) {
+    const row = await verifyOauthAccessToken(env, bearer, nowMs);
+    if (row) {
+      // Explicit OAuth Bearer grants win over ambient browser cookies.
+      return { accountId: row.account_id, mode: 'bearer', scope: row.scope, familyId: row.family_id };
+    }
+  }
+
+  // Browser-session rotation is same-origin guarded; CLI Bearer rotation is not.
+  if (!originAllowed(req)) {
+    return responseMode === 'redirect' ? noStore(forbidden()) : rotationError(responseMode, 'forbidden', 403);
+  }
+  const session = await getValidSession(req, env, nowMs);
+  if (!session) return rotationError(responseMode, 'unauthorized', 401);
+  return { accountId: session.account_id, mode: 'session' };
+}
+
+function rotationError(responseMode, error, status) {
+  if (responseMode === 'redirect') {
+    const value = error === 'rotation_conflict' ? 'conflict' : error;
+    return settingsRedirect(`/settings/gemini?rotated=${encodeURIComponent(value)}`);
+  }
+  return json({ error }, { status });
+}
+
+function rotationConflict(responseMode) {
+  return rotationError(responseMode, 'rotation_conflict', 409);
+}
+
+async function cleanupOrphanKey(env, keyResourceName) {
+  await gcpDeleteKey({ env, keyName: keyResourceName })
+    .catch(() => console.error('gcp_orphan_key', { key_resource_name: keyResourceName }));
+}
+
+async function refreshGcpLastUse(env, active, nowMs) {
+  try {
+    const key = await gcpFindKeyByDisplayName({ env, displayName: active.display_name });
+    const lastUse = parseGcpLastUse(key);
+    await updateProvisionedKeyGcpLastUse(env.DB, {
+      id: active.id,
+      accountId: active.account_id,
+      lastUsedAt: lastUse,
+      fetchedAt: nowMs,
+    });
+    active.last_used_fetched_at = nowMs;
+    if (lastUse != null) active.last_used_at = lastUse;
+    if (lastUse == null) {
+      active.last_used_at = null;
+      console.error('gcp_lastused_unavailable');
+    }
+  } catch {
+    await updateProvisionedKeyGcpLastUse(env.DB, {
+      id: active.id,
+      accountId: active.account_id,
+      lastUsedAt: null,
+      fetchedAt: nowMs,
+    }).catch(() => {});
+    active.last_used_fetched_at = nowMs;
+    active.last_used_at = null;
+    console.error('gcp_lastused_unavailable');
+  }
+}
+
+function parseGcpLastUse(key) {
+  const raw = key?.last_use_time || key?.lastUseTime || null;
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+export function computeRotationDisplayName(accountId, nowMs = Date.now()) {
+  const date = new Date(nowMs).toISOString().slice(0, 10).replace(/-/g, '');
+  return `${computeDisplayName(accountId)}-r-${date}-${randomRotationSuffix()}`;
+}
+
+function randomRotationSuffix() {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  let value = '';
+  for (const byte of bytes) value += ROTATION_SUFFIX_ALPHABET[byte % ROTATION_SUFFIX_ALPHABET.length];
+  return value;
+}
+
+async function safeForm(req) {
+  try {
+    return await req.formData();
+  } catch {
+    return null;
+  }
 }
 
 async function sessionViewRow(row, env) {

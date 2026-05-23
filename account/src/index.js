@@ -25,10 +25,16 @@ import {
 } from './db.js';
 import { sendOtpEmail } from './email.js';
 import {
+  decodeNextDevice,
   decodeNext,
+  handleDeviceAuthorization,
+  handleDeviceConfirm,
+  handleDeviceGet,
+  handleDevicePost,
   handleConnectConfirm,
   handleConnectGet,
   handleOauthToken,
+  verifyNextDevice,
   verifyNext,
 } from './oauth.js';
 import {
@@ -69,9 +75,15 @@ import { runRetention } from './retention.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
+  handleGeminiRotate,
   handleRenamePasskey,
   handleRevokeOtherSessions,
   handleRevokeSession,
+  handleSettingsGemini,
+  handleSettingsGeminiAck,
+  handleSettingsGeminiForget,
+  handleSettingsGeminiReveal,
+  handleSettingsGeminiRotate,
   handleSettingsPasskeys,
   handleSettingsSessions,
   handleSettingsShell,
@@ -159,14 +171,18 @@ async function validResumeFromParams(params, env) {
   const next = params.get('next') || '';
   const nextSig = params.get('next_sig') || '';
   if (!next || !nextSig) return null;
-  return await verifyNext(next, nextSig, env) ? { next, nextSig } : null;
+  if (await verifyNext(next, nextSig, env)) return { kind: 'connect', next, nextSig };
+  if (await verifyNextDevice(next, nextSig, env)) return { kind: 'device', next, nextSig };
+  return null;
 }
 
 async function validResumeFromForm(form, env) {
   const next = form.get('next')?.toString() || '';
   const nextSig = form.get('next_sig')?.toString() || '';
   if (!next || !nextSig) return null;
-  return await verifyNext(next, nextSig, env) ? { next, nextSig } : null;
+  if (await verifyNext(next, nextSig, env)) return { kind: 'connect', next, nextSig };
+  if (await verifyNextDevice(next, nextSig, env)) return { kind: 'device', next, nextSig };
+  return null;
 }
 
 function withResume(location, resume) {
@@ -194,7 +210,8 @@ export default {
         const session = await getValidSession(req, env, Date.now());
         const resume = await validResumeFromParams(url.searchParams, env);
         if (session) {
-          if (resume) return redirect(`/connect?${decodeNext(resume.next)}`);
+          if (resume?.kind === 'connect') return redirect(`/connect?${decodeNext(resume.next)}`);
+          if (resume?.kind === 'device') return redirect(`/device?user_code=${encodeURIComponent(decodeNextDevice(resume.next))}`);
           return redirect('/dashboard');
         }
         const csrf = await csrfToken(env);
@@ -222,6 +239,22 @@ export default {
       }
 
       if (
+        parts.length === 2 &&
+        parts[1] === 'device' &&
+        req.method === 'GET'
+      ) {
+        return handleDeviceGet(req, env);
+      }
+
+      if (
+        parts.length === 2 &&
+        parts[1] === 'device' &&
+        req.method === 'POST'
+      ) {
+        return handleDevicePost(req, env);
+      }
+
+      if (
         parts.length === 3 &&
         parts[1] === 'connect' &&
         parts[2] === 'confirm'
@@ -231,11 +264,39 @@ export default {
 
       if (
         parts.length === 3 &&
+        parts[1] === 'device' &&
+        parts[2] === 'confirm' &&
+        req.method === 'POST'
+      ) {
+        return handleDeviceConfirm(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'oauth' &&
+        parts[2] === 'device_authorization' &&
+        req.method === 'POST'
+      ) {
+        return handleDeviceAuthorization(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
         parts[1] === 'oauth' &&
         parts[2] === 'token' &&
         req.method === 'POST'
       ) {
-        return handleOauthToken(req, env);
+        return handleOauthToken(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'keys' &&
+        parts[2] === 'gemini' &&
+        parts[3] === 'rotate' &&
+        req.method === 'POST'
+      ) {
+        return handleGeminiRotate(req, env, ctx, { allowBearer: true, responseMode: 'json' });
       }
 
       if (url.pathname === '/passkey/register/start') {
@@ -395,6 +456,15 @@ export default {
       }
 
       if (
+        parts.length === 3 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'gemini' &&
+        req.method === 'GET'
+      ) {
+        return handleSettingsGemini(req, env);
+      }
+
+      if (
         parts.length === 4 &&
         parts[1] === 'settings' &&
         parts[2] === 'sessions' &&
@@ -412,6 +482,46 @@ export default {
         req.method === 'POST'
       ) {
         return handleRevokeAllDevices(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'gemini' &&
+        parts[3] === 'rotate' &&
+        req.method === 'POST'
+      ) {
+        return handleSettingsGeminiRotate(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'gemini' &&
+        parts[3] === 'ack' &&
+        req.method === 'POST'
+      ) {
+        return handleSettingsGeminiAck(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'gemini' &&
+        parts[3] === 'reveal' &&
+        req.method === 'POST'
+      ) {
+        return handleSettingsGeminiReveal(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'settings' &&
+        parts[2] === 'gemini' &&
+        parts[3] === 'forget' &&
+        req.method === 'POST'
+      ) {
+        return handleSettingsGeminiForget(req, env);
       }
 
       if (
@@ -651,7 +761,11 @@ async function handleSigninVerifyPost(req, env) {
   const sessionToken = generateSessionToken();
   const idHash = await hashWithPepper(sessionToken, env);
   await createSession(env.DB, { idHash, accountId, nowMs });
-  const location = resume ? `/connect?${decodeNext(resume.next)}` : (isNew ? '/dashboard?welcome=1' : '/dashboard');
+  const location = resume?.kind === 'connect'
+    ? `/connect?${decodeNext(resume.next)}`
+    : resume?.kind === 'device'
+      ? `/device?user_code=${encodeURIComponent(decodeNextDevice(resume.next))}`
+      : (isNew ? '/dashboard?welcome=1' : '/dashboard');
   return redirect(location, 303, {
     'Set-Cookie': sessionCookie(sessionToken),
   });

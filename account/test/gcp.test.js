@@ -217,6 +217,16 @@ describe('GCP API Keys client', () => {
       .rejects.toThrow(/delete failed/);
   });
 
+  it('delete key treats 404 as success-equivalent', async () => {
+    installGcpFetchMock({
+      'POST oauth2.googleapis.com/token': async () => jsonResponse({ access_token: 'gcp-token', expires_in: 3600, token_type: 'Bearer' }),
+      'DELETE apikeys.googleapis.com/v2/projects/test/locations/global/keys/key-1': async () => new Response('not found', { status: 404 }),
+    });
+
+    await expect(gcpDeleteKey({ env: makeTestEnv(), keyName: 'projects/test/locations/global/keys/key-1' }))
+      .resolves.toBeUndefined();
+  });
+
   it('find key by displayName returns exact match', async () => {
     installGcpFetchMock({
       'POST oauth2.googleapis.com/token': async () => jsonResponse({ access_token: 'gcp-token', expires_in: 3600, token_type: 'Bearer' }),

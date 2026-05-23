@@ -66,6 +66,7 @@ export async function gcpFetchKeyString({ env, keyName }) {
 
 export async function gcpDeleteKey({ env, keyName }) {
   const res = await authorizedGcpFetch(env, `https://${API_KEYS_HOST}/v2/${keyName}`, { method: 'DELETE' });
+  if (res.status === 404) return;
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`GCP key delete failed: ${res.status} ${text}`);

@@ -175,11 +175,11 @@ ${welcomePanel}`,
   });
 }
 
-export function renderSettingsShell({ sessionCount, passkeyCount, emailCount = 0, deviceCount = 0 }) {
+export function renderSettingsShell({ sessionCount, passkeyCount, emailCount = 0, deviceCount = 0, geminiCount = null }) {
   return layout({
     title: 'account settings',
     body: `<h1>account settings</h1>
-<nav class="settings-nav"><a href="/dashboard">back to dashboard</a></nav>
+	<nav class="settings-nav"><a href="/dashboard">back to dashboard</a></nav>
 <a class="settings-card" href="/settings/sessions">
   <strong>sessions</strong>
   <span>${esc(countLabel(sessionCount, 'active session', 'active sessions'))}</span>
@@ -192,12 +192,16 @@ export function renderSettingsShell({ sessionCount, passkeyCount, emailCount = 0
   <strong>email addresses</strong>
   <span>${esc(countLabel(emailCount, 'email', 'emails'))}</span>
 </a>
-<a class="settings-card" href="/settings/devices">
-  <strong>devices</strong>
-  <span>${esc(countLabel(deviceCount, 'device', 'devices'))}</span>
-</a>
-<p class="disclosure"><a href="/settings/data">what we have about you</a></p>
-<form method="post" action="/signout"><button type="submit">sign out</button></form>`,
+	<a class="settings-card" href="/settings/devices">
+	  <strong>devices</strong>
+	  <span>${esc(countLabel(deviceCount, 'device', 'devices'))}</span>
+	</a>
+	<a class="settings-card" href="/settings/gemini">
+	  <strong>gemini</strong>
+	  <span>${geminiCount === 1 ? '1' : '—'}</span>
+	</a>
+	<p class="disclosure"><a href="/settings/data">what we have about you</a></p>
+	<form method="post" action="/signout"><button type="submit">sign out</button></form>`,
   });
 }
 
@@ -439,6 +443,68 @@ ${enrollJsIncluded ? `<script>${ENROLL_JS}</script>` : ''}`,
   });
 }
 
+export function renderGeminiSettings({ active, rows, hasRecentAck, nowMs, flash = {} }) {
+  const flashes = flashMessages(flash);
+  const status = active ? 'active' : 'none';
+  const created = active ? formatRelativeTime(active.created_at, nowMs) : '—';
+  const lastUsed = active ? geminiLastUsedText(active, nowMs) : 'not available';
+  const revealAction = hasRecentAck ? '/settings/gemini/reveal' : '/settings/gemini/ack';
+  const revealText = hasRecentAck ? 'reveal current key' : 'acknowledge and unlock reveal';
+  const rotate = active
+    ? `<form method="post" action="/settings/gemini/rotate" class="inline-form">
+  <button type="submit">rotate key</button>
+</form>`
+    : '';
+  const reveal = active
+    ? `<form method="post" action="${revealAction}" class="inline-form">
+  ${hasRecentAck ? '' : '<input type="hidden" name="warning" value="gemini-reveal">'}
+  <button type="submit">${revealText}</button>
+</form>`
+    : '';
+  const auditRows = rows.map((row) => {
+    const isActive = row.revoked_at == null;
+    const forget = isActive
+      ? ''
+      : `<form method="post" action="/settings/gemini/forget" class="inline-form">
+    <input type="hidden" name="key_id" value="${escAttr(row.id)}">
+    <button class="danger" type="submit">forget</button>
+  </form>`;
+    return `<section class="settings-row">
+  <h2>${esc(row.display_name)}${isActive ? '<span class="sticker">active</span>' : '<span class="sticker">revoked</span>'}</h2>
+  <p class="meta">created ${esc(formatDate(row.created_at))}</p>
+  <p class="meta">last used ${esc(geminiLastUsedText(row, nowMs))}</p>
+  <p class="meta">${esc(isActive ? 'active' : `revoked ${formatDate(row.revoked_at)}`)}</p>
+  ${forget}
+</section>`;
+  }).join('');
+  return layout({
+    title: 'gemini',
+    body: `<h1>gemini</h1>
+<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+${flashes}
+<section class="settings-row">
+  <h2>gemini key</h2>
+  <p class="meta">status ${esc(status)}</p>
+  <p class="meta">created ${esc(created)}</p>
+  <p class="meta">last used ${esc(lastUsed)}</p>
+  ${reveal}
+  ${rotate}
+</section>
+<h2>audit</h2>
+${auditRows || '<p>no gemini keys on this account.</p>'}`,
+  });
+}
+
+export function renderGeminiReveal({ apiKey }) {
+  return layout({
+    title: 'gemini key',
+    body: `<h1>gemini key</h1>
+<p class="notice">this key is visible on screen now.</p>
+<input readonly value="${escAttr(apiKey)}" onclick="this.select()">
+<form method="get" action="/settings/gemini"><button type="submit">close</button></form>`,
+  });
+}
+
 export function renderGoodbye() {
   return layout({
     title: 'signed out',
@@ -485,6 +551,26 @@ export function formatRelativeTime(tsMs, nowMs) {
   const days = Math.floor(hours / 24);
   if (days >= 30) return new Date(ts).toISOString().slice(0, 10);
   return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function geminiLastUsedText(row, nowMs) {
+  if (row.last_used_at != null && row.last_used_fetched_at != null) {
+    return formatRelativeTime(row.last_used_at, nowMs);
+  }
+  if (row.last_used_fetched_at != null) return 'not available (checked just now)';
+  return 'not available';
+}
+
+function flashMessages(flash) {
+  const messages = [];
+  if (flash.rotated === 'ok') messages.push('key rotated.');
+  if (flash.rotated === 'conflict') messages.push('another rotation completed first. try again.');
+  if (flash.rotated === 'no_active_key') messages.push('no active key to rotate.');
+  if (flash.ack === 'ok') messages.push('reveal unlocked for 24 hours.');
+  if (flash.reveal === 'ack_required') messages.push('acknowledge before revealing the key.');
+  if (flash.reveal === 'missing') messages.push('no active key to reveal.');
+  if (flash.forget === 'ok') messages.push('revoked key forgotten.');
+  return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
 function esc(value) {

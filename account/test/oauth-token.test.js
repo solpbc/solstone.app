@@ -286,13 +286,13 @@ describe('/oauth/token', () => {
     expect(await activeFamilyCount('family-same-ms')).toBe(0);
   });
 
-  it('device_code grant is unsupported_grant_type', async () => {
+  it('device_code grant rejects missing fields', async () => {
     const response = await worker.fetch(tokenRequest({
       grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
     }), makeTestEnv());
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'unsupported_grant_type' });
+    expect(await response.json()).toEqual({ error: 'invalid_request' });
   });
 
   it('unknown grant is unsupported_grant_type', async () => {
