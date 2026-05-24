@@ -27,7 +27,7 @@ describe('settings email primary and remove actions', () => {
     const testEnv = makeTestEnv({ DB: recordingDb(workerEnv.DB, statements) });
 
     const response = await worker.fetch(
-      settingsPost(`/settings/emails/${secondary.id}/make-primary`, session.cookie),
+      settingsPost(`/sign-in/emails/${secondary.id}/make-primary`, session.cookie),
       testEnv
     );
     const rows = await accountEmailRows(account.accountId);
@@ -37,7 +37,7 @@ describe('settings email primary and remove actions', () => {
       .first();
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/settings/emails');
+    expect(response.headers.get('Location')).toBe('/sign-in/emails');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(statements).toContain('[batch]');
     expect(statements.some((sql) => /SET is_primary = CASE WHEN id = \? THEN 1 ELSE 0 END/i.test(sql))).toBe(true);
@@ -52,7 +52,7 @@ describe('settings email primary and remove actions', () => {
     const before = await accountEmailRows(account.accountId);
 
     const response = await worker.fetch(
-      settingsPost(`/settings/emails/${account.accountEmailId}/make-primary`, session.cookie),
+      settingsPost(`/sign-in/emails/${account.accountEmailId}/make-primary`, session.cookie),
       testEnv
     );
     const after = await accountEmailRows(account.accountId);
@@ -80,10 +80,10 @@ describe('settings email primary and remove actions', () => {
     });
 
     for (const id of [unverified.id, foreign.id, 'missing-id']) {
-      const response = await worker.fetch(settingsPost(`/settings/emails/${id}/make-primary`, session.cookie), testEnv);
+      const response = await worker.fetch(settingsPost(`/sign-in/emails/${id}/make-primary`, session.cookie), testEnv);
       const body = response.status === 303 ? '' : await response.text();
       expect(response.status).toBe(303);
-      expect(response.headers.get('Location')).toBe('/settings/emails');
+      expect(response.headers.get('Location')).toBe('/sign-in/emails');
       expect(response.headers.get('Cache-Control')).toBe('no-store');
       expect(body).not.toContain('cannot remove');
     }
@@ -106,7 +106,7 @@ describe('settings email primary and remove actions', () => {
     const testEnv = makeTestEnv({ DB: recordingDb(workerEnv.DB, statements) });
 
     const response = await worker.fetch(
-      settingsPost(`/settings/emails/${onlySecondary.id}/remove`, session.cookie),
+      settingsPost(`/sign-in/emails/${onlySecondary.id}/remove`, session.cookie),
       testEnv
     );
     const deleteIndex = statements.findIndex((sql) => /DELETE FROM account_emails/i.test(sql));
@@ -136,11 +136,11 @@ describe('settings email primary and remove actions', () => {
     });
 
     const removeVerified = await worker.fetch(
-      settingsPost(`/settings/emails/${verified.id}/remove`, session.cookie),
+      settingsPost(`/sign-in/emails/${verified.id}/remove`, session.cookie),
       testEnv
     );
     const removeUnverified = await worker.fetch(
-      settingsPost(`/settings/emails/${unverified.id}/remove`, session.cookie),
+      settingsPost(`/sign-in/emails/${unverified.id}/remove`, session.cookie),
       testEnv
     );
 
@@ -165,13 +165,13 @@ describe('settings email primary and remove actions', () => {
       .bind(account.accountEmailId)
       .run();
 
-    const only = await worker.fetch(settingsPost(`/settings/emails/${secondary.id}/remove`, session.cookie), testEnv);
+    const only = await worker.fetch(settingsPost(`/sign-in/emails/${secondary.id}/remove`, session.cookie), testEnv);
     const onlyBody = await only.text();
     await workerEnv.DB
       .prepare('UPDATE account_emails SET verified_at = ? WHERE id = ?')
       .bind(Date.now(), account.accountEmailId)
       .run();
-    const primary = await worker.fetch(settingsPost(`/settings/emails/${account.accountEmailId}/remove`, session.cookie), testEnv);
+    const primary = await worker.fetch(settingsPost(`/sign-in/emails/${account.accountEmailId}/remove`, session.cookie), testEnv);
     const primaryBody = await primary.text();
 
     expect(only.status).toBe(403);
@@ -195,9 +195,9 @@ describe('settings email primary and remove actions', () => {
     });
 
     for (const id of [foreign.id, 'missing-id']) {
-      const response = await worker.fetch(settingsPost(`/settings/emails/${id}/remove`, session.cookie), testEnv);
+      const response = await worker.fetch(settingsPost(`/sign-in/emails/${id}/remove`, session.cookie), testEnv);
       expect(response.status).toBe(303);
-      expect(response.headers.get('Location')).toBe('/settings/emails');
+      expect(response.headers.get('Location')).toBe('/sign-in/emails');
       expect(response.headers.get('Cache-Control')).toBe('no-store');
     }
     expect(await accountEmail(foreign.id)).not.toBeNull();
@@ -224,8 +224,8 @@ describe('settings email primary and remove actions', () => {
     });
 
     const responses = await Promise.all([
-      worker.fetch(settingsPost(`/settings/emails/${first.id}/remove`, session.cookie), testEnv),
-      worker.fetch(settingsPost(`/settings/emails/${second.id}/remove`, session.cookie), testEnv),
+      worker.fetch(settingsPost(`/sign-in/emails/${first.id}/remove`, session.cookie), testEnv),
+      worker.fetch(settingsPost(`/sign-in/emails/${second.id}/remove`, session.cookie), testEnv),
     ]);
     const verifiedRows = await workerEnv.DB
       .prepare('SELECT id FROM account_emails WHERE account_id = ? AND verified_at IS NOT NULL')

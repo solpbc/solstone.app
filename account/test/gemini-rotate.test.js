@@ -71,7 +71,7 @@ describe('Gemini key rotation', () => {
     const response = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, ctx);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/settings/gemini?rotated=ok');
+    expect(response.headers.get('Location')).toBe('/services/scout?rotated=ok');
     await waitSpy.mock.calls[0][0];
   });
 
@@ -91,7 +91,7 @@ describe('Gemini key rotation', () => {
     }), testEnv, createExecutionContext());
     expect(bearer.status).toBe(200);
 
-    const crossSite = await worker.fetch(new Request('https://services.solstone.app/settings/gemini/rotate', {
+    const crossSite = await worker.fetch(new Request('https://services.solstone.app/services/scout/rotate', {
       method: 'POST',
       headers: { Cookie: session.cookie, Origin: 'https://evil.example' },
     }), testEnv, createExecutionContext());
@@ -278,7 +278,7 @@ function rotateRequest({ bearer, origin = '' }) {
 }
 
 function settingsRotateRequest(cookie) {
-  return new Request('https://services.solstone.app/settings/gemini/rotate', {
+  return new Request('https://services.solstone.app/services/scout/rotate', {
     method: 'POST',
     headers: {
       Origin: 'https://services.solstone.app',

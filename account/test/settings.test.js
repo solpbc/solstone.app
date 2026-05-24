@@ -23,7 +23,7 @@ describe('settings sessions', () => {
     const session = await seedSession(account.accountId, { testEnv });
     await seedCredential({ accountId: account.accountId, credentialId: 'shell-credential' });
 
-    const response = await worker.fetch(settingsRequest('/settings', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in', { cookie: session.cookie }), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
@@ -31,7 +31,7 @@ describe('settings sessions', () => {
     expect(body).toContain('1 active session');
     expect(body).toContain('1 passkey');
     expect(body).toContain('action="/signout"');
-    expect(body).toContain('href="/dashboard"');
+    expect(body).toContain('href="/"');
   });
 
   it('renders the current request user agent and IPv4 from the activity bump', async () => {
@@ -39,7 +39,7 @@ describe('settings sessions', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsRequest('/settings/sessions', {
+    const response = await worker.fetch(settingsRequest('/sign-in/sessions', {
       cookie: session.cookie,
       ip: '73.225.42.18',
       userAgent: SAFARI_MAC_UA,
@@ -59,7 +59,7 @@ describe('settings sessions', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsRequest('/settings/sessions', {
+    const response = await worker.fetch(settingsRequest('/sign-in/sessions', {
       cookie: session.cookie,
       ip: '2001:db8:abcd:1234:5678:abcd:1234:5678',
       userAgent: SAFARI_MAC_UA,
@@ -74,7 +74,7 @@ describe('settings sessions', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsRequest('/settings/sessions', {
+    const response = await worker.fetch(settingsRequest('/sign-in/sessions', {
       cookie: session.cookie,
       userAgent: '<script>alert(1)</script>',
     }), testEnv);
@@ -89,7 +89,7 @@ describe('settings sessions', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsPost(`/settings/sessions/${session.idHash}/revoke`, {
+    const response = await worker.fetch(settingsPost(`/sign-in/sessions/${session.idHash}/revoke`, {
       cookie: session.cookie,
     }), testEnv);
     const row = await sessionRow(session.idHash);
@@ -104,7 +104,7 @@ describe('settings sessions', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsPost('/settings/sessions//revoke', {
+    const response = await worker.fetch(settingsPost('/sign-in/sessions//revoke', {
       cookie: session.cookie,
     }), testEnv);
     const row = await sessionRow(session.idHash);
@@ -117,7 +117,7 @@ describe('settings sessions', () => {
   it('does not revoke anything for unauthenticated revoke-others requests', async () => {
     const statements = [];
     const noCookieEnv = makeTestEnv({ DB: recordingDb(workerEnv.DB, statements) });
-    const noCookie = await worker.fetch(settingsPost('/settings/sessions/revoke-others'), noCookieEnv);
+    const noCookie = await worker.fetch(settingsPost('/sign-in/sessions/revoke-others'), noCookieEnv);
     expect(noCookie.status).toBe(303);
     expect(noCookie.headers.get('Location')).toBe('/');
     expect(noCookie.headers.get('Set-Cookie')).toBe('account_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0');
@@ -128,7 +128,7 @@ describe('settings sessions', () => {
     const account = await seedAccount({ testEnv });
     const victim = await seedSession(account.accountId, { testEnv });
     const unknownStatements = [];
-    const unknown = await worker.fetch(settingsPost('/settings/sessions/revoke-others', {
+    const unknown = await worker.fetch(settingsPost('/sign-in/sessions/revoke-others', {
       cookie: 'account_session=garbage',
     }), makeTestEnv({ DB: recordingDb(workerEnv.DB, unknownStatements) }));
     expect(unknown.status).toBe(303);
@@ -145,7 +145,7 @@ describe('settings sessions', () => {
       .bind(Date.now() - 1_000, expired.idHash)
       .run();
     const expiredStatements = [];
-    const expiredResponse = await worker.fetch(settingsPost('/settings/sessions/revoke-others', {
+    const expiredResponse = await worker.fetch(settingsPost('/sign-in/sessions/revoke-others', {
       cookie: expired.cookie,
     }), makeTestEnv({ DB: recordingDb(workerEnv.DB, expiredStatements) }));
     expect(expiredResponse.status).toBe(303);
@@ -162,13 +162,13 @@ describe('settings sessions', () => {
     const sessionA = await seedSession(accountA.accountId, { testEnv });
     const sessionB = await seedSession(accountB.accountId, { testEnv });
 
-    const revoke = await worker.fetch(settingsPost(`/settings/sessions/${sessionB.idHash}/revoke`, {
+    const revoke = await worker.fetch(settingsPost(`/sign-in/sessions/${sessionB.idHash}/revoke`, {
       cookie: sessionA.cookie,
     }), testEnv);
     expect(revoke.status).toBe(303);
     expect((await sessionRow(sessionB.idHash)).revoked_at).toBeNull();
 
-    const revokeOthers = await worker.fetch(settingsPost('/settings/sessions/revoke-others', {
+    const revokeOthers = await worker.fetch(settingsPost('/sign-in/sessions/revoke-others', {
       cookie: sessionA.cookie,
     }), testEnv);
     expect(revokeOthers.status).toBe(303);
@@ -181,7 +181,7 @@ describe('settings sessions', () => {
     const current = await seedSession(account.accountId, { testEnv });
     const other = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsPost('/settings/sessions/revoke-others', {
+    const response = await worker.fetch(settingsPost('/sign-in/sessions/revoke-others', {
       cookie: current.cookie,
     }), testEnv);
 

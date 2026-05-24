@@ -27,7 +27,7 @@ import { sendVerifyEmail } from './email.js';
 import {
   formatDate,
   renderEmailVerify,
-  renderSettingsEmails,
+  renderSignInEmails,
   renderTransparency,
   VERIFY_ERROR,
 } from './html.js';
@@ -35,9 +35,9 @@ import { forbidden, isValidEmail, originAllowed } from './index.js';
 import {
   aaguidLabel,
   noStore,
-  requireSettingsSession,
-  settingsHtml,
-  settingsRedirect,
+  requireSignedInSession,
+  signedInHtml,
+  signedInRedirect,
   truncateIp,
   uaLabel,
 } from './settings.js';
@@ -49,15 +49,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const DECRYPT_KIND_ADDRESS = 'address';
 const DECRYPT_KIND_IP = 'ip';
 
-export async function handleSettingsEmails(req, env) {
-  const guard = await requireSettingsSession(req, env);
+export async function handleSignInEmails(req, env) {
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   return renderEmailsPage(env, guard.session, guard.nowMs);
 }
 
 export async function handleAddEmail(req, env, ctx) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
 
   const form = await req.formData();
@@ -74,17 +74,17 @@ export async function handleAddEmail(req, env, ctx) {
   const codeHash = await hashWithPepper(code, env);
   const addressLowerHash = await hashWithPepper(addressLower, env);
   const rateKey = await hashKey('add_email_per_day', guard.session.account_id, env);
-  const verifyLocation = `/settings/emails/verify?address=${encodeURIComponent(addressLower)}`;
+  const verifyLocation = `/sign-in/emails/verify?address=${encodeURIComponent(addressLower)}`;
 
   if (env.EMAIL_PATH_DISABLED === 'true') {
     logAddCollision(guard.session.account_id, nowMs);
-    return settingsRedirect(verifyLocation);
+    return signedInRedirect(verifyLocation);
   }
 
   const addCount = await bumpRateBucket(env.DB, rateKey, DAY_MS, nowMs);
   if (addCount > ADD_EMAIL_DAY_LIMIT) {
     logAddCollision(guard.session.account_id, nowMs);
-    return settingsRedirect(verifyLocation);
+    return signedInRedirect(verifyLocation);
   }
 
   const existing = await findEmailEligibilityByHash(env.DB, addressLowerHash);
@@ -111,18 +111,18 @@ export async function handleAddEmail(req, env, ctx) {
     logAddCollision(guard.session.account_id, nowMs);
   }
 
-  return settingsRedirect(verifyLocation);
+  return signedInRedirect(verifyLocation);
 }
 
 export async function handleVerifyEmailGet(req, env) {
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
 
   const url = new URL(req.url);
   const rawAddress = url.searchParams.get('address') || '';
   const addressLower = rawAddress.trim().toLowerCase();
   if (!isValidEmail(addressLower)) {
-    return settingsHtml(renderEmailVerify({
+    return signedInHtml(renderEmailVerify({
       address: '',
       addressInputValue: rawAddress.trim(),
       error: '',
@@ -135,7 +135,7 @@ export async function handleVerifyEmailGet(req, env) {
     accountId: guard.session.account_id,
     addressLowerHash,
   });
-  return settingsHtml(renderEmailVerify({
+  return signedInHtml(renderEmailVerify({
     address: addressLower,
     addressInputValue: '',
     error: '',
@@ -145,7 +145,7 @@ export async function handleVerifyEmailGet(req, env) {
 
 export async function handleVerifyEmailPost(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
 
   const form = await req.formData();
@@ -156,7 +156,7 @@ export async function handleVerifyEmailPost(req, env) {
   const codeOk = /^\d{6}$/.test(code);
 
   if (!addressOk || !codeOk) {
-    return settingsHtml(renderEmailVerify({
+    return signedInHtml(renderEmailVerify({
       address: addressOk ? addressLower : '',
       addressInputValue: addressOk ? '' : rawAddress.trim(),
       error: VERIFY_ERROR,
@@ -174,7 +174,7 @@ export async function handleVerifyEmailPost(req, env) {
     nowMs,
   });
 
-  if (matched) return settingsRedirect('/settings/emails');
+  if (matched) return signedInRedirect('/sign-in/emails');
 
   await bumpAccountEmailVerificationAttempts(env.DB, {
     accountId: guard.session.account_id,
@@ -182,7 +182,7 @@ export async function handleVerifyEmailPost(req, env) {
     nowMs,
     maxAttempts: EMAIL_VERIFY_MAX_ATTEMPTS,
   });
-  return settingsHtml(renderEmailVerify({
+  return signedInHtml(renderEmailVerify({
     address: addressLower,
     addressInputValue: '',
     error: VERIFY_ERROR,
@@ -192,49 +192,49 @@ export async function handleVerifyEmailPost(req, env) {
 
 export async function handleMakeEmailPrimary(req, env, emailId) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
-  if (!emailId) return settingsRedirect('/settings/emails');
+  if (!emailId) return signedInRedirect('/sign-in/emails');
 
   const row = await findVerifiedAccountEmailById(env.DB, {
     id: emailId,
     accountId: guard.session.account_id,
   });
-  if (!row) return settingsRedirect('/settings/emails');
+  if (!row) return signedInRedirect('/sign-in/emails');
 
   await makeAccountEmailPrimary(env.DB, {
     id: emailId,
     accountId: guard.session.account_id,
   });
-  return settingsRedirect('/settings/emails');
+  return signedInRedirect('/sign-in/emails');
 }
 
 export async function handleRemoveEmail(req, env, emailId) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
-  if (!emailId) return settingsRedirect('/settings/emails');
+  if (!emailId) return signedInRedirect('/sign-in/emails');
 
   const changes = await removeAccountEmail(env.DB, {
     id: emailId,
     accountId: guard.session.account_id,
   });
-  if (changes === 1) return settingsRedirect('/settings/emails');
+  if (changes === 1) return signedInRedirect('/sign-in/emails');
 
   const row = await findAccountEmailById(env.DB, {
     id: emailId,
     accountId: guard.session.account_id,
   });
-  if (!row) return settingsRedirect('/settings/emails');
+  if (!row) return signedInRedirect('/sign-in/emails');
 
   return renderEmailsPage(env, guard.session, guard.nowMs, {
-    removeError: 'cannot remove this email — it would leave your account with no verified email',
+    removeError: 'cannot remove this email — your sign-in needs at least one verified email',
     status: 403,
   });
 }
 
-export async function handleSettingsData(req, env) {
-  const guard = await requireSettingsSession(req, env);
+export async function handleSignInData(req, env) {
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
 
   const accountId = guard.session.account_id;
@@ -248,7 +248,7 @@ export async function handleSettingsData(req, env) {
   const sessions = await Promise.all(sessionRows.map((row) => transparencySessionRow(row, env)));
   const passkeys = passkeyRows.map(transparencyPasskeyRow);
 
-  return settingsHtml(renderTransparency({
+  return signedInHtml(renderTransparency({
     accountId,
     accountCreatedAt: account?.created_at ?? null,
     lastSigninAt: account?.last_signin_at ?? null,
@@ -265,7 +265,7 @@ async function renderEmailsPage(env, session, nowMs, {
 } = {}) {
   const rows = await listAccountEmails(env.DB, session.account_id);
   const viewRows = await Promise.all(rows.map((row) => emailViewRow(row, env, nowMs)));
-  return settingsHtml(renderSettingsEmails({ rows: viewRows, addError, removeError }), { status });
+  return signedInHtml(renderSignInEmails({ rows: viewRows, addError, removeError }), { status });
 }
 
 function queueVerifyEmail(ctx, { env, address, code }) {

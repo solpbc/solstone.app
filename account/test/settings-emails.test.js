@@ -31,16 +31,16 @@ describe('settings emails list and add flow', () => {
       testEnv,
     });
 
-    const response = await worker.fetch(settingsRequest('/settings', session.cookie), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in', session.cookie), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('1 active session');
     expect(body).toContain('1 passkey');
-    expect(body).toContain('href="/settings/emails"');
+    expect(body).toContain('href="/sign-in/emails"');
     expect(body).toContain('2 emails');
-    expect(body).toContain('href="/settings/data"');
+    expect(body).toContain('href="/sign-in/data"');
   });
 
   it('renders email rows sorted primary first then newest', async () => {
@@ -61,7 +61,7 @@ describe('settings emails list and add flow', () => {
       testEnv,
     });
 
-    const response = await worker.fetch(settingsRequest('/settings/emails', session.cookie), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in/emails', session.cookie), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
@@ -93,19 +93,19 @@ describe('settings emails list and add flow', () => {
       testEnv,
     });
 
-    const response = await worker.fetch(settingsRequest('/settings/emails', session.cookie), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in/emails', session.cookie), testEnv);
     const body = await response.text();
 
     expect(body).toContain('primary');
     expect(body).toContain('verified@example.com');
-    expect(body).toContain(`/settings/emails/${verified.id}/make-primary`);
-    expect(body).toContain(`/settings/emails/${verified.id}/remove`);
+    expect(body).toContain(`/sign-in/emails/${verified.id}/make-primary`);
+    expect(body).toContain(`/sign-in/emails/${verified.id}/remove`);
     expect(body).toContain('unverified@example.com');
-    expect(body).toContain(`/settings/emails/verify?address=unverified%40example.com`);
-    expect(body).toContain(`/settings/emails/${unverified.id}/remove`);
+    expect(body).toContain(`/sign-in/emails/verify?address=unverified%40example.com`);
+    expect(body).toContain(`/sign-in/emails/${unverified.id}/remove`);
     expect(body).toContain('code expires in');
     expect(body).toContain('code expired — request a new one');
-    expect(body).toContain('action="/settings/emails/add"');
+    expect(body).toContain('action="/sign-in/emails/add"');
     expect(body).toContain('name="address"');
     expect(primarySection(body)).not.toContain('make-primary');
     expect(primarySection(body)).not.toContain('/remove');
@@ -126,7 +126,7 @@ describe('settings emails list and add flow', () => {
     const body = `${message.text}\n${message.html}`;
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/settings/emails/verify?address=added%40example.com');
+    expect(response.headers.get('Location')).toBe('/sign-in/emails/verify?address=added%40example.com');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.has('Set-Cookie')).toBe(false);
     expect(row.verified_at).toBeNull();
@@ -136,8 +136,7 @@ describe('settings emails list and add flow', () => {
     expect(row.verification_expires_at).toBeLessThanOrEqual(after + 10 * 60 * 1000 + 1_000);
     expect(testEnv.EMAIL.sent).toHaveLength(1);
     expect(message.subject).toMatch(/^verify your sol pbc email: \d{3} \d{3}$/);
-    expect(body).toContain('to verify this email address on your sol pbc account');
-    expect(body).not.toContain('sign-in');
+    expect(body).toContain('to verify this email address for your sol pbc sign-in');
     expect(body).not.toContain('http://');
     expect(body).not.toContain('https://');
   });
@@ -185,7 +184,7 @@ describe('settings emails list and add flow', () => {
       testEnv
     );
     const verify = await worker.fetch(
-      settingsRequest('/settings/emails/verify?address=verified-same%40example.com', session.cookie),
+      settingsRequest('/sign-in/emails/verify?address=verified-same%40example.com', session.cookie),
       testEnv
     );
     const body = await verify.text();
@@ -194,7 +193,7 @@ describe('settings emails list and add flow', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(await rowCount('account_emails')).toBe(2);
     expect(testEnv.EMAIL.sent).toHaveLength(0);
-    expect(body).toContain('this email is already verified on this account.');
+    expect(body).toContain('this email is already verified for your sign-in.');
   });
 
   it('hides third-party collisions with a byte-identical redirect and scrubbed log', async () => {

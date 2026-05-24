@@ -29,7 +29,7 @@ describe('session activity metadata', () => {
     const session = await seedSession(account.accountId, { testEnv });
     const longUa = `agent-${'x'.repeat(600)}`;
 
-    await worker.fetch(new Request('https://services.solstone.app/settings', {
+    await worker.fetch(new Request('https://services.solstone.app/sign-in', {
       headers: {
         Cookie: session.cookie,
         'CF-Connecting-IP': '73.225.42.18',
@@ -71,7 +71,7 @@ describe('session activity metadata', () => {
       },
     };
 
-    const response = await worker.fetch(new Request('https://services.solstone.app/settings', {
+    const response = await worker.fetch(new Request('https://services.solstone.app/sign-in', {
       headers: { Cookie: session.cookie },
     }), { ...testEnv, DB: throwingDb });
 
@@ -88,7 +88,7 @@ describe('session activity metadata', () => {
       .bind(Date.now(), session.idHash)
       .run();
 
-    const response = await worker.fetch(new Request('https://services.solstone.app/dashboard', {
+    const response = await worker.fetch(new Request('https://services.solstone.app/', {
       headers: { Cookie: session.cookie },
     }), testEnv);
 
@@ -106,7 +106,7 @@ describe('session activity metadata', () => {
       .bind(Date.now(), session.idHash)
       .run();
 
-    const response = await worker.fetch(new Request('https://services.solstone.app/settings/sessions', {
+    const response = await worker.fetch(new Request('https://services.solstone.app/sign-in/sessions', {
       headers: { Cookie: session.cookie },
     }), testEnv);
 

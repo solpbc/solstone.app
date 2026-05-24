@@ -23,12 +23,12 @@ describe('settings email verify flow', () => {
     const { testEnv, session } = await setupAccount();
 
     const hidden = await worker.fetch(
-      settingsRequest('/settings/emails/verify?address=New%40Example.com', session.cookie),
+      settingsRequest('/sign-in/emails/verify?address=New%40Example.com', session.cookie),
       testEnv
     );
     const hiddenBody = await hidden.text();
     const visible = await worker.fetch(
-      settingsRequest('/settings/emails/verify?address=not-an-email', session.cookie),
+      settingsRequest('/sign-in/emails/verify?address=not-an-email', session.cookie),
       testEnv
     );
     const visibleBody = await visible.text();
@@ -59,18 +59,18 @@ describe('settings email verify flow', () => {
     });
 
     const same = await worker.fetch(
-      settingsRequest('/settings/emails/verify?address=same%40example.com', session.cookie),
+      settingsRequest('/sign-in/emails/verify?address=same%40example.com', session.cookie),
       testEnv
     );
     const sameBody = await same.text();
     const foreign = await worker.fetch(
-      settingsRequest('/settings/emails/verify?address=foreign%40example.com', session.cookie),
+      settingsRequest('/sign-in/emails/verify?address=foreign%40example.com', session.cookie),
       testEnv
     );
     const foreignBody = await foreign.text();
 
-    expect(sameBody).toContain('this email is already verified on this account.');
-    expect(foreignBody).not.toContain('this email is already verified on this account.');
+    expect(sameBody).toContain('this email is already verified for your sign-in.');
+    expect(foreignBody).not.toContain('this email is already verified for your sign-in.');
     expect(foreignBody).toContain('name="code"');
   });
 
@@ -91,7 +91,7 @@ describe('settings email verify flow', () => {
     const row = await emailRow(email.id);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/settings/emails');
+    expect(response.headers.get('Location')).toBe('/sign-in/emails');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(row.verified_at).toBeGreaterThan(0);
     expect(row.verification_code_hash).toBeNull();

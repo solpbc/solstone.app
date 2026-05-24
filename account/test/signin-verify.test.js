@@ -93,7 +93,7 @@ describe('/signin/verify', () => {
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(response.headers.get('Location')).toBe('/?welcome=1');
     expect(extractCookieToken(response.headers.get('Set-Cookie') || '')).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
@@ -111,7 +111,7 @@ describe('/signin/verify', () => {
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(response.headers.get('Location')).toBe('/?welcome=1');
     expect(extractCookieToken(response.headers.get('Set-Cookie') || '')).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
@@ -172,7 +172,7 @@ describe('/signin/verify', () => {
       testEnv
     );
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(response.headers.get('Location')).toBe('/?welcome=1');
     expect(extractCookieToken(response.headers.get('Set-Cookie') || '')).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(await rowCount('accounts')).toBe(1);
     expect(await rowCount('account_emails')).toBe(1);
@@ -192,7 +192,7 @@ describe('/signin/verify', () => {
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/dashboard');
+    expect(response.headers.get('Location')).toBe('/');
     expect(await rowCount('accounts')).toBe(1);
     expect(await rowCount('account_emails')).toBe(1);
     expect(await rowCount('sessions')).toBe(2);
@@ -233,7 +233,7 @@ describe('/signin/verify', () => {
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(response.headers.get('Location')).toBe('/?welcome=1');
   });
 
   it('rejects a reused OTP after atomic consume', async () => {

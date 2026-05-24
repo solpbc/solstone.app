@@ -83,7 +83,7 @@ describe('passkey authentication', () => {
       .first();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ ok: true, redirect: '/dashboard' });
+    expect(body).toEqual({ ok: true, redirect: '/' });
     expect(response.headers.get('Set-Cookie')).toMatch(
       /^account_session=[A-Za-z0-9_-]+; HttpOnly; Secure; SameSite=Lax; Path=\/; Max-Age=1209600$/
     );

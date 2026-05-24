@@ -155,7 +155,7 @@ describe('OAuth connect handoff', () => {
     expect(response.headers.get('Location')).toBe(`/connect?${original}`);
   });
 
-  it('OTP success with invalid next signature falls back to dashboard', async () => {
+  it('OTP success with invalid next signature falls back to services', async () => {
     const testEnv = makeTestEnv();
     const connect = await worker.fetch(connectRequest(), testEnv);
     const landingLocation = new URL(`https://services.solstone.app${connect.headers.get('Location')}`);
@@ -171,7 +171,7 @@ describe('OAuth connect handoff', () => {
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(response.headers.get('Location')).toBe('/?welcome=1');
   });
 
   it('session GET /connect renders consent hidden fields and mints no code', async () => {
@@ -182,7 +182,9 @@ describe('OAuth connect handoff', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('<h1 style="text-transform:none">Connect Solstone CLI</h1>');
+    expect(body).toContain('<h1>connect solstone cli</h1>');
+    expect(body).toContain('solstone cli wants to set up scout on this device.');
+    expect(body).toContain('create a scout key for your sign-in');
     expect(body).toContain('person@example.com');
     expect(body).toContain('name="client_id" value="solstone-cli"');
     expect(await rowCount('oauth_codes')).toBe(0);

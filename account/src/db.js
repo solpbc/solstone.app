@@ -997,6 +997,14 @@ export async function rotateGeminiBatch(db, { accountId, oldKeyId, newRow, nowMs
   return { ok: true, oldRow, newRow: insertedRow };
 }
 
+export async function revokeProvisionedKey(db, { accountId, keyId, nowMs }) {
+  const result = await db
+    .prepare('UPDATE provisioned_keys SET revoked_at = ? WHERE account_id = ? AND id = ? AND revoked_at IS NULL')
+    .bind(nowMs, accountId, keyId)
+    .run();
+  return (result?.meta?.changes || 0) === 1;
+}
+
 export async function deleteRevokedProvisionedKey(db, { accountId, keyId }) {
   const result = await db
     .prepare('DELETE FROM provisioned_keys WHERE account_id = ? AND id = ? AND revoked_at IS NOT NULL')

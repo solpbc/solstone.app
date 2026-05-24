@@ -47,7 +47,7 @@ describe('/signin/start', () => {
     const finishPath = ['/signin', 'finish'].join('/');
 
     expect(message.subject).toMatch(/^your sol pbc sign-in code: \d{3} \d{3}$/);
-    expect(message.from).toBe('solstone account <account@solstone.app>');
+    expect(message.from).toBe('solstone services <services@solstone.app>');
     expect(message).not.toHaveProperty('Reply-To');
     expect(message).not.toHaveProperty('List-Unsubscribe');
     expect(message.text).toMatch(/10 minute/i);
@@ -263,7 +263,7 @@ describe('/signin/start', () => {
 
     const verified = await worker.fetch(verifyRequest({ email: 'cap@example.com', code }), testEnv);
     expect(verified.status).toBe(303);
-    expect(verified.headers.get('Location')).toBe('/dashboard?welcome=1');
+    expect(verified.headers.get('Location')).toBe('/?welcome=1');
   });
 });
 

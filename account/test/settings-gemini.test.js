@@ -28,8 +28,8 @@ describe('settings gemini dashboard', () => {
     vi.restoreAllMocks();
   });
 
-  it('requires a session for GET /settings/gemini', async () => {
-    const response = await worker.fetch(settingsGet('/settings/gemini'), makeTestEnv());
+  it('requires a session for GET /services/scout', async () => {
+    const response = await worker.fetch(settingsGet('/services/scout'), makeTestEnv());
 
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe('/');
@@ -49,22 +49,22 @@ describe('settings gemini dashboard', () => {
     installGcpListMock([{ name: 'projects/test-gcp-project/locations/global/keys/active', displayName: 'acct-active' }]);
     secrets.push('plaintext-current-key');
 
-    const first = await worker.fetch(settingsGet('/settings/gemini', { cookie: session.cookie }), testEnv);
+    const first = await worker.fetch(settingsGet('/services/scout', { cookie: session.cookie }), testEnv);
     const firstBody = await first.text();
 
     expect(first.status).toBe(200);
     expect(firstBody).not.toContain('plaintext-current-key');
-    expect(firstBody).toContain('action="/settings/gemini/ack"');
-    expect(firstBody).not.toContain('action="/settings/gemini/reveal"');
+    expect(firstBody).toContain('action="/services/scout/ack"');
+    expect(firstBody).not.toContain('action="/services/scout/reveal"');
 
-    const ack = await worker.fetch(settingsPost('/settings/gemini/ack', { cookie: session.cookie }), testEnv);
+    const ack = await worker.fetch(settingsPost('/services/scout/ack', { cookie: session.cookie }), testEnv);
     expect(ack.status).toBe(303);
-    expect(ack.headers.get('Location')).toBe('/settings/gemini?ack=ok');
+    expect(ack.headers.get('Location')).toBe('/services/scout?ack=ok');
 
-    const second = await worker.fetch(settingsGet('/settings/gemini', { cookie: session.cookie }), testEnv);
+    const second = await worker.fetch(settingsGet('/services/scout', { cookie: session.cookie }), testEnv);
     const secondBody = await second.text();
 
-    expect(secondBody).toContain('action="/settings/gemini/reveal"');
+    expect(secondBody).toContain('action="/services/scout/reveal"');
   });
 
   it('treats same-millisecond reveal ack submits as idempotent', async () => {
@@ -75,13 +75,13 @@ describe('settings gemini dashboard', () => {
     const session = await seedSession(account.accountId, { testEnv });
     secrets.push(String(now));
 
-    const first = await worker.fetch(settingsPost('/settings/gemini/ack', { cookie: session.cookie }), testEnv);
-    const second = await worker.fetch(settingsPost('/settings/gemini/ack', { cookie: session.cookie }), testEnv);
+    const first = await worker.fetch(settingsPost('/services/scout/ack', { cookie: session.cookie }), testEnv);
+    const second = await worker.fetch(settingsPost('/services/scout/ack', { cookie: session.cookie }), testEnv);
 
     expect(first.status).toBe(303);
-    expect(first.headers.get('Location')).toBe('/settings/gemini?ack=ok');
+    expect(first.headers.get('Location')).toBe('/services/scout?ack=ok');
     expect(second.status).toBe(303);
-    expect(second.headers.get('Location')).toBe('/settings/gemini?ack=ok');
+    expect(second.headers.get('Location')).toBe('/services/scout?ack=ok');
     expect(await ackCount(testEnv, account.accountId)).toBe(1);
   });
 
@@ -102,11 +102,11 @@ describe('settings gemini dashboard', () => {
     await testEnv.DB.prepare('DELETE FROM gemini_reveal_acks WHERE account_id = ?').bind(account.accountId).run();
     secrets.push('plaintext-reveal-key');
 
-    const response = await worker.fetch(settingsPost('/settings/gemini/reveal', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsPost('/services/scout/reveal', { cookie: session.cookie }), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/settings/gemini?reveal=ack_required');
+    expect(response.headers.get('Location')).toBe('/services/scout?reveal=ack_required');
     expect(body).not.toContain('plaintext-reveal-key');
   });
 
@@ -126,7 +126,7 @@ describe('settings gemini dashboard', () => {
       .run();
     secrets.push('plaintext-visible-key');
 
-    const response = await worker.fetch(settingsPost('/settings/gemini/reveal', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsPost('/services/scout/reveal', { cookie: session.cookie }), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
@@ -147,14 +147,14 @@ describe('settings gemini dashboard', () => {
     });
     secrets.push('plaintext-expiring-key', String(now), String(now + 24 * 60 * 60 * 1000 + 1));
 
-    const ack = await worker.fetch(settingsPost('/settings/gemini/ack', { cookie: session.cookie }), testEnv);
+    const ack = await worker.fetch(settingsPost('/services/scout/ack', { cookie: session.cookie }), testEnv);
     expect(ack.status).toBe(303);
 
     vi.mocked(Date.now).mockReturnValue(now + 24 * 60 * 60 * 1000 + 1);
-    const response = await worker.fetch(settingsPost('/settings/gemini/reveal', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsPost('/services/scout/reveal', { cookie: session.cookie }), testEnv);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/settings/gemini?reveal=ack_required');
+    expect(response.headers.get('Location')).toBe('/services/scout?reveal=ack_required');
   });
 
   it('rotates from the dashboard and redirects to the success flash', async () => {
@@ -174,10 +174,10 @@ describe('settings gemini dashboard', () => {
     const waitSpy = vi.spyOn(ctx, 'waitUntil');
     secrets.push('plaintext-old-dashboard', 'plaintext-new-dashboard');
 
-    const response = await worker.fetch(settingsPost('/settings/gemini/rotate', { cookie: session.cookie }), testEnv, ctx);
+    const response = await worker.fetch(settingsPost('/services/scout/rotate', { cookie: session.cookie }), testEnv, ctx);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/settings/gemini?rotated=ok');
+    expect(response.headers.get('Location')).toBe('/services/scout?rotated=ok');
     await waitSpy.mock.calls[0][0];
   });
 
@@ -204,17 +204,17 @@ describe('settings gemini dashboard', () => {
     installGcpListMock([{ name: 'projects/test-gcp-project/locations/global/keys/active', displayName: 'acct-active' }]);
     secrets.push('plaintext-active-key', 'plaintext-revoked-key');
 
-    const forget = await worker.fetch(settingsPost('/settings/gemini/forget', {
+    const forget = await worker.fetch(settingsPost('/services/scout/forget', {
       cookie: session.cookie,
       body: { key_id: 'revoked-key' },
     }), testEnv);
     expect(forget.status).toBe(303);
     expect(await keyExists(testEnv, 'revoked-key')).toBe(false);
 
-    const page = await worker.fetch(settingsGet('/settings/gemini', { cookie: session.cookie }), testEnv);
+    const page = await worker.fetch(settingsGet('/services/scout', { cookie: session.cookie }), testEnv);
     expect(await page.text()).not.toContain('acct-revoked');
 
-    const activeDelete = await worker.fetch(settingsPost('/settings/gemini/forget', {
+    const activeDelete = await worker.fetch(settingsPost('/services/scout/forget', {
       cookie: session.cookie,
       body: { key_id: 'active-key' },
     }), testEnv);
@@ -255,22 +255,22 @@ describe('settings gemini dashboard', () => {
     installGcpListMock([{ name: 'projects/test-gcp-project/locations/global/keys/b-old', displayName: 'acct-b-active' }]);
     secrets.push('plaintext-a-key', 'plaintext-a-revoked', 'plaintext-b-key', 'plaintext-b-new');
 
-    const page = await worker.fetch(settingsGet('/settings/gemini', { cookie: sessionB.cookie }), testEnv);
+    const page = await worker.fetch(settingsGet('/services/scout', { cookie: sessionB.cookie }), testEnv);
     const body = await page.text();
     expect(body).toContain('acct-b-active');
     expect(body).not.toContain('acct-a-active');
 
-    const ack = await worker.fetch(settingsPost('/settings/gemini/ack', { cookie: sessionB.cookie }), testEnv);
+    const ack = await worker.fetch(settingsPost('/services/scout/ack', { cookie: sessionB.cookie }), testEnv);
     expect(ack.status).toBe(303);
     expect(await ackCount(testEnv, accountA.accountId)).toBe(0);
     expect(await ackCount(testEnv, accountB.accountId)).toBe(1);
 
-    const reveal = await worker.fetch(settingsPost('/settings/gemini/reveal', { cookie: sessionB.cookie }), testEnv);
+    const reveal = await worker.fetch(settingsPost('/services/scout/reveal', { cookie: sessionB.cookie }), testEnv);
     const revealBody = await reveal.text();
     expect(revealBody).toContain('plaintext-b-key');
     expect(revealBody).not.toContain('plaintext-a-key');
 
-    const forgetA = await worker.fetch(settingsPost('/settings/gemini/forget', {
+    const forgetA = await worker.fetch(settingsPost('/services/scout/forget', {
       cookie: sessionB.cookie,
       body: { key_id: 'a-revoked' },
     }), testEnv);
@@ -281,7 +281,7 @@ describe('settings gemini dashboard', () => {
     installImmediateTimeout();
     const ctx = createExecutionContext();
     const waitSpy = vi.spyOn(ctx, 'waitUntil');
-    const rotate = await worker.fetch(settingsPost('/settings/gemini/rotate', { cookie: sessionB.cookie }), testEnv, ctx);
+    const rotate = await worker.fetch(settingsPost('/services/scout/rotate', { cookie: sessionB.cookie }), testEnv, ctx);
     expect(rotate.status).toBe(303);
     await waitSpy.mock.calls[0][0];
     expect(await activeKeyResource(testEnv, accountA.accountId)).toBe('projects/test-gcp-project/locations/global/keys/a-old');

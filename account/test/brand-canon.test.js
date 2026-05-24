@@ -1,0 +1,229 @@
+import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import worker from '../src/index.js';
+import { encryptEmail } from '../src/crypto.js';
+import {
+  emailAddRequest,
+  installGcpFetchMock,
+  makeTestEnv,
+  resetDb,
+  seedAccount,
+  seedCredential,
+  seedDevice,
+  seedSession,
+  startRequest,
+  stubTurnstile,
+  validConnectParams,
+} from './helpers.js';
+
+const FORBIDDEN_PHRASES = [
+  'your account',
+  'your sol pbc account',
+  'account settings',
+  'account security',
+  'create an account',
+  'sign up for solstone',
+  'sign up for sol pbc',
+  'manage your account',
+  'set up your sol pbc account',
+  'log in to solstone',
+  'log in required',
+  'premium services',
+  'your service plan',
+  'free trial',
+  'service status: trial',
+];
+
+const SERVICE_VERBS = [
+  'activate',
+  'subscribe to',
+  'sign up for',
+  'upgrade your',
+  'unlock',
+];
+
+const forbiddenRe = new RegExp(FORBIDDEN_PHRASES.map(escapeRe).join('|'), 'i');
+const serviceVerbRe = new RegExp(SERVICE_VERBS.map(escapeRe).join('|'), 'i');
+const stripHref = (html) => html.replace(/href="[^"]*"/gi, 'href=""');
+
+describe('brand canon', () => {
+  beforeEach(async () => {
+    await resetDb();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('keeps forbidden account/service-plan copy and lowercase gemini out of HTML surfaces', async () => {
+    const testEnv = makeTestEnv();
+    installGcpFetchMock({
+      'POST oauth2.googleapis.com/token': async () => json({ access_token: 'token', expires_in: 3600, token_type: 'Bearer' }),
+      'GET apikeys.googleapis.com/v2/projects/test-gcp-project/locations/global/keys': async () => json({
+        keys: [{
+          name: 'projects/test-gcp-project/locations/global/keys/scout-active',
+          displayName: 'scout-active',
+          lastUseTime: '2026-05-24T00:00:00Z',
+        }],
+      }),
+    });
+
+    const withPasskey = await seedAccount({ email: 'canon@example.com', testEnv });
+    const withPasskeySession = await seedSession(withPasskey.accountId, { testEnv });
+    await seedCredential({ accountId: withPasskey.accountId, credentialId: 'canon-passkey' });
+    await seedDevice({ accountId: withPasskey.accountId, deviceId: 'canon-device' });
+    await seedProvisionedKey({
+      testEnv,
+      accountId: withPasskey.accountId,
+      displayName: 'scout-active',
+      keyResourceName: 'projects/test-gcp-project/locations/global/keys/scout-active',
+      keyString: 'canon-scout-key',
+    });
+
+    const noPasskey = await seedAccount({ email: 'welcome@example.com', testEnv });
+    const noPasskeySession = await seedSession(noPasskey.accountId, { testEnv });
+    const noScout = await seedAccount({ email: 'empty-scout@example.com', testEnv });
+    const noScoutSession = await seedSession(noScout.accountId, { testEnv });
+    await seedCredential({ accountId: noScout.accountId, credentialId: 'empty-passkey' });
+
+    const deviceCode = await createDeviceCode(testEnv);
+    const connectPath = `/connect?${new URLSearchParams(validConnectParams()).toString()}`;
+    const surfaces = [
+      ['signed-out landing', await get('/', testEnv)],
+      ['signed-in services dashboard', await get('/', testEnv, withPasskeySession.cookie), true],
+      ['signed-in welcome services dashboard', await get('/', testEnv, noPasskeySession.cookie), true],
+      ['sign-in hub', await get('/sign-in', testEnv, withPasskeySession.cookie), true],
+      ['sessions', await get('/sign-in/sessions', testEnv, withPasskeySession.cookie), true],
+      ['passkeys', await get('/sign-in/passkeys', testEnv, withPasskeySession.cookie), true],
+      ['emails', await get('/sign-in/emails', testEnv, withPasskeySession.cookie), true],
+      ['data', await get('/sign-in/data', testEnv, withPasskeySession.cookie), true],
+      ['scout active', await get('/services/scout', testEnv, withPasskeySession.cookie), true],
+      ['scout empty', await get('/services/scout', testEnv, noScoutSession.cookie), true],
+      ['devices', await get('/services/devices', testEnv, withPasskeySession.cookie), true],
+      ['connect consent', await get(connectPath, testEnv, withPasskeySession.cookie), true],
+      ['device entry', await get('/device', testEnv)],
+      ['device consent', await postDeviceConsent(deviceCode.user_code, testEnv, withPasskeySession.cookie), true],
+      ['verify code', await get('/signin/verify', testEnv)],
+      ['goodbye', await get('/goodbye', testEnv)],
+      ['not found', await get('/not-found', testEnv)],
+      ['forbidden', await post('/signin/verify', testEnv, new URLSearchParams({ email: 'x@example.com', code: '123456' }))],
+      ['error', await errorResponse()],
+    ];
+
+    const violations = [];
+    for (const [name, response, signedIn = false] of surfaces) {
+      const body = await response.text();
+      const scanBody = stripHref(body);
+      if (forbiddenRe.test(scanBody)) violations.push(`${name}: forbidden phrase`);
+      if (serviceVerbRe.test(scanBody)) violations.push(`${name}: service verb`);
+      if (/\bgemini\b/.test(scanBody)) violations.push(`${name}: lowercase gemini`);
+      if (signedIn) expect(response.headers.get('Cache-Control')).toBe('no-store');
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('keeps forbidden copy out of transactional emails', async () => {
+    const testEnv = makeTestEnv();
+    stubTurnstile(true);
+
+    await worker.fetch(startRequest('otp@example.com'), testEnv);
+    scanEmail('otp', testEnv.EMAIL.sent[0]);
+
+    const account = await seedAccount({ email: 'owner@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const ctx = createExecutionContext();
+    await worker.fetch(emailAddRequest({ address: 'verify@example.com', cookie: session.cookie }), testEnv, ctx);
+    await waitOnExecutionContext(ctx);
+    scanEmail('verify', testEnv.EMAIL.sent[1]);
+  });
+});
+
+async function get(path, testEnv, cookie = '') {
+  const headers = cookie ? { Cookie: cookie } : {};
+  return worker.fetch(new Request(`https://services.solstone.app${path}`, { headers }), testEnv);
+}
+
+async function post(path, testEnv, body, cookie = '') {
+  const headers = {
+    Origin: 'https://services.solstone.app',
+    'Content-Type': 'application/x-www-form-urlencoded',
+  };
+  if (cookie) headers.Cookie = cookie;
+  return worker.fetch(new Request(`https://services.solstone.app${path}`, {
+    method: 'POST',
+    headers,
+    body,
+  }), testEnv);
+}
+
+async function postDeviceConsent(userCode, testEnv, cookie) {
+  return post('/device', testEnv, new URLSearchParams({ user_code: userCode }), cookie);
+}
+
+async function createDeviceCode(testEnv) {
+  const response = await worker.fetch(new Request('https://services.solstone.app/oauth/device_authorization', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: 'solstone-cli', scope: 'solstone.gemini' }),
+  }), testEnv);
+  return response.json();
+}
+
+async function errorResponse() {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    return await worker.fetch(new Request('https://services.solstone.app/', {
+      headers: { Cookie: 'account_session=bad-token' },
+    }), makeTestEnv({
+      DB: {
+        prepare() {
+          throw new Error('db unavailable');
+        },
+      },
+    }));
+  } finally {
+    error.mockRestore();
+  }
+}
+
+async function seedProvisionedKey({
+  testEnv,
+  accountId,
+  id = crypto.randomUUID(),
+  displayName,
+  keyResourceName,
+  keyString,
+  createdAt = Date.now(),
+}) {
+  await testEnv.DB
+    .prepare(
+      `INSERT INTO provisioned_keys (
+         id, account_id, provider, display_name, key_resource_name,
+         key_string_encrypted, created_at
+       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?)`
+    )
+    .bind(id, accountId, displayName, keyResourceName, await encryptEmail(keyString, testEnv), createdAt)
+    .run();
+}
+
+function scanEmail(name, message) {
+  expect(message, `${name} email sent`).toBeTruthy();
+  expect(message.from).toBe('solstone services <services@solstone.app>');
+  for (const field of ['from', 'subject', 'text', 'html']) {
+    expect(message[field], `${name} email ${field}`).not.toMatch(forbiddenRe);
+    expect(message[field], `${name} email ${field}`).not.toMatch(serviceVerbRe);
+  }
+}
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function escapeRe(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

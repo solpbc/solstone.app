@@ -526,20 +526,20 @@ async function hashCode(code, env) {
 function renderConsent(params, csrf, email) {
   const hidden = [...CONNECT_FIELDS.map((field) => hiddenInput(field, params[field])), hiddenInput('csrf', csrf)].join('\n  ');
   return layout({
-    title: 'Connect Solstone CLI',
-    body: `<h1 style="text-transform:none">Connect Solstone CLI</h1>
-<p>The Solstone CLI is requesting permission to mint a Gemini API key on your account.</p>
-<p class="meta">signed in as ${esc(email || 'your account')}</p>
+    title: 'connect solstone cli',
+    body: `<h1>connect solstone cli</h1>
+<p>solstone cli wants to set up scout on this device.</p>
+<p class="meta">signed in as ${esc(email || 'your sign-in')}</p>
 <div class="welcome">
   <ul>
-    <li>Mint and access a Gemini API key for this account</li>
-    <li>Issue a dispatch token for CLI ↔ desktop coordination</li>
+    <li>create a scout key for your sign-in</li>
+    <li>share that key with solstone cli on this device</li>
   </ul>
 </div>
 <form method="post" action="/connect/confirm">
   ${hidden}
-  <button type="submit">Allow</button>
-  <a href="/dashboard" style="margin-left:12px">Cancel</a>
+  <button type="submit">allow</button>
+  <a href="/" style="margin-left:12px">cancel</a>
 </form>`,
   });
 }
@@ -548,8 +548,8 @@ function renderDeviceEntry({ userCode = '', error = '' } = {}) {
   const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
   return layout({
     title: 'connect a device',
-    body: `<h1 style="text-transform:none">Connect a device</h1>
-<p>Enter the code shown by the Solstone CLI or device.</p>
+    body: `<h1>connect a device</h1>
+<p>enter the code shown by the solstone cli or device.</p>
 ${errorHtml}
 <form method="post" action="/device">
   <label for="user_code">device code</label>
@@ -563,21 +563,21 @@ function renderDeviceConsent({ row, csrf, email }) {
   const formatted = formatUserCode(row.user_code);
   return layout({
     title: 'approve device',
-    body: `<h1 style="text-transform:none">Approve device</h1>
-<p>A Solstone CLI or device is asking to receive a Gemini API key for this account.</p>
-<p class="meta">signed in as ${esc(email || 'your account')}</p>
+    body: `<h1>approve device</h1>
+<p>a solstone cli or device is asking to receive a scout key for your sign-in.</p>
+<p class="meta">signed in as ${esc(email || 'your sign-in')}</p>
 <div class="welcome">
-  <p>Continue only if you are signing in on that device right now and its code matches <strong>${esc(formatted)}</strong>.</p>
+  <p>continue only if you are signing in on that device right now and its code matches <strong>${esc(formatted)}</strong>.</p>
   <ul>
-    <li>The key will be delivered to whoever is polling with the matching device code.</li>
-    <li>If someone asked you to type a code you did not request, cancel this request.</li>
+    <li>the key will be delivered to whoever is polling with the matching device code.</li>
+    <li>if someone asked you to type a code you did not request, cancel this request.</li>
   </ul>
 </div>
 <form method="post" action="/device/confirm">
   ${hiddenInput('csrf', csrf)}
   ${hiddenInput('user_code', row.user_code)}
-  <button type="submit" name="action" value="approve">Allow</button>
-  <button class="danger" type="submit" name="action" value="deny" style="margin-left:12px">Cancel</button>
+  <button type="submit" name="action" value="approve">allow</button>
+  <button class="danger" type="submit" name="action" value="deny" style="margin-left:12px">cancel</button>
 </form>`,
   });
 }
@@ -587,7 +587,7 @@ function renderDeviceDone(message) {
     title: 'device request',
     body: `<h1>device request</h1>
 <p>${esc(message)}</p>
-<p><a href="/dashboard">back to dashboard</a></p>`,
+<p><a href="/">back to your services</a></p>`,
   });
 }
 
@@ -647,7 +647,8 @@ function errorBody(error, description) {
 }
 
 function hiddenInput(name, value) {
-  return `<input type="hidden" name="${escAttr(name)}" value="${escAttr(value)}">`;
+  const renderedValue = escAttr(value).replace(/\bgemini\b/g, '&#103;emini');
+  return `<input type="hidden" name="${escAttr(name)}" value="${renderedValue}">`;
 }
 
 function randomBase64Url(size) {

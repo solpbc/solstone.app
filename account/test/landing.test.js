@@ -7,13 +7,13 @@ describe('landing page', () => {
     await resetDb();
   });
 
-  it('renders the account landing copy, OTP form, passkey slot, and disclosure', async () => {
+  it('renders the services landing copy, OTP form, passkey slot, and disclosure', async () => {
     const response = await worker.fetch(new Request('https://services.solstone.app/'), makeTestEnv());
     const body = await response.text();
 
     expect(response.status).toBe(200);
     expect(body).toContain('<h1 class="brand">solstone</h1>');
-    expect(body).toContain('one place to manage your sol pbc account.');
+    expect(body).toContain('sign in to manage your services.');
     expect(body).toContain('<div id="passkey-error" class="error" hidden></div>');
     expect(body).toContain('form method="post" action="/signin/start"');
     expect(body).toContain('autocomplete="email webauthn"');

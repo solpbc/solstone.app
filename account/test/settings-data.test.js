@@ -48,7 +48,7 @@ describe('settings transparency data view', () => {
       .bind(8_000, 'fbfc3007-154e-4ecc-8c0b-6e020557d7bd', 'revoked-credential')
       .run();
 
-    const response = await worker.fetch(settingsRequest('/settings/data', {
+    const response = await worker.fetch(settingsRequest('/sign-in/data', {
       cookie: current.cookie,
       ip: '73.225.42.18',
       userAgent: SAFARI_MAC_UA,
@@ -77,7 +77,7 @@ describe('settings transparency data view', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsRequest('/settings/data', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in/data', { cookie: session.cookie }), testEnv);
     const body = await response.text();
 
     expect(body).toContain('no name');
@@ -92,7 +92,7 @@ describe('settings transparency data view', () => {
     expect(body).toContain('Article III of the bylaws');
     expect(body).toContain('href="https://solpbc.org/articles#s8-3"');
     expect(body).toContain('href="https://solpbc.org/bylaws#art-3"');
-    expect(body).toContain('href="/settings"');
+    expect(body).toContain('href="/sign-in"');
   });
 
   it('continues rendering when email or IP decrypt fails with scrubbed logs', async () => {
@@ -122,7 +122,7 @@ describe('settings transparency data view', () => {
       .run();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const response = await worker.fetch(settingsRequest('/settings/data', { cookie: current.cookie }), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in/data', { cookie: current.cookie }), testEnv);
     const body = await response.text();
     const calls = warn.mock.calls.map((call) => call[0]);
 
@@ -146,7 +146,7 @@ describe('settings transparency data view', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    const response = await worker.fetch(settingsRequest('/settings/data', {
+    const response = await worker.fetch(settingsRequest('/sign-in/data', {
       cookie: session.cookie,
       ip: '203.0.113.9',
     }), testEnv);
@@ -175,7 +175,7 @@ describe('settings transparency data view', () => {
       await seedSession(account.accountId, { testEnv });
     }
 
-    const response = await worker.fetch(settingsRequest('/settings/data', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in/data', { cookie: session.cookie }), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);

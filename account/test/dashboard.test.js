@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
 
-describe('dashboard rendering', () => {
+describe('services dashboard rendering', () => {
   beforeEach(async () => {
     await resetDb();
     vi.restoreAllMocks();
   });
 
-  it('renders account email, last sign-in, settings link, and sign-out form', async () => {
+  it('renders account email, last sign-in, service rows, and sign-out form', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'dash@example.com', testEnv, nowMs: Date.now() - 60_000 });
     const session = await seedSession(account.accountId, { testEnv });
@@ -18,10 +18,17 @@ describe('dashboard rendering', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('<h1>⟡ welcome</h1>');
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(body).toContain('<h1>your services</h1>');
     expect(body).toContain('signed in as: dash@example.com');
     expect(body).toContain('last sign-in: 1 minute ago');
-    expect(body).toContain('<a href="/settings">account settings</a>');
+    expect(body).toContain('href="/services/scout"');
+    expect(body).toContain('<strong>solstone scout</strong>');
+    expect(body).toContain('not set up');
+    expect(body).toContain('href="/services/devices"');
+    expect(body).toContain('<strong>solstone push</strong>');
+    expect(body).toContain('href="https://solstone.app/trust"');
+    expect(body).toContain('<a href="/sign-in">your sign-in</a>');
     expect(body).toContain('<form method="post" action="/signout">');
   });
 
@@ -30,7 +37,7 @@ describe('dashboard rendering', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    // No passkey yet → panel shows on bare /dashboard so the owner has a
+    // No passkey yet → panel shows on bare / so the owner has a
     // discoverable path to enroll (otherwise existing-session owners who
     // signed in pre-passkey have no way to reach the affordance).
     const beforeEnroll = await worker.fetch(dashboardRequest(session.cookie), testEnv);
@@ -39,14 +46,14 @@ describe('dashboard rendering', () => {
     expect(beforeBody).toContain('set up a passkey for next time');
 
     // Welcome=1 still works regardless of passkey state.
-    const welcome = await worker.fetch(dashboardRequest(session.cookie, '/dashboard?welcome=1'), testEnv);
+    const welcome = await worker.fetch(dashboardRequest(session.cookie, '/?welcome=1'), testEnv);
     const welcomeBody = await welcome.text();
     expect(welcomeBody).toContain('id="passkey-friendly-name"');
     expect(welcomeBody).toContain('id="passkey-add"');
     expect(welcomeBody).toContain('id="passkey-skip"');
     expect(welcomeBody).toContain('/passkey/register/start');
 
-    // Insert an active passkey row → panel hides on bare /dashboard.
+    // Insert an active passkey row → panel hides on bare /.
     await workerEnv.DB
       .prepare(
         `INSERT INTO passkey_credentials (credential_id, account_id, public_key, counter, aaguid, transports, backup_eligible, backup_state, friendly_name, created_at, last_used_at, revoked_at)
@@ -60,7 +67,7 @@ describe('dashboard rendering', () => {
     expect(afterBody).not.toContain('id="passkey-add"');
   });
 
-  it('keeps dashboard and sign-out available when email decrypt fails', async () => {
+  it('keeps services dashboard and sign-out available when email decrypt fails', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -81,7 +88,7 @@ describe('dashboard rendering', () => {
   });
 });
 
-function dashboardRequest(cookie, path = '/dashboard') {
+function dashboardRequest(cookie, path = '/') {
   return new Request(`https://services.solstone.app${path}`, {
     headers: { Cookie: cookie },
   });

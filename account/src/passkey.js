@@ -263,7 +263,7 @@ export async function passkeyAuthFinish(req, env) {
     const idHash = await hashWithPepper(sessionToken, env);
     await createSession(env.DB, { idHash, accountId: credentialRow.account_id, nowMs });
     return jsonResponse(
-      { ok: true, redirect: '/dashboard' },
+      { ok: true, redirect: '/' },
       200,
       { 'Set-Cookie': sessionCookie(sessionToken) }
     );
@@ -319,11 +319,11 @@ async function ensurePasskeyUserHandle(db, accountId) {
 
 async function getDisplayName(env, accountId) {
   const data = await getDashboardData(env.DB, accountId);
-  if (!data?.addressEncrypted) return 'solstone account';
+  if (!data?.addressEncrypted) return 'solstone services';
   try {
     return await decryptEmail(data.addressEncrypted, env);
   } catch {
-    return 'solstone account';
+    return 'solstone services';
   }
 }
 

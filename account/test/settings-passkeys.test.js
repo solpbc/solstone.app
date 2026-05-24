@@ -14,7 +14,7 @@ describe('settings passkeys', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsRequest('/settings/passkeys', session.cookie), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in/passkeys', session.cookie), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
@@ -46,20 +46,20 @@ describe('settings passkeys', () => {
       aaguid: '08987058-cadc-4b81-b6e1-30de50dcbe96',
     });
 
-    const before = await worker.fetch(settingsRequest('/settings/passkeys', session.cookie), testEnv);
+    const before = await worker.fetch(settingsRequest('/sign-in/passkeys', session.cookie), testEnv);
     const beforeBody = await before.text();
     expect(beforeBody).toContain('google password manager');
     expect(beforeBody).toContain('icloud keychain');
     expect(beforeBody).toContain('windows hello');
 
-    const rename = await worker.fetch(settingsPost('/settings/passkeys/google-credential/rename', session.cookie, {
+    const rename = await worker.fetch(settingsPost('/sign-in/passkeys/google-credential/rename', session.cookie, {
       friendly_name: '   ',
     }), testEnv);
     const row = await credentialRow('google-credential');
     expect(rename.status).toBe(303);
     expect(row.friendly_name).toBeNull();
 
-    const after = await worker.fetch(settingsRequest('/settings/passkeys', session.cookie), testEnv);
+    const after = await worker.fetch(settingsRequest('/sign-in/passkeys', session.cookie), testEnv);
     const afterBody = await after.text();
     expect(afterBody).toContain('google password manager');
     expect(afterBody).not.toContain('<h2></h2>');
@@ -71,11 +71,11 @@ describe('settings passkeys', () => {
     const session = await seedSession(account.accountId, { testEnv });
     await insertCredential({ accountId: account.accountId, credentialId: 'xss-credential' });
 
-    const response = await worker.fetch(settingsPost('/settings/passkeys/xss-credential/rename', session.cookie, {
+    const response = await worker.fetch(settingsPost('/sign-in/passkeys/xss-credential/rename', session.cookie, {
       friendly_name: '<script>alert(1)</script>foo',
     }), testEnv);
     const row = await credentialRow('xss-credential');
-    const rendered = await worker.fetch(settingsRequest('/settings/passkeys', session.cookie), testEnv);
+    const rendered = await worker.fetch(settingsRequest('/sign-in/passkeys', session.cookie), testEnv);
     const body = await rendered.text();
 
     expect(response.status).toBe(303);
@@ -107,7 +107,7 @@ describe('settings passkeys', () => {
     });
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const response = await worker.fetch(settingsRequest('/settings/passkeys', session.cookie), testEnv);
+    const response = await worker.fetch(settingsRequest('/sign-in/passkeys', session.cookie), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
@@ -127,10 +127,10 @@ describe('settings passkeys', () => {
       friendlyName: 'b original',
     });
 
-    const rename = await worker.fetch(settingsPost('/settings/passkeys/b-credential/rename', sessionA.cookie, {
+    const rename = await worker.fetch(settingsPost('/sign-in/passkeys/b-credential/rename', sessionA.cookie, {
       friendly_name: 'changed',
     }), testEnv);
-    const remove = await worker.fetch(settingsPost('/settings/passkeys/b-credential/remove', sessionA.cookie), testEnv);
+    const remove = await worker.fetch(settingsPost('/sign-in/passkeys/b-credential/remove', sessionA.cookie), testEnv);
     const row = await credentialRow('b-credential');
 
     expect(rename.status).toBe(303);
@@ -145,13 +145,13 @@ describe('settings passkeys', () => {
     const session = await seedSession(account.accountId, { testEnv });
     await insertCredential({ accountId: account.accountId, credentialId: 'remove-me' });
 
-    const response = await worker.fetch(settingsPost('/settings/passkeys/remove-me/remove', session.cookie), testEnv);
+    const response = await worker.fetch(settingsPost('/sign-in/passkeys/remove-me/remove', session.cookie), testEnv);
     const row = await credentialRow('remove-me');
 
     expect(response.status).toBe(303);
     expect(row.revoked_at).toBeGreaterThan(0);
 
-    const rendered = await worker.fetch(settingsRequest('/settings/passkeys', session.cookie), testEnv);
+    const rendered = await worker.fetch(settingsRequest('/sign-in/passkeys', session.cookie), testEnv);
     const body = await rendered.text();
     expect(body).toContain("no passkeys enrolled. next time you sign in, you'll use an email code.");
     expect(body).toContain('id="passkey-add"');

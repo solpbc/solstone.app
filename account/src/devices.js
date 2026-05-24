@@ -12,10 +12,10 @@ import {
   revokeDeviceById,
   revokeDevicePriorAndInsertNew,
 } from './db.js';
-import { renderSettingsDevices } from './html.js';
+import { renderServicesDevices } from './html.js';
 import { forbidden, json, originAllowed } from './index.js';
 import { normalizeFriendlyName } from './passkey.js';
-import { noStore, requireSettingsSession, settingsHtml, settingsRedirect } from './settings.js';
+import { noStore, requireSignedInSession, signedInHtml, signedInRedirect } from './settings.js';
 
 const PLATFORMS = ['ios', 'macos', 'android'];
 const PUSH_TOKEN_ENVS = ['production', 'sandbox'];
@@ -45,7 +45,7 @@ export async function deviceRevoke(env, deviceId) {
 
 export async function handleRegisterDevice(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
 
@@ -104,7 +104,7 @@ export async function handleRegisterDevice(req, env) {
 
 export async function handleDeregisterDevice(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
 
   const body = await readJsonObject(req);
@@ -124,7 +124,7 @@ export async function handleDeregisterDevice(req, env) {
 }
 
 export async function handleListDevices(req, env) {
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const devices = await listDevicesForAccount(env.DB, guard.session.account_id);
   return json({ devices });
@@ -132,7 +132,7 @@ export async function handleListDevices(req, env) {
 
 export async function handleMintDispatchToken(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const minted = await mintDispatchToken(env, guard.session.account_id);
   return json({
@@ -142,16 +142,21 @@ export async function handleMintDispatchToken(req, env) {
   });
 }
 
-export async function handleSettingsDevices(req, env) {
-  const guard = await requireSettingsSession(req, env);
+export async function handleServicesDevices(req, env) {
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
+  const url = new URL(req.url);
   const devices = await listDevicesForAccount(env.DB, guard.session.account_id);
-  return settingsHtml(renderSettingsDevices({ devices, nowMs: guard.nowMs }));
+  return signedInHtml(renderServicesDevices({
+    devices,
+    nowMs: guard.nowMs,
+    disableFlash: url.searchParams.get('disable') || '',
+  }));
 }
 
 export async function handleRevokeDevice(req, env, deviceId) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const row = deviceId ? await getDeviceById(env.DB, deviceId) : null;
   if (!row || row.account_id !== guard.session.account_id) return noStore(forbidden());
@@ -160,18 +165,29 @@ export async function handleRevokeDevice(req, env, deviceId) {
     accountId: guard.session.account_id,
     nowMs: guard.nowMs,
   });
-  return settingsRedirect('/settings/devices');
+  return signedInRedirect('/services/devices');
 }
 
 export async function handleRevokeAllDevices(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   await revokeAllDevicesForAccount(env.DB, {
     accountId: guard.session.account_id,
     nowMs: guard.nowMs,
   });
-  return settingsRedirect('/settings/devices');
+  return signedInRedirect('/services/devices');
+}
+
+export async function handlePushDisable(req, env) {
+  if (!originAllowed(req)) return noStore(forbidden());
+  const guard = await requireSignedInSession(req, env);
+  if (guard instanceof Response) return guard;
+  await revokeAllDevicesForAccount(env.DB, {
+    accountId: guard.session.account_id,
+    nowMs: guard.nowMs,
+  });
+  return signedInRedirect('/services/devices?disable=ok');
 }
 
 async function readJsonObject(req) {

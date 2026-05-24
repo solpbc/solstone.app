@@ -16,6 +16,8 @@ import {
   createSession,
   deleteOtp,
   deleteSession,
+  countActiveDevices,
+  findActiveProvisionedKey,
   findEmailByHash,
   getDashboardData,
   hasAnyActivePasskey,
@@ -41,28 +43,29 @@ import {
   handleDeregisterDevice,
   handleListDevices,
   handleMintDispatchToken,
+  handlePushDisable,
   handleRegisterDevice,
   handleRevokeAllDevices,
   handleRevokeDevice,
-  handleSettingsDevices,
+  handleServicesDevices,
 } from './devices.js';
 import { handlePushDedup, handlePushDispatch } from './push.js';
 import {
   handleAddEmail,
   handleMakeEmailPrimary,
   handleRemoveEmail,
-  handleSettingsData,
-  handleSettingsEmails,
+  handleSignInData,
+  handleSignInEmails,
   handleVerifyEmailGet,
   handleVerifyEmailPost,
 } from './emails.js';
 import {
-  renderDashboard,
   renderError,
   renderForbidden,
   renderGoodbye,
   renderLanding,
   renderNotFound,
+  renderServicesDashboard,
   renderVerify,
   VERIFY_ERROR,
 } from './html.js';
@@ -80,14 +83,15 @@ import {
   handleRenamePasskey,
   handleRevokeOtherSessions,
   handleRevokeSession,
-  handleSettingsGemini,
-  handleSettingsGeminiAck,
-  handleSettingsGeminiForget,
-  handleSettingsGeminiReveal,
-  handleSettingsGeminiRotate,
-  handleSettingsPasskeys,
-  handleSettingsSessions,
-  handleSettingsShell,
+  handleScoutDisable,
+  handleServicesScout,
+  handleServicesScoutAck,
+  handleServicesScoutForget,
+  handleServicesScoutReveal,
+  handleServicesScoutRotate,
+  handleSignInPasskeys,
+  handleSignInSessions,
+  handleSignInShell,
 } from './settings.js';
 
 const OTP_TTL_MS = 10 * 60 * 1000;
@@ -97,6 +101,7 @@ const IP_HOUR_LIMIT = 10;
 const EMAIL_DAY_LIMIT = 5;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+const GEMINI_PROVIDER = 'gemini';
 
 const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -107,6 +112,33 @@ const SECURITY_HEADERS = {
   'Content-Security-Policy':
     "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; frame-ancestors 'none'",
 };
+
+const LEGACY_REDIRECTS = [
+  { method: 'GET', from: '/dashboard', to: '/' },
+  { method: 'GET', from: '/settings', to: '/sign-in' },
+  { method: 'GET', from: '/settings/sessions', to: '/sign-in/sessions' },
+  { method: 'GET', from: '/settings/passkeys', to: '/sign-in/passkeys' },
+  { method: 'GET', from: '/settings/emails', to: '/sign-in/emails' },
+  { method: 'GET', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
+  { method: 'GET', from: '/settings/data', to: '/sign-in/data' },
+  { method: 'GET', from: '/settings/devices', to: '/services/devices' },
+  { method: 'GET', from: '/settings/gemini', to: '/services/scout' },
+  { method: 'POST', from: '/settings/sessions/revoke-others', to: '/sign-in/sessions/revoke-others' },
+  { method: 'POST', from: '/settings/emails/add', to: '/sign-in/emails/add' },
+  { method: 'POST', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
+  { method: 'POST', from: '/settings/devices/revoke-all', to: '/services/devices/revoke-all' },
+  { method: 'POST', from: '/settings/gemini/rotate', to: '/services/scout/rotate' },
+  { method: 'POST', from: '/settings/gemini/ack', to: '/services/scout/ack' },
+  { method: 'POST', from: '/settings/gemini/reveal', to: '/services/scout/reveal' },
+  { method: 'POST', from: '/settings/gemini/forget', to: '/services/scout/forget' },
+];
+
+const LEGACY_PREFIX_REDIRECTS = [
+  { method: 'POST', prefix: '/settings/sessions/', newPrefix: '/sign-in/sessions/' },
+  { method: 'POST', prefix: '/settings/passkeys/', newPrefix: '/sign-in/passkeys/' },
+  { method: 'POST', prefix: '/settings/emails/', newPrefix: '/sign-in/emails/' },
+  { method: 'POST', prefix: '/settings/devices/', newPrefix: '/services/devices/' },
+];
 
 export function originAllowed(req) {
   const origin = req.headers.get('Origin');
@@ -192,6 +224,23 @@ function withResume(location, resume) {
   return `${location}${separator}next=${encodeURIComponent(resume.next)}&next_sig=${encodeURIComponent(resume.nextSig)}`;
 }
 
+function legacyRedirect(req, url) {
+  const exact = LEGACY_REDIRECTS.find((entry) => entry.method === req.method && entry.from === url.pathname);
+  if (exact) {
+    const status = req.method === 'POST' ? 308 : 302;
+    return redirect(exact.to + (url.search || ''), status, { 'Cache-Control': 'no-store' });
+  }
+  for (const entry of LEGACY_PREFIX_REDIRECTS) {
+    if (entry.method !== req.method) continue;
+    if (!url.pathname.startsWith(entry.prefix)) continue;
+    const tail = url.pathname.slice(entry.prefix.length);
+    if (!tail) continue;
+    const status = req.method === 'POST' ? 308 : 302;
+    return redirect(entry.newPrefix + tail + (url.search || ''), status, { 'Cache-Control': 'no-store' });
+  }
+  return null;
+}
+
 async function readForm(req) {
   try {
     return await req.formData();
@@ -207,13 +256,19 @@ export default {
     const db = env.DB;
 
     try {
+      const legacy = legacyRedirect(req, url);
+      if (legacy) return legacy;
+
       if (url.pathname === '/' && req.method === 'GET') {
         const session = await getValidSession(req, env, Date.now());
         const resume = await validResumeFromParams(url.searchParams, env);
         if (session) {
           if (resume?.kind === 'connect') return redirect(`/connect?${decodeNext(resume.next)}`);
           if (resume?.kind === 'device') return redirect(`/device?user_code=${encodeURIComponent(decodeNextDevice(resume.next))}`);
-          return redirect('/dashboard');
+          return handleServicesDashboard(req, env, session);
+        }
+        if (getSessionToken(req)) {
+          return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
         }
         const csrf = await csrfToken(env);
         return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}));
@@ -316,33 +371,6 @@ export default {
         return passkeyAuthFinish(req, env);
       }
 
-      if (url.pathname === '/dashboard' && req.method === 'GET') {
-        const session = await getValidSession(req, env, Date.now());
-        if (!session) {
-          return redirect('/', 303, { 'Set-Cookie': clearSessionCookie() });
-        }
-        const now = Date.now();
-        const data = await getDashboardData(db, session.account_id);
-        let email = null;
-        let decryptOk = false;
-        if (data?.addressEncrypted) {
-          try {
-            email = await decryptEmail(data.addressEncrypted, env);
-            decryptOk = true;
-          } catch {
-            console.error('dashboard_decrypt_failed');
-          }
-        }
-        const hasPasskey = await hasAnyActivePasskey(db, session.account_id);
-        return html(renderDashboard({
-          welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
-          email,
-          lastSignInAt: data?.lastSigninAt ?? null,
-          now,
-          decryptOk,
-        }));
-      }
-
       if (url.pathname === '/signout' && req.method === 'POST') {
         // No CSRF token here: the session cookie is SameSite=Lax, so a cross-site POST sends no cookie and falls through to the /goodbye no-op below.
         const token = getSessionToken(req);
@@ -350,29 +378,29 @@ export default {
           const idHash = await hashWithPepper(token, env);
           await deleteSession(db, idHash);
         }
-        return redirect('/goodbye', 303, { 'Set-Cookie': clearSessionCookie() });
+        return redirect('/goodbye', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
       }
 
       if (url.pathname === '/goodbye' && req.method === 'GET') {
         return html(renderGoodbye());
       }
 
-      if (parts.length === 2 && parts[1] === 'settings' && req.method === 'GET') {
-        return handleSettingsShell(req, env);
+      if (parts.length === 2 && parts[1] === 'sign-in' && req.method === 'GET') {
+        return handleSignInShell(req, env);
       }
 
       if (
         parts.length === 3 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'emails' &&
         req.method === 'GET'
       ) {
-        return handleSettingsEmails(req, env);
+        return handleSignInEmails(req, env);
       }
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'emails' &&
         parts[3] === 'add' &&
         req.method === 'POST'
@@ -382,7 +410,7 @@ export default {
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'emails' &&
         parts[3] === 'verify' &&
         req.method === 'GET'
@@ -392,7 +420,7 @@ export default {
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'emails' &&
         parts[3] === 'verify' &&
         req.method === 'POST'
@@ -402,16 +430,16 @@ export default {
 
       if (
         parts.length === 3 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'data' &&
         req.method === 'GET'
       ) {
-        return handleSettingsData(req, env);
+        return handleSignInData(req, env);
       }
 
       if (
         parts.length === 5 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'emails' &&
         parts[4] === 'make-primary' &&
         req.method === 'POST'
@@ -421,7 +449,7 @@ export default {
 
       if (
         parts.length === 5 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'emails' &&
         parts[4] === 'remove' &&
         req.method === 'POST'
@@ -431,43 +459,43 @@ export default {
 
       if (
         parts.length === 3 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'sessions' &&
         req.method === 'GET'
       ) {
-        return handleSettingsSessions(req, env);
+        return handleSignInSessions(req, env);
       }
 
       if (
         parts.length === 3 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'passkeys' &&
         req.method === 'GET'
       ) {
-        return handleSettingsPasskeys(req, env);
+        return handleSignInPasskeys(req, env);
       }
 
       if (
         parts.length === 3 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'services' &&
         parts[2] === 'devices' &&
         req.method === 'GET'
       ) {
-        return handleSettingsDevices(req, env);
+        return handleServicesDevices(req, env);
       }
 
       if (
         parts.length === 3 &&
-        parts[1] === 'settings' &&
-        parts[2] === 'gemini' &&
+        parts[1] === 'services' &&
+        parts[2] === 'scout' &&
         req.method === 'GET'
       ) {
-        return handleSettingsGemini(req, env);
+        return handleServicesScout(req, env);
       }
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'sessions' &&
         parts[3] === 'revoke-others' &&
         req.method === 'POST'
@@ -477,7 +505,7 @@ export default {
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'services' &&
         parts[2] === 'devices' &&
         parts[3] === 'revoke-all' &&
         req.method === 'POST'
@@ -487,47 +515,67 @@ export default {
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
-        parts[2] === 'gemini' &&
+        parts[1] === 'services' &&
+        parts[2] === 'push' &&
+        parts[3] === 'disable' &&
+        req.method === 'POST'
+      ) {
+        return handlePushDisable(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'services' &&
+        parts[2] === 'scout' &&
         parts[3] === 'rotate' &&
         req.method === 'POST'
       ) {
-        return handleSettingsGeminiRotate(req, env, ctx);
+        return handleServicesScoutRotate(req, env, ctx);
       }
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
-        parts[2] === 'gemini' &&
+        parts[1] === 'services' &&
+        parts[2] === 'scout' &&
         parts[3] === 'ack' &&
         req.method === 'POST'
       ) {
-        return handleSettingsGeminiAck(req, env);
+        return handleServicesScoutAck(req, env);
       }
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
-        parts[2] === 'gemini' &&
+        parts[1] === 'services' &&
+        parts[2] === 'scout' &&
         parts[3] === 'reveal' &&
         req.method === 'POST'
       ) {
-        return handleSettingsGeminiReveal(req, env);
+        return handleServicesScoutReveal(req, env);
       }
 
       if (
         parts.length === 4 &&
-        parts[1] === 'settings' &&
-        parts[2] === 'gemini' &&
+        parts[1] === 'services' &&
+        parts[2] === 'scout' &&
         parts[3] === 'forget' &&
         req.method === 'POST'
       ) {
-        return handleSettingsGeminiForget(req, env);
+        return handleServicesScoutForget(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'services' &&
+        parts[2] === 'scout' &&
+        parts[3] === 'disable' &&
+        req.method === 'POST'
+      ) {
+        return handleScoutDisable(req, env, ctx);
       }
 
       if (
         parts.length === 5 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'sessions' &&
         parts[4] === 'revoke' &&
         req.method === 'POST'
@@ -537,7 +585,7 @@ export default {
 
       if (
         parts.length === 5 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'services' &&
         parts[2] === 'devices' &&
         parts[4] === 'revoke' &&
         req.method === 'POST'
@@ -547,7 +595,7 @@ export default {
 
       if (
         parts.length === 5 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'passkeys' &&
         parts[4] === 'rename' &&
         req.method === 'POST'
@@ -557,7 +605,7 @@ export default {
 
       if (
         parts.length === 5 &&
-        parts[1] === 'settings' &&
+        parts[1] === 'sign-in' &&
         parts[2] === 'passkeys' &&
         parts[4] === 'remove' &&
         req.method === 'POST'
@@ -635,6 +683,36 @@ export default {
     await runRetention(env);
   },
 };
+
+async function handleServicesDashboard(req, env, session) {
+  const url = new URL(req.url);
+  const now = Date.now();
+  const [data, hasPasskey, scoutKey, deviceCount] = await Promise.all([
+    getDashboardData(env.DB, session.account_id),
+    hasAnyActivePasskey(env.DB, session.account_id),
+    findActiveProvisionedKey(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER }),
+    countActiveDevices(env.DB, session.account_id),
+  ]);
+  let email = null;
+  let decryptOk = false;
+  if (data?.addressEncrypted) {
+    try {
+      email = await decryptEmail(data.addressEncrypted, env);
+      decryptOk = true;
+    } catch {
+      console.error('dashboard_decrypt_failed');
+    }
+  }
+  return html(renderServicesDashboard({
+    welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
+    email,
+    lastSignInAt: data?.lastSigninAt ?? null,
+    now,
+    decryptOk,
+    scoutActive: scoutKey != null,
+    deviceCount,
+  }), { headers: { 'Cache-Control': 'no-store' } });
+}
 
 async function handleSigninStart(req, env) {
   // Lode A.1 contract invariants for /signin/start:
@@ -784,7 +862,7 @@ async function handleSigninVerifyPost(req, env) {
     ? `/connect?${decodeNext(resume.next)}`
     : resume?.kind === 'device'
       ? `/device?user_code=${encodeURIComponent(decodeNextDevice(resume.next))}`
-      : (isNew ? '/dashboard?welcome=1' : '/dashboard');
+      : (isNew ? '/?welcome=1' : '/');
   return redirect(location, 303, {
     'Set-Cookie': sessionCookie(sessionToken),
   });

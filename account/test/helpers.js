@@ -205,7 +205,7 @@ export function emailAddRequest({
   };
   if (origin !== null) requestHeaders.Origin = origin;
   if (cookie) requestHeaders.Cookie = cookie;
-  return new Request('https://services.solstone.app/settings/emails/add', {
+  return new Request('https://services.solstone.app/sign-in/emails/add', {
     method: 'POST',
     headers: requestHeaders,
     body: new URLSearchParams({ address }),
@@ -398,7 +398,7 @@ export function emailVerifyRequest({
   };
   if (origin !== null) requestHeaders.Origin = origin;
   if (cookie) requestHeaders.Cookie = cookie;
-  return new Request('https://services.solstone.app/settings/emails/verify', {
+  return new Request('https://services.solstone.app/sign-in/emails/verify', {
     method: 'POST',
     headers: requestHeaders,
     body: new URLSearchParams({ address, code }),

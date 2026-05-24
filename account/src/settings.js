@@ -1,7 +1,6 @@
 import { decryptEmail, encryptEmail } from './crypto.js';
 import {
   countAccountEmails,
-  countActiveDevices,
   countActivePasskeys,
   countActiveSessions,
   deleteRevokedProvisionedKey,
@@ -14,6 +13,7 @@ import {
   removePasskey,
   renamePasskey,
   rotateGeminiBatch,
+  revokeProvisionedKey,
   revokeOtherSessions,
   revokeSession,
   updateProvisionedKeyGcpLastUse,
@@ -29,11 +29,11 @@ import {
 import {
   formatDate,
   formatRelativeTime,
-  renderGeminiReveal,
-  renderGeminiSettings,
-  renderSettingsPasskeys,
-  renderSettingsSessions,
-  renderSettingsShell,
+  renderServicesScoutReveal,
+  renderServicesScout,
+  renderSignInPasskeys,
+  renderSignInSessions,
+  renderSignInShell,
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { normalizeFriendlyName } from './passkey.js';
@@ -68,50 +68,46 @@ const AAGUID_LABELS = {
   '260e3021-482d-442d-838c-7edfbe153b7e': 'feitian security key',
 };
 
-export async function handleSettingsShell(req, env) {
-  const guard = await requireSettingsSession(req, env);
+export async function handleSignInShell(req, env) {
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session } = guard;
   const sessionCount = await countActiveSessions(env.DB, session.account_id);
   const passkeyCount = await countActivePasskeys(env.DB, session.account_id);
   const emailCount = await countAccountEmails(env.DB, session.account_id);
-  const deviceCount = await countActiveDevices(env.DB, session.account_id);
-  const geminiKey = await findActiveProvisionedKey(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER });
-  return settingsHtml(renderSettingsShell({
+  return signedInHtml(renderSignInShell({
     sessionCount,
     passkeyCount,
     emailCount,
-    deviceCount,
-    geminiCount: geminiKey ? 1 : null,
   }));
 }
 
-export async function handleSettingsSessions(req, env) {
-  const guard = await requireSettingsSession(req, env);
+export async function handleSignInSessions(req, env) {
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   const rows = await listSessionsForAccount(env.DB, session.account_id);
   const viewRows = await Promise.all(rows.map((row) => sessionViewRow(row, env)));
-  return settingsHtml(renderSettingsSessions({
+  return signedInHtml(renderSignInSessions({
     rows: viewRows,
     currentIdHash: session.id_hash,
     now: nowMs,
   }));
 }
 
-export async function handleSettingsPasskeys(req, env) {
-  const guard = await requireSettingsSession(req, env);
+export async function handleSignInPasskeys(req, env) {
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   const rows = await listPasskeyCredentialsForAccount(env.DB, session.account_id);
-  return settingsHtml(renderSettingsPasskeys({
+  return signedInHtml(renderSignInPasskeys({
     rows: rows.map((row) => passkeyViewRow(row, nowMs)),
     enrollJsIncluded: true,
   }));
 }
 
-export async function handleSettingsGemini(req, env) {
-  const guard = await requireSettingsSession(req, env);
+export async function handleServicesScout(req, env) {
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   const url = new URL(req.url);
@@ -122,7 +118,7 @@ export async function handleSettingsGemini(req, env) {
     accountId: session.account_id,
     since: nowMs - REVEAL_ACK_TTL_MS,
   });
-  return settingsHtml(renderGeminiSettings({
+  return signedInHtml(renderServicesScout({
     active,
     rows,
     hasRecentAck: recentAck != null,
@@ -132,6 +128,7 @@ export async function handleSettingsGemini(req, env) {
       reveal: url.searchParams.get('reveal') || '',
       ack: url.searchParams.get('ack') || '',
       forget: url.searchParams.get('forget') || '',
+      disable: url.searchParams.get('disable') || '',
     },
   }));
 }
@@ -184,7 +181,7 @@ export async function handleGeminiRotate(req, env, ctx, { allowBearer = true, re
     }).then(() => gcpDeleteKey({ env, keyName: oldKey.key_resource_name })
       .catch(() => console.error('gemini_rotate_old_key_delete_failed', { key_resource_name: oldKey.key_resource_name }))));
 
-    if (responseMode === 'redirect') return settingsRedirect('/settings/gemini?rotated=ok');
+    if (responseMode === 'redirect') return signedInRedirect('/services/scout?rotated=ok');
     return json({ ok: true, key_id: rotated.newRow.id, rotated_at: nowMs });
   } catch (error) {
     if (newKeyResourceName && !rotationCommitted) await cleanupOrphanKey(env, newKeyResourceName);
@@ -192,60 +189,82 @@ export async function handleGeminiRotate(req, env, ctx, { allowBearer = true, re
   }
 }
 
-export async function handleSettingsGeminiRotate(req, env, ctx) {
+export async function handleServicesScoutRotate(req, env, ctx) {
   return handleGeminiRotate(req, env, ctx, { allowBearer: false, responseMode: 'redirect' });
 }
 
-export async function handleSettingsGeminiAck(req, env) {
+export async function handleServicesScoutAck(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   await insertGeminiRevealAck(env.DB, { accountId: guard.session.account_id, ackedAt: guard.nowMs });
-  return settingsRedirect('/settings/gemini?ack=ok');
+  return signedInRedirect('/services/scout?ack=ok');
 }
 
-export async function handleSettingsGeminiReveal(req, env) {
+export async function handleServicesScoutReveal(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const recentAck = await findRecentGeminiRevealAck(env.DB, {
     accountId: guard.session.account_id,
     since: guard.nowMs - REVEAL_ACK_TTL_MS,
   });
-  if (!recentAck) return settingsRedirect('/settings/gemini?reveal=ack_required');
+  if (!recentAck) return signedInRedirect('/services/scout?reveal=ack_required');
 
   const active = await findActiveProvisionedKey(env.DB, { accountId: guard.session.account_id, provider: GEMINI_PROVIDER });
-  if (!active?.key_string_encrypted) return settingsRedirect('/settings/gemini?reveal=missing');
+  if (!active?.key_string_encrypted) return signedInRedirect('/services/scout?reveal=missing');
   const apiKey = await decryptEmail(active.key_string_encrypted, env);
-  return settingsHtml(renderGeminiReveal({ apiKey }));
+  return signedInHtml(renderServicesScoutReveal({ apiKey }));
 }
 
-export async function handleSettingsGeminiForget(req, env) {
+export async function handleServicesScoutForget(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const form = await safeForm(req);
   const keyId = form?.get('key_id')?.toString() || '';
   const deleted = keyId
     ? await deleteRevokedProvisionedKey(env.DB, { accountId: guard.session.account_id, keyId })
     : false;
-  if (!deleted) return settingsHtml('<h1>could not forget key</h1><p>rotate before removing an active key.</p>', { status: 400 });
-  return settingsRedirect('/settings/gemini?forget=ok');
+  if (!deleted) return signedInHtml('<h1>could not forget key</h1><p>rotate before removing an active key.</p>', { status: 400 });
+  return signedInRedirect('/services/scout?forget=ok');
+}
+
+export async function handleScoutDisable(req, env, ctx) {
+  if (!originAllowed(req)) return noStore(forbidden());
+  const guard = await requireSignedInSession(req, env);
+  if (guard instanceof Response) return guard;
+  const active = await findActiveProvisionedKey(env.DB, {
+    accountId: guard.session.account_id,
+    provider: GEMINI_PROVIDER,
+  });
+  if (!active) return signedInRedirect('/services/scout?disable=none');
+  const revoked = await revokeProvisionedKey(env.DB, {
+    accountId: guard.session.account_id,
+    keyId: active.id,
+    nowMs: guard.nowMs,
+  });
+  if (!revoked) return signedInRedirect('/services/scout?disable=none');
+  ctx.waitUntil(new Promise((resolve) => {
+    setTimeout(resolve, ROTATION_DELETE_GRACE_MS);
+  }).then(() => gcpDeleteKey({ env, keyName: active.key_resource_name })
+    .catch(() => console.error('scout_disable_old_key_delete_failed', { key_resource_name: active.key_resource_name }))));
+  return signedInRedirect('/services/scout?disable=ok');
 }
 
 export async function handleRevokeSession(req, env, idHash) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   if (!idHash || idHash === session.id_hash) return noStore(forbidden());
   await revokeSession(env.DB, { idHash, accountId: session.account_id, nowMs });
-  return settingsRedirect('/settings/sessions');
+  return signedInRedirect('/sign-in/sessions');
 }
 
 export async function handleRevokeOtherSessions(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   await revokeOtherSessions(env.DB, {
@@ -253,12 +272,12 @@ export async function handleRevokeOtherSessions(req, env) {
     currentIdHash: session.id_hash,
     nowMs,
   });
-  return settingsRedirect('/settings/sessions');
+  return signedInRedirect('/sign-in/sessions');
 }
 
 export async function handleRenamePasskey(req, env, credentialId) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   if (!credentialId) return noStore(forbidden());
   const form = await req.formData();
@@ -268,12 +287,12 @@ export async function handleRenamePasskey(req, env, credentialId) {
     accountId: guard.session.account_id,
     friendlyName,
   });
-  return settingsRedirect('/settings/passkeys');
+  return signedInRedirect('/sign-in/passkeys');
 }
 
 export async function handleRemovePasskey(req, env, credentialId) {
   if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSettingsSession(req, env);
+  const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   if (!credentialId) return noStore(forbidden());
   await removePasskey(env.DB, {
@@ -281,26 +300,26 @@ export async function handleRemovePasskey(req, env, credentialId) {
     accountId: guard.session.account_id,
     nowMs: guard.nowMs,
   });
-  return settingsRedirect('/settings/passkeys');
+  return signedInRedirect('/sign-in/passkeys');
 }
 
-export async function requireSettingsSession(req, env) {
+export async function requireSignedInSession(req, env) {
   const nowMs = Date.now();
   const session = await getValidSession(req, env, nowMs);
   if (!session) {
-    return settingsRedirect('/', { 'Set-Cookie': clearSessionCookie() });
+    return signedInRedirect('/', { 'Set-Cookie': clearSessionCookie() });
   }
   return { session, nowMs };
 }
 
-export function settingsHtml(body, init = {}) {
+export function signedInHtml(body, init = {}) {
   return html(body, {
     ...init,
     headers: { ...NO_STORE, ...(init.headers || {}) },
   });
 }
 
-export function settingsRedirect(to, headers = {}) {
+export function signedInRedirect(to, headers = {}) {
   return redirect(to, 303, { ...NO_STORE, ...headers });
 }
 
@@ -332,7 +351,7 @@ async function rotationAuth(req, env, { allowBearer, responseMode, nowMs }) {
 function rotationError(responseMode, error, status) {
   if (responseMode === 'redirect') {
     const value = error === 'rotation_conflict' ? 'conflict' : error;
-    return settingsRedirect(`/settings/gemini?rotated=${encodeURIComponent(value)}`);
+    return signedInRedirect(`/services/scout?rotated=${encodeURIComponent(value)}`);
   }
   return json({ error }, { status });
 }

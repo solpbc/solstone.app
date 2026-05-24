@@ -112,7 +112,7 @@ describe('kill switches', () => {
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/dashboard');
+    expect(response.headers.get('Location')).toBe('/');
     expect(extractCookieToken(response.headers.get('Set-Cookie') || '')).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(await rowCount('accounts')).toBe(1);
     expect(await rowCount('sessions')).toBe(1);

@@ -72,6 +72,8 @@ export function layout({ title, body, afterMain = '' }) {
     .settings-nav { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 20px; }
     .settings-card, .settings-row { border: 1px solid #eee; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
     .settings-card { display: block; color: #222; }
+    .settings-card > a { color: inherit; display: block; }
+    .settings-card > a:hover { text-decoration: none; }
     .settings-card:hover { text-decoration: none; border-color: ${SOL_ORANGE}; }
     .settings-card strong { display: block; margin-bottom: 4px; }
     .meta { color: #767676; font-size: 0.92rem; margin-bottom: 8px; }
@@ -91,9 +93,9 @@ export function renderLanding(turnstileSiteKey, csrf, resume = {}) {
   <input type="hidden" name="next_sig" value="${escAttr(resume.nextSig)}">`
     : '';
   return layout({
-    title: 'sign in to your solstone account',
+    title: 'sign in to manage your services',
     body: `<h1 class="brand">solstone</h1>
-	<p class="subhead">one place to manage your sol pbc account.</p>
+	<p class="subhead">sign in to manage your services.</p>
 	<div id="passkey-error" class="error" hidden></div>
 	<form method="post" action="/signin/start">
 	  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
@@ -145,10 +147,23 @@ export function renderError() {
   });
 }
 
-export function renderDashboard({ welcome, email, lastSignInAt, now, decryptOk }) {
+// === services surfaces ===
+
+export function renderServicesDashboard({ welcome, email, lastSignInAt, now, decryptOk, scoutActive, deviceCount }) {
   const emailText = email ? esc(email) : '—';
   const notice = decryptOk === false
     ? `<p class="notice">we couldn't decrypt your email address. you're still signed in.</p>`
+    : '';
+  const scoutStatus = scoutActive ? 'active' : 'not set up';
+  const scoutControl = scoutActive
+    ? `<form method="post" action="/services/scout/disable" class="inline-form">
+  <button type="submit">turn off</button>
+</form>`
+    : '';
+  const pushControl = deviceCount > 0
+    ? `<form method="post" action="/services/push/disable" class="inline-form">
+  <button type="submit">turn off all</button>
+</form>`
     : '';
   const welcomePanel = welcome
     ? `<div class="welcome">
@@ -163,51 +178,55 @@ export function renderDashboard({ welcome, email, lastSignInAt, now, decryptOk }
 <script>${ENROLL_JS}</script>`
     : '';
   return layout({
-    title: 'dashboard',
-    body: `<h1>⟡ welcome</h1>
+    title: 'your services',
+    body: `<h1>your services</h1>
 <p>signed in as: ${emailText}</p>
 ${notice}
 <p>last sign-in: ${esc(formatRelativeTime(lastSignInAt, now))}</p>
-<p>account.solstone.app is the foundation for managing your solstone cloud services.</p>
-<p><a href="/settings">account settings</a></p>
+<div class="settings-card">
+  <a href="/services/scout"><strong>solstone scout</strong><span>${scoutStatus}</span></a>
+  ${scoutControl}
+</div>
+<div class="settings-card">
+  <a href="/services/devices"><strong>solstone push</strong><span>${esc(countLabel(deviceCount, 'device', 'devices'))}</span></a>
+  ${pushControl}
+</div>
+<div class="settings-card">
+  <a href="https://solstone.app/trust"><strong>trust</strong><span>read how we earn your trust.</span></a>
+</div>
+<p><a href="/sign-in">your sign-in</a></p>
 <form method="post" action="/signout"><button type="submit">sign out</button></form>
 ${welcomePanel}`,
   });
 }
 
-export function renderSettingsShell({ sessionCount, passkeyCount, emailCount = 0, deviceCount = 0, geminiCount = null }) {
+// === sign-in surfaces ===
+
+export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0 }) {
   return layout({
-    title: 'account settings',
-    body: `<h1>account settings</h1>
-	<nav class="settings-nav"><a href="/dashboard">back to dashboard</a></nav>
-<a class="settings-card" href="/settings/sessions">
+    title: 'your sign-in',
+    body: `<h1>your sign-in</h1>
+	<nav class="settings-nav"><a href="/">back to your services</a></nav>
+<a class="settings-card" href="/sign-in/sessions">
   <strong>sessions</strong>
   <span>${esc(countLabel(sessionCount, 'active session', 'active sessions'))}</span>
 </a>
-<a class="settings-card" href="/settings/passkeys">
+<a class="settings-card" href="/sign-in/passkeys">
   <strong>passkeys</strong>
   <span>${esc(countLabel(passkeyCount, 'passkey', 'passkeys'))}</span>
 </a>
-<a class="settings-card" href="/settings/emails">
+<a class="settings-card" href="/sign-in/emails">
   <strong>email addresses</strong>
   <span>${esc(countLabel(emailCount, 'email', 'emails'))}</span>
 </a>
-	<a class="settings-card" href="/settings/devices">
-	  <strong>devices</strong>
-	  <span>${esc(countLabel(deviceCount, 'device', 'devices'))}</span>
-	</a>
-	<a class="settings-card" href="/settings/gemini">
-	  <strong>gemini</strong>
-	  <span>${geminiCount === 1 ? '1' : '—'}</span>
-	</a>
-	<p class="disclosure"><a href="/settings/data">what we have about you</a></p>
+	<p class="disclosure"><a href="/sign-in/data">what we have about you</a></p>
 	<form method="post" action="/signout"><button type="submit">sign out</button></form>`,
   });
 }
 
-export function renderSettingsEmails({ rows, addError = '', removeError = '' }) {
+export function renderSignInEmails({ rows, addError = '', removeError = '' }) {
   const rowHtml = rows.map((row) => {
-    const actionBase = `/settings/emails/${escAttr(row.id)}`;
+    const actionBase = `/sign-in/emails/${escAttr(row.id)}`;
     const badge = `<span class="sticker">${esc(row.badge)}</span>`;
     const expiry = row.expiryText ? `<p class="meta">${esc(row.expiryText)}</p>` : '';
     const makePrimary = row.badge === 'verified'
@@ -217,7 +236,7 @@ export function renderSettingsEmails({ rows, addError = '', removeError = '' }) 
       ? ''
       : `<form method="post" action="${actionBase}/remove" class="inline-form"><button class="danger" type="submit">remove</button></form>`;
     const verify = row.badge === 'unverified'
-      ? `<p class="meta"><a href="/settings/emails/verify?address=${escAttr(row.encodedAddress)}">verify</a></p>`
+      ? `<p class="meta"><a href="/sign-in/emails/verify?address=${escAttr(row.encodedAddress)}">verify</a></p>`
       : '';
     return `<section class="settings-row">
   <h2>${esc(row.address)}${badge}</h2>
@@ -230,18 +249,18 @@ export function renderSettingsEmails({ rows, addError = '', removeError = '' }) 
   }).join('');
   const addErrorHtml = addError ? `<p class="error">${esc(addError)}</p>` : '';
   const removeErrorHtml = removeError ? `<p class="error">${esc(removeError)}</p>` : '';
-  const emptyState = rows.length === 0 ? '<p>no email addresses on this account.</p>' : '';
+  const emptyState = rows.length === 0 ? '<p>no email addresses for your sign-in.</p>' : '';
   return layout({
     title: 'email addresses',
     body: `<h1>email addresses</h1>
-<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+<nav class="settings-nav"><a href="/sign-in">back to your sign-in</a></nav>
 ${removeErrorHtml}
 ${emptyState}
 ${rowHtml}
 <div class="welcome">
   <h2>add an email</h2>
   ${addErrorHtml}
-  <form method="post" action="/settings/emails/add">
+  <form method="post" action="/sign-in/emails/add">
     <label for="address">email</label>
     <input id="address" type="email" name="address" autocomplete="email" required placeholder="you@example.com" maxlength="254">
     <button type="submit">add an email</button>
@@ -260,8 +279,8 @@ export function renderEmailVerify({
     return layout({
       title: 'verify email',
       body: `<h1>verify email</h1>
-<p class="notice">this email is already verified on this account.</p>
-<p><a href="/settings/emails">back to email addresses</a></p>`,
+<p class="notice">this email is already verified for your sign-in.</p>
+<p><a href="/sign-in/emails">back to email addresses</a></p>`,
     });
   }
   const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
@@ -276,13 +295,15 @@ export function renderEmailVerify({
     body: `<h1>verify email</h1>
 <p>${subhead}</p>
 ${errorHtml}
-<form method="post" action="/settings/emails/verify">
+<form method="post" action="/sign-in/emails/verify">
   ${addressFieldHtml}
   <input class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
   <button type="submit">verify</button>
 </form>`,
   });
 }
+
+// === transparency / data ===
 
 export function renderTransparency({
   accountId,
@@ -316,9 +337,9 @@ export function renderTransparency({
   return layout({
     title: 'what we have about you',
     body: `<h1>what we have about you</h1>
-<nav class="settings-nav"><a href="/settings">back to settings</a></nav>
+<nav class="settings-nav"><a href="/sign-in">back to your sign-in</a></nav>
 <section class="settings-row">
-  <h2>account</h2>
+  <h2>sign-in</h2>
   <p class="meta">id ${esc(accountId)}</p>
   <p class="meta">created ${esc(formatDate(accountCreatedAt))}</p>
   <p class="meta">last sign-in ${esc(lastSigninAt == null ? '—' : formatDate(lastSigninAt))}</p>
@@ -343,16 +364,16 @@ ${sessionHtml || '<p>no sessions.</p>'}
   });
 }
 
-export function renderSettingsSessions({ rows, currentIdHash, now }) {
+export function renderSignInSessions({ rows, currentIdHash, now }) {
   const hasOtherSessions = rows.some((row) => row.id_hash !== currentIdHash);
   const revokeOthers = hasOtherSessions
-    ? `<form method="post" action="/settings/sessions/revoke-others" class="inline-form">
+    ? `<form method="post" action="/sign-in/sessions/revoke-others" class="inline-form">
   <button class="danger" type="submit" onclick="return confirm('revoke all other sessions?')">revoke all other sessions</button>
 </form>`
     : '';
   const rowHtml = rows.map((row) => {
     const isCurrent = row.id_hash === currentIdHash;
-    const action = `/settings/sessions/${escAttr(row.id_hash)}/revoke`;
+    const action = `/sign-in/sessions/${escAttr(row.id_hash)}/revoke`;
     const revoke = isCurrent
       ? ''
       : `<form method="post" action="${action}" class="inline-form"><button class="danger" type="submit">revoke</button></form>`;
@@ -367,23 +388,24 @@ export function renderSettingsSessions({ rows, currentIdHash, now }) {
   return layout({
     title: 'sessions',
     body: `<h1>sessions</h1>
-<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
 ${revokeOthers}
 ${rowHtml}`,
   });
 }
 
-export function renderSettingsDevices({ devices, nowMs }) {
+export function renderServicesDevices({ devices, nowMs, disableFlash = '' }) {
   const revokeAll = devices.length > 0
-    ? `<form method="post" action="/settings/devices/revoke-all" class="inline-form">
+    ? `<form method="post" action="/services/devices/revoke-all" class="inline-form">
   <button class="danger" type="submit">revoke all devices</button>
 </form>`
     : '';
+  const notice = disableFlash === 'ok' ? '<p class="notice">push turned off for every device.</p>' : '';
   const emptyState = devices.length === 0 ? '<p>no devices registered.</p>' : '';
   const rowHtml = devices.map((row) => {
     const label = row.device_label || 'unnamed device';
     const appVersion = row.app_version || '—';
-    const action = `/settings/devices/${escAttr(row.device_id)}/revoke`;
+    const action = `/services/devices/${escAttr(row.device_id)}/revoke`;
     return `<section class="settings-row">
   <h2>${esc(label)}</h2>
   <p class="meta">platform ${esc(row.platform)}</p>
@@ -398,20 +420,21 @@ export function renderSettingsDevices({ devices, nowMs }) {
   return layout({
     title: 'your devices',
     body: `<h1>your devices</h1>
-<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
+${notice}
 ${revokeAll}
 ${emptyState}
 ${rowHtml}`,
   });
 }
 
-export function renderSettingsPasskeys({ rows, enrollJsIncluded }) {
+export function renderSignInPasskeys({ rows, enrollJsIncluded }) {
   const emptyState = rows.length === 0
     ? `<p>no passkeys enrolled. next time you sign in, you'll use an email code.</p>`
     : '';
   const rowHtml = rows.map((row) => {
-    const renameAction = `/settings/passkeys/${escAttr(row.credential_id)}/rename`;
-    const removeAction = `/settings/passkeys/${escAttr(row.credential_id)}/remove`;
+    const renameAction = `/sign-in/passkeys/${escAttr(row.credential_id)}/rename`;
+    const removeAction = `/sign-in/passkeys/${escAttr(row.credential_id)}/remove`;
     return `<section class="settings-row">
   <h2>${esc(row.name)}</h2>
   <p class="meta">${esc(row.addedText)}</p>
@@ -429,7 +452,7 @@ export function renderSettingsPasskeys({ rows, enrollJsIncluded }) {
   return layout({
     title: 'passkeys',
     body: `<h1>passkeys</h1>
-<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
 ${emptyState}
 <div class="welcome">
   <h2>add a passkey</h2>
@@ -443,29 +466,40 @@ ${enrollJsIncluded ? `<script>${ENROLL_JS}</script>` : ''}`,
   });
 }
 
-export function renderGeminiSettings({ active, rows, hasRecentAck, nowMs, flash = {} }) {
+export function renderServicesScout({ active, rows, hasRecentAck, nowMs, flash = {} }) {
   const flashes = flashMessages(flash);
-  const status = active ? 'active' : 'none';
-  const created = active ? formatRelativeTime(active.created_at, nowMs) : '—';
-  const lastUsed = active ? geminiLastUsedText(active, nowMs) : 'not available';
-  const revealAction = hasRecentAck ? '/settings/gemini/reveal' : '/settings/gemini/ack';
-  const revealText = hasRecentAck ? 'reveal current key' : 'acknowledge and unlock reveal';
-  const rotate = active
-    ? `<form method="post" action="/settings/gemini/rotate" class="inline-form">
-  <button type="submit">rotate key</button>
-</form>`
-    : '';
-  const reveal = active
+  const revealAction = hasRecentAck ? '/services/scout/reveal' : '/services/scout/ack';
+  const revealText = hasRecentAck ? 'reveal current key' : 'acknowledge before reveal';
+  const activeControls = active
     ? `<form method="post" action="${revealAction}" class="inline-form">
-  ${hasRecentAck ? '' : '<input type="hidden" name="warning" value="gemini-reveal">'}
+  ${hasRecentAck ? '' : '<input type="hidden" name="warning" value="scout-reveal">'}
   <button type="submit">${revealText}</button>
+</form>
+<form method="post" action="/services/scout/rotate" class="inline-form">
+  <button type="submit">rotate key</button>
+</form>
+<form method="post" action="/services/scout/disable" class="inline-form">
+  <button class="danger" type="submit">turn off</button>
 </form>`
     : '';
+  const keySection = active
+    ? `<section class="settings-row">
+  <h2>scout key</h2>
+  <p class="meta">status active</p>
+  <p class="meta">created ${esc(formatRelativeTime(active.created_at, nowMs))}</p>
+  <p class="meta">last used ${esc(geminiLastUsedText(active, nowMs))}</p>
+  ${activeControls}
+</section>`
+    : `<section class="settings-row">
+  <h2>scout key</h2>
+  <p>no scout key for this service.</p>
+  <p>set up scout from the solstone cli to start.</p>
+</section>`;
   const auditRows = rows.map((row) => {
     const isActive = row.revoked_at == null;
     const forget = isActive
       ? ''
-      : `<form method="post" action="/settings/gemini/forget" class="inline-form">
+      : `<form method="post" action="/services/scout/forget" class="inline-form">
     <input type="hidden" name="key_id" value="${escAttr(row.id)}">
     <button class="danger" type="submit">forget</button>
   </form>`;
@@ -478,30 +512,23 @@ export function renderGeminiSettings({ active, rows, hasRecentAck, nowMs, flash 
 </section>`;
   }).join('');
   return layout({
-    title: 'gemini',
-    body: `<h1>gemini</h1>
-<nav class="settings-nav"><a href="/settings">settings</a><a href="/dashboard">dashboard</a></nav>
+    title: 'solstone scout',
+    body: `<h1>solstone scout</h1>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
 ${flashes}
-<section class="settings-row">
-  <h2>gemini key</h2>
-  <p class="meta">status ${esc(status)}</p>
-  <p class="meta">created ${esc(created)}</p>
-  <p class="meta">last used ${esc(lastUsed)}</p>
-  ${reveal}
-  ${rotate}
-</section>
+${keySection}
 <h2>audit</h2>
-${auditRows || '<p>no gemini keys on this account.</p>'}`,
+${auditRows}`,
   });
 }
 
-export function renderGeminiReveal({ apiKey }) {
+export function renderServicesScoutReveal({ apiKey }) {
   return layout({
-    title: 'gemini key',
-    body: `<h1>gemini key</h1>
+    title: 'scout key',
+    body: `<h1>scout key</h1>
 <p class="notice">this key is visible on screen now.</p>
 <input readonly value="${escAttr(apiKey)}" onclick="this.select()">
-<form method="get" action="/settings/gemini"><button type="submit">close</button></form>`,
+<form method="get" action="/services/scout"><button type="submit">close</button></form>`,
   });
 }
 
@@ -566,10 +593,12 @@ function flashMessages(flash) {
   if (flash.rotated === 'ok') messages.push('key rotated.');
   if (flash.rotated === 'conflict') messages.push('another rotation completed first. try again.');
   if (flash.rotated === 'no_active_key') messages.push('no active key to rotate.');
-  if (flash.ack === 'ok') messages.push('reveal unlocked for 24 hours.');
+  if (flash.ack === 'ok') messages.push('reveal available for 24 hours.');
   if (flash.reveal === 'ack_required') messages.push('acknowledge before revealing the key.');
   if (flash.reveal === 'missing') messages.push('no active key to reveal.');
   if (flash.forget === 'ok') messages.push('revoked key forgotten.');
+  if (flash.disable === 'ok') messages.push('scout turned off.');
+  if (flash.disable === 'none') messages.push('no active scout key to turn off.');
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
