@@ -92,11 +92,11 @@ async function seedRateBucket(key, count, windowStart) {
 function passkeyRequest(path, { cookie, ip = '203.0.113.100' } = {}) {
   const headers = {
     'Content-Type': 'application/json',
-    Origin: 'https://account.solstone.app',
+    Origin: 'https://services.solstone.app',
     'CF-Connecting-IP': ip,
   };
   if (cookie) headers.Cookie = cookie;
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
     headers,
     body: '{}',

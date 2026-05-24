@@ -522,8 +522,8 @@ export function renderForbidden() {
     title: "we couldn't verify this sign-in",
     body: `<h1>we couldn't verify this sign-in</h1>
 <p>your email security may have modified the link you used to get here.</p>
-<p>to continue, open <strong>https://account.solstone.app</strong> directly in a new browser tab and request a new code.</p>
-<p><a href="https://account.solstone.app">open account.solstone.app</a></p>`,
+<p>to continue, open <strong>https://services.solstone.app</strong> directly in a new browser tab and request a new code.</p>
+<p><a href="https://services.solstone.app">open services.solstone.app</a></p>`,
   });
 }
 

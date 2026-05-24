@@ -227,7 +227,7 @@ describe('OAuth device-code flow', () => {
     const account = await seedAccount({ email: 'resume@example.com', testEnv });
     const device = await createDeviceAuthorization(testEnv);
     const post = await worker.fetch(devicePostRequest(device.user_code), testEnv);
-    const location = new URL(post.headers.get('Location'), 'https://account.solstone.app');
+    const location = new URL(post.headers.get('Location'), 'https://services.solstone.app');
     secrets.push(device.device_code, device.user_code, device.user_code.replace('-', ''));
 
     expect(post.status).toBe(303);
@@ -313,7 +313,7 @@ function deviceAuthorizationRequest(overrides = {}) {
   for (const [key, value] of Object.entries(params)) {
     if (value !== null) body.set(key, value);
   }
-  return new Request('https://account.solstone.app/oauth/device_authorization', {
+  return new Request('https://services.solstone.app/oauth/device_authorization', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -329,10 +329,10 @@ async function createDeviceAuthorization(testEnv, overrides = {}) {
 function devicePostRequest(userCode, cookie = '') {
   const headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
-    Origin: 'https://account.solstone.app',
+    Origin: 'https://services.solstone.app',
   };
   if (cookie) headers.Cookie = cookie;
-  return new Request('https://account.solstone.app/device', {
+  return new Request('https://services.solstone.app/device', {
     method: 'POST',
     headers,
     body: new URLSearchParams({ user_code: userCode }),
@@ -352,11 +352,11 @@ async function denyDevice(testEnv, cookie, userCode) {
 }
 
 function deviceConfirmRequest(cookie, userCode, action) {
-  return new Request('https://account.solstone.app/device/confirm', {
+  return new Request('https://services.solstone.app/device/confirm', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      Origin: 'https://account.solstone.app',
+      Origin: 'https://services.solstone.app',
       Cookie: cookie,
     },
     body: new URLSearchParams({
@@ -368,7 +368,7 @@ function deviceConfirmRequest(cookie, userCode, action) {
 }
 
 function deviceTokenRequest(overrides = {}, headers = {}) {
-  return new Request('https://account.solstone.app/oauth/token', {
+  return new Request('https://services.solstone.app/oauth/token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -383,7 +383,7 @@ function deviceTokenRequest(overrides = {}, headers = {}) {
 }
 
 function authCodeRequest(seeded) {
-  return new Request('https://account.solstone.app/oauth/token', {
+  return new Request('https://services.solstone.app/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({

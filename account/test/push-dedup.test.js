@@ -181,7 +181,7 @@ function installApnsOk() {
 function dedupRequest({ token, body = validDedupBody() }) {
   const headers = { 'Content-Type': 'application/json' };
   if (token !== null) headers.Authorization = `Bearer ${token}`;
-  return new Request('https://account.solstone.app/push/dedup', {
+  return new Request('https://services.solstone.app/push/dedup', {
     method: 'POST',
     headers,
     body: JSON.stringify(body),

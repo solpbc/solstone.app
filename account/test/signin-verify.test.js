@@ -21,7 +21,7 @@ describe('/signin/verify', () => {
 
   it('renders a hidden email field for a valid email query', async () => {
     const response = await worker.fetch(
-      new Request('https://account.solstone.app/signin/verify?email=Person%40Example.com'),
+      new Request('https://services.solstone.app/signin/verify?email=Person%40Example.com'),
       makeTestEnv()
     );
     const body = await response.text();
@@ -33,7 +33,7 @@ describe('/signin/verify', () => {
 
   it('treats an invalid email query as the bare verify form', async () => {
     const response = await worker.fetch(
-      new Request('https://account.solstone.app/signin/verify?email=not-an-email'),
+      new Request('https://services.solstone.app/signin/verify?email=not-an-email'),
       makeTestEnv()
     );
     const body = await response.text();
@@ -44,7 +44,7 @@ describe('/signin/verify', () => {
 
   it('falls through to 404 for the deleted finish route', async () => {
     const response = await worker.fetch(
-      new Request('https://account.solstone.app/signin/finish?n=anything'),
+      new Request('https://services.solstone.app/signin/finish?n=anything'),
       makeTestEnv()
     );
     expect(response.status).toBe(404);
@@ -68,7 +68,7 @@ describe('/signin/verify', () => {
 
   it('rejects an unparseable csrf body before account or session writes', async () => {
     const response = await worker.fetch(
-      new Request('https://account.solstone.app/signin/verify', {
+      new Request('https://services.solstone.app/signin/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{"email":"json@example.com","code":"123456"}',
@@ -79,7 +79,7 @@ describe('/signin/verify', () => {
   });
 
   it('admits a valid csrf token with rewritten origin and referer headers', async () => {
-    const rewritten = 'https://urldefense.com/v3/__https://account.solstone.app__;!!';
+    const rewritten = 'https://urldefense.com/v3/__https://services.solstone.app__;!!';
     const testEnv = makeTestEnv();
     const seeded = await seedOtp({ email: 'rewritten@example.com', options: { code: '123456' } });
     const response = await worker.fetch(
@@ -101,7 +101,7 @@ describe('/signin/verify', () => {
     const testEnv = makeTestEnv();
     const seeded = await seedOtp({ email: 'roundtrip@example.com', options: { code: '123456' } });
     const page = await worker.fetch(
-      new Request('https://account.solstone.app/signin/verify?email=roundtrip%40example.com'),
+      new Request('https://services.solstone.app/signin/verify?email=roundtrip%40example.com'),
       testEnv
     );
     const csrf = extractCsrf(await page.text());
@@ -321,7 +321,7 @@ async function expectVerifyCsrfRejected(response) {
   const body = await response.text();
   expect(response.status).toBe(403);
   expect(body).toContain('email security');
-  expect(body).toContain('https://account.solstone.app');
+  expect(body).toContain('https://services.solstone.app');
   expect(await rowCount('accounts')).toBe(0);
   expect(await rowCount('sessions')).toBe(0);
   expect(response.headers.has('Set-Cookie')).toBe(false);

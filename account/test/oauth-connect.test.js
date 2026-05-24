@@ -94,7 +94,7 @@ describe('OAuth connect handoff', () => {
     const request = connectRequest();
     const original = new URL(request.url).search.slice(1);
     const response = await worker.fetch(request, makeTestEnv());
-    const location = new URL(`https://account.solstone.app${response.headers.get('Location')}`);
+    const location = new URL(`https://services.solstone.app${response.headers.get('Location')}`);
 
     expect(base64UrlDecode(location.searchParams.get('next'))).toBe(original);
   });
@@ -104,7 +104,7 @@ describe('OAuth connect handoff', () => {
     const testEnv = makeTestEnv();
     const connect = await worker.fetch(connectRequest(), testEnv);
     const landing = await worker.fetch(
-      new Request(`https://account.solstone.app${connect.headers.get('Location')}`),
+      new Request(`https://services.solstone.app${connect.headers.get('Location')}`),
       testEnv
     );
     const landingBody = await landing.text();
@@ -123,9 +123,9 @@ describe('OAuth connect handoff', () => {
   it('verify form carries valid next fields through /signin/verify', async () => {
     const testEnv = makeTestEnv();
     const connect = await worker.fetch(connectRequest(), testEnv);
-    const landingLocation = new URL(`https://account.solstone.app${connect.headers.get('Location')}`);
+    const landingLocation = new URL(`https://services.solstone.app${connect.headers.get('Location')}`);
     const verify = await worker.fetch(
-      new Request(`https://account.solstone.app/signin/verify?email=person%40example.com&next=${encodeURIComponent(landingLocation.searchParams.get('next'))}&next_sig=${encodeURIComponent(landingLocation.searchParams.get('next_sig'))}`),
+      new Request(`https://services.solstone.app/signin/verify?email=person%40example.com&next=${encodeURIComponent(landingLocation.searchParams.get('next'))}&next_sig=${encodeURIComponent(landingLocation.searchParams.get('next_sig'))}`),
       testEnv
     );
     const body = await verify.text();
@@ -139,7 +139,7 @@ describe('OAuth connect handoff', () => {
     const request = connectRequest();
     const original = new URL(request.url).search.slice(1);
     const connect = await worker.fetch(request, testEnv);
-    const landingLocation = new URL(`https://account.solstone.app${connect.headers.get('Location')}`);
+    const landingLocation = new URL(`https://services.solstone.app${connect.headers.get('Location')}`);
     const seeded = await seedOtp({ email: 'person@example.com', options: { code: '123456' } });
     const response = await worker.fetch(
       verifyRequest({
@@ -158,7 +158,7 @@ describe('OAuth connect handoff', () => {
   it('OTP success with invalid next signature falls back to dashboard', async () => {
     const testEnv = makeTestEnv();
     const connect = await worker.fetch(connectRequest(), testEnv);
-    const landingLocation = new URL(`https://account.solstone.app${connect.headers.get('Location')}`);
+    const landingLocation = new URL(`https://services.solstone.app${connect.headers.get('Location')}`);
     const seeded = await seedOtp({ email: 'person@example.com', options: { code: '123456' } });
     const response = await worker.fetch(
       verifyRequest({
@@ -190,7 +190,7 @@ describe('OAuth connect handoff', () => {
 
   it('GET /connect/confirm returns 405', async () => {
     const response = await worker.fetch(
-      new Request('https://account.solstone.app/connect/confirm'),
+      new Request('https://services.solstone.app/connect/confirm'),
       makeTestEnv()
     );
 
@@ -249,17 +249,17 @@ describe('OAuth connect handoff', () => {
 });
 
 function connectRequest(overrides = {}, headers = {}) {
-  return new Request(`https://account.solstone.app/connect?${new URLSearchParams(validConnectParams(overrides)).toString()}`, {
+  return new Request(`https://services.solstone.app/connect?${new URLSearchParams(validConnectParams(overrides)).toString()}`, {
     headers,
   });
 }
 
 function confirmRequest(cookie, {
-  origin = 'https://account.solstone.app',
+  origin = 'https://services.solstone.app',
   csrf = TEST_CSRF,
   params = {},
 } = {}) {
-  return new Request('https://account.solstone.app/connect/confirm', {
+  return new Request('https://services.solstone.app/connect/confirm', {
     method: 'POST',
     headers: {
       Origin: origin,

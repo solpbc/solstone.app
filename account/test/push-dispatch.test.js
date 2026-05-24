@@ -410,7 +410,7 @@ function installApnsOk() {
 function dispatchRequest({ token, body = validDispatchBody(), rawAuth = false }) {
   const headers = { 'Content-Type': 'application/json' };
   if (token !== null) headers.Authorization = rawAuth ? token : `Bearer ${token}`;
-  return new Request('https://account.solstone.app/push/dispatch', {
+  return new Request('https://services.solstone.app/push/dispatch', {
     method: 'POST',
     headers,
     body: JSON.stringify(body),

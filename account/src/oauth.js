@@ -31,7 +31,7 @@ const DEVICE_CODE_INTERVAL_SECONDS = 5;
 const DEVICE_CODE_INSERT_ATTEMPTS = 8;
 const DEVICE_USER_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 const DEVICE_USER_CODE_RE = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/;
-const ACCOUNT_ORIGIN = 'https://account.solstone.app';
+const ACCOUNT_ORIGIN = 'https://services.solstone.app';
 const CONNECT_FIELDS = [
   'response_type',
   'client_id',
@@ -241,7 +241,7 @@ export async function handleDeviceGet(req, env) {
 }
 
 export async function handleDevicePost(req, env) {
-  if (!originAllowed(req)) return html(renderDeviceEntry({ error: 'try that again from account.solstone.app.' }), { status: 403, headers: { 'Cache-Control': 'no-store' } });
+  if (!originAllowed(req)) return html(renderDeviceEntry({ error: 'try that again from services.solstone.app.' }), { status: 403, headers: { 'Cache-Control': 'no-store' } });
   const form = await readForm(req);
   if (!form) return html(renderDeviceEntry({ error: 'enter the code from your device.' }), { status: 400, headers: { 'Cache-Control': 'no-store' } });
   const userCode = normalizeUserCode(form.get('user_code')?.toString() || '');
@@ -272,7 +272,7 @@ export async function handleDevicePost(req, env) {
 
 export async function handleDeviceConfirm(req, env) {
   if (req.method !== 'POST') return html(renderDeviceDone('method not allowed'), { status: 405, headers: { 'Cache-Control': 'no-store' } });
-  if (!originAllowed(req)) return html(renderDeviceDone('try that again from account.solstone.app.'), { status: 403, headers: { 'Cache-Control': 'no-store' } });
+  if (!originAllowed(req)) return html(renderDeviceDone('try that again from services.solstone.app.'), { status: 403, headers: { 'Cache-Control': 'no-store' } });
   const session = await getValidSession(req, env, Date.now());
   if (!session) return redirect('/', 303, { 'Cache-Control': 'no-store' });
 

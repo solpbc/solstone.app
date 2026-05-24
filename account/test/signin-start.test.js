@@ -126,7 +126,7 @@ describe('/signin/start', () => {
 
   it('rejects an unparseable csrf body before side effects', async () => {
     const response = await worker.fetch(
-      new Request('https://account.solstone.app/signin/start', {
+      new Request('https://services.solstone.app/signin/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{"email":"json@example.com"}',
@@ -138,7 +138,7 @@ describe('/signin/start', () => {
 
   it('accepts the csrf token rendered on the landing form', async () => {
     const testEnv = makeTestEnv();
-    const landing = await worker.fetch(new Request('https://account.solstone.app/'), testEnv);
+    const landing = await worker.fetch(new Request('https://services.solstone.app/'), testEnv);
     const csrf = extractCsrf(await landing.text());
     const response = await worker.fetch(
       startRequest('roundtrip@example.com', {}, { csrf }),
@@ -291,7 +291,7 @@ async function expectStartCsrfRejected(response) {
   const body = await response.text();
   expect(response.status).toBe(403);
   expect(body).toContain('email security');
-  expect(body).toContain('https://account.solstone.app');
+  expect(body).toContain('https://services.solstone.app');
   expect(await rowCount('otp_tokens')).toBe(0);
   expect(await rowCount('rate_buckets')).toBe(0);
   expect(response.headers.has('Set-Cookie')).toBe(false);

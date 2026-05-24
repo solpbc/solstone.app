@@ -157,11 +157,11 @@ describe('passkey registration', () => {
   });
 });
 
-function passkeyRequest(path, { cookie, body = {}, origin = 'https://account.solstone.app' } = {}) {
+function passkeyRequest(path, { cookie, body = {}, origin = 'https://services.solstone.app' } = {}) {
   const headers = { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.90' };
   if (cookie) headers.Cookie = cookie;
   if (origin !== null) headers.Origin = origin;
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),

@@ -61,10 +61,10 @@ describe('device deregistration', () => {
 });
 
 function deregisterRequest(cookie, deviceId) {
-  return new Request('https://account.solstone.app/account/devices/deregister', {
+  return new Request('https://services.solstone.app/account/devices/deregister', {
     method: 'POST',
     headers: {
-      Origin: 'https://account.solstone.app',
+      Origin: 'https://services.solstone.app',
       Cookie: cookie,
       'Content-Type': 'application/json',
     },

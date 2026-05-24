@@ -162,11 +162,11 @@ describe('passkey authentication', () => {
   });
 
   it('returns JSON no-store headers for invalid JSON bodies', async () => {
-    const response = await worker.fetch(new Request('https://account.solstone.app/passkey/auth/finish', {
+    const response = await worker.fetch(new Request('https://services.solstone.app/passkey/auth/finish', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Origin: 'https://account.solstone.app',
+        Origin: 'https://services.solstone.app',
         'CF-Connecting-IP': '203.0.113.91',
       },
       body: 'not-json',
@@ -178,10 +178,10 @@ describe('passkey authentication', () => {
   });
 });
 
-function passkeyRequest(path, { body = {}, origin = 'https://account.solstone.app' } = {}) {
+function passkeyRequest(path, { body = {}, origin = 'https://services.solstone.app' } = {}) {
   const headers = { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.91' };
   if (origin !== null) headers.Origin = origin;
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),

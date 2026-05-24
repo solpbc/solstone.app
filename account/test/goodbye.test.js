@@ -4,7 +4,7 @@ import { makeTestEnv } from './helpers.js';
 
 describe('goodbye page', () => {
   it('renders the signed-out copy', async () => {
-    const response = await worker.fetch(new Request('https://account.solstone.app/goodbye'), makeTestEnv());
+    const response = await worker.fetch(new Request('https://services.solstone.app/goodbye'), makeTestEnv());
     const body = await response.text();
 
     expect(response.status).toBe(200);

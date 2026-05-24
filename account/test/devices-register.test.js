@@ -88,10 +88,10 @@ describe('device registration', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(new Request('https://account.solstone.app/account/devices/register', {
+    const response = await worker.fetch(new Request('https://services.solstone.app/account/devices/register', {
       method: 'POST',
       headers: {
-        Origin: 'https://account.solstone.app',
+        Origin: 'https://services.solstone.app',
         Cookie: session.cookie,
         'Content-Type': 'application/json',
       },
@@ -147,10 +147,10 @@ describe('device registration', () => {
 });
 
 function registerRequest(cookie, overrides = {}) {
-  return new Request('https://account.solstone.app/account/devices/register', {
+  return new Request('https://services.solstone.app/account/devices/register', {
     method: 'POST',
     headers: {
-      Origin: 'https://account.solstone.app',
+      Origin: 'https://services.solstone.app',
       Cookie: cookie,
       'Content-Type': 'application/json',
     },

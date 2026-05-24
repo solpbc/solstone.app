@@ -92,7 +92,7 @@ import {
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
-const ORIGIN = 'https://account.solstone.app';
+const ORIGIN = 'https://services.solstone.app';
 const IP_HOUR_LIMIT = 10;
 const EMAIL_DAY_LIMIT = 5;
 const HOUR_MS = 60 * 60 * 1000;

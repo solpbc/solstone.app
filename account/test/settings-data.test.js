@@ -188,7 +188,7 @@ function settingsRequest(path, {
   ip = '203.0.113.77',
   userAgent = 'Mozilla/5.0 Firefox/124.0',
 } = {}) {
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     headers: {
       Cookie: cookie,
       'CF-Connecting-IP': ip,

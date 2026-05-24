@@ -29,7 +29,7 @@ describe('/oauth/token', () => {
   });
 
   it('authorization-code exchange rejects malformed body', async () => {
-    const response = await worker.fetch(new Request('https://account.solstone.app/oauth/token', {
+    const response = await worker.fetch(new Request('https://services.solstone.app/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'multipart/form-data; boundary=x' },
       body: 'not-a-valid-multipart-body',
@@ -331,7 +331,7 @@ describe('/oauth/token', () => {
 });
 
 function tokenRequest(params, headers = {}) {
-  return new Request('https://account.solstone.app/oauth/token', {
+  return new Request('https://services.solstone.app/oauth/token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

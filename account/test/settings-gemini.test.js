@@ -292,16 +292,16 @@ describe('settings gemini dashboard', () => {
 function settingsGet(path, { cookie } = {}) {
   const headers = {};
   if (cookie) headers.Cookie = cookie;
-  return new Request(`https://account.solstone.app${path}`, { headers });
+  return new Request(`https://services.solstone.app${path}`, { headers });
 }
 
 function settingsPost(path, { cookie, body = {} } = {}) {
   const headers = {
-    Origin: 'https://account.solstone.app',
+    Origin: 'https://services.solstone.app',
     'Content-Type': 'application/x-www-form-urlencoded',
   };
   if (cookie) headers.Cookie = cookie;
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
     headers,
     body: new URLSearchParams(body),

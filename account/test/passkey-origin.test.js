@@ -59,9 +59,9 @@ describe('passkey origin and response headers', () => {
   });
 
   it('returns 405 JSON for non-POST passkey requests', async () => {
-    const response = await worker.fetch(new Request('https://account.solstone.app/passkey/auth/start', {
+    const response = await worker.fetch(new Request('https://services.solstone.app/passkey/auth/start', {
       method: 'GET',
-      headers: { Origin: 'https://account.solstone.app' },
+      headers: { Origin: 'https://services.solstone.app' },
     }), makeTestEnv());
 
     expect(response.status).toBe(405);
@@ -70,11 +70,11 @@ describe('passkey origin and response headers', () => {
   });
 });
 
-function passkeyRequest(path, { cookie, origin = 'https://account.solstone.app' } = {}) {
+function passkeyRequest(path, { cookie, origin = 'https://services.solstone.app' } = {}) {
   const headers = { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.92' };
   if (cookie) headers.Cookie = cookie;
   if (origin !== null) headers.Origin = origin;
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
     headers,
     body: '{}',

@@ -63,7 +63,7 @@ describe('device listing', () => {
 });
 
 function listRequest(cookie) {
-  return new Request('https://account.solstone.app/account/devices', {
+  return new Request('https://services.solstone.app/account/devices', {
     headers: { Cookie: cookie },
   });
 }

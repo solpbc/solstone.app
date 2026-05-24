@@ -82,7 +82,7 @@ describe('dashboard rendering', () => {
 });
 
 function dashboardRequest(cookie, path = '/dashboard') {
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     headers: { Cookie: cookie },
   });
 }

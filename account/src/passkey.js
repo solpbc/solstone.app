@@ -25,7 +25,7 @@ import { getValidSession, sessionCookie } from './session.js';
 
 const RP_ID = 'solstone.app';
 const RP_NAME = 'solstone';
-const EXPECTED_ORIGIN = 'https://account.solstone.app';
+const EXPECTED_ORIGIN = 'https://services.solstone.app';
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const REGISTER_PER_ACCOUNT_PER_HOUR = 5;

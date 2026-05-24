@@ -4,7 +4,7 @@ compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 main = "src/index.js"
 
-routes = [{ pattern = "account.solstone.app", custom_domain = true }]
+routes = [{ pattern = "services.solstone.app", custom_domain = true }]
 
 [[d1_databases]]
 binding = "DB"

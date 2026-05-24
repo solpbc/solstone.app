@@ -160,17 +160,17 @@ describe('settings passkeys', () => {
 });
 
 function settingsRequest(path, cookie) {
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     headers: { Cookie: cookie },
   });
 }
 
 function settingsPost(path, cookie, form = {}) {
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      Origin: 'https://account.solstone.app',
+      Origin: 'https://services.solstone.app',
       Cookie: cookie,
     },
     body: new URLSearchParams(form),

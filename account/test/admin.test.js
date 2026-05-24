@@ -277,7 +277,7 @@ async function seedAdminAccount(testEnv) {
 function adminRequest(path, token = null) {
   const headers = {};
   if (token) headers['Cf-Access-Jwt-Assertion'] = token;
-  return new Request(`https://account.solstone.app${path}`, { headers });
+  return new Request(`https://services.solstone.app${path}`, { headers });
 }
 
 async function adminJson(path, token, testEnv) {

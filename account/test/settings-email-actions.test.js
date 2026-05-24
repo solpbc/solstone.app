@@ -246,10 +246,10 @@ async function setupAccount({ email = 'person@example.com' } = {}) {
 }
 
 function settingsPost(path, cookie) {
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
     headers: {
-      Origin: 'https://account.solstone.app',
+      Origin: 'https://services.solstone.app',
       Cookie: cookie,
     },
     body: '',

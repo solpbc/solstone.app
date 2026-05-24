@@ -199,13 +199,13 @@ function settingsRequest(path, {
 } = {}) {
   const headers = { 'CF-Connecting-IP': ip, 'User-Agent': userAgent };
   if (cookie) headers.Cookie = cookie;
-  return new Request(`https://account.solstone.app${path}`, { headers });
+  return new Request(`https://services.solstone.app${path}`, { headers });
 }
 
 function settingsPost(path, { cookie } = {}) {
-  const headers = { Origin: 'https://account.solstone.app' };
+  const headers = { Origin: 'https://services.solstone.app' };
   if (cookie) headers.Cookie = cookie;
-  return new Request(`https://account.solstone.app${path}`, {
+  return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
     headers,
     body: '',

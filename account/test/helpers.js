@@ -181,11 +181,11 @@ export function startRequest(email, headers = {}, { csrf = TEST_CSRF, next = nul
   if (csrf !== null) body.set('csrf', csrf);
   if (next !== null) body.set('next', next);
   if (nextSig !== null) body.set('next_sig', nextSig);
-  return new Request('https://account.solstone.app/signin/start', {
+  return new Request('https://services.solstone.app/signin/start', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      Origin: 'https://account.solstone.app',
+      Origin: 'https://services.solstone.app',
       'CF-Connecting-IP': '203.0.113.10',
       ...headers,
     },
@@ -196,7 +196,7 @@ export function startRequest(email, headers = {}, { csrf = TEST_CSRF, next = nul
 export function emailAddRequest({
   address,
   cookie,
-  origin = 'https://account.solstone.app',
+  origin = 'https://services.solstone.app',
   headers = {},
 }) {
   const requestHeaders = {
@@ -205,7 +205,7 @@ export function emailAddRequest({
   };
   if (origin !== null) requestHeaders.Origin = origin;
   if (cookie) requestHeaders.Cookie = cookie;
-  return new Request('https://account.solstone.app/settings/emails/add', {
+  return new Request('https://services.solstone.app/settings/emails/add', {
     method: 'POST',
     headers: requestHeaders,
     body: new URLSearchParams({ address }),
@@ -360,7 +360,7 @@ export async function seedOtp({ email, options = {} }) {
 export function verifyRequest({
   email,
   code,
-  origin = 'https://account.solstone.app',
+  origin = 'https://services.solstone.app',
   headers = {},
   csrf = TEST_CSRF,
   next = null,
@@ -378,7 +378,7 @@ export function verifyRequest({
     ...headers,
   };
   if (origin !== null) requestHeaders.Origin = origin;
-  return new Request('https://account.solstone.app/signin/verify', {
+  return new Request('https://services.solstone.app/signin/verify', {
     method: 'POST',
     headers: requestHeaders,
     body,
@@ -389,7 +389,7 @@ export function emailVerifyRequest({
   address,
   code,
   cookie,
-  origin = 'https://account.solstone.app',
+  origin = 'https://services.solstone.app',
   headers = {},
 }) {
   const requestHeaders = {
@@ -398,7 +398,7 @@ export function emailVerifyRequest({
   };
   if (origin !== null) requestHeaders.Origin = origin;
   if (cookie) requestHeaders.Cookie = cookie;
-  return new Request('https://account.solstone.app/settings/emails/verify', {
+  return new Request('https://services.solstone.app/settings/emails/verify', {
     method: 'POST',
     headers: requestHeaders,
     body: new URLSearchParams({ address, code }),
