@@ -124,6 +124,30 @@ function html(body, status = 200) {
   });
 }
 
+const HUB_URL = 'https://extro.solpbc.org/hooks/scouts';
+
+async function notifyHub(env, type, payload) {
+  if (!env.HUB_WEBHOOK_SECRET) {
+    console.warn('hub notify skipped (HUB_WEBHOOK_SECRET not configured)', { type });
+    return;
+  }
+  try {
+    const res = await fetch(HUB_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Hub-Secret': env.HUB_WEBHOOK_SECRET,
+      },
+      body: JSON.stringify({ type, ...payload }),
+    });
+    if (!res.ok) {
+      console.warn('hub notify non-2xx', { type, status: res.status });
+    }
+  } catch (err) {
+    console.warn('hub notify error', { type, error: err.message });
+  }
+}
+
 function redirect(url, headers = {}) {
   return new Response(null, {
     status: 303,
@@ -136,7 +160,7 @@ function redirect(url, headers = {}) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
@@ -512,6 +536,22 @@ export default {
           }
           await applyScout(db, scout.id, email, useCase);
         }
+        const applied = await getScout(db, scout.id);
+        if (applied && applied.status === 'applied') {
+          ctx.waitUntil(
+            notifyHub(env, 'application.submitted', {
+              office: 'cxo',
+              id: applied.id,
+              auth_kind: applied.auth_kind,
+              did: applied.did || '',
+              handle: applied.handle || '',
+              email: applied.email || '',
+              use_case: applied.use_case || '',
+              profile_link: applied.profile_link || '',
+              applied_at: applied.applied_at || '',
+            })
+          );
+        }
         return redirect('/dashboard');
       }
 
@@ -531,6 +571,18 @@ export default {
           return html(renderError('invalid feedback category'), 400);
         }
         await submitFeedback(db, scout.id, category, body);
+        ctx.waitUntil(
+          notifyHub(env, 'feedback.submitted', {
+            office: 'cxo',
+            scout_id: scout.id,
+            auth_kind: scout.auth_kind,
+            scout_handle: scout.handle || '',
+            scout_email: scout.email || '',
+            category,
+            body,
+            submitted_at: new Date().toISOString(),
+          })
+        );
         return redirect('/dashboard');
       }
 
