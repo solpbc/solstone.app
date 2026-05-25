@@ -20,6 +20,7 @@ describe('static source checks', () => {
       'crypto.js',
       'db.js',
       'devices.js',
+      'dispatch-tokens.js',
       'email.js',
       'emails.js',
       'enable-constants.js',

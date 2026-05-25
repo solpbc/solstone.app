@@ -1,17 +1,12 @@
-import { generateSessionToken, hashWithPepper } from './crypto.js';
 import {
-  bumpDeviceLastSeen,
-  findActiveDispatchToken,
-  findDeviceByPushKey,
   getDeviceById,
-  insertDevice,
-  insertDispatchToken,
   listDevicesForAccount,
   revokeAllDevicesForAccount,
   revokeDevice,
   revokeDeviceById,
-  revokeDevicePriorAndInsertNew,
 } from './db.js';
+import { mintDispatchToken, resolveDispatchToken } from './dispatch-tokens.js';
+import { registerDeviceForAccount } from './enable.js';
 import { renderServicesDevices } from './html.js';
 import { forbidden, json, originAllowed } from './index.js';
 import { normalizeFriendlyName } from './passkey.js';
@@ -19,24 +14,7 @@ import { noStore, requireSignedInSession, signedInHtml, signedInRedirect } from 
 
 const PLATFORMS = ['ios', 'macos', 'android'];
 const PUSH_TOKEN_ENVS = ['production', 'sandbox'];
-
-export async function mintDispatchToken(env, accountId) {
-  const token = generateSessionToken();
-  const tokenHash = await hashWithPepper(token, env, 'DISPATCH_TOKEN_PEPPER');
-  const createdAt = Date.now();
-  // No cap column: capability narrowness is enforced by resolveDispatchToken call sites.
-  await insertDispatchToken(env.DB, { tokenHash, accountId, nowMs: createdAt });
-  return { token, accountId, createdAt };
-}
-
-// Capability narrowness is enforced structurally: this verifier is invoked
-// only from the future L4 dispatch path. No `cap` column on the table.
-export async function resolveDispatchToken(env, plaintext) {
-  if (typeof plaintext !== 'string' || !plaintext) return null;
-  const tokenHash = await hashWithPepper(plaintext, env, 'DISPATCH_TOKEN_PEPPER');
-  const row = await findActiveDispatchToken(env.DB, tokenHash);
-  return row ? { accountId: row.account_id } : null;
-}
+export { mintDispatchToken, resolveDispatchToken };
 
 export async function deviceRevoke(env, deviceId) {
   if (!deviceId) return;
@@ -68,38 +46,18 @@ export async function handleRegisterDevice(req, env) {
 
   const deviceLabel = normalizeFriendlyName(body.device_label);
   const appVersion = normalizeFriendlyName(body.app_version);
-  const existing = await findDeviceByPushKey(env.DB, { pushToken, bundleId, pushTokenEnv });
-  if (existing && existing.account_id === session.account_id) {
-    try {
-      await bumpDeviceLastSeen(env.DB, { deviceId: existing.device_id, nowMs });
-    } catch {
-      console.error('device_last_seen_bump_failed');
-    }
-    return json({ ok: true, device_id: existing.device_id });
-  }
-
-  const newDevice = {
-    deviceId: crypto.randomUUID(),
+  const registered = await registerDeviceForAccount({
+    env,
     accountId: session.account_id,
+    deviceToken: pushToken,
     platform,
-    pushToken,
-    pushTokenEnv,
     bundleId,
+    pushTokenEnv,
     deviceLabel,
     appVersion,
     nowMs,
-  };
-
-  if (existing) {
-    await revokeDevicePriorAndInsertNew(env.DB, {
-      priorDeviceId: existing.device_id,
-      newDevice,
-      nowMs,
-    });
-  } else {
-    await insertDevice(env.DB, newDevice);
-  }
-  return json({ ok: true, device_id: newDevice.deviceId });
+  });
+  return json({ ok: true, device_id: registered.deviceId });
 }
 
 export async function handleDeregisterDevice(req, env) {

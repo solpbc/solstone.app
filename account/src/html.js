@@ -215,6 +215,58 @@ export function renderEnableScoutError({ message }) {
   });
 }
 
+export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bundleId }) {
+  return layout({
+    title: 'enable solstone push',
+    body: `<pre class="welcome" style="white-space:pre-wrap;font:inherit">solstone push wants to reach this device for you.
+
+two things, and only these two:
+
+  1 — know it's you
+      so your sign-in recognizes this device. nothing from your
+      journal comes with it — no observations, nothing sol has
+      experienced alongside you. just: this is your phone.
+
+  2 — enable solstone push
+      sol will send a short heads-up (an 80-character summary,
+      never the full thing) to this device when there's something
+      worth your attention. you can turn it off in your services
+      anytime.
+
+         [ allow ]            [ cancel ]
+
+you can see exactly which devices solstone push reaches — and turn
+it off — in your services anytime.</pre>
+<form method="post" action="/enable/push/confirm">
+  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+  <input type="hidden" name="nonce" value="${escAttr(nonce)}">
+  <input type="hidden" name="device_token" value="${escAttr(deviceToken)}">
+  <input type="hidden" name="platform" value="${escAttr(platform)}">
+  <input type="hidden" name="bundle_id" value="${escAttr(bundleId)}">
+  <button type="submit" name="action" value="allow">allow</button>
+  <button type="submit" name="action" value="cancel">cancel</button>
+</form>`,
+  });
+}
+
+export function renderEnablePushDone() {
+  return layout({
+    title: 'enabled',
+    body: `<h1>enabled</h1>
+<p>your phone is connected to solstone push. you can close this tab.</p>`,
+  });
+}
+
+export function renderEnablePushError() {
+  return layout({
+    title: 'could not enable solstone push',
+    body: `<h1>could not enable solstone push</h1>
+<p>something didn't look right with that link.</p>
+<p>if you got here from your solstone app, try again from the app. if
+you got here some other way, you can close this tab.</p>`,
+  });
+}
+
 // === services surfaces ===
 
 export function renderServicesDashboard({ welcome, email, lastSignInAt, now, decryptOk, scoutActive, deviceCount }) {

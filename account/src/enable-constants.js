@@ -10,3 +10,7 @@ export const DEVICE_CODE_REGEX = /^SCOUT-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}-[2
 
 export const DEVICE_CODE_TTL_MS = 15 * 60 * 1000;
 export const HANDOFF_TTL_MS = 5 * 60 * 1000;
+
+export const PUSH_PLATFORM_ALLOWLIST = ['ios', 'macos'];
+export const DEVICE_TOKEN_REGEX = /^[a-zA-Z0-9_-]{32,256}$/;
+export const BUNDLE_ID_REGEX = /^[a-zA-Z0-9.-]{1,128}$/;

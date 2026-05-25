@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { encryptEmail } from '../src/crypto.js';
 import {
+  TEST_CSRF,
   emailAddRequest,
   installGcpFetchMock,
   makeTestEnv,
@@ -46,6 +47,10 @@ const SERVICE_VERBS = [
 const forbiddenRe = new RegExp(FORBIDDEN_PHRASES.map(escapeRe).join('|'), 'i');
 const serviceVerbRe = new RegExp(SERVICE_VERBS.map(escapeRe).join('|'), 'i');
 const stripHref = (html) => html.replace(/href="[^"]*"/gi, 'href=""');
+const enableSurfaceStrictRe = /\b(sign\s+in|signed\s+in|signing\s+in|log\s+in|logged\s+in|your\s+account|account\s+settings|linked|authenticate)\b/i;
+const VALID_PUSH_NONCE = '2'.repeat(52);
+const VALID_PUSH_DEVICE_TOKEN = 'A'.repeat(64);
+const VALID_PUSH_BUNDLE_ID = 'app.solstone.swift';
 
 describe('brand canon', () => {
   beforeEach(async () => {
@@ -120,6 +125,32 @@ describe('brand canon', () => {
       if (signedIn) expect(response.headers.get('Cache-Control')).toBe('no-store');
     }
     expect(violations).toEqual([]);
+  });
+
+  it('keeps enable-push surfaces clean under the stricter service regex', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'push-canon@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const consent = await get(pushPath(), testEnv, session.cookie);
+    const done = await post('/enable/push/confirm', testEnv, new URLSearchParams({
+      csrf: TEST_CSRF,
+      nonce: VALID_PUSH_NONCE,
+      device_token: VALID_PUSH_DEVICE_TOKEN,
+      platform: 'ios',
+      bundle_id: VALID_PUSH_BUNDLE_ID,
+      action: 'allow',
+    }), session.cookie);
+    const error = await get('/enable/push', testEnv);
+
+    expect('your sign-in').not.toMatch(enableSurfaceStrictRe);
+    for (const [name, response] of [
+      ['enable push consent', consent],
+      ['enable push done', done],
+      ['enable push error', error],
+    ]) {
+      const body = await response.text();
+      expect(body, name).not.toMatch(enableSurfaceStrictRe);
+    }
   });
 
   it('keeps forbidden copy out of transactional emails', async () => {
@@ -207,6 +238,10 @@ function json(body, status = 200) {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function pushPath() {
+  return `/enable/push?nonce=${VALID_PUSH_NONCE}&device_token=${VALID_PUSH_DEVICE_TOKEN}&platform=ios&bundle_id=${VALID_PUSH_BUNDLE_ID}`;
 }
 
 function escapeRe(value) {

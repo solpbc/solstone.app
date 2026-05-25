@@ -27,10 +27,13 @@ import {
 } from './db.js';
 import { sendOtpEmail } from './email.js';
 import {
+  handleEnablePushConfirm,
+  handleEnablePushGet,
   handleEnableScoutCode,
   handleEnableScoutConfirm,
   handleEnableScoutGet,
   handleEnableScoutPost,
+  handleHandoffPush,
   handleHandoffScout,
   verifyEnableResume,
 } from './enable.js';
@@ -322,6 +325,34 @@ export default {
         req.method === 'GET'
       ) {
         return handleHandoffScout(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'push' &&
+        req.method === 'GET'
+      ) {
+        return handleEnablePushGet(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'push' &&
+        parts[3] === 'confirm' &&
+        req.method === 'POST'
+      ) {
+        return handleEnablePushConfirm(req, env, ctx);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'handoff' &&
+        parts[2] === 'push' &&
+        req.method === 'GET'
+      ) {
+        return handleHandoffPush(req, env, ctx);
       }
 
       if (url.pathname === '/passkey/register/start') {
