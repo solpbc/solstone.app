@@ -261,11 +261,13 @@ then read INSTALL.md and follow it.</pre>
             </div>
             <pre class="blurb" id="blurb-linux">install the solstone-linux observer — it experiences your screen and audio along with you on linux desktops using PipeWire and GStreamer, and sends to your journal.
 
-run this from your solstone host:
+on the machine that will host the observer:
 
-sol observer install --platform linux
+pipx install solstone-linux
+solstone-linux install-service
+solstone-linux setup
 
-that installs the observer from PyPI, runs the system-package preflight, registers it, and writes the systemd unit. add --dry-run first to preview every step.
+`setup` prompts for your journal URL and registers the observer for you. if this machine can't reach your solstone host, mint a key from there with `sol observer create &lt;name&gt;` and paste it during setup.
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
@@ -305,11 +307,13 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux
             </div>
             <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer — it experiences your tmux sessions along with you, taking in what's on each pane every 5 seconds. lightweight, pure python, no system dependencies.
 
-run this from your solstone host:
+on the machine that will host the observer:
 
-sol observer install --platform tmux
+pipx install solstone-tmux
+solstone-tmux install-service
+solstone-tmux setup
 
-that installs the observer from PyPI, registers it, writes its config, and installs the systemd unit. add --dry-run first to preview every step.
+`setup` prompts for your journal URL and registers the observer for you. if this machine can't reach your solstone host, mint a key from there with `sol observer create &lt;name&gt;` and paste it during setup.
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
