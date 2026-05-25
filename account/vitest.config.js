@@ -17,7 +17,6 @@ export default defineWorkersConfig({
           bindings: {
             ENCRYPTION_SECRET: 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=',
             HMAC_PEPPER: 'test-hmac-pepper',
-            OAUTH_TOKEN_PEPPER: 'test-oauth-token-pepper',
             DISPATCH_TOKEN_PEPPER: 'test-dispatch-token-pepper',
             GCP_SERVICE_ACCOUNT_JSON: '{}',
             TURNSTILE_SECRET: 'test-turnstile-secret',

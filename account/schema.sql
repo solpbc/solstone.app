@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0007 — OAuth provisioning
+-- account-portal D1 schema after 0009 — service handoffs
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS account_dispatch_tokens (
 CREATE INDEX IF NOT EXISTS idx_account_dispatch_tokens_account_id
   ON account_dispatch_tokens(account_id);
 
--- Add OAuth authorization-code/token storage and per-account Gemini API key provisioning.
+-- Per-account Gemini API key provisioning.
 
 CREATE TABLE IF NOT EXISTS provisioned_keys (
   id TEXT PRIMARY KEY,
@@ -163,80 +163,46 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_provisioned_keys_active_account_provider
 CREATE INDEX IF NOT EXISTS idx_provisioned_keys_account_id
   ON provisioned_keys(account_id);
 
-CREATE TABLE IF NOT EXISTS oauth_codes (
-  code_hash TEXT PRIMARY KEY,
+-- Back-channel service handoffs for /enable/scout and /handoff/scout.
+-- TTL-on-read enforces expiry; periodic sweep is a future lode.
+CREATE TABLE IF NOT EXISTS service_handoffs (
+  handoff_hash TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
-  client_id TEXT NOT NULL,
-  redirect_uri TEXT NOT NULL,
-  scope TEXT NOT NULL,
-  code_challenge TEXT NOT NULL,
-  code_challenge_method TEXT NOT NULL CHECK (code_challenge_method = 'S256'),
-  created_at INTEGER NOT NULL,
-  expires_at INTEGER NOT NULL,
-  consumed_at INTEGER,
-  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_oauth_codes_account_id
-  ON oauth_codes(account_id);
-
-CREATE TABLE IF NOT EXISTS oauth_tokens (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  account_id TEXT NOT NULL,
-  family_id TEXT NOT NULL,
-  access_token_hash TEXT NOT NULL UNIQUE,
-  refresh_token_hash TEXT NOT NULL UNIQUE,
-  scope TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  access_expires_at INTEGER NOT NULL,
-  refresh_expires_at INTEGER NOT NULL,
-  revoked_at INTEGER,
-  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_oauth_tokens_account_id
-  ON oauth_tokens(account_id);
-
-CREATE INDEX IF NOT EXISTS idx_oauth_tokens_family_id
-  ON oauth_tokens(family_id);
-
--- oauth_tokens.refresh_token_hash UNIQUE serves as the refresh-token lookup index.
-
--- RFC 8628 device authorization rows. The device_code itself is bearer
--- material; only the OAUTH_TOKEN_PEPPER hash is stored.
-CREATE TABLE IF NOT EXISTS device_codes (
-  device_code_hash TEXT PRIMARY KEY,
-  user_code TEXT NOT NULL
-    CHECK (length(user_code) = 8)
-    CHECK (user_code NOT GLOB '*[^23456789ABCDEFGHJKMNPQRSTUVWXYZ]*'),
-  account_id TEXT,
-  client_id TEXT NOT NULL,
-  scope TEXT NOT NULL CHECK (scope = 'solstone.gemini'),
-  code_challenge TEXT,
-  code_challenge_method TEXT CHECK (code_challenge_method IS NULL OR code_challenge_method = 'S256'),
-  interval_seconds INTEGER NOT NULL DEFAULT 5 CHECK (interval_seconds >= 5 AND interval_seconds <= 60),
+  service TEXT NOT NULL CHECK (service IN ('scout')),
+  payload_encrypted BLOB NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL CHECK (expires_at > created_at),
-  last_polled_at INTEGER,
-  approved_at INTEGER,
-  denied_at INTEGER,
   consumed_at INTEGER,
-  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
-  CHECK (
-    (code_challenge IS NULL AND code_challenge_method IS NULL)
-    OR (code_challenge IS NOT NULL AND code_challenge_method = 'S256')
-  ),
-  CHECK (approved_at IS NULL OR denied_at IS NULL),
-  CHECK (
-    (approved_at IS NULL AND account_id IS NULL)
-    OR (approved_at IS NOT NULL AND account_id IS NOT NULL)
-  ),
-  CHECK (consumed_at IS NULL OR approved_at IS NOT NULL)
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_device_codes_active_user_code
-  ON device_codes(user_code)
-  WHERE consumed_at IS NULL AND denied_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_service_handoffs_account_id
+  ON service_handoffs(account_id);
+
+CREATE INDEX IF NOT EXISTS idx_service_handoffs_expires_at
+  ON service_handoffs(expires_at);
+
+CREATE TABLE IF NOT EXISTS enable_scout_codes (
+  code_hash TEXT PRIMARY KEY,
+  nonce_hash TEXT NOT NULL UNIQUE,
+  account_id TEXT,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL CHECK (expires_at > created_at),
+  consumed_at INTEGER,
+  ip_hash TEXT NOT NULL,
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_enable_scout_codes_active_code_hash
+  ON enable_scout_codes(code_hash)
+  WHERE consumed_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_enable_scout_codes_expires_at
+  ON enable_scout_codes(expires_at);
+
+CREATE INDEX IF NOT EXISTS idx_enable_scout_codes_account_id
+  ON enable_scout_codes(account_id)
+  WHERE account_id IS NOT NULL;
 
 -- Append-only reveal acknowledgements. The PK order supports:
 -- WHERE account_id = ? AND acked_at > ?

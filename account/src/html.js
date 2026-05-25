@@ -147,6 +147,74 @@ export function renderError() {
   });
 }
 
+export function renderEnableScoutEntry({ csrf, code = '', error = '' }) {
+  const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
+  return layout({
+    title: 'enable solstone scout',
+    body: `<h1>got a code from your terminal?</h1>
+<p>enter it below to enable solstone scout on that machine.</p>
+${errorHtml}
+<form method="post" action="/enable/scout">
+  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+  <label for="code">code</label>
+  <input id="code" class="code" name="code" value="${escAttr(code)}" autocomplete="one-time-code" inputmode="text" maxlength="15" required>
+  <button type="submit">continue</button>
+</form>`,
+  });
+}
+
+export function renderEnableScoutConsent({ csrf, nonce = '', code = '', accountId = '' }) {
+  const hidden = nonce
+    ? `<input type="hidden" name="nonce" value="${escAttr(nonce)}">`
+    : `<input type="hidden" name="code" value="${escAttr(code)}">`;
+  return layout({
+    title: 'enable solstone scout',
+    body: `<pre class="welcome" style="white-space:pre-wrap;font:inherit">solstone on this device wants to enable solstone scout for you.
+
+two things, and only these two:
+
+  1 — know it's you
+      so your sign-in recognizes this device. nothing from your
+      journal comes with it — no observations, nothing sol has
+      experienced alongside you. just: this is your machine.
+
+  2 — enable solstone scout
+      sol pbc creates a Google Gemini key on your behalf and hands
+      it to this machine. the key is yours and it stays here. sol
+      pbc sets it up — it never sits between you and Gemini, and
+      never sees what you ask sol.
+
+         [ allow ]            [ cancel ]
+
+you can see exactly what you enabled — and turn either off — in
+your services anytime.</pre>
+<form method="post" action="/enable/scout/confirm">
+  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+  <input type="hidden" name="account_id" value="${escAttr(accountId)}">
+  ${hidden}
+  <button type="submit" name="action" value="allow">allow</button>
+  <button type="submit" name="action" value="cancel">cancel</button>
+</form>`,
+  });
+}
+
+export function renderEnableScoutDone() {
+  return layout({
+    title: 'enabled',
+    body: `<h1>enabled</h1>
+<p>you've enabled solstone scout. you can close this tab.</p>`,
+  });
+}
+
+export function renderEnableScoutError({ message }) {
+  return layout({
+    title: 'could not enable solstone scout',
+    body: `<h1>could not enable solstone scout</h1>
+<p>${esc(message || 'that request could not be completed.')}</p>
+<p><a href="/enable/scout">try again</a></p>`,
+  });
+}
+
 // === services surfaces ===
 
 export function renderServicesDashboard({ welcome, email, lastSignInAt, now, decryptOk, scoutActive, deviceCount }) {

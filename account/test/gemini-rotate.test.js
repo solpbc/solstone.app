@@ -10,7 +10,6 @@ import {
   makeTestEnv,
   resetDb,
   seedAccount,
-  seedOauthToken,
   seedSession,
 } from './helpers.js';
 
@@ -32,31 +31,6 @@ describe('Gemini key rotation', () => {
     vi.restoreAllMocks();
   });
 
-  it('rotates with Bearer auth and schedules old-key delete via waitUntil', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ testEnv });
-    const oauth = await seedOauthToken({ accountId: account.accountId, testEnv });
-    await seedProvisionedKey({ testEnv, accountId: account.accountId, keyString: 'old-gemini-key' });
-    const gcp = installRotationMock(['new-gemini-key']);
-    const timeoutSpy = installImmediateTimeout();
-    const ctx = createExecutionContext();
-    const waitSpy = vi.spyOn(ctx, 'waitUntil');
-    secrets.push(oauth.accessToken, oauth.refreshToken, 'old-gemini-key', 'new-gemini-key');
-
-    const response = await worker.fetch(rotateRequest({ bearer: oauth.accessToken }), testEnv, ctx);
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(body).not.toHaveProperty('provisioned');
-    expect(waitSpy).toHaveBeenCalledTimes(1);
-    expect(await activeKeyResource(account.accountId)).toBe('projects/test-gcp-project/locations/global/keys/new-1');
-
-    await waitSpy.mock.calls[0][0];
-    expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 30_000);
-    expect(gcp.deleted).toContain('projects/test-gcp-project/locations/global/keys/old');
-  });
-
   it('dashboard rotate redirects on success', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
@@ -75,73 +49,10 @@ describe('Gemini key rotation', () => {
     await waitSpy.mock.calls[0][0];
   });
 
-  it('Bearer skips origin guard while session rotation requires it', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ testEnv });
-    const oauth = await seedOauthToken({ accountId: account.accountId, testEnv });
-    const session = await seedSession(account.accountId, { testEnv });
-    await seedProvisionedKey({ testEnv, accountId: account.accountId, keyString: 'old-origin-key' });
-    installRotationMock(['new-origin-key']);
-    installImmediateTimeout();
-    secrets.push(oauth.accessToken, oauth.refreshToken, 'old-origin-key', 'new-origin-key');
-
-    const bearer = await worker.fetch(rotateRequest({
-      bearer: oauth.accessToken,
-      origin: 'https://evil.example',
-    }), testEnv, createExecutionContext());
-    expect(bearer.status).toBe(200);
-
-    const crossSite = await worker.fetch(new Request('https://services.solstone.app/services/scout/rotate', {
-      method: 'POST',
-      headers: { Cookie: session.cookie, Origin: 'https://evil.example' },
-    }), testEnv, createExecutionContext());
-    expect(crossSite.status).toBe(403);
-  });
-
-  it('rotates only the Bearer token account when another account also has a key', async () => {
-    const testEnv = makeTestEnv();
-    const accountA = await seedAccount({ email: 'a@example.com', testEnv });
-    const accountB = await seedAccount({ email: 'b@example.com', testEnv });
-    const oauthA = await seedOauthToken({ accountId: accountA.accountId, testEnv });
-    await seedProvisionedKey({
-      testEnv,
-      accountId: accountA.accountId,
-      id: 'a-old',
-      keyString: 'a-old-gemini-key',
-    });
-    await seedProvisionedKey({
-      testEnv,
-      accountId: accountB.accountId,
-      id: 'b-old',
-      displayName: 'acct-b-old',
-      keyResourceName: 'projects/test-gcp-project/locations/global/keys/b-old',
-      keyString: 'b-old-gemini-key',
-    });
-    const gcp = installRotationMock(['a-new-gemini-key']);
-    installImmediateTimeout();
-    const ctx = createExecutionContext();
-    const waitSpy = vi.spyOn(ctx, 'waitUntil');
-    secrets.push(oauthA.accessToken, oauthA.refreshToken, 'a-old-gemini-key', 'a-new-gemini-key', 'b-old-gemini-key');
-
-    const response = await worker.fetch(rotateRequest({ bearer: oauthA.accessToken }), testEnv, ctx);
-
-    expect(response.status).toBe(200);
-    await waitSpy.mock.calls[0][0];
-    expect(await activeKeyResource(accountA.accountId)).toBe('projects/test-gcp-project/locations/global/keys/new-1');
-    expect(await activeKeyResource(accountB.accountId)).toBe('projects/test-gcp-project/locations/global/keys/b-old');
-    expect((await keyRow('a-old')).revoked_at).toBeGreaterThan(0);
-    expect((await keyRow('b-old')).revoked_at).toBeNull();
-    expect(gcp.displayNames).toHaveLength(1);
-    expect(gcp.displayNames[0].startsWith(`${computeDisplayName(accountA.accountId)}-r-`)).toBe(true);
-    expect(gcp.displayNames[0].startsWith(`${computeDisplayName(accountB.accountId)}-r-`)).toBe(false);
-    expect(gcp.deleted).toContain('projects/test-gcp-project/locations/global/keys/old');
-    expect(gcp.deleted).not.toContain('projects/test-gcp-project/locations/global/keys/b-old');
-  });
-
   it('cleans up the just-created key when a concurrent rotation loses the active-key batch', async () => {
     const baseEnv = makeTestEnv();
     const account = await seedAccount({ testEnv: baseEnv });
-    const oauth = await seedOauthToken({ accountId: account.accountId, testEnv: baseEnv });
+    const session = await seedSession(account.accountId, { testEnv: baseEnv });
     await seedProvisionedKey({ testEnv: baseEnv, accountId: account.accountId, keyString: 'old-conflict-key' });
     const gcp = installRotationMock(['winner-key', 'loser-key']);
     installImmediateTimeout();
@@ -159,18 +70,19 @@ describe('Gemini key rotation', () => {
         },
       },
     };
-    secrets.push(oauth.accessToken, oauth.refreshToken, 'old-conflict-key', 'winner-key', 'loser-key');
+    secrets.push('old-conflict-key', 'winner-key', 'loser-key');
 
     const firstCtx = createExecutionContext();
     const secondCtx = createExecutionContext();
     const firstWait = vi.spyOn(firstCtx, 'waitUntil');
     const secondWait = vi.spyOn(secondCtx, 'waitUntil');
-    const first = await worker.fetch(rotateRequest({ bearer: oauth.accessToken }), testEnv, firstCtx);
-    const second = await worker.fetch(rotateRequest({ bearer: oauth.accessToken }), testEnv, secondCtx);
+    const first = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, firstCtx);
+    const second = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, secondCtx);
 
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(409);
-    expect(await second.json()).toEqual({ error: 'rotation_conflict' });
+    expect(first.status).toBe(303);
+    expect(first.headers.get('Location')).toBe('/services/scout?rotated=ok');
+    expect(second.status).toBe(303);
+    expect(second.headers.get('Location')).toBe('/services/scout?rotated=conflict');
     expect(gcp.created).toEqual([
       'projects/test-gcp-project/locations/global/keys/new-1',
       'projects/test-gcp-project/locations/global/keys/new-2',
@@ -187,7 +99,7 @@ describe('Gemini key rotation', () => {
   it('returns rotation_failed for non-conflict DB errors and cleans up the orphan key', async () => {
     const baseEnv = makeTestEnv();
     const account = await seedAccount({ testEnv: baseEnv });
-    const oauth = await seedOauthToken({ accountId: account.accountId, testEnv: baseEnv });
+    const session = await seedSession(account.accountId, { testEnv: baseEnv });
     await seedProvisionedKey({ testEnv: baseEnv, accountId: account.accountId, keyString: 'old-sql-error-key' });
     const gcp = installRotationMock(['new-sql-error-key']);
     const testEnv = {
@@ -203,12 +115,12 @@ describe('Gemini key rotation', () => {
     };
     const ctx = createExecutionContext();
     const waitSpy = vi.spyOn(ctx, 'waitUntil');
-    secrets.push(oauth.accessToken, oauth.refreshToken, 'old-sql-error-key', 'new-sql-error-key');
+    secrets.push('old-sql-error-key', 'new-sql-error-key');
 
-    const response = await worker.fetch(rotateRequest({ bearer: oauth.accessToken }), testEnv, ctx);
+    const response = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, ctx);
 
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ error: 'rotation_failed' });
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/services/scout?rotated=rotation_failed');
     expect(gcp.deleted).toContain('projects/test-gcp-project/locations/global/keys/new-1');
     expect(waitSpy).not.toHaveBeenCalled();
   });
@@ -216,30 +128,30 @@ describe('Gemini key rotation', () => {
   it('tolerates 404 while deleting the old key after the grace window', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
-    const oauth = await seedOauthToken({ accountId: account.accountId, testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
     await seedProvisionedKey({ testEnv, accountId: account.accountId, keyString: 'old-404-key' });
     installRotationMock(['new-404-key'], { oldDeleteStatus: 404 });
     installImmediateTimeout();
     const ctx = createExecutionContext();
     const waitSpy = vi.spyOn(ctx, 'waitUntil');
-    secrets.push(oauth.accessToken, oauth.refreshToken, 'old-404-key', 'new-404-key');
+    secrets.push('old-404-key', 'new-404-key');
 
-    const response = await worker.fetch(rotateRequest({ bearer: oauth.accessToken }), testEnv, ctx);
+    const response = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, ctx);
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/services/scout?rotated=ok');
     await expect(waitSpy.mock.calls[0][0]).resolves.toBeUndefined();
   });
 
   it('returns no_active_key for accounts without an active key', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
-    const oauth = await seedOauthToken({ accountId: account.accountId, testEnv });
-    secrets.push(oauth.accessToken, oauth.refreshToken);
+    const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(rotateRequest({ bearer: oauth.accessToken }), testEnv, createExecutionContext());
+    const response = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, createExecutionContext());
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'no_active_key' });
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/services/scout?rotated=no_active_key');
   });
 
   it('builds UTC-safe rotation display names with a six-character suffix', () => {
@@ -267,15 +179,6 @@ describe('Gemini key rotation', () => {
     expect(noon).not.toBe(late);
   });
 });
-
-function rotateRequest({ bearer, origin = '' }) {
-  const headers = { Authorization: `Bearer ${bearer}` };
-  if (origin) headers.Origin = origin;
-  return new Request('https://services.solstone.app/keys/gemini/rotate', {
-    method: 'POST',
-    headers,
-  });
-}
 
 function settingsRotateRequest(cookie) {
   return new Request('https://services.solstone.app/services/scout/rotate', {
@@ -321,13 +224,6 @@ async function activeKeyResource(accountId) {
     .bind(accountId)
     .first();
   return row?.key_resource_name || null;
-}
-
-async function keyRow(id) {
-  return makeTestEnv().DB
-    .prepare('SELECT id, revoked_at FROM provisioned_keys WHERE id = ?')
-    .bind(id)
-    .first();
 }
 
 function installRotationMock(apiKeys, { oldDeleteStatus = 200 } = {}) {

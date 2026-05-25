@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { env as workerEnv } from 'cloudflare:test';
 import worker from '../src/index.js';
-import { signNext } from '../src/oauth.js';
+import { signEnableResume } from '../src/enable.js';
 import {
   makeTestEnv,
   recordingDb,
@@ -10,9 +10,10 @@ import {
   rowCount,
   startRequest,
   stubTurnstile,
-  validConnectParams,
   verifyRequest,
 } from './helpers.js';
+
+const VALID_ENABLE_NONCE = '2'.repeat(52);
 
 describe('/signin/start', () => {
   beforeEach(async () => {
@@ -153,7 +154,7 @@ describe('/signin/start', () => {
 
   it('preserves valid resume fields on the verify redirect', async () => {
     const testEnv = makeTestEnv();
-    const resume = await signNext(new URLSearchParams(validConnectParams()).toString(), testEnv);
+    const resume = await signEnableResume('/enable/scout', `?nonce=${VALID_ENABLE_NONCE}`, testEnv);
     const response = await worker.fetch(
       startRequest('resume@example.com', {}, {
         next: resume.next,

@@ -553,295 +553,111 @@ export async function getRateBucketCount(db, key, windowMs, nowMs) {
   return row.count;
 }
 
-// --- OAuth + Provisioning ---
+// --- Service handoffs + Provisioning ---
 
-export async function insertOauthCode(db, {
-  codeHash,
+export async function insertServiceHandoff(db, {
+  handoffHash,
   accountId,
-  clientId,
-  redirectUri,
-  scope,
-  codeChallenge,
-  codeChallengeMethod,
-  nowMs,
-}) {
-  // Authorization codes are short-lived bearer material; keep the TTL at 60s.
-  const expiresAt = nowMs + 60_000;
-  await db
-    .prepare(
-      `INSERT INTO oauth_codes (
-         code_hash, account_id, client_id, redirect_uri, scope,
-         code_challenge, code_challenge_method, created_at, expires_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .bind(codeHash, accountId, clientId, redirectUri, scope, codeChallenge, codeChallengeMethod, nowMs, expiresAt)
-    .run();
-}
-
-export async function consumeOauthCode(db, { codeHash, nowMs }) {
-  const row = await db
-    .prepare(
-      `UPDATE oauth_codes
-       SET consumed_at = ?
-       WHERE code_hash = ?
-         AND consumed_at IS NULL
-         AND expires_at > ?
-       RETURNING account_id, client_id, redirect_uri, scope, code_challenge, code_challenge_method`
-    )
-    .bind(nowMs, codeHash, nowMs)
-    .first();
-  return row || null;
-}
-
-export async function insertDeviceCode(db, {
-  deviceCodeHash,
-  userCode,
-  clientId,
-  scope,
-  codeChallenge = null,
-  codeChallengeMethod = null,
-  intervalSeconds = 5,
+  service,
+  payloadEncrypted,
   createdAt,
   expiresAt,
 }) {
   try {
-    const row = await db
+    await db
       .prepare(
-        `INSERT INTO device_codes (
-           device_code_hash, user_code, client_id, scope, code_challenge,
-           code_challenge_method, interval_seconds, created_at, expires_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-         RETURNING device_code_hash, user_code, client_id, scope, code_challenge,
-                   code_challenge_method, interval_seconds, created_at, expires_at`
+        `INSERT INTO service_handoffs (
+           handoff_hash, account_id, service, payload_encrypted, created_at, expires_at
+         ) VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .bind(
-        deviceCodeHash,
-        userCode,
-        clientId,
-        scope,
-        codeChallenge,
-        codeChallengeMethod,
-        intervalSeconds,
-        createdAt,
-        expiresAt
-      )
-      .first();
-    return row || null;
+      .bind(handoffHash, accountId, service, payloadEncrypted, createdAt, expiresAt)
+      .run();
+    return { ok: true };
   } catch (error) {
-    if (isUniqueViolation(error)) return null;
+    if (isUniqueViolation(error)) return { ok: false, reason: 'duplicate' };
     throw error;
   }
 }
 
-export async function findDeviceCodeByHash(db, deviceCodeHash) {
+export async function consumeServiceHandoff(db, { handoffHash, nowMs, service = 'scout' }) {
   const row = await db
     .prepare(
-      `SELECT device_code_hash, user_code, account_id, client_id, scope,
-              code_challenge, code_challenge_method, interval_seconds,
-              created_at, expires_at, last_polled_at, approved_at, denied_at,
-              consumed_at
-       FROM device_codes
-       WHERE device_code_hash = ?`
-    )
-    .bind(deviceCodeHash)
-    .first();
-  return row || null;
-}
-
-export async function findDeviceCodeByUserCode(db, userCode) {
-  const row = await db
-    .prepare(
-      `SELECT device_code_hash, user_code, account_id, client_id, scope,
-              code_challenge, code_challenge_method, interval_seconds,
-              created_at, expires_at, last_polled_at, approved_at, denied_at,
-              consumed_at
-       FROM device_codes
-       WHERE user_code = ?
-         AND consumed_at IS NULL
-         AND denied_at IS NULL`
-    )
-    .bind(userCode)
-    .first();
-  return row || null;
-}
-
-export async function markDeviceCodeApproved(db, { deviceCodeHash, accountId, approvedAt, nowMs = approvedAt }) {
-  const row = await db
-    .prepare(
-      `UPDATE device_codes
-       SET approved_at = ?,
-           account_id = ?
-       WHERE device_code_hash = ?
-         AND approved_at IS NULL
-         AND denied_at IS NULL
-         AND consumed_at IS NULL
-         AND expires_at > ?
-       RETURNING device_code_hash`
-    )
-    .bind(approvedAt, accountId, deviceCodeHash, nowMs)
-    .first();
-  return row != null;
-}
-
-export async function markDeviceCodeDenied(db, { deviceCodeHash, deniedAt, nowMs = deniedAt }) {
-  const row = await db
-    .prepare(
-      `UPDATE device_codes
-       SET denied_at = ?
-       WHERE device_code_hash = ?
-         AND approved_at IS NULL
-         AND denied_at IS NULL
-         AND consumed_at IS NULL
-         AND expires_at > ?
-       RETURNING device_code_hash`
-    )
-    .bind(deniedAt, deviceCodeHash, nowMs)
-    .first();
-  return row != null;
-}
-
-export async function consumeDeviceCode(db, { deviceCodeHash, consumedAt, nowMs }) {
-  const row = await db
-    .prepare(
-      `UPDATE device_codes
+      `UPDATE service_handoffs
        SET consumed_at = ?
-       WHERE device_code_hash = ?
-         AND approved_at IS NOT NULL
-         AND denied_at IS NULL
+       WHERE handoff_hash = ?
+         AND service = ?
          AND consumed_at IS NULL
          AND expires_at > ?
-       RETURNING device_code_hash, user_code, account_id, client_id, scope,
-                 code_challenge, code_challenge_method, interval_seconds,
-                 created_at, expires_at, last_polled_at, approved_at`
+       RETURNING payload_encrypted`
     )
-    .bind(consumedAt, deviceCodeHash, nowMs)
+    .bind(nowMs, handoffHash, service, nowMs)
     .first();
   return row || null;
 }
 
-export async function bumpDeviceCodePolled(db, { deviceCodeHash, nowMs, incrementInterval = false }) {
-  await db
-    .prepare(
-      `UPDATE device_codes
-       SET last_polled_at = ?,
-           interval_seconds = CASE
-             WHEN ? THEN MIN(interval_seconds + 5, 60)
-             ELSE interval_seconds
-           END
-       WHERE device_code_hash = ?`
-    )
-    .bind(nowMs, incrementInterval ? 1 : 0, deviceCodeHash)
-    .run();
-}
-
-export async function insertOauthTokenPair(db, {
-  accountId,
-  familyId,
-  accessHash,
-  refreshHash,
-  scope,
-  nowMs,
-  accessTtlMs,
-  refreshTtlMs,
-}) {
-  await db
-    .prepare(
-      `INSERT INTO oauth_tokens (
-         account_id, family_id, access_token_hash, refresh_token_hash, scope,
-         created_at, access_expires_at, refresh_expires_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .bind(accountId, familyId, accessHash, refreshHash, scope, nowMs, nowMs + accessTtlMs, nowMs + refreshTtlMs)
-    .run();
-}
-
-export async function findOauthTokenByRefreshHash(db, { refreshHash }) {
+export async function findServiceHandoffStatus(db, { handoffHash, service = 'scout' }) {
   const row = await db
     .prepare(
-      `SELECT id, account_id, family_id, scope, created_at, refresh_expires_at, revoked_at
-       FROM oauth_tokens
-       WHERE refresh_token_hash = ?`
+      `SELECT account_id, expires_at, consumed_at
+       FROM service_handoffs
+       WHERE handoff_hash = ?
+         AND service = ?`
     )
-    .bind(refreshHash)
+    .bind(handoffHash, service)
     .first();
   return row || null;
 }
 
-export async function verifyOauthAccessToken(env, bearerToken, nowMs = Date.now()) {
-  if (typeof bearerToken !== 'string' || !bearerToken) return null;
-  const accessHash = await hashWithPepper(bearerToken, env, 'OAUTH_TOKEN_PEPPER');
-  const row = await env.DB
-    .prepare(
-      `SELECT id, account_id, family_id, scope, created_at, access_expires_at, revoked_at
-       FROM oauth_tokens
-       WHERE access_token_hash = ?
-         AND revoked_at IS NULL
-         AND access_expires_at > ?`
-    )
-    .bind(accessHash, nowMs)
-    .first();
-  return row || null;
-}
-
-export async function rotateOauthRefreshToken(db, {
-  oldId,
-  accountId,
-  familyId,
-  newAccessHash,
-  newRefreshHash,
-  scope,
-  nowMs,
-  accessTtlMs,
-  refreshTtlMs,
+export async function insertEnableScoutCode(db, {
+  codeHash,
+  nonceHash,
+  ipHash,
+  createdAt,
+  expiresAt,
 }) {
-  const results = await db.batch([
-    db
-      .prepare('UPDATE oauth_tokens SET revoked_at = ? WHERE id = ? AND account_id = ? AND revoked_at IS NULL')
-      .bind(nowMs, oldId, accountId),
-    db
+  try {
+    await db
       .prepare(
-        `INSERT INTO oauth_tokens (
-           account_id, family_id, access_token_hash, refresh_token_hash, scope,
-           created_at, access_expires_at, refresh_expires_at
-         )
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?
-         WHERE changes() = 1`
+        `INSERT INTO enable_scout_codes (
+           code_hash, nonce_hash, created_at, expires_at, ip_hash
+         ) VALUES (?, ?, ?, ?, ?)`
       )
-      .bind(
-        accountId,
-        familyId,
-        newAccessHash,
-        newRefreshHash,
-        scope,
-        nowMs,
-        nowMs + accessTtlMs,
-        nowMs + refreshTtlMs
-      ),
-  ]);
-  return (results?.[1]?.meta?.changes || 0) === 1;
+      .bind(codeHash, nonceHash, createdAt, expiresAt, ipHash)
+      .run();
+    return true;
+  } catch (error) {
+    if (isUniqueViolation(error)) return false;
+    throw error;
+  }
 }
 
-export async function findActiveSameFamilyTokenNewerThan(db, { familyId, createdAt, nowMs }) {
+export async function findEnableScoutCodeByHash(db, { codeHash }) {
   const row = await db
     .prepare(
-      `SELECT id
-       FROM oauth_tokens
-       WHERE family_id = ?
-         AND created_at > ?
-         AND refresh_expires_at > ?
-         AND revoked_at IS NULL
-       LIMIT 1`
+      `SELECT code_hash, nonce_hash, account_id, created_at, expires_at, consumed_at, ip_hash
+       FROM enable_scout_codes
+       WHERE code_hash = ?`
     )
-    .bind(familyId, createdAt, nowMs)
+    .bind(codeHash)
     .first();
   return row || null;
 }
 
-export async function revokeOauthTokenFamily(db, { familyId, nowMs }) {
-  await db
-    .prepare('UPDATE oauth_tokens SET revoked_at = ? WHERE family_id = ? AND revoked_at IS NULL')
-    .bind(nowMs, familyId)
-    .run();
+export async function consumeEnableScoutCode(db, { codeHash, nonceHash, accountId, nowMs }) {
+  const row = await db
+    .prepare(
+      `UPDATE enable_scout_codes
+       SET consumed_at = ?,
+           account_id = ?
+       WHERE code_hash = ?
+         AND nonce_hash = ?
+         AND consumed_at IS NULL
+         AND expires_at > ?
+       RETURNING nonce_hash`
+    )
+    .bind(nowMs, accountId, codeHash, nonceHash, nowMs)
+    .first();
+  return row || null;
 }
 
 export async function findActiveProvisionedKey(db, { accountId, provider }) {

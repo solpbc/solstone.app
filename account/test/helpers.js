@@ -7,15 +7,12 @@ import {
   createSession,
   insertPasskeyChallenge,
   insertPasskeyCredential,
-  insertOauthCode,
-  insertOauthTokenPair,
   upsertOtp,
 } from '../src/db.js';
 import { SA_JSON_STRING } from './sa-helper.js';
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
 const TEST_PEPPER = 'test-hmac-pepper';
-export const TEST_OAUTH_TOKEN_PEPPER = 'test-oauth-token-pepper';
 export const TEST_CSRF = await hashKey('csrf', 'account', { HMAC_PEPPER: TEST_PEPPER });
 export const TEST_CF_ACCESS_AUD = 'test-cf-access-aud';
 export const TEST_APNS_P8_PEM = `-----BEGIN PRIVATE KEY-----
@@ -39,7 +36,6 @@ export function makeTestEnv(overrides = {}) {
     EMAIL: overrides.EMAIL || emailBinding,
     ENCRYPTION_SECRET: TEST_SECRET,
     HMAC_PEPPER: TEST_PEPPER,
-    OAUTH_TOKEN_PEPPER: TEST_OAUTH_TOKEN_PEPPER,
     DISPATCH_TOKEN_PEPPER: 'test-dispatch-token-pepper',
     GCP_SERVICE_ACCOUNT_JSON: overrides.GCP_SERVICE_ACCOUNT_JSON || SA_JSON_STRING,
     GCP_TOKEN_CACHE: overrides.GCP_TOKEN_CACHE || makeFakeKv(),
@@ -96,9 +92,8 @@ export function makeFakeKv() {
 export async function resetDb() {
   for (const table of [
     'gemini_reveal_acks',
-    'device_codes',
-    'oauth_tokens',
-    'oauth_codes',
+    'enable_scout_codes',
+    'service_handoffs',
     'provisioned_keys',
     'account_dispatch_tokens',
     'account_devices',
@@ -234,101 +229,6 @@ export function recordingDb(db, statements) {
 export async function rowCount(table) {
   const row = await env.DB.prepare(`SELECT COUNT(*) AS count FROM ${table}`).first();
   return row.count;
-}
-
-export function validConnectParams(overrides = {}) {
-  return {
-    response_type: 'code',
-    client_id: 'solstone-cli',
-    redirect_uri: 'http://127.0.0.1:5015/callback',
-    scope: 'solstone.gemini',
-    state: 'state-123',
-    code_challenge: 'a'.repeat(43),
-    code_challenge_method: 'S256',
-    ...overrides,
-  };
-}
-
-export async function pkcePair(verifier = generateSessionToken()) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-  return { verifier, challenge: base64Url(new Uint8Array(digest)) };
-}
-
-export async function seedOAuthCode({
-  accountId,
-  testEnv = makeTestEnv(),
-  nowMs = Date.now(),
-  code = generateSessionToken(),
-  clientId = 'solstone-cli',
-  redirectUri = 'http://127.0.0.1:5015/callback',
-  scope = 'solstone.gemini',
-  verifier = null,
-  codeChallenge = null,
-  codeChallengeMethod = 'S256',
-} = {}) {
-  const pair = codeChallenge ? { verifier, challenge: codeChallenge } : await pkcePair(verifier || undefined);
-  const codeHash = await hashWithPepper(code, testEnv, 'HMAC_PEPPER');
-  await insertOauthCode(env.DB, {
-    codeHash,
-    accountId,
-    clientId,
-    redirectUri,
-    scope,
-    codeChallenge: pair.challenge,
-    codeChallengeMethod,
-    nowMs,
-  });
-  return {
-    code,
-    codeHash,
-    verifier: pair.verifier,
-    codeChallenge: pair.challenge,
-    clientId,
-    redirectUri,
-    scope,
-    nowMs,
-  };
-}
-
-export async function seedOauthToken({
-  accountId,
-  testEnv = makeTestEnv(),
-  nowMs = Date.now(),
-  accessToken = generateSessionToken(),
-  refreshToken = generateSessionToken(),
-  familyId = randomBase64Url(16),
-  scope = 'solstone.gemini',
-  accessTtlMs = 60 * 60 * 1000,
-  refreshTtlMs = 30 * 24 * 60 * 60 * 1000,
-  revokedAt = null,
-} = {}) {
-  const accessHash = await hashWithPepper(accessToken, testEnv, 'OAUTH_TOKEN_PEPPER');
-  const refreshHash = await hashWithPepper(refreshToken, testEnv, 'OAUTH_TOKEN_PEPPER');
-  await insertOauthTokenPair(env.DB, {
-    accountId,
-    familyId,
-    accessHash,
-    refreshHash,
-    scope,
-    nowMs,
-    accessTtlMs,
-    refreshTtlMs,
-  });
-  if (revokedAt != null) {
-    await env.DB
-      .prepare('UPDATE oauth_tokens SET revoked_at = ? WHERE refresh_token_hash = ?')
-      .bind(revokedAt, refreshHash)
-      .run();
-  }
-  return {
-    accessToken,
-    refreshToken,
-    familyId,
-    accessHash,
-    refreshHash,
-    scope,
-    nowMs,
-  };
 }
 
 export async function seedOtp({ email, options = {} }) {
@@ -606,15 +506,4 @@ function formatConsoleArg(value) {
   } catch {
     return String(value);
   }
-}
-
-function randomBase64Url(size) {
-  const bytes = crypto.getRandomValues(new Uint8Array(size));
-  return base64Url(bytes);
-}
-
-function base64Url(bytes) {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }

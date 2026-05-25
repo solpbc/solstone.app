@@ -13,8 +13,9 @@ import {
   seedSession,
   startRequest,
   stubTurnstile,
-  validConnectParams,
 } from './helpers.js';
+
+const VALID_ENABLE_NONCE = '2'.repeat(52);
 
 const FORBIDDEN_PHRASES = [
   'your account',
@@ -88,8 +89,6 @@ describe('brand canon', () => {
     const noScoutSession = await seedSession(noScout.accountId, { testEnv });
     await seedCredential({ accountId: noScout.accountId, credentialId: 'empty-passkey' });
 
-    const deviceCode = await createDeviceCode(testEnv);
-    const connectPath = `/connect?${new URLSearchParams(validConnectParams()).toString()}`;
     const surfaces = [
       ['signed-out landing', await get('/', testEnv)],
       ['signed-in services dashboard', await get('/', testEnv, withPasskeySession.cookie), true],
@@ -102,9 +101,8 @@ describe('brand canon', () => {
       ['scout active', await get('/services/scout', testEnv, withPasskeySession.cookie), true],
       ['scout empty', await get('/services/scout', testEnv, noScoutSession.cookie), true],
       ['devices', await get('/services/devices', testEnv, withPasskeySession.cookie), true],
-      ['connect consent', await get(connectPath, testEnv, withPasskeySession.cookie), true],
-      ['device entry', await get('/device', testEnv)],
-      ['device consent', await postDeviceConsent(deviceCode.user_code, testEnv, withPasskeySession.cookie), true],
+      ['enable scout consent', await get(`/enable/scout?nonce=${VALID_ENABLE_NONCE}`, testEnv, withPasskeySession.cookie), true],
+      ['enable scout entry', await get('/enable/scout', testEnv)],
       ['verify code', await get('/signin/verify', testEnv)],
       ['goodbye', await get('/goodbye', testEnv)],
       ['not found', await get('/not-found', testEnv)],
@@ -156,19 +154,6 @@ async function post(path, testEnv, body, cookie = '') {
     headers,
     body,
   }), testEnv);
-}
-
-async function postDeviceConsent(userCode, testEnv, cookie) {
-  return post('/device', testEnv, new URLSearchParams({ user_code: userCode }), cookie);
-}
-
-async function createDeviceCode(testEnv) {
-  const response = await worker.fetch(new Request('https://services.solstone.app/oauth/device_authorization', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: 'solstone-cli', scope: 'solstone.gemini' }),
-  }), testEnv);
-  return response.json();
 }
 
 async function errorResponse() {

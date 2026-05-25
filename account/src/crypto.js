@@ -5,6 +5,9 @@
 const REJECT_THRESHOLD = 4_294_000_000;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+const SERVICE_HANDOFF_SALT = textEncoder.encode('service-handoff');
+const SERVICE_HANDOFF_INFO = textEncoder.encode('service-handoff-pepper-v1');
+const serviceHandoffPepperCache = new Map();
 
 export async function encryptEmail(plaintext, env) {
   const key = await importEncryptionKey(env);
@@ -41,6 +44,44 @@ export async function hashWithPepper(value, env, pepperKey = 'HMAC_PEPPER') {
 
 export function hashKey(scope, value, env) {
   return hashWithPepper(`${scope}:${value}`, env);
+}
+
+export async function deriveServiceHandoffPepper(env) {
+  const ikm = env.DISPATCH_TOKEN_PEPPER || '';
+  if (serviceHandoffPepperCache.has(ikm)) return new Uint8Array(serviceHandoffPepperCache.get(ikm));
+  const key = await crypto.subtle.importKey(
+    'raw',
+    textEncoder.encode(ikm),
+    'HKDF',
+    false,
+    ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: SERVICE_HANDOFF_SALT,
+      info: SERVICE_HANDOFF_INFO,
+    },
+    key,
+    256
+  );
+  const pepper = new Uint8Array(bits);
+  serviceHandoffPepperCache.set(ikm, pepper);
+  return new Uint8Array(pepper);
+}
+
+export async function hashServiceHandoffNonce(nonce, env) {
+  const pepper = await deriveServiceHandoffPepper(env);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    pepper,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, textEncoder.encode(nonce));
+  return hexEncode(new Uint8Array(signature));
 }
 
 export function generateOtp() {
@@ -96,4 +137,8 @@ function base64Decode(str) {
 
 function base64UrlEncode(bytes) {
   return base64Encode(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function hexEncode(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }

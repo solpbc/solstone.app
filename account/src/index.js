@@ -27,18 +27,13 @@ import {
 } from './db.js';
 import { sendOtpEmail } from './email.js';
 import {
-  decodeNextDevice,
-  decodeNext,
-  handleDeviceAuthorization,
-  handleDeviceConfirm,
-  handleDeviceGet,
-  handleDevicePost,
-  handleConnectConfirm,
-  handleConnectGet,
-  handleOauthToken,
-  verifyNextDevice,
-  verifyNext,
-} from './oauth.js';
+  handleEnableScoutCode,
+  handleEnableScoutConfirm,
+  handleEnableScoutGet,
+  handleEnableScoutPost,
+  handleHandoffScout,
+  verifyEnableResume,
+} from './enable.js';
 import {
   handleDeregisterDevice,
   handleListDevices,
@@ -79,7 +74,6 @@ import { runRetention } from './retention.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
-  handleGeminiRotate,
   handleRenamePasskey,
   handleRevokeOtherSessions,
   handleRevokeSession,
@@ -204,18 +198,16 @@ async function validResumeFromParams(params, env) {
   const next = params.get('next') || '';
   const nextSig = params.get('next_sig') || '';
   if (!next || !nextSig) return null;
-  if (await verifyNext(next, nextSig, env)) return { kind: 'connect', next, nextSig };
-  if (await verifyNextDevice(next, nextSig, env)) return { kind: 'device', next, nextSig };
-  return null;
+  const resume = await verifyEnableResume(next, nextSig, env);
+  return resume ? { next, nextSig, ...resume } : null;
 }
 
 async function validResumeFromForm(form, env) {
   const next = form.get('next')?.toString() || '';
   const nextSig = form.get('next_sig')?.toString() || '';
   if (!next || !nextSig) return null;
-  if (await verifyNext(next, nextSig, env)) return { kind: 'connect', next, nextSig };
-  if (await verifyNextDevice(next, nextSig, env)) return { kind: 'device', next, nextSig };
-  return null;
+  const resume = await verifyEnableResume(next, nextSig, env);
+  return resume ? { next, nextSig, ...resume } : null;
 }
 
 function withResume(location, resume) {
@@ -263,8 +255,7 @@ export default {
         const session = await getValidSession(req, env, Date.now());
         const resume = await validResumeFromParams(url.searchParams, env);
         if (session) {
-          if (resume?.kind === 'connect') return redirect(`/connect?${decodeNext(resume.next)}`);
-          if (resume?.kind === 'device') return redirect(`/device?user_code=${encodeURIComponent(decodeNextDevice(resume.next))}`);
+          if (resume) return redirect(`${resume.path}${resume.queryString}`);
           return handleServicesDashboard(req, env, session);
         }
         if (getSessionToken(req)) {
@@ -287,72 +278,50 @@ export default {
       }
 
       if (
-        parts.length === 2 &&
-        parts[1] === 'connect' &&
+        parts.length === 3 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'scout' &&
         req.method === 'GET'
       ) {
-        return handleConnectGet(req, env);
-      }
-
-      if (
-        parts.length === 2 &&
-        parts[1] === 'device' &&
-        req.method === 'GET'
-      ) {
-        return handleDeviceGet(req, env);
-      }
-
-      if (
-        parts.length === 2 &&
-        parts[1] === 'device' &&
-        req.method === 'POST'
-      ) {
-        return handleDevicePost(req, env);
+        return handleEnableScoutGet(req, env);
       }
 
       if (
         parts.length === 3 &&
-        parts[1] === 'connect' &&
-        parts[2] === 'confirm'
-      ) {
-        return handleConnectConfirm(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'device' &&
-        parts[2] === 'confirm' &&
+        parts[1] === 'enable' &&
+        parts[2] === 'scout' &&
         req.method === 'POST'
       ) {
-        return handleDeviceConfirm(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'oauth' &&
-        parts[2] === 'device_authorization' &&
-        req.method === 'POST'
-      ) {
-        return handleDeviceAuthorization(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'oauth' &&
-        parts[2] === 'token' &&
-        req.method === 'POST'
-      ) {
-        return handleOauthToken(req, env, ctx);
+        return handleEnableScoutPost(req, env);
       }
 
       if (
         parts.length === 4 &&
-        parts[1] === 'keys' &&
-        parts[2] === 'gemini' &&
-        parts[3] === 'rotate' &&
+        parts[1] === 'enable' &&
+        parts[2] === 'scout' &&
+        parts[3] === 'confirm' &&
         req.method === 'POST'
       ) {
-        return handleGeminiRotate(req, env, ctx, { allowBearer: true, responseMode: 'json' });
+        return handleEnableScoutConfirm(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'scout' &&
+        parts[3] === 'code' &&
+        req.method === 'POST'
+      ) {
+        return handleEnableScoutCode(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'handoff' &&
+        parts[2] === 'scout' &&
+        req.method === 'GET'
+      ) {
+        return handleHandoffScout(req, env);
       }
 
       if (url.pathname === '/passkey/register/start') {
@@ -858,11 +827,7 @@ async function handleSigninVerifyPost(req, env) {
   const sessionToken = generateSessionToken();
   const idHash = await hashWithPepper(sessionToken, env);
   await createSession(env.DB, { idHash, accountId, nowMs });
-  const location = resume?.kind === 'connect'
-    ? `/connect?${decodeNext(resume.next)}`
-    : resume?.kind === 'device'
-      ? `/device?user_code=${encodeURIComponent(decodeNextDevice(resume.next))}`
-      : (isNew ? '/?welcome=1' : '/');
+  const location = resume ? `${resume.path}${resume.queryString}` : (isNew ? '/?welcome=1' : '/');
   return redirect(location, 303, {
     'Set-Cookie': sessionCookie(sessionToken),
   });

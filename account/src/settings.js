@@ -17,7 +17,6 @@ import {
   revokeOtherSessions,
   revokeSession,
   updateProvisionedKeyGcpLastUse,
-  verifyOauthAccessToken,
 } from './db.js';
 import {
   gcpCreateApiKey,
@@ -133,13 +132,13 @@ export async function handleServicesScout(req, env) {
   }));
 }
 
-export async function handleGeminiRotate(req, env, ctx, { allowBearer = true, responseMode = 'json' } = {}) {
+export async function handleGeminiRotate(req, env, ctx) {
   const nowMs = Date.now();
-  const auth = await rotationAuth(req, env, { allowBearer, responseMode, nowMs });
+  const auth = await rotationAuth(req, env, nowMs);
   if (auth instanceof Response) return auth;
 
   const oldKey = await findActiveProvisionedKey(env.DB, { accountId: auth.accountId, provider: GEMINI_PROVIDER });
-  if (!oldKey) return rotationError(responseMode, 'no_active_key', 400);
+  if (!oldKey) return rotationError('no_active_key');
 
   const newDisplayName = computeRotationDisplayName(auth.accountId, nowMs);
   let newKeyResourceName = null;
@@ -171,7 +170,7 @@ export async function handleGeminiRotate(req, env, ctx, { allowBearer = true, re
     });
     if (!rotated.ok) {
       await cleanupOrphanKey(env, newKeyResourceName);
-      if (rotated.reason === 'conflict') return rotationConflict(responseMode);
+      if (rotated.reason === 'conflict') return rotationConflict();
       throw new Error('gemini rotation batch failed');
     }
     rotationCommitted = true;
@@ -181,16 +180,15 @@ export async function handleGeminiRotate(req, env, ctx, { allowBearer = true, re
     }).then(() => gcpDeleteKey({ env, keyName: oldKey.key_resource_name })
       .catch(() => console.error('gemini_rotate_old_key_delete_failed', { key_resource_name: oldKey.key_resource_name }))));
 
-    if (responseMode === 'redirect') return signedInRedirect('/services/scout?rotated=ok');
-    return json({ ok: true, key_id: rotated.newRow.id, rotated_at: nowMs });
+    return signedInRedirect('/services/scout?rotated=ok');
   } catch (error) {
     if (newKeyResourceName && !rotationCommitted) await cleanupOrphanKey(env, newKeyResourceName);
-    return rotationError(responseMode, 'rotation_failed', 500);
+    return rotationError('rotation_failed');
   }
 }
 
 export async function handleServicesScoutRotate(req, env, ctx) {
-  return handleGeminiRotate(req, env, ctx, { allowBearer: false, responseMode: 'redirect' });
+  return handleGeminiRotate(req, env, ctx);
 }
 
 export async function handleServicesScoutAck(req, env) {
@@ -328,36 +326,22 @@ export function noStore(response) {
   return response;
 }
 
-async function rotationAuth(req, env, { allowBearer, responseMode, nowMs }) {
-  const authHeader = req.headers.get('Authorization') || '';
-  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
-  if (allowBearer && bearer) {
-    const row = await verifyOauthAccessToken(env, bearer, nowMs);
-    if (row) {
-      // Explicit OAuth Bearer grants win over ambient browser cookies.
-      return { accountId: row.account_id, mode: 'bearer', scope: row.scope, familyId: row.family_id };
-    }
-  }
-
-  // Browser-session rotation is same-origin guarded; CLI Bearer rotation is not.
+async function rotationAuth(req, env, nowMs) {
   if (!originAllowed(req)) {
-    return responseMode === 'redirect' ? noStore(forbidden()) : rotationError(responseMode, 'forbidden', 403);
+    return noStore(forbidden());
   }
   const session = await getValidSession(req, env, nowMs);
-  if (!session) return rotationError(responseMode, 'unauthorized', 401);
+  if (!session) return rotationError('unauthorized');
   return { accountId: session.account_id, mode: 'session' };
 }
 
-function rotationError(responseMode, error, status) {
-  if (responseMode === 'redirect') {
-    const value = error === 'rotation_conflict' ? 'conflict' : error;
-    return signedInRedirect(`/services/scout?rotated=${encodeURIComponent(value)}`);
-  }
-  return json({ error }, { status });
+function rotationError(error) {
+  const value = error === 'rotation_conflict' ? 'conflict' : error;
+  return signedInRedirect(`/services/scout?rotated=${encodeURIComponent(value)}`);
 }
 
-function rotationConflict(responseMode) {
-  return rotationError(responseMode, 'rotation_conflict', 409);
+function rotationConflict() {
+  return rotationError('rotation_conflict');
 }
 
 async function cleanupOrphanKey(env, keyResourceName) {
