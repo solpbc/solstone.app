@@ -24,10 +24,10 @@ prereqs: xcode command-line tools (`xcode-select --install`), homebrew (https://
 
 ```bash
 uv tool install solstone
-sol setup
+journal setup
 ```
 
-(or `pipx install solstone && sol setup` if you prefer pipx.)
+(or `pipx install solstone && journal setup` if you prefer pipx.)
 
 then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and solstone sets it up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting.
 
@@ -37,10 +37,10 @@ prereqs: `uv` from astral.sh: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 
 ```bash
 uv tool install solstone
-sol setup
+journal setup
 ```
 
-(or `pipx install solstone && sol setup` if you prefer pipx.)
+(or `pipx install solstone && journal setup` if you prefer pipx.)
 
 on linux, local parakeet transcription needs `solstone[parakeet-onnx-cpu]` (or `[parakeet-onnx-cuda]` for NVIDIA GPUs); install or upgrade the same way as other extras.
 
