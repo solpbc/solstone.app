@@ -125,18 +125,54 @@
         footer a:hover {
             text-decoration: underline;
         }
+        /* --- accessibility --- */
+        .skip-link {
+            position: absolute;
+            top: -3rem;
+            left: 0.5rem;
+            z-index: 1000;
+            background: #222;
+            color: #fff;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+            border-radius: 0 0 6px 6px;
+            text-decoration: none;
+            transition: top 0.15s;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+        :focus-visible {
+            outline: 2px solid #E8923A;
+            outline-offset: 2px;
+        }
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        main:focus {
+            outline: none;
+        }
     </style>
 </head>
 <body>
-    <a href="/"><img src="/static/sol-wordmark.svg" alt="solstone" class="logo"></a>
-    <h1>download solstone for macOS</h1>
-    <p class="message">your download should start automatically. solstone runs entirely on your machine — nothing to connect, no services to authorize.</p>
-    <a href="/download/macos/latest" class="download-btn" id="dl">download for macOS</a>
-    <p class="fallback">didn't start? <a href="/download/macos/latest">click here to download</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
-    <div class="links">
-        <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
-        <a href="/">back to solstone.app &rarr;</a>
-    </div>
+    <a href="#main" class="skip-link">skip to content</a>
+    <header>
+        <a href="/"><img src="/static/sol-wordmark.svg" alt="solstone" class="logo"></a>
+    </header>
+    <main id="main" tabindex="-1">
+        <h1>download solstone for macOS</h1>
+        <p class="message">your download should start automatically. solstone runs entirely on your machine — nothing to connect, no services to authorize.</p>
+        <a href="/download/macos/latest" class="download-btn" id="dl">download for macOS</a>
+        <p class="fallback">didn't start? <a href="/download/macos/latest">click here to download</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
+        <nav class="links" aria-label="more">
+            <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
+            <a href="/">back to solstone.app &rarr;</a>
+        </nav>
+    </main>
     <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
     <script>
         // Humans get an automatic download; the visible button is the always-present

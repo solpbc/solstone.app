@@ -71,3 +71,52 @@ footer a:hover {
     color: #B36A1D;
     letter-spacing: 0.01em;
 }
+/* --- accessibility (shared) --- */
+/* skip-to-content: first focusable element, off-screen until focused */
+.skip-link {
+    position: absolute;
+    top: -3rem;
+    left: 0.5rem;
+    z-index: 1000;
+    background: #222;
+    color: #fff;
+    font-family: 'Comfortaa', system-ui, sans-serif;
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+    border-radius: 0 0 6px 6px;
+    text-decoration: none;
+    transition: top 0.15s;
+}
+.skip-link:focus {
+    top: 0;
+}
+/* visible focus indicator on keyboard focus only — generalizes the install
+   toggle treatment (orange accent #E8923A) across every interactive element */
+:focus-visible {
+    outline: 2px solid #E8923A;
+    outline-offset: 2px;
+}
+/* <main> is a passthrough region: reproduce body's centering for its children,
+   and don't paint a ring when focus lands here via the skip-link */
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+main:focus {
+    outline: none;
+}
+/* off-screen but announced — used for aria-live copy-state status */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    overflow: hidden;
+    white-space: nowrap;
+}

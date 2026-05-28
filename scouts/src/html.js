@@ -166,6 +166,21 @@ function layout(title, body, extraHead = '') {
     .nav { display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center; }
     .nav .logo { margin-bottom: 0; width: 40px; height: 40px; }
     .nav-right { margin-left: auto; font-size: 0.85rem; }
+    .skip-link {
+      position: absolute; top: -3rem; left: 0.5rem; z-index: 1000;
+      background: #222; color: #fff;
+      font-family: 'Comfortaa', system-ui, sans-serif; font-size: 0.9rem;
+      padding: 0.6rem 1rem; border-radius: 0 0 6px 6px;
+      text-decoration: none; transition: top 0.15s;
+    }
+    .skip-link:focus { top: 0; }
+    :focus-visible { outline: 2px solid ${SOL_ORANGE}; outline-offset: 2px; }
+    main:focus { outline: none; }
+    .visually-hidden {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+      border: 0; clip: rect(0 0 0 0); clip-path: inset(50%);
+      overflow: hidden; white-space: nowrap;
+    }
     @media (max-width: 640px) {
       .container { padding: 2rem 1rem; }
       h1 { font-size: 1.4rem; }
@@ -174,14 +189,17 @@ function layout(title, body, extraHead = '') {
   ${extraHead}
 </head>
 <body>
+<a href="#main" class="skip-link">skip to content</a>
+<main id="main" tabindex="-1">
 ${body}
+</main>
 </body>
 </html>`;
 }
 
 function nav(handle) {
   const handleHtml = handle ? `<span class="nav-right">@${esc(handle)} · <a href="/logout" onclick="fetch('/logout',{method:'POST'}).then(()=>location.href='/');return false;">sign out</a></span>` : '';
-  return `<div class="nav"><div class="logo" style="flex-shrink:0;">${SOL_WORDMARK}</div>${handleHtml}</div>`;
+  return `<nav class="nav" aria-label="scout portal"><div class="logo" style="flex-shrink:0;">${SOL_WORDMARK}</div>${handleHtml}</nav>`;
 }
 
 // --- Passkey (WebAuthn) client surface ---

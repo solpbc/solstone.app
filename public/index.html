@@ -86,6 +86,14 @@
             color: #E8923A;
             text-decoration: none;
         }
+        /* keep each CTA centered on its own line (was the body's per-child
+           centering before the nav landmark wrapped them) */
+        .cta-nav {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
         @media (max-width: 640px) {
             h1 {
                 font-size: 1.8rem;
@@ -97,16 +105,23 @@
     </style>
 </head>
 <body>
-    <a href="/"><img src="static/sol-wordmark.svg" alt="solstone logo" class="logo"></a>
-    <h1>solstone</h1>
-    <p class="tagline">observes what you see and hear and gives you an AI co-brain — searchable memory, meeting prep, a knowledge graph of every person in your life. nothing to connect, no services to authorize. it just experiences your digital world alongside you.</p>
-    <p class="tagline" style="font-size: 0.9rem; color: #767676;">two parts, all yours: your <strong>observers</strong> and your <strong>journal</strong> — where <strong>sol</strong> lives and tends your memories.</p>
-    <p class="trust">open source and yours. all processing on your machine — sol pbc can never sell your data, and any future acquisition is conditional on the successor being legally bound to preserve the same protections. these aren't promises; they're irrevocable covenants in the <a href="https://solpbc.org/articles" style="color:#767676;">articles of incorporation</a>.</p>
-    <p class="early-days"><span class="stage-label">early days.</span> solstone is open source and hands-on — expect time in the terminal and a few rough edges as we build.</p>
-    <a href="/install" class="cta">get started →</a>
-    <a href="/observers" class="cta">browse observers →</a>
-    <a href="https://github.com/solpbc/solstone" class="cta">source code on github →</a>
-    <a href="https://scouts.solstone.app" class="cta">try it early, help shape it →</a>
+    <a href="#main" class="skip-link">skip to content</a>
+    <header>
+        <a href="/"><img src="static/sol-wordmark.svg" alt="solstone logo" class="logo"></a>
+    </header>
+    <main id="main" tabindex="-1">
+        <h1>solstone</h1>
+        <p class="tagline">observes what you see and hear and gives you an AI co-brain — searchable memory, meeting prep, a knowledge graph of every person in your life. nothing to connect, no services to authorize. it just experiences your digital world alongside you.</p>
+        <p class="tagline" style="font-size: 0.9rem; color: #767676;">two parts, all yours: your <strong>observers</strong> and your <strong>journal</strong> — where <strong>sol</strong> lives and tends your memories.</p>
+        <p class="trust">open source and yours. all processing on your machine — sol pbc can never sell your data, and any future acquisition is conditional on the successor being legally bound to preserve the same protections. these aren't promises; they're irrevocable covenants in the <a href="https://solpbc.org/articles" style="color:#767676;">articles of incorporation</a>.</p>
+        <p class="early-days"><span class="stage-label">early days.</span> solstone is open source and hands-on — expect time in the terminal and a few rough edges as we build.</p>
+        <nav class="cta-nav" aria-label="get started">
+            <a href="/install" class="cta">get started →</a>
+            <a href="/observers" class="cta">browse observers →</a>
+            <a href="https://github.com/solpbc/solstone" class="cta">source code on github →</a>
+            <a href="https://scouts.solstone.app" class="cta">try it early, help shape it →</a>
+        </nav>
+    </main>
     <footer>© 2026 <a href="https://solpbc.org">sol pbc</a> · your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
 </body>
 </html>

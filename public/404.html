@@ -80,18 +80,54 @@
         footer a:hover {
             text-decoration: underline;
         }
+        /* --- accessibility --- */
+        .skip-link {
+            position: absolute;
+            top: -3rem;
+            left: 0.5rem;
+            z-index: 1000;
+            background: #222;
+            color: #fff;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+            border-radius: 0 0 6px 6px;
+            text-decoration: none;
+            transition: top 0.15s;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+        :focus-visible {
+            outline: 2px solid #E8923A;
+            outline-offset: 2px;
+        }
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        main:focus {
+            outline: none;
+        }
     </style>
 </head>
 <body>
-    <a href="/"><img src="/static/sol-wordmark.svg" alt="solstone" class="logo"></a>
-    <h1>page not found.</h1>
-    <p class="message">this page doesn't exist. here are some places that do:</p>
-    <div class="links">
-        <a href="/install">get started &rarr;</a>
-        <a href="/observers">browse observers &rarr;</a>
-        <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
-        <a href="/">back to solstone.app &rarr;</a>
-    </div>
+    <a href="#main" class="skip-link">skip to content</a>
+    <header>
+        <a href="/"><img src="/static/sol-wordmark.svg" alt="solstone" class="logo"></a>
+    </header>
+    <main id="main" tabindex="-1">
+        <h1>page not found.</h1>
+        <p class="message">this page doesn't exist. here are some places that do:</p>
+        <nav class="links" aria-label="helpful links">
+            <a href="/install">get started &rarr;</a>
+            <a href="/observers">browse observers &rarr;</a>
+            <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
+            <a href="/">back to solstone.app &rarr;</a>
+        </nav>
+    </main>
     <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
 </body>
 </html>
