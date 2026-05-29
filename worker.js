@@ -1,3 +1,5 @@
+import { parseAppcastItems, renderReleasesPage } from "./releases.js";
+
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
 const APPCAST_CACHE_TTL = 300; // 5 minutes at the edge
 
@@ -47,6 +49,30 @@ export default {
       const rewritten = new URL(request.url);
       rewritten.pathname = "/install.html";
       return env.ASSETS.fetch(new Request(rewritten, request));
+    }
+
+    // Human-shareable release history: always returns a valid page, with
+    // no-store graceful copy if the appcast is temporarily unavailable.
+    if (url.pathname === "/releases") {
+      let items = [];
+      try {
+        const res = await fetch(APPCAST_URL, {
+          cf: { cacheTtl: APPCAST_CACHE_TTL, cacheEverything: true },
+        });
+        if (res.ok) {
+          items = parseAppcastItems(await res.text());
+        }
+      } catch {
+        items = [];
+      }
+
+      return new Response(renderReleasesPage(items), {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": items.length ? "public, max-age=300" : "no-store",
+        },
+      });
     }
 
     const response = await env.ASSETS.fetch(request);
