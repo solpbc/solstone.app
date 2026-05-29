@@ -202,7 +202,10 @@ export function renderReleasesPage(items) {
     .map((line) => `            ${line}`)
     .join("\n");
 
-  return PAGE_TEMPLATE.replace(RELEASES_PLACEHOLDER, indentedSection);
+  // Replacer is a function (not a string) so a `$`-sequence in the rendered
+  // notes (e.g. a shell example like `$'…'`) is inserted literally and never
+  // interpreted as a `String.replace` special pattern ($&, $', $`, $$).
+  return PAGE_TEMPLATE.replace(RELEASES_PLACEHOLDER, () => indentedSection);
 }
 
 function renderArticle(item) {

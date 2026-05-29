@@ -191,6 +191,27 @@ test("renderReleasesPage preserves chrome copy", () => {
   );
 });
 
+test("renderReleasesPage inserts notes with $-sequences literally (no replace-pattern interpretation)", () => {
+  // $&, $', $` and $$ are special in a String.replace string replacement; a
+  // release note containing them (e.g. a shell example) must render verbatim,
+  // not splice in the matched/surrounding template text.
+  const html = renderReleasesPage([
+    {
+      version: "1.4.0",
+      pubDate: "Thu, 28 May 2026 05:42:58 GMT",
+      description: "- run `echo $'literal'` then export $$HOME and $`path",
+    },
+  ]);
+
+  // $'…' would splice in the template tail; the code span must stay intact.
+  assert.match(html, /<code>echo \$'literal'<\/code>/);
+  // $$ collapses to a single $ under buggy string replacement.
+  assert.match(html, /export \$\$HOME and \$`path/);
+  // exactly one article and one closing tag — a botched replace duplicates the tail.
+  assert.equal((html.match(/<article class="release">/g) ?? []).length, 1);
+  assert.equal((html.match(/<\/html>/g) ?? []).length, 1);
+});
+
 test("live-shape appcast fixture parses and renders eight releases", () => {
   const xml = `<rss>
     <channel>
