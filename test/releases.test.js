@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  RELEASE_PAGE_CONFIGS,
   formatReleaseDate,
   parseAppcastItems,
+  parseGitHubReleaseItems,
   renderNotesMarkdown,
   renderReleasesPage,
 } from "../releases.js";
@@ -85,8 +87,29 @@ test("formatReleaseDate formats RFC-822 dates with GMT calendar components", () 
   assert.equal(formatReleaseDate("Mon, 05 May 2026 15:39:42 GMT"), "may 5, 2026");
   assert.equal(formatReleaseDate("Fri, 22 May 2026 14:40:31 GMT"), "may 22, 2026");
   assert.equal(formatReleaseDate("Sun, 31 May 2026 23:30:00 GMT"), "may 31, 2026");
+  assert.equal(formatReleaseDate("2026-06-01T05:56:31Z"), "june 1, 2026");
   assert.equal(formatReleaseDate(undefined), null);
   assert.equal(formatReleaseDate("garbage"), null);
+});
+
+test("parseGitHubReleaseItems normalizes public GitHub release JSON", () => {
+  const items = parseGitHubReleaseItems([
+    {
+      tag_name: "v0.4.8",
+      published_at: "2026-06-01T05:56:31Z",
+      body: "## [0.4.8] - 2026-06-01\n\n### Fixed\n- one",
+    },
+    { tag_name: "", published_at: "2026-06-01T05:56:31Z", body: "missing tag" },
+    { tag_name: "v0.4.7", published_at: "2026-05-31T20:00:00Z", body: "" },
+  ]);
+
+  assert.deepEqual(items, [
+    {
+      version: "0.4.8",
+      pubDate: "2026-06-01T05:56:31Z",
+      description: "### Fixed\n- one",
+    },
+  ]);
 });
 
 test("renderNotesMarkdown preserves heading and list structure", () => {
@@ -95,6 +118,15 @@ test("renderNotesMarkdown preserves heading and list structure", () => {
   assert.match(html, /<h3 class="rel-section">Added<\/h3>/);
   assert.match(html, /<ul>\n<li>one<\/li>\n<li>two<\/li>\n<\/ul>/);
   assert.doesNotMatch(html.toLowerCase(), /addedone/);
+});
+
+test("renderNotesMarkdown keeps wrapped list items inside the list", () => {
+  const html = renderNotesMarkdown("- first line\n  continued line\n- second line");
+
+  assert.match(html, /<li>first line continued line<\/li>/);
+  assert.match(html, /<li>second line<\/li>/);
+  assert.equal((html.match(/<ul>/g) ?? []).length, 1);
+  assert.doesNotMatch(html, /<p>continued line<\/p>/);
 });
 
 test("renderNotesMarkdown applies inline rules safely and non-greedily", () => {
@@ -120,6 +152,10 @@ test("renderNotesMarkdown applies inline rules safely and non-greedily", () => {
   assert.equal(
     renderNotesMarkdown("[x](https://example.com)"),
     '<p><a href="https://example.com">x</a></p>',
+  );
+  assert.equal(
+    renderNotesMarkdown("updated the bundled solstone journal to 0.4.8 →", { linkifyBundledJournal: true }),
+    '<p>updated the bundled solstone journal to <a href="/releases#v0.4.8">0.4.8</a> →</p>',
   );
 
   const invalidLinks = renderNotesMarkdown(
@@ -147,7 +183,8 @@ test("renderReleasesPage renders graceful fallback inside full chrome", () => {
   const html = renderReleasesPage([]);
 
   assert.match(html, /release notes are temporarily unavailable/);
-  assert.match(html, /<title>what's new — solstone<\/title>/);
+  assert.match(html, /<title>solstone journal releases — solstone<\/title>/);
+  assert.match(html, /https:\/\/github\.com\/solpbc\/solstone-journal\/releases/);
   assert.match(
     html,
     /<footer>&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; your data stays on your machine — never sold, never shared\. solstone is a trademark of sol pbc\.<\/footer>/,
@@ -170,8 +207,8 @@ test("renderReleasesPage renders articles in order and omits null dates", () => 
 
   assert.equal((html.match(/<article class="release">/g) ?? []).length, 2);
   assert.ok(html.indexOf('id="v1.3.4"') < html.indexOf('id="v1.3.3"'));
-  assert.match(html, /<h2 id="v1\.3\.4">solstone 1\.3\.4<\/h2>/);
-  assert.match(html, /<h2 id="v1\.3\.3">solstone 1\.3\.3<\/h2>/);
+  assert.match(html, /<h2 id="v1\.3\.4">solstone journal 1\.3\.4<\/h2>/);
+  assert.match(html, /<h2 id="v1\.3\.3">solstone journal 1\.3\.3<\/h2>/);
   assert.match(html, /<p class="rel-date">may 28, 2026<\/p>/);
 
   const secondArticle = html.slice(html.indexOf('id="v1.3.3"'), html.indexOf("</article>", html.indexOf('id="v1.3.3"')));
@@ -180,14 +217,28 @@ test("renderReleasesPage renders articles in order and omits null dates", () => 
 
 test("renderReleasesPage preserves chrome copy", () => {
   const html = renderReleasesPage([]);
+  const macosHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.macos);
+  const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
 
   assert.match(
     html,
-    /<meta property="og:description" content="every solstone release for macOS, in plain language\. your co-brain runs on your machine — never sold, never shared\.">/,
+    /<meta property="og:description" content="what's new in the solstone journal, in plain language\. your co-brain runs on your machine — never sold, never shared\.">/,
   );
   assert.match(
     html,
-    /<p>every solstone release for macOS, newest first — in plain language\. what's new, what changed, what's no longer in your way\.<\/p>/,
+    /<a href="\/releases\/macos">using the macOS app\? see its release notes →<\/a>/,
+  );
+  assert.match(
+    macosHtml,
+    /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/macos">/,
+  );
+  assert.match(
+    macosHtml,
+    /<a href="\/releases">for what's new in solstone itself, see the journal release notes →<\/a>/,
+  );
+  assert.match(
+    linuxHtml,
+    /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/linux">/,
   );
 });
 
@@ -195,13 +246,16 @@ test("renderReleasesPage inserts notes with $-sequences literally (no replace-pa
   // $&, $', $` and $$ are special in a String.replace string replacement; a
   // release note containing them (e.g. a shell example) must render verbatim,
   // not splice in the matched/surrounding template text.
-  const html = renderReleasesPage([
-    {
-      version: "1.4.0",
-      pubDate: "Thu, 28 May 2026 05:42:58 GMT",
-      description: "- run `echo $'literal'` then export $$HOME and $`path",
-    },
-  ]);
+  const html = renderReleasesPage(
+    [
+      {
+        version: "1.4.0",
+        pubDate: "Thu, 28 May 2026 05:42:58 GMT",
+        description: "- run `echo $'literal'` then export $$HOME and $`path",
+      },
+    ],
+    RELEASE_PAGE_CONFIGS.macos,
+  );
 
   // $'…' would splice in the template tail; the code span must stay intact.
   assert.match(html, /<code>echo \$'literal'<\/code>/);
@@ -269,7 +323,7 @@ test("live-shape appcast fixture parses and renders eight releases", () => {
   </rss>`;
 
   const items = parseAppcastItems(xml);
-  const html = renderReleasesPage(items);
+  const html = renderReleasesPage(items, RELEASE_PAGE_CONFIGS.macos);
 
   assert.equal(items.length, 8);
   assert.deepEqual(

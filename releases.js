@@ -18,17 +18,17 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>what's new — solstone</title>
-    <meta name="description" content="every solstone release for macOS, in plain language. your co-brain runs on your machine — never sold, never shared.">
-    <meta property="og:title" content="what's new — solstone">
-    <meta property="og:description" content="every solstone release for macOS, in plain language. your co-brain runs on your machine — never sold, never shared.">
-    <meta property="og:url" content="https://solstone.app/releases">
+    <title>{{pageTitle}}</title>
+    <meta name="description" content="{{metaDescription}}">
+    <meta property="og:title" content="{{ogTitle}}">
+    <meta property="og:description" content="{{metaDescription}}">
+    <meta property="og:url" content="{{ogUrl}}">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="https://solstone.app/releases">
+    <link rel="canonical" href="{{canonicalUrl}}">
     <link rel="icon" type="image/svg+xml" href="/static/sol-wordmark.svg">
     <link rel="stylesheet" href="/static/base.css">
     <style>
@@ -36,8 +36,9 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             text-align: center;
             padding: 3rem 1.5rem 1.25rem;
             max-width: 640px;
+            width: 100%;
         }
-        .page-intro h1 { margin-bottom: 1rem; }
+        .page-intro h1 { margin-bottom: 1rem; overflow-wrap: anywhere; }
         .page-intro p {
             font-size: 1rem; line-height: 1.6; color: #555;
         }
@@ -48,8 +49,18 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             transition: color 0.15s;
         }
         .intro-dl:hover { color: #E8923A; }
+        .stream-links {
+            margin-top: 1.25rem;
+            display: flex; flex-direction: column; gap: 0.45rem; align-items: center;
+        }
+        .stream-links a {
+            color: #767676; font-size: 0.94rem; text-decoration: none;
+            transition: color 0.15s;
+            max-width: 100%; overflow-wrap: break-word; text-align: center;
+        }
+        .stream-links a:hover { color: #E8923A; }
         .releases {
-            max-width: 720px; width: 90vw; padding: 0 1.5rem;
+            max-width: 720px; width: 100%; padding: 0 1.5rem;
             text-align: left;
         }
         .release {
@@ -84,8 +95,14 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         }
         .release a { color: #b06a1a; text-decoration: underline; }
         .release a:hover { color: #E8923A; }
+        .stream-links a:focus-visible,
+        .rel-links a:focus-visible,
+        .release a:focus-visible {
+            outline: 2px solid #E8923A;
+            outline-offset: 3px;
+        }
         .rel-links {
-            max-width: 720px; width: 90vw; padding: 1.5rem 1.5rem 0;
+            max-width: 720px; width: 100%; padding: 1.5rem 1.5rem 0;
             display: flex; flex-direction: column; gap: 0.5rem; text-align: left;
         }
         .rel-links a {
@@ -105,9 +122,10 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     </header>
     <main id="main" tabindex="-1">
         <div class="page-intro">
-            <h1>what's new</h1>
-            <p>every solstone release for macOS, newest first — in plain language. what's new, what changed, what's no longer in your way.</p>
-            <a href="/download/macos" class="intro-dl">download solstone for macOS &rarr;</a>
+            <h1>{{heading}}</h1>
+            <p>{{intro}}</p>
+            {{primaryLink}}
+            {{streamLinks}}
         </div>
 
         <section class="releases" aria-label="release history">
@@ -115,7 +133,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         </section>
 
         <nav class="rel-links" aria-label="more">
-            <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
+            <a href="{{sourceUrl}}">source code on github &rarr;</a>
             <a href="/">back to solstone.app &rarr;</a>
         </nav>
     </main>
@@ -124,8 +142,72 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
 </html>`;
 
 const RELEASES_PLACEHOLDER = "            <!-- per-version <article> blocks here, newest first -->";
-const UNAVAILABLE_BODY =
-  '<p>release notes are temporarily unavailable. see every release on github <a href="https://github.com/solpbc/solstone/releases">&rarr;</a></p>';
+
+export const RELEASE_PAGE_CONFIGS = {
+  journal: {
+    pageTitle: "solstone journal releases — solstone",
+    ogTitle: "solstone journal releases",
+    metaDescription:
+      "what's new in the solstone journal, in plain language. your co-brain runs on your machine — never sold, never shared.",
+    ogUrl: "https://solstone.app/releases",
+    canonicalUrl: "https://solstone.app/releases",
+    heading: "solstone journal releases",
+    intro:
+      "what's new in the solstone journal, newest first. sol lives in your journal and tends your memories there; these are the journal's own changes.",
+    primaryLink: { href: "/install", text: "install solstone →" },
+    streamLinks: [
+      { href: "/releases/macos", text: "using the macOS app? see its release notes →" },
+      { href: "/releases/linux", text: "using Linux? see its release notes →" },
+    ],
+    sourceUrl: "https://github.com/solpbc/solstone-journal",
+    unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
+    unavailableLabel: "see every journal release on github →",
+    articleTitle: (version) => `solstone journal ${version}`,
+    linkifyBundledJournal: false,
+  },
+  macos: {
+    pageTitle: "macOS app releases — solstone",
+    ogTitle: "macOS app releases",
+    metaDescription:
+      "release notes for the solstone macOS app, in plain language. installer, menubar, settings, and auto-update changes.",
+    ogUrl: "https://solstone.app/releases/macos",
+    canonicalUrl: "https://solstone.app/releases/macos",
+    heading: "macOS app releases",
+    intro:
+      "these are the macOS app's own changes: installer, menubar, settings, auto-update, and the macOS observer.",
+    primaryLink: { href: "/download/macos", text: "download solstone for macOS →" },
+    streamLinks: [
+      { href: "/releases", text: "for what's new in solstone itself, see the journal release notes →" },
+      { href: "/releases/linux", text: "using Linux? see its release notes →" },
+    ],
+    sourceUrl: "https://github.com/solpbc/solstone-macos",
+    unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
+    unavailableLabel: "see every macOS app release on github →",
+    articleTitle: (version) => `solstone for macOS ${version}`,
+    linkifyBundledJournal: true,
+  },
+  linux: {
+    pageTitle: "Linux observer releases — solstone",
+    ogTitle: "Linux observer releases",
+    metaDescription:
+      "release notes for the solstone Linux observer, in plain language. installation, systemd service, desktop integration, and sync changes.",
+    ogUrl: "https://solstone.app/releases/linux",
+    canonicalUrl: "https://solstone.app/releases/linux",
+    heading: "Linux observer releases",
+    intro:
+      "these are the Linux observer's own changes: installation, systemd service, desktop integration, and sync behavior.",
+    primaryLink: { href: "/install", text: "install solstone for Linux →" },
+    streamLinks: [
+      { href: "/releases", text: "for what's new in solstone itself, see the journal release notes →" },
+      { href: "/releases/macos", text: "using the macOS app? see its release notes →" },
+    ],
+    sourceUrl: "https://github.com/solpbc/solstone-linux",
+    unavailableUrl: "https://github.com/solpbc/solstone-linux/releases",
+    unavailableLabel: "see every Linux observer release on github →",
+    articleTitle: (version) => `solstone for Linux ${version}`,
+    linkifyBundledJournal: true,
+  },
+};
 
 export function parseAppcastItems(xml) {
   if (typeof xml !== "string") return [];
@@ -157,7 +239,7 @@ export function formatReleaseDate(pubDate) {
   if (!pubDate) return null;
 
   const match = String(pubDate).match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
-  if (!match) return null;
+  if (!match) return formatIsoReleaseDate(pubDate);
 
   const month = MONTHS[match[2].toLowerCase()];
   if (!month) return null;
@@ -165,7 +247,45 @@ export function formatReleaseDate(pubDate) {
   return `${month} ${Number(match[1])}, ${match[3]}`;
 }
 
-export function renderNotesMarkdown(md) {
+function formatIsoReleaseDate(pubDate) {
+  const date = new Date(pubDate);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const month = Object.values(MONTHS)[date.getUTCMonth()];
+  if (!month) return null;
+
+  return `${month} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
+}
+
+export function parseGitHubReleaseItems(releases) {
+  if (!Array.isArray(releases)) return [];
+
+  return releases
+    .map((release) => {
+      const version = normalizeTagVersion(release?.tag_name);
+      const description = stripReleaseHeading(release?.body ?? "");
+      if (!version || !description.trim()) return null;
+
+      return {
+        version,
+        pubDate: release?.published_at ?? null,
+        description,
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeTagVersion(tagName) {
+  const tag = String(tagName ?? "").trim();
+  if (!tag) return "";
+  return tag.startsWith("v") ? tag.slice(1) : tag;
+}
+
+function stripReleaseHeading(body) {
+  return String(body).replace(/^##\s+\[[^\]]+\]\s+-\s+\d{4}-\d{2}-\d{2}\s*\n+/u, "");
+}
+
+export function renderNotesMarkdown(md, options = {}) {
   const source = xmlUnescape(md ?? "");
   const lines = source.split(/\r?\n/);
   const blocks = [];
@@ -180,14 +300,17 @@ export function renderNotesMarkdown(md) {
   for (const line of lines) {
     if (line.startsWith("### ")) {
       flushList();
-      blocks.push(`<h3 class="rel-section">${renderInline(line.slice(4))}</h3>`);
+      blocks.push(`<h3 class="rel-section">${renderInline(line.slice(4), options)}</h3>`);
     } else if (line.startsWith("- ")) {
-      listItems.push(`<li>${renderInline(line.slice(2))}</li>`);
+      listItems.push(`<li>${renderInline(line.slice(2), options)}</li>`);
+    } else if (/^\s{2,}\S/.test(line) && listItems.length) {
+      const previous = listItems.pop();
+      listItems.push(previous.replace("</li>", ` ${renderInline(line.trim(), options)}</li>`));
     } else if (line.trim() === "") {
       flushList();
     } else {
       flushList();
-      blocks.push(`<p>${renderInline(line)}</p>`);
+      blocks.push(`<p>${renderInline(line, options)}</p>`);
     }
   }
 
@@ -195,8 +318,11 @@ export function renderNotesMarkdown(md) {
   return blocks.join("\n");
 }
 
-export function renderReleasesPage(items) {
-  const sectionInner = items.length ? items.map(renderArticle).join("\n") : UNAVAILABLE_BODY;
+export function renderReleasesPage(items, config = RELEASE_PAGE_CONFIGS.journal) {
+  const pageConfig = config ?? RELEASE_PAGE_CONFIGS.journal;
+  const sectionInner = items.length
+    ? items.map((item) => renderArticle(item, pageConfig)).join("\n")
+    : renderUnavailableBody(pageConfig);
   const indentedSection = sectionInner
     .split("\n")
     .map((line) => `            ${line}`)
@@ -205,19 +331,52 @@ export function renderReleasesPage(items) {
   // Replacer is a function (not a string) so a `$`-sequence in the rendered
   // notes (e.g. a shell example like `$'…'`) is inserted literally and never
   // interpreted as a `String.replace` special pattern ($&, $', $`, $$).
-  return PAGE_TEMPLATE.replace(RELEASES_PLACEHOLDER, () => indentedSection);
+  return fillTemplate(PAGE_TEMPLATE, pageConfig).replace(RELEASES_PLACEHOLDER, () => indentedSection);
 }
 
-function renderArticle(item) {
+function fillTemplate(template, config) {
+  return template
+    .replaceAll("{{pageTitle}}", escapeHtml(config.pageTitle))
+    .replaceAll("{{metaDescription}}", escapeHtml(config.metaDescription))
+    .replaceAll("{{ogTitle}}", escapeHtml(config.ogTitle))
+    .replaceAll("{{ogUrl}}", escapeHtml(config.ogUrl))
+    .replaceAll("{{canonicalUrl}}", escapeHtml(config.canonicalUrl))
+    .replaceAll("{{heading}}", escapeHtml(config.heading))
+    .replaceAll("{{intro}}", escapeHtml(config.intro))
+    .replaceAll("{{primaryLink}}", renderPrimaryLink(config.primaryLink))
+    .replaceAll("{{streamLinks}}", renderStreamLinks(config.streamLinks))
+    .replaceAll("{{sourceUrl}}", escapeHtml(config.sourceUrl));
+}
+
+function renderPrimaryLink(link) {
+  if (!link) return "";
+  return `<a href="${escapeHtml(link.href)}" class="intro-dl">${escapeHtml(link.text)}</a>`;
+}
+
+function renderStreamLinks(links) {
+  if (!links?.length) return "";
+  const items = links
+    .map((link) => `                <a href="${escapeHtml(link.href)}">${escapeHtml(link.text)}</a>`)
+    .join("\n");
+  return `<nav class="stream-links" aria-label="release streams">\n${items}\n            </nav>`;
+}
+
+function renderUnavailableBody(config) {
+  return `<p>release notes are temporarily unavailable. <a href="${escapeHtml(config.unavailableUrl)}">${escapeHtml(config.unavailableLabel)}</a></p>`;
+}
+
+function renderArticle(item, config) {
   const date = formatReleaseDate(item.pubDate);
   const lines = [
     '<article class="release">',
-    `    <h2 id="v${item.version}">solstone ${item.version}</h2>`,
+    `    <h2 id="v${escapeHtml(item.version)}">${escapeHtml(config.articleTitle(item.version))}</h2>`,
   ];
 
   if (date) lines.push(`    <p class="rel-date">${date}</p>`);
 
-  const notes = renderNotesMarkdown(item.description);
+  const notes = renderNotesMarkdown(item.description, {
+    linkifyBundledJournal: config.linkifyBundledJournal,
+  });
   if (notes) {
     lines.push(
       notes
@@ -249,7 +408,7 @@ function escapeHtml(text) {
     .replaceAll('"', "&quot;");
 }
 
-function renderInline(text) {
+function renderInline(text, options = {}) {
   const codeSpans = [];
   const escaped = escapeHtml(text);
   const withCodePlaceholders = escaped.replace(/`([^`]*?)`/g, (_, code) => {
@@ -263,6 +422,13 @@ function renderInline(text) {
     return `<a href="${url}">${linkText}</a>`;
   });
 
-  const withBold = withLinks.replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
+  const withBundledJournal = options.linkifyBundledJournal
+    ? withLinks.replace(
+        /\b(updated the bundled solstone journal to )(\d+\.\d+\.\d+)\b/gi,
+        (_match, prefix, version) => `${prefix}<a href="/releases#v${version}">${version}</a>`,
+      )
+    : withLinks;
+
+  const withBold = withBundledJournal.replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
   return withBold.replace(/\x00C(\d+)\x00/g, (_, index) => codeSpans[Number(index)]);
 }

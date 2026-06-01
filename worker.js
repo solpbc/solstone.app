@@ -1,11 +1,13 @@
-import { parseAppcastItems, renderReleasesPage } from "./releases.js";
+import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseGitHubReleaseItems, renderReleasesPage } from "./releases.js";
 
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
-const APPCAST_CACHE_TTL = 300; // 5 minutes at the edge
+const JOURNAL_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-journal/releases";
+const LINUX_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-linux/releases";
+const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
 
 async function latestMacosDmgUrl() {
   const res = await fetch(APPCAST_URL, {
-    cf: { cacheTtl: APPCAST_CACHE_TTL, cacheEverything: true },
+    cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
   });
   if (!res.ok) return null;
   const xml = await res.text();
@@ -52,12 +54,22 @@ export default {
     }
 
     // Human-shareable release history: always returns a valid page, with
-    // no-store graceful copy if the appcast is temporarily unavailable.
+    // no-store graceful copy if the upstream source is temporarily unavailable.
     if (url.pathname === "/releases") {
+      const items = await githubReleaseItems(JOURNAL_RELEASES_URL);
+      return releasesResponse(items, RELEASE_PAGE_CONFIGS.journal);
+    }
+
+    if (url.pathname === "/releases/linux") {
+      const items = await githubReleaseItems(LINUX_RELEASES_URL);
+      return releasesResponse(items, RELEASE_PAGE_CONFIGS.linux);
+    }
+
+    if (url.pathname === "/releases/macos") {
       let items = [];
       try {
         const res = await fetch(APPCAST_URL, {
-          cf: { cacheTtl: APPCAST_CACHE_TTL, cacheEverything: true },
+          cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
         });
         if (res.ok) {
           items = parseAppcastItems(await res.text());
@@ -66,13 +78,7 @@ export default {
         items = [];
       }
 
-      return new Response(renderReleasesPage(items), {
-        status: 200,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": items.length ? "public, max-age=300" : "no-store",
-        },
-      });
+      return releasesResponse(items, RELEASE_PAGE_CONFIGS.macos);
     }
 
     const response = await env.ASSETS.fetch(request);
@@ -96,3 +102,29 @@ export default {
     return response;
   },
 };
+
+async function githubReleaseItems(apiUrl) {
+  try {
+    const res = await fetch(apiUrl, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "solstone.app",
+      },
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return [];
+    return parseGitHubReleaseItems(await res.json());
+  } catch {
+    return [];
+  }
+}
+
+function releasesResponse(items, config) {
+  return new Response(renderReleasesPage(items, config), {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": items.length ? "public, max-age=300" : "no-store",
+    },
+  });
+}
