@@ -37,7 +37,7 @@ export function layout({ title, body, afterMain = '' }) {
       background: #fff;
       line-height: 1.55;
     }
-    main { max-width: 560px; margin: 0 16px; padding: 56px 0; }
+    main { width: calc(100vw - 32px); max-width: 560px; margin: 0 16px; padding: 56px 0; }
     @media (min-width: 592px) { main { margin: 0 auto; } }
     h1, h2 { margin: 0 0 16px; line-height: 1.2; text-transform: lowercase; }
     h1 { font-size: 1.65rem; }
