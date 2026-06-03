@@ -240,9 +240,9 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
   const iosSoon = '<span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>';
   const macosModel =
-    '<p class="stream-model">the macOS app bundles the solstone journal — for the journal\'s own changes, see the <a href="/releases">journal release notes →</a></p>';
+    '<p class="stream-model">these notes cover the macOS app itself. <a href="/releases">the journal is the substance →</a></p>';
   const linuxModel =
-    '<p class="stream-model">the Linux observer bundles the solstone journal — for the journal\'s own changes, see the <a href="/releases">journal release notes →</a></p>';
+    '<p class="stream-model">these notes cover the Linux observer itself. <a href="/releases">the journal is the substance →</a></p>';
 
   const assertOrder = (html, expected) => {
     let previousIndex = -1;

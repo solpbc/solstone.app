@@ -62,64 +62,28 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         }
         .stream-model a:hover { color: #E8923A; }
         .stream-switch {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            width: 100%;
-            padding: 0.75rem 1.5rem;
-            background: #fff;
-            border-bottom: 1px solid #ececec;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
+            position: sticky; top: 0; z-index: 10;
+            margin-top: 1.25rem; padding: 0.6rem 1rem;
+            width: 100%; max-width: 720px;
+            display: flex; flex-wrap: wrap; gap: 0.4rem;
+            align-items: center; justify-content: center;
+            background: #fff; border-bottom: 1px solid #ececec;
         }
         .ss-lead {
-            font-size: 0.86rem;
-            line-height: 1;
-            color: #555;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.8rem; color: #999; margin-right: 0.15rem;
         }
         .ss-pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 2rem;
-            padding: 0.35rem 0.85rem;
-            border: 1px solid #ececec;
-            border-radius: 999px;
-            background: #fff;
-            color: #767676;
             font-family: 'Comfortaa', system-ui, sans-serif;
-            font-size: 0.86rem;
-            font-weight: 700;
-            line-height: 1;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+            font-size: 0.9rem; line-height: 1;
+            text-decoration: none; padding: 0.5rem 0.85rem; border-radius: 999px;
+            color: #555; transition: color 0.15s, background 0.15s;
         }
-        a.ss-pill:hover {
-            color: #E8923A;
-            border-color: #E8923A;
-        }
-        .ss-home:not(.ss-active) {
-            color: #555;
-            border-color: #E8923A;
-        }
-        .ss-active {
-            color: #555;
-            border-color: #E8923A;
-            background: #fdf2e8;
-        }
-        .ss-soon {
-            color: #767676;
-            border-style: dashed;
-            cursor: default;
-        }
-        .ss-pill:focus-visible {
-            outline: 2px solid #E8923A;
-            outline-offset: 3px;
-        }
+        a.ss-pill:hover { color: #b06a1a; background: #faf3ea; }
+        .ss-active { background: #E8923A; color: #fff; font-weight: 700; }       /* you-are-here */
+        .ss-home:not(.ss-active) { box-shadow: inset 0 -2px 0 #E8923A; }         /* journal primacy underline */
+        .ss-soon { color: #bbb; cursor: default; }
+        .ss-pill:focus-visible { outline: 2px solid #E8923A; outline-offset: 2px; }
         .releases {
             max-width: 720px; width: 100%; padding: 0 1.5rem;
             text-align: left;
@@ -171,17 +135,8 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         }
         .rel-links a:hover { color: #E8923A; }
         @media (max-width: 640px) {
-            .stream-switch {
-                padding: 0.6rem 1rem;
-                gap: 0.4rem;
-            }
             .ss-lead {
-                flex-basis: 100%;
-                text-align: center;
-            }
-            .ss-pill {
-                padding: 0.32rem 0.7rem;
-                font-size: 0.82rem;
+                flex-basis: 100%; text-align: center; margin: 0 0 0.2rem;
             }
             .release h2 { font-size: 1.2rem; }
         }
@@ -445,11 +400,11 @@ function streamSwitcher(currentStream) {
 
 function streamModelLine(currentStream) {
   if (currentStream === "macos") {
-    return `<p class="stream-model">the macOS app bundles the solstone journal — for the journal's own changes, see the <a href="/releases">journal release notes →</a></p>`;
+    return `<p class="stream-model">these notes cover the macOS app itself. <a href="/releases">the journal is the substance →</a></p>`;
   }
 
   if (currentStream === "linux") {
-    return `<p class="stream-model">the Linux observer bundles the solstone journal — for the journal's own changes, see the <a href="/releases">journal release notes →</a></p>`;
+    return `<p class="stream-model">these notes cover the Linux observer itself. <a href="/releases">the journal is the substance →</a></p>`;
   }
 
   return "";
