@@ -12,7 +12,7 @@ export default defineWorkersConfig({
         compatibilityFlags: ['nodejs_compat'],
         miniflare: {
           workers: [{
-            name: 'support-worker',
+            name: 'extro-support',
             modules: true,
             script: 'export default { async fetch() { return new Response(JSON.stringify({ error: "test support worker not configured" }), { status: 500, headers: { "Content-Type": "application/json" } }); } }',
           }],

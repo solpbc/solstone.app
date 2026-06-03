@@ -65,6 +65,13 @@ describe('static source checks', () => {
     expect(source).not.toContain(['console', 'log'].join('.'));
     // Canonical PII enforcement lives in runtime console-spy assertions for retention, kill switches, and admin.
   });
+
+  it('targets the real support service binding', () => {
+    const toml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'wrangler.toml'), 'utf8');
+
+    expect(toml).toContain('service = "extro-support"');
+    expect(toml).not.toContain(['support', 'worker'].join('-'));
+  });
 });
 
 function listJsFiles(dir, root = dir) {

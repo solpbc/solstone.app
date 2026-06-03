@@ -1,6 +1,6 @@
 /**
- * Assumed support-worker service API envelope for this lode. VPE verifies the
- * real worker post-ship; keep all response parsing in this module so an envelope
+ * Assumed support service API envelope for this lode. VPE verifies the real
+ * worker post-ship; keep all response parsing in this module so an envelope
  * mismatch is a one-spot change.
  *
  * GET /api/services/tickets -> { tickets: [{ id, subject, status, updated_at }] }
@@ -8,8 +8,11 @@
  * POST /api/services/tickets -> { id } or { ticket: { id } }.
  * GET /api/services/tickets/{id} -> {
  *   ticket: { id, subject, status, updated_at },
- *   messages: [{ author_kind, content, created_at }],
- *   attachments: [{ filename, status, triage_summary }]
+ *   messages: [{
+ *     author_kind, content, created_at,
+ *     attachments: [{ filename, status, triage_summary }]
+ *   }],
+ *   attachments: [{ filename, status, triage_summary }] // compatibility-only
  * }
  *   or a flat ticket shape with messages/attachments at top level.
  * POST /api/services/tickets/{id}/messages -> success/failure only.
@@ -401,11 +404,14 @@ function parseDetail(data) {
   const ticket = parseTicket(data?.ticket || data);
   if (!ticket) return null;
   const messages = Array.isArray(data?.messages) ? data.messages : [];
-  const attachments = Array.isArray(data?.attachments) ? data.attachments : [];
+  const topLevel = Array.isArray(data?.attachments) ? data.attachments : [];
+  const nested = messages.flatMap((message) => (
+    Array.isArray(message?.attachments) ? message.attachments : []
+  ));
   return {
     request: ticket,
     messages: messages.map(parseMessage),
-    attachments: attachments.map(parseAttachment),
+    attachments: [...topLevel, ...nested].map(parseAttachment),
   };
 }
 

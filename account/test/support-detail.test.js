@@ -57,6 +57,40 @@ describe('support detail', () => {
     ]);
   });
 
+  it('renders nested message attachments and scrubs storage fields', async () => {
+    const support = makeSupportWorker({
+      'GET /api/services/tickets/REQ_NESTED': () => json(nestedDetailPayload()),
+    });
+    const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
+    const { session } = await signedInAccount(testEnv);
+
+    const response = await worker.fetch(get('/support/REQ_NESTED', session.cookie), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('shot.png');
+    expect(body).toContain('trace.log');
+    expect(body).toContain('pending');
+    expect(body).toContain('attachment removed after triage');
+    expect(body).toContain('looked at the log');
+    expect(body).toContain('you');
+    expect(body).toContain('sol pbc support');
+    expect(body).toContain('your solstone keeper');
+    expect(body).toContain('you (via the form)');
+    expect(body).toContain('first');
+    expect(body).toContain('second');
+    expect(body).toContain('third');
+    expect(body).toContain('fourth');
+    expect(body).toContain('just now');
+    expect(body).not.toContain('secret-r2-key');
+    expect(body).not.toContain('https://download.example/file');
+    expect(body).not.toContain('/api/services/tickets/REQ_NESTED/attachments/download');
+    expect(body).not.toContain('secret-storage-id');
+    expect(body).not.toContain('removed-secret');
+    expect(body).not.toContain('r2_key');
+    expect(body).not.toContain('download_url');
+  });
+
   it('uses safe fallbacks for unknown status and author kind', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets/REQ_UNKNOWN': () => json({
@@ -154,6 +188,41 @@ function detailPayload({ subject = 'need help' } = {}) {
         triage_summary: 'looked at the log',
         r2_key: 'removed-secret',
       },
+    ],
+  };
+}
+
+function nestedDetailPayload() {
+  const now = Date.now();
+  return {
+    ticket: { id: 'REQ_NESTED', subject: 'need help', status: 'proposed', updated_at: now },
+    messages: [
+      {
+        author_kind: 'human',
+        content: 'first',
+        created_at: now,
+        attachments: [{
+          filename: 'shot.png',
+          status: 'pending',
+          r2_key: 'secret-r2-key',
+          url: 'https://download.example/file',
+          download_url: '/api/services/tickets/REQ_NESTED/attachments/download',
+          storage_id: 'secret-storage-id',
+        }],
+      },
+      { author_kind: 'operator', content: 'second', created_at: now },
+      {
+        author_kind: 'agent',
+        content: 'third',
+        created_at: now,
+        attachments: [{
+          filename: 'trace.log',
+          status: 'removed',
+          triage_summary: 'looked at the log',
+          r2_key: 'removed-secret',
+        }],
+      },
+      { author_kind: 'anonymous', content: 'fourth', created_at: now },
     ],
   };
 }
