@@ -44,6 +44,8 @@ export function makeTestEnv(overrides = {}) {
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
     EMAIL_PATH_DISABLED: overrides.EMAIL_PATH_DISABLED || 'false',
     SIGNUP_DISABLED: overrides.SIGNUP_DISABLED || 'false',
+    SUPPORT_WORKER: overrides.SUPPORT_WORKER,
+    SERVICES_AUTH_TOKEN: overrides.SERVICES_AUTH_TOKEN || 'test-services-auth-token',
     APNS_TEAM_ID: overrides.APNS_TEAM_ID,
     APNS_KEY_ID: overrides.APNS_KEY_ID,
     APNS_P8_PEM: overrides.APNS_P8_PEM,
@@ -497,6 +499,58 @@ export async function seedPasskeyChallenge({
 } = {}) {
   await insertPasskeyChallenge(env.DB, { challenge, accountId, purpose, createdAt, expiresAt });
   return { challenge, accountId, purpose, createdAt, expiresAt };
+}
+
+export function makeSupportWorker(handlers = {}) {
+  const requests = [];
+  return {
+    requests,
+    async fetch(request) {
+      const url = new URL(request.url);
+      const method = request.method.toUpperCase();
+      const body = await readSupportRequestBody(request.clone());
+      const headerEntries = Array.from(request.headers.entries());
+      requests.push({
+        method,
+        pathname: url.pathname,
+        headers: {
+          servicesAuth: request.headers.get('X-Services-Auth'),
+          verifiedEmail: request.headers.get('X-Verified-Email'),
+          verifiedEmailCount: headerEntries.filter(([name]) => name.toLowerCase() === 'x-verified-email').length,
+        },
+        body,
+      });
+      const handler = handlers[`${method} ${url.pathname}`] || handlers.default;
+      if (!handler) throw new Error(`unhandled support request: ${method} ${url.pathname}`);
+      if (typeof handler === 'function') return handler({ request, url, method, body, requests });
+      return handler;
+    },
+  };
+}
+
+async function readSupportRequestBody(request) {
+  const contentType = request.headers.get('Content-Type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return await request.json();
+    } catch {
+      return null;
+    }
+  }
+  if (contentType.includes('multipart/form-data')) {
+    const form = await request.formData();
+    return {
+      files: form.getAll('file').map((file) => ({
+        name: file?.name || '',
+        size: file?.size || 0,
+      })),
+    };
+  }
+  try {
+    return await request.text();
+  } catch {
+    return null;
+  }
 }
 
 function formatConsoleArg(value) {

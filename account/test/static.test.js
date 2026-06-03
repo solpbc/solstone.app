@@ -36,6 +36,8 @@ describe('static source checks', () => {
       'retention.js',
       'session.js',
       'settings.js',
+      'support-constants.js',
+      'support.js',
     ]);
   });
 

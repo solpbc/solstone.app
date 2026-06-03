@@ -33,6 +33,7 @@ import {
   NONCE_REGEX,
   PUSH_PLATFORM_ALLOWLIST,
 } from './enable-constants.js';
+import { SUPPORT_ID_REGEX } from './support-constants.js';
 import {
   renderEnablePushConsent,
   renderEnablePushDone,
@@ -559,7 +560,7 @@ function activeCodeRowOk(row) {
   return row && row.consumed_at == null && row.expires_at > Date.now();
 }
 
-async function signInRedirect(env, path, queryString) {
+export async function signInRedirect(env, path, queryString) {
   const resume = await signEnableResume(path, queryString, env);
   return redirect(`/?next=${encodeURIComponent(resume.next)}&next_sig=${encodeURIComponent(resume.nextSig)}`, 303, {
     'Cache-Control': 'no-store',
@@ -579,12 +580,20 @@ async function readForm(req) {
 }
 
 function normalizeResume(path, queryString) {
-  if (typeof queryString !== 'string' || !queryString.startsWith('?')) return null;
+  if (typeof path !== 'string' || typeof queryString !== 'string') return null;
+  if (queryString === '' && isSupportResumePath(path)) return { path, queryString };
+  if (!queryString.startsWith('?')) return null;
   const validator = RESUME_PATH_WHITELIST.get(path);
   if (!validator) return null;
   const params = new URLSearchParams(queryString.slice(1));
   if (!validator(params)) return null;
   return { path, queryString };
+}
+
+function isSupportResumePath(path) {
+  if (path === '/support') return true;
+  const parts = path.split('/');
+  return parts.length === 3 && parts[1] === 'support' && SUPPORT_ID_REGEX.test(parts[2]);
 }
 
 function validateScoutResumeParams(params) {

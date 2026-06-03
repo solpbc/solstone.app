@@ -6,6 +6,19 @@ import { LANDING_JS } from './inline/passkey-landing.js';
 
 const SOL_ORANGE = '#E8923A';
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
+const SUPPORT_STATUS_LABELS = {
+  open: 'open',
+  'in-progress': 'in progress',
+  waiting: 'waiting on you',
+  proposed: 'waiting on you',
+  resolved: 'resolved',
+};
+const SUPPORT_AUTHOR_LABELS = {
+  human: 'you',
+  operator: 'sol pbc support',
+  agent: 'your solstone keeper',
+  anonymous: 'you (via the form)',
+};
 
 export function layout({ title, body, afterMain = '' }) {
   return `<!DOCTYPE html>
@@ -34,7 +47,7 @@ export function layout({ title, body, afterMain = '' }) {
     a { color: ${SOL_ORANGE}; text-decoration: none; }
     a:hover { text-decoration: underline; }
     label { display: block; margin-bottom: 6px; color: #555; font-size: 0.92rem; }
-    input {
+    input, textarea, select {
       width: 100%;
       min-height: 44px;
       padding: 10px 12px;
@@ -43,6 +56,7 @@ export function layout({ title, body, afterMain = '' }) {
       font: inherit;
       margin-bottom: 14px;
     }
+    textarea { min-height: 140px; resize: vertical; }
     input.code {
       font-family: ui-monospace, Menlo, monospace;
       font-size: 1.35rem;
@@ -87,7 +101,7 @@ export function layout({ title, body, afterMain = '' }) {
 </html>`;
 }
 
-export function renderLanding(turnstileSiteKey, csrf, resume = {}) {
+export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = 'sign in to manage your services.') {
   const resumeHtml = resume.next && resume.nextSig
     ? `<input type="hidden" name="next" value="${escAttr(resume.next)}">
   <input type="hidden" name="next_sig" value="${escAttr(resume.nextSig)}">`
@@ -95,7 +109,7 @@ export function renderLanding(turnstileSiteKey, csrf, resume = {}) {
   return layout({
     title: 'sign in to manage your services',
     body: `<h1 class="brand">solstone</h1>
-	<p class="subhead">sign in to manage your services.</p>
+	<p class="subhead">${esc(subhead)}</p>
 	<div id="passkey-error" class="error" hidden></div>
 	<form method="post" action="/signin/start">
 	  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
@@ -314,7 +328,7 @@ ${notice}
 <div class="settings-card">
   <a href="https://solstone.app/trust"><strong>trust</strong><span>read how we earn your trust.</span></a>
 </div>
-<p><a href="/sign-in">your sign-in</a></p>
+<p><a href="/sign-in">your sign-in</a> <a href="/support">your support</a></p>
 <form method="post" action="/signout"><button type="submit">sign out</button></form>
 ${welcomePanel}`,
   });
@@ -326,7 +340,7 @@ export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0 }
   return layout({
     title: 'your sign-in',
     body: `<h1>your sign-in</h1>
-	<nav class="settings-nav"><a href="/">back to your services</a></nav>
+	<nav class="settings-nav"><a href="/">back to your services</a><a href="/support">your support</a></nav>
 <a class="settings-card" href="/sign-in/sessions">
   <strong>sessions</strong>
   <span>${esc(countLabel(sessionCount, 'active session', 'active sessions'))}</span>
@@ -508,7 +522,7 @@ export function renderSignInSessions({ rows, currentIdHash, now }) {
   return layout({
     title: 'sessions',
     body: `<h1>sessions</h1>
-<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a><a href="/support">your support</a></nav>
 ${revokeOthers}
 ${rowHtml}`,
   });
@@ -540,7 +554,7 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '' }) {
   return layout({
     title: 'your devices',
     body: `<h1>your devices</h1>
-<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a><a href="/support">your support</a></nav>
 ${notice}
 ${revokeAll}
 ${emptyState}
@@ -572,7 +586,7 @@ export function renderSignInPasskeys({ rows, enrollJsIncluded }) {
   return layout({
     title: 'passkeys',
     body: `<h1>passkeys</h1>
-<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a><a href="/support">your support</a></nav>
 ${emptyState}
 <div class="welcome">
   <h2>add a passkey</h2>
@@ -634,7 +648,7 @@ export function renderServicesScout({ active, rows, hasRecentAck, nowMs, flash =
   return layout({
     title: 'solstone scout',
     body: `<h1>solstone scout</h1>
-<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a><a href="/support">your support</a></nav>
 ${flashes}
 ${keySection}
 <h2>audit</h2>
@@ -649,6 +663,97 @@ export function renderServicesScoutReveal({ apiKey }) {
 <p class="notice">this key is visible on screen now.</p>
 <input readonly value="${escAttr(apiKey)}" onclick="this.select()">
 <form method="get" action="/services/scout"><button type="submit">close</button></form>`,
+  });
+}
+
+// === support surfaces ===
+
+export function renderSupportList({
+  requests = [],
+  nowMs = Date.now(),
+  csrf = '',
+  notices = [],
+  failure = '',
+  createConfirmation = null,
+}) {
+  const noticeHtml = supportNotices(notices);
+  const failureHtml = failure ? `<p class="error">${esc(failure)}</p>` : '';
+  const confirmationHtml = createConfirmation ? supportCreateConfirmation(createConfirmation) : '';
+  const rowsHtml = requests.map((row) => `<section class="settings-row">
+  <h2><a href="/support/${escAttr(row.id)}">${esc(row.subject || 'request')}</a></h2>
+  <p class="meta">${esc(supportStatusLabel(row.status))}</p>
+  <p class="meta">updated ${esc(formatRelativeTime(row.updatedAtMs, nowMs))}</p>
+</section>`).join('');
+  const emptyState = requests.length === 0 && !failure
+    ? '<p>no open requests. need help? open one below — or your solstone keeper can file one for you.</p>'
+    : '';
+  return layout({
+    title: 'your support',
+    body: `<h1>your support</h1>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
+${noticeHtml}
+${failureHtml}
+${confirmationHtml}
+${emptyState}
+${rowsHtml}
+${renderSupportOpenForm(csrf)}`,
+  });
+}
+
+export function renderSupportDetail({
+  request,
+  messages = [],
+  attachments = [],
+  csrf = '',
+  nowMs = Date.now(),
+  notices = [],
+  failure = '',
+}) {
+  const noticeHtml = supportNotices(notices);
+  const failureHtml = failure ? `<p class="error">${esc(failure)}</p>` : '';
+  const messageRows = messages.map((message) => `<section class="settings-row">
+  <h2>${esc(supportAuthorLabel(message.author_kind))}</h2>
+  <p>${esc(message.content || '')}</p>
+  <p class="meta">${esc(formatRelativeTime(message.createdAtMs, nowMs))}</p>
+</section>`).join('');
+  const attachmentRows = attachments.length
+    ? attachments.map(renderSupportAttachment).join('')
+    : '<p>no attachments.</p>';
+  const id = request?.id || '';
+  return layout({
+    title: request?.subject || 'your support',
+    body: `<h1>${esc(request?.subject || 'your support')}</h1>
+<nav class="settings-nav"><a href="/sign-in">your sign-in</a><a href="/">your services</a></nav>
+${noticeHtml}
+${failureHtml}
+<p class="meta">${esc(supportStatusLabel(request?.status))}</p>
+<h2>messages</h2>
+${messageRows || '<p>no messages.</p>'}
+<h2>attachments</h2>
+${attachmentRows}
+<div class="welcome">
+  <h2>reply</h2>
+  <p class="helper">add a reply, or attach a screenshot or log.</p>
+  <p class="notice">screenshots and logs are used only to triage your request, then removed right away. after you submit they're no longer viewable or downloadable here — we keep only a short summary from triage, never the files themselves.</p>
+  <form method="post" action="/support/${escAttr(id)}/reply" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <label for="reply-content">reply</label>
+    <textarea id="reply-content" name="content" required maxlength="5000"></textarea>
+    <label for="reply-file">attachments</label>
+    <p class="helper">optional screenshots/logs</p>
+    <input id="reply-file" type="file" name="file" multiple>
+    <button type="submit">reply</button>
+  </form>
+</div>`,
+  });
+}
+
+export function renderSupportNotFound() {
+  return layout({
+    title: 'request not found',
+    body: `<h1>request not found</h1>
+<p>we couldn't find that request.</p>
+<p><a href="/support">back to your support</a></p>`,
   });
 }
 
@@ -706,6 +811,67 @@ function geminiLastUsedText(row, nowMs) {
   }
   if (row.last_used_fetched_at != null) return 'not available (checked just now)';
   return 'not available';
+}
+
+function supportStatusLabel(status) {
+  return SUPPORT_STATUS_LABELS[status] || 'in progress';
+}
+
+function supportAuthorLabel(authorKind) {
+  return SUPPORT_AUTHOR_LABELS[authorKind] || 'sol pbc support';
+}
+
+function supportNotices(notices) {
+  return notices.map((notice) => `<p class="notice">${esc(notice)}</p>`).join('');
+}
+
+function supportCreateConfirmation({ id, email, uploadFailed = false }) {
+  const uploadNotice = uploadFailed
+    ? '<p class="error">your request was opened, but the attachments could not be uploaded.</p>'
+    : '';
+  return `<p class="notice">got it — this is request #${esc(id)}. we'll email you at ${esc(email)} and you can follow it right here.</p>
+<p><a href="/support/${escAttr(id)}">view request</a></p>
+${uploadNotice}`;
+}
+
+function renderSupportOpenForm(csrf) {
+  return `<div class="welcome">
+  <h2>open a request</h2>
+  <p class="helper">tell us what's going on. you can attach screenshots or logs here — it's easier than email.</p>
+  <form method="post" action="/support" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <label for="support-subject">what's going on?</label>
+    <input id="support-subject" name="subject" required maxlength="200">
+    <label for="support-description">the details</label>
+    <textarea id="support-description" name="description" required maxlength="5000"></textarea>
+    <label for="support-product">which product?</label>
+    <select id="support-product" name="product" required>
+      <option value="solstone">solstone</option>
+      <option value="vit">vit</option>
+    </select>
+    <label for="support-file">attachments</label>
+    <p class="notice">screenshots and logs are used only to triage your request, then removed right away. after you submit they're no longer viewable or downloadable here — we keep only a short summary from triage, never the files themselves.</p>
+    <p class="helper">optional screenshots/logs</p>
+    <input id="support-file" type="file" name="file" multiple>
+    <button type="submit">open a request</button>
+  </form>
+</div>`;
+}
+
+function renderSupportAttachment(attachment) {
+  const filename = esc(attachment.filename || 'attachment');
+  if (attachment.status === 'removed') {
+    const summary = attachment.triage_summary ? ` ${esc(attachment.triage_summary)}` : '';
+    return `<section class="settings-row">
+  <h2>${filename}</h2>
+  <p>attachment removed after triage${summary}</p>
+</section>`;
+  }
+  const status = attachment.status === 'pending' ? '<p class="meta">pending</p>' : '';
+  return `<section class="settings-row">
+  <h2>${filename}</h2>
+  ${status}
+</section>`;
 }
 
 function flashMessages(flash) {

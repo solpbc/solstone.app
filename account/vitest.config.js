@@ -11,6 +11,11 @@ export default defineWorkersConfig({
         compatibilityDate: '2025-04-01',
         compatibilityFlags: ['nodejs_compat'],
         miniflare: {
+          workers: [{
+            name: 'support-worker',
+            modules: true,
+            script: 'export default { async fetch() { return new Response(JSON.stringify({ error: "test support worker not configured" }), { status: 500, headers: { "Content-Type": "application/json" } }); } }',
+          }],
           d1Databases: ['DB'],
           d1Persist: false,
           kvNamespaces: ['GCP_TOKEN_CACHE'],
@@ -24,6 +29,7 @@ export default defineWorkersConfig({
             CF_ACCESS_AUD: 'test-cf-access-aud',
             EMAIL_PATH_DISABLED: 'false',
             SIGNUP_DISABLED: 'false',
+            SERVICES_AUTH_TOKEN: 'test-services-auth-token',
           },
         },
       },

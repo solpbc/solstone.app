@@ -18,6 +18,15 @@ migrations_dir = "migrations"
 binding = "GCP_TOKEN_CACHE"
 id = "9707e650b35847f5aaf180ae0164e90b"
 
+# Replace this placeholder with the real support worker service name confirmed
+# by VPE during deploy provisioning.
+[[services]]
+binding = "SUPPORT_WORKER"
+service = "support-worker"
+
+# Support service auth secret (set via `wrangler secret put`):
+# SERVICES_AUTH_TOKEN — shared secret sent to the support worker on internal requests.
+
 # APNs push dispatch secrets (set via `wrangler secret put`):
 # APNS_TEAM_ID — Apple Developer Team ID (used as JWT issuer).
 # APNS_KEY_ID — Apple APNs auth key id (scopes the KV JWT cache key).

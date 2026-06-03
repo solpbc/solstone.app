@@ -6,6 +6,7 @@ import {
   TEST_CSRF,
   emailAddRequest,
   installGcpFetchMock,
+  makeSupportWorker,
   makeTestEnv,
   resetDb,
   seedAccount,
@@ -64,7 +65,17 @@ describe('brand canon', () => {
   });
 
   it('keeps forbidden account/service-plan copy and lowercase gemini out of HTML surfaces', async () => {
-    const testEnv = makeTestEnv();
+    const support = makeSupportWorker({
+      'GET /api/services/tickets': async () => json({ tickets: [
+        { id: 'REQ_CANON', subject: 'canon request', status: 'open', updated_at: Date.now() },
+      ] }),
+      'GET /api/services/tickets/REQ_CANON': async () => json({
+        ticket: { id: 'REQ_CANON', subject: 'canon request', status: 'open', updated_at: Date.now() },
+        messages: [{ author_kind: 'human', content: 'canon message', created_at: Date.now() }],
+        attachments: [],
+      }),
+    });
+    const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     installGcpFetchMock({
       'POST oauth2.googleapis.com/token': async () => json({ access_token: 'token', expires_in: 3600, token_type: 'Bearer' }),
       'GET apikeys.googleapis.com/v2/projects/test-gcp-project/locations/global/keys': async () => json({
@@ -106,6 +117,9 @@ describe('brand canon', () => {
       ['scout active', await get('/services/scout', testEnv, withPasskeySession.cookie), true],
       ['scout empty', await get('/services/scout', testEnv, noScoutSession.cookie), true],
       ['devices', await get('/services/devices', testEnv, withPasskeySession.cookie), true],
+      ['support list', await get('/support', testEnv, withPasskeySession.cookie), true],
+      ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],
+      ['support not found', await get('/support/bad.id', testEnv, withPasskeySession.cookie), true],
       ['enable scout consent', await get(`/enable/scout?nonce=${VALID_ENABLE_NONCE}`, testEnv, withPasskeySession.cookie), true],
       ['enable scout entry', await get('/enable/scout', testEnv)],
       ['verify code', await get('/signin/verify', testEnv)],

@@ -68,6 +68,13 @@ import {
   VERIFY_ERROR,
 } from './html.js';
 import {
+  handleSupportCreate,
+  handleSupportDetail,
+  handleSupportList,
+  handleSupportReply,
+  supportSignInPrompt,
+} from './support.js';
+import {
   passkeyAuthFinish,
   passkeyAuthStart,
   passkeyRegisterFinish,
@@ -265,7 +272,8 @@ export default {
           return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
         }
         const csrf = await csrfToken(env);
-        return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}));
+        const subhead = supportSignInPrompt(resume?.path);
+        return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}, subhead || undefined));
       }
 
       if (url.pathname === '/signin/start' && req.method === 'POST') {
@@ -611,6 +619,27 @@ export default {
         req.method === 'POST'
       ) {
         return handleRemovePasskey(req, env, parts[3]);
+      }
+
+      if (parts.length === 2 && parts[1] === 'support' && req.method === 'GET') {
+        return handleSupportList(req, env);
+      }
+
+      if (parts.length === 2 && parts[1] === 'support' && req.method === 'POST') {
+        return handleSupportCreate(req, env);
+      }
+
+      if (parts.length === 3 && parts[1] === 'support' && req.method === 'GET') {
+        return handleSupportDetail(req, env, parts[2]);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'support' &&
+        parts[3] === 'reply' &&
+        req.method === 'POST'
+      ) {
+        return handleSupportReply(req, env, parts[2]);
       }
 
       if (
