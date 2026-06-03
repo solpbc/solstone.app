@@ -49,18 +49,6 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             transition: color 0.15s;
         }
         .intro-dl:hover { color: #E8923A; }
-        .page-intro .stream-model {
-            margin-top: 0.9rem;
-            font-size: 0.9rem;
-            line-height: 1.55;
-            color: #767676;
-        }
-        .stream-model a {
-            color: #767676;
-            text-decoration: underline;
-            text-underline-offset: 0.16em;
-        }
-        .stream-model a:hover { color: #E8923A; }
         .stream-switch {
             position: sticky; top: 0; z-index: 10;
             margin-top: 1.25rem; padding: 0.6rem 1rem;
@@ -80,7 +68,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             color: #555; transition: color 0.15s, background 0.15s;
         }
         a.ss-pill:hover { color: #b06a1a; background: #faf3ea; }
-        .ss-active { background: #E8923A; color: #fff; font-weight: 700; }       /* you-are-here */
+        .ss-active { background: #E8923A; color: #333; font-weight: 700; }       /* you-are-here (dark text = AA contrast on orange) */
         .ss-home:not(.ss-active) { box-shadow: inset 0 -2px 0 #E8923A; }         /* journal primacy underline */
         .ss-soon { color: #bbb; cursor: default; }
         .ss-pill:focus-visible { outline: 2px solid #E8923A; outline-offset: 2px; }
@@ -152,7 +140,6 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             <h1>{{heading}}</h1>
             <p>{{intro}}</p>
             {{primaryLink}}
-            {{modelLine}}
         </div>
 
         {{streamSwitcher}}
@@ -365,7 +352,6 @@ function fillTemplate(template, config) {
     .replaceAll("{{intro}}", escapeHtml(config.intro))
     .replaceAll("{{primaryLink}}", renderPrimaryLink(config.primaryLink))
     .replaceAll("{{streamSwitcher}}", streamSwitcher(config.stream))
-    .replaceAll("{{modelLine}}", streamModelLine(config.stream))
     .replaceAll("{{sourceUrl}}", escapeHtml(config.sourceUrl));
 }
 
@@ -396,18 +382,6 @@ function streamSwitcher(currentStream) {
     '            <span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>',
     "</nav>",
   ].join("\n");
-}
-
-function streamModelLine(currentStream) {
-  if (currentStream === "macos") {
-    return `<p class="stream-model">these notes cover the macOS app itself. <a href="/releases">the journal is the substance →</a></p>`;
-  }
-
-  if (currentStream === "linux") {
-    return `<p class="stream-model">these notes cover the Linux observer itself. <a href="/releases">the journal is the substance →</a></p>`;
-  }
-
-  return "";
 }
 
 function renderUnavailableBody(config) {

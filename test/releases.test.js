@@ -239,10 +239,6 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   const macosHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.macos);
   const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
   const iosSoon = '<span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>';
-  const macosModel =
-    '<p class="stream-model">these notes cover the macOS app itself. <a href="/releases">the journal is the substance →</a></p>';
-  const linuxModel =
-    '<p class="stream-model">these notes cover the Linux observer itself. <a href="/releases">the journal is the substance →</a></p>';
 
   const assertOrder = (html, expected) => {
     let previousIndex = -1;
@@ -298,9 +294,12 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   ]);
   assert.doesNotMatch(linuxHtml, /<a class="ss-pill ss-active"[^>]*>Linux<\/a>/);
 
+  // model line removed from every stream (req_faqjh32h) — the switcher's
+  // always-first journal pill + primacy underline carry the cross-stream
+  // navigation and the journal-is-substance signal, so the prose was redundant.
   assert.doesNotMatch(journalHtml, /class="stream-model"/);
-  assert.match(macosHtml, new RegExp(macosModel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.match(linuxHtml, new RegExp(linuxModel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(macosHtml, /class="stream-model"/);
+  assert.doesNotMatch(linuxHtml, /class="stream-model"/);
 });
 
 test("renderReleasesPage inserts notes with $-sequences literally (no replace-pattern interpretation)", () => {
