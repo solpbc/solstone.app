@@ -198,8 +198,8 @@ ${body}
 }
 
 function nav(handle) {
-  const handleHtml = handle ? `<span class="nav-right">@${esc(handle)} · <a href="/logout" onclick="fetch('/logout',{method:'POST'}).then(()=>location.href='/');return false;">sign out</a></span>` : '';
-  return `<nav class="nav" aria-label="scout portal"><div class="logo" style="flex-shrink:0;">${SOL_WORDMARK}</div>${handleHtml}</nav>`;
+  const handleHtml = handle ? ` · @${esc(handle)} · <a href="/logout" onclick="fetch('/logout',{method:'POST'}).then(()=>location.href='/');return false;">sign out</a>` : '';
+  return `<nav class="nav" aria-label="scout portal"><div class="logo" style="flex-shrink:0;">${SOL_WORDMARK}</div><span class="nav-right"><a href="https://solstone.app/releases">releases</a>${handleHtml}</span></nav>`;
 }
 
 // --- Passkey (WebAuthn) client surface ---

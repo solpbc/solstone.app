@@ -153,7 +153,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             <a href="/">back to solstone.app &rarr;</a>
         </nav>
     </main>
-    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; <a href="/releases">releases</a> &middot; your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
 </body>
 </html>`;
 

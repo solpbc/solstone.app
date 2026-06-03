@@ -187,7 +187,7 @@ test("renderReleasesPage renders graceful fallback inside full chrome", () => {
   assert.match(html, /https:\/\/github\.com\/solpbc\/solstone-journal\/releases/);
   assert.match(
     html,
-    /<footer>&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; your data stays on your machine — never sold, never shared\. solstone is a trademark of sol pbc\.<\/footer>/,
+    /<footer>&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; <a href="\/releases">releases<\/a> &middot; your data stays on your machine — never sold, never shared\. solstone is a trademark of sol pbc\.<\/footer>/,
   );
 });
 
