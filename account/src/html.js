@@ -37,7 +37,7 @@ export function layout({ title, body, afterMain = '' }) {
       background: #fff;
       line-height: 1.55;
     }
-    main { width: min(calc(100% - 32px), 560px); margin: 0 auto; padding: 56px 0; }
+    main { width: 100%; max-width: 560px; margin: 0 auto; padding: 56px 16px; }
     h1, h2 { margin: 0 0 16px; line-height: 1.2; text-transform: lowercase; }
     h1 { font-size: 1.65rem; }
     h2 { font-size: 1.2rem; color: ${SOL_ORANGE}; }
