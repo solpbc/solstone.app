@@ -225,21 +225,82 @@ test("renderReleasesPage preserves chrome copy", () => {
     /<meta property="og:description" content="what's new in the solstone journal, in plain language\. your co-brain runs on your machine — never sold, never shared\.">/,
   );
   assert.match(
-    html,
-    /<a href="\/releases\/macos">using the macOS app\? see its release notes →<\/a>/,
-  );
-  assert.match(
     macosHtml,
     /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/macos">/,
-  );
-  assert.match(
-    macosHtml,
-    /<a href="\/releases">for what's new in solstone itself, see the journal release notes →<\/a>/,
   );
   assert.match(
     linuxHtml,
     /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/linux">/,
   );
+});
+
+test("renderReleasesPage renders sticky stream switcher across streams", () => {
+  const journalHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.journal);
+  const macosHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.macos);
+  const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
+  const iosSoon = '<span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>';
+  const macosModel =
+    '<p class="stream-model">the macOS app bundles the solstone journal — for the journal\'s own changes, see the <a href="/releases">journal release notes →</a></p>';
+  const linuxModel =
+    '<p class="stream-model">the Linux observer bundles the solstone journal — for the journal\'s own changes, see the <a href="/releases">journal release notes →</a></p>';
+
+  const assertOrder = (html, expected) => {
+    let previousIndex = -1;
+    for (const item of expected) {
+      const index = html.indexOf(item);
+      assert.notEqual(index, -1, `${item} should be rendered`);
+      assert.ok(index > previousIndex, `${item} should render in stream order`);
+      previousIndex = index;
+    }
+  };
+
+  for (const html of [journalHtml, macosHtml, linuxHtml]) {
+    const switcherIndex = html.indexOf('<nav class="stream-switch" aria-label="release streams">');
+    const leadIndex = html.indexOf('<span class="ss-lead">release notes for:</span>');
+    const firstPillIndex = html.indexOf('class="ss-pill', leadIndex);
+    const introIndex = html.indexOf('<div class="page-intro">');
+    const introCloseIndex = html.indexOf("</div>", introIndex);
+    const sectionIndex = html.indexOf('<section class="releases"', switcherIndex);
+
+    assert.notEqual(switcherIndex, -1);
+    assert.ok(leadIndex > switcherIndex);
+    assert.ok(leadIndex < firstPillIndex);
+    assert.ok(introCloseIndex < switcherIndex);
+    assert.ok(switcherIndex < sectionIndex);
+    assert.match(html, /scroll-margin-top: 3\.5rem;/);
+    assert.match(html, new RegExp(iosSoon.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.doesNotMatch(html, /<a[^>]*>iOS soon<\/a>/);
+    assert.doesNotMatch(html, /stream-links/);
+    assert.doesNotMatch(html, /<script/i);
+  }
+
+  assertOrder(journalHtml, [
+    '<span class="ss-pill ss-active ss-home" aria-current="page">journal</span>',
+    '<a class="ss-pill" href="/releases/macos">macOS</a>',
+    '<a class="ss-pill" href="/releases/linux">Linux</a>',
+    iosSoon,
+  ]);
+  assert.doesNotMatch(journalHtml, /<a class="ss-pill ss-active ss-home"[^>]*>journal<\/a>/);
+
+  assertOrder(macosHtml, [
+    '<a class="ss-pill ss-home" href="/releases">journal</a>',
+    '<span class="ss-pill ss-active" aria-current="page">macOS</span>',
+    '<a class="ss-pill" href="/releases/linux">Linux</a>',
+    iosSoon,
+  ]);
+  assert.doesNotMatch(macosHtml, /<a class="ss-pill ss-active"[^>]*>macOS<\/a>/);
+
+  assertOrder(linuxHtml, [
+    '<a class="ss-pill ss-home" href="/releases">journal</a>',
+    '<a class="ss-pill" href="/releases/macos">macOS</a>',
+    '<span class="ss-pill ss-active" aria-current="page">Linux</span>',
+    iosSoon,
+  ]);
+  assert.doesNotMatch(linuxHtml, /<a class="ss-pill ss-active"[^>]*>Linux<\/a>/);
+
+  assert.doesNotMatch(journalHtml, /class="stream-model"/);
+  assert.match(macosHtml, new RegExp(macosModel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(linuxHtml, new RegExp(linuxModel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
 test("renderReleasesPage inserts notes with $-sequences literally (no replace-pattern interpretation)", () => {

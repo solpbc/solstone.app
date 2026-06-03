@@ -49,16 +49,77 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             transition: color 0.15s;
         }
         .intro-dl:hover { color: #E8923A; }
-        .stream-links {
-            margin-top: 1.25rem;
-            display: flex; flex-direction: column; gap: 0.45rem; align-items: center;
+        .page-intro .stream-model {
+            margin-top: 0.9rem;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            color: #767676;
         }
-        .stream-links a {
-            color: #767676; font-size: 0.94rem; text-decoration: none;
-            transition: color 0.15s;
-            max-width: 100%; overflow-wrap: break-word; text-align: center;
+        .stream-model a {
+            color: #767676;
+            text-decoration: underline;
+            text-underline-offset: 0.16em;
         }
-        .stream-links a:hover { color: #E8923A; }
+        .stream-model a:hover { color: #E8923A; }
+        .stream-switch {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background: #fff;
+            border-bottom: 1px solid #ececec;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .ss-lead {
+            font-size: 0.86rem;
+            line-height: 1;
+            color: #555;
+        }
+        .ss-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2rem;
+            padding: 0.35rem 0.85rem;
+            border: 1px solid #ececec;
+            border-radius: 999px;
+            background: #fff;
+            color: #767676;
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+        }
+        a.ss-pill:hover {
+            color: #E8923A;
+            border-color: #E8923A;
+        }
+        .ss-home:not(.ss-active) {
+            color: #555;
+            border-color: #E8923A;
+        }
+        .ss-active {
+            color: #555;
+            border-color: #E8923A;
+            background: #fdf2e8;
+        }
+        .ss-soon {
+            color: #767676;
+            border-style: dashed;
+            cursor: default;
+        }
+        .ss-pill:focus-visible {
+            outline: 2px solid #E8923A;
+            outline-offset: 3px;
+        }
         .releases {
             max-width: 720px; width: 100%; padding: 0 1.5rem;
             text-align: left;
@@ -73,7 +134,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             font-size: 1.35rem; font-weight: 700;
             text-transform: lowercase; letter-spacing: 0.03em;
             color: #222; margin-bottom: 0.2rem;
-            scroll-margin-top: 1.5rem;   /* anchor jump doesn't hide under top edge */
+            scroll-margin-top: 3.5rem;   /* anchor jump doesn't hide under top edge */
         }
         .release .rel-date {
             font-size: 0.85rem; color: #999; margin-bottom: 1.1rem;
@@ -95,7 +156,6 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         }
         .release a { color: #b06a1a; text-decoration: underline; }
         .release a:hover { color: #E8923A; }
-        .stream-links a:focus-visible,
         .rel-links a:focus-visible,
         .release a:focus-visible {
             outline: 2px solid #E8923A;
@@ -111,6 +171,18 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         }
         .rel-links a:hover { color: #E8923A; }
         @media (max-width: 640px) {
+            .stream-switch {
+                padding: 0.6rem 1rem;
+                gap: 0.4rem;
+            }
+            .ss-lead {
+                flex-basis: 100%;
+                text-align: center;
+            }
+            .ss-pill {
+                padding: 0.32rem 0.7rem;
+                font-size: 0.82rem;
+            }
             .release h2 { font-size: 1.2rem; }
         }
     </style>
@@ -125,8 +197,10 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             <h1>{{heading}}</h1>
             <p>{{intro}}</p>
             {{primaryLink}}
-            {{streamLinks}}
+            {{modelLine}}
         </div>
+
+        {{streamSwitcher}}
 
         <section class="releases" aria-label="release history">
             <!-- per-version <article> blocks here, newest first -->
@@ -151,14 +225,11 @@ export const RELEASE_PAGE_CONFIGS = {
       "what's new in the solstone journal, in plain language. your co-brain runs on your machine — never sold, never shared.",
     ogUrl: "https://solstone.app/releases",
     canonicalUrl: "https://solstone.app/releases",
+    stream: "journal",
     heading: "solstone journal releases",
     intro:
       "what's new in the solstone journal, newest first. sol lives in your journal and tends your memories there; these are the journal's own changes.",
     primaryLink: { href: "/install", text: "install solstone →" },
-    streamLinks: [
-      { href: "/releases/macos", text: "using the macOS app? see its release notes →" },
-      { href: "/releases/linux", text: "using Linux? see its release notes →" },
-    ],
     sourceUrl: "https://github.com/solpbc/solstone-journal",
     unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
     unavailableLabel: "see every journal release on github →",
@@ -172,14 +243,11 @@ export const RELEASE_PAGE_CONFIGS = {
       "release notes for the solstone macOS app, in plain language. installer, menubar, settings, and auto-update changes.",
     ogUrl: "https://solstone.app/releases/macos",
     canonicalUrl: "https://solstone.app/releases/macos",
+    stream: "macos",
     heading: "macOS app releases",
     intro:
       "these are the macOS app's own changes: installer, menubar, settings, auto-update, and the macOS observer.",
     primaryLink: { href: "/download/macos", text: "download solstone for macOS →" },
-    streamLinks: [
-      { href: "/releases", text: "for what's new in solstone itself, see the journal release notes →" },
-      { href: "/releases/linux", text: "using Linux? see its release notes →" },
-    ],
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
     unavailableLabel: "see every macOS app release on github →",
@@ -193,14 +261,11 @@ export const RELEASE_PAGE_CONFIGS = {
       "release notes for the solstone Linux observer, in plain language. installation, systemd service, desktop integration, and sync changes.",
     ogUrl: "https://solstone.app/releases/linux",
     canonicalUrl: "https://solstone.app/releases/linux",
+    stream: "linux",
     heading: "Linux observer releases",
     intro:
       "these are the Linux observer's own changes: installation, systemd service, desktop integration, and sync behavior.",
     primaryLink: { href: "/install", text: "install solstone for Linux →" },
-    streamLinks: [
-      { href: "/releases", text: "for what's new in solstone itself, see the journal release notes →" },
-      { href: "/releases/macos", text: "using the macOS app? see its release notes →" },
-    ],
     sourceUrl: "https://github.com/solpbc/solstone-linux",
     unavailableUrl: "https://github.com/solpbc/solstone-linux/releases",
     unavailableLabel: "see every Linux observer release on github →",
@@ -344,7 +409,8 @@ function fillTemplate(template, config) {
     .replaceAll("{{heading}}", escapeHtml(config.heading))
     .replaceAll("{{intro}}", escapeHtml(config.intro))
     .replaceAll("{{primaryLink}}", renderPrimaryLink(config.primaryLink))
-    .replaceAll("{{streamLinks}}", renderStreamLinks(config.streamLinks))
+    .replaceAll("{{streamSwitcher}}", streamSwitcher(config.stream))
+    .replaceAll("{{modelLine}}", streamModelLine(config.stream))
     .replaceAll("{{sourceUrl}}", escapeHtml(config.sourceUrl));
 }
 
@@ -353,12 +419,40 @@ function renderPrimaryLink(link) {
   return `<a href="${escapeHtml(link.href)}" class="intro-dl">${escapeHtml(link.text)}</a>`;
 }
 
-function renderStreamLinks(links) {
-  if (!links?.length) return "";
-  const items = links
-    .map((link) => `                <a href="${escapeHtml(link.href)}">${escapeHtml(link.text)}</a>`)
-    .join("\n");
-  return `<nav class="stream-links" aria-label="release streams">\n${items}\n            </nav>`;
+function streamSwitcher(currentStream) {
+  const pill = (key, label, href, extraClass = "") => {
+    const activeClass = key === currentStream ? " ss-active" : "";
+    const suffixClass = extraClass ? " " + extraClass : "";
+    const classes = "ss-pill" + activeClass + suffixClass;
+
+    if (key === currentStream) {
+      return '            <span class="' + classes + '" aria-current="page">' + label + "</span>";
+    }
+
+    return '            <a class="' + classes + '" href="' + href + '">' + label + "</a>";
+  };
+
+  return [
+    '<nav class="stream-switch" aria-label="release streams">',
+    '            <span class="ss-lead">release notes for:</span>',
+    pill("journal", "journal", "/releases", "ss-home"),
+    pill("macos", "macOS", "/releases/macos"),
+    pill("linux", "Linux", "/releases/linux"),
+    '            <span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>',
+    "</nav>",
+  ].join("\n");
+}
+
+function streamModelLine(currentStream) {
+  if (currentStream === "macos") {
+    return `<p class="stream-model">the macOS app bundles the solstone journal — for the journal's own changes, see the <a href="/releases">journal release notes →</a></p>`;
+  }
+
+  if (currentStream === "linux") {
+    return `<p class="stream-model">the Linux observer bundles the solstone journal — for the journal's own changes, see the <a href="/releases">journal release notes →</a></p>`;
+  }
+
+  return "";
 }
 
 function renderUnavailableBody(config) {
