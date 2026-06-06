@@ -735,7 +735,7 @@ ${attachmentRows}
 <div class="welcome">
   <h2>reply</h2>
   <p class="helper">add a reply, or attach a screenshot or log.</p>
-  <p class="notice">screenshots and logs are used only to triage your request, then removed right away. after you submit they're no longer viewable or downloadable here — we keep only a short summary from triage, never the files themselves.</p>
+  <p class="notice">screenshots and logs are used only to triage your request — once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage — never the files themselves.</p>
   <form method="post" action="/support/${escAttr(id)}/reply" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <label for="reply-content">reply</label>
@@ -851,7 +851,7 @@ function renderSupportOpenForm(csrf) {
       <option value="vit">vit</option>
     </select>
     <label for="support-file">attachments</label>
-    <p class="notice">screenshots and logs are used only to triage your request, then removed right away. after you submit they're no longer viewable or downloadable here — we keep only a short summary from triage, never the files themselves.</p>
+    <p class="notice">screenshots and logs are used only to triage your request — once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage — never the files themselves.</p>
     <p class="helper">optional screenshots/logs</p>
     <input id="support-file" type="file" name="file" multiple>
     <button type="submit">open a request</button>
