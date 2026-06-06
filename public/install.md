@@ -12,24 +12,11 @@ paste this prompt into claude code, codex cli, gemini cli, or similar: `install 
 
 ### macOS
 
-**1. install the native observer app**
+**install the native app**
 
-[download for macOS](https://solstone.app/download/macos) — signed by sol pbc, notarized by Apple. updates over a signed channel.
+[download for macOS](https://solstone.app/download/macos) — signed by sol pbc, notarized by Apple. installs your observer and journal, opens the first-run wizard, and updates over a signed channel.
 
-**2. set up sol and your journal**
-
-this sets up sol and creates your journal — the place on your machine where sol tends your memories.
-
-prereqs: xcode command-line tools (`xcode-select --install`), homebrew (https://brew.sh), then `brew install uv`.
-
-```bash
-uv tool install solstone
-journal setup
-```
-
-(or `pipx install solstone && journal setup` if you prefer pipx.)
-
-then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and solstone sets it up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting.
+building from source? use the developer path in [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md).
 
 ### linux
 
@@ -42,7 +29,7 @@ journal setup
 
 (or `pipx install solstone && journal setup` if you prefer pipx.)
 
-on linux, local parakeet transcription needs `solstone[parakeet-onnx-cpu]` (or `[parakeet-onnx-cuda]` for NVIDIA GPUs); install or upgrade the same way as other extras.
+on linux, the default local parakeet transcription runtime ships with solstone and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription can add `solstone[parakeet-onnx-cuda]`.
 
 then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and solstone sets it up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. for a linux observer, see [solstone.app/observers](https://solstone.app/observers).
 
