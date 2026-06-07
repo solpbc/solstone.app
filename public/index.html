@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>solstone</title>
-    <meta name="description" content="solstone — observes what you see and hear, gives you an AI co-brain. searchable memory, meeting prep, a knowledge graph of every person in your life. nothing to connect, no services to authorize. open source, self-hostable. made by sol pbc.">
-    <meta property="og:title" content="solstone — your co-brain">
-    <meta property="og:description" content="your AI co-brain — it experiences your world alongside you, on your machine. nothing to connect, no services to authorize.">
+    <meta name="description" content="solstone: an open source, local-first journal of what you see and hear, for the agents you use. it runs on your own machine and turns your day into context the agents you already use can work from. always private, only yours. made by sol pbc.">
+    <meta property="og:title" content="solstone: a memory your agents can work from">
+    <meta property="og:description" content="an open source, local-first journal of what you see and hear, on your machine. a memory the agents you already use can work from. always private, only yours.">
     <meta property="og:url" content="https://solstone.app">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
@@ -19,7 +19,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "solstone",
-      "description": "Observes what you see and hear, gives you an AI co-brain — searchable memory, meeting prep, a knowledge graph of every person in your life. Nothing to connect, no services to authorize. Open source, self-hostable.",
+      "description": "An open source, local-first journal of what you see and hear, for the agents you use. Runs on your own machine and turns your day into context the agents you already use can work from. Always private, only yours.",
       "url": "https://solstone.app",
       "applicationCategory": "LifestyleApplication",
       "operatingSystem": "Linux, macOS",
@@ -44,12 +44,24 @@
     </script>
     <link rel="stylesheet" href="/static/base.css">
     <style>
-        body {
-            justify-content: center;
-        }
         h1 {
-            font-size: 2.5rem;
-            margin-bottom: 2rem;
+            font-size: 2.3rem;
+            max-width: 640px;
+            width: 90vw;
+            text-align: center;
+            margin-bottom: 0.6rem;
+        }
+        h2 {
+            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-weight: 400;
+            font-size: 1.3rem;
+            letter-spacing: 0.03em;
+            text-transform: lowercase;
+            color: #767676;
+            text-align: center;
+            max-width: 640px;
+            width: 90vw;
+            margin-bottom: 1.75rem;
         }
         .logo {
             max-width: 400px;
@@ -59,16 +71,25 @@
             text-decoration: none;
         }
         .tagline {
-            max-width: 500px;
+            max-width: 560px;
             width: 90vw;
-            font-size: 1rem;
+            font-size: 1.05rem;
             line-height: 1.6;
-            color: #555;
+            color: #444;
+            text-align: center;
+            margin-bottom: 1.25rem;
+        }
+        .beat {
+            max-width: 560px;
+            width: 90vw;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #767676;
             text-align: center;
             margin-bottom: 1.5rem;
         }
         .trust {
-            max-width: 500px;
+            max-width: 560px;
             width: 90vw;
             font-size: 0.85rem;
             color: #767676;
@@ -86,6 +107,10 @@
             color: #E8923A;
             text-decoration: none;
         }
+        .cta-primary {
+            font-weight: 700;
+            color: #B36A1D;
+        }
         /* keep each CTA centered on its own line (was the body's per-child
            centering before the nav landmark wrapped them) */
         .cta-nav {
@@ -93,10 +118,14 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
+            margin-top: 0.25rem;
         }
         @media (max-width: 640px) {
             h1 {
-                font-size: 1.8rem;
+                font-size: 1.7rem;
+            }
+            h2 {
+                font-size: 1.1rem;
             }
             .logo {
                 max-width: 280px;
@@ -110,18 +139,18 @@
         <a href="/"><img src="static/sol-wordmark.svg" alt="solstone logo" class="logo"></a>
     </header>
     <main id="main" tabindex="-1">
-        <h1>solstone</h1>
-        <p class="tagline">observes what you see and hear and gives you an AI co-brain — searchable memory, meeting prep, a knowledge graph of every person in your life. nothing to connect, no services to authorize. it just experiences your digital world alongside you.</p>
-        <p class="tagline" style="font-size: 0.9rem; color: #767676;">two parts, all yours: your <strong>observers</strong> and your <strong>journal</strong> — where <strong>sol</strong> lives and tends your memories.</p>
-        <p class="trust">open source and yours. all processing on your machine — sol pbc can never sell your data, and any future acquisition is conditional on the successor being legally bound to preserve the same protections. these aren't promises; they're irrevocable covenants in the <a href="https://solpbc.org/articles" style="color:#767676;">articles of incorporation</a>.</p>
-        <p class="early-days"><span class="stage-label">early days.</span> solstone is open source and hands-on — expect time in the terminal and a few rough edges as we build.</p>
+        <h1>a memory your agents can work from.</h1>
+        <h2>on your machine, owned by you.</h2>
+        <p class="tagline">solstone is an open source, local-first journal of what you see and hear. it runs on your own machine and turns your day into context the agents you already use can work from, so they stop starting blind. always private, only yours.</p>
+        <p class="beat">every agent you run inherits nothing. every session starts cold. solstone is the memory they can finally read: your projects, the people, what you decided last time. none of it leaves your control.</p>
+        <p class="beat" style="font-size: 0.9rem;">two parts, all yours: your <strong>observers</strong> and your <strong>journal</strong>, where <strong>sol</strong> lives and tends your memories.</p>
+        <p class="trust">open source and yours. all processing on your machine. sol pbc can never sell your data, and any future acquisition is conditional on the successor being legally bound to preserve the same protections. these aren't promises; they're irrevocable covenants in the <a href="https://solpbc.org/articles" style="color:#767676;">articles of incorporation</a>.</p>
+        <p class="early-days"><span class="stage-label">early days.</span> solstone is open source and hands-on, so expect time in the terminal and a few rough edges as we build.</p>
         <nav class="cta-nav" aria-label="get started">
-            <a href="/install" class="cta">get started →</a>
-            <a href="/observers" class="cta">browse observers →</a>
-            <a href="https://github.com/solpbc/solstone-journal" class="cta">source code on github →</a>
-            <a href="https://scouts.solstone.app" class="cta">try it early, help shape it →</a>
+            <a href="/install" class="cta cta-primary">install solstone →</a>
+            <a href="/observers" class="cta">how it works →</a>
         </nav>
     </main>
-    <footer>© 2026 <a href="https://solpbc.org">sol pbc</a> · <a href="/releases">releases</a> · your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <footer>© 2026 <a href="https://solpbc.org">sol pbc</a> · <a href="/releases">releases</a> · your data stays on your machine, never sold, never shared. solstone is a trademark of sol pbc.</footer>
 </body>
 </html>
