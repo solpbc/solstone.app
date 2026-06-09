@@ -29,7 +29,8 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <meta property="og:image:height" content="720">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="{{canonicalUrl}}">
-    <link rel="icon" type="image/svg+xml" href="/static/sol-wordmark.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/sol-ring-icon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/base.css">
     <style>
         .page-intro {
