@@ -143,8 +143,9 @@ describe('/enable/scout', () => {
         google_api_key: 'existing-google-key',
         dispatch_token: expect.stringMatching(/^[A-Za-z0-9_-]+$/),
         account_id: account.accountId,
-        created_at: expect.any(Number),
+        created_at: expect.any(String),
       });
+      expect(Number.isNaN(Date.parse(payload.created_at))).toBe(false);
       spy.assertNoSecrets([VALID_NONCE, 'existing-google-key', payload.dispatch_token]);
     } finally {
       spy.restore();

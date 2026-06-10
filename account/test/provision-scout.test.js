@@ -30,8 +30,9 @@ describe('provisionScoutForAccount', () => {
         google_api_key: 'provisioned-google-key',
         dispatch_token: expect.stringMatching(/^[A-Za-z0-9_-]+$/),
         account_id: account.accountId,
-        created_at: expect.any(Number),
+        created_at: expect.any(String),
       });
+      expect(Number.isNaN(Date.parse(result.created_at))).toBe(false);
       await expect(rowCount('provisioned_keys')).resolves.toBe(1);
       await expect(rowCount('account_dispatch_tokens')).resolves.toBe(1);
       spy.assertNoSecrets(['provisioned-google-key', result.dispatch_token]);

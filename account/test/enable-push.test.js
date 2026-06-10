@@ -119,8 +119,9 @@ describe('/enable/push', () => {
         device_id: expect.any(String),
         dispatch_token: expect.stringMatching(/^[A-Za-z0-9_-]+$/),
         account_id: account.accountId,
-        created_at: expect.any(Number),
+        created_at: expect.any(String),
       });
+      expect(Number.isNaN(Date.parse(payload.created_at))).toBe(false);
       expect(device.push_token_env).toBe('sandbox');
       expect(device.push_token).toBe(DEVICE_TOKEN);
       spy.assertNoSecrets([VALID_NONCE, DEVICE_TOKEN, payload.dispatch_token, payload.device_id, payloadEncrypted]);

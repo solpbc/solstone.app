@@ -19,6 +19,14 @@ describe('dispatch tokens', () => {
     expect(resolved).toEqual({ accountId: account.accountId });
   });
 
+  it('returns created_at as an ISO-8601 UTC string', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const minted = await mintDispatchToken(testEnv, account.accountId);
+    expect(typeof minted.createdAt).toBe('string');
+    expect(Number.isNaN(Date.parse(minted.createdAt))).toBe(false);
+  });
+
   it('returns null for mutated plaintext', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });

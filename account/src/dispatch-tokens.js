@@ -4,10 +4,10 @@ import { findActiveDispatchToken, insertDispatchToken } from './db.js';
 export async function mintDispatchToken(env, accountId) {
   const token = generateSessionToken();
   const tokenHash = await hashWithPepper(token, env, 'DISPATCH_TOKEN_PEPPER');
-  const createdAt = Date.now();
+  const nowMs = Date.now();
   // No cap column: capability narrowness is enforced by resolveDispatchToken call sites.
-  await insertDispatchToken(env.DB, { tokenHash, accountId, nowMs: createdAt });
-  return { token, accountId, createdAt };
+  await insertDispatchToken(env.DB, { tokenHash, accountId, nowMs });
+  return { token, accountId, createdAt: new Date(nowMs).toISOString() };
 }
 
 // Capability narrowness is enforced structurally: this verifier is invoked
