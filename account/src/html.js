@@ -162,26 +162,7 @@ export function renderError() {
   });
 }
 
-export function renderEnableScoutEntry({ csrf, code = '', error = '' }) {
-  const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
-  return layout({
-    title: 'enable solstone scout',
-    body: `<h1>got a code from your terminal?</h1>
-<p>enter it below to enable solstone scout on that machine.</p>
-${errorHtml}
-<form method="post" action="/enable/scout">
-  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-  <label for="code">code</label>
-  <input id="code" class="code" name="code" value="${escAttr(code)}" autocomplete="one-time-code" inputmode="text" maxlength="15" required>
-  <button type="submit">continue</button>
-</form>`,
-  });
-}
-
-export function renderEnableScoutConsent({ csrf, nonce = '', code = '', accountId = '' }) {
-  const hidden = nonce
-    ? `<input type="hidden" name="nonce" value="${escAttr(nonce)}">`
-    : `<input type="hidden" name="code" value="${escAttr(code)}">`;
+export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
   return layout({
     title: 'enable solstone scout',
     body: `<pre class="welcome" style="white-space:pre-wrap;font:inherit">solstone on this device wants to enable solstone scout for you.
@@ -206,7 +187,7 @@ your services anytime.</pre>
 <form method="post" action="/enable/scout/confirm">
   <input type="hidden" name="csrf" value="${escAttr(csrf)}">
   <input type="hidden" name="account_id" value="${escAttr(accountId)}">
-  ${hidden}
+  <input type="hidden" name="nonce" value="${escAttr(nonce)}">
   <button type="submit" name="action" value="allow">allow</button>
   <button type="submit" name="action" value="cancel">cancel</button>
 </form>`,
@@ -226,7 +207,7 @@ export function renderEnableScoutError({ message }) {
     title: 'could not enable solstone scout',
     body: `<h1>could not enable solstone scout</h1>
 <p>${esc(message || 'that request could not be completed.')}</p>
-<p><a href="/enable/scout">try again</a></p>`,
+<p>if you got here from solstone on your device, run the enable command again for a fresh link. otherwise, you can close this tab.</p>`,
   });
 }
 

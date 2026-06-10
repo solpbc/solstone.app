@@ -37,7 +37,7 @@ describe('/enable/scout', () => {
     expect(location.searchParams.get('next_sig')).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
-  it('renders the code-entry form without params and signed-in consent with a nonce', async () => {
+  it('returns 400 without params and renders signed-in consent with a nonce', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -51,57 +51,14 @@ describe('/enable/scout', () => {
     );
     const body = await consent.text();
 
-    expect(entry.status).toBe(200);
+    expect(entry.status).toBe(400);
     expect(entry.headers.get('Cache-Control')).toBe('no-store');
-    expect(await entry.clone().text()).toContain('action="/enable/scout"');
+    expect(await entry.clone().text()).not.toContain('action="/enable/scout"');
     expect(consent.status).toBe(200);
     expect(consent.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('solstone on this device wants to enable solstone scout for you.');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="account_id" value="${account.accountId}"`);
-  });
-
-  it('creates a public code and redirects manual entry to the consent URL', async () => {
-    const spy = installConsoleSpy();
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ testEnv });
-    const session = await seedSession(account.accountId, { testEnv });
-    try {
-      const codeResponse = await worker.fetch(new Request('https://services.solstone.app/enable/scout/code', {
-        method: 'POST',
-        headers: { 'CF-Connecting-IP': '203.0.113.88' },
-      }), testEnv);
-      const codeBody = await codeResponse.json();
-
-      const redirect = await worker.fetch(new Request('https://services.solstone.app/enable/scout', {
-        method: 'POST',
-        headers: {
-          Origin: 'https://services.solstone.app',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ csrf: TEST_CSRF, code: codeBody.code }),
-      }), testEnv);
-      const consent = await worker.fetch(new Request(`https://services.solstone.app${redirect.headers.get('Location')}`, {
-        headers: { Cookie: session.cookie },
-      }), testEnv);
-
-      expect(codeResponse.status).toBe(200);
-      expect(codeResponse.headers.get('Cache-Control')).toBe('no-store');
-      expect(codeResponse.headers.has('Set-Cookie')).toBe(false);
-      expect(codeResponse.headers.has('Vary')).toBe(false);
-      expect(codeBody).toEqual({
-        nonce: expect.stringMatching(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{52}$/),
-        code: expect.stringMatching(/^SCOUT-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}$/),
-        expires_in: 900,
-      });
-      expect(redirect.status).toBe(303);
-      expect(redirect.headers.get('Location')).toBe(`/enable/scout?code=${encodeURIComponent(codeBody.code)}`);
-      expect(consent.status).toBe(200);
-      expect(await consent.text()).toContain(`name="code" value="${codeBody.code}"`);
-      spy.assertNoSecrets([codeBody.nonce, codeBody.code]);
-    } finally {
-      spy.restore();
-    }
   });
 
   it('confirms consent, stores the encrypted handoff, and exposes it once by nonce', async () => {
@@ -178,34 +135,6 @@ describe('/enable/scout', () => {
     }
   });
 
-  it('leaves an existing handoff as already used when code consume fails and the user retries', async () => {
-    const spy = installConsoleSpy();
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ testEnv });
-    const session = await seedSession(account.accountId, { testEnv });
-    await seedProvisionedKey({ testEnv, accountId: account.accountId, keyString: 'consume-fail-google-key' });
-    try {
-      const codeResponse = await worker.fetch(new Request('https://services.solstone.app/enable/scout/code', {
-        method: 'POST',
-        headers: { 'CF-Connecting-IP': '203.0.113.89' },
-      }), testEnv);
-      const { nonce, code } = await codeResponse.json();
-      const failingEnv = failOnceOnSql(testEnv, /UPDATE enable_scout_codes/i);
-
-      const first = await confirmCode({ testEnv: failingEnv, cookie: session.cookie, accountId: account.accountId, code });
-      const second = await confirmCode({ testEnv, cookie: session.cookie, accountId: account.accountId, code });
-      const secondBody = await second.text();
-
-      expect(first.status).toBe(503);
-      expect(await rowCount('service_handoffs')).toBe(1);
-      expect(second.status).toBe(400);
-      expect(secondBody).toContain('that code was already used.');
-      spy.assertNoSecrets([nonce, code, 'consume-fail-google-key']);
-    } finally {
-      spy.restore();
-    }
-  });
-
   it('redirects stale consent posts when the session account changes before confirm', async () => {
     const testEnv = makeTestEnv();
     const accountA = await seedAccount({ email: 'a@example.com', testEnv });
@@ -238,23 +167,6 @@ function confirmNonce({ testEnv, cookie, accountId, nonce = VALID_NONCE }) {
     body: new URLSearchParams({
       csrf: TEST_CSRF,
       nonce,
-      account_id: accountId,
-      action: 'allow',
-    }),
-  }), testEnv);
-}
-
-function confirmCode({ testEnv, cookie, accountId, code }) {
-  return worker.fetch(new Request('https://services.solstone.app/enable/scout/confirm', {
-    method: 'POST',
-    headers: {
-      Origin: 'https://services.solstone.app',
-      Cookie: cookie,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      csrf: TEST_CSRF,
-      code,
       account_id: accountId,
       action: 'allow',
     }),

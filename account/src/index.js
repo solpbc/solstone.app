@@ -29,10 +29,8 @@ import { sendOtpEmail } from './email.js';
 import {
   handleEnablePushConfirm,
   handleEnablePushGet,
-  handleEnableScoutCode,
   handleEnableScoutConfirm,
   handleEnableScoutGet,
-  handleEnableScoutPost,
   handleHandoffPush,
   handleHandoffScout,
   verifyEnableResume,
@@ -298,15 +296,6 @@ export default {
       }
 
       if (
-        parts.length === 3 &&
-        parts[1] === 'enable' &&
-        parts[2] === 'scout' &&
-        req.method === 'POST'
-      ) {
-        return handleEnableScoutPost(req, env);
-      }
-
-      if (
         parts.length === 4 &&
         parts[1] === 'enable' &&
         parts[2] === 'scout' &&
@@ -314,16 +303,6 @@ export default {
         req.method === 'POST'
       ) {
         return handleEnableScoutConfirm(req, env, ctx);
-      }
-
-      if (
-        parts.length === 4 &&
-        parts[1] === 'enable' &&
-        parts[2] === 'scout' &&
-        parts[3] === 'code' &&
-        req.method === 'POST'
-      ) {
-        return handleEnableScoutCode(req, env);
       }
 
       if (

@@ -608,58 +608,6 @@ export async function findServiceHandoffStatus(db, { handoffHash, service = 'sco
   return row || null;
 }
 
-export async function insertEnableScoutCode(db, {
-  codeHash,
-  nonceHash,
-  ipHash,
-  createdAt,
-  expiresAt,
-}) {
-  try {
-    await db
-      .prepare(
-        `INSERT INTO enable_scout_codes (
-           code_hash, nonce_hash, created_at, expires_at, ip_hash
-         ) VALUES (?, ?, ?, ?, ?)`
-      )
-      .bind(codeHash, nonceHash, createdAt, expiresAt, ipHash)
-      .run();
-    return true;
-  } catch (error) {
-    if (isUniqueViolation(error)) return false;
-    throw error;
-  }
-}
-
-export async function findEnableScoutCodeByHash(db, { codeHash }) {
-  const row = await db
-    .prepare(
-      `SELECT code_hash, nonce_hash, account_id, created_at, expires_at, consumed_at, ip_hash
-       FROM enable_scout_codes
-       WHERE code_hash = ?`
-    )
-    .bind(codeHash)
-    .first();
-  return row || null;
-}
-
-export async function consumeEnableScoutCode(db, { codeHash, nonceHash, accountId, nowMs }) {
-  const row = await db
-    .prepare(
-      `UPDATE enable_scout_codes
-       SET consumed_at = ?,
-           account_id = ?
-       WHERE code_hash = ?
-         AND nonce_hash = ?
-         AND consumed_at IS NULL
-         AND expires_at > ?
-       RETURNING nonce_hash`
-    )
-    .bind(nowMs, accountId, codeHash, nonceHash, nowMs)
-    .first();
-  return row || null;
-}
-
 export async function findActiveProvisionedKey(db, { accountId, provider }) {
   const row = await db
     .prepare(

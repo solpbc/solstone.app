@@ -182,6 +182,7 @@ CREATE INDEX IF NOT EXISTS idx_service_handoffs_account_id
 CREATE INDEX IF NOT EXISTS idx_service_handoffs_expires_at
   ON service_handoffs(expires_at);
 
+-- retired/dormant: no code references; left in place (no destructive migration)
 CREATE TABLE IF NOT EXISTS enable_scout_codes (
   code_hash TEXT PRIMARY KEY,
   nonce_hash TEXT NOT NULL UNIQUE,

@@ -8,28 +8,19 @@ import {
 } from './crypto.js';
 import { mintDispatchToken } from './dispatch-tokens.js';
 import {
-  bumpRateBucket,
   bumpDeviceLastSeen,
-  consumeEnableScoutCode,
   consumeServiceHandoff,
-  findEnableScoutCodeByHash,
   findDeviceByPushKey,
   findServiceHandoffStatus,
   getAccountTransparencyRow,
   insertDevice,
-  insertEnableScoutCode,
   insertServiceHandoff,
   revokeDevicePriorAndInsertNew,
 } from './db.js';
 import {
   BUNDLE_ID_REGEX,
-  DEVICE_CODE_PART_LENGTH,
-  DEVICE_CODE_REGEX,
-  DEVICE_CODE_TTL_MS,
   DEVICE_TOKEN_REGEX,
   HANDOFF_TTL_MS,
-  NONCE_ALPHABET,
-  NONCE_LENGTH_CHARS,
   NONCE_REGEX,
   PUSH_PLATFORM_ALLOWLIST,
 } from './enable-constants.js';
@@ -40,15 +31,12 @@ import {
   renderEnablePushError,
   renderEnableScoutConsent,
   renderEnableScoutDone,
-  renderEnableScoutEntry,
   renderEnableScoutError,
 } from './html.js';
-import { forbidden, getClientIp, html, json, originAllowed, redirect } from './index.js';
+import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 
-const HOUR_MS = 60 * 60 * 1000;
-const ENABLE_CODE_IP_HOUR_LIMIT = 10;
 const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
 const ENABLE_PATH = '/enable/scout';
@@ -149,72 +137,14 @@ export async function handleEnableScoutGet(req, env) {
   if (parsed.error) return enableError(parsed.error, parsed.status || 400);
   const csrf = await csrfToken(env);
 
-  if (parsed.mode === 'entry') {
-    return noStoreHtml(renderEnableScoutEntry({ csrf }));
-  }
-
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, parsed.resumePath, parsed.resumeQuery);
 
-  if (parsed.mode === 'code') {
-    const codeRow = await activeCodeRow(env, parsed.code);
-    if (!codeRow) {
-      return noStoreHtml(renderEnableScoutEntry({
-        csrf,
-        code: parsed.code,
-        error: 'that code did not work. check it and try again.',
-      }), { status: 400 });
-    }
-    const status = await findServiceHandoffStatus(env.DB, { handoffHash: codeRow.nonce_hash });
-    if (status) {
-      return noStoreHtml(renderEnableScoutEntry({
-        csrf,
-        code: parsed.code,
-        error: 'that code was already used.',
-      }), { status: 400 });
-    }
-  }
-
   return noStoreHtml(renderEnableScoutConsent({
     csrf,
-    nonce: parsed.mode === 'nonce' ? parsed.nonce : '',
-    code: parsed.mode === 'code' ? parsed.code : '',
+    nonce: parsed.nonce,
     accountId: session.account_id,
   }));
-}
-
-export async function handleEnableScoutPost(req, env) {
-  if (!originAllowed(req)) return noStoreResponse(forbidden());
-  const form = await readForm(req);
-  const csrf = await csrfToken(env);
-  if (!form || !timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
-    return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 403 });
-  }
-  const code = normalizeDeviceCode(form.get('code')?.toString() || '');
-  if (!DEVICE_CODE_REGEX.test(code)) {
-    return noStoreHtml(renderEnableScoutEntry({
-      csrf,
-      code,
-      error: 'enter the code from your terminal.',
-    }), { status: 400 });
-  }
-  const row = await activeCodeRow(env, code);
-  if (!row) {
-    return noStoreHtml(renderEnableScoutEntry({
-      csrf,
-      code,
-      error: 'that code did not work. check it and try again.',
-    }), { status: 400 });
-  }
-  const status = await findServiceHandoffStatus(env.DB, { handoffHash: row.nonce_hash });
-  if (status) {
-    return noStoreHtml(renderEnableScoutEntry({
-      csrf,
-      code,
-      error: 'that code was already used.',
-    }), { status: 400 });
-  }
-  return redirect(`${ENABLE_PATH}?code=${encodeURIComponent(code)}`, 303, { 'Cache-Control': 'no-store' });
 }
 
 export async function handleEnableScoutConfirm(req, env, ctx) {
@@ -223,8 +153,7 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
   if (!form) return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 400 });
 
   const nonce = (form.get('nonce')?.toString() || '').trim().toUpperCase();
-  const code = normalizeDeviceCode(form.get('code')?.toString() || '');
-  const source = parsePostedSource({ nonce, code });
+  const source = parsePostedSource({ nonce });
   if (!source) return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 400 });
 
   if ((form.get('action')?.toString() || '') === 'cancel') {
@@ -233,7 +162,7 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
 
   const session = await getValidSession(req, env, Date.now());
   if (!session) {
-    return signInRedirect(env, ENABLE_PATH, source.mode === 'nonce' ? `?nonce=${source.nonce}` : `?code=${source.code}`);
+    return signInRedirect(env, ENABLE_PATH, `?nonce=${source.nonce}`);
   }
   const account = await getAccountTransparencyRow(env.DB, session.account_id);
   if (!account) {
@@ -247,34 +176,10 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
 
   const originalAccountId = form.get('account_id')?.toString() || '';
   if (originalAccountId !== session.account_id) {
-    const query = source.mode === 'nonce' ? `?nonce=${source.nonce}` : `?code=${encodeURIComponent(source.code)}`;
-    return redirect(`${ENABLE_PATH}${query}`, 303, { 'Cache-Control': 'no-store' });
+    return redirect(`${ENABLE_PATH}?nonce=${source.nonce}`, 303, { 'Cache-Control': 'no-store' });
   }
 
-  let handoffHash;
-  let codeHash = null;
-  if (source.mode === 'nonce') {
-    handoffHash = await hashServiceHandoffNonce(source.nonce, env);
-  } else {
-    codeHash = await hashServiceHandoffNonce(source.code, env);
-    const row = await findEnableScoutCodeByHash(env.DB, { codeHash });
-    if (!activeCodeRowOk(row)) {
-      return noStoreHtml(renderEnableScoutEntry({
-        csrf,
-        code: source.code,
-        error: 'that code did not work. check it and try again.',
-      }), { status: 400 });
-    }
-    handoffHash = row.nonce_hash;
-    const status = await findServiceHandoffStatus(env.DB, { handoffHash });
-    if (status) {
-      return noStoreHtml(renderEnableScoutEntry({
-        csrf,
-        code: source.code,
-        error: 'that code was already used.',
-      }), { status: 400 });
-    }
-  }
+  const handoffHash = await hashServiceHandoffNonce(source.nonce, env);
 
   let provisioned;
   try {
@@ -307,56 +212,10 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
   }
 
   if (!inserted.ok) {
-    if (source.mode === 'code') {
-      return noStoreHtml(renderEnableScoutEntry({
-        csrf,
-        code: source.code,
-        error: 'that code was already used.',
-      }), { status: 400 });
-    }
     return noStoreHtml(renderEnableScoutDone());
   }
 
-  if (source.mode === 'code') {
-    try {
-      const consumed = await consumeEnableScoutCode(env.DB, {
-        codeHash,
-        nonceHash: handoffHash,
-        accountId: session.account_id,
-        nowMs,
-      });
-      if (!consumed) throw new Error('code consume failed');
-    } catch {
-      return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), { status: 503 });
-    }
-  }
-
   return noStoreHtml(renderEnableScoutDone());
-}
-
-export async function handleEnableScoutCode(req, env) {
-  if (req.method !== 'POST') return json({ error: 'invalid_request' }, { status: 405 });
-  const nowMs = Date.now();
-  const ipHash = await hashKey('enable_scout_code_ip', getClientIp(req), env);
-  const count = await bumpRateBucket(env.DB, ipHash, HOUR_MS, nowMs);
-  if (count > ENABLE_CODE_IP_HOUR_LIMIT) return json({ error: 'rate_limited' }, { status: 429 });
-
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const nonce = randomNonce();
-    const code = randomDeviceCode();
-    const nonceHash = await hashServiceHandoffNonce(nonce, env);
-    const codeHash = await hashServiceHandoffNonce(code, env);
-    const ok = await insertEnableScoutCode(env.DB, {
-      codeHash,
-      nonceHash,
-      ipHash,
-      createdAt: nowMs,
-      expiresAt: nowMs + DEVICE_CODE_TTL_MS,
-    });
-    if (!ok) continue;
-    return json({ nonce, code, expires_in: DEVICE_CODE_TTL_MS / 1000 });
-  }
-  return json({ error: 'server_error' }, { status: 500 });
 }
 
 export async function handleEnablePushGet(req, env) {
@@ -494,17 +353,9 @@ export async function handleHandoffPush(req, env) {
 
 function parseEnableRequest(url) {
   const nonceParam = url.searchParams.get('nonce');
-  const codeParam = url.searchParams.get('code');
-  if (nonceParam && codeParam) return { error: 'invalid request', status: 400 };
-  if (!nonceParam && !codeParam) return { mode: 'entry' };
-  if (nonceParam) {
-    const nonce = nonceParam.trim().toUpperCase();
-    if (!NONCE_REGEX.test(nonce)) return { error: 'invalid request', status: 400 };
-    return { mode: 'nonce', nonce, resumePath: ENABLE_PATH, resumeQuery: `?nonce=${nonce}` };
-  }
-  const code = normalizeDeviceCode(codeParam || '');
-  if (!DEVICE_CODE_REGEX.test(code)) return { error: 'invalid request', status: 400 };
-  return { mode: 'code', code, resumePath: ENABLE_PATH, resumeQuery: `?code=${code}` };
+  const nonce = (nonceParam || '').trim().toUpperCase();
+  if (!nonce || !NONCE_REGEX.test(nonce)) return { error: 'invalid request', status: 400 };
+  return { mode: 'nonce', nonce, resumePath: ENABLE_PATH, resumeQuery: `?nonce=${nonce}` };
 }
 
 function parsePushParams(params) {
@@ -543,21 +394,9 @@ function pushQuery({ nonce, deviceToken, platform, bundleId }) {
   return `?${params.toString()}`;
 }
 
-function parsePostedSource({ nonce, code }) {
-  if (nonce && code) return null;
+function parsePostedSource({ nonce }) {
   if (nonce) return NONCE_REGEX.test(nonce) ? { mode: 'nonce', nonce } : null;
-  if (code) return DEVICE_CODE_REGEX.test(code) ? { mode: 'code', code } : null;
   return null;
-}
-
-async function activeCodeRow(env, code) {
-  const codeHash = await hashServiceHandoffNonce(code, env);
-  const row = await findEnableScoutCodeByHash(env.DB, { codeHash });
-  return activeCodeRowOk(row) ? row : null;
-}
-
-function activeCodeRowOk(row) {
-  return row && row.consumed_at == null && row.expires_at > Date.now();
 }
 
 export async function signInRedirect(env, path, queryString) {
@@ -598,11 +437,7 @@ function isSupportResumePath(path) {
 
 function validateScoutResumeParams(params) {
   const nonceValues = params.getAll('nonce');
-  const codeValues = params.getAll('code');
-  if (nonceValues.length + codeValues.length !== 1) return false;
-  if (nonceValues.length === 1 && !NONCE_REGEX.test(nonceValues[0])) return false;
-  if (codeValues.length === 1 && !DEVICE_CODE_REGEX.test(normalizeDeviceCode(codeValues[0]))) return false;
-  return true;
+  return nonceValues.length === 1 && NONCE_REGEX.test(nonceValues[0]);
 }
 
 function validatePushResumeParams(params) {
@@ -622,24 +457,6 @@ function validatePushResumeParams(params) {
     DEVICE_TOKEN_REGEX.test(deviceTokenValues[0]) &&
     PUSH_PLATFORM_ALLOWLIST.includes(platformValues[0]) &&
     BUNDLE_ID_REGEX.test(bundleIdValues[0]);
-}
-
-function randomNonce() {
-  const bytes = crypto.getRandomValues(new Uint8Array(NONCE_LENGTH_CHARS));
-  let nonce = '';
-  for (const byte of bytes) nonce += NONCE_ALPHABET[byte % NONCE_ALPHABET.length];
-  return nonce;
-}
-
-function randomDeviceCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(DEVICE_CODE_PART_LENGTH * 2));
-  let chars = '';
-  for (const byte of bytes) chars += NONCE_ALPHABET[byte % NONCE_ALPHABET.length];
-  return `SCOUT-${chars.slice(0, DEVICE_CODE_PART_LENGTH)}-${chars.slice(DEVICE_CODE_PART_LENGTH)}`;
-}
-
-function normalizeDeviceCode(value) {
-  return String(value || '').trim().toUpperCase();
 }
 
 function enableError(message, status) {

@@ -121,7 +121,7 @@ describe('brand canon', () => {
       ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],
       ['support not found', await get('/support/bad.id', testEnv, withPasskeySession.cookie), true],
       ['enable scout consent', await get(`/enable/scout?nonce=${VALID_ENABLE_NONCE}`, testEnv, withPasskeySession.cookie), true],
-      ['enable scout entry', await get('/enable/scout', testEnv)],
+      ['enable scout no-nonce error', await get('/enable/scout', testEnv)],
       ['verify code', await get('/signin/verify', testEnv)],
       ['goodbye', await get('/goodbye', testEnv)],
       ['not found', await get('/not-found', testEnv)],
