@@ -777,6 +777,84 @@ export async function deleteRevokedProvisionedKey(db, { accountId, keyId }) {
   return (result?.meta?.changes || 0) === 1;
 }
 
+// --- Scout applications ---
+
+export async function getScoutApplicationByAccount(db, { accountId }) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, status, use_case, data_acked_at, applied_at,
+              approved_at, revoked_at, created_at, updated_at
+       FROM scout_applications
+       WHERE account_id = ?`
+    )
+    .bind(accountId)
+    .first();
+  return row || null;
+}
+
+export async function listScoutApplications(db, { status }) {
+  const sql = `SELECT sa.account_id, sa.status, sa.applied_at, sa.approved_at, sa.revoked_at,
+                      pe.address_encrypted AS primary_address_encrypted,
+                      EXISTS (SELECT 1 FROM provisioned_keys pk
+                               WHERE pk.account_id = sa.account_id
+                                 AND pk.provider = 'gemini'
+                                 AND pk.revoked_at IS NULL
+                                 AND pk.key_string_encrypted != '') AS active_key
+               FROM scout_applications sa
+               LEFT JOIN accounts a ON a.id = sa.account_id
+               LEFT JOIN account_emails pe ON pe.id = a.primary_email_id AND pe.account_id = a.id
+               ${status !== undefined ? 'WHERE sa.status = ?' : ''}
+               ORDER BY sa.created_at DESC, sa.account_id DESC`;
+  const statement = db.prepare(sql);
+  const { results } = status !== undefined
+    ? await statement.bind(status).all()
+    : await statement.all();
+  return results || [];
+}
+
+export async function approveScoutApplication(db, { accountId, nowMs }) {
+  await db
+    .prepare(
+      `UPDATE scout_applications
+       SET status = 'approved',
+           approved_at = ?,
+           updated_at = ?
+       WHERE account_id = ?
+         AND status = 'pending'`
+    )
+    .bind(nowMs, nowMs, accountId)
+    .run();
+}
+
+export async function revokeScoutApplication(db, { accountId, nowMs }) {
+  await db
+    .prepare(
+      `UPDATE scout_applications
+       SET status = 'revoked',
+           revoked_at = ?,
+           updated_at = ?
+       WHERE account_id = ?
+         AND status != 'revoked'`
+    )
+    .bind(nowMs, nowMs, accountId)
+    .run();
+}
+
+export async function upsertScoutApplicationApproved(db, { accountId, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO scout_applications (account_id, status, applied_at, approved_at, created_at, updated_at)
+       VALUES (?, 'approved', NULL, ?, ?, ?)
+       ON CONFLICT(account_id) DO UPDATE SET
+         status = 'approved',
+         approved_at = excluded.approved_at,
+         revoked_at = NULL,
+         updated_at = excluded.updated_at`
+    )
+    .bind(accountId, nowMs, nowMs, nowMs)
+    .run();
+}
+
 export async function insertGeminiRevealAck(db, { accountId, ackedAt }) {
   await db
     .prepare(

@@ -93,6 +93,7 @@ export function makeFakeKv() {
 
 export async function resetDb() {
   for (const table of [
+    'scout_applications',
     'gemini_reveal_acks',
     'enable_scout_codes',
     'service_handoffs',

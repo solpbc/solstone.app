@@ -1,6 +1,14 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
-import { decryptEmail, hashWithPepper } from './crypto.js';
-import { findEmailByHash } from './db.js';
+import { decryptEmail, encryptEmail, hashWithPepper } from './crypto.js';
+import {
+  approveScoutApplication,
+  createAccountWithEmail,
+  findEmailByHash,
+  getScoutApplicationByAccount,
+  listScoutApplications,
+  revokeScoutApplication,
+  upsertScoutApplicationApproved,
+} from './db.js';
 import { json } from './index.js';
 import { aaguidLabel, uaLabel, truncateIp } from './settings.js';
 
@@ -42,11 +50,14 @@ export async function handleAdmin(request, env, url) {
   }
 
   try {
+    const parts = url.pathname.split('/');
+    if (parts[2] === 'scouts') {
+      return await handleScoutAdmin(request, env, url, parts);
+    }
     if (request.method !== 'GET') {
       return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
     }
     if (url.pathname === '/admin/accounts') return await listAccounts(env);
-    const parts = url.pathname.split('/');
     if (parts.length === 4 && parts[1] === 'admin' && parts[2] === 'accounts') {
       return await showAccount(env, decodeURIComponent(parts[3]));
     }
@@ -54,6 +65,91 @@ export async function handleAdmin(request, env, url) {
   } catch {
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
+}
+
+async function handleScoutAdmin(request, env, url, parts) {
+  if (request.method === 'GET' && parts.length === 3) {
+    return listScouts(env, url.searchParams.get('status'));
+  }
+  if (request.method === 'POST' && parts.length === 4 && parts[3] === 'pre-approve') {
+    return preApproveScout(request, env);
+  }
+  if (request.method === 'POST' && parts.length === 5 && parts[4] === 'approve') {
+    return approveScout(env, decodeURIComponent(parts[3]));
+  }
+  if (request.method === 'POST' && parts.length === 5 && parts[4] === 'revoke') {
+    return revokeScout(env, decodeURIComponent(parts[3]));
+  }
+  return json({ error: 'scout route not found' }, { status: 404, headers: SECURITY_HEADERS });
+}
+
+async function listScouts(env, status) {
+  const rows = await listScoutApplications(env.DB, { status: status || undefined });
+  const scouts = await Promise.all((rows || []).map(async (row) => ({
+    account_id: row.account_id,
+    primary_email: row.primary_address_encrypted
+      ? await decryptOrNull(row.primary_address_encrypted, env)
+      : null,
+    status: row.status,
+    applied_at: isoOrNull(row.applied_at),
+    approved_at: isoOrNull(row.approved_at),
+    revoked_at: isoOrNull(row.revoked_at),
+    active_key: row.active_key === 1,
+  })));
+  return json({ scouts }, { headers: SECURITY_HEADERS });
+}
+
+async function approveScout(env, accountId) {
+  const application = await getScoutApplicationByAccount(env.DB, { accountId });
+  if (!application) {
+    return json({ error: 'scout application not found' }, { status: 404, headers: SECURITY_HEADERS });
+  }
+  if (application.status === 'revoked') {
+    return json({ error: 'revoked is terminal; use pre-approve' }, { status: 409, headers: SECURITY_HEADERS });
+  }
+  if (application.status === 'approved') {
+    return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
+  }
+  await approveScoutApplication(env.DB, { accountId, nowMs: Date.now() });
+  return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
+}
+
+async function revokeScout(env, accountId) {
+  const application = await getScoutApplicationByAccount(env.DB, { accountId });
+  if (!application) {
+    return json({ error: 'scout application not found' }, { status: 404, headers: SECURITY_HEADERS });
+  }
+  if (application.status === 'revoked') {
+    return json({ account_id: accountId, status: 'revoked' }, { headers: SECURITY_HEADERS });
+  }
+  await revokeScoutApplication(env.DB, { accountId, nowMs: Date.now() });
+  return json({ account_id: accountId, status: 'revoked' }, { headers: SECURITY_HEADERS });
+}
+
+async function preApproveScout(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'valid email required' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+
+  const email = typeof body?.email === 'string' ? body.email.trim() : '';
+  if (!isEmailLike(email)) {
+    return json({ error: 'valid email required' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+
+  const emailLower = email.toLowerCase();
+  const addressLowerHash = await hashWithPepper(emailLower, env);
+  const addressEncrypted = await encryptEmail(emailLower, env);
+  const nowMs = Date.now();
+  const { accountId } = await createAccountWithEmail(env.DB, {
+    addressEncrypted,
+    addressLowerHash,
+    nowMs,
+  });
+  await upsertScoutApplicationApproved(env.DB, { accountId, nowMs });
+  return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
 }
 
 async function listAccounts(env) {

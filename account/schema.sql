@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0010 — push service handoffs
+-- account-portal D1 schema after 0011 — scout applications
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -181,6 +181,23 @@ CREATE INDEX IF NOT EXISTS idx_service_handoffs_account_id
 
 CREATE INDEX IF NOT EXISTS idx_service_handoffs_expires_at
   ON service_handoffs(expires_at);
+
+-- Scout application lifecycle for operator admin.
+CREATE TABLE IF NOT EXISTS scout_applications (
+  account_id TEXT PRIMARY KEY,
+  status TEXT NOT NULL CHECK (status IN ('pending','approved','revoked')),
+  use_case TEXT,
+  data_acked_at INTEGER,
+  applied_at INTEGER,
+  approved_at INTEGER,
+  revoked_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_scout_applications_status
+  ON scout_applications(status);
 
 -- retired/dormant: no code references; left in place (no destructive migration)
 CREATE TABLE IF NOT EXISTS enable_scout_codes (
