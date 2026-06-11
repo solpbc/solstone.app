@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sign in to manage your services</title>
+<link rel="stylesheet" href="portal.css">
+</head>
+<body><main>
+
+  <div class="brandbar">
+    <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="#E8923A" stroke-width="1.6">
+      <circle cx="12" cy="12" r="4.2" fill="#E8923A" stroke="none"/>
+      <g stroke-linecap="round"><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></g>
+    </svg>
+    <span class="wordmark">solstone</span>
+  </div>
+
+  <h1>your services</h1>
+  <p class="lead">sign in to manage the optional services you've turned on. solstone itself runs on your machine — you don't sign in to use it.</p>
+
+  <div class="card">
+    <form method="post" action="/signin/start">
+      <label for="email">email</label>
+      <input id="email" type="email" name="email" autocomplete="email webauthn" required placeholder="you@example.com" maxlength="254">
+      <div class="cf-turnstile">protected by turnstile — no tracking</div>
+      <button class="btn primary block" type="submit">continue</button>
+    </form>
+  </div>
+
+  <p class="disclosure">no analytics, no tracking, no third parties. this is the only solstone surface that ever knows it's you — and only after you sign in.</p>
+
+</main></body>
+</html>

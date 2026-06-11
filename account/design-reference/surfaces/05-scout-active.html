@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>solstone scout</title>
+<link rel="stylesheet" href="portal.css">
+</head>
+<body><main>
+
+  <div class="topbar">
+    <a class="home" href="03-dashboard-populated.html">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="#E8923A" stroke-width="1.6"><circle cx="12" cy="12" r="4.2" fill="#E8923A" stroke="none"/><g stroke-linecap="round"><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></g></svg>
+      <span class="wordmark">solstone</span>
+    </a>
+    <details class="usermenu">
+      <summary aria-label="menu"><span class="avatar">j</span><svg class="caret" viewBox="0 0 11 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4.5 4.5L10 1"/></svg></summary>
+      <div class="menu" role="menu">
+        <div class="head"><div class="lbl">signed in as</div><div class="who">jeremie@solpbc.org</div><div class="seen">last sign-in 2 minutes ago</div></div>
+        <a href="03-dashboard-populated.html">home</a>
+        <a href="09-signin-shell.html">manage sign-in</a>
+        <div class="sep"></div>
+        <button class="mi signout" type="submit">sign out</button>
+      </div>
+    </details>
+  </div>
+
+  <a class="back" href="03-dashboard-populated.html">
+    <svg viewBox="0 0 8 14" width="7" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1L1 7l6 6"/></svg>
+    your services
+  </a>
+
+  <div class="pagehead">
+    <h1>solstone scout</h1>
+    <p class="signed-in"><span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;sol pbc is covering your Gemini usage</p>
+  </div>
+
+  <p class="lead">your alpha-tester service. sol pbc set up a Google Gemini key for you — the key lives on this machine and powers sol. it's yours: reveal it, rotate it, or turn off the service whenever you want.</p>
+
+  <div class="group">
+    <div class="row" style="cursor:default">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8.5" r="4"/><path d="M10.8 11.2 19 19.4M16.4 16.8l1.8-1.8M18.6 19l1.8-1.8"/></svg>
+      <div class="body">
+        <div class="title">Gemini key</div>
+        <div class="desc">last used 2 hours ago · set up 9 days ago</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-top:16px">
+    <a class="btn secondary" href="07-scout-reveal.html">reveal key</a>
+    <button class="btn secondary" type="button">rotate key</button>
+    <button class="btn danger" type="button">turn off</button>
+  </div>
+
+  <p class="section-label">history</p>
+  <div class="group">
+    <div class="row" style="cursor:default">
+      <div class="body">
+        <div class="title">scout key <span class="pill on" style="margin-left:4px"><span class="dot"></span>active</span></div>
+        <div class="desc">set up 9 days ago · last used 2 hours ago</div>
+      </div>
+    </div>
+    <div class="row" style="cursor:default">
+      <div class="body">
+        <div class="title">scout key <span class="pill off" style="margin-left:4px"><span class="dot"></span>rotated out</span></div>
+        <div class="desc">set up 40 days ago · retired 9 days ago</div>
+      </div>
+      <div class="trail"><button class="btn danger" style="min-height:36px;padding:7px 12px">forget</button></div>
+    </div>
+  </div>
+
+  <p class="disclosure">last-used is the one piece of metadata sol pbc keeps — it's here so you can audit the key yourself. sol pbc never sees what you ask sol.</p>
+
+</main></body>
+</html>

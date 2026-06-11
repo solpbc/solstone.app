@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>solstone scout</title>
+<link rel="stylesheet" href="portal.css">
+</head>
+<body><main>
+
+  <div class="topbar">
+    <a class="home" href="03-dashboard-populated.html">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="#E8923A" stroke-width="1.6"><circle cx="12" cy="12" r="4.2" fill="#E8923A" stroke="none"/><g stroke-linecap="round"><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></g></svg>
+      <span class="wordmark">solstone</span>
+    </a>
+    <details class="usermenu">
+      <summary aria-label="menu"><span class="avatar">j</span><svg class="caret" viewBox="0 0 11 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4.5 4.5L10 1"/></svg></summary>
+      <div class="menu" role="menu">
+        <div class="head"><div class="lbl">signed in as</div><div class="who">jeremie@solpbc.org</div><div class="seen">last sign-in 2 minutes ago</div></div>
+        <a href="03-dashboard-populated.html">home</a>
+        <a href="09-signin-shell.html">manage sign-in</a>
+        <div class="sep"></div>
+        <button class="mi signout" type="submit">sign out</button>
+      </div>
+    </details>
+  </div>
+
+  <a class="back" href="04-dashboard-fresh.html">
+    <svg viewBox="0 0 8 14" width="7" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1L1 7l6 6"/></svg>
+    your services
+  </a>
+
+  <div class="pagehead">
+    <h1>solstone scout</h1>
+    <p class="signed-in"><span class="pill off" style="vertical-align:middle"><span class="dot"></span>off</span></p>
+  </div>
+
+  <p class="lead">your alpha-tester service. when you turn it on, sol pbc sets up a Google Gemini key for you — it lives on your machine and powers sol. sol pbc never sits between you and Gemini.</p>
+
+  <div class="group">
+    <div class="empty">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8.5" r="4"/><path d="M10.8 11.2 19 19.4M16.4 16.8l1.8-1.8M18.6 19l1.8-1.8"/></svg>
+      <h2>scout isn't on yet</h2>
+      <p>turn it on from solstone on your device — it opens this page so you can confirm, then the key lands on your machine.</p>
+      <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable scout</strong> — or use “enable solstone scout” in the setup wizard.</div>
+    </div>
+  </div>
+
+  <p class="disclosure">solstone runs without scout. you can always bring your own Gemini key by hand instead — turning on scout just means sol pbc sets one up for you.</p>
+
+</main></body>
+</html>

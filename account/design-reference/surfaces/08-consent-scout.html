@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>enable solstone scout</title>
+<link rel="stylesheet" href="portal.css">
+</head>
+<body><main>
+
+  <div class="brandbar">
+    <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="#E8923A" stroke-width="1.6">
+      <circle cx="12" cy="12" r="4.2" fill="#E8923A" stroke="none"/>
+      <g stroke-linecap="round"><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></g>
+    </svg>
+    <span class="wordmark">solstone</span>
+  </div>
+
+  <h1>enable solstone scout</h1>
+  <p class="lead">solstone on this device wants to enable solstone scout for you. two things, and only these two:</p>
+
+  <div class="card">
+    <div class="grant">
+      <div class="n">1</div>
+      <div>
+        <div class="gt">know it's you</div>
+        <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it — no observations, nothing sol has experienced alongside you. just: this is your machine.</div>
+      </div>
+    </div>
+    <div class="grant">
+      <div class="n">2</div>
+      <div>
+        <div class="gt">enable solstone scout</div>
+        <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this machine. the key is yours and it stays here. sol pbc sets it up — it never sits between you and Gemini, and never sees what you ask sol.</div>
+      </div>
+    </div>
+
+    <form method="post" action="/enable/scout/confirm">
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn primary" name="action" value="allow" type="submit">allow</button>
+        <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <p class="disclosure">you can see exactly what you enabled — and turn either off — in your services anytime.</p>
+
+</main></body>
+</html>
