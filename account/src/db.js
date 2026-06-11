@@ -885,31 +885,6 @@ export async function setScoutApplicationDataAcked(db, { accountId, nowMs }) {
     .run();
 }
 
-export async function insertGeminiRevealAck(db, { accountId, ackedAt }) {
-  await db
-    .prepare(
-      `INSERT INTO gemini_reveal_acks (account_id, acked_at)
-       VALUES (?, ?)
-       ON CONFLICT(account_id, acked_at) DO NOTHING`
-    )
-    .bind(accountId, ackedAt)
-    .run();
-}
-
-export async function findRecentGeminiRevealAck(db, { accountId, since }) {
-  const row = await db
-    .prepare(
-      `SELECT account_id, acked_at
-       FROM gemini_reveal_acks
-       WHERE account_id = ? AND acked_at > ?
-       ORDER BY acked_at DESC
-       LIMIT 1`
-    )
-    .bind(accountId, since)
-    .first();
-  return row || null;
-}
-
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
 }

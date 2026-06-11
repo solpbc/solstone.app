@@ -294,14 +294,6 @@ input.code {
 .back { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft);
   font-size: 0.9rem; margin: 0 0 14px; }
 
-/* key reveal field */
-.keyfield {
-  font-family: ui-monospace, Menlo, monospace; font-size: 0.95rem;
-  background: var(--cream-bright); border: 1px solid var(--hairline-2);
-  border-radius: var(--radius-sm); padding: 13px; word-break: break-all; color: var(--ink);
-  margin-bottom: 14px;
-}
-
 /* spinner / waiting */
 .waiting { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); }
 .spinner {

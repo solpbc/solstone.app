@@ -5,9 +5,8 @@ import {
   countActiveSessions,
   deleteRevokedProvisionedKey,
   findActiveProvisionedKey,
-  findRecentGeminiRevealAck,
   getDashboardData,
-  insertGeminiRevealAck,
+  getScoutApplicationByAccount,
   listPasskeyCredentialsForAccount,
   listProvisionedKeysAudit,
   listSessionsForAccount,
@@ -17,8 +16,11 @@ import {
   revokeProvisionedKey,
   revokeOtherSessions,
   revokeSession,
+  setScoutApplicationDataAcked,
   updateProvisionedKeyGcpLastUse,
+  upsertScoutApplicationPending,
 } from './db.js';
+import { MAX_USE_CASE_LEN } from './enable-constants.js';
 import {
   gcpCreateApiKey,
   gcpDeleteKey,
@@ -29,7 +31,6 @@ import {
 import {
   formatDate,
   formatRelativeTime,
-  renderServicesScoutReveal,
   renderServicesScout,
   renderSignInPasskeys,
   renderSignInSessions,
@@ -43,7 +44,6 @@ import { clearSessionCookie, getValidSession } from './session.js';
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const ZERO_AAGUID = '00000000-0000-0000-0000-000000000000';
 const GEMINI_PROVIDER = 'gemini';
-const REVEAL_ACK_TTL_MS = 24 * 60 * 60 * 1000;
 const ROTATION_DELETE_GRACE_MS = 30_000;
 const ROTATION_SUFFIX_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
 const AAGUID_LABELS = {
@@ -121,19 +121,15 @@ export async function handleServicesScout(req, env) {
   const rows = await listProvisionedKeysAudit(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER });
   const active = rows.find((row) => row.revoked_at == null) || null;
   if (active) await refreshGcpLastUse(env, active, nowMs);
-  const recentAck = await findRecentGeminiRevealAck(env.DB, {
-    accountId: session.account_id,
-    since: nowMs - REVEAL_ACK_TTL_MS,
-  });
+  const application = await getScoutApplicationByAccount(env.DB, { accountId: session.account_id });
   return signedInHtml(renderServicesScout({
     active,
     rows,
-    hasRecentAck: recentAck != null,
+    application,
     nowMs,
     flash: {
       rotated: url.searchParams.get('rotated') || '',
-      reveal: url.searchParams.get('reveal') || '',
-      ack: url.searchParams.get('ack') || '',
+      apply: url.searchParams.get('apply') || '',
       forget: url.searchParams.get('forget') || '',
       disable: url.searchParams.get('disable') || '',
     },
@@ -200,28 +196,32 @@ export async function handleServicesScoutRotate(req, env, ctx) {
   return handleGeminiRotate(req, env, ctx);
 }
 
-export async function handleServicesScoutAck(req, env) {
+export async function handleServicesScoutApply(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
-  await insertGeminiRevealAck(env.DB, { accountId: guard.session.account_id, ackedAt: guard.nowMs });
-  return signedInRedirect('/scout?ack=ok');
-}
 
-export async function handleServicesScoutReveal(req, env) {
-  if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSignedInSession(req, env);
-  if (guard instanceof Response) return guard;
-  const recentAck = await findRecentGeminiRevealAck(env.DB, {
-    accountId: guard.session.account_id,
-    since: guard.nowMs - REVEAL_ACK_TTL_MS,
-  });
-  if (!recentAck) return signedInRedirect('/scout?reveal=ack_required');
+  const form = await safeForm(req);
+  const dataAck = form?.get('data_ack')?.toString();
+  if (!dataAck) return signedInRedirect('/scout?apply=no_ack');
 
-  const active = await findActiveProvisionedKey(env.DB, { accountId: guard.session.account_id, provider: GEMINI_PROVIDER });
-  if (!active?.key_string_encrypted) return signedInRedirect('/scout?reveal=missing');
-  const apiKey = await decryptEmail(active.key_string_encrypted, env);
-  return signedInHtml(renderServicesScoutReveal({ apiKey }));
+  const rawUseCase = form?.get('use_case')?.toString() || '';
+  const trimmedUseCase = rawUseCase.trim();
+  const useCase = trimmedUseCase ? trimmedUseCase.slice(0, MAX_USE_CASE_LEN) : null;
+  const accountId = guard.session.account_id;
+  const active = await findActiveProvisionedKey(env.DB, { accountId, provider: GEMINI_PROVIDER });
+  if (active) return signedInRedirect('/scout');
+
+  const app = await getScoutApplicationByAccount(env.DB, { accountId });
+  if (!app || app.status === 'pending') {
+    await upsertScoutApplicationPending(env.DB, { accountId, useCase, dataAckedAt: guard.nowMs, nowMs: guard.nowMs });
+    return signedInRedirect('/scout?apply=ok');
+  }
+  if (app.status === 'approved') {
+    await setScoutApplicationDataAcked(env.DB, { accountId, nowMs: guard.nowMs });
+    return signedInRedirect('/scout?apply=acked');
+  }
+  return signedInRedirect('/scout');
 }
 
 export async function handleServicesScoutForget(req, env) {

@@ -2,6 +2,7 @@ import { createExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { encryptEmail } from '../src/crypto.js';
+import { getScoutApplicationByAccount } from '../src/db.js';
 import {
   installConsoleSpy,
   installGcpFetchMock,
@@ -35,7 +36,41 @@ describe('settings gemini dashboard', () => {
     expect(response.headers.get('Location')).toBe('/');
   });
 
-  it('renders active key state without leaking plaintext and uses ack before reveal', async () => {
+  it('renders revoked application as terminal even when a key row exists', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({
+      testEnv,
+      accountId: account.accountId,
+      status: 'revoked',
+      revoked_at: 2_000,
+    });
+    await seedProvisionedKey({
+      testEnv,
+      accountId: account.accountId,
+      id: 'revoked-precedence-active',
+      displayName: 'acct-revoked-precedence',
+      keyString: 'plaintext-revoked-precedence-key',
+    });
+    installGcpListMock([
+      { name: 'projects/test-gcp-project/locations/global/keys/active', displayName: 'acct-revoked-precedence' },
+    ]);
+    secrets.push('plaintext-revoked-precedence-key');
+
+    const response = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('access to solstone scout has ended.');
+    expect(body).not.toContain('action="/scout/apply"');
+    expect(body).not.toContain('action="/scout/rotate"');
+    expect(body).not.toContain('action="/scout/disable"');
+    expect(body).not.toContain('action="/scout/forget"');
+    expect(body).not.toContain('plaintext-revoked-precedence-key');
+  });
+
+  it('renders active key management without leaking plaintext or reveal controls', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -46,30 +81,137 @@ describe('settings gemini dashboard', () => {
       displayName: 'acct-active',
       keyString: 'plaintext-current-key',
     });
+    await seedProvisionedKey({
+      testEnv,
+      accountId: account.accountId,
+      id: 'revoked-key',
+      displayName: 'acct-revoked',
+      keyString: 'plaintext-revoked-key',
+      keyResourceName: 'projects/test-gcp-project/locations/global/keys/revoked',
+      revokedAt: 2_000,
+    });
     installGcpListMock([{ name: 'projects/test-gcp-project/locations/global/keys/active', displayName: 'acct-active' }]);
-    secrets.push('plaintext-current-key');
+    secrets.push('plaintext-current-key', 'plaintext-revoked-key');
 
-    const first = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
-    const firstBody = await first.text();
+    const response = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
 
-    expect(first.status).toBe(200);
-    expect(firstBody).not.toContain('plaintext-current-key');
-    expect(firstBody).toContain('action="/scout/ack"');
-    expect(firstBody).not.toContain('action="/scout/reveal"');
-    expect(firstBody).toContain('<span class="pill on" style="margin-left:4px"><span class="dot"></span>active</span>');
-    expect(firstBody).not.toContain('<div class="meta">active</div>');
-
-    const ack = await worker.fetch(settingsPost('/scout/ack', { cookie: session.cookie }), testEnv);
-    expect(ack.status).toBe(303);
-    expect(ack.headers.get('Location')).toBe('/scout?ack=ok');
-
-    const second = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
-    const secondBody = await second.text();
-
-    expect(secondBody).toContain('action="/scout/reveal"');
+    expect(response.status).toBe(200);
+    expect(body).toContain('solstone scout is on');
+    expect(body).toContain('key lives in your journal on this machine and is never shown here.');
+    expect(body).toContain('action="/scout/rotate"');
+    expect(body).toContain('action="/scout/disable"');
+    expect(body).toContain('action="/scout/forget"');
+    expect(body).toContain('acct-revoked');
+    expect(body).not.toContain('action="/scout/apply"');
+    expect(body).not.toContain('/scout/reveal');
+    expect(body).not.toContain('/scout/ack');
+    expect(body).not.toContain('plaintext-current-key');
+    expect(body).not.toContain('plaintext-revoked-key');
   });
 
-  it('treats same-millisecond reveal ack submits as idempotent', async () => {
+  it('renders approved unacked application with covenant affirmation and historical audit only', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({
+      testEnv,
+      accountId: account.accountId,
+      status: 'approved',
+      approved_at: 2_000,
+    });
+    await seedProvisionedKey({
+      testEnv,
+      accountId: account.accountId,
+      id: 'approved-history',
+      displayName: 'acct-approved-history',
+      keyString: 'plaintext-approved-history-key',
+      keyResourceName: 'projects/test-gcp-project/locations/global/keys/approved-history',
+      revokedAt: 3_000,
+    });
+    secrets.push('plaintext-approved-history-key');
+
+    const response = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('approved — enable solstone scout in your journal to receive your key.');
+    expect(body).toContain('action="/scout/apply"');
+    expect(body).toContain('name="data_ack" value="yes" required');
+    expect(body).not.toContain('name="use_case"');
+    expect(body).toContain('action="/scout/forget"');
+    expect(body).not.toContain('action="/scout/rotate"');
+    expect(body).not.toContain('action="/scout/disable"');
+    expect(body).not.toContain('plaintext-approved-history-key');
+  });
+
+  it('renders approved acked application without covenant affirmation', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({
+      testEnv,
+      accountId: account.accountId,
+      status: 'approved',
+      data_acked_at: 1_500,
+      approved_at: 2_000,
+    });
+
+    const response = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('approved — enable solstone scout in your journal to receive your key.');
+    expect(body).not.toContain('action="/scout/apply"');
+    expect(body).not.toContain('name="data_ack"');
+    expect(body).not.toContain('confirm scout terms');
+  });
+
+  it('renders pending application with relative applied status and no actions', async () => {
+    const now = 1_780_000_000_000;
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({
+      testEnv,
+      accountId: account.accountId,
+      status: 'pending',
+      applied_at: now - 3 * 60_000,
+      created_at: now - 3 * 60_000,
+      updated_at: now - 3 * 60_000,
+    });
+    secrets.push(String(now));
+
+    const response = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('pending — applied 3 minutes ago');
+    expect(body).toContain('we have your scout request. there is nothing else to do here yet.');
+    expect(body).not.toContain('action="/scout/apply"');
+    expect(body).not.toContain('action="/scout/rotate"');
+    expect(body).not.toContain('action="/scout/disable"');
+  });
+
+  it('renders no-application state with apply form and no reveal control', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('request solstone scout for this account.');
+    expect(body).toContain('action="/scout/apply"');
+    expect(body).toContain('name="data_ack" value="yes" required');
+    expect(body).toContain('name="use_case"');
+    expect(body).not.toContain('/scout/reveal');
+    expect(body).not.toContain('/scout/ack');
+  });
+
+  it('creates a pending application from the dashboard apply form', async () => {
     const now = 1_780_000_000_000;
     vi.spyOn(Date, 'now').mockReturnValue(now);
     const testEnv = makeTestEnv();
@@ -77,86 +219,98 @@ describe('settings gemini dashboard', () => {
     const session = await seedSession(account.accountId, { testEnv });
     secrets.push(String(now));
 
-    const first = await worker.fetch(settingsPost('/scout/ack', { cookie: session.cookie }), testEnv);
-    const second = await worker.fetch(settingsPost('/scout/ack', { cookie: session.cookie }), testEnv);
-
-    expect(first.status).toBe(303);
-    expect(first.headers.get('Location')).toBe('/scout?ack=ok');
-    expect(second.status).toBe(303);
-    expect(second.headers.get('Location')).toBe('/scout?ack=ok');
-    expect(await ackCount(testEnv, account.accountId)).toBe(1);
-  });
-
-  it('requires a fresh server-side ack before revealing plaintext', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ testEnv });
-    const session = await seedSession(account.accountId, { testEnv });
-    await seedProvisionedKey({
-      testEnv,
-      accountId: account.accountId,
-      id: 'active-key',
-      keyString: 'plaintext-reveal-key',
-    });
-    await testEnv.DB
-      .prepare('INSERT INTO gemini_reveal_acks (account_id, acked_at) VALUES (?, ?)')
-      .bind(account.accountId, Date.now())
-      .run();
-    await testEnv.DB.prepare('DELETE FROM gemini_reveal_acks WHERE account_id = ?').bind(account.accountId).run();
-    secrets.push('plaintext-reveal-key');
-
-    const response = await worker.fetch(settingsPost('/scout/reveal', { cookie: session.cookie }), testEnv);
-    const body = await response.text();
+    const response = await worker.fetch(settingsPost('/scout/apply', {
+      cookie: session.cookie,
+      body: { data_ack: 'yes', use_case: ' local research ' },
+    }), testEnv);
+    const row = await getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId });
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/scout?reveal=ack_required');
-    expect(body).not.toContain('plaintext-reveal-key');
+    expect(response.headers.get('Location')).toBe('/scout?apply=ok');
+    expect(row).toMatchObject({
+      account_id: account.accountId,
+      status: 'pending',
+      use_case: 'local research',
+      data_acked_at: now,
+      applied_at: now,
+    });
   });
 
-  it('renders plaintext only on reveal after a fresh ack', async () => {
+  it('does not write an application when dashboard apply lacks data acknowledgement', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
-    await seedProvisionedKey({
-      testEnv,
-      accountId: account.accountId,
-      id: 'active-key',
-      keyString: 'plaintext-visible-key',
-    });
-    await testEnv.DB
-      .prepare('INSERT INTO gemini_reveal_acks (account_id, acked_at) VALUES (?, ?)')
-      .bind(account.accountId, Date.now())
-      .run();
-    secrets.push('plaintext-visible-key');
 
-    const response = await worker.fetch(settingsPost('/scout/reveal', { cookie: session.cookie }), testEnv);
-    const body = await response.text();
+    const response = await worker.fetch(settingsPost('/scout/apply', {
+      cookie: session.cookie,
+      body: { use_case: 'local research' },
+    }), testEnv);
 
-    expect(response.status).toBe(200);
-    expect(body).toContain('plaintext-visible-key');
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/scout?apply=no_ack');
+    expect(await getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId })).toBe(null);
   });
 
-  it('expires reveal acknowledgements after 24 hours', async () => {
+  it('rejects dashboard apply from a bad origin without writing', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(settingsPost('/scout/apply', {
+      cookie: session.cookie,
+      origin: 'https://evil.example',
+      body: { data_ack: 'yes', use_case: 'local research' },
+    }), testEnv);
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(await getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId })).toBe(null);
+  });
+
+  it('affirms approved unacked application without provisioning or revealing a key', async () => {
     const now = 1_780_000_000_000;
     vi.spyOn(Date, 'now').mockReturnValue(now);
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
-    await seedProvisionedKey({
+    await seedScoutApplication({
       testEnv,
       accountId: account.accountId,
-      id: 'active-key',
-      keyString: 'plaintext-expiring-key',
+      status: 'approved',
+      approved_at: 1_000,
     });
-    secrets.push('plaintext-expiring-key', String(now), String(now + 24 * 60 * 60 * 1000 + 1));
+    secrets.push(String(now));
 
-    const ack = await worker.fetch(settingsPost('/scout/ack', { cookie: session.cookie }), testEnv);
-    expect(ack.status).toBe(303);
-
-    vi.mocked(Date.now).mockReturnValue(now + 24 * 60 * 60 * 1000 + 1);
-    const response = await worker.fetch(settingsPost('/scout/reveal', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsPost('/scout/apply', {
+      cookie: session.cookie,
+      body: { data_ack: 'yes' },
+    }), testEnv);
+    const row = await getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId });
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/scout?reveal=ack_required');
+    expect(response.headers.get('Location')).toBe('/scout?apply=acked');
+    expect(row).toMatchObject({
+      status: 'approved',
+      data_acked_at: now,
+      approved_at: 1_000,
+    });
+    await expect(rowCount(testEnv, 'provisioned_keys')).resolves.toBe(0);
+  });
+
+  it('returns not found for removed reveal and ack routes', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const reveal = await worker.fetch(settingsPost('/scout/reveal', { cookie: session.cookie }), testEnv);
+    const ack = await worker.fetch(settingsPost('/scout/ack', { cookie: session.cookie }), testEnv);
+
+    expect(reveal.status).toBe(404);
+    expect(reveal.headers.get('Location')).toBe(null);
+    expect(await reveal.text()).toContain('not found');
+    expect(ack.status).toBe(404);
+    expect(ack.headers.get('Location')).toBe(null);
+    expect(await ack.text()).toContain('not found');
   });
 
   it('rotates from the dashboard and redirects to the success flash', async () => {
@@ -262,16 +416,6 @@ describe('settings gemini dashboard', () => {
     expect(body).toContain('acct-b-active');
     expect(body).not.toContain('acct-a-active');
 
-    const ack = await worker.fetch(settingsPost('/scout/ack', { cookie: sessionB.cookie }), testEnv);
-    expect(ack.status).toBe(303);
-    expect(await ackCount(testEnv, accountA.accountId)).toBe(0);
-    expect(await ackCount(testEnv, accountB.accountId)).toBe(1);
-
-    const reveal = await worker.fetch(settingsPost('/scout/reveal', { cookie: sessionB.cookie }), testEnv);
-    const revealBody = await reveal.text();
-    expect(revealBody).toContain('plaintext-b-key');
-    expect(revealBody).not.toContain('plaintext-a-key');
-
     const forgetA = await worker.fetch(settingsPost('/scout/forget', {
       cookie: sessionB.cookie,
       body: { key_id: 'a-revoked' },
@@ -297,11 +441,11 @@ function settingsGet(path, { cookie } = {}) {
   return new Request(`https://services.solstone.app${path}`, { headers });
 }
 
-function settingsPost(path, { cookie, body = {} } = {}) {
+function settingsPost(path, { cookie, body = {}, origin = 'https://services.solstone.app' } = {}) {
   const headers = {
-    Origin: 'https://services.solstone.app',
     'Content-Type': 'application/x-www-form-urlencoded',
   };
+  if (origin !== null) headers.Origin = origin;
   if (cookie) headers.Cookie = cookie;
   return new Request(`https://services.solstone.app${path}`, {
     method: 'POST',
@@ -328,6 +472,29 @@ async function seedProvisionedKey({
        ) VALUES (?, ?, 'gemini', ?, ?, ?, ?, ?)`
     )
     .bind(id, accountId, displayName, keyResourceName, await encryptEmail(keyString, testEnv), createdAt, revokedAt)
+    .run();
+}
+
+async function seedScoutApplication({
+  testEnv,
+  accountId,
+  status,
+  use_case = null,
+  data_acked_at = null,
+  applied_at = null,
+  approved_at = null,
+  revoked_at = null,
+  created_at = 1_000,
+  updated_at = created_at,
+}) {
+  await testEnv.DB
+    .prepare(
+      `INSERT INTO scout_applications (
+         account_id, status, use_case, data_acked_at, applied_at,
+         approved_at, revoked_at, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(accountId, status, use_case, data_acked_at, applied_at, approved_at, revoked_at, created_at, updated_at)
     .run();
 }
 
@@ -377,20 +544,17 @@ async function keyExists(testEnv, keyId) {
   return row != null;
 }
 
-async function ackCount(testEnv, accountId) {
-  const row = await testEnv.DB
-    .prepare('SELECT COUNT(*) AS count FROM gemini_reveal_acks WHERE account_id = ?')
-    .bind(accountId)
-    .first();
-  return row.count;
-}
-
 async function activeKeyResource(testEnv, accountId) {
   const row = await testEnv.DB
     .prepare("SELECT key_resource_name FROM provisioned_keys WHERE account_id = ? AND revoked_at IS NULL")
     .bind(accountId)
     .first();
   return row?.key_resource_name || null;
+}
+
+async function rowCount(testEnv, table) {
+  const row = await testEnv.DB.prepare(`SELECT COUNT(*) AS count FROM ${table}`).first();
+  return row.count;
 }
 
 function jsonResponse(body, init = {}) {

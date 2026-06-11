@@ -24,6 +24,7 @@ import {
   BUNDLE_ID_REGEX,
   DEVICE_TOKEN_REGEX,
   HANDOFF_TTL_MS,
+  MAX_USE_CASE_LEN,
   NONCE_REGEX,
   PUSH_PLATFORM_ALLOWLIST,
 } from './enable-constants.js';
@@ -46,7 +47,6 @@ const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
 const ENABLE_PATH = '/enable/scout';
 const ENABLE_PUSH_PATH = '/enable/push';
-const MAX_USE_CASE_LEN = 2000;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const RESUME_PATH_WHITELIST = new Map([

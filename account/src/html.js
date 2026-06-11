@@ -30,6 +30,7 @@ const IC_PASSKEY_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="
 const IC_EMAIL_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/></svg>';
 const IC_EMPTY_DATA_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="6.5" ry="3"/><path d="M5.5 6v8c0 1.7 2.9 3 6.5 3 .9 0 1.8-.1 2.6-.3"/><path d="M18.5 6v5.5"/><path d="M5.5 10c0 1.7 2.9 3 6.5 3 1.7 0 3.2-.3 4.4-.8"/><path d="M17 15l4 4M21 15l-4 4"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
+const SCOUT_COVENANT_LINE = "your questions to solstone scout go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
 const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page — nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are — no analytics, no behavioral data, no third-party tracking. these aren't promises — they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
@@ -177,7 +178,7 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="account_id" value="${escAttr(accountId)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
-    <p class="gd" style="margin:16px 0 12px">your questions to solstone scout go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.</p>
+    <p class="gd" style="margin:16px 0 12px">${SCOUT_COVENANT_LINE}</p>
     <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--ink)">
       <input type="checkbox" name="data_ack" value="yes" required style="width:auto;min-height:0;margin:0">
       <span>i understand</span>
@@ -695,16 +696,10 @@ ${groupHtml}
   });
 }
 
-export function renderServicesScout({ active, rows, hasRecentAck, nowMs, flash = {}, menu }) {
+export function renderServicesScout({ active, rows = [], application, nowMs, flash = {}, menu }) {
   const flashes = flashMessages(flash);
-  const revealAction = hasRecentAck ? '/scout/reveal' : '/scout/ack';
-  const revealText = hasRecentAck ? 'reveal current key' : 'acknowledge before reveal';
   const activeControls = active
     ? `<div class="btn-row" style="margin-top:16px">
-<form method="post" action="${revealAction}">
-  ${hasRecentAck ? '' : '<input type="hidden" name="warning" value="scout-reveal">'}
-  <button class="btn secondary" type="submit">${revealText}</button>
-</form>
 <form method="post" action="/scout/rotate">
   <button class="btn secondary" type="submit">rotate key</button>
 </form>
@@ -724,14 +719,7 @@ export function renderServicesScout({ active, rows, hasRecentAck, nowMs, flash =
   </div>
 </div>
 ${activeControls}`
-    : `<div class="group">
-  <div class="empty">
-    ${IC_SCOUT_SVG}
-    <h2>scout isn't on yet</h2>
-    <p>turn it on from solstone on your device — it opens this page so you can confirm, then the key lands on your machine.</p>
-    <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable scout</strong> — or use “enable solstone scout” in the setup wizard.</div>
-  </div>
-</div>`;
+    : '';
   const auditRows = rows.map((row) => {
     const isActive = row.revoked_at == null;
     const forget = isActive
@@ -752,18 +740,12 @@ ${activeControls}`
   ${forget}
 </div>`;
   }).join('');
-  const auditSection = active
+  const historySection = rows.length > 0
     ? `<p class="section-label">history</p>
 <div class="group">${auditRows}</div>
 <p class="disclosure">last-used is the one piece of metadata sol pbc keeps — it's here so you can audit the key yourself. sol pbc never sees what you ask sol.</p>`
-    : '<p class="disclosure">solstone runs without scout. you can always bring your own Gemini key by hand instead — turning on scout just means sol pbc sets one up for you.</p>';
-  const statusLine = active
-    ? '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;sol pbc is covering your Gemini usage'
-    : '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>off</span>';
-  const lead = active
-    ? "your alpha-tester service. sol pbc set up a Google Gemini key for you — the key lives on this machine and powers sol. it's yours: reveal it, rotate it, or turn off the service whenever you want."
-    : 'your alpha-tester service. when you turn it on, sol pbc sets up a Google Gemini key for you — it lives on your machine and powers sol. sol pbc never sits between you and Gemini.';
-  return layout({
+    : '';
+  const page = ({ statusLine, lead, content = '' }) => layout({
     title: 'solstone scout',
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
@@ -773,22 +755,81 @@ ${flashes}
   <p class="signed-in">${statusLine}</p>
 </div>
 <p class="lead">${lead}</p>
-${keySection}
-${auditSection}`,
+${content}`,
+  });
+
+  if (application?.status === 'revoked') {
+    return page({
+      statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>access has ended</span>',
+      lead: 'access to solstone scout has ended.',
+    });
+  }
+
+  if (active) {
+    return page({
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;solstone scout is on',
+      lead: 'sol pbc set up a Google Gemini key for you. the key lives in your journal on this machine and is never shown here.',
+      content: `${keySection}
+${historySection}`,
+    });
+  }
+
+  if (application?.status === 'approved') {
+    const ackForm = application.data_acked_at == null
+      ? `<div class="card">
+  <h2>confirm scout terms</h2>
+  ${scoutApplyForm({ includeUseCase: false, buttonText: 'i understand' })}
+</div>`
+      : '';
+    return page({
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span>',
+      lead: 'approved — enable solstone scout in your journal to receive your key.',
+      content: `${ackForm}
+${historySection}`,
+    });
+  }
+
+  if (application?.status === 'pending') {
+    const pendingText = application.applied_at == null
+      ? 'pending'
+      : `pending — applied ${formatRelativeTime(application.applied_at, nowMs)}`;
+    return page({
+      statusLine: `<span class="pill off" style="vertical-align:middle"><span class="dot"></span>${esc(pendingText)}</span>`,
+      lead: 'we have your scout request. there is nothing else to do here yet.',
+    });
+  }
+
+  return page({
+    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>off</span>',
+    lead: 'request solstone scout for this account.',
+    content: `<div class="card">
+  <h2>request access</h2>
+  ${scoutApplyForm({ includeUseCase: true, buttonText: 'apply' })}
+</div>
+<p class="disclosure">solstone runs without scout. you can always bring your own Gemini key by hand instead — turning on scout just means sol pbc sets one up for you.</p>`,
   });
 }
 
-export function renderServicesScoutReveal({ apiKey }) {
-  return layout({
-    title: 'scout key',
-    body: `<a class="back" href="/scout">${BACK_SVG} solstone scout</a>
-<h1>scout key</h1>
-<div class="card">
-  <div class="notice warn" style="margin-bottom:14px">this key is visible on screen now.</div>
-  <div class="keyfield">${esc(apiKey)}</div>
-  <div class="btn-row"><a class="btn secondary" href="/scout">done</a></div>
-</div>`,
-  });
+function scoutApplyForm({ includeUseCase, buttonText }) {
+  const useCase = includeUseCase
+    ? `<label for="use-case">what would you like to use it for? (optional)</label>
+    <textarea id="use-case" name="use_case" maxlength="2000"></textarea>`
+    : '';
+  return `<form method="post" action="/scout/apply">
+    ${scoutCovenantFields()}
+    ${useCase}
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn primary" type="submit">${esc(buttonText)}</button>
+    </div>
+  </form>`;
+}
+
+function scoutCovenantFields() {
+  return `<p class="gd" style="margin:16px 0 12px">${SCOUT_COVENANT_LINE}</p>
+    <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--ink)">
+      <input type="checkbox" name="data_ack" value="yes" required style="width:auto;min-height:0;margin:0">
+      <span>i understand</span>
+    </label>`;
 }
 
 // === support surfaces ===
@@ -1025,9 +1066,10 @@ function flashMessages(flash) {
   if (flash.rotated === 'ok') messages.push('key rotated.');
   if (flash.rotated === 'conflict') messages.push('another rotation completed first. try again.');
   if (flash.rotated === 'no_active_key') messages.push('no active key to rotate.');
-  if (flash.ack === 'ok') messages.push('reveal available for 24 hours.');
-  if (flash.reveal === 'ack_required') messages.push('acknowledge before revealing the key.');
-  if (flash.reveal === 'missing') messages.push('no active key to reveal.');
+  if (flash.rotated === 'rotation_failed') messages.push("key rotation didn't finish. try again.");
+  if (flash.apply === 'ok') messages.push('scout request received.');
+  if (flash.apply === 'acked') messages.push('scout acknowledgement saved.');
+  if (flash.apply === 'no_ack') messages.push('confirm you understand before continuing.');
   if (flash.forget === 'ok') messages.push('revoked key forgotten.');
   if (flash.disable === 'ok') messages.push('scout turned off.');
   if (flash.disable === 'none') messages.push('no active scout key to turn off.');

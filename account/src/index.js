@@ -85,9 +85,8 @@ import {
   handleRevokeSession,
   handleScoutDisable,
   handleServicesScout,
-  handleServicesScoutAck,
+  handleServicesScoutApply,
   handleServicesScoutForget,
-  handleServicesScoutReveal,
   handleServicesScoutRotate,
   handleSignInPasskeys,
   handleSignInSessions,
@@ -133,8 +132,6 @@ const LEGACY_REDIRECTS = [
   { method: 'POST', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
   { method: 'POST', from: '/settings/devices/revoke-all', to: '/devices/revoke-all' },
   { method: 'POST', from: '/settings/gemini/rotate', to: '/scout/rotate' },
-  { method: 'POST', from: '/settings/gemini/ack', to: '/scout/ack' },
-  { method: 'POST', from: '/settings/gemini/reveal', to: '/scout/reveal' },
   { method: 'POST', from: '/settings/gemini/forget', to: '/scout/forget' },
 ];
 
@@ -545,19 +542,10 @@ export default {
       if (
         parts.length === 3 &&
         parts[1] === 'scout' &&
-        parts[2] === 'ack' &&
+        parts[2] === 'apply' &&
         req.method === 'POST'
       ) {
-        return handleServicesScoutAck(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'scout' &&
-        parts[2] === 'reveal' &&
-        req.method === 'POST'
-      ) {
-        return handleServicesScoutReveal(req, env);
+        return handleServicesScoutApply(req, env);
       }
 
       if (

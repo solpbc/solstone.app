@@ -30,6 +30,19 @@ describe('legacy customer-facing redirects', () => {
     if (method === 'POST') expect(await response.text()).toBe('');
   });
 
+  it.each([
+    '/settings/gemini/reveal',
+    '/settings/gemini/ack',
+  ])('POST %s is not a legacy redirect', async (path) => {
+    const response = await worker.fetch(legacyRequest('POST', path), makeTestEnv());
+    const body = await response.text();
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Location')).toBe(null);
+    expect(body).toContain('not found');
+    expect(body.length).toBeGreaterThan(0);
+  });
+
   it('preserves POST semantics when following a legacy session revoke redirect', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
