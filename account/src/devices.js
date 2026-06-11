@@ -10,7 +10,7 @@ import { registerDeviceForAccount } from './enable.js';
 import { renderServicesDevices } from './html.js';
 import { forbidden, json, originAllowed } from './index.js';
 import { normalizeFriendlyName } from './passkey.js';
-import { noStore, requireSignedInSession, signedInHtml, signedInRedirect } from './settings.js';
+import { loadMenuContext, noStore, requireSignedInSession, signedInHtml, signedInRedirect } from './settings.js';
 
 const PLATFORMS = ['ios', 'macos', 'android'];
 const PUSH_TOKEN_ENVS = ['production', 'sandbox'];
@@ -103,12 +103,14 @@ export async function handleMintDispatchToken(req, env) {
 export async function handleServicesDevices(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
   const url = new URL(req.url);
   const devices = await listDevicesForAccount(env.DB, guard.session.account_id);
   return signedInHtml(renderServicesDevices({
     devices,
     nowMs: guard.nowMs,
     disableFlash: url.searchParams.get('disable') || '',
+    menu,
   }));
 }
 
@@ -123,7 +125,7 @@ export async function handleRevokeDevice(req, env, deviceId) {
     accountId: guard.session.account_id,
     nowMs: guard.nowMs,
   });
-  return signedInRedirect('/services/devices');
+  return signedInRedirect('/devices');
 }
 
 export async function handleRevokeAllDevices(req, env) {
@@ -134,7 +136,7 @@ export async function handleRevokeAllDevices(req, env) {
     accountId: guard.session.account_id,
     nowMs: guard.nowMs,
   });
-  return signedInRedirect('/services/devices');
+  return signedInRedirect('/devices');
 }
 
 export async function handlePushDisable(req, env) {
@@ -145,7 +147,7 @@ export async function handlePushDisable(req, env) {
     accountId: guard.session.account_id,
     nowMs: guard.nowMs,
   });
-  return signedInRedirect('/services/devices?disable=ok');
+  return signedInRedirect('/devices?disable=ok');
 }
 
 async function readJsonObject(req) {

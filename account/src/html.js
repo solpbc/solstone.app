@@ -34,6 +34,10 @@ function brandbar() {
   return `<div class="brandbar">${MARK_SVG}<span class="wordmark">solstone</span></div>`;
 }
 
+function footer() {
+  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a></footer>`;
+}
+
 function topbar({ email = null, lastSignInAt = null, now = null } = {}) {
   const trimmedEmail = typeof email === 'string' ? email.trim() : '';
   const hasEmail = trimmedEmail.length > 0;
@@ -65,7 +69,7 @@ export function layout({ title, body, afterMain = '' }) {
   <title>${esc(title)}</title>
   <link rel="stylesheet" href="/portal.css">
 </head>
-<body><main>${body}</main>${afterMain}</body>
+<body><main>${body}${footer()}</main>${afterMain}</body>
 </html>`;
 }
 
@@ -188,7 +192,7 @@ export function renderEnableScoutDone() {
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone scout enabled</h2>
   <p>sol pbc set up a Gemini key for you and put it on this machine — you never had to touch it, and nothing from your journal crossed to set it up. you can close this tab.</p>
-  <a class="btn secondary" href="/services/scout">manage solstone scout</a>
+  <a class="btn secondary" href="/scout">manage solstone scout</a>
 </div>`,
   });
 }
@@ -249,7 +253,7 @@ export function renderEnablePushDone() {
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone push enabled</h2>
   <p>your phone is connected to solstone push. you can close this tab.</p>
-  <a class="btn secondary" href="/services/devices">manage solstone push</a>
+  <a class="btn secondary" href="/devices">manage solstone push</a>
 </div>`,
   });
 }
@@ -269,8 +273,8 @@ you got here some other way, you can close this tab.</p>
 
 // === services surfaces ===
 
-export function renderServicesDashboard({ welcome, email, lastSignInAt, now, decryptOk, scoutActive, deviceCount }) {
-  const notice = decryptOk === false
+export function renderServicesDashboard({ welcome, menu, scoutActive, deviceCount }) {
+  const notice = menu.decryptOk === false
     ? `<p class="notice">we couldn't decrypt your email address. you're still signed in.</p>`
     : '';
   const scoutDesc = scoutActive
@@ -297,13 +301,13 @@ export function renderServicesDashboard({ welcome, email, lastSignInAt, now, dec
     : '';
   return layout({
     title: 'your services',
-    body: `${topbar({ email, lastSignInAt, now })}
+    body: `${topbar(menu)}
 <h1>your services</h1>
 ${notice}
 <p class="intro"><strong>solstone runs on your machine.</strong> these services are optional — turn them on when they help, turn them off whenever you want. nothing here is required to use solstone.</p>
 ${welcomePanel}
 <div class="group">
-  <a class="row" href="/services/scout">
+  <a class="row" href="/scout">
     ${IC_SCOUT_SVG}
     <div class="body">
       <div class="title">solstone scout</div>
@@ -311,7 +315,7 @@ ${welcomePanel}
     </div>
     <div class="trail">${scoutPill}${CHEVRON_SVG}</div>
   </a>
-  <a class="row" href="/services/devices">
+  <a class="row" href="/devices">
     ${IC_PUSH_SVG}
     <div class="body">
       <div class="title">solstone push</div>
@@ -327,18 +331,17 @@ ${welcomePanel}
     </div>
     <div class="trail">${CHEVRON_SVG}</div>
   </a>
-</div>
-<footer class="footer"><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a></footer>`,
+</div>`,
     afterMain: welcome ? `<script>${ENROLL_JS}</script>` : '',
   });
 }
 
 // === sign-in surfaces ===
 
-export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0 }) {
+export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0, menu }) {
   return layout({
     title: 'your sign-in',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>your sign-in</h1>
 <p class="lead">how you get into this page to manage your services. solstone itself never asks you to sign in — this is the only place sign-in lives.</p>
@@ -367,12 +370,11 @@ export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0 }
     </div>
     <div class="trail"><span class="meta" style="margin:0">${esc(emailCount)}</span>${CHEVRON_SVG}</div>
   </a>
-</div>
-<footer class="footer"><a href="/sign-in/data">what we have about you</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a></footer>`,
+</div>`,
   });
 }
 
-export function renderSignInEmails({ rows, addError = '', removeError = '' }) {
+export function renderSignInEmails({ rows, addError = '', removeError = '', menu }) {
   const rowHtml = rows.map((row) => {
     const actionBase = `/sign-in/emails/${escAttr(row.id)}`;
     const badgeClass = row.badge === 'unverified' ? 'off' : 'on';
@@ -404,7 +406,7 @@ export function renderSignInEmails({ rows, addError = '', removeError = '' }) {
   const groupHtml = rowHtml ? `<div class="group">${rowHtml}</div>` : '';
   return layout({
     title: 'email addresses',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
 <h1>email addresses</h1>
 ${removeErrorHtml}
@@ -427,11 +429,12 @@ export function renderEmailVerify({
   addressInputValue = '',
   error = '',
   alreadyVerified = false,
+  menu,
 }) {
   if (alreadyVerified) {
     return layout({
       title: 'verify email',
-      body: `${topbar()}
+      body: `${topbar(menu)}
 <a class="back" href="/sign-in/emails">${BACK_SVG} email addresses</a>
 <h1>verify email</h1>
 <p class="notice">this email is already verified for your sign-in.</p>
@@ -447,7 +450,7 @@ export function renderEmailVerify({
     : 'enter the email address and the 6-digit code we sent you.';
   return layout({
     title: 'verify email',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/sign-in/emails">${BACK_SVG} email addresses</a>
 <h1>verify email</h1>
 <p class="lead">${subhead}</p>
@@ -472,6 +475,7 @@ export function renderTransparency({
   emails,
   passkeys,
   sessions,
+  menu,
 }) {
   const emailHtml = emails.map((row) => `<div class="row" style="cursor:default"><div class="body">
   <div class="title">${esc(row.address)}${row.isPrimary ? ' <span class="pill on" style="margin-left:4px"><span class="dot"></span>primary</span>' : ''}</div>
@@ -493,11 +497,11 @@ export function renderTransparency({
 </div></div>`;
   }).join('');
   return layout({
-    title: 'what we have about you',
-    body: `${topbar()}
-<a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
-<h1>what we have about you</h1>
-<p class="lead">everything sol pbc holds for your sign-in — nothing more. no journal, no behavior, no tracking.</p>
+    title: 'data transparency',
+    body: `${topbar(menu)}
+<a class="back" href="/">${BACK_SVG} your services</a>
+<h1>data transparency</h1>
+<p class="intro">everything sol pbc holds for your sign-in is on this page — nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are — no analytics, no behavioral data, no third-party tracking. these aren't promises — they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>
 <p class="section-label">sign-in</p>
 <div class="group">
   <div class="row" style="cursor:default"><div class="body">
@@ -510,16 +514,11 @@ export function renderTransparency({
 <p class="section-label">passkeys</p>
 ${passkeyHtml ? `<div class="group">${passkeyHtml}</div>` : '<p>no passkeys.</p>'}
 <p class="section-label">sessions</p>
-${sessionHtml ? `<div class="group">${sessionHtml}</div>` : '<p>no sessions.</p>'}
-<p class="section-label">what we don't have</p>
-<div class="card">
-  <p style="margin:0;color:var(--ink-soft)">no name · no phone · no address · no analytics · no behavioral data · no separately-stored location · no third-party tracking.</p>
-</div>
-<p class="disclosure">these are sol pbc's structural data commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of the articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`,
+${sessionHtml ? `<div class="group">${sessionHtml}</div>` : '<p>no sessions.</p>'}`,
   });
 }
 
-export function renderSignInSessions({ rows, currentIdHash, now }) {
+export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
   const hasOtherSessions = rows.some((row) => row.id_hash !== currentIdHash);
   const revokeOthers = hasOtherSessions
     ? `<div class="btn-row" style="margin-top:16px"><form method="post" action="/sign-in/sessions/revoke-others">
@@ -542,7 +541,7 @@ export function renderSignInSessions({ rows, currentIdHash, now }) {
   }).join('');
   return layout({
     title: 'sessions',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
 <h1>sessions</h1>
 <p class="lead">the machines and phones currently signed in to manage your services. sign any of them out — the current one stays.</p>
@@ -551,9 +550,9 @@ ${revokeOthers}`,
   });
 }
 
-export function renderServicesDevices({ devices, nowMs, disableFlash = '' }) {
+export function renderServicesDevices({ devices, nowMs, disableFlash = '', menu }) {
   const revokeAll = devices.length > 0
-    ? `<div class="btn-row" style="margin-bottom:16px"><form method="post" action="/services/devices/revoke-all">
+    ? `<div class="btn-row" style="margin-bottom:16px"><form method="post" action="/devices/revoke-all">
   <button class="btn danger" type="submit">revoke all devices</button>
 </form></div>`
     : '';
@@ -571,7 +570,7 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '' }) {
   const rowHtml = devices.map((row) => {
     const label = row.device_label || 'unnamed device';
     const appVersion = row.app_version || '—';
-    const action = `/services/devices/${escAttr(row.device_id)}/revoke`;
+    const action = `/devices/${escAttr(row.device_id)}/revoke`;
     const desc = [
       `platform ${row.platform}`,
       `bundle ${row.bundle_id}`,
@@ -591,7 +590,7 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '' }) {
   const groupHtml = rowHtml ? `<div class="group">${rowHtml}</div>` : '';
   return layout({
     title: 'your devices',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>your devices</h1>
 ${notice}
@@ -601,7 +600,7 @@ ${groupHtml}`,
   });
 }
 
-export function renderSignInPasskeys({ rows, enrollJsIncluded }) {
+export function renderSignInPasskeys({ rows, enrollJsIncluded, menu }) {
   const emptyState = rows.length === 0
     ? `<p class="empty">no passkeys enrolled. next time you sign in, you'll use an email code.</p>`
     : '';
@@ -627,7 +626,7 @@ export function renderSignInPasskeys({ rows, enrollJsIncluded }) {
   const groupHtml = rowHtml ? `<div class="group">${rowHtml}</div>` : '';
   return layout({
     title: 'passkeys',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
 <h1>passkeys</h1>
 <p class="lead">how you sign in. you can have more than one — useful for backup, or for signing in from a second device.</p>
@@ -644,9 +643,9 @@ ${groupHtml}
   });
 }
 
-export function renderServicesScout({ active, rows, hasRecentAck, nowMs, flash = {} }) {
+export function renderServicesScout({ active, rows, hasRecentAck, nowMs, flash = {}, menu }) {
   const flashes = flashMessages(flash);
-  const revealAction = hasRecentAck ? '/services/scout/reveal' : '/services/scout/ack';
+  const revealAction = hasRecentAck ? '/scout/reveal' : '/scout/ack';
   const revealText = hasRecentAck ? 'reveal current key' : 'acknowledge before reveal';
   const activeControls = active
     ? `<div class="btn-row" style="margin-top:16px">
@@ -654,10 +653,10 @@ export function renderServicesScout({ active, rows, hasRecentAck, nowMs, flash =
   ${hasRecentAck ? '' : '<input type="hidden" name="warning" value="scout-reveal">'}
   <button class="btn secondary" type="submit">${revealText}</button>
 </form>
-<form method="post" action="/services/scout/rotate">
+<form method="post" action="/scout/rotate">
   <button class="btn secondary" type="submit">rotate key</button>
 </form>
-<form method="post" action="/services/scout/disable">
+<form method="post" action="/scout/disable">
   <button class="btn danger" type="submit">turn off</button>
 </form>
 </div>`
@@ -685,7 +684,7 @@ ${activeControls}`
     const isActive = row.revoked_at == null;
     const forget = isActive
       ? ''
-      : `<div class="trail"><form method="post" action="/services/scout/forget">
+      : `<div class="trail"><form method="post" action="/scout/forget">
     <input type="hidden" name="key_id" value="${escAttr(row.id)}">
     <button class="btn danger" type="submit">forget</button>
   </form></div>`;
@@ -714,7 +713,7 @@ ${activeControls}`
     : 'your alpha-tester service. when you turn it on, sol pbc sets up a Google Gemini key for you — it lives on your machine and powers sol. sol pbc never sits between you and Gemini.';
   return layout({
     title: 'solstone scout',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 ${flashes}
 <div class="pagehead">
@@ -730,12 +729,12 @@ ${auditSection}`,
 export function renderServicesScoutReveal({ apiKey }) {
   return layout({
     title: 'scout key',
-    body: `<a class="back" href="/services/scout">${BACK_SVG} solstone scout</a>
+    body: `<a class="back" href="/scout">${BACK_SVG} solstone scout</a>
 <h1>scout key</h1>
 <div class="card">
   <div class="notice warn" style="margin-bottom:14px">this key is visible on screen now.</div>
   <div class="keyfield">${esc(apiKey)}</div>
-  <div class="btn-row"><a class="btn secondary" href="/services/scout">done</a></div>
+  <div class="btn-row"><a class="btn secondary" href="/scout">done</a></div>
 </div>`,
   });
 }
@@ -749,6 +748,7 @@ export function renderSupportList({
   notices = [],
   failure = '',
   createConfirmation = null,
+  menu,
 }) {
   const noticeHtml = supportNotices(notices);
   const failureHtml = failure ? `<p class="error">${esc(failure)}</p>` : '';
@@ -765,7 +765,7 @@ export function renderSupportList({
   const groupHtml = rowsHtml ? `<div class="group">${rowsHtml}</div>` : '';
   return layout({
     title: 'your support',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>your support</h1>
 ${noticeHtml}
@@ -785,6 +785,7 @@ export function renderSupportDetail({
   nowMs = Date.now(),
   notices = [],
   failure = '',
+  menu,
 }) {
   const noticeHtml = supportNotices(notices);
   const failureHtml = failure ? `<p class="error">${esc(failure)}</p>` : '';
@@ -801,7 +802,7 @@ export function renderSupportDetail({
   const id = request?.id || '';
   return layout({
     title: request?.subject || 'your support',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>${esc(request?.subject || 'your support')}</h1>
 ${noticeHtml}
@@ -828,10 +829,10 @@ ${attachments.length ? `<div class="group">${attachmentRows}</div>` : attachment
   });
 }
 
-export function renderSupportNotFound() {
+export function renderSupportNotFound({ menu } = {}) {
   return layout({
     title: 'request not found',
-    body: `${topbar()}
+    body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>request not found</h1>
 <p>we couldn't find that request.</p>

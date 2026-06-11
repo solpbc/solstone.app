@@ -29,6 +29,7 @@ import {
 } from './html.js';
 import { forbidden, html, originAllowed } from './index.js';
 import { getValidSession } from './session.js';
+import { loadMenuContext } from './settings.js';
 import { SUPPORT_ID_REGEX } from './support-constants.js';
 
 const SUPPORT_ORIGIN = 'https://support.internal';
@@ -52,16 +53,18 @@ export function supportSignInPrompt(path) {
 export async function handleSupportList(req, env) {
   const guard = await signedSupportSessionOrRedirect(req, env, '/support');
   if (guard instanceof Response) return guard;
-  return renderSupportListForSession(env, guard.session, guard.nowMs);
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+  return renderSupportListForSession(env, guard.session, guard.nowMs, menu);
 }
 
 export async function handleSupportCreate(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await signedSupportSessionOrRedirect(req, env, '/support');
   if (guard instanceof Response) return guard;
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
   const form = await readForm(req);
   if (!form) {
-    return renderSupportListForSession(env, guard.session, guard.nowMs, {
+    return renderSupportListForSession(env, guard.session, guard.nowMs, menu, {
       failure: SUPPORT_FORM_FAILURE,
     });
   }
@@ -72,7 +75,7 @@ export async function handleSupportCreate(req, env) {
   const subject = (form.get('subject')?.toString() || '').trim();
   const description = (form.get('description')?.toString() || '').trim();
   if (!['solstone', 'vit'].includes(product) || !subject || !description) {
-    return renderSupportListForSession(env, guard.session, guard.nowMs, {
+    return renderSupportListForSession(env, guard.session, guard.nowMs, menu, {
       failure: SUPPORT_FORM_FAILURE,
     });
   }
@@ -83,6 +86,7 @@ export async function handleSupportCreate(req, env) {
       csrf,
       failure: SUPPORT_LOAD_FAILURE,
       nowMs: guard.nowMs,
+      menu,
     }));
   }
 
@@ -94,7 +98,7 @@ export async function handleSupportCreate(req, env) {
     json: { product, subject, description },
   });
   if (create.kind !== 'ok') {
-    return renderSupportListForSession(env, guard.session, guard.nowMs, {
+    return renderSupportListForSession(env, guard.session, guard.nowMs, menu, {
       failure: SUPPORT_CREATE_FAILURE,
       usable,
     });
@@ -102,7 +106,7 @@ export async function handleSupportCreate(req, env) {
 
   const id = parseCreatedId(create.data);
   if (!id) {
-    return renderSupportListForSession(env, guard.session, guard.nowMs, {
+    return renderSupportListForSession(env, guard.session, guard.nowMs, menu, {
       failure: SUPPORT_CREATE_FAILURE,
       usable,
     });
@@ -125,6 +129,7 @@ export async function handleSupportCreate(req, env) {
     nowMs: guard.nowMs,
     notices: usable.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [],
     createConfirmation: { id, email: createEmail.address, uploadFailed },
+    menu,
   }));
 }
 
@@ -133,7 +138,8 @@ export async function handleSupportDetail(req, env, id) {
   const path = `/support/${id}`;
   const guard = await signedSupportSessionOrRedirect(req, env, path);
   if (guard instanceof Response) return guard;
-  return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+  return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
 }
 
 export async function handleSupportReply(req, env, id) {
@@ -141,13 +147,14 @@ export async function handleSupportReply(req, env, id) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
   if (guard instanceof Response) return guard;
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
   const form = await readForm(req);
-  if (!form) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, { failure: SUPPORT_REPLY_FAILURE });
+  if (!form) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, { failure: SUPPORT_REPLY_FAILURE });
   const csrf = await csrfToken(env);
   if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) return noStore(forbidden());
 
   const content = (form.get('content')?.toString() || '').trim();
-  if (!content) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, { failure: SUPPORT_REPLY_FAILURE });
+  if (!content) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, { failure: SUPPORT_REPLY_FAILURE });
 
   const usable = await usableVerifiedEmails(env, guard.session.account_id);
   if (usable.emails.length === 0) {
@@ -155,6 +162,7 @@ export async function handleSupportReply(req, env, id) {
       csrf,
       failure: SUPPORT_LOAD_FAILURE,
       nowMs: guard.nowMs,
+      menu,
     }));
   }
 
@@ -168,7 +176,7 @@ export async function handleSupportReply(req, env, id) {
     });
     if (reply.kind === 'notFound') continue;
     if (reply.kind === 'failure') {
-      return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, {
+      return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, {
         failure: SUPPORT_REPLY_FAILURE,
         usable,
       });
@@ -177,7 +185,7 @@ export async function handleSupportReply(req, env, id) {
     break;
   }
 
-  if (!replyEmail) return supportNotFoundResponse();
+  if (!replyEmail) return supportNotFoundResponse(menu);
 
   const notices = usable.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [];
   const files = selectedFiles(form);
@@ -187,9 +195,9 @@ export async function handleSupportReply(req, env, id) {
   }
 
   const detail = await loadDetailForEmail(env, id, replyEmail);
-  if (detail.kind === 'notFound') return supportNotFoundResponse();
+  if (detail.kind === 'notFound') return supportNotFoundResponse(menu);
   if (detail.kind !== 'ok') {
-    return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, {
+    return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, {
       failure: SUPPORT_LOAD_FAILURE,
       usable,
     });
@@ -199,10 +207,11 @@ export async function handleSupportReply(req, env, id) {
     csrf,
     nowMs: guard.nowMs,
     notices,
+    menu,
   }));
 }
 
-async function renderSupportListForSession(env, session, nowMs, {
+async function renderSupportListForSession(env, session, nowMs, menu, {
   failure = '',
   usable = null,
 } = {}) {
@@ -213,6 +222,7 @@ async function renderSupportListForSession(env, session, nowMs, {
       csrf,
       failure: SUPPORT_LOAD_FAILURE,
       nowMs,
+      menu,
     }));
   }
   if (failure) {
@@ -221,6 +231,7 @@ async function renderSupportListForSession(env, session, nowMs, {
       failure,
       nowMs,
       notices: verified.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [],
+      menu,
     }));
   }
 
@@ -246,6 +257,7 @@ async function renderSupportListForSession(env, session, nowMs, {
       csrf,
       failure: SUPPORT_LOAD_FAILURE,
       nowMs,
+      menu,
     }));
   }
 
@@ -256,10 +268,11 @@ async function renderSupportListForSession(env, session, nowMs, {
     csrf,
     nowMs,
     notices,
+    menu,
   }));
 }
 
-async function renderSupportDetailForSession(env, session, id, nowMs, {
+async function renderSupportDetailForSession(env, session, id, nowMs, menu, {
   failure = '',
   usable = null,
 } = {}) {
@@ -270,6 +283,7 @@ async function renderSupportDetailForSession(env, session, id, nowMs, {
       csrf,
       failure: SUPPORT_LOAD_FAILURE,
       nowMs,
+      menu,
     }));
   }
   if (failure) {
@@ -278,6 +292,7 @@ async function renderSupportDetailForSession(env, session, id, nowMs, {
       failure,
       nowMs,
       notices: verified.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [],
+      menu,
     }));
   }
 
@@ -290,6 +305,7 @@ async function renderSupportDetailForSession(env, session, id, nowMs, {
         failure: SUPPORT_LOAD_FAILURE,
         nowMs,
         notices: verified.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [],
+        menu,
       }));
     }
     const notices = verified.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [];
@@ -298,9 +314,10 @@ async function renderSupportDetailForSession(env, session, id, nowMs, {
       csrf,
       nowMs,
       notices,
+      menu,
     }));
   }
-  return supportNotFoundResponse();
+  return supportNotFoundResponse(menu);
 }
 
 async function signedSupportSessionOrRedirect(req, env, path) {
@@ -486,8 +503,8 @@ function supportHtml(body, init = {}) {
   });
 }
 
-function supportNotFoundResponse() {
-  return supportHtml(renderSupportNotFound(), { status: 404 });
+function supportNotFoundResponse(menu) {
+  return supportHtml(renderSupportNotFound({ menu }), { status: 404 });
 }
 
 function noStore(response) {

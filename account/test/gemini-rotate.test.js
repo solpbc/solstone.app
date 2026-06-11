@@ -45,7 +45,7 @@ describe('Gemini key rotation', () => {
     const response = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, ctx);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/scout?rotated=ok');
+    expect(response.headers.get('Location')).toBe('/scout?rotated=ok');
     await waitSpy.mock.calls[0][0];
   });
 
@@ -80,9 +80,9 @@ describe('Gemini key rotation', () => {
     const second = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, secondCtx);
 
     expect(first.status).toBe(303);
-    expect(first.headers.get('Location')).toBe('/services/scout?rotated=ok');
+    expect(first.headers.get('Location')).toBe('/scout?rotated=ok');
     expect(second.status).toBe(303);
-    expect(second.headers.get('Location')).toBe('/services/scout?rotated=conflict');
+    expect(second.headers.get('Location')).toBe('/scout?rotated=conflict');
     expect(gcp.created).toEqual([
       'projects/test-gcp-project/locations/global/keys/new-1',
       'projects/test-gcp-project/locations/global/keys/new-2',
@@ -120,7 +120,7 @@ describe('Gemini key rotation', () => {
     const response = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, ctx);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/scout?rotated=rotation_failed');
+    expect(response.headers.get('Location')).toBe('/scout?rotated=rotation_failed');
     expect(gcp.deleted).toContain('projects/test-gcp-project/locations/global/keys/new-1');
     expect(waitSpy).not.toHaveBeenCalled();
   });
@@ -139,7 +139,7 @@ describe('Gemini key rotation', () => {
     const response = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, ctx);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/scout?rotated=ok');
+    expect(response.headers.get('Location')).toBe('/scout?rotated=ok');
     await expect(waitSpy.mock.calls[0][0]).resolves.toBeUndefined();
   });
 
@@ -151,7 +151,7 @@ describe('Gemini key rotation', () => {
     const response = await worker.fetch(settingsRotateRequest(session.cookie), testEnv, createExecutionContext());
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/scout?rotated=no_active_key');
+    expect(response.headers.get('Location')).toBe('/scout?rotated=no_active_key');
   });
 
   it('builds UTC-safe rotation display names with a six-character suffix', () => {
@@ -181,7 +181,7 @@ describe('Gemini key rotation', () => {
 });
 
 function settingsRotateRequest(cookie) {
-  return new Request('https://services.solstone.app/services/scout/rotate', {
+  return new Request('https://services.solstone.app/scout/rotate', {
     method: 'POST',
     headers: {
       Origin: 'https://services.solstone.app',

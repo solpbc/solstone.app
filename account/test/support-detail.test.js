@@ -132,7 +132,7 @@ describe('support detail', () => {
     expect(support.requests).toHaveLength(1);
   });
 
-  it('renders the same generic 404 for invalid ids and all-email not found', async () => {
+  it('renders generic 404s for invalid ids and all-email not found without leaking ids', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets/REQ_MISSING': () => json({ error: 'not found' }, 404),
     });
@@ -146,7 +146,10 @@ describe('support detail', () => {
 
     expect(invalid.status).toBe(404);
     expect(missing.status).toBe(404);
-    expect(invalidBody).toBe(missingBody);
+    expect(invalidBody).toContain('<h1>request not found</h1>');
+    expect(missingBody).toContain('<h1>request not found</h1>');
+    expect(invalidBody).not.toContain('primary@example.com');
+    expect(missingBody).toContain('<div class="who">primary@example.com</div>');
     expect(missingBody).not.toContain('REQ_MISSING');
     expect(missingBody).not.toContain('bad.id');
   });

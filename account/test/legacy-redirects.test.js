@@ -13,10 +13,14 @@ describe('legacy customer-facing redirects', () => {
     ['GET', '/dashboard?welcome=1', '/?welcome=1', 302],
     ['GET', '/settings', '/sign-in', 302],
     ['GET', '/settings/sessions', '/sign-in/sessions', 302],
-    ['GET', '/settings/gemini', '/services/scout', 302],
-    ['GET', '/settings/devices', '/services/devices', 302],
+    ['GET', '/settings/gemini', '/scout', 302],
+    ['GET', '/settings/devices', '/devices', 302],
+    ['GET', '/sign-in/data', '/transparency', 302],
+    ['GET', '/settings/data', '/transparency', 302],
+    ['GET', '/services/scout', '/scout', 302],
+    ['GET', '/services/devices', '/devices', 302],
     ['POST', '/settings/sessions/abc/revoke', '/sign-in/sessions/abc/revoke', 308],
-    ['POST', '/settings/gemini/rotate', '/services/scout/rotate', 308],
+    ['POST', '/settings/gemini/rotate', '/scout/rotate', 308],
   ])('%s %s redirects to %s', async (method, path, location, status) => {
     const response = await worker.fetch(legacyRequest(method, path), makeTestEnv());
 

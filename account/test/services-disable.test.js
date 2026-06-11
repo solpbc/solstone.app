@@ -32,12 +32,12 @@ describe('services disable endpoints', () => {
     const ctx = createExecutionContext();
     const waitSpy = vi.spyOn(ctx, 'waitUntil');
 
-    const response = await worker.fetch(servicePost('/services/scout/disable', session.cookie), testEnv, ctx);
+    const response = await worker.fetch(servicePost('/scout/disable', session.cookie), testEnv, ctx);
     await waitOnExecutionContext(ctx);
     const row = await provisionedKeyRow(testEnv, 'disable-key');
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/scout?disable=ok');
+    expect(response.headers.get('Location')).toBe('/scout?disable=ok');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(row.revoked_at).toBeGreaterThan(0);
     expect(waitSpy).toHaveBeenCalledTimes(1);
@@ -49,10 +49,10 @@ describe('services disable endpoints', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(servicePost('/services/scout/disable', session.cookie), testEnv);
+    const response = await worker.fetch(servicePost('/scout/disable', session.cookie), testEnv);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/scout?disable=none');
+    expect(response.headers.get('Location')).toBe('/scout?disable=none');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
   });
 
@@ -61,7 +61,7 @@ describe('services disable endpoints', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(servicePost('/services/scout/disable', session.cookie, {
+    const response = await worker.fetch(servicePost('/scout/disable', session.cookie, {
       origin: 'https://evil.example',
     }), testEnv);
 
@@ -76,11 +76,11 @@ describe('services disable endpoints', () => {
     await seedDevice({ accountId: account.accountId, deviceId: 'device-a' });
     await seedDevice({ accountId: account.accountId, deviceId: 'device-b' });
 
-    const response = await worker.fetch(servicePost('/services/push/disable', session.cookie), testEnv);
+    const response = await worker.fetch(servicePost('/push/disable', session.cookie), testEnv);
     const count = await activeDeviceCount(testEnv, account.accountId);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/devices?disable=ok');
+    expect(response.headers.get('Location')).toBe('/devices?disable=ok');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(count).toBe(0);
   });
@@ -90,7 +90,7 @@ describe('services disable endpoints', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(servicePost('/services/push/disable', session.cookie, {
+    const response = await worker.fetch(servicePost('/push/disable', session.cookie, {
       origin: 'https://evil.example',
     }), testEnv);
 

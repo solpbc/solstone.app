@@ -40,7 +40,7 @@ describe('settings emails list and add flow', () => {
     expect(body).toContain('<div class="title">passkeys</div>');
     expect(body).toContain('href="/sign-in/emails"');
     expect(body).toContain('<span class="meta" style="margin:0">2</span>');
-    expect(body).toContain('href="/sign-in/data"');
+    expect(body).toContain('href="/transparency"');
   });
 
   it('renders email rows sorted primary first then newest', async () => {

@@ -279,11 +279,6 @@ input.code {
 .grant .gt { font-weight: 600; color: var(--ink); margin-bottom: 2px; }
 .grant .gd { color: var(--ink-soft); font-size: 0.93rem; }
 
-/* footer links (legacy pile — retained for any page not yet on the chrome) */
-.footlinks { display: flex; flex-wrap: wrap; gap: 18px; margin: 24px 2px 0; }
-.footlinks a { color: var(--ink-soft); font-size: 0.9rem; }
-.footlinks a:hover { color: var(--orange-ink); }
-
 /* standard footer — the quiet trust/transparency links live here, not in the menu */
 .footer {
   margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--hairline);

@@ -6,6 +6,7 @@ import {
   deleteRevokedProvisionedKey,
   findActiveProvisionedKey,
   findRecentGeminiRevealAck,
+  getDashboardData,
   insertGeminiRevealAck,
   listPasskeyCredentialsForAccount,
   listProvisionedKeysAudit,
@@ -70,7 +71,8 @@ const AAGUID_LABELS = {
 export async function handleSignInShell(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
-  const { session } = guard;
+  const { session, nowMs } = guard;
+  const menu = await loadMenuContext(env, session.account_id, nowMs);
   const sessionCount = await countActiveSessions(env.DB, session.account_id);
   const passkeyCount = await countActivePasskeys(env.DB, session.account_id);
   const emailCount = await countAccountEmails(env.DB, session.account_id);
@@ -78,6 +80,7 @@ export async function handleSignInShell(req, env) {
     sessionCount,
     passkeyCount,
     emailCount,
+    menu,
   }));
 }
 
@@ -85,12 +88,14 @@ export async function handleSignInSessions(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
+  const menu = await loadMenuContext(env, session.account_id, nowMs);
   const rows = await listSessionsForAccount(env.DB, session.account_id);
   const viewRows = await Promise.all(rows.map((row) => sessionViewRow(row, env)));
   return signedInHtml(renderSignInSessions({
     rows: viewRows,
     currentIdHash: session.id_hash,
     now: nowMs,
+    menu,
   }));
 }
 
@@ -98,10 +103,12 @@ export async function handleSignInPasskeys(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
+  const menu = await loadMenuContext(env, session.account_id, nowMs);
   const rows = await listPasskeyCredentialsForAccount(env.DB, session.account_id);
   return signedInHtml(renderSignInPasskeys({
     rows: rows.map((row) => passkeyViewRow(row, nowMs)),
     enrollJsIncluded: true,
+    menu,
   }));
 }
 
@@ -109,6 +116,7 @@ export async function handleServicesScout(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
+  const menu = await loadMenuContext(env, session.account_id, nowMs);
   const url = new URL(req.url);
   const rows = await listProvisionedKeysAudit(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER });
   const active = rows.find((row) => row.revoked_at == null) || null;
@@ -129,6 +137,7 @@ export async function handleServicesScout(req, env) {
       forget: url.searchParams.get('forget') || '',
       disable: url.searchParams.get('disable') || '',
     },
+    menu,
   }));
 }
 
@@ -180,7 +189,7 @@ export async function handleGeminiRotate(req, env, ctx) {
     }).then(() => gcpDeleteKey({ env, keyName: oldKey.key_resource_name })
       .catch(() => console.error('gemini_rotate_old_key_delete_failed', { key_resource_name: oldKey.key_resource_name }))));
 
-    return signedInRedirect('/services/scout?rotated=ok');
+    return signedInRedirect('/scout?rotated=ok');
   } catch (error) {
     if (newKeyResourceName && !rotationCommitted) await cleanupOrphanKey(env, newKeyResourceName);
     return rotationError('rotation_failed');
@@ -196,7 +205,7 @@ export async function handleServicesScoutAck(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
   await insertGeminiRevealAck(env.DB, { accountId: guard.session.account_id, ackedAt: guard.nowMs });
-  return signedInRedirect('/services/scout?ack=ok');
+  return signedInRedirect('/scout?ack=ok');
 }
 
 export async function handleServicesScoutReveal(req, env) {
@@ -207,10 +216,10 @@ export async function handleServicesScoutReveal(req, env) {
     accountId: guard.session.account_id,
     since: guard.nowMs - REVEAL_ACK_TTL_MS,
   });
-  if (!recentAck) return signedInRedirect('/services/scout?reveal=ack_required');
+  if (!recentAck) return signedInRedirect('/scout?reveal=ack_required');
 
   const active = await findActiveProvisionedKey(env.DB, { accountId: guard.session.account_id, provider: GEMINI_PROVIDER });
-  if (!active?.key_string_encrypted) return signedInRedirect('/services/scout?reveal=missing');
+  if (!active?.key_string_encrypted) return signedInRedirect('/scout?reveal=missing');
   const apiKey = await decryptEmail(active.key_string_encrypted, env);
   return signedInHtml(renderServicesScoutReveal({ apiKey }));
 }
@@ -225,7 +234,7 @@ export async function handleServicesScoutForget(req, env) {
     ? await deleteRevokedProvisionedKey(env.DB, { accountId: guard.session.account_id, keyId })
     : false;
   if (!deleted) return signedInHtml('<h1>could not forget key</h1><p>rotate before removing an active key.</p>', { status: 400 });
-  return signedInRedirect('/services/scout?forget=ok');
+  return signedInRedirect('/scout?forget=ok');
 }
 
 export async function handleScoutDisable(req, env, ctx) {
@@ -236,18 +245,18 @@ export async function handleScoutDisable(req, env, ctx) {
     accountId: guard.session.account_id,
     provider: GEMINI_PROVIDER,
   });
-  if (!active) return signedInRedirect('/services/scout?disable=none');
+  if (!active) return signedInRedirect('/scout?disable=none');
   const revoked = await revokeProvisionedKey(env.DB, {
     accountId: guard.session.account_id,
     keyId: active.id,
     nowMs: guard.nowMs,
   });
-  if (!revoked) return signedInRedirect('/services/scout?disable=none');
+  if (!revoked) return signedInRedirect('/scout?disable=none');
   ctx.waitUntil(new Promise((resolve) => {
     setTimeout(resolve, ROTATION_DELETE_GRACE_MS);
   }).then(() => gcpDeleteKey({ env, keyName: active.key_resource_name })
     .catch(() => console.error('scout_disable_old_key_delete_failed', { key_resource_name: active.key_resource_name }))));
-  return signedInRedirect('/services/scout?disable=ok');
+  return signedInRedirect('/scout?disable=ok');
 }
 
 export async function handleRevokeSession(req, env, idHash) {
@@ -310,6 +319,21 @@ export async function requireSignedInSession(req, env) {
   return { session, nowMs };
 }
 
+export async function loadMenuContext(env, accountId, nowMs) {
+  const data = await getDashboardData(env.DB, accountId);
+  let email = null;
+  let decryptOk = false;
+  if (data?.addressEncrypted) {
+    try {
+      email = await decryptEmail(data.addressEncrypted, env);
+      decryptOk = true;
+    } catch {
+      console.error('menu_decrypt_failed');
+    }
+  }
+  return { email, lastSignInAt: data?.lastSigninAt ?? null, now: nowMs, decryptOk };
+}
+
 export function signedInHtml(body, init = {}) {
   return html(body, {
     ...init,
@@ -337,7 +361,7 @@ async function rotationAuth(req, env, nowMs) {
 
 function rotationError(error) {
   const value = error === 'rotation_conflict' ? 'conflict' : error;
-  return signedInRedirect(`/services/scout?rotated=${encodeURIComponent(value)}`);
+  return signedInRedirect(`/scout?rotated=${encodeURIComponent(value)}`);
 }
 
 function rotationConflict() {

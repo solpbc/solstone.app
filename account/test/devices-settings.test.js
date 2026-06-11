@@ -16,14 +16,14 @@ describe('settings devices', () => {
     const session = await seedSession(account.accountId, { testEnv });
     await seedDevice({ accountId: account.accountId, deviceId: 'device-a', bundleId: BUNDLE_ID });
 
-    const response = await worker.fetch(settingsRequest('/services/devices', session.cookie), testEnv);
+    const response = await worker.fetch(settingsRequest('/devices', session.cookie), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('your devices');
     expect(body).toContain('app.solstone.swift');
-    expect(body).toContain('action="/services/devices/device-a/revoke"');
+    expect(body).toContain('action="/devices/device-a/revoke"');
   });
 
   it('revokes one device from settings', async () => {
@@ -32,11 +32,11 @@ describe('settings devices', () => {
     const session = await seedSession(account.accountId, { testEnv });
     const device = await seedDevice({ accountId: account.accountId, bundleId: BUNDLE_ID });
 
-    const response = await worker.fetch(settingsPost(`/services/devices/${device.deviceId}/revoke`, session.cookie), testEnv);
+    const response = await worker.fetch(settingsPost(`/devices/${device.deviceId}/revoke`, session.cookie), testEnv);
     const row = await deviceRow(device.deviceId);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/devices');
+    expect(response.headers.get('Location')).toBe('/devices');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(row.revoked_at).toBeGreaterThan(0);
   });
@@ -48,11 +48,11 @@ describe('settings devices', () => {
     await seedDevice({ accountId: account.accountId, deviceId: 'device-a', bundleId: BUNDLE_ID });
     await seedDevice({ accountId: account.accountId, deviceId: 'device-b', bundleId: BUNDLE_ID });
 
-    const response = await worker.fetch(settingsPost('/services/devices/revoke-all', session.cookie), testEnv);
+    const response = await worker.fetch(settingsPost('/devices/revoke-all', session.cookie), testEnv);
     const count = await activeDeviceCount(account.accountId);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/devices');
+    expect(response.headers.get('Location')).toBe('/devices');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(count).toBe(0);
   });
@@ -67,7 +67,7 @@ describe('settings devices', () => {
       deviceLabel: '<script>alert(1)</script>',
     });
 
-    const response = await worker.fetch(settingsRequest('/services/devices', session.cookie), testEnv);
+    const response = await worker.fetch(settingsRequest('/devices', session.cookie), testEnv);
     const body = await response.text();
 
     expect(body).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
@@ -84,7 +84,7 @@ describe('settings devices', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('href="/services/devices"');
+    expect(body).toContain('href="/devices"');
     expect(body).toContain('1 device');
   });
 });

@@ -48,7 +48,7 @@ describe('settings transparency data view', () => {
       .bind(8_000, 'fbfc3007-154e-4ecc-8c0b-6e020557d7bd', 'revoked-credential')
       .run();
 
-    const response = await worker.fetch(settingsRequest('/sign-in/data', {
+    const response = await worker.fetch(settingsRequest('/transparency', {
       cookie: current.cookie,
       ip: '73.225.42.18',
       userAgent: SAFARI_MAC_UA,
@@ -59,6 +59,8 @@ describe('settings transparency data view', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain(account.accountId);
     expect(body).toContain('created 1970-01-01');
+    expect(body).toContain('<div class="lbl">signed in as</div>');
+    expect(body).toContain('<div class="who">primary@example.com</div>');
     expect(body).toContain('primary@example.com');
     expect(body).toContain('secondary@example.com');
     expect(body).toContain('unverified@example.com');
@@ -72,27 +74,24 @@ describe('settings transparency data view', () => {
     expect(body).toContain('198.51.100.x');
   });
 
-  it('renders the what-we-do-not-have list, citation, and back link', async () => {
+  it('renders the prose data-covenant intro, citations, and back link', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(settingsRequest('/sign-in/data', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsRequest('/transparency', { cookie: session.cookie }), testEnv);
     const body = await response.text();
 
-    expect(body).toContain('no name');
-    expect(body).toContain('no phone');
-    expect(body).toContain('no address');
-    expect(body).toContain('no analytics');
-    expect(body).toContain('no behavioral data');
-    expect(body).toContain('no separately-stored location');
-    expect(body).toContain('no third-party tracking');
-    expect(body).toContain("sol pbc's structural data commitments under");
-    expect(body).toContain('Article 8 of the articles of incorporation');
+    expect(body).toContain('<title>data transparency</title>');
+    expect(body).toContain('<h1>data transparency</h1>');
+    expect(body).toContain('your name, your phone, your address, or where you are');
+    expect(body).toContain("these aren't promises — they're structural commitments under");
+    expect(body).toContain('Article 8 of our articles of incorporation');
     expect(body).toContain('Article III of the bylaws');
     expect(body).toContain('href="https://solpbc.org/articles#s8-3"');
     expect(body).toContain('href="https://solpbc.org/bylaws#art-3"');
-    expect(body).toContain('href="/sign-in"');
+    expect(body).toContain('<a class="back" href="/">');
+    expect(body).not.toContain("what we don't have");
   });
 
   it('continues rendering when email or IP decrypt fails with scrubbed logs', async () => {
@@ -122,7 +121,7 @@ describe('settings transparency data view', () => {
       .run();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const response = await worker.fetch(settingsRequest('/sign-in/data', { cookie: current.cookie }), testEnv);
+    const response = await worker.fetch(settingsRequest('/transparency', { cookie: current.cookie }), testEnv);
     const body = await response.text();
     const calls = warn.mock.calls.map((call) => call[0]);
 
@@ -146,7 +145,7 @@ describe('settings transparency data view', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    const response = await worker.fetch(settingsRequest('/sign-in/data', {
+    const response = await worker.fetch(settingsRequest('/transparency', {
       cookie: session.cookie,
       ip: '203.0.113.9',
     }), testEnv);
@@ -175,7 +174,7 @@ describe('settings transparency data view', () => {
       await seedSession(account.accountId, { testEnv });
     }
 
-    const response = await worker.fetch(settingsRequest('/sign-in/data', { cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(settingsRequest('/transparency', { cookie: session.cookie }), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);

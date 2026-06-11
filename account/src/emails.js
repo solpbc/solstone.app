@@ -34,6 +34,7 @@ import {
 import { forbidden, isValidEmail, originAllowed } from './index.js';
 import {
   aaguidLabel,
+  loadMenuContext,
   noStore,
   requireSignedInSession,
   signedInHtml,
@@ -117,6 +118,7 @@ export async function handleAddEmail(req, env, ctx) {
 export async function handleVerifyEmailGet(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
 
   const url = new URL(req.url);
   const rawAddress = url.searchParams.get('address') || '';
@@ -127,6 +129,7 @@ export async function handleVerifyEmailGet(req, env) {
       addressInputValue: rawAddress.trim(),
       error: '',
       alreadyVerified: false,
+      menu,
     }));
   }
 
@@ -140,6 +143,7 @@ export async function handleVerifyEmailGet(req, env) {
     addressInputValue: '',
     error: '',
     alreadyVerified: row?.verified_at != null,
+    menu,
   }));
 }
 
@@ -147,6 +151,7 @@ export async function handleVerifyEmailPost(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
 
   const form = await req.formData();
   const rawAddress = form.get('address')?.toString() || '';
@@ -161,6 +166,7 @@ export async function handleVerifyEmailPost(req, env) {
       addressInputValue: addressOk ? '' : rawAddress.trim(),
       error: VERIFY_ERROR,
       alreadyVerified: false,
+      menu,
     }));
   }
 
@@ -187,6 +193,7 @@ export async function handleVerifyEmailPost(req, env) {
     addressInputValue: '',
     error: VERIFY_ERROR,
     alreadyVerified: false,
+    menu,
   }));
 }
 
@@ -233,11 +240,12 @@ export async function handleRemoveEmail(req, env, emailId) {
   });
 }
 
-export async function handleSignInData(req, env) {
+export async function handleTransparency(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
 
   const accountId = guard.session.account_id;
+  const menu = await loadMenuContext(env, accountId, guard.nowMs);
   const [account, emailRows, passkeyRows, sessionRows] = await Promise.all([
     getAccountTransparencyRow(env.DB, accountId),
     listAccountEmails(env.DB, accountId),
@@ -255,6 +263,7 @@ export async function handleSignInData(req, env) {
     emails,
     passkeys,
     sessions,
+    menu,
   }));
 }
 
@@ -263,9 +272,10 @@ async function renderEmailsPage(env, session, nowMs, {
   removeError = '',
   status = 200,
 } = {}) {
+  const menu = await loadMenuContext(env, session.account_id, nowMs);
   const rows = await listAccountEmails(env.DB, session.account_id);
   const viewRows = await Promise.all(rows.map((row) => emailViewRow(row, env, nowMs)));
-  return signedInHtml(renderSignInEmails({ rows: viewRows, addError, removeError }), { status });
+  return signedInHtml(renderSignInEmails({ rows: viewRows, addError, removeError, menu }), { status });
 }
 
 function queueVerifyEmail(ctx, { env, address, code }) {

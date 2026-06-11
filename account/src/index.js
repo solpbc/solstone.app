@@ -1,5 +1,4 @@
 import {
-  decryptEmail,
   encryptEmail,
   generateOtp,
   generateSessionToken,
@@ -19,7 +18,6 @@ import {
   countActiveDevices,
   findActiveProvisionedKey,
   findEmailByHash,
-  getDashboardData,
   hasAnyActivePasskey,
   matchOtp,
   upsertOtp,
@@ -50,8 +48,8 @@ import {
   handleAddEmail,
   handleMakeEmailPrimary,
   handleRemoveEmail,
-  handleSignInData,
   handleSignInEmails,
+  handleTransparency,
   handleVerifyEmailGet,
   handleVerifyEmailPost,
 } from './emails.js';
@@ -94,6 +92,7 @@ import {
   handleSignInPasskeys,
   handleSignInSessions,
   handleSignInShell,
+  loadMenuContext,
 } from './settings.js';
 import { FONT_FILES, PORTAL_CSS, fontBytes } from './assets.js';
 
@@ -123,24 +122,27 @@ const LEGACY_REDIRECTS = [
   { method: 'GET', from: '/settings/passkeys', to: '/sign-in/passkeys' },
   { method: 'GET', from: '/settings/emails', to: '/sign-in/emails' },
   { method: 'GET', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
-  { method: 'GET', from: '/settings/data', to: '/sign-in/data' },
-  { method: 'GET', from: '/settings/devices', to: '/services/devices' },
-  { method: 'GET', from: '/settings/gemini', to: '/services/scout' },
+  { method: 'GET', from: '/settings/data', to: '/transparency' },
+  { method: 'GET', from: '/settings/devices', to: '/devices' },
+  { method: 'GET', from: '/settings/gemini', to: '/scout' },
+  { method: 'GET', from: '/sign-in/data', to: '/transparency' },
+  { method: 'GET', from: '/services/scout', to: '/scout' },
+  { method: 'GET', from: '/services/devices', to: '/devices' },
   { method: 'POST', from: '/settings/sessions/revoke-others', to: '/sign-in/sessions/revoke-others' },
   { method: 'POST', from: '/settings/emails/add', to: '/sign-in/emails/add' },
   { method: 'POST', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
-  { method: 'POST', from: '/settings/devices/revoke-all', to: '/services/devices/revoke-all' },
-  { method: 'POST', from: '/settings/gemini/rotate', to: '/services/scout/rotate' },
-  { method: 'POST', from: '/settings/gemini/ack', to: '/services/scout/ack' },
-  { method: 'POST', from: '/settings/gemini/reveal', to: '/services/scout/reveal' },
-  { method: 'POST', from: '/settings/gemini/forget', to: '/services/scout/forget' },
+  { method: 'POST', from: '/settings/devices/revoke-all', to: '/devices/revoke-all' },
+  { method: 'POST', from: '/settings/gemini/rotate', to: '/scout/rotate' },
+  { method: 'POST', from: '/settings/gemini/ack', to: '/scout/ack' },
+  { method: 'POST', from: '/settings/gemini/reveal', to: '/scout/reveal' },
+  { method: 'POST', from: '/settings/gemini/forget', to: '/scout/forget' },
 ];
 
 const LEGACY_PREFIX_REDIRECTS = [
   { method: 'POST', prefix: '/settings/sessions/', newPrefix: '/sign-in/sessions/' },
   { method: 'POST', prefix: '/settings/passkeys/', newPrefix: '/sign-in/passkeys/' },
   { method: 'POST', prefix: '/settings/emails/', newPrefix: '/sign-in/emails/' },
-  { method: 'POST', prefix: '/settings/devices/', newPrefix: '/services/devices/' },
+  { method: 'POST', prefix: '/settings/devices/', newPrefix: '/devices/' },
 ];
 
 export function originAllowed(req) {
@@ -442,12 +444,11 @@ export default {
       }
 
       if (
-        parts.length === 3 &&
-        parts[1] === 'sign-in' &&
-        parts[2] === 'data' &&
+        parts.length === 2 &&
+        parts[1] === 'transparency' &&
         req.method === 'GET'
       ) {
-        return handleSignInData(req, env);
+        return handleTransparency(req, env);
       }
 
       if (
@@ -489,18 +490,16 @@ export default {
       }
 
       if (
-        parts.length === 3 &&
-        parts[1] === 'services' &&
-        parts[2] === 'devices' &&
+        parts.length === 2 &&
+        parts[1] === 'devices' &&
         req.method === 'GET'
       ) {
         return handleServicesDevices(req, env);
       }
 
       if (
-        parts.length === 3 &&
-        parts[1] === 'services' &&
-        parts[2] === 'scout' &&
+        parts.length === 2 &&
+        parts[1] === 'scout' &&
         req.method === 'GET'
       ) {
         return handleServicesScout(req, env);
@@ -517,70 +516,63 @@ export default {
       }
 
       if (
-        parts.length === 4 &&
-        parts[1] === 'services' &&
-        parts[2] === 'devices' &&
-        parts[3] === 'revoke-all' &&
+        parts.length === 3 &&
+        parts[1] === 'devices' &&
+        parts[2] === 'revoke-all' &&
         req.method === 'POST'
       ) {
         return handleRevokeAllDevices(req, env);
       }
 
       if (
-        parts.length === 4 &&
-        parts[1] === 'services' &&
-        parts[2] === 'push' &&
-        parts[3] === 'disable' &&
+        parts.length === 3 &&
+        parts[1] === 'push' &&
+        parts[2] === 'disable' &&
         req.method === 'POST'
       ) {
         return handlePushDisable(req, env);
       }
 
       if (
-        parts.length === 4 &&
-        parts[1] === 'services' &&
-        parts[2] === 'scout' &&
-        parts[3] === 'rotate' &&
+        parts.length === 3 &&
+        parts[1] === 'scout' &&
+        parts[2] === 'rotate' &&
         req.method === 'POST'
       ) {
         return handleServicesScoutRotate(req, env, ctx);
       }
 
       if (
-        parts.length === 4 &&
-        parts[1] === 'services' &&
-        parts[2] === 'scout' &&
-        parts[3] === 'ack' &&
+        parts.length === 3 &&
+        parts[1] === 'scout' &&
+        parts[2] === 'ack' &&
         req.method === 'POST'
       ) {
         return handleServicesScoutAck(req, env);
       }
 
       if (
-        parts.length === 4 &&
-        parts[1] === 'services' &&
-        parts[2] === 'scout' &&
-        parts[3] === 'reveal' &&
+        parts.length === 3 &&
+        parts[1] === 'scout' &&
+        parts[2] === 'reveal' &&
         req.method === 'POST'
       ) {
         return handleServicesScoutReveal(req, env);
       }
 
       if (
-        parts.length === 4 &&
-        parts[1] === 'services' &&
-        parts[2] === 'scout' &&
-        parts[3] === 'forget' &&
+        parts.length === 3 &&
+        parts[1] === 'scout' &&
+        parts[2] === 'forget' &&
         req.method === 'POST'
       ) {
         return handleServicesScoutForget(req, env);
       }
 
       if (
-        parts.length === 4 &&
-        parts[1] === 'services' &&
-        parts[2] === 'scout' &&
-        parts[3] === 'disable' &&
+        parts.length === 3 &&
+        parts[1] === 'scout' &&
+        parts[2] === 'disable' &&
         req.method === 'POST'
       ) {
         return handleScoutDisable(req, env, ctx);
@@ -597,13 +589,12 @@ export default {
       }
 
       if (
-        parts.length === 5 &&
-        parts[1] === 'services' &&
-        parts[2] === 'devices' &&
-        parts[4] === 'revoke' &&
+        parts.length === 4 &&
+        parts[1] === 'devices' &&
+        parts[3] === 'revoke' &&
         req.method === 'POST'
       ) {
-        return handleRevokeDevice(req, env, parts[3]);
+        return handleRevokeDevice(req, env, parts[2]);
       }
 
       if (
@@ -721,30 +712,15 @@ export default {
 async function handleServicesDashboard(req, env, session) {
   const url = new URL(req.url);
   const now = Date.now();
-  const [data, hasPasskey, scoutKey, deviceCount] = await Promise.all([
-    getDashboardData(env.DB, session.account_id),
+  const [menu, hasPasskey, scoutKey, deviceCount] = await Promise.all([
+    loadMenuContext(env, session.account_id, now),
     hasAnyActivePasskey(env.DB, session.account_id),
     findActiveProvisionedKey(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER }),
     countActiveDevices(env.DB, session.account_id),
   ]);
-  let email = null;
-  let decryptOk = false;
-  if (data?.addressEncrypted) {
-    try {
-      email = await decryptEmail(data.addressEncrypted, env);
-      decryptOk = true;
-    } catch {
-      console.error('dashboard_decrypt_failed');
-    }
-  }
   return html(renderServicesDashboard({
     welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
-    email,
-    lastSignInAt: data?.lastSigninAt ?? null,
-    now,
-    decryptOk,
-    scoutActive: scoutKey != null,
-    deviceCount,
+    menu, scoutActive: scoutKey != null, deviceCount,
   }), { headers: { 'Cache-Control': 'no-store' } });
 }
 
