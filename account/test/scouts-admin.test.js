@@ -1,4 +1,4 @@
-import { env as workerEnv } from 'cloudflare:test';
+import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
@@ -10,6 +10,7 @@ import {
 } from './helpers.js';
 import {
   installJwksStub,
+  installJwksStubWith,
   mintToken,
 } from './jwks-helper.js';
 
@@ -256,6 +257,88 @@ describe('admin scout endpoints', () => {
     expectNoGoogleFetches();
   });
 
+  it('revokes an approved scout and turns off its active Gemini key', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'approved-active-key@example.com', nowMs: 1_000, testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 2_000 });
+    const seededKey = await seedProvisionedKey({
+      accountId: account.accountId,
+      keyStringEncrypted: 'active-key',
+      revokedAt: null,
+    });
+    const deleted = [];
+    await installJwksStubWith(async (input, init = {}) => {
+      const href = typeof input === 'string' ? input : input.url;
+      const url = new URL(href);
+      const method = (init.method || 'GET').toUpperCase();
+      if (method === 'POST' && url.host === 'oauth2.googleapis.com' && url.pathname === '/token') {
+        return jsonResponse({
+          access_token: 'gcp-access-token',
+          expires_in: 3600,
+          token_type: 'Bearer',
+        });
+      }
+      if (
+        method === 'DELETE' &&
+        url.host === 'apikeys.googleapis.com' &&
+        url.pathname === `/v2/${seededKey.keyResourceName}`
+      ) {
+        deleted.push(seededKey.keyResourceName);
+        return new Response('');
+      }
+      return null;
+    });
+    installImmediateTimeout();
+    const ctx = createExecutionContext();
+    const waitSpy = vi.spyOn(ctx, 'waitUntil');
+
+    const response = await worker.fetch(
+      adminRequest(`/admin/scouts/${account.accountId}/revoke`, token, { method: 'POST' }),
+      testEnv,
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+    const application = await applicationRow(account.accountId);
+    const keyRow = await provisionedKeyRow(seededKey.id);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'revoked' });
+    expect(application.status).toBe('revoked');
+    expect(keyRow.revoked_at).toBeGreaterThan(0);
+    expect(waitSpy).toHaveBeenCalledTimes(1);
+    expect(deleted).toEqual([seededKey.keyResourceName]);
+  });
+
+  it('revokes an approved scout whose key is already revoked without scheduling a GCP delete', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'approved-revoked-key@example.com', nowMs: 1_000, testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 2_000 });
+    await seedProvisionedKey({
+      accountId: account.accountId,
+      keyStringEncrypted: 'already-revoked-key',
+      revokedAt: 3_000,
+    });
+    await installJwksStubWith();
+    const ctx = createExecutionContext();
+    const waitSpy = vi.spyOn(ctx, 'waitUntil');
+
+    const response = await worker.fetch(
+      adminRequest(`/admin/scouts/${account.accountId}/revoke`, token, { method: 'POST' }),
+      testEnv,
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+    const application = await applicationRow(account.accountId);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'revoked' });
+    expect(application.status).toBe('revoked');
+    expect(waitSpy).not.toHaveBeenCalled();
+    expectNoGoogleFetches();
+  });
+
   it('pre-approves fresh emails with verified primary email and approved application', async () => {
     const token = await mintToken();
     const testEnv = makeTestEnv();
@@ -403,6 +486,7 @@ async function seedProvisionedKey({
   revokedAt = null,
 }) {
   const id = crypto.randomUUID();
+  const keyResourceName = `projects/test/locations/global/keys/${id}`;
   await workerEnv.DB
     .prepare(
       `INSERT INTO provisioned_keys (
@@ -414,12 +498,13 @@ async function seedProvisionedKey({
       id,
       accountId,
       `display-${id}`,
-      `projects/test/locations/global/keys/${id}`,
+      keyResourceName,
       keyStringEncrypted,
       1_000,
       revokedAt
     )
     .run();
+  return { id, keyResourceName };
 }
 
 async function applicationRow(accountId) {
@@ -431,6 +516,13 @@ async function applicationRow(accountId) {
        WHERE account_id = ?`
     )
     .bind(accountId)
+    .first();
+}
+
+async function provisionedKeyRow(id) {
+  return workerEnv.DB
+    .prepare('SELECT id, key_resource_name, revoked_at FROM provisioned_keys WHERE id = ?')
+    .bind(id)
     .first();
 }
 
@@ -464,4 +556,18 @@ function expectNoGoogleFetches() {
     return host.includes('googleapis.com');
   });
   expect(googleCall).toBeUndefined();
+}
+
+function installImmediateTimeout() {
+  return vi.spyOn(globalThis, 'setTimeout').mockImplementation((callback) => {
+    callback();
+    return 1;
+  });
+}
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }

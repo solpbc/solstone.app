@@ -39,6 +39,7 @@ export function makeTestEnv(overrides = {}) {
     DISPATCH_TOKEN_PEPPER: 'test-dispatch-token-pepper',
     GCP_SERVICE_ACCOUNT_JSON: overrides.GCP_SERVICE_ACCOUNT_JSON || SA_JSON_STRING,
     GCP_TOKEN_CACHE: overrides.GCP_TOKEN_CACHE || makeFakeKv(),
+    SCOUT_GCP_PROJECT: overrides.SCOUT_GCP_PROJECT,
     TURNSTILE_SECRET: 'test-turnstile-secret',
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,

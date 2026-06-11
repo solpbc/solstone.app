@@ -131,6 +131,42 @@ describe('Gemini provisioning orchestrator', () => {
     await expect(decryptEmail(row.key_string_encrypted, testEnv)).resolves.toBe('created-gemini-key');
   });
 
+  it('uses SCOUT_GCP_PROJECT for GCP find and create during provisioning', async () => {
+    const testEnv = makeTestEnv({ SCOUT_GCP_PROJECT: 'scout-proj' });
+    let findCalled = false;
+    let createCalled = false;
+    installGcpFetchMock({
+      'POST oauth2.googleapis.com/token': async () => jsonResponse({
+        access_token: 'gcp-access-token',
+        expires_in: 3600,
+        token_type: 'Bearer',
+      }),
+      'GET apikeys.googleapis.com/v2/projects/scout-proj/locations/global/keys': async () => {
+        findCalled = true;
+        return jsonResponse({ keys: [] });
+      },
+      'POST apikeys.googleapis.com/v2/projects/scout-proj/locations/global/keys': async () => {
+        createCalled = true;
+        return jsonResponse({ name: 'operations/create-scout-key' });
+      },
+      'GET apikeys.googleapis.com/v2/operations/create-scout-key': async () => jsonResponse({
+        done: true,
+        response: { name: 'projects/scout-proj/locations/global/keys/key-1' },
+      }),
+      'GET apikeys.googleapis.com/v2/projects/scout-proj/locations/global/keys/key-1/keyString': async () => jsonResponse({
+        keyString: 'scout-project-gemini-key',
+      }),
+    });
+    const account = await seedAccount({ testEnv });
+
+    await expect(ensureProvisionedKey({ env: testEnv, accountId: account.accountId }))
+      .resolves.toBe('scout-project-gemini-key');
+    const row = await provisionedRow(account.accountId);
+    expect(findCalled).toBe(true);
+    expect(createCalled).toBe(true);
+    expect(row.key_resource_name).toBe('projects/scout-proj/locations/global/keys/key-1');
+  });
+
   it('failure after key resource name triggers delete and placeholder cleanup', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });

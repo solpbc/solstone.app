@@ -10,7 +10,7 @@ import {
   upsertScoutApplicationApproved,
 } from './db.js';
 import { json } from './index.js';
-import { aaguidLabel, uaLabel, truncateIp } from './settings.js';
+import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
 const ISSUER = 'https://solpbc.cloudflareaccess.com';
@@ -43,7 +43,7 @@ async function validateCfAccess(request, env) {
   }
 }
 
-export async function handleAdmin(request, env, url) {
+export async function handleAdmin(request, env, url, ctx) {
   const admin = await validateCfAccess(request, env);
   if (!admin) {
     return json({ error: 'cloudflare access required' }, { status: 403, headers: SECURITY_HEADERS });
@@ -52,7 +52,7 @@ export async function handleAdmin(request, env, url) {
   try {
     const parts = url.pathname.split('/');
     if (parts[2] === 'scouts') {
-      return await handleScoutAdmin(request, env, url, parts);
+      return await handleScoutAdmin(request, env, url, parts, ctx);
     }
     if (request.method !== 'GET') {
       return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
@@ -67,7 +67,7 @@ export async function handleAdmin(request, env, url) {
   }
 }
 
-async function handleScoutAdmin(request, env, url, parts) {
+async function handleScoutAdmin(request, env, url, parts, ctx) {
   if (request.method === 'GET' && parts.length === 3) {
     return listScouts(env, url.searchParams.get('status'));
   }
@@ -78,7 +78,7 @@ async function handleScoutAdmin(request, env, url, parts) {
     return approveScout(env, decodeURIComponent(parts[3]));
   }
   if (request.method === 'POST' && parts.length === 5 && parts[4] === 'revoke') {
-    return revokeScout(env, decodeURIComponent(parts[3]));
+    return revokeScout(env, decodeURIComponent(parts[3]), ctx);
   }
   return json({ error: 'scout route not found' }, { status: 404, headers: SECURITY_HEADERS });
 }
@@ -114,7 +114,7 @@ async function approveScout(env, accountId) {
   return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
 }
 
-async function revokeScout(env, accountId) {
+async function revokeScout(env, accountId, ctx) {
   const application = await getScoutApplicationByAccount(env.DB, { accountId });
   if (!application) {
     return json({ error: 'scout application not found' }, { status: 404, headers: SECURITY_HEADERS });
@@ -122,7 +122,9 @@ async function revokeScout(env, accountId) {
   if (application.status === 'revoked') {
     return json({ account_id: accountId, status: 'revoked' }, { headers: SECURITY_HEADERS });
   }
-  await revokeScoutApplication(env.DB, { accountId, nowMs: Date.now() });
+  const nowMs = Date.now();
+  await revokeScoutApplication(env.DB, { accountId, nowMs });
+  await disableActiveGeminiKey({ env, accountId, nowMs, ctx });
   return json({ account_id: accountId, status: 'revoked' }, { headers: SECURITY_HEADERS });
 }
 

@@ -14,9 +14,9 @@ export class GcpUnauthorizedError extends Error {}
 export class GcpTimeoutError extends Error {}
 export class GcpHostNotAllowedError extends Error {}
 
-export async function gcpCreateApiKey({ env, displayName, requestId }) {
-  const sa = serviceAccount(env);
-  const url = `https://${API_KEYS_HOST}/v2/projects/${encodeURIComponent(sa.project_id)}/locations/global/keys?requestId=${encodeURIComponent(requestId)}`;
+export async function gcpCreateApiKey({ env, displayName, requestId, projectId }) {
+  const project = projectId || serviceAccount(env).project_id;
+  const url = `https://${API_KEYS_HOST}/v2/projects/${encodeURIComponent(project)}/locations/global/keys?requestId=${encodeURIComponent(requestId)}`;
   const res = await authorizedGcpFetch(env, url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -73,10 +73,10 @@ export async function gcpDeleteKey({ env, keyName }) {
   }
 }
 
-export async function gcpFindKeyByDisplayName({ env, displayName }) {
-  const sa = serviceAccount(env);
+export async function gcpFindKeyByDisplayName({ env, displayName, projectId }) {
+  const project = projectId || serviceAccount(env).project_id;
   const filter = encodeURIComponent(`displayName=${displayName}`);
-  const url = `https://${API_KEYS_HOST}/v2/projects/${encodeURIComponent(sa.project_id)}/locations/global/keys?filter=${filter}`;
+  const url = `https://${API_KEYS_HOST}/v2/projects/${encodeURIComponent(project)}/locations/global/keys?filter=${filter}`;
   const res = await authorizedGcpFetch(env, url, { method: 'GET' });
   const body = await jsonResponse(res, 'GCP key list failed');
   const keys = Array.isArray(body.keys) ? body.keys : [];

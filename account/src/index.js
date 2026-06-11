@@ -695,7 +695,7 @@ export default {
       }
 
       if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {
-        return handleAdmin(req, env, url);
+        return handleAdmin(req, env, url, ctx);
       }
 
       return html(renderNotFound(), { status: 404 });

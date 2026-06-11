@@ -150,6 +150,26 @@ describe('GCP API Keys client', () => {
     });
   });
 
+  it('create API key uses explicit projectId override', async () => {
+    let createUrl = null;
+    installGcpFetchMock({
+      'POST oauth2.googleapis.com/token': async () => jsonResponse({ access_token: 'gcp-token', expires_in: 3600, token_type: 'Bearer' }),
+      'POST apikeys.googleapis.com/v2/projects/scout-proj/locations/global/keys': async ({ url }) => {
+        createUrl = url;
+        return jsonResponse({ name: 'operations/op' });
+      },
+    });
+
+    await gcpCreateApiKey({
+      env: makeTestEnv(),
+      displayName: 'acct-test',
+      requestId: 'request-1',
+      projectId: 'scout-proj',
+    });
+
+    expect(`${createUrl.host}${createUrl.pathname}`).toBe('apikeys.googleapis.com/v2/projects/scout-proj/locations/global/keys');
+  });
+
   it('403 body containing API Keys API throws disabled error class', async () => {
     installGcpFetchMock({
       'POST oauth2.googleapis.com/token': async () => jsonResponse({ access_token: 'gcp-token', expires_in: 3600, token_type: 'Bearer' }),
@@ -240,6 +260,29 @@ describe('GCP API Keys client', () => {
 
     await expect(gcpFindKeyByDisplayName({ env: makeTestEnv(), displayName: 'acct-test' }))
       .resolves.toEqual({ name: 'right', displayName: 'acct-test' });
+  });
+
+  it('find key by displayName uses explicit projectId override', async () => {
+    let findUrl = null;
+    installGcpFetchMock({
+      'POST oauth2.googleapis.com/token': async () => jsonResponse({ access_token: 'gcp-token', expires_in: 3600, token_type: 'Bearer' }),
+      'GET apikeys.googleapis.com/v2/projects/scout-proj/locations/global/keys': async ({ url }) => {
+        findUrl = url;
+        return jsonResponse({
+          keys: [
+            { name: 'wrong', displayName: 'other' },
+            { name: 'right', displayName: 'acct-test' },
+          ],
+        });
+      },
+    });
+
+    await expect(gcpFindKeyByDisplayName({
+      env: makeTestEnv(),
+      displayName: 'acct-test',
+      projectId: 'scout-proj',
+    })).resolves.toEqual({ name: 'right', displayName: 'acct-test' });
+    expect(`${findUrl.host}${findUrl.pathname}`).toBe('apikeys.googleapis.com/v2/projects/scout-proj/locations/global/keys');
   });
 
   it('stale 401 evicts cache, remints, and retries once', async () => {

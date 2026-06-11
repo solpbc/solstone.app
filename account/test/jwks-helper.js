@@ -22,6 +22,20 @@ export async function installJwksStub() {
   }));
 }
 
+export async function installJwksStubWith(extraHandler) {
+  const { publicJwk } = await servedKey;
+  vi.stubGlobal('fetch', vi.fn(async (input, init = {}) => {
+    const href = typeof input === 'string' ? input : input.url;
+    if (href === CF_ACCESS_JWKS_URL) {
+      return new Response(JSON.stringify({ keys: [publicJwk] }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const res = extraHandler ? await extraHandler(input, init) : null;
+    return res || new Response('not found', { status: 404 });
+  }));
+}
+
 export async function mintToken({
   iss = CF_ACCESS_ISSUER,
   aud = TEST_CF_ACCESS_AUD,

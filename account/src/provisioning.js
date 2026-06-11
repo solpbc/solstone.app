@@ -28,6 +28,7 @@ export class ProvisioningDisplayNameError extends Error {}
 
 export async function ensureProvisionedKey({ env, accountId }) {
   const displayName = computeDisplayName(accountId);
+  const projectId = env.SCOUT_GCP_PROJECT;
 
   for (let attempt = 0; attempt < WAIT_ATTEMPTS; attempt++) {
     const nowMs = Date.now();
@@ -36,7 +37,7 @@ export async function ensureProvisionedKey({ env, accountId }) {
       const id = crypto.randomUUID();
       try {
         await insertProvisioningPlaceholder(env.DB, { id, accountId, provider: PROVIDER, displayName, nowMs });
-        return provisionWithLock({ env, id, displayName });
+        return provisionWithLock({ env, id, displayName, projectId });
       } catch (error) {
         if (!isUniqueViolation(error)) throw error;
       }
@@ -52,7 +53,7 @@ export async function ensureProvisionedKey({ env, accountId }) {
         nowMs,
         abandonedBeforeMs: nowMs - IN_FLIGHT_RECLAIM_MS,
       });
-      if (claimed) return provisionWithLock({ env, id: row.id, displayName: row.display_name || displayName });
+      if (claimed) return provisionWithLock({ env, id: row.id, displayName: row.display_name || displayName, projectId });
     }
 
     if (attempt === WAIT_ATTEMPTS - 1) break;
@@ -71,14 +72,14 @@ export function computeDisplayName(accountId) {
   return displayName;
 }
 
-async function provisionWithLock({ env, id, displayName }) {
+async function provisionWithLock({ env, id, displayName, projectId }) {
   let createdKeyName = null;
   let materialStored = false;
   try {
-    const adopted = await gcpFindKeyByDisplayName({ env, displayName });
+    const adopted = await gcpFindKeyByDisplayName({ env, displayName, projectId });
     let keyName = adopted?.name || null;
     if (!keyName) {
-      keyName = await createAndPollKey({ env, displayName });
+      keyName = await createAndPollKey({ env, displayName, projectId });
       createdKeyName = keyName;
     }
     const keyString = await gcpFetchKeyString({ env, keyName });
@@ -101,11 +102,12 @@ async function provisionWithLock({ env, id, displayName }) {
   }
 }
 
-async function createAndPollKey({ env, displayName }) {
+async function createAndPollKey({ env, displayName, projectId }) {
   const operationName = await gcpCreateApiKey({
     env,
     displayName,
     requestId: crypto.randomUUID(),
+    projectId,
   });
   return gcpPollOperation({ env, opName: operationName });
 }

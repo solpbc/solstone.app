@@ -241,22 +241,32 @@ export async function handleScoutDisable(req, env, ctx) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
-  const active = await findActiveProvisionedKey(env.DB, {
+  const turnedOff = await disableActiveGeminiKey({
+    env,
     accountId: guard.session.account_id,
+    nowMs: guard.nowMs,
+    ctx,
+  });
+  return signedInRedirect(turnedOff ? '/scout?disable=ok' : '/scout?disable=none');
+}
+
+export async function disableActiveGeminiKey({ env, accountId, nowMs, ctx }) {
+  const active = await findActiveProvisionedKey(env.DB, {
+    accountId,
     provider: GEMINI_PROVIDER,
   });
-  if (!active) return signedInRedirect('/scout?disable=none');
+  if (!active) return false;
   const revoked = await revokeProvisionedKey(env.DB, {
-    accountId: guard.session.account_id,
+    accountId,
     keyId: active.id,
-    nowMs: guard.nowMs,
+    nowMs,
   });
-  if (!revoked) return signedInRedirect('/scout?disable=none');
+  if (!revoked) return false;
   ctx.waitUntil(new Promise((resolve) => {
     setTimeout(resolve, ROTATION_DELETE_GRACE_MS);
   }).then(() => gcpDeleteKey({ env, keyName: active.key_resource_name })
     .catch(() => console.error('scout_disable_old_key_delete_failed', { key_resource_name: active.key_resource_name }))));
-  return signedInRedirect('/scout?disable=ok');
+  return true;
 }
 
 export async function handleRevokeSession(req, env, idHash) {
