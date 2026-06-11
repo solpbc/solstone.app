@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import { supportSignInPrompt } from '../src/support.js';
 import {
   TEST_CSRF,
   makeSupportWorker,
@@ -129,15 +130,15 @@ describe('support copy and leak checks', () => {
 
   it('keeps support OTP landing pages to the exact prompts and word bans', async () => {
     const testEnv = makeTestEnv();
-    const listBody = await supportLandingBody('/support', testEnv);
+    const listPrompt = supportSignInPrompt('/support');
     const detailBody = await supportLandingBody('/support/REQ_COPY', testEnv);
-    const accountMatches = listBody.match(/\baccount\b/gi) || [];
+    const accountMatches = listPrompt.match(/\baccount\b/gi) || [];
 
-    expect(listBody).toContain("sign in with your email to see your support. we'll send a 6-digit code — no password, no account to create.");
+    expect(listPrompt).toContain("sign in with your email to see your support. we'll send a 6-digit code — no password, no account to create.");
     expect(detailBody).toContain("sign in with your email to see request #REQ_COPY. we'll send a 6-digit code.");
     expect(accountMatches).toHaveLength(1);
     expect(detailBody).not.toMatch(/\baccount\b/i);
-    for (const body of [listBody, detailBody]) {
+    for (const body of [listPrompt, detailBody]) {
       expect(body).not.toMatch(/\bticket\b/i);
       expect(body).not.toMatch(/\bdashboard\b/i);
       expect(body).not.toMatch(/\blog in\b/i);

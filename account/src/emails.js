@@ -32,6 +32,7 @@ import {
   VERIFY_ERROR,
 } from './html.js';
 import { forbidden, isValidEmail, originAllowed } from './index.js';
+import { getValidSession } from './session.js';
 import {
   aaguidLabel,
   loadMenuContext,
@@ -241,11 +242,14 @@ export async function handleRemoveEmail(req, env, emailId) {
 }
 
 export async function handleTransparency(req, env) {
-  const guard = await requireSignedInSession(req, env);
-  if (guard instanceof Response) return guard;
+  const nowMs = Date.now();
+  const session = await getValidSession(req, env, nowMs);
+  if (!session) {
+    return signedInHtml(renderTransparency({ signedIn: false }));
+  }
 
-  const accountId = guard.session.account_id;
-  const menu = await loadMenuContext(env, accountId, guard.nowMs);
+  const accountId = session.account_id;
+  const menu = await loadMenuContext(env, accountId, nowMs);
   const [account, emailRows, passkeyRows, sessionRows] = await Promise.all([
     getAccountTransparencyRow(env.DB, accountId),
     listAccountEmails(env.DB, accountId),

@@ -27,7 +27,7 @@ import {
   renderSupportList,
   renderSupportNotFound,
 } from './html.js';
-import { forbidden, html, originAllowed } from './index.js';
+import { forbidden, html, originAllowed, redirect } from './index.js';
 import { getValidSession } from './session.js';
 import { loadMenuContext } from './settings.js';
 import { SUPPORT_ID_REGEX } from './support-constants.js';
@@ -51,10 +51,13 @@ export function supportSignInPrompt(path) {
 }
 
 export async function handleSupportList(req, env) {
-  const guard = await signedSupportSessionOrRedirect(req, env, '/support');
-  if (guard instanceof Response) return guard;
-  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
-  return renderSupportListForSession(env, guard.session, guard.nowMs, menu);
+  const nowMs = Date.now();
+  const session = await getValidSession(req, env, nowMs);
+  if (!session) {
+    return redirect('https://support.solstone.app', 302, NO_STORE);
+  }
+  const menu = await loadMenuContext(env, session.account_id, nowMs);
+  return renderSupportListForSession(env, session, nowMs, menu);
 }
 
 export async function handleSupportCreate(req, env) {

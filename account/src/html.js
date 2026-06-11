@@ -28,7 +28,9 @@ const IC_SUPPORT_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="
 const IC_SESSION_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.4 3-6 6.5-6s6.5 2.6 6.5 6"/></svg>';
 const IC_PASSKEY_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="14" r="3.4"/><path d="M10.6 11.4 19 3M16 6l2 2M14 8l1.6 1.6"/></svg>';
 const IC_EMAIL_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/></svg>';
+const IC_EMPTY_DATA_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="6.5" ry="3"/><path d="M5.5 6v8c0 1.7 2.9 3 6.5 3 .9 0 1.8-.1 2.6-.3"/><path d="M18.5 6v5.5"/><path d="M5.5 10c0 1.7 2.9 3 6.5 3 1.7 0 3.2-.3 4.4-.8"/><path d="M17 15l4 4M21 15l-4 4"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
+const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page — nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are — no analytics, no behavioral data, no third-party tracking. these aren't promises — they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
   return `<div class="brandbar">${MARK_SVG}<span class="wordmark">solstone</span></div>`;
@@ -125,7 +127,7 @@ ${errorHtml}
     ${resumeHtml}
     ${emailFieldHtml}
     <label for="code">6-digit code</label>
-    <input id="code" class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" placeholder="······" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
+    <input id="code" class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
     <button class="btn primary block" type="submit">verify</button>
   </form>
 </div>
@@ -469,6 +471,7 @@ ${errorHtml}
 // === transparency / data ===
 
 export function renderTransparency({
+  signedIn = true,
   accountId,
   accountCreatedAt,
   lastSigninAt,
@@ -477,6 +480,24 @@ export function renderTransparency({
   sessions,
   menu,
 }) {
+  if (!signedIn) {
+    return layout({
+      title: 'data transparency',
+      body: `${brandbar()}
+<h1>data transparency</h1>
+${TRANSPARENCY_INTRO}
+<div class="card">
+  <div class="empty">
+    ${IC_EMPTY_DATA_SVG}
+    <h2>we don't have anything about you</h2>
+    <p>sol pbc doesn't know who you are because you haven't signed in yet. without a sign-in, there's no row here for you.</p>
+    <a class="btn primary" href="/">sign in to manage your services</a>
+  </div>
+</div>
+<p class="disclosure">the structure is the commitment: what we hold for a sign-in appears here, and when we don't know you, there's nothing to list.</p>`,
+    });
+  }
+
   const emailHtml = emails.map((row) => `<div class="row" style="cursor:default"><div class="body">
   <div class="title">${esc(row.address)}${row.isPrimary ? ' <span class="pill on" style="margin-left:4px"><span class="dot"></span>primary</span>' : ''}</div>
   <div class="desc">${row.verifiedAt == null ? 'unverified' : 'verified'} · added ${esc(formatDate(row.createdAt))}</div>
@@ -501,7 +522,7 @@ export function renderTransparency({
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>data transparency</h1>
-<p class="intro">everything sol pbc holds for your sign-in is on this page — nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are — no analytics, no behavioral data, no third-party tracking. these aren't promises — they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>
+${TRANSPARENCY_INTRO}
 <p class="section-label">sign-in</p>
 <div class="group">
   <div class="row" style="cursor:default"><div class="body">

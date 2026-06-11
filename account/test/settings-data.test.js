@@ -94,6 +94,23 @@ describe('settings transparency data view', () => {
     expect(body).not.toContain("what we don't have");
   });
 
+  it('renders anonymous transparency without a signed-in menu', async () => {
+    const testEnv = makeTestEnv();
+
+    const response = await worker.fetch(settingsRequest('/transparency', { cookie: '' }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('<h1>data transparency</h1>');
+    expect(body).toContain('href="https://solpbc.org/articles#s8-3"');
+    expect(body).toContain('href="https://solpbc.org/bylaws#art-3"');
+    expect(body).toContain("we don't have anything about you");
+    expect(body).toContain('sign in to manage your services');
+    expect(body).toContain('class="brandbar"');
+    expect(body).toContain('href="/support"');
+    expect(body).not.toContain('signed in as');
+  });
+
   it('continues rendering when email or IP decrypt fails with scrubbed logs', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'ok@example.com', testEnv });

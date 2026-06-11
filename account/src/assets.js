@@ -227,7 +227,7 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 
 /* ---- forms ---- */
 label { display: block; font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 6px; }
-input[type=email], input[type=text], textarea, select {
+input[type=email], input[type=text], input.code, textarea, select {
   width: 100%; min-height: 46px; padding: 12px 13px;
   border: 1px solid var(--hairline-2); border-radius: var(--radius-sm);
   background: var(--cream-bright); font: inherit; color: var(--ink); margin-bottom: 14px;

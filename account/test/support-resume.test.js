@@ -49,14 +49,12 @@ describe('support resume and sign-in prompts', () => {
     await expect(verifyEnableResume(extraSegment.next, extraSegment.nextSig, testEnv)).resolves.toBeNull();
   });
 
-  it('shows the support-specific OTP prompt for signed-out /support', async () => {
+  it('redirects signed-out /support to the public support site', async () => {
     const testEnv = makeTestEnv();
-    const landing = await followSupportRedirect('/support', testEnv);
-    const body = await landing.text();
+    const response = await worker.fetch(new Request('https://services.solstone.app/support'), testEnv);
 
-    expect(landing.status).toBe(200);
-    expect(body).toContain("sign in with your email to see your support. we'll send a 6-digit code — no password, no account to create.");
-    expect(body).not.toMatch(/support[_-]?(nonce|token)|magic/i);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('https://support.solstone.app');
   });
 
   it('shows the request-specific OTP prompt for signed-out /support/{id}', async () => {
@@ -77,26 +75,25 @@ describe('support resume and sign-in prompts', () => {
     expect(body).not.toContain('bad.id');
   });
 
-  it('resumes to /support and /support/{id} after OTP verification from the signed-out route', async () => {
+  it('resumes to /support/{id} after OTP verification from the signed-out route', async () => {
     const testEnv = makeTestEnv();
-    for (const path of ['/support', '/support/REQ_1']) {
-      const first = await worker.fetch(new Request(`https://services.solstone.app${path}`), testEnv);
-      expect(first.status).toBe(303);
-      const location = new URL(first.headers.get('Location'), 'https://services.solstone.app');
-      const next = location.searchParams.get('next');
-      const nextSig = location.searchParams.get('next_sig');
-      const seeded = await seedOtp({ email: 'support-resume@example.com', options: { code: '123456' } });
+    const path = '/support/REQ_1';
+    const first = await worker.fetch(new Request(`https://services.solstone.app${path}`), testEnv);
+    expect(first.status).toBe(303);
+    const location = new URL(first.headers.get('Location'), 'https://services.solstone.app');
+    const next = location.searchParams.get('next');
+    const nextSig = location.searchParams.get('next_sig');
+    const seeded = await seedOtp({ email: 'support-resume@example.com', options: { code: '123456' } });
 
-      const response = await worker.fetch(verifyRequest({
-        email: 'support-resume@example.com',
-        code: seeded.code,
-        next,
-        nextSig,
-      }), testEnv);
+    const response = await worker.fetch(verifyRequest({
+      email: 'support-resume@example.com',
+      code: seeded.code,
+      next,
+      nextSig,
+    }), testEnv);
 
-      expect(response.status).toBe(303);
-      expect(response.headers.get('Location')).toBe(path);
-    }
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe(path);
   });
 });
 
