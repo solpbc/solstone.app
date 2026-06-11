@@ -127,7 +127,7 @@ ${errorHtml}
     ${resumeHtml}
     ${emailFieldHtml}
     <label for="code">6-digit code</label>
-    <input id="code" class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
+    <input id="code" class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
     <button class="btn primary block" type="submit">verify</button>
   </form>
 </div>
@@ -461,7 +461,7 @@ ${errorHtml}
   <form method="post" action="/sign-in/emails/verify">
     ${addressFieldHtml}
     <label for="code">6-digit code</label>
-    <input id="code" class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required maxlength="6" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
+    <input id="code" class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
     <button class="btn primary block" type="submit">verify</button>
   </form>
 </div>`,

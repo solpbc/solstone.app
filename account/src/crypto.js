@@ -102,7 +102,7 @@ export function timingSafeEqual(a, b) {
 }
 
 export function normalizeCode(input) {
-  return (input || '').replace(/\s+/g, '');
+  return (input || '').replace(/\D/g, '');
 }
 
 export function generateSessionToken() {

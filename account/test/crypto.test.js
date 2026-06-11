@@ -62,8 +62,11 @@ describe('crypto helpers', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it('normalizeCode strips whitespace', () => {
+  it('normalizeCode strips all non-digits', () => {
     expect(normalizeCode(' 123  456\n')).toBe('123456');
+    expect(normalizeCode('1 2 3 4 5 6')).toBe('123456');
+    expect(normalizeCode('code: 12-34-56')).toBe('123456');
+    expect(normalizeCode('code: 1 2-3 4_5 6')).toBe('123456');
   });
 
   it('timingSafeEqual returns true for equal strings', () => {
