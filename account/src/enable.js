@@ -13,9 +13,12 @@ import {
   findDeviceByPushKey,
   findServiceHandoffStatus,
   getAccountTransparencyRow,
+  getScoutApplicationByAccount,
   insertDevice,
   insertServiceHandoff,
   revokeDevicePriorAndInsertNew,
+  setScoutApplicationDataAcked,
+  upsertScoutApplicationPending,
 } from './db.js';
 import {
   BUNDLE_ID_REGEX,
@@ -32,6 +35,8 @@ import {
   renderEnableScoutConsent,
   renderEnableScoutDone,
   renderEnableScoutError,
+  renderEnableScoutPendingDone,
+  renderEnableScoutRevokedDone,
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
@@ -41,6 +46,7 @@ const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
 const ENABLE_PATH = '/enable/scout';
 const ENABLE_PUSH_PATH = '/enable/push';
+const MAX_USE_CASE_LEN = 2000;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const RESUME_PATH_WHITELIST = new Map([
@@ -179,29 +185,58 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
     return redirect(`${ENABLE_PATH}?nonce=${source.nonce}`, 303, { 'Cache-Control': 'no-store' });
   }
 
-  const handoffHash = await hashServiceHandoffNonce(source.nonce, env);
-
-  let provisioned;
-  try {
-    provisioned = await provisionScoutForAccount({ env, accountId: session.account_id, ctx });
-  } catch (error) {
-    if (error instanceof ProvisioningBusyError) {
-      return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), {
-        status: 503,
-        headers: { 'Retry-After': '2' },
-      });
-    }
-    return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), { status: 503 });
+  const dataAck = form.get('data_ack')?.toString();
+  if (!dataAck) {
+    return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 400 });
   }
 
-  const payload = { ...provisioned };
+  const rawUseCase = form.get('use_case')?.toString() || '';
+  const trimmedUseCase = rawUseCase.trim();
+  const useCase = trimmedUseCase ? trimmedUseCase.slice(0, MAX_USE_CASE_LEN) : null;
+  const accountId = session.account_id;
   const nowMs = Date.now();
+  const handoffHash = await hashServiceHandoffNonce(source.nonce, env);
+  const app = await getScoutApplicationByAccount(env.DB, { accountId });
+
+  // Handoff payload contract:
+  // { state: 'pending', account_id, since: <applied_at_ms> }
+  // { state: 'approved', google_api_key, dispatch_token, account_id, created_at }
+  // { state: 'revoked', account_id }
+  // Approved retains today's google_api_key field and dispatch-token created_at ISO string.
+  let state;
+  let payload;
+  if (!app || app.status === 'pending') {
+    await upsertScoutApplicationPending(env.DB, { accountId, useCase, dataAckedAt: nowMs, nowMs });
+    const row = await getScoutApplicationByAccount(env.DB, { accountId });
+    state = 'pending';
+    payload = { state, account_id: accountId, since: row.applied_at };
+  } else if (app.status === 'approved') {
+    await setScoutApplicationDataAcked(env.DB, { accountId, nowMs });
+    let provisioned;
+    try {
+      provisioned = await provisionScoutForAccount({ env, accountId, ctx });
+    } catch (error) {
+      if (error instanceof ProvisioningBusyError) {
+        return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), {
+          status: 503,
+          headers: { 'Retry-After': '2' },
+        });
+      }
+      return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), { status: 503 });
+    }
+
+    state = 'approved';
+    payload = { state, ...provisioned };
+  } else {
+    state = 'revoked';
+    payload = { state, account_id: accountId };
+  }
+
   const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
-  let inserted;
   try {
-    inserted = await insertServiceHandoff(env.DB, {
+    await insertServiceHandoff(env.DB, {
       handoffHash,
-      accountId: session.account_id,
+      accountId,
       service: 'scout',
       payloadEncrypted,
       createdAt: nowMs,
@@ -211,11 +246,12 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
     return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), { status: 503 });
   }
 
-  if (!inserted.ok) {
-    return noStoreHtml(renderEnableScoutDone());
-  }
-
-  return noStoreHtml(renderEnableScoutDone());
+  const done = {
+    pending: renderEnableScoutPendingDone,
+    approved: renderEnableScoutDone,
+    revoked: renderEnableScoutRevokedDone,
+  }[state];
+  return noStoreHtml(done());
 }
 
 export async function handleEnablePushGet(req, env) {

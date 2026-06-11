@@ -855,6 +855,36 @@ export async function upsertScoutApplicationApproved(db, { accountId, nowMs }) {
     .run();
 }
 
+export async function upsertScoutApplicationPending(db, { accountId, useCase, dataAckedAt, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO scout_applications
+         (account_id, status, use_case, data_acked_at, applied_at, created_at, updated_at)
+       VALUES (?, 'pending', ?, ?, ?, ?, ?)
+       ON CONFLICT(account_id) DO UPDATE SET
+         use_case = COALESCE(excluded.use_case, scout_applications.use_case),
+         data_acked_at = excluded.data_acked_at,
+         updated_at = excluded.updated_at
+       WHERE scout_applications.status = 'pending'`
+    )
+    .bind(accountId, useCase, dataAckedAt, nowMs, nowMs, nowMs)
+    .run();
+}
+
+export async function setScoutApplicationDataAcked(db, { accountId, nowMs }) {
+  await db
+    .prepare(
+      `UPDATE scout_applications
+       SET data_acked_at = ?,
+           updated_at = ?
+       WHERE account_id = ?
+         AND status = 'approved'
+         AND data_acked_at IS NULL`
+    )
+    .bind(nowMs, nowMs, accountId)
+    .run();
+}
+
 export async function insertGeminiRevealAck(db, { accountId, ackedAt }) {
   await db
     .prepare(

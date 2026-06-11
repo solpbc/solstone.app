@@ -177,6 +177,13 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="account_id" value="${escAttr(accountId)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
+    <p class="gd" style="margin:16px 0 12px">your questions to solstone scout go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.</p>
+    <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--ink)">
+      <input type="checkbox" name="data_ack" value="yes" required style="width:auto;min-height:0;margin:0">
+      <span>i understand</span>
+    </label>
+    <label for="use-case">what would you like to use it for? (optional)</label>
+    <textarea id="use-case" name="use_case" maxlength="2000"></textarea>
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
       <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
@@ -195,6 +202,30 @@ export function renderEnableScoutDone() {
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone scout enabled</h2>
   <p>sol pbc set up a Gemini key for you and put it on this machine — you never had to touch it, and nothing from your journal crossed to set it up. you can close this tab.</p>
   <a class="btn secondary" href="/scout">manage solstone scout</a>
+</div>`,
+  });
+}
+
+export function renderEnableScoutPendingDone() {
+  return layout({
+    title: 'solstone scout request received',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone scout request received</h2>
+  <p>solstone scout is invite-only right now, and your request is under review. nothing was set up yet, and nothing from your journal crossed.</p>
+  <p>once approved, you'll be able to enable solstone scout from your services.</p>
+  <a class="btn secondary" href="/">open your services</a>
+</div>`,
+  });
+}
+
+export function renderEnableScoutRevokedDone() {
+  return layout({
+    title: "solstone scout isn't available",
+    body: `${brandbar()}
+<div class="card">
+  <h2>solstone scout isn't available</h2>
+  <p>solstone scout isn't available for this sign-in. nothing was set up.</p>
 </div>`,
   });
 }
