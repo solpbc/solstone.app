@@ -8,6 +8,7 @@ import {
   approveScout,
   revokeScout,
   preApproveScout,
+  looksLikeEmail,
   setGeminiKey,
   listFeedback,
   listNews,
@@ -97,6 +98,9 @@ export async function handleAdmin(request, env, path) {
     const didOrHandle = body.did_or_handle;
     if (!didOrHandle) {
       return json({ error: 'did_or_handle required' }, 400);
+    }
+    if (!looksLikeEmail(didOrHandle)) {
+      return json({ error: 'scouts are email-only — pass an email address' }, 400);
     }
     const did = await preApproveScout(db, didOrHandle);
     return json({ ok: true, did, action: 'pre-approved' });

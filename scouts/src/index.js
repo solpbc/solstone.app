@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 sol pbc
 
-import { getClientMetadata, startLogin, handleCallback, cleanupOAuthState } from './oauth.js';
 import {
   createSession,
   getSession,
   deleteSession,
-  upsertAtprotoScout,
   upsertEmailScout,
   applyEmailScout,
   findScoutByEmailLower,
@@ -169,68 +167,12 @@ export default {
     try {
       // --- Public routes ---
 
-      // Client metadata (AT Protocol OAuth discovery)
-      if (path === '/client-metadata.json') {
-        return new Response(JSON.stringify(getClientMetadata()), {
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            ...SECURITY_HEADERS,
-          },
-        });
-      }
-
       // Landing page
       if (path === '/' && method === 'GET') {
         // If already logged in, redirect to dashboard
         const session = await getSession(db, getSessionId(request));
         if (session) return redirect('/dashboard');
-        return html(renderLanding());
-      }
-
-      // Start OAuth login
-      if (path === '/login' && method === 'POST') {
-        const form = await request.formData();
-        const handle = form.get('handle')?.toString().trim();
-        if (!handle) {
-          return html(renderLanding('please enter your handle'), 400);
-        }
-        try {
-          const authUrl = await startLogin(handle, db);
-          return redirect(authUrl);
-        } catch (err) {
-          return html(
-            renderLanding(`sign-in failed — ${err.message}. try again in a moment.`),
-            400
-          );
-        }
-      }
-
-      // OAuth callback
-      if (path === '/callback' && method === 'GET') {
-        const code = url.searchParams.get('code');
-        const state = url.searchParams.get('state');
-        const error = url.searchParams.get('error');
-
-        if (error) {
-          const desc = url.searchParams.get('error_description') || error;
-          return html(renderError(`authorization failed: ${desc}`), 400);
-        }
-
-        if (!code || !state) {
-          return html(renderError('missing authorization code or state'), 400);
-        }
-
-        try {
-          const { did, handle, email } = await handleCallback(code, state, db);
-          const scout = await upsertAtprotoScout(db, did, handle, email);
-          const session = await createSession(db, scout.id);
-          return redirect('/dashboard', {
-            'Set-Cookie': sessionCookie(session.id),
-          });
-        } catch (err) {
-          return html(renderError(`sign-in failed: ${err.message}`), 500);
-        }
+        return html(renderLanding(null, { emailDisabled: env.EMAIL_PATH_DISABLED === 'true' }));
       }
 
       // --- Email + OTP path ---
@@ -609,12 +551,11 @@ export default {
     }
   },
 
-  // Scheduled cleanup — sessions, OAuth state, OTP, rate buckets, expirations
+  // Scheduled cleanup — sessions, OTP, rate buckets, expirations
   async scheduled(event, env) {
     const db = env.DB;
     await Promise.all([
       db.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run(),
-      cleanupOAuthState(db),
       cleanupExpiredOtp(db),
       cleanupOldRateBuckets(db),
       expireStaleApplications(db),

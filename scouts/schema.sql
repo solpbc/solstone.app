@@ -3,7 +3,7 @@
 -- for the atproto → atproto+email identity refactor (2026-05-05).
 
 CREATE TABLE IF NOT EXISTS scouts (
-  id              TEXT PRIMARY KEY,                       -- 'did:...' or 'email-<uuid>' or 'pending:<handle>' or 'pending-email:<email_lower>'
+  id              TEXT PRIMARY KEY,                       -- 'did:...' (historical), 'email-<uuid>', or 'pending-email:<email_lower>'
   auth_kind       TEXT NOT NULL CHECK(auth_kind IN ('atproto','email')),
   did             TEXT,                                   -- only set when auth_kind='atproto'
   handle          TEXT,
@@ -42,16 +42,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   scout_id TEXT NOT NULL,
   expires_at TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS oauth_state (
-  state TEXT PRIMARY KEY,
-  code_verifier TEXT NOT NULL,
-  dpop_private_key TEXT NOT NULL,
-  authorization_server TEXT NOT NULL,
-  redirect_uri TEXT NOT NULL,
-  did TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -102,7 +92,6 @@ CREATE INDEX IF NOT EXISTS idx_scouts_status ON scouts(status);
 CREATE INDEX IF NOT EXISTS idx_feedback_scout ON feedback(scout_did);
 CREATE INDEX IF NOT EXISTS idx_news_posted ON news(posted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
-CREATE INDEX IF NOT EXISTS idx_oauth_state_created ON oauth_state(created_at);
 CREATE INDEX IF NOT EXISTS idx_otp_expires ON otp_tokens(expires_at);
 CREATE INDEX IF NOT EXISTS idx_rate_buckets_window ON rate_buckets(window_start);
 CREATE INDEX IF NOT EXISTS idx_passkey_credentials_scout

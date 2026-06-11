@@ -35,146 +35,17 @@ export async function cleanupExpiredSessions(db) {
 // --- Scout operations ---
 //
 // Scout id schemes:
-//   - atproto:       id = did (e.g. 'did:plc:abc123')
+//   - atproto:       id = did (e.g. 'did:plc:abc123') — historical rows only
 //   - email:         id = 'email-<uuid>' (set on first verify)
-//   - pre-approved:  id = 'pending:<handle>' or 'pending-email:<email_lower>'
+//   - pre-approved:  id = 'pending-email:<email_lower>'
 
-function isEmailLowerUniqueViolation(error) {
-  return (
-    typeof error?.message === 'string' &&
-    error.message.includes('UNIQUE constraint failed: scouts.email_lower')
-  );
-}
-
-// An atproto handle is a DNS-style name and a DID starts with 'did:'; neither
-// ever contains '@'. So an identifier that looks like an email address is a
-// distinct identity kind and must never be stored as an atproto handle.
-// Mirrors isValidEmail() in index.js.
-function looksLikeEmail(s) {
+// True if s is an email address. Mirrors isValidEmail() in index.js.
+export function looksLikeEmail(s) {
   return (
     typeof s === 'string' &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) &&
     s.length <= 254
   );
-}
-
-export async function upsertAtprotoScout(db, did, handle, email = null) {
-  let emailLower = email ? email.trim().toLowerCase() : null;
-  let emailToStore = email ? email.trim() : null;
-  if (!emailLower) {
-    emailLower = null;
-    emailToStore = null;
-  }
-
-  // If scout already exists by id (= did), update handle.
-  const existing = await db
-    .prepare("SELECT * FROM scouts WHERE id = ? AND auth_kind = 'atproto'")
-    .bind(did)
-    .first();
-  if (existing) {
-    // Captured OAuth email is opportunistic; never overwrite a scout email.
-    if (existing.email_lower != null || emailLower === null) {
-      await db
-        .prepare('UPDATE scouts SET handle = ? WHERE id = ?')
-        .bind(handle, did)
-        .run();
-      return { ...existing, handle };
-    }
-
-    const emailCollision = await findScoutByEmailLower(db, emailLower);
-    if (emailCollision && emailCollision.id !== existing.id) {
-      await db
-        .prepare('UPDATE scouts SET handle = ? WHERE id = ?')
-        .bind(handle, did)
-        .run();
-      return { ...existing, handle };
-    }
-
-    try {
-      await db
-        .prepare('UPDATE scouts SET handle = ?, email = ?, email_lower = ? WHERE id = ?')
-        .bind(handle, emailToStore, emailLower, did)
-        .run();
-      return { ...existing, handle };
-    } catch (error) {
-      if (!isEmailLowerUniqueViolation(error)) throw error;
-      await db
-        .prepare('UPDATE scouts SET handle = ? WHERE id = ?')
-        .bind(handle, did)
-        .run();
-    }
-    return { ...existing, handle };
-  }
-  // Check for a pre-approved record by handle (stored with pending: id prefix).
-  // If found, upgrade it to the real DID so the scout inherits the pre-approval.
-  const preApproved = await db
-    .prepare("SELECT * FROM scouts WHERE handle = ? AND id LIKE 'pending:%'")
-    .bind(handle)
-    .first();
-  if (preApproved) {
-    if (emailLower === null) {
-      await db
-        .prepare('UPDATE scouts SET id = ?, did = ?, handle = ? WHERE id = ?')
-        .bind(did, did, handle, preApproved.id)
-        .run();
-      return { ...preApproved, id: did, did, handle };
-    }
-
-    const emailCollision = await findScoutByEmailLower(db, emailLower);
-    if (emailCollision && emailCollision.id !== preApproved.id) {
-      await db
-        .prepare('UPDATE scouts SET id = ?, did = ?, handle = ? WHERE id = ?')
-        .bind(did, did, handle, preApproved.id)
-        .run();
-      return { ...preApproved, id: did, did, handle };
-    }
-
-    try {
-      await db
-        .prepare('UPDATE scouts SET id = ?, did = ?, handle = ?, email = ?, email_lower = ? WHERE id = ?')
-        .bind(did, did, handle, emailToStore, emailLower, preApproved.id)
-        .run();
-      return { ...preApproved, id: did, did, handle };
-    } catch (error) {
-      if (!isEmailLowerUniqueViolation(error)) throw error;
-      await db
-        .prepare('UPDATE scouts SET id = ?, did = ?, handle = ? WHERE id = ?')
-        .bind(did, did, handle, preApproved.id)
-        .run();
-    }
-    return { ...preApproved, id: did, did, handle };
-  }
-  if (emailLower === null) {
-    await db
-      .prepare("INSERT INTO scouts (id, auth_kind, did, handle, status) VALUES (?, 'atproto', ?, ?, 'unknown')")
-      .bind(did, did, handle)
-      .run();
-    return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
-  }
-
-  const emailCollision = await findScoutByEmailLower(db, emailLower);
-  if (emailCollision) {
-    await db
-      .prepare("INSERT INTO scouts (id, auth_kind, did, handle, status) VALUES (?, 'atproto', ?, ?, 'unknown')")
-      .bind(did, did, handle)
-      .run();
-    return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
-  }
-
-  try {
-    await db
-      .prepare("INSERT INTO scouts (id, auth_kind, did, handle, email, email_lower, status) VALUES (?, 'atproto', ?, ?, ?, ?, 'unknown')")
-      .bind(did, did, handle, emailToStore, emailLower)
-      .run();
-    return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
-  } catch (error) {
-    if (!isEmailLowerUniqueViolation(error)) throw error;
-    await db
-      .prepare("INSERT INTO scouts (id, auth_kind, did, handle, status) VALUES (?, 'atproto', ?, ?, 'unknown')")
-      .bind(did, did, handle)
-      .run();
-    return { id: did, auth_kind: 'atproto', did, handle, status: 'unknown' };
-  }
 }
 
 export async function getScout(db, id) {
@@ -207,40 +78,17 @@ export async function revokeScout(db, id) {
 }
 
 export async function preApproveScout(db, didOrHandle) {
+  if (!looksLikeEmail(didOrHandle)) {
+    throw new Error('preApproveScout requires an email address');
+  }
   // Email address → the email-auth pre-approval lane. The contractor signs in
   // with their email (OTP/passkey), and upsertEmailScout already upgrades a
   // 'pending-email:<email_lower>' row to a real 'email-<uuid>' id, inheriting
   // the approved status and the provisioned Gemini key. Routing here is what
   // makes operator-provision and contractor-email-sign-in converge on one
-  // record. (Previously an email string was stored as an atproto handle on a
-  // 'pending:<handle>' row that the email sign-in path could never join —
-  // stranding the key. CSO req_6d2ejzzg / VPE req_dcmfz3lc.)
-  if (looksLikeEmail(didOrHandle)) {
-    const emailLower = didOrHandle.trim().toLowerCase();
-    const existing = await findScoutByEmailLower(db, emailLower);
-    if (existing) {
-      await db
-        .prepare(
-          "UPDATE scouts SET status = 'approved', approved_at = datetime('now') WHERE id = ?"
-        )
-        .bind(existing.id)
-        .run();
-      return existing.id;
-    }
-    const id = `pending-email:${emailLower}`;
-    await db
-      .prepare(
-        "INSERT INTO scouts (id, auth_kind, email, email_lower, status, approved_at) VALUES (?, 'email', ?, ?, 'approved', datetime('now'))"
-      )
-      .bind(id, emailLower, emailLower)
-      .run();
-    return id;
-  }
-  // Check if already exists by id (which equals did for atproto rows) or by handle.
-  const existing = await db
-    .prepare('SELECT * FROM scouts WHERE id = ? OR handle = ?')
-    .bind(didOrHandle, didOrHandle)
-    .first();
+  // record. CSO req_6d2ejzzg / VPE req_dcmfz3lc.
+  const emailLower = didOrHandle.trim().toLowerCase();
+  const existing = await findScoutByEmailLower(db, emailLower);
   if (existing) {
     await db
       .prepare(
@@ -250,16 +98,12 @@ export async function preApproveScout(db, didOrHandle) {
       .run();
     return existing.id;
   }
-  // Create new pre-approved atproto scout (DID or handle as placeholder).
-  const isDid = didOrHandle.startsWith('did:');
-  const id = isDid ? didOrHandle : `pending:${didOrHandle}`;
-  const did = isDid ? didOrHandle : null;
-  const handle = didOrHandle;
+  const id = `pending-email:${emailLower}`;
   await db
     .prepare(
-      "INSERT INTO scouts (id, auth_kind, did, handle, status, approved_at) VALUES (?, 'atproto', ?, ?, 'approved', datetime('now'))"
+      "INSERT INTO scouts (id, auth_kind, email, email_lower, status, approved_at) VALUES (?, 'email', ?, ?, 'approved', datetime('now'))"
     )
-    .bind(id, did, handle)
+    .bind(id, emailLower, emailLower)
     .run();
   return id;
 }
@@ -304,9 +148,9 @@ export async function findScoutByEmailLower(db, emailLower) {
     .first();
 }
 
-// Upsert an email scout on first OTP verify. Three branches mirror the atproto
-// helper: existing email row → return; pre-approved (id LIKE 'pending-email:...')
-// → upgrade to a real id; new → INSERT with status='unknown'.
+// Upsert an email scout on first OTP verify: existing email row → return;
+// pre-approved (id LIKE 'pending-email:...') → upgrade to a real id; new →
+// INSERT with status='unknown'.
 export async function upsertEmailScout(db, emailLower) {
   const existing = await findScoutByEmailLower(db, emailLower);
   if (existing) {
@@ -566,7 +410,7 @@ export async function submitFeedback(db, scoutDid, category, body) {
 export async function listFeedback(db) {
   const { results } = await db
     .prepare(
-      'SELECT f.*, s.handle FROM feedback f JOIN scouts s ON f.scout_did = s.did ORDER BY f.created_at DESC'
+      'SELECT f.*, s.handle, s.email FROM feedback f JOIN scouts s ON f.scout_did = s.id ORDER BY f.created_at DESC'
     )
     .all();
   return results;

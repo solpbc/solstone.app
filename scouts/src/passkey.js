@@ -36,7 +36,7 @@ const RP_NAME = 'solstone';
 const EXPECTED_ORIGIN = 'https://scouts.solstone.app';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;       // 5 minutes
-const SESSION_MAX_AGE = 14 * 24 * 60 * 60;    // 2 weeks (matches OAuth + OTP paths)
+const SESSION_MAX_AGE = 14 * 24 * 60 * 60;    // 2 weeks (matches OTP path)
 
 // Rate limits — D1 rate_buckets, same substrate as the OTP path.
 const REGISTER_PER_SCOUT_PER_HOUR = 5;

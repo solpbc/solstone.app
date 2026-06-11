@@ -375,7 +375,7 @@ const PASSKEY_CLIENT_SCRIPT = `<script>
         dismiss();
         window.location.reload();
       } catch (e) {
-        errEl.textContent = "couldn't add a passkey. try again, or use email / bluesky as usual.";
+        errEl.textContent = "couldn't add a passkey. try again, or use email as usual.";
         addBtn.disabled = false;
         skipBtn.disabled = false;
       }
@@ -429,19 +429,12 @@ export function renderLanding(error, opts = {}) {
   const landingStyles = `<style>
     body { display: flex; align-items: center; justify-content: center; }
     .container { text-align: center; }
-    .container form { text-align: left; }
     .container .btn { width: 100%; display: block; }
-    .or-rule { display: flex; align-items: center; margin: 1.5rem 0; color: #999; font-size: 0.8rem; }
-    .or-rule::before, .or-rule::after { content: ""; flex: 1; border-bottom: 1px solid #eee; }
-    .or-rule::before { margin-right: 0.75rem; }
-    .or-rule::after { margin-left: 0.75rem; }
-    .email-link { display: block; padding: 0.6rem; border: 1px solid #E8923A; color: #E8923A; text-align: center; border-radius: 8px; text-decoration: none; font-size: 0.95rem; }
-    .email-link:hover { background: #FBF6F0; }
   </style>`;
-  const emailBlock = emailDisabled
-    ? ''
-    : `<div class="or-rule">or</div>
-  <a href="/email" class="email-link">continue with email</a>
+  const accessHtml = emailDisabled
+    ? '<p style="font-size:0.9rem; color:#555;">sign-in is temporarily unavailable — check back shortly.</p>'
+    : `<p style="font-size:0.9rem; color:#555;">apply or sign back in below — we'll know if you've been here before.</p>
+  <a href="/email" class="btn">continue with email</a>
   <p style="font-size:0.8rem; color:#767676; margin-top:0.5rem;">we'll send you a 6-digit code.</p>`;
   return layout(
     'solstone scouts',
@@ -449,15 +442,8 @@ export function renderLanding(error, opts = {}) {
   <div class="logo" style="margin:0 auto;">${SOL_WORDMARK}</div>
   <h1>⛺ join the scouts</h1>
   <p>help shape what comes next. solstone is in alpha and we're inviting people in by hand.</p>
-  <p style="font-size:0.9rem; color:#555;">apply or sign back in below — we'll know if you've been here before.</p>
+  ${accessHtml}
   ${errorHtml}
-  <form method="POST" action="/login" style="margin-top: 1.5rem;">
-    <label for="handle">your atmosphere handle</label>
-    <input type="text" id="handle" name="handle" placeholder="yourname.bsky.social" required>
-    <button type="submit" class="btn">continue with atmosphere</button>
-  </form>
-  <p style="font-size:0.8rem; color:#767676; margin-top:0.75rem;">if you're on bluesky, you already have one — it runs on the atmosphere network. don't have one? <a href="https://bsky.app">create one at bsky.app</a> — takes 30 seconds.</p>
-  ${emailBlock}
   <p style="font-size:0.8rem; color:#767676; margin-top:1.5rem;">no analytics, no tracking, no third parties</p>
   <footer>
     <p>solstone scouts is a program by <a href="https://solpbc.org">sol pbc</a>. <a href="https://solpbc.org/articles">read our covenants</a>.</p>
@@ -812,4 +798,3 @@ function renderNewsFeed(news) {
     .join('');
   return `<h2>news</h2>${items}`;
 }
-
