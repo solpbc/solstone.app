@@ -56,6 +56,8 @@ describe('settings gemini dashboard', () => {
     expect(firstBody).not.toContain('plaintext-current-key');
     expect(firstBody).toContain('action="/services/scout/ack"');
     expect(firstBody).not.toContain('action="/services/scout/reveal"');
+    expect(firstBody).toContain('<span class="pill on" style="margin-left:4px"><span class="dot"></span>active</span>');
+    expect(firstBody).not.toContain('<div class="meta">active</div>');
 
     const ack = await worker.fetch(settingsPost('/services/scout/ack', { cookie: session.cookie }), testEnv);
     expect(ack.status).toBe(303);

@@ -17,8 +17,7 @@ const SUPPORT_AUTHOR_LABELS = {
   agent: 'your solstone keeper',
   anonymous: 'you (via the form)',
 };
-const MARK_SVG = '<svg class="mark" viewBox="0 0 24 24" fill="none" stroke="#E8923A" stroke-width="1.6"><circle cx="12" cy="12" r="4.2" fill="#E8923A" stroke="none"/><g stroke-linecap="round"><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/></g></svg>';
-const UMBRELLA_MARK_SVG = '<svg class="mark" viewBox="0 0 24 24" fill="none" stroke="#E8923A" stroke-width="1.6"><circle cx="12" cy="12" r="4" fill="#E8923A" stroke="none"/><g stroke-linecap="round"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M18.5 5.5l-1.4 1.4M6.9 17.1l-1.4 1.4"/></g></svg>';
+const MARK_SVG = '<svg class="mark" viewBox="2.5 2.5 27 27" role="img" aria-label="solstone"><path fill="#F5C740" d="M16.0 2.5 L18.6 7.3 A9.1 9.1 0 0 0 13.4 7.3 Z M23.9 5.1 L23.2 10.5 A9.1 9.1 0 0 0 19.0 7.4 Z M28.8 11.8 L25.1 15.8 A9.1 9.1 0 0 0 23.5 10.9 Z M28.8 20.2 L23.5 21.1 A9.1 9.1 0 0 0 25.1 16.2 Z M23.9 26.9 L19.0 24.6 A9.1 9.1 0 0 0 23.2 21.5 Z M16.0 29.5 L13.4 24.7 A9.1 9.1 0 0 0 18.6 24.7 Z M8.1 26.9 L8.8 21.5 A9.1 9.1 0 0 0 13.0 24.6 Z M3.2 20.2 L6.9 16.2 A9.1 9.1 0 0 0 8.5 21.1 Z M3.2 11.8 L8.5 10.9 A9.1 9.1 0 0 0 6.9 15.8 Z M8.1 5.1 L13.0 7.4 A9.1 9.1 0 0 0 8.8 10.5 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8923A" stroke-width="1.7"/></svg>';
 const CHEVRON_SVG = '<svg class="chevron" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"/></svg>';
 const CARET_SVG = '<svg class="caret" viewBox="0 0 11 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4.5 4.5L10 1"/></svg>';
 const EXT_SVG = '<svg class="ext" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l6-6M5 3h4v4"/></svg>';
@@ -296,15 +295,12 @@ export function renderServicesDashboard({ welcome, email, lastSignInAt, now, dec
   <div id="passkey-enroll-error" class="error" hidden></div>
 </div>`
     : '';
-  const enableHint = !scoutActive && deviceCount === 0
-    ? '<div class="notice" style="margin-top:16px">turn a service on from solstone on your device — run <strong>journal services enable scout</strong>, or use the button in the setup wizard. it opens this page to confirm.</div>'
-    : '';
   return layout({
     title: 'your services',
     body: `${topbar({ email, lastSignInAt, now })}
 <h1>your services</h1>
 ${notice}
-<div class="umbrella">${UMBRELLA_MARK_SVG}<p><strong>solstone runs on your machine.</strong> these services are optional — turn them on when they help, turn them off whenever you want. nothing here is required to use solstone.</p></div>
+<p class="intro"><strong>solstone runs on your machine.</strong> these services are optional — turn them on when they help, turn them off whenever you want. nothing here is required to use solstone.</p>
 ${welcomePanel}
 <div class="group">
   <a class="row" href="/services/scout">
@@ -332,7 +328,6 @@ ${welcomePanel}
     <div class="trail">${CHEVRON_SVG}</div>
   </a>
 </div>
-${enableHint}
 <footer class="footer"><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a></footer>`,
     afterMain: welcome ? `<script>${ENROLL_JS}</script>` : '',
   });
@@ -563,7 +558,16 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '' }) {
 </form></div>`
     : '';
   const notice = disableFlash === 'ok' ? '<p class="notice">push turned off for every device.</p>' : '';
-  const emptyState = devices.length === 0 ? '<p class="empty">no devices registered.</p>' : '';
+  const emptyState = devices.length === 0
+    ? `<div class="group">
+  <div class="empty">
+    ${IC_PUSH_SVG}
+    <h2>push isn't on yet</h2>
+    <p>turn it on from solstone on your device — it opens this page so you can confirm, then sol can reach your other devices.</p>
+    <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable push</strong> — or turn it on from the solstone app.</div>
+  </div>
+</div>`
+    : '';
   const rowHtml = devices.map((row) => {
     const label = row.device_label || 'unnamed device';
     const appVersion = row.app_version || '—';
@@ -685,7 +689,6 @@ ${activeControls}`
     <input type="hidden" name="key_id" value="${escAttr(row.id)}">
     <button class="btn danger" type="submit">forget</button>
   </form></div>`;
-    const status = isActive ? 'active' : 'rotated out';
     const pill = isActive
       ? '<span class="pill on" style="margin-left:4px"><span class="dot"></span>active</span>'
       : '<span class="pill off" style="margin-left:4px"><span class="dot"></span>rotated out</span>';
@@ -694,7 +697,6 @@ ${activeControls}`
   <div class="body">
     <div class="title">${esc(row.display_name)} ${pill}</div>
     <div class="desc">set up ${esc(formatDate(row.created_at))} · last used ${esc(geminiLastUsedText(row, nowMs))}${retired}</div>
-    <div class="meta">${status}</div>
   </div>
   ${forget}
 </div>`;

@@ -151,18 +151,9 @@ a:hover { text-decoration: underline; }
 .signed-in { color: var(--ink-faint); font-size: 0.9rem; margin: 0; }
 .signed-in strong { color: var(--ink-soft); font-weight: 600; }
 
-/* ---- the umbrella / optionality card — load-bearing trust statement ---- */
-.umbrella {
-  display: flex; gap: 13px; align-items: flex-start;
-  background: var(--cream-bright);
-  border: 1px solid var(--hairline-2);
-  border-left: 3px solid var(--orange);
-  border-radius: var(--radius);
-  padding: 16px 18px; margin: 0 0 26px;
-}
-.umbrella .mark { width: 22px; height: 22px; flex: none; margin-top: 2px; }
-.umbrella p { margin: 0; color: var(--ink-soft); font-size: 0.94rem; line-height: 1.5; }
-.umbrella strong { color: var(--ink); font-weight: 600; }
+/* ---- optionality intro prose ---- */
+.intro { max-width: 60ch; margin: 6px 0 28px; color: var(--ink-soft); font-size: 1.02rem; line-height: 1.6; }
+.intro strong { color: var(--ink); font-weight: 600; }
 
 /* ---- grouped list (iCloud-pane register) ---- */
 .group {
