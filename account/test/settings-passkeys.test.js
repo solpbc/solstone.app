@@ -80,7 +80,7 @@ describe('settings passkeys', () => {
 
     expect(response.status).toBe(303);
     expect(row.friendly_name).toBe('<script>alert(1)</script>foo');
-    expect(body).toContain('<h2>&lt;script&gt;alert(1)&lt;/script&gt;foo</h2>');
+    expect(body).toContain('<div class="title">&lt;script&gt;alert(1)&lt;/script&gt;foo</div>');
     expect(body).toContain('value="&lt;script&gt;alert(1)&lt;/script&gt;foo"');
     expect(body).toContain('&lt;script&gt;alert(1)&lt;/script&gt;foo');
     expect(body).not.toContain('<script>alert(1)</script>foo');

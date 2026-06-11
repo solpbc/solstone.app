@@ -90,7 +90,7 @@ describe('/enable/scout', () => {
 
       expect(confirm.status).toBe(200);
       expect(confirm.headers.get('Cache-Control')).toBe('no-store');
-      expect(await confirm.text()).toContain('you\'ve enabled solstone scout');
+      expect(await confirm.text()).toContain('solstone scout enabled');
       await expect(rowCount('service_handoffs')).resolves.toBe(1);
       expect(handoff.status).toBe(200);
       expect(handoff.headers.get('Cache-Control')).toBe('no-store');

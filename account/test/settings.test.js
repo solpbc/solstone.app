@@ -28,8 +28,9 @@ describe('settings sessions', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('1 active session');
-    expect(body).toContain('1 passkey');
+    expect(body).toContain('<span class="meta" style="margin:0">1 active</span>');
+    expect(body).toContain('<div class="title">passkeys</div>');
+    expect(body).toContain('<span class="meta" style="margin:0">1</span>');
     expect(body).toContain('action="/signout"');
     expect(body).toContain('href="/"');
   });
@@ -50,7 +51,7 @@ describe('settings sessions', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('safari on macos');
     expect(body).toContain('73.225.42.x');
-    expect(body).toContain('<span class="sticker">current</span>');
+    expect(body).toContain('<span class="pill on" style="margin-left:4px"><span class="dot"></span>this device</span>');
     expect(body).not.toContain(`${session.idHash}/revoke`);
   });
 

@@ -36,10 +36,10 @@ describe('settings emails list and add flow', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('1 active session');
-    expect(body).toContain('1 passkey');
+    expect(body).toContain('<span class="meta" style="margin:0">1 active</span>');
+    expect(body).toContain('<div class="title">passkeys</div>');
     expect(body).toContain('href="/sign-in/emails"');
-    expect(body).toContain('2 emails');
+    expect(body).toContain('<span class="meta" style="margin:0">2</span>');
     expect(body).toContain('href="/sign-in/data"');
   });
 
@@ -519,8 +519,10 @@ function settingsRequest(path, cookie) {
 }
 
 function primarySection(body) {
-  const start = body.indexOf('person@example.com');
-  const end = body.indexOf('</section>', start);
+  const address = body.indexOf('person@example.com');
+  const start = body.lastIndexOf('<div class="row" style="cursor:default">', address);
+  const next = body.indexOf('<div class="row" style="cursor:default">', start + 1);
+  const end = next === -1 ? body.indexOf('<div class="card">', start) : next;
   return body.slice(start, end);
 }
 

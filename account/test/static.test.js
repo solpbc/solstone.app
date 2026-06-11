@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { FONT_FILES, PORTAL_CSS } from '../src/assets.js';
 
 const srcDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 const sourceFiles = listJsFiles(srcDir)
@@ -17,6 +18,7 @@ describe('static source checks', () => {
   it('scans every src/*.js file', () => {
     expect(sourceFiles).toEqual([
       'admin.js',
+      'assets.js',
       'crypto.js',
       'db.js',
       'devices.js',
@@ -71,6 +73,16 @@ describe('static source checks', () => {
 
     expect(toml).toContain('service = "extro-support"');
     expect(toml).not.toContain(['support', 'worker'].join('-'));
+  });
+
+  it('keeps embedded portal css in sync with the source file', () => {
+    expect(readFileSync(join(srcDir, 'portal.css'), 'utf8')).toBe(PORTAL_CSS);
+  });
+
+  it('keeps embedded font blobs in sync with source files', () => {
+    for (const name of ['comfortaa-latin.woff2', 'inter-latin.woff2']) {
+      expect(Buffer.from(FONT_FILES[name], 'base64')).toEqual(readFileSync(join(srcDir, 'fonts', name)));
+    }
   });
 });
 

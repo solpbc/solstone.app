@@ -85,7 +85,7 @@ describe('settings transparency data view', () => {
     expect(body).toContain('no address');
     expect(body).toContain('no analytics');
     expect(body).toContain('no behavioral data');
-    expect(body).toContain('no IP geolocation stored separately');
+    expect(body).toContain('no separately-stored location');
     expect(body).toContain('no third-party tracking');
     expect(body).toContain("sol pbc's structural data commitments under");
     expect(body).toContain('Article 8 of the articles of incorporation');

@@ -95,6 +95,7 @@ import {
   handleSignInSessions,
   handleSignInShell,
 } from './settings.js';
+import { FONT_FILES, PORTAL_CSS, fontBytes } from './assets.js';
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
@@ -258,6 +259,31 @@ export default {
     try {
       const legacy = legacyRedirect(req, url);
       if (legacy) return legacy;
+
+      if (url.pathname === '/portal.css' && req.method === 'GET') {
+        return new Response(PORTAL_CSS, {
+          headers: {
+            'Content-Type': 'text/css; charset=utf-8',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            ...SECURITY_HEADERS,
+          },
+        });
+      }
+
+      if (
+        req.method === 'GET' &&
+        parts.length === 3 &&
+        parts[1] === 'fonts' &&
+        Object.hasOwn(FONT_FILES, parts[2])
+      ) {
+        return new Response(fontBytes(parts[2]), {
+          headers: {
+            'Content-Type': 'font/woff2',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            ...SECURITY_HEADERS,
+          },
+        });
+      }
 
       if (url.pathname === '/' && req.method === 'GET') {
         const session = await getValidSession(req, env, Date.now());

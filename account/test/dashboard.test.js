@@ -20,15 +20,18 @@ describe('services dashboard rendering', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('<h1>your services</h1>');
-    expect(body).toContain('signed in as: dash@example.com');
-    expect(body).toContain('last sign-in: 1 minute ago');
+    expect(body).toContain('<div class="lbl">signed in as</div>');
+    expect(body).toContain('<div class="who">dash@example.com</div>');
+    expect(body).toContain('last sign-in 1 minute ago');
     expect(body).toContain('href="/services/scout"');
-    expect(body).toContain('<strong>solstone scout</strong>');
-    expect(body).toContain('not set up');
+    expect(body).toContain('<div class="title">solstone scout</div>');
+    expect(body).toContain('<span class="pill off"><span class="dot"></span>off</span>');
+    expect(body).not.toContain('not set up');
     expect(body).toContain('href="/services/devices"');
-    expect(body).toContain('<strong>solstone push</strong>');
-    expect(body).toContain('href="https://solstone.app/trust"');
-    expect(body).toContain('<a href="/sign-in">your sign-in</a>');
+    expect(body).toContain('<div class="title">solstone push</div>');
+    expect(body).toContain('href="https://solpbc.org/privacy"');
+    expect(body).toContain('how we earn your trust');
+    expect(body).toContain('<a href="/sign-in">manage sign-in</a>');
     expect(body).toContain('<form method="post" action="/signout">');
   });
 
@@ -81,7 +84,6 @@ describe('services dashboard rendering', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('signed in as: —');
     expect(body).toContain("we couldn't decrypt your email address. you're still signed in.");
     expect(body).toContain('<form method="post" action="/signout">');
     expect(spy).toHaveBeenCalledWith('dashboard_decrypt_failed');

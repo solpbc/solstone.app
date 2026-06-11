@@ -12,8 +12,9 @@ describe('landing page', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('<h1 class="brand">solstone</h1>');
-    expect(body).toContain('sign in to manage your services.');
+    expect(body).toContain('<span class="wordmark">solstone</span>');
+    expect(body).toContain('<h1>your services</h1>');
+    expect(body).toContain("sign in to manage the optional services you've turned on.");
     expect(body).toContain('<div id="passkey-error" class="error" hidden></div>');
     expect(body).toContain('form method="post" action="/signin/start"');
     expect(body).toContain('autocomplete="email webauthn"');
