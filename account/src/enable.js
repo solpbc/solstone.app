@@ -38,6 +38,9 @@ import {
   renderEnableScoutError,
   renderEnableScoutPendingDone,
   renderEnableScoutRevokedDone,
+  renderEnableSplConsent,
+  renderEnableSplDone,
+  renderEnableSplError,
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
@@ -47,11 +50,13 @@ const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
 const ENABLE_PATH = '/enable/scout';
 const ENABLE_PUSH_PATH = '/enable/push';
+const ENABLE_SPL_PATH = '/enable/spl';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const RESUME_PATH_WHITELIST = new Map([
   [ENABLE_PATH, validateScoutResumeParams],
   [ENABLE_PUSH_PATH, validatePushResumeParams],
+  [ENABLE_SPL_PATH, validateScoutResumeParams],
 ]);
 
 export async function provisionScoutForAccount({ env, accountId, ctx }) {
@@ -387,6 +392,88 @@ export async function handleHandoffPush(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
+export async function handleEnableSplGet(req, env) {
+  const url = new URL(req.url);
+  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return splError(400);
+
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPL_PATH, `?nonce=${nonce}`);
+
+  const csrf = await csrfToken(env);
+  return noStoreHtml(renderEnableSplConsent({ csrf, nonce }));
+}
+
+export async function handleEnableSplConfirm(req, env) {
+  if (!originAllowed(req)) return noStoreResponse(forbidden());
+  const form = await readForm(req);
+  if (!form) return splError(400);
+
+  const nonce = (form.get('nonce')?.toString() || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return splError(400);
+
+  if ((form.get('action')?.toString() || '') === 'cancel') {
+    return redirect('/', 303, { 'Cache-Control': 'no-store' });
+  }
+
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPL_PATH, `?nonce=${nonce}`);
+  const account = await getAccountTransparencyRow(env.DB, session.account_id);
+  if (!account) {
+    return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
+  }
+
+  const csrf = await csrfToken(env);
+  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
+    return splError(403);
+  }
+
+  const nowMs = Date.now();
+  const payload = { service: 'spl', state: 'approved', approved_at: new Date(nowMs).toISOString() };
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  try {
+    const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
+    await insertServiceHandoff(env.DB, {
+      handoffHash,
+      accountId: session.account_id,
+      service: 'spl',
+      payloadEncrypted,
+      createdAt: nowMs,
+      expiresAt: nowMs + HANDOFF_TTL_MS,
+    });
+  } catch {
+    return splError(503);
+  }
+  return noStoreHtml(renderEnableSplDone());
+}
+
+export async function handleHandoffSpl(req, env) {
+  const url = new URL(req.url);
+  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return handoffJson({ error: 'invalid_request' }, { status: 400 });
+
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  const started = Date.now();
+  while (Date.now() - started <= HANDOFF_POLL_BUDGET_MS) {
+    const nowMs = Date.now();
+    const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spl' });
+    if (consumed) {
+      const plaintext = await decryptEmail(consumed.payload_encrypted, env);
+      return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
+    }
+
+    const status = await findServiceHandoffStatus(env.DB, { handoffHash, service: 'spl' });
+    if (status && (status.consumed_at != null || status.expires_at <= nowMs)) {
+      return handoffJson({ error: 'gone' }, { status: 410 });
+    }
+
+    const elapsed = Date.now() - started;
+    if (elapsed >= HANDOFF_POLL_BUDGET_MS) break;
+    await sleep(Math.min(HANDOFF_POLL_MS, HANDOFF_POLL_BUDGET_MS - elapsed));
+  }
+  return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+}
+
 function parseEnableRequest(url) {
   const nonceParam = url.searchParams.get('nonce');
   const nonce = (nonceParam || '').trim().toUpperCase();
@@ -501,6 +588,10 @@ function enableError(message, status) {
 
 function pushError(status) {
   return noStoreHtml(renderEnablePushError(), { status });
+}
+
+function splError(status) {
+  return noStoreHtml(renderEnableSplError(), { status });
 }
 
 function noStoreHtml(body, init = {}) {

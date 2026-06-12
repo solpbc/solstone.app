@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0011 — scout applications
+-- account-portal D1 schema after 0012 — service handoffs spl
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -168,7 +168,7 @@ CREATE INDEX IF NOT EXISTS idx_provisioned_keys_account_id
 CREATE TABLE IF NOT EXISTS service_handoffs (
   handoff_hash TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('scout','push')),
+  service TEXT NOT NULL CHECK (service IN ('scout','push','spl')),
   payload_encrypted BLOB NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL CHECK (expires_at > created_at),

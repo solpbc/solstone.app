@@ -29,8 +29,11 @@ import {
   handleEnablePushGet,
   handleEnableScoutConfirm,
   handleEnableScoutGet,
+  handleEnableSplConfirm,
+  handleEnableSplGet,
   handleHandoffPush,
   handleHandoffScout,
+  handleHandoffSpl,
   verifyEnableResume,
 } from './enable.js';
 import {
@@ -365,6 +368,34 @@ export default {
         req.method === 'GET'
       ) {
         return handleHandoffPush(req, env, ctx);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'spl' &&
+        req.method === 'GET'
+      ) {
+        return handleEnableSplGet(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'spl' &&
+        parts[3] === 'confirm' &&
+        req.method === 'POST'
+      ) {
+        return handleEnableSplConfirm(req, env, ctx);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'handoff' &&
+        parts[2] === 'spl' &&
+        req.method === 'GET'
+      ) {
+        return handleHandoffSpl(req, env, ctx);
       }
 
       if (url.pathname === '/passkey/register/start') {

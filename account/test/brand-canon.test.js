@@ -52,6 +52,7 @@ const enableSurfaceStrictRe = /\b(sign\s+in|signed\s+in|signing\s+in|log\s+in|lo
 const VALID_PUSH_NONCE = '2'.repeat(52);
 const VALID_PUSH_DEVICE_TOKEN = 'A'.repeat(64);
 const VALID_PUSH_BUNDLE_ID = 'app.solstone.swift';
+const VALID_SPL_NONCE = '3'.repeat(52);
 
 describe('brand canon', () => {
   beforeEach(async () => {
@@ -141,7 +142,7 @@ describe('brand canon', () => {
     expect(violations).toEqual([]);
   });
 
-  it('keeps enable-push surfaces clean under the stricter service regex', async () => {
+  it('keeps enable handoff surfaces clean under the stricter service regex', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'push-canon@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -155,12 +156,22 @@ describe('brand canon', () => {
       action: 'allow',
     }), session.cookie);
     const error = await get('/enable/push', testEnv);
+    const splConsent = await get(`/enable/spl?nonce=${VALID_SPL_NONCE}`, testEnv, session.cookie);
+    const splDone = await post('/enable/spl/confirm', testEnv, new URLSearchParams({
+      csrf: TEST_CSRF,
+      nonce: VALID_SPL_NONCE,
+      action: 'allow',
+    }), session.cookie);
+    const splError = await get('/enable/spl', testEnv);
 
     expect('your sign-in').not.toMatch(enableSurfaceStrictRe);
     for (const [name, response] of [
       ['enable push consent', consent],
       ['enable push done', done],
       ['enable push error', error],
+      ['enable spl consent', splConsent],
+      ['enable spl done', splDone],
+      ['enable spl error', splError],
     ]) {
       const body = await response.text();
       expect(body, name).not.toMatch(enableSurfaceStrictRe);

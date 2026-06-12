@@ -34,7 +34,7 @@ export function makeTestEnv(overrides = {}) {
   return {
     DB: overrides.DB || env.DB,
     EMAIL: overrides.EMAIL || emailBinding,
-    ENCRYPTION_SECRET: TEST_SECRET,
+    ENCRYPTION_SECRET: overrides.ENCRYPTION_SECRET || TEST_SECRET,
     HMAC_PEPPER: TEST_PEPPER,
     DISPATCH_TOKEN_PEPPER: 'test-dispatch-token-pepper',
     GCP_SERVICE_ACCOUNT_JSON: overrides.GCP_SERVICE_ACCOUNT_JSON || SA_JSON_STRING,

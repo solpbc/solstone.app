@@ -305,6 +305,63 @@ you got here some other way, you can close this tab.</p>
   });
 }
 
+export function renderEnableSplConsent({ csrf, nonce }) {
+  return layout({
+    title: 'enable private link access',
+    body: `${brandbar()}
+<h1>enable private link access</h1>
+<p class="lead">this journal is asking to enable private link access. two things, and only these two:</p>
+<div class="card">
+  <div class="grant">
+    <div class="n">1</div>
+    <div>
+      <div class="gt">know this request is yours</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal — no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for private link access.</div>
+    </div>
+  </div>
+  <div class="grant">
+    <div class="n">2</div>
+    <div>
+      <div class="gt">enable private link access</div>
+      <div class="gd">sol pbc records an approval for this journal and hands that approval back through this local handoff. nothing from the journal is sent to sol pbc to do this.</div>
+    </div>
+  </div>
+  <form method="post" action="/enable/spl/confirm">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="nonce" value="${escAttr(nonce)}">
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+    </div>
+  </form>
+</div>
+<p class="disclosure">you can review or change private link access from the journal anytime.</p>`,
+  });
+}
+
+export function renderEnableSplDone() {
+  return layout({
+    title: 'private link access enabled',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} private link access enabled</h2>
+  <p>private link access is approved for this journal. you can close this tab.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSplError() {
+  return layout({
+    title: 'could not enable private link access',
+    body: `${brandbar()}
+<div class="card">
+  <h1>could not enable private link access</h1>
+  <p>something didn't look right with that link.</p>
+  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
+</div>`,
+  });
+}
+
 // === services surfaces ===
 
 export function renderServicesDashboard({ welcome, menu, scoutActive, deviceCount }) {
