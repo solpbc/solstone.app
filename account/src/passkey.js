@@ -357,7 +357,7 @@ function b64uEncode(bytes) {
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function b64uDecode(value) {
+export function b64uDecode(value) {
   const pad = value.length % 4 === 2 ? '==' : value.length % 4 === 3 ? '=' : '';
   const bin = atob(value.replace(/-/g, '+').replace(/_/g, '/') + pad);
   const bytes = new Uint8Array(bin.length);

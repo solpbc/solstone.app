@@ -8,6 +8,7 @@ import {
   resetDb,
   rowCount,
   seedAccount,
+  seedCredential,
 } from './helpers.js';
 import { installJwksStub, mintToken } from './jwks-helper.js';
 
@@ -474,6 +475,389 @@ describe('admin scout migration importer', () => {
     expect(await rowCount('scout_applications')).toBe(before.scout_applications + 1);
   });
 
+  it('migrates passkey public keys as binary blobs', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const anchorAccount = await seedAccount({ email: 'anchor@example.com', testEnv });
+    const cose = new Uint8Array([0xa5, 0x01, 0x02, 0x20, 0xfd, 0x00, 0xff, 0x7f, 0x80]);
+    await seedCredential({
+      accountId: anchorAccount.accountId,
+      credentialId: 'anchor',
+      publicKey: cose,
+    });
+
+    expect([...new Uint8Array((await passkeyRow('anchor')).public_key)]).toEqual([...cose]);
+
+    const response = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        dry_run: false,
+        records: [
+          {
+            email: 'binary-passkey@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'binary-handle',
+            passkeys: [
+              { credential_id: 'migrated-1', public_key: b64u(cose) },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+
+    expect(response.status).toBe(200);
+    expect([...new Uint8Array((await passkeyRow('migrated-1')).public_key)]).toEqual([...cose]);
+  });
+
+  it('creates a new account with its scout passkey handle and credentials', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+
+    const response = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        dry_run: false,
+        records: [
+          {
+            email: 'new-passkeys@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'new-passkeys-handle',
+            passkeys: [
+              { credential_id: 'new-passkey-1', public_key: b64u(new Uint8Array([1, 2, 3])) },
+              { credential_id: 'new-passkey-2', public_key: b64u(new Uint8Array([4, 5, 6])) },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+    const body = await response.json();
+    const result = byEmail(body, 'new-passkeys@example.com');
+
+    expect(response.status).toBe(200);
+    expect(result).toMatchObject({ account: 'created', key: 'skipped' });
+    expect(result.passkeys).toEqual({ migrated: 2 });
+    await expect(accountHandle(result.account_id)).resolves.toBe('new-passkeys-handle');
+    const rows = await passkeyRowsForAccount(result.account_id);
+    expect(rows.map((row) => row.credential_id).sort()).toEqual(['new-passkey-1', 'new-passkey-2']);
+    expect(rows.every((row) => row.account_id === result.account_id)).toBe(true);
+  });
+
+  it('counts already migrated passkeys and is idempotent on rerun', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const existing = await seedAccount({ email: 'partial-passkeys@example.com', testEnv });
+    await seedCredential({
+      accountId: existing.accountId,
+      credentialId: 'partial-existing',
+      publicKey: new Uint8Array([7, 7, 7]),
+      userHandle: 'partial-handle',
+    });
+    const records = [
+      {
+        email: 'partial-passkeys@example.com',
+        status: 'approved',
+        data_acknowledged: false,
+        passkey_user_handle: 'partial-handle',
+        passkeys: [
+          { credential_id: 'partial-existing', public_key: b64u(new Uint8Array([7, 7, 7])) },
+          { credential_id: 'partial-new', public_key: b64u(new Uint8Array([8, 8, 8])) },
+        ],
+      },
+    ];
+
+    const firstResponse = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: { dry_run: false, records },
+    }), testEnv);
+    const first = await firstResponse.json();
+
+    expect(firstResponse.status).toBe(200);
+    expect(byEmail(first, 'partial-passkeys@example.com').passkeys).toEqual({ migrated: 2 });
+    await expect(rowCount('passkey_credentials')).resolves.toBe(2);
+
+    const secondResponse = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: { dry_run: false, records },
+    }), testEnv);
+    const second = await secondResponse.json();
+
+    expect(secondResponse.status).toBe(200);
+    expect(byEmail(second, 'partial-passkeys@example.com').passkeys).toEqual({ migrated: 2 });
+    await expect(rowCount('passkey_credentials')).resolves.toBe(2);
+    await expect(accountHandle(existing.accountId)).resolves.toBe('partial-handle');
+  });
+
+  it('skips passkeys on same-account handle conflict while migrating the record', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const existing = await seedAccount({ email: 'handle-conflict@example.com', testEnv });
+    await setAccountHandle(existing.accountId, 'HANDLE-A');
+    installProvisioningMock({ keyString: 'conflict-key' });
+
+    const response = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        dry_run: false,
+        records: [
+          {
+            email: 'handle-conflict@example.com',
+            status: 'approved',
+            data_acknowledged: true,
+            passkey_user_handle: 'HANDLE-B',
+            passkeys: [
+              { credential_id: 'handle-conflict-passkey', public_key: b64u(new Uint8Array([9, 9, 9])) },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+    const body = await response.json();
+    const result = byEmail(body, 'handle-conflict@example.com');
+
+    expect(response.status).toBe(200);
+    expect(result).toMatchObject({ account: 'matched', key: 'minted' });
+    expect(result.passkeys).toEqual({
+      migrated: 0,
+      skipped: [{ credential_id: 'handle-conflict-passkey', reason: 'handle conflict' }],
+    });
+    await expect(accountHandle(existing.accountId)).resolves.toBe('HANDLE-A');
+    await expect(rowCount('passkey_credentials')).resolves.toBe(0);
+    await expect(applicationRow(existing.accountId)).resolves.toMatchObject({ status: 'approved' });
+    await expect(activeKeyCount(existing.accountId)).resolves.toBe(1);
+  });
+
+  it('catches cross-account handle collisions and continues the batch', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const owner = await seedAccount({ email: 'shared-owner@example.com', testEnv });
+    await setAccountHandle(owner.accountId, 'SHARED');
+
+    const response = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        dry_run: false,
+        records: [
+          {
+            email: 'shared-collision@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'SHARED',
+            passkeys: [
+              { credential_id: 'shared-collision-passkey', public_key: b64u(new Uint8Array([1, 1, 1])) },
+            ],
+          },
+          {
+            email: 'shared-sibling@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'SIBLING',
+            passkeys: [
+              { credential_id: 'shared-sibling-passkey', public_key: b64u(new Uint8Array([2, 2, 2])) },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+    const body = await response.json();
+    const collided = byEmail(body, 'shared-collision@example.com');
+    const sibling = byEmail(body, 'shared-sibling@example.com');
+
+    expect(response.status).toBe(200);
+    expect(collided.passkeys).toEqual({
+      migrated: 0,
+      skipped: [{ credential_id: 'shared-collision-passkey', reason: 'handle collision' }],
+    });
+    await expect(accountHandle(collided.account_id)).resolves.toBeNull();
+    await expect(passkeyRowsForAccount(collided.account_id)).resolves.toEqual([]);
+    expect(sibling.passkeys).toEqual({ migrated: 1 });
+    await expect(accountHandle(sibling.account_id)).resolves.toBe('SIBLING');
+    expect((await passkeyRowsForAccount(sibling.account_id)).map((row) => row.credential_id))
+      .toEqual(['shared-sibling-passkey']);
+  });
+
+  it('sets a missing handle and proceeds when the same handle is already present', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const existing = await seedAccount({ email: 'set-handle@example.com', testEnv });
+
+    const firstResponse = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        dry_run: false,
+        records: [
+          {
+            email: 'set-handle@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'SET-HANDLE',
+            passkeys: [
+              { credential_id: 'set-handle-first', public_key: b64u(new Uint8Array([3, 3, 3])) },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+    const first = await firstResponse.json();
+
+    expect(firstResponse.status).toBe(200);
+    expect(byEmail(first, 'set-handle@example.com').passkeys).toEqual({ migrated: 1 });
+    await expect(accountHandle(existing.accountId)).resolves.toBe('SET-HANDLE');
+
+    const secondResponse = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        dry_run: false,
+        records: [
+          {
+            email: 'set-handle@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'SET-HANDLE',
+            passkeys: [
+              { credential_id: 'set-handle-second', public_key: b64u(new Uint8Array([4, 4, 4])) },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+    const second = await secondResponse.json();
+
+    expect(secondResponse.status).toBe(200);
+    expect(byEmail(second, 'set-handle@example.com').passkeys).toEqual({ migrated: 1 });
+    await expect(accountHandle(existing.accountId)).resolves.toBe('SET-HANDLE');
+    expect((await passkeyRowsForAccount(existing.accountId)).map((row) => row.credential_id).sort())
+      .toEqual(['set-handle-first', 'set-handle-second']);
+  });
+
+  it('isolates per-passkey failures within a scout record', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const other = await seedAccount({ email: 'passkey-owner@example.com', testEnv });
+    await seedCredential({
+      accountId: other.accountId,
+      credentialId: 'owned-elsewhere',
+      publicKey: new Uint8Array([5, 5, 5]),
+    });
+
+    const response = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        dry_run: false,
+        records: [
+          {
+            email: 'isolated-passkeys@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'isolated-handle',
+            passkeys: [
+              { credential_id: 'bad-public-key', public_key: null },
+              { credential_id: 'isolated-valid', public_key: b64u(new Uint8Array([6, 6, 6])) },
+              { credential_id: 'owned-elsewhere', public_key: b64u(new Uint8Array([5, 5, 5])) },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+    const body = await response.json();
+    const result = byEmail(body, 'isolated-passkeys@example.com');
+
+    expect(response.status).toBe(200);
+    expect(result.passkeys).toEqual({
+      migrated: 1,
+      skipped: [
+        { credential_id: 'bad-public-key', reason: 'public_key decode failed' },
+        { credential_id: 'owned-elsewhere', reason: 'owned by another account' },
+      ],
+    });
+    await expect(passkeyRow('isolated-valid')).resolves.toMatchObject({ account_id: result.account_id });
+    await expect(applicationRow(result.account_id)).resolves.toMatchObject({ status: 'approved' });
+  });
+
+  it('preserves scout passkey metadata and falls back created_at', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+
+    const response = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        dry_run: false,
+        records: [
+          {
+            email: 'passkey-metadata@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'metadata-handle',
+            passkeys: [
+              {
+                credential_id: 'metadata-fixed',
+                public_key: b64u(new Uint8Array([7, 1, 7])),
+                created_at: 1_700_000_000_000,
+                transports: '["internal"]',
+                backup_eligible: 1,
+                backup_state: 0,
+              },
+              {
+                credential_id: 'metadata-fallback',
+                public_key: b64u(new Uint8Array([7, 2, 7])),
+                created_at: null,
+              },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+
+    expect(response.status).toBe(200);
+    await expect(passkeyRow('metadata-fixed')).resolves.toMatchObject({
+      created_at: 1_700_000_000_000,
+      transports: '["internal"]',
+      backup_eligible: 1,
+      backup_state: 0,
+      device_type: null,
+    });
+    const fallback = await passkeyRow('metadata-fallback');
+    expect(typeof fallback.created_at).toBe('number');
+    expect(fallback.created_at).toBeGreaterThan(0);
+  });
+
+  it('dry-runs scout passkeys without writing and reports the plan', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const before = await countCoreRows();
+
+    const response = await worker.fetch(adminRequest('/admin/migrate/scout', token, {
+      method: 'POST',
+      body: {
+        records: [
+          {
+            email: 'dry-run-passkeys@example.com',
+            status: 'approved',
+            data_acknowledged: false,
+            passkey_user_handle: 'dry-run-handle',
+            passkeys: [
+              { credential_id: 'dry-run-valid', public_key: b64u(new Uint8Array([8, 1, 8])) },
+              { credential_id: 'dry-run-bad', public_key: null },
+            ],
+          },
+        ],
+      },
+    }), testEnv);
+    const body = await response.json();
+    const result = byEmail(body, 'dry-run-passkeys@example.com');
+
+    expect(response.status).toBe(200);
+    expect(body.dry_run).toBe(true);
+    expect(result.passkeys).toEqual({
+      would_migrate: 1,
+      skipped: [{ credential_id: 'dry-run-bad', reason: 'public_key decode failed' }],
+    });
+    expect(result.passkeys.migrated).toBeUndefined();
+    await expect(rowCount('passkey_credentials')).resolves.toBe(0);
+    await expect(countCoreRows()).resolves.toEqual(before);
+  });
+
   it('returns one result for every input record in order', async () => {
     const token = await mintToken();
     const records = [
@@ -621,6 +1005,42 @@ async function activeKeyCount(accountId) {
     .bind(accountId)
     .first();
   return row.count;
+}
+
+async function passkeyRow(credentialId) {
+  return workerEnv.DB
+    .prepare('SELECT * FROM passkey_credentials WHERE credential_id = ?')
+    .bind(credentialId)
+    .first();
+}
+
+async function passkeyRowsForAccount(accountId) {
+  const { results } = await workerEnv.DB
+    .prepare('SELECT * FROM passkey_credentials WHERE account_id = ? ORDER BY credential_id')
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+async function accountHandle(accountId) {
+  const row = await workerEnv.DB
+    .prepare('SELECT passkey_user_handle FROM accounts WHERE id = ?')
+    .bind(accountId)
+    .first();
+  return row?.passkey_user_handle ?? null;
+}
+
+async function setAccountHandle(accountId, handle) {
+  await workerEnv.DB
+    .prepare('UPDATE accounts SET passkey_user_handle = ? WHERE id = ?')
+    .bind(handle, accountId)
+    .run();
+}
+
+function b64u(bytes) {
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function jsonResponse(body, status = 200) {
