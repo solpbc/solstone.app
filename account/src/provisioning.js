@@ -106,7 +106,6 @@ async function createAndPollKey({ env, displayName, projectId }) {
   const operationName = await gcpCreateApiKey({
     env,
     displayName,
-    requestId: crypto.randomUUID(),
     projectId,
   });
   return gcpPollOperation({ env, opName: operationName });

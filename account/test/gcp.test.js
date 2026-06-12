@@ -127,7 +127,7 @@ describe('GCP API Keys client', () => {
     })).rejects.toBeInstanceOf(GcpHostNotAllowedError);
   });
 
-  it('create API key uses SA project_id, requestId, and Gemini restriction body', async () => {
+  it('create API key uses SA project_id and Gemini restriction body (no requestId query param)', async () => {
     let createUrl = null;
     let createBody = null;
     installGcpFetchMock({
@@ -139,9 +139,9 @@ describe('GCP API Keys client', () => {
       },
     });
 
-    await gcpCreateApiKey({ env: makeTestEnv(), displayName: 'acct-test', requestId: 'request-1' });
+    await gcpCreateApiKey({ env: makeTestEnv(), displayName: 'acct-test' });
 
-    expect(createUrl.searchParams.get('requestId')).toBe('request-1');
+    expect(createUrl.searchParams.has('requestId')).toBe(false);
     expect(createBody).toEqual({
       displayName: 'acct-test',
       restrictions: {

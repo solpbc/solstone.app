@@ -14,9 +14,11 @@ export class GcpUnauthorizedError extends Error {}
 export class GcpTimeoutError extends Error {}
 export class GcpHostNotAllowedError extends Error {}
 
-export async function gcpCreateApiKey({ env, displayName, requestId, projectId }) {
+export async function gcpCreateApiKey({ env, displayName, projectId }) {
   const project = projectId || serviceAccount(env).project_id;
-  const url = `https://${API_KEYS_HOST}/v2/projects/${encodeURIComponent(project)}/locations/global/keys?requestId=${encodeURIComponent(requestId)}`;
+  // API Keys v2 keys.create rejects a `requestId` query param ("Cannot bind query parameter").
+  // Idempotency comes from the provisioning in-flight lock + adopt-by-displayName, not requestId.
+  const url = `https://${API_KEYS_HOST}/v2/projects/${encodeURIComponent(project)}/locations/global/keys`;
   const res = await authorizedGcpFetch(env, url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
