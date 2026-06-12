@@ -6,20 +6,7 @@ main = "src/index.js"
 
 routes = [{ pattern = "scouts.solstone.app", custom_domain = true }]
 
-[[d1_databases]]
-binding = "DB"
-database_name = "scouts-portal"
-database_id = "42812399-198d-4d04-af8e-f094125b5588"
-migrations_dir = "migrations"
-
-[triggers]
-crons = ["0 */6 * * *"]
-
-[[send_email]]
-name = "EMAIL"
-remote = true
-
-[vars]
-TURNSTILE_SITE_KEY = "0x4AAAAAADJneUy2jVC8NPC4"
-EMAIL_PATH_DISABLED = "false"
-PASSKEY_PATH_DISABLED = "false"
+# Retired program — this worker now only 301-redirects to services.solstone.app/scout.
+# The scouts-portal D1, cron, email, and program vars are no longer bound (scout
+# records migrated into the account-portal worker; D1 retained as a backup, to be
+# deleted after a grace period).
