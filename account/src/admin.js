@@ -10,6 +10,7 @@ import {
   upsertScoutApplicationApproved,
 } from './db.js';
 import { json } from './index.js';
+import { importScoutRecords } from './scout-migrate.js';
 import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
@@ -54,6 +55,9 @@ export async function handleAdmin(request, env, url, ctx) {
     if (parts[2] === 'scouts') {
       return await handleScoutAdmin(request, env, url, parts, ctx);
     }
+    if (parts[2] === 'migrate') {
+      return await handleScoutMigrate(request, env, parts);
+    }
     if (request.method !== 'GET') {
       return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
     }
@@ -65,6 +69,27 @@ export async function handleAdmin(request, env, url, ctx) {
   } catch {
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
+}
+
+async function handleScoutMigrate(request, env, parts) {
+  if (!(request.method === 'POST' && parts.length === 4 && parts[3] === 'scout')) {
+    return json({ error: 'migrate route not found' }, { status: 404, headers: SECURITY_HEADERS });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'records array required' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+
+  if (!Array.isArray(body?.records)) {
+    return json({ error: 'records array required' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+
+  const dryRun = body?.dry_run !== false;
+  const result = await importScoutRecords({ env, records: body.records, dryRun });
+  return json(result, { headers: SECURITY_HEADERS });
 }
 
 async function handleScoutAdmin(request, env, url, parts, ctx) {

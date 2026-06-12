@@ -36,6 +36,7 @@ describe('static source checks', () => {
       'provisioning.js',
       'push.js',
       'retention.js',
+      'scout-migrate.js',
       'session.js',
       'settings.js',
       'support-constants.js',
