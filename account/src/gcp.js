@@ -77,8 +77,9 @@ export async function gcpDeleteKey({ env, keyName }) {
 
 export async function gcpFindKeyByDisplayName({ env, displayName, projectId }) {
   const project = projectId || serviceAccount(env).project_id;
-  const filter = encodeURIComponent(`displayName=${displayName}`);
-  const url = `https://${API_KEYS_HOST}/v2/projects/${encodeURIComponent(project)}/locations/global/keys?filter=${filter}`;
+  // API Keys v2 keys.list has no `filter` query param ("Cannot bind query parameter");
+  // list the project's keys and match by displayName client-side below.
+  const url = `https://${API_KEYS_HOST}/v2/projects/${encodeURIComponent(project)}/locations/global/keys`;
   const res = await authorizedGcpFetch(env, url, { method: 'GET' });
   const body = await jsonResponse(res, 'GCP key list failed');
   const keys = Array.isArray(body.keys) ? body.keys : [];
