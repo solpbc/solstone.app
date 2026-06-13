@@ -114,7 +114,7 @@
             font-size: 0.88rem;
             margin-bottom: 0.75rem;
         }
-        /* Diagram switcher (single machine / multi-machine) */
+        /* Diagram switcher (single device / multiple devices) */
         .diagram-switcher {
             max-width: 820px;
             width: 90vw;
@@ -347,14 +347,14 @@
         <input type="radio" id="mode-single" name="arch-mode" checked>
         <input type="radio" id="mode-multi" name="arch-mode">
         <div class="mode-toggle">
-            <label for="mode-single">single machine</label>
-            <label for="mode-multi">multi-machine</label>
+            <label for="mode-single">single device</label>
+            <label for="mode-multi">multiple devices</label>
         </div>
         <div class="diagram-panel diagram-single">
-            <img src="static/diagram-single-machine.svg" alt="solstone single machine architecture: an observer experiences your screen and audio along with you on your machine and sends to your journal at ~/journal, where sol tends your memories">
+            <img src="static/diagram-single-machine.svg" alt="solstone single-device architecture: an observer experiences your screen and audio along with you on your device and sends to your journal at ~/journal, where sol tends your memories">
         </div>
         <div class="diagram-panel diagram-multi">
-            <img src="static/diagram-multi-machine.svg" alt="solstone multi-machine architecture: observers run on each desktop and device (linux, macos, tmux; windows and mobile coming soon) and send to your journal, where sol tends your memories">
+            <img src="static/diagram-multi-machine.svg" alt="solstone multi-device architecture: observers run on each desktop and device (linux, macos, tmux; windows and mobile coming soon) and send to your journal, where sol tends your memories">
         </div>
     </div>
 
@@ -437,7 +437,7 @@ journal setup</pre>
 
     <div class="visually-hidden" role="status" aria-live="polite" id="copy-status"></div>
 
-    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; <a href="/releases">releases</a> &middot; your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; <a href="/releases">releases</a> &middot; your data stays on your device — never sold, never shared. solstone is a trademark of sol pbc.</footer>
 
     <script>
         // announce transient state to assistive tech via the polite live region
