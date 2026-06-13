@@ -245,10 +245,10 @@ export function renderEnableScoutError({ message }) {
 
 export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bundleId }) {
   return layout({
-    title: 'enable solstone push',
+    title: 'enable solstone private notifications',
     body: `${brandbar()}
-<h1>enable solstone push</h1>
-<p class="lead">solstone push wants to reach this device for you. two things, and only these two:</p>
+<h1>enable solstone private notifications</h1>
+<p class="lead">solstone private notifications wants to reach this device for you. two things, and only these two:</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
@@ -260,7 +260,7 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">enable solstone push</div>
+      <div class="gt">enable solstone private notifications</div>
       <div class="gd">sol will send a short heads-up (an 80-character summary, never the full thing) to this device when there's something worth your attention. you can turn it off in your services anytime.</div>
     </div>
   </div>
@@ -276,28 +276,28 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
     </div>
   </form>
 </div>
-<p class="disclosure">you can see exactly which devices solstone push reaches — and turn it off — in your services anytime.</p>`,
+<p class="disclosure">you can see exactly which devices solstone private notifications reaches — and turn it off — in your services anytime.</p>`,
   });
 }
 
 export function renderEnablePushDone() {
   return layout({
-    title: 'solstone push enabled',
+    title: 'solstone private notifications enabled',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone push enabled</h2>
-  <p>your phone is connected to solstone push. you can close this tab.</p>
-  <a class="btn secondary" href="/devices">manage solstone push</a>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone private notifications enabled</h2>
+  <p>your phone is connected to solstone private notifications. you can close this tab.</p>
+  <a class="btn secondary" href="/devices">manage notifications</a>
 </div>`,
   });
 }
 
 export function renderEnablePushError() {
   return layout({
-    title: 'could not enable solstone push',
+    title: 'could not enable solstone private notifications',
     body: `${brandbar()}
 <div class="card">
-  <h1>could not enable solstone push</h1>
+  <h1>could not enable solstone private notifications</h1>
   <p>something didn't look right with that link.</p>
   <p>if you got here from your solstone app, try again from the app. if
 you got here some other way, you can close this tab.</p>
@@ -409,7 +409,7 @@ ${welcomePanel}
   <a class="row" href="/devices">
     ${IC_PUSH_SVG}
     <div class="body">
-      <div class="title">solstone push</div>
+      <div class="title">solstone private notifications</div>
       <div class="desc">sol can reach your other devices when there's something worth a look.</div>
     </div>
     <div class="trail">${pushPill}${CHEVRON_SVG}</div>
@@ -666,12 +666,12 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '', menu 
   <button class="btn danger" type="submit">revoke all devices</button>
 </form></div>`
     : '';
-  const notice = disableFlash === 'ok' ? '<p class="notice">push turned off for every device.</p>' : '';
+  const notice = disableFlash === 'ok' ? '<p class="notice">notifications turned off for every device.</p>' : '';
   const emptyState = devices.length === 0
     ? `<div class="group">
   <div class="empty">
     ${IC_PUSH_SVG}
-    <h2>push isn't on yet</h2>
+    <h2>notifications aren't on yet</h2>
     <p>turn it on from solstone on your device — it opens this page so you can confirm, then sol can reach your other devices.</p>
     <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable push</strong> — or turn it on from the solstone app.</div>
   </div>

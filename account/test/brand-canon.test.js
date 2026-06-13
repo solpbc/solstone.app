@@ -166,9 +166,9 @@ describe('brand canon', () => {
 
     expect('your sign-in').not.toMatch(enableSurfaceStrictRe);
     for (const [name, response] of [
-      ['enable push consent', consent],
-      ['enable push done', done],
-      ['enable push error', error],
+      ['enable notifications consent', consent],
+      ['enable notifications done', done],
+      ['enable notifications error', error],
       ['enable spl consent', splConsent],
       ['enable spl done', splDone],
       ['enable spl error', splError],

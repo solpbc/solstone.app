@@ -69,7 +69,7 @@ describe('/enable/push', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('solstone push wants to reach this device for you.');
+    expect(body).toContain('solstone private notifications wants to reach this device for you.');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="device_token" value="${DEVICE_TOKEN}"`);
     expect(body).toContain(`name="platform" value="ios"`);
@@ -113,7 +113,7 @@ describe('/enable/push', () => {
       const device = await deviceRow(payload.device_id);
 
       expect(response.status).toBe(200);
-      expect(await response.text()).toContain('your phone is connected to solstone push. you can close this tab.');
+      expect(await response.text()).toContain('your phone is connected to solstone private notifications. you can close this tab.');
       expect(handoff.status).toBe(200);
       expect(payload).toEqual({
         device_id: expect.any(String),
