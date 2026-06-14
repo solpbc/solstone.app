@@ -391,8 +391,8 @@
                 <details class="dev-path">
                     <summary>building from source? (developer path)</summary>
                     <div class="dev-path-body">
-                        <p class="platform-prereq">prereqs: xcode command-line tools (<code>xcode-select --install</code>), homebrew (<a href="https://brew.sh" class="gh-link" style="text-decoration:underline;">brew.sh</a>), then <code>brew install uv</code>. if you prefer pipx, use <code>pipx install solstone && journal setup</code>.</p>
-                        <pre class="install-steps" id="steps-macos">uv tool install solstone
+                        <p class="platform-prereq">prereqs: xcode command-line tools (<code>xcode-select --install</code>), homebrew (<a href="https://brew.sh" class="gh-link" style="text-decoration:underline;">brew.sh</a>), then <code>brew install uv</code>. if you prefer pipx, use <code>pipx install 'solstone[journal]' && journal setup</code>.</p>
+                        <pre class="install-steps" id="steps-macos">uv tool install 'solstone[journal]'
 journal setup</pre>
                         <div class="card-actions">
                             <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human" aria-label="copy for human: macOS install commands">copy for human</button>
@@ -404,14 +404,14 @@ journal setup</pre>
             </div>
 
             <div class="platform-panel platform-linux">
-                <p class="platform-prereq">prereqs: <code>uv</code> from astral.sh: <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code>. if you prefer pipx, use <code>pipx install solstone && journal setup</code>.</p>
-                <pre class="install-steps" id="steps-linux">uv tool install solstone
+                <p class="platform-prereq">prereqs: <code>uv</code> from astral.sh: <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code>. if you prefer pipx, use <code>pipx install 'solstone[journal]' && journal setup</code>.</p>
+                <pre class="install-steps" id="steps-linux">uv tool install 'solstone[journal]'
 journal setup</pre>
                 <div class="card-actions">
                     <button class="copy-btn" data-target="steps-linux" data-default-label="copy for human" aria-label="copy for human: linux install commands">copy for human</button>
                     <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                 </div>
-                <p class="install-finish">on linux, the default local parakeet transcription runtime ships with solstone and <code>journal setup</code> downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription can add <code>solstone[parakeet-onnx-cuda]</code>.</p>
+                <p class="install-finish"><code>solstone[journal]</code> bundles everything a journal host needs — the default CPU transcription runtime is included and <code>journal setup</code> downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install <code>solstone[journal-cuda]</code> instead (pick one — not both). want only the thin <code>sol</code> client to talk to a journal running elsewhere? <code>uv tool install solstone</code> (no extras), or <code>uvx solstone</code> for a one-shot.</p>
                 <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and solstone sets it up for you — no separate command-line tool to install. for a linux observer, see <a href="/observers" class="gh-link" style="text-decoration:underline;">solstone.app/observers</a>.</p>
             </div>
         </div>

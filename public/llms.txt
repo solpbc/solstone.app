@@ -1,6 +1,6 @@
 # solstone
 
-> solstone is an open source AI co-brain that experiences your screen and audio along with you, processes the observations with AI, and gives you superhuman memory. your data resides on your device. made by sol pbc, a public benefit corporation with irrevocable data covenants — customer data can never be sold, and any acquisition must preserve the same protections. macOS installs through the signed app; linux installs via uv tool install solstone (or pipx install solstone).
+> solstone is an open source AI co-brain that experiences your screen and audio along with you, processes the observations with AI, and gives you superhuman memory. your data resides on your device. made by sol pbc, a public benefit corporation with irrevocable data covenants — customer data can never be sold, and any acquisition must preserve the same protections. macOS installs through the signed app; linux installs via uv tool install 'solstone[journal]' (or pipx install 'solstone[journal]') to run a journal host. bare `pip install solstone` (or `uvx solstone`) is the thin `sol` client for talking to a journal running elsewhere.
 
 observers run quietly in the background, experiencing your screen and audio along with you. sol uses AI to transcribe conversations, surface entities (people, companies, projects), detect meetings, build knowledge graphs, and surface daily insights. everything is stored in daily journal directories on your filesystem. the web interface provides full-text search, transcript browsing, entity browsing, AI chat, and calendar views.
 

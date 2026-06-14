@@ -30,6 +30,7 @@ the guide covers platform detection, prerequisites, installation, setup, service
 - **repo:** https://github.com/solpbc/solstone
 - **macOS observer app:** https://github.com/solpbc/solstone-macos
 - **requires:** python 3.11+, uv, ffmpeg, a Google AI Studio API key
-- **install:** `uv tool install solstone && journal setup`
+- **install (run a journal here):** `uv tool install 'solstone[journal]' && journal setup`
+- **install (thin `sol` client only, talk to a journal elsewhere):** `uv tool install solstone` — or `uvx solstone` for a one-shot
 - **configure:** open http://localhost:5015 after setup; the first-run wizard handles password, identity, and gemini API key
 - **docs:** https://solstone.app/llms.txt

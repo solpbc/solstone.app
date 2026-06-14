@@ -22,14 +22,23 @@ building from source? use the developer path in [INSTALL.md](https://github.com/
 
 prereqs: `uv` from astral.sh: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 
+run a journal here — the full host:
+
 ```bash
-uv tool install solstone
+uv tool install 'solstone[journal]'
 journal setup
 ```
 
-(or `pipx install solstone && journal setup` if you prefer pipx.)
+(or `pipx install 'solstone[journal]' && journal setup` if you prefer pipx. the quotes keep your shell from globbing the `[journal]` brackets.)
 
-on linux, the default local parakeet transcription runtime ships with solstone and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription can add `solstone[parakeet-onnx-cuda]`.
+`solstone[journal]` bundles everything a journal host needs — the default CPU transcription runtime is included and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install `solstone[journal-cuda]` **instead of** `solstone[journal]` (pick one — the CPU and GPU runtimes must not both install).
+
+want only the thin `sol` client — to talk to a journal running elsewhere (a second machine, or a journal you reach over your private link)? install bare `solstone` (no extras), or run it ephemerally with `uvx`:
+
+```bash
+uv tool install solstone        # the sol client, on PATH
+uvx solstone --help             # or one-shot, no install
+```
 
 then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and solstone sets it up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. for a linux observer, see [solstone.app/observers](https://solstone.app/observers).
 
