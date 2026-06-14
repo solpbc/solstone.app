@@ -6,10 +6,11 @@ import {
   hashWithPepper,
   timingSafeEqual,
 } from './crypto.js';
-import { mintDispatchToken } from './dispatch-tokens.js';
+import { mintDispatchToken, resolveBearerAccount } from './dispatch-tokens.js';
 import {
   bumpDeviceLastSeen,
   consumeServiceHandoff,
+  findActiveProvisionedKey,
   findDeviceByPushKey,
   findServiceHandoffStatus,
   getAccountTransparencyRow,
@@ -51,6 +52,7 @@ const HANDOFF_POLL_BUDGET_MS = 30_000;
 const ENABLE_PATH = '/enable/scout';
 const ENABLE_PUSH_PATH = '/enable/push';
 const ENABLE_SPL_PATH = '/enable/spl';
+const GEMINI_PROVIDER = 'gemini';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const RESUME_PATH_WHITELIST = new Map([
@@ -204,7 +206,7 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
   const app = await getScoutApplicationByAccount(env.DB, { accountId });
 
   // Handoff payload contract:
-  // { state: 'pending', account_id, since: <applied_at_ms> }
+  // { state: 'pending', account_id, since: <applied_at_ms>, dispatch_token }
   // { state: 'approved', google_api_key, dispatch_token, account_id, created_at }
   // { state: 'revoked', account_id }
   // Approved retains today's google_api_key field and dispatch-token created_at ISO string.
@@ -213,8 +215,9 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
   if (!app || app.status === 'pending') {
     await upsertScoutApplicationPending(env.DB, { accountId, useCase, dataAckedAt: nowMs, nowMs });
     const row = await getScoutApplicationByAccount(env.DB, { accountId });
+    const dispatch = await mintDispatchToken(env, accountId);
     state = 'pending';
-    payload = { state, account_id: accountId, since: row.applied_at };
+    payload = { state, account_id: accountId, since: row.applied_at, dispatch_token: dispatch.token };
   } else if (app.status === 'approved') {
     await setScoutApplicationDataAcked(env.DB, { accountId, nowMs });
     let provisioned;
@@ -257,6 +260,22 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
     revoked: renderEnableScoutRevokedDone,
   }[state];
   return noStoreHtml(done());
+}
+
+export async function handleScoutStatus(req, env) {
+  const auth = await resolveBearerAccount(req, env);
+  if (auth instanceof Response) return auth;
+  const row = await getScoutApplicationByAccount(env.DB, { accountId: auth.accountId });
+  if (!row) return json({ error: 'not_found' }, { status: 404 });
+  const activeKey = await findActiveProvisionedKey(env.DB, { accountId: auth.accountId, provider: GEMINI_PROVIDER });
+  return json({
+    account_id: auth.accountId,
+    status: row.status,
+    applied_at: row.applied_at,
+    approved_at: row.approved_at,
+    revoked_at: row.revoked_at,
+    active_key: activeKey != null,
+  });
 }
 
 export async function handleEnablePushGet(req, env) {

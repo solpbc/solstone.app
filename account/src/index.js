@@ -34,6 +34,7 @@ import {
   handleHandoffPush,
   handleHandoffScout,
   handleHandoffSpl,
+  handleScoutStatus,
   verifyEnableResume,
 } from './enable.js';
 import {
@@ -693,6 +694,16 @@ export default {
         req.method === 'POST'
       ) {
         return handleMintDispatchToken(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'account' &&
+        parts[2] === 'scout' &&
+        parts[3] === 'status' &&
+        req.method === 'GET'
+      ) {
+        return handleScoutStatus(req, env);
       }
 
       if (

@@ -1,5 +1,6 @@
 import { listDispatchableDevicesForAccount } from './db.js';
-import { deviceRevoke, resolveDispatchToken } from './devices.js';
+import { resolveBearerAccount } from './dispatch-tokens.js';
+import { deviceRevoke } from './devices.js';
 import { json } from './index.js';
 
 const APNS_JWT_TTL_SECONDS = 3300;
@@ -221,19 +222,6 @@ function aggregateOutcomes(outcomes) {
     }
   }
   return { ok: failed === 0, sent, failed, revoked, failures };
-}
-
-async function resolveBearerAccount(req, env) {
-  const auth = req.headers.get('Authorization') || '';
-  const match = auth.match(/^Bearer\s+(.+)$/i);
-  if (!match) return invalidToken();
-  const resolved = await resolveDispatchToken(env, match[1]);
-  if (!resolved) return invalidToken();
-  return resolved;
-}
-
-function invalidToken() {
-  return json({ error: 'invalid_token' }, { status: 401 });
 }
 
 async function readJsonObject(req) {

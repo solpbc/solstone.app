@@ -198,9 +198,10 @@ describe('/enable/scout', () => {
         state: 'pending',
         account_id: account.accountId,
         since: row.applied_at,
+        dispatch_token: expect.stringMatching(/^[A-Za-z0-9_-]+$/),
       });
       await expect(rowCount('provisioned_keys')).resolves.toBe(0);
-      spy.assertNoSecrets([VALID_NONCE]);
+      spy.assertNoSecrets([VALID_NONCE, payload.dispatch_token]);
     } finally {
       spy.restore();
     }
@@ -246,9 +247,10 @@ describe('/enable/scout', () => {
         state: 'pending',
         account_id: account.accountId,
         since: 900,
+        dispatch_token: expect.stringMatching(/^[A-Za-z0-9_-]+$/),
       });
       await expect(rowCount('provisioned_keys')).resolves.toBe(0);
-      spy.assertNoSecrets([VALID_NONCE]);
+      spy.assertNoSecrets([VALID_NONCE, payload.dispatch_token]);
     } finally {
       spy.restore();
     }
