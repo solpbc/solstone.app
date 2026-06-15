@@ -180,6 +180,9 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 .row .desc { color: var(--ink-faint); font-size: 0.875rem; line-height: 1.4; margin-top: 1px; }
 .row .trail { flex: none; display: flex; align-items: center; gap: 10px; }
 .row .chevron { width: 8px; height: 14px; color: #C9BFA8; flex: none; }
+/* external-destination row: a quiet ↗ after the title, signalling the link
+   leaves this portal (e.g. the scout page's "what's new" → solstone.app). */
+.row .title .ext { width: 11px; height: 11px; color: var(--ink-faint); margin-left: 3px; vertical-align: -1px; }
 
 /* status pill */
 .pill {

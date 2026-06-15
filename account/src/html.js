@@ -25,6 +25,7 @@ const BACK_SVG = '<svg viewBox="0 0 8 14" width="7" height="12" fill="none" stro
 const IC_SCOUT_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8.5" r="4"/><path d="M10.8 11.2 19 19.4M16.4 16.8l1.8-1.8M18.6 19l1.8-1.8"/></svg>';
 const IC_PUSH_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5a6 6 0 1 1 12 0c0 4.5 2 5.5 2 5.5H4s2-1 2-5.5Z"/><path d="M10 18.5a2 2 0 0 0 4 0"/></svg>';
 const IC_SUPPORT_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10H8.5L4 19z"/><path d="M8 9.5h8M8 12.5h5"/></svg>';
+const IC_NEWS_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h7l5 5V20a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M13 3.5V8.5h5"/><path d="M9 13h6M9 16h4"/></svg>';
 const IC_SESSION_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.4 3-6 6.5-6s6.5 2.6 6.5 6"/></svg>';
 const IC_PASSKEY_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="14" r="3.4"/><path d="M10.6 11.4 19 3M16 6l2 2M14 8l1.6 1.6"/></svg>';
 const IC_EMAIL_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/></svg>';
@@ -901,6 +902,28 @@ ${activeControls}`
 <div class="group">${auditRows}</div>
 <p class="disclosure">last-used is the one piece of metadata sol pbc keeps — it's here so you can audit the key yourself. sol pbc never sees what you ask sol.</p>`
     : '';
+  // the old standalone scouts program had a news feed and a feedback form;
+  // the converged portal drops both, but their destinations live on — news →
+  // the public release notes, feedback → support. give them a permanent home
+  // here, present in every scout state, as first-class destination rows.
+  const scoutLinks = `<div class="group" style="margin-top:26px">
+  <a class="row" href="https://solstone.app/releases">
+    ${IC_NEWS_SVG}
+    <div class="body">
+      <div class="title">what's new in solstone ${EXT_SVG}</div>
+      <div class="desc">release notes — what's shipped and what's changing.</div>
+    </div>
+    <div class="trail">${CHEVRON_SVG}</div>
+  </a>
+  <a class="row" href="/support">
+    ${IC_SUPPORT_SVG}
+    <div class="body">
+      <div class="title">share feedback</div>
+      <div class="desc">tell us what you're seeing, or report a problem.</div>
+    </div>
+    <div class="trail">${CHEVRON_SVG}</div>
+  </a>
+</div>`;
   const page = ({ statusLine, lead, content = '' }) => layout({
     title: 'solstone scout',
     body: `${topbar(menu)}
@@ -911,7 +934,8 @@ ${flashes}
   <p class="signed-in">${statusLine}</p>
 </div>
 <p class="lead">${lead}</p>
-${content}`,
+${content}
+${scoutLinks}`,
   });
 
   if (application?.status === 'revoked') {

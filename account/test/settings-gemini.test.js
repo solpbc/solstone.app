@@ -211,6 +211,35 @@ describe('settings gemini dashboard', () => {
     expect(body).not.toContain('/scout/ack');
   });
 
+  it('gives the dropped news + feedback features a home on the scout page in every state', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    // off / no-application state carries both destination rows
+    const off = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const offBody = await off.text();
+    expect(off.status).toBe(200);
+    expect(offBody).toContain('href="https://solstone.app/releases"');
+    expect(offBody).toContain("what's new in solstone");
+    expect(offBody).toContain("release notes — what's shipped and what's changing.");
+    expect(offBody).toContain('share feedback');
+    expect(offBody).toContain("tell us what you're seeing, or report a problem.");
+
+    // revoked is terminal, but the dropped features still keep a home here
+    await seedScoutApplication({
+      testEnv,
+      accountId: account.accountId,
+      status: 'revoked',
+      revoked_at: 2_000,
+    });
+    const revoked = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const revokedBody = await revoked.text();
+    expect(revokedBody).toContain('access to solstone scout has ended.');
+    expect(revokedBody).toContain('href="https://solstone.app/releases"');
+    expect(revokedBody).toContain('share feedback');
+  });
+
   it('creates a pending application from the dashboard apply form', async () => {
     const now = 1_780_000_000_000;
     vi.spyOn(Date, 'now').mockReturnValue(now);
