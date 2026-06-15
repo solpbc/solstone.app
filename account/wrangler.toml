@@ -36,6 +36,15 @@ service = "extro-support"
 # Optional Scout Gemini key project override:
 # SCOUT_GCP_PROJECT — GCP project id for newly provisioned Scout API keys.
 # Leave unset to use the service account project_id.
+#
+# Stripe billing secrets (set via `wrangler secret put`):
+# STRIPE_SECRET_KEY — Stripe restricted secret key for Checkout, Portal, and subscription reads.
+# STRIPE_WEBHOOK_SECRET — Stripe webhook endpoint signing secret.
+# Create the Stripe webhook endpoint on API version 2024-09-30.acacia.
+#
+# Relay grant secrets for the sibling relay lode only; this worker does not use them.
+# RELAY_GRANT_SECRET — shared secret for relay grant calls.
+# RELAY_GRANT_URL — relay grant endpoint URL.
 
 [[send_email]]
 name = "EMAIL"
@@ -47,6 +56,8 @@ CF_ACCESS_AUD = "a48343311f9157cfb056e5aa70878dc8aab4962769a8e1743486b6a88405410
 EMAIL_PATH_DISABLED = "false"
 SIGNUP_DISABLED = "false"
 SCOUT_GCP_PROJECT = "solstone-scouts"
+STRIPE_PRICE_ANNUAL = "replace_with_stripe_annual_id"
+STRIPE_PRICE_MONTHLY = "replace_with_stripe_monthly_id"
 
 [triggers]
 crons = ["0 */6 * * *"]

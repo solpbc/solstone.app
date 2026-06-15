@@ -906,6 +906,81 @@ export async function setScoutApplicationDataAcked(db, { accountId, nowMs }) {
     .run();
 }
 
+// --- Billing entitlements ---
+
+export async function getEntitlement(db, { accountId, service }) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, service, status, current_period_end, source, source_ref, updated_at
+       FROM entitlements
+       WHERE account_id = ? AND service = ?`
+    )
+    .bind(accountId, service)
+    .first();
+  return row || null;
+}
+
+export async function upsertEntitlement(db, {
+  accountId,
+  service,
+  status,
+  currentPeriodEnd,
+  source,
+  sourceRef,
+  nowMs,
+}) {
+  await db
+    .prepare(
+      `INSERT INTO entitlements (
+         account_id, service, status, current_period_end, source, source_ref, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(account_id, service) DO UPDATE SET
+         status = excluded.status,
+         current_period_end = COALESCE(excluded.current_period_end, entitlements.current_period_end),
+         source = excluded.source,
+         source_ref = COALESCE(excluded.source_ref, entitlements.source_ref),
+         updated_at = excluded.updated_at`
+    )
+    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, nowMs)
+    .run();
+}
+
+export async function getStripeCustomerByAccount(db, { accountId }) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, stripe_customer_id, created_at
+       FROM stripe_customers
+       WHERE account_id = ?`
+    )
+    .bind(accountId)
+    .first();
+  return row || null;
+}
+
+export async function getAccountByStripeCustomer(db, { stripeCustomerId }) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, stripe_customer_id, created_at
+       FROM stripe_customers
+       WHERE stripe_customer_id = ?`
+    )
+    .bind(stripeCustomerId)
+    .first();
+  return row || null;
+}
+
+export async function upsertStripeCustomer(db, { accountId, stripeCustomerId, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO stripe_customers (account_id, stripe_customer_id, created_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(account_id) DO UPDATE SET
+         stripe_customer_id = excluded.stripe_customer_id`
+    )
+    .bind(accountId, stripeCustomerId, nowMs)
+    .run();
+}
+
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
 }

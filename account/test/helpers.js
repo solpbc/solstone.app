@@ -52,6 +52,10 @@ export function makeTestEnv(overrides = {}) {
     APNS_P8_PEM: overrides.APNS_P8_PEM,
     APNS_BUNDLE_ID: overrides.APNS_BUNDLE_ID,
     APNS_ENV: overrides.APNS_ENV,
+    STRIPE_SECRET_KEY: overrides.STRIPE_SECRET_KEY || 'sk_test_account_portal',
+    STRIPE_WEBHOOK_SECRET: overrides.STRIPE_WEBHOOK_SECRET || 'whsec_account_portal',
+    STRIPE_PRICE_ANNUAL: overrides.STRIPE_PRICE_ANNUAL || 'price_annual_test',
+    STRIPE_PRICE_MONTHLY: overrides.STRIPE_PRICE_MONTHLY || 'price_monthly_test',
   };
 }
 
@@ -94,6 +98,9 @@ export function makeFakeKv() {
 
 export async function resetDb() {
   for (const table of [
+    'entitlements',
+    'stripe_customers',
+    'spl_bindings',
     'scout_applications',
     'gemini_reveal_acks',
     'enable_scout_codes',
@@ -153,6 +160,45 @@ export function installGcpFetchMock(handlers = {}) {
   });
   vi.stubGlobal('fetch', fetchMock);
   return { calls, fetchMock };
+}
+
+export function installStripeFetchMock(handlers = {}) {
+  const calls = [];
+  const fetchMock = vi.fn(async (input, init = {}) => {
+    const href = typeof input === 'string' ? input : input.url;
+    const url = new URL(href);
+    const method = (init.method || 'GET').toUpperCase();
+    const body = typeof init.body === 'string' ? new URLSearchParams(init.body) : new URLSearchParams();
+    calls.push({ method, url, init, body });
+    if (url.host !== 'api.stripe.com') {
+      throw new Error(`disallowed host reached fetch: ${url.host}`);
+    }
+    const keys = [
+      `${method} ${url.host}${url.pathname}${url.search}`,
+      `${method} ${url.host}${url.pathname}`,
+      `${method} ${url.host}`,
+      url.host,
+      'default',
+    ];
+    const handler = keys.map((key) => handlers[key]).find(Boolean);
+    if (!handler) throw new Error(`unhandled stripe fetch: ${method} ${url.href}`);
+    return handler({ method, url, init, body, calls });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return { calls, fetchMock };
+}
+
+export async function signStripeWebhook(rawBody, secret, t = Math.floor(Date.now() / 1000)) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(`${t}.${rawBody}`));
+  return `t=${t},v1=${hexEncode(new Uint8Array(signature))}`;
 }
 
 export function installConsoleSpy() {
@@ -462,6 +508,32 @@ export async function seedDevice({
   };
 }
 
+export async function seedEntitlement({
+  accountId,
+  service = 'spl_hosted',
+  status = 'active',
+  currentPeriodEnd = 1_800_000_000,
+  source = 'stripe',
+  sourceRef = 'sub_seeded',
+  updatedAt = Date.now(),
+} = {}) {
+  await env.DB
+    .prepare(
+      `INSERT INTO entitlements (
+         account_id, service, status, current_period_end, source, source_ref, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(account_id, service) DO UPDATE SET
+         status = excluded.status,
+         current_period_end = excluded.current_period_end,
+         source = excluded.source,
+         source_ref = excluded.source_ref,
+         updated_at = excluded.updated_at`
+    )
+    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, updatedAt)
+    .run();
+  return { accountId, service, status, currentPeriodEnd, source, sourceRef, updatedAt };
+}
+
 export async function seedCredential({
   accountId,
   credentialId = 'credential-id',
@@ -562,4 +634,8 @@ function formatConsoleArg(value) {
   } catch {
     return String(value);
   }
+}
+
+function hexEncode(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }

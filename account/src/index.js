@@ -49,6 +49,13 @@ import {
 } from './devices.js';
 import { handlePushDedup, handlePushDispatch } from './push.js';
 import {
+  handleBillingCheckout,
+  handleBillingPortal,
+  handleBillingReturn,
+  handleServicesSpl,
+  handleStripeWebhook,
+} from './billing.js';
+import {
   handleAddEmail,
   handleMakeEmailPrimary,
   handleRemoveEmail,
@@ -527,6 +534,15 @@ export default {
       }
 
       if (
+        parts.length === 3 &&
+        parts[1] === 'services' &&
+        parts[2] === 'spl' &&
+        req.method === 'GET'
+      ) {
+        return handleServicesSpl(req, env);
+      }
+
+      if (
         parts.length === 2 &&
         parts[1] === 'scout' &&
         req.method === 'GET'
@@ -722,6 +738,42 @@ export default {
         req.method === 'POST'
       ) {
         return handlePushDedup(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'billing' &&
+        parts[2] === 'checkout' &&
+        req.method === 'POST'
+      ) {
+        return handleBillingCheckout(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'billing' &&
+        parts[2] === 'portal' &&
+        req.method === 'POST'
+      ) {
+        return handleBillingPortal(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'billing' &&
+        parts[2] === 'return' &&
+        req.method === 'GET'
+      ) {
+        return handleBillingReturn(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'stripe' &&
+        parts[2] === 'webhook' &&
+        req.method === 'POST'
+      ) {
+        return handleStripeWebhook(req, env);
       }
 
       if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {

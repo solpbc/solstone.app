@@ -427,6 +427,76 @@ ${welcomePanel}
   });
 }
 
+export function renderServicesSpl({ entitlement, csrf, flash = {}, menu }) {
+  const flashes = billingFlashMessages(flash);
+  const status = entitlement?.status || '';
+  const isManage = status === 'active' || status === 'past_due';
+  const isPastDue = status === 'past_due';
+  const isSubscribe = !isManage;
+  const page = ({ statusLine = '', content }) => layout({
+    title: 'solstone hosted — private link',
+    body: `${topbar(menu)}
+<a class="back" href="/">${BACK_SVG} your services</a>
+${flashes}
+<div class="pagehead">
+  <h1>solstone hosted — private link</h1>
+  ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
+</div>
+${content}`,
+  });
+
+  if (isSubscribe) {
+    return page({
+      content: `<p class="lead">let solstone host your private link relay, so it stays reachable when your devices are asleep or away from home.</p>
+<div class="card">
+  <p>you never have to pay us. lan-direct and bring-your-own relays are always free — this only covers letting solstone host the relay for you.</p>
+  <div class="group">
+    ${billingCheckoutRow({ csrf, plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true })}
+    ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false })}
+  </div>
+  <p class="disclosure">billed securely through stripe.</p>
+</div>`,
+    });
+  }
+
+  if (isPastDue) {
+    return page({
+      statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>renewal needs attention</span>',
+      content: `<div class="card">
+  <p>the last payment didn't go through. solstone keeps hosting your relay for now — renew to keep it running. lan-direct still works either way.</p>
+  ${billingPortalForm(csrf)}
+</div>`,
+    });
+  }
+
+  return page({
+    statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>active</span>',
+    content: `<div class="card">
+  <p>solstone is hosting your private link relay.</p>
+  <p class="notice">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))}</p>
+  ${billingPortalForm(csrf)}
+  <p class="disclosure">lan-direct and bring-your-own relays are always free, anytime.</p>
+</div>`,
+  });
+}
+
+export function renderBillingReturn({ status, menu }) {
+  const success = status === 'success';
+  const message = success
+    ? 'payment received. it can take a moment to show up here.'
+    : 'no charge made. you can set up hosting anytime — lan-direct and bring-your-own stay free.';
+  return layout({
+    title: 'solstone hosted',
+    body: `${topbar(menu)}
+<a class="back" href="/services/spl">${BACK_SVG} solstone hosted</a>
+<div class="card">
+  <h1>solstone hosted — private link</h1>
+  <p>${esc(message)}</p>
+  <a class="btn secondary" href="/services/spl">back to solstone hosted</a>
+</div>`,
+  });
+}
+
 // === sign-in surfaces ===
 
 export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0, menu }) {
@@ -1118,6 +1188,38 @@ function renderSupportAttachment(attachment) {
 </div>`;
 }
 
+function billingCheckoutRow({ csrf, plan, title, buttonText, primary }) {
+  // Display copy must match the configured Stripe price IDs; env stores opaque price IDs only.
+  const buttonClass = primary ? 'btn primary' : 'btn secondary';
+  return `<div class="row" style="cursor:default">
+  <div class="body">
+    <div class="title">${esc(title)}</div>
+  </div>
+  <div class="trail"><form method="post" action="/billing/checkout">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="plan" value="${escAttr(plan)}">
+    <button class="${buttonClass}" type="submit">${esc(buttonText)}</button>
+  </form></div>
+</div>`;
+}
+
+function billingPortalForm(csrf) {
+  return `<form method="post" action="/billing/portal">
+  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+  <button class="btn primary" type="submit">manage billing</button>
+</form>`;
+}
+
+function billingFlashMessages(flash) {
+  const messages = [];
+  if (flash.checkout === 'invalid') messages.push('choose yearly or monthly billing.');
+  if (flash.checkout === 'email') messages.push("billing couldn't start. try again.");
+  if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
+  if (flash.billing === 'missing') messages.push('billing management is available after hosting starts.');
+  if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
+  return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
+}
+
 function flashMessages(flash) {
   const messages = [];
   if (flash.rotated === 'ok') messages.push('key rotated.');
@@ -1142,6 +1244,12 @@ function esc(value) {
 
 function escAttr(value) {
   return esc(value).replace(/"/g, '&quot;');
+}
+
+function formatUnixSecondsDate(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value)) return '—';
+  return new Date(value * 1000).toISOString().slice(0, 10);
 }
 
 function countLabel(count, singular, plural) {

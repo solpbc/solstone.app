@@ -19,6 +19,7 @@ describe('static source checks', () => {
     expect(sourceFiles).toEqual([
       'admin.js',
       'assets.js',
+      'billing.js',
       'crypto.js',
       'db.js',
       'devices.js',
@@ -39,6 +40,7 @@ describe('static source checks', () => {
       'scout-migrate.js',
       'session.js',
       'settings.js',
+      'stripe.js',
       'support-constants.js',
       'support.js',
     ]);

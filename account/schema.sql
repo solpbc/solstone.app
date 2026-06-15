@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0012 — service handoffs spl
+-- account-portal D1 schema after 0013 — billing entitlements
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -231,3 +231,37 @@ CREATE TABLE IF NOT EXISTS gemini_reveal_acks (
   PRIMARY KEY (account_id, acked_at),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS entitlements (
+  account_id TEXT NOT NULL,
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted')),
+  status TEXT NOT NULL CHECK (status IN ('active','past_due','canceled','lapsed')),
+  -- current_period_end: Stripe Unix SECONDS, stored verbatim. Never milliseconds.
+  -- The spl relay lode compares its grant window against this value in seconds.
+  current_period_end INTEGER,
+  source TEXT NOT NULL CHECK (source IN ('stripe','apple','google')),
+  source_ref TEXT,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (account_id, service),
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS stripe_customers (
+  account_id TEXT PRIMARY KEY,
+  stripe_customer_id TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+-- spl_bindings: schema hook for the sibling relay lode. This lode creates the
+-- table + index ONLY and never reads or writes it. instance_id = relay instance.
+CREATE TABLE IF NOT EXISTS spl_bindings (
+  account_id TEXT NOT NULL,
+  instance_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  last_seen_at INTEGER NOT NULL,
+  PRIMARY KEY (account_id, instance_id),
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_spl_bindings_account_id ON spl_bindings(account_id);

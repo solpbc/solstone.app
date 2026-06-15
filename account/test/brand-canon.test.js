@@ -12,6 +12,7 @@ import {
   seedAccount,
   seedCredential,
   seedDevice,
+  seedEntitlement,
   seedSession,
   startRequest,
   stubTurnstile,
@@ -105,6 +106,11 @@ describe('brand canon', () => {
     const noScout = await seedAccount({ email: 'empty-scout@example.com', testEnv });
     const noScoutSession = await seedSession(noScout.accountId, { testEnv });
     await seedCredential({ accountId: noScout.accountId, credentialId: 'empty-passkey' });
+    const splActive = await seedAccount({ email: 'spl-active@example.com', testEnv });
+    const splActiveSession = await seedSession(splActive.accountId, { testEnv });
+    await seedEntitlement({ accountId: splActive.accountId, status: 'active' });
+    const splEmpty = await seedAccount({ email: 'spl-empty@example.com', testEnv });
+    const splEmptySession = await seedSession(splEmpty.accountId, { testEnv });
 
     const surfaces = [
       ['signed-out landing', await get('/', testEnv)],
@@ -117,6 +123,8 @@ describe('brand canon', () => {
       ['data', await get('/transparency', testEnv, withPasskeySession.cookie), true],
       ['scout active', await get('/scout', testEnv, withPasskeySession.cookie), true],
       ['scout empty', await get('/scout', testEnv, noScoutSession.cookie), true],
+      ['spl active', await get('/services/spl', testEnv, splActiveSession.cookie), true],
+      ['spl empty', await get('/services/spl', testEnv, splEmptySession.cookie), true],
       ['devices', await get('/devices', testEnv, withPasskeySession.cookie), true],
       ['support list', await get('/support', testEnv, withPasskeySession.cookie), true],
       ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],
