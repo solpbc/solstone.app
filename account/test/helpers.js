@@ -49,7 +49,7 @@ export function makeTestEnv(overrides = {}) {
     SERVICES_AUTH_TOKEN: overrides.SERVICES_AUTH_TOKEN || 'test-services-auth-token',
     APNS_TEAM_ID: overrides.APNS_TEAM_ID,
     APNS_KEY_ID: overrides.APNS_KEY_ID,
-    APNS_P8_PEM: overrides.APNS_P8_PEM,
+    APNS_KEY_P8: overrides.APNS_KEY_P8 ?? overrides.APNS_P8_PEM,
     APNS_BUNDLE_ID: overrides.APNS_BUNDLE_ID,
     APNS_ENV: overrides.APNS_ENV,
     PUSH_RELAY_SECRET: overrides.PUSH_RELAY_SECRET || 'test-push-relay-secret',

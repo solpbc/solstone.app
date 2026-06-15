@@ -293,7 +293,7 @@ function requireApnsConfig(env) {
   const config = {
     teamId: env.APNS_TEAM_ID,
     keyId: env.APNS_KEY_ID,
-    p8Pem: env.APNS_P8_PEM,
+    p8Pem: env.APNS_KEY_P8,
     bundleId: env.APNS_BUNDLE_ID,
     apnsEnv: env.APNS_ENV,
   };

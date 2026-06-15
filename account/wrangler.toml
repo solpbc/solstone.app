@@ -29,7 +29,7 @@ service = "extro-support"
 # APNs push dispatch secrets (set via `wrangler secret put`):
 # APNS_TEAM_ID — Apple Developer Team ID (used as JWT issuer).
 # APNS_KEY_ID — Apple APNs auth key id (scopes the KV JWT cache key).
-# APNS_P8_PEM — APNs Auth Key .p8 private key PEM contents.
+# APNS_KEY_P8 — APNs Auth Key .p8 private key PEM contents.
 # APNS_BUNDLE_ID — App bundle id used as apns-topic (e.g. app.solstone.swift).
 # APNS_ENV — APNs environment: "production" or "sandbox".
 # PUSH_RELAY_SECRET — shared bearer secret for the account-less push relay (POST /push/dispatch, /push/dedup).

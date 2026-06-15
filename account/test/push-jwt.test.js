@@ -34,7 +34,7 @@ describe('APNs JWT minting', () => {
     const testEnv = apnsEnv({ GCP_TOKEN_CACHE: kv });
 
     const first = await cachedApnsJwt(testEnv);
-    const second = await cachedApnsJwt({ ...testEnv, APNS_P8_PEM: 'invalid-pem' });
+    const second = await cachedApnsJwt({ ...testEnv, APNS_KEY_P8: 'invalid-pem' });
 
     expect(second).toBe(first);
     expect(kv.puts).toHaveLength(1);
@@ -67,7 +67,7 @@ function apnsEnv(overrides = {}) {
   return makeTestEnv({
     APNS_TEAM_ID: 'TEAM123',
     APNS_KEY_ID: 'APNSKEY1',
-    APNS_P8_PEM: TEST_APNS_P8_PEM,
+    APNS_KEY_P8: TEST_APNS_P8_PEM,
     APNS_BUNDLE_ID: 'app.solstone.swift',
     APNS_ENV: 'production',
     ...overrides,

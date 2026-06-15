@@ -148,7 +148,7 @@ function apnsEnv(overrides = {}) {
   return makeTestEnv({
     APNS_TEAM_ID: 'TEAM123',
     APNS_KEY_ID: 'APNSKEY1',
-    APNS_P8_PEM: TEST_APNS_P8_PEM,
+    APNS_KEY_P8: TEST_APNS_P8_PEM,
     APNS_BUNDLE_ID: 'app.solstone.swift',
     APNS_ENV: 'production',
     ...overrides,
