@@ -1,6 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { mintDispatchToken } from '../src/devices.js';
 import {
   buildSilentChatLifecycleCollapseId,
   buildSilentChatLifecyclePayload,
@@ -9,23 +8,16 @@ import {
   installConsoleSpy,
   installGcpFetchMock,
   makeTestEnv,
-  resetDb,
-  seedAccount,
-  seedDevice,
   TEST_APNS_P8_PEM,
 } from './helpers.js';
 
 describe('push dedup endpoint', () => {
-  beforeEach(async () => {
-    await resetDb();
-  });
-
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it('rejects missing bearer', async () => {
+  it('rejects missing bearer without APNs fetch', async () => {
     const { calls } = installGcpFetchMock({});
 
     const response = await worker.fetch(dedupRequest({ token: null }), apnsEnv());
@@ -35,74 +27,54 @@ describe('push dedup endpoint', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('rejects unknown bearer', async () => {
+  it('rejects wrong bearer without APNs fetch', async () => {
     const { calls } = installGcpFetchMock({});
 
-    const response = await worker.fetch(dedupRequest({ token: 'unknown-token' }), apnsEnv());
+    const response = await worker.fetch(dedupRequest({ token: 'wrong-secret' }), apnsEnv());
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'invalid_token' });
     expect(calls).toHaveLength(0);
   });
 
+  it('sends one background push to an inline device', async () => {
+    const testEnv = apnsEnv();
+    const { calls } = installApnsOk();
+
+    const response = await worker.fetch(dedupRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDedupBody({ devices: [inlineDevice('push-1')] }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      ok: true,
+      sent: 1,
+      failed: 0,
+      revoked: 0,
+      revoked_tokens: [],
+      failures: [],
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url.host).toBe('api.push.apple.com');
+    expect(calls[0].url.pathname).toBe('/3/device/push-1');
+  });
+
   it('rejects missing request_id', async () => {
-    await expectValidationError({ action: 'owner_chat_open' });
+    await expectValidationError({
+      action: 'owner_chat_open',
+      devices: [inlineDevice('push-1')],
+    });
   });
 
   it('rejects missing action', async () => {
-    await expectValidationError({ request_id: 'req-1' });
-  });
-
-  it('sends one background push for a single active device', async () => {
-    const testEnv = apnsEnv();
-    const { token, account } = await seedDedupAccount(testEnv);
-    await seedDevice({ accountId: account.accountId, deviceId: 'device-1', pushToken: 'push-1' });
-    installApnsOk();
-
-    const response = await worker.fetch(dedupRequest({ token }), testEnv);
-
-    expect(await response.json()).toEqual({ ok: true, sent: 1, failed: 0, revoked: 0, failures: [] });
-  });
-
-  it('does not send devices whose token env mismatches APNS_ENV', async () => {
-    const testEnv = apnsEnv({ APNS_ENV: 'production' });
-    const { token, account } = await seedDedupAccount(testEnv);
-    await seedDevice({
-      accountId: account.accountId,
-      deviceId: 'device-1',
-      pushToken: 'sandbox-push-token',
-      pushTokenEnv: 'sandbox',
+    await expectValidationError({
+      request_id: 'req-1',
+      devices: [inlineDevice('push-1')],
     });
-    const { calls } = installGcpFetchMock({});
-
-    const response = await worker.fetch(dedupRequest({ token }), testEnv);
-
-    expect(calls).toHaveLength(0);
-    expect(calls.map(({ url }) => url.href).join('\n')).not.toContain('sandbox-push-token');
-    expect(await response.json()).toEqual({
-      ok: false,
-      sent: 0,
-      failed: 1,
-      revoked: 0,
-      failures: [{ device_id: 'device-1', reason: 'env_mismatch' }],
-    });
-  });
-
-  it('builds the exact silent payload shape', () => {
-    const payload = buildSilentChatLifecyclePayload(validDedupBody());
-
-    expect(Object.keys(payload).sort()).toEqual(['aps', 'data']);
-    expect(payload.aps).toEqual({ 'mutable-content': 1, 'content-available': 1 });
-    expect(payload.aps).not.toHaveProperty('alert');
-    expect(payload.aps).not.toHaveProperty('sound');
-    expect(payload.aps).not.toHaveProperty('category');
-    expect(payload.data).toEqual({ action: 'owner_chat_open', request_id: 'req-1' });
   });
 
   it('sets APNs background headers and collapse id', async () => {
     const testEnv = apnsEnv();
-    const { token, account } = await seedDedupAccount(testEnv);
-    await seedDevice({ accountId: account.accountId, deviceId: 'device-1', pushToken: 'push-1' });
     let capturedHeaders;
     installGcpFetchMock({
       'POST api.push.apple.com': async ({ init }) => {
@@ -111,7 +83,10 @@ describe('push dedup endpoint', () => {
       },
     });
 
-    await worker.fetch(dedupRequest({ token }), testEnv);
+    await worker.fetch(dedupRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDedupBody({ devices: [inlineDevice('header-token')] }),
+    }), testEnv);
 
     expect(capturedHeaders.get('apns-topic')).toBe(testEnv.APNS_BUNDLE_ID);
     expect(capturedHeaders.get('apns-push-type')).toBe('background');
@@ -123,11 +98,23 @@ describe('push dedup endpoint', () => {
     expect(capturedHeaders.get('apns-id')).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it('builds the exact silent payload shape', () => {
+    const payload = buildSilentChatLifecyclePayload({
+      request_id: 'req-1',
+      action: 'owner_chat_open',
+    });
+
+    expect(Object.keys(payload).sort()).toEqual(['aps', 'data']);
+    expect(payload.aps).toEqual({ 'mutable-content': 1, 'content-available': 1 });
+    expect(payload.aps).not.toHaveProperty('alert');
+    expect(payload.aps).not.toHaveProperty('sound');
+    expect(payload.aps).not.toHaveProperty('category');
+    expect(payload.data).toEqual({ action: 'owner_chat_open', request_id: 'req-1' });
+  });
+
   it('does not log PEM, JWT, signature, or push tokens', async () => {
     const spy = installConsoleSpy();
     const testEnv = apnsEnv();
-    const { token, account } = await seedDedupAccount(testEnv);
-    await seedDevice({ accountId: account.accountId, deviceId: 'device-1', pushToken: 'secret-push-token' });
     let jwt = '';
     installGcpFetchMock({
       'POST api.push.apple.com': async ({ init }) => {
@@ -136,7 +123,10 @@ describe('push dedup endpoint', () => {
       },
     });
 
-    await worker.fetch(dedupRequest({ token }), testEnv);
+    await worker.fetch(dedupRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDedupBody({ devices: [inlineDevice('secret-push-token')] }),
+    }), testEnv);
 
     spy.assertNoSecrets([TEST_APNS_P8_PEM, jwt, jwt.split('.')[2], 'secret-push-token']);
     spy.restore();
@@ -145,10 +135,9 @@ describe('push dedup endpoint', () => {
 
 async function expectValidationError(body) {
   const testEnv = apnsEnv();
-  const { token } = await seedDedupAccount(testEnv);
   const { calls } = installGcpFetchMock({});
 
-  const response = await worker.fetch(dedupRequest({ token, body }), testEnv);
+  const response = await worker.fetch(dedupRequest({ token: testEnv.PUSH_RELAY_SECRET, body }), testEnv);
 
   expect(response.status).toBe(400);
   expect(await response.json()).toEqual({ error: 'invalid_input' });
@@ -166,19 +155,13 @@ function apnsEnv(overrides = {}) {
   });
 }
 
-async function seedDedupAccount(testEnv) {
-  const account = await seedAccount({ testEnv });
-  const minted = await mintDispatchToken(testEnv, account.accountId);
-  return { account, token: minted.token };
-}
-
 function installApnsOk() {
   return installGcpFetchMock({
     'POST api.push.apple.com': async () => new Response('{}', { status: 200 }),
   });
 }
 
-function dedupRequest({ token, body = validDedupBody() }) {
+function dedupRequest({ token = apnsEnv().PUSH_RELAY_SECRET, body = validDedupBody() } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token !== null) headers.Authorization = `Bearer ${token}`;
   return new Request('https://services.solstone.app/push/dedup', {
@@ -188,6 +171,20 @@ function dedupRequest({ token, body = validDedupBody() }) {
   });
 }
 
-function validDedupBody() {
-  return { request_id: 'req-1', action: 'owner_chat_open' };
+function validDedupBody(overrides = {}) {
+  return {
+    request_id: 'req-1',
+    action: 'owner_chat_open',
+    devices: [inlineDevice('push-1')],
+    ...overrides,
+  };
+}
+
+function inlineDevice(token, overrides = {}) {
+  return {
+    token,
+    bundle_id: 'app.solstone.swift',
+    environment: 'production',
+    ...overrides,
+  };
 }

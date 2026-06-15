@@ -52,6 +52,7 @@ export function makeTestEnv(overrides = {}) {
     APNS_P8_PEM: overrides.APNS_P8_PEM,
     APNS_BUNDLE_ID: overrides.APNS_BUNDLE_ID,
     APNS_ENV: overrides.APNS_ENV,
+    PUSH_RELAY_SECRET: overrides.PUSH_RELAY_SECRET || 'test-push-relay-secret',
     STRIPE_SECRET_KEY: overrides.STRIPE_SECRET_KEY || 'sk_test_account_portal',
     STRIPE_WEBHOOK_SECRET: overrides.STRIPE_WEBHOOK_SECRET || 'whsec_account_portal',
     STRIPE_PRICE_ANNUAL: overrides.STRIPE_PRICE_ANNUAL || 'price_annual_test',

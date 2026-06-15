@@ -1,6 +1,4 @@
-import { listDispatchableDevicesForAccount } from './db.js';
-import { resolveBearerAccount } from './dispatch-tokens.js';
-import { deviceRevoke } from './devices.js';
+import { timingSafeEqual } from './crypto.js';
 import { json } from './index.js';
 
 const APNS_JWT_TTL_SECONDS = 3300;
@@ -9,12 +7,17 @@ const KIND_SOL_CHAT_REQUEST = 'sol_chat_request';
 const encoder = new TextEncoder();
 
 export async function handlePushDispatch(req, env) {
-  const auth = await resolveBearerAccount(req, env);
-  if (auth instanceof Response) return auth;
+  const denied = authorizeRelay(req, env);
+  if (denied) return denied;
   const body = await readJsonObject(req);
   if (body instanceof Response) return body;
   const input = validateDispatchBody(body);
   if (input instanceof Response) return input;
+  const devices = input.devices;
+
+  if (devices.length === 0) {
+    return json({ ok: true, sent: 0, failed: 0, revoked: 0, revoked_tokens: [], failures: [] });
+  }
 
   let jwt;
   try {
@@ -24,7 +27,6 @@ export async function handlePushDispatch(req, env) {
     return json({ error: 'server_error' }, { status: 500 });
   }
 
-  const devices = await listDispatchableDevicesForAccount(env.DB, auth.accountId);
   const payload = buildSolChatRequestPayload(input);
   const result = await fanOutSends(
     env,
@@ -37,12 +39,17 @@ export async function handlePushDispatch(req, env) {
 }
 
 export async function handlePushDedup(req, env) {
-  const auth = await resolveBearerAccount(req, env);
-  if (auth instanceof Response) return auth;
+  const denied = authorizeRelay(req, env);
+  if (denied) return denied;
   const body = await readJsonObject(req);
   if (body instanceof Response) return body;
   const input = validateDedupBody(body);
   if (input instanceof Response) return input;
+  const devices = input.devices;
+
+  if (devices.length === 0) {
+    return json({ ok: true, sent: 0, failed: 0, revoked: 0, revoked_tokens: [], failures: [] });
+  }
 
   let jwt;
   try {
@@ -52,7 +59,6 @@ export async function handlePushDedup(req, env) {
     return json({ error: 'server_error' }, { status: 500 });
   }
 
-  const devices = await listDispatchableDevicesForAccount(env.DB, auth.accountId);
   const payload = buildSilentChatLifecyclePayload(input);
   const result = await fanOutSends(
     env,
@@ -62,6 +68,15 @@ export async function handlePushDedup(req, env) {
     (activeJwt) => dedupHeadersFor(env, activeJwt, input.request_id, input.action)
   );
   return json(result);
+}
+
+function authorizeRelay(req, env) {
+  const auth = req.headers.get('Authorization') || '';
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  if (!match || !timingSafeEqual(match[1], env.PUSH_RELAY_SECRET)) {
+    return json({ error: 'invalid_token' }, { status: 401 });
+  }
+  return null;
 }
 
 export async function mintApnsJwt(env) {
@@ -168,7 +183,7 @@ export async function fanOutSends(env, jwt, devices, payload, headersFor) {
       for (const index of expiredIndices) {
         outcomes.push({
           index,
-          device_id: devices[index]?.device_id || '',
+          token: devices[index]?.token || '',
           kind: 'failed',
           reason: 'jwt_mint_failed',
         });
@@ -183,7 +198,7 @@ function settledOutcome(result) {
   if (result.status === 'fulfilled') return result.value;
   return {
     index: -1,
-    device_id: '',
+    token: '',
     kind: 'failed',
     reason: 'send_failed',
   };
@@ -191,14 +206,6 @@ function settledOutcome(result) {
 
 async function sendForIndex(env, jwt, devices, payload, headersFor, index, retried) {
   const device = devices[index];
-  if (device.push_token_env !== env.APNS_ENV) {
-    return {
-      index,
-      device_id: device.device_id,
-      kind: 'failed',
-      reason: 'env_mismatch',
-    };
-  }
   const outcome = await apnsSend(env, jwt, device, payload, headersFor(jwt, device));
   if (outcome.kind === 'expired' && retried) {
     return { ...outcome, kind: 'failed' };
@@ -210,18 +217,20 @@ function aggregateOutcomes(outcomes) {
   let sent = 0;
   let failed = 0;
   let revoked = 0;
+  const revoked_tokens = [];
   const failures = [];
   for (const outcome of outcomes) {
     if (outcome.kind === 'sent') {
       sent += 1;
     } else if (outcome.kind === 'revoked') {
       revoked += 1;
+      revoked_tokens.push(outcome.token);
     } else {
       failed += 1;
-      failures.push({ device_id: outcome.device_id, reason: outcome.reason || 'send_failed' });
+      failures.push({ token: outcome.token, reason: outcome.reason || 'send_failed' });
     }
   }
-  return { ok: failed === 0, sent, failed, revoked, failures };
+  return { ok: failed === 0, sent, failed, revoked, revoked_tokens, failures };
 }
 
 async function readJsonObject(req) {
@@ -247,7 +256,11 @@ function validateDispatchBody(body) {
   if (encoder.encode(summary).byteLength > 80) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
-  return { summary, category, request_id: requestId };
+  const devices = validateDevices(body);
+  if (devices === null) {
+    return json({ error: 'invalid_input' }, { status: 400 });
+  }
+  return { summary, category, request_id: requestId, devices };
 }
 
 function validateDedupBody(body) {
@@ -256,7 +269,24 @@ function validateDedupBody(body) {
   if (!requestId || !action) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
-  return { request_id: requestId, action };
+  const devices = validateDevices(body);
+  if (devices === null) {
+    return json({ error: 'invalid_input' }, { status: 400 });
+  }
+  return { request_id: requestId, action, devices };
+}
+
+function validateDevices(body) {
+  if (!Array.isArray(body.devices)) return null;
+  const devices = [];
+  for (const d of body.devices) {
+    if (!d || typeof d !== 'object') return null;
+    const token = typeof d.token === 'string' ? d.token : '';
+    const bundleId = typeof d.bundle_id === 'string' ? d.bundle_id : null;
+    if (!token || bundleId === null || !['sandbox', 'production'].includes(d.environment)) return null;
+    devices.push({ token, bundle_id: bundleId, environment: d.environment });
+  }
+  return devices;
 }
 
 function requireApnsConfig(env) {
@@ -277,7 +307,7 @@ function requireApnsConfig(env) {
 }
 
 async function apnsSend(env, jwt, device, payload, headers) {
-  const url = `${apnsHost(device.push_token_env)}/3/device/${encodeURIComponent(device.push_token)}`;
+  const url = `${apnsHost(device.environment)}/3/device/${encodeURIComponent(device.token)}`;
   try {
     const response = await fetchWithTimeout(url, {
       method: 'POST',
@@ -288,25 +318,20 @@ async function apnsSend(env, jwt, device, payload, headers) {
     const text = await response.text();
     const reason = responseReason(text);
     if (response.status === 200) {
-      return { device_id: device.device_id, kind: 'sent' };
+      return { token: device.token, kind: 'sent' };
     }
     if (response.status === 403 && reason === 'ExpiredProviderToken') {
-      return { device_id: device.device_id, kind: 'expired', reason };
+      return { token: device.token, kind: 'expired', reason };
     }
     if (isRevocableReason(response.status, reason)) {
-      try {
-        await deviceRevoke(env, device.device_id);
-      } catch {
-        console.warn('device_revoke_failed', { device_id: device.device_id });
-      }
-      return { device_id: device.device_id, kind: 'revoked', reason: reason || String(response.status) };
+      return { token: device.token, kind: 'revoked', reason: reason || String(response.status) };
     }
-    console.warn('apns_send_failed', { device_id: device.device_id, status: response.status, reason: reason || '' });
-    return { device_id: device.device_id, kind: 'failed', reason: reason || String(response.status) };
+    console.warn('apns_send_failed', { status: response.status, reason: reason || '' });
+    return { token: device.token, kind: 'failed', reason: reason || String(response.status) };
   } catch (error) {
     const reason = error?.message === 'apns_request_timed_out' ? 'apns_request_timed_out' : 'fetch_failed';
-    console.warn('apns_send_failed', { device_id: device.device_id, status: 0, reason });
-    return { device_id: device.device_id, kind: 'failed', reason };
+    console.warn('apns_send_failed', { status: 0, reason });
+    return { token: device.token, kind: 'failed', reason };
   }
 }
 

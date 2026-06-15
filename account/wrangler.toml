@@ -32,6 +32,7 @@ service = "extro-support"
 # APNS_P8_PEM — APNs Auth Key .p8 private key PEM contents.
 # APNS_BUNDLE_ID — App bundle id used as apns-topic (e.g. app.solstone.swift).
 # APNS_ENV — APNs environment: "production" or "sandbox".
+# PUSH_RELAY_SECRET — shared bearer secret for the account-less push relay (POST /push/dispatch, /push/dedup).
 #
 # Optional Scout Gemini key project override:
 # SCOUT_GCP_PROJECT — GCP project id for newly provisioned Scout API keys.

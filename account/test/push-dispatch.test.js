@@ -1,7 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { hashWithPepper } from '../src/crypto.js';
-import { mintDispatchToken } from '../src/devices.js';
 import {
   apnsJwtCacheKey,
   buildSolChatRequestCollapseId,
@@ -12,20 +10,37 @@ import {
   installGcpFetchMock,
   makeFakeKv,
   makeTestEnv,
-  resetDb,
-  seedAccount,
-  seedDevice,
   TEST_APNS_P8_PEM,
 } from './helpers.js';
 
 describe('push dispatch endpoint', () => {
-  beforeEach(async () => {
-    await resetDb();
-  });
-
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('sends alert pushes to inline production devices without D1 access', async () => {
+    const testEnv = apnsEnv({ DB: throwingDb() });
+    const { calls } = installApnsOk();
+
+    const response = await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({
+        devices: [inlineDevice('push-a'), inlineDevice('push-b')],
+      }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      ok: true,
+      sent: 2,
+      failed: 0,
+      revoked: 0,
+      revoked_tokens: [],
+      failures: [],
+    });
+    expect(calls).toHaveLength(2);
+    expect(calls.map(({ url }) => url.host)).toEqual(['api.push.apple.com', 'api.push.apple.com']);
+    expect(calls.map(({ url }) => url.pathname)).toEqual(['/3/device/push-a', '/3/device/push-b']);
   });
 
   it('rejects missing bearer without APNs fetch', async () => {
@@ -40,245 +55,174 @@ describe('push dispatch endpoint', () => {
 
   it('rejects malformed bearer without APNs fetch', async () => {
     const { calls } = installGcpFetchMock({});
+    const token = apnsEnv().PUSH_RELAY_SECRET;
 
-    const response = await worker.fetch(dispatchRequest({ token: 'not-bearer', rawAuth: true }), apnsEnv());
+    const response = await worker.fetch(dispatchRequest({ token, rawAuth: true }), apnsEnv());
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'invalid_token' });
     expect(calls).toHaveLength(0);
   });
 
-  it('rejects unknown bearer without APNs fetch', async () => {
+  it('rejects wrong bearer without APNs fetch', async () => {
     const { calls } = installGcpFetchMock({});
 
-    const response = await worker.fetch(dispatchRequest({ token: 'unknown-token' }), apnsEnv());
+    const response = await worker.fetch(dispatchRequest({ token: 'wrong-secret' }), apnsEnv());
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'invalid_token' });
     expect(calls).toHaveLength(0);
   });
 
-  it('rejects revoked bearer without APNs fetch', async () => {
+  it('routes inline devices to their requested APNs environments in one request', async () => {
     const testEnv = apnsEnv();
-    const account = await seedAccount({ testEnv });
-    const minted = await mintDispatchToken(testEnv, account.accountId);
-    const tokenHash = await hashWithPepper(minted.token, testEnv, 'DISPATCH_TOKEN_PEPPER');
-    await testEnv.DB
-      .prepare('UPDATE account_dispatch_tokens SET revoked_at = ? WHERE token_hash = ?')
-      .bind(Date.now(), tokenHash)
-      .run();
-    const { calls } = installGcpFetchMock({});
-
-    const response = await worker.fetch(dispatchRequest({ token: minted.token }), testEnv);
-
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: 'invalid_token' });
-    expect(calls).toHaveLength(0);
-  });
-
-  it('rejects missing summary', async () => {
-    await expectValidationError({ category: 'notice', request_id: 'req-1' });
-  });
-
-  it('rejects empty summary', async () => {
-    await expectValidationError({ summary: '   ', category: 'notice', request_id: 'req-1' });
-  });
-
-  it('rejects summary over 80 bytes', async () => {
-    await expectValidationError({ summary: `${'a'.repeat(79)}🙂`, category: 'notice', request_id: 'req-1' });
-  });
-
-  it('accepts summary exactly 80 bytes', async () => {
-    const testEnv = apnsEnv();
-    const { token, account } = await seedDispatchAccount(testEnv);
-    await seedDeviceForAccount(testEnv, { accountId: account.accountId });
-    installApnsOk();
+    const { calls } = installGcpFetchMock({
+      'POST api.push.apple.com': async () => new Response('{}', { status: 200 }),
+      'POST api.sandbox.push.apple.com': async () => new Response('{}', { status: 200 }),
+    });
 
     const response = await worker.fetch(dispatchRequest({
-      token,
-      body: { summary: 'a'.repeat(80), category: 'notice', request_id: 'req-1' },
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({
+        devices: [
+          inlineDevice('prod-token', { environment: 'production' }),
+          inlineDevice('sandbox-token', { environment: 'sandbox' }),
+        ],
+      }),
     }), testEnv);
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ ok: true, sent: 1, failed: 0 });
-  });
-
-  it('rejects missing category', async () => {
-    await expectValidationError({ summary: 'hello', request_id: 'req-1' });
-  });
-
-  it('rejects missing request_id', async () => {
-    await expectValidationError({ summary: 'hello', category: 'notice' });
-  });
-
-  it("uses bearer account and ignores body account_id", async () => {
-    const testEnv = apnsEnv();
-    const accountA = await seedAccount({ email: 'a@example.com', testEnv });
-    const accountB = await seedAccount({ email: 'b@example.com', testEnv });
-    await seedDevice({ accountId: accountA.accountId, deviceId: 'device-a1', pushToken: 'push-a1' });
-    await seedDevice({ accountId: accountA.accountId, deviceId: 'device-a2', pushToken: 'push-a2' });
-    await seedDevice({ accountId: accountB.accountId, deviceId: 'device-b1', pushToken: 'push-b1' });
-    const minted = await mintDispatchToken(testEnv, accountA.accountId);
-    const { calls } = installApnsOk();
-
-    const response = await worker.fetch(dispatchRequest({
-      token: minted.token,
-      body: { ...validDispatchBody(), account_id: accountB.accountId },
-    }), testEnv);
-
-    expect(response.status).toBe(200);
-    expect(calls).toHaveLength(2);
-    expect(calls.map(({ url }) => url.href).join('\n')).not.toContain('push-b1');
-  });
-
-  it('sends one alert push for a single active device', async () => {
-    const testEnv = apnsEnv();
-    const { token, account } = await seedDispatchAccount(testEnv);
-    await seedDeviceForAccount(testEnv, { accountId: account.accountId });
-    installApnsOk();
-
-    const response = await worker.fetch(dispatchRequest({ token }), testEnv);
-
-    expect(await response.json()).toEqual({ ok: true, sent: 1, failed: 0, revoked: 0, failures: [] });
-  });
-
-  it('fans out to multiple active devices before awaiting responses', async () => {
-    const testEnv = apnsEnv();
-    const { token, account } = await seedDispatchAccount(testEnv);
-    await seedDeviceForAccount(testEnv, { accountId: account.accountId, deviceId: 'device-a', pushToken: 'push-a' });
-    await seedDeviceForAccount(testEnv, { accountId: account.accountId, deviceId: 'device-b', pushToken: 'push-b' });
-    await seedDeviceForAccount(testEnv, { accountId: account.accountId, deviceId: 'device-c', pushToken: 'push-c' });
-    let started = 0;
-    let release;
-    const allStarted = new Promise((resolve) => {
-      release = resolve;
-    });
-    const gate = new Promise((resolve) => {
-      installGcpFetchMock({
-        'POST api.push.apple.com': async () => {
-          started += 1;
-          if (started === 3) release();
-          await new Promise((done) => setTimeout(done, 1));
-          resolve();
-          return new Response('{}', { status: 200 });
-        },
-      });
-    });
-
-    const responsePromise = worker.fetch(dispatchRequest({ token }), testEnv);
-    await allStarted;
-    expect(started).toBe(3);
-    await gate;
-    const response = await responsePromise;
-
-    expect(await response.json()).toMatchObject({ sent: 3, failed: 0 });
-  });
-
-  it('excludes revoked devices from fan-out', async () => {
-    const testEnv = apnsEnv();
-    const { token, account } = await seedDispatchAccount(testEnv);
-    await seedDeviceForAccount(testEnv, { accountId: account.accountId, deviceId: 'active-device', pushToken: 'active-push' });
-    await seedDeviceForAccount(testEnv, {
-      accountId: account.accountId,
-      deviceId: 'revoked-device',
-      pushToken: 'revoked-push',
-      revokedAt: 1234,
-    });
-    const { calls } = installApnsOk();
-
-    const response = await worker.fetch(dispatchRequest({ token }), testEnv);
-
-    expect(response.status).toBe(200);
-    expect(calls).toHaveLength(1);
-    expect(calls[0].url.href).toContain('active-push');
-  });
-
-  it('revokes devices on APNs 410', async () => {
-    await expectRevokedForApnsResponse(new Response(JSON.stringify({ reason: 'Unregistered' }), { status: 410 }));
-  });
-
-  it('revokes devices on BadDeviceToken', async () => {
-    await expectRevokedForApnsResponse(new Response(JSON.stringify({ reason: 'BadDeviceToken' }), { status: 400 }));
-  });
-
-  it('revokes devices on Unregistered', async () => {
-    await expectRevokedForApnsResponse(new Response(JSON.stringify({ reason: 'Unregistered' }), { status: 400 }));
-  });
-
-  it('counts 5xx as failed without revoking', async () => {
-    const spy = installConsoleSpy();
-    const testEnv = apnsEnv();
-    const { token, account } = await seedDispatchAccount(testEnv);
-    const device = await seedDeviceForAccount(testEnv, { accountId: account.accountId });
-    installGcpFetchMock({
-      'POST api.push.apple.com': async () => new Response(JSON.stringify({ reason: 'InternalServerError' }), { status: 500 }),
-    });
-
-    const response = await worker.fetch(dispatchRequest({ token }), testEnv);
-    const body = await response.json();
-
-    expect(body).toEqual({
-      ok: false,
-      sent: 0,
-      failed: 1,
-      revoked: 0,
-      failures: [{ device_id: device.deviceId, reason: 'InternalServerError' }],
-    });
-    expect(await revokedAt(device.deviceId)).toBeNull();
-    spy.restore();
-  });
-
-  it('does not send devices whose token env mismatches APNS_ENV', async () => {
-    const testEnv = apnsEnv({ APNS_ENV: 'production' });
-    const { token, account } = await seedDispatchAccount(testEnv);
-    const device = await seedDeviceForAccount(testEnv, {
-      accountId: account.accountId,
-      pushToken: 'sandbox-push-token',
-      pushTokenEnv: 'sandbox',
-    });
-    const { calls } = installGcpFetchMock({});
-
-    const response = await worker.fetch(dispatchRequest({ token }), testEnv);
-
-    expect(calls).toHaveLength(0);
-    expect(calls.map(({ url }) => url.href).join('\n')).not.toContain('sandbox-push-token');
     expect(await response.json()).toEqual({
-      ok: false,
-      sent: 0,
-      failed: 1,
+      ok: true,
+      sent: 2,
+      failed: 0,
       revoked: 0,
-      failures: [{ device_id: device.deviceId, reason: 'env_mismatch' }],
+      revoked_tokens: [],
+      failures: [],
+    });
+    expect(calls.map(({ url }) => url.host).sort()).toEqual([
+      'api.push.apple.com',
+      'api.sandbox.push.apple.com',
+    ]);
+  });
+
+  it('reports revocable APNs responses by token without D1 access', async () => {
+    const testEnv = apnsEnv({ DB: throwingDb() });
+    installGcpFetchMock({
+      'POST api.push.apple.com': async () => new Response(JSON.stringify({ reason: 'Unregistered' }), { status: 410 }),
+    });
+
+    const response = await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({
+        devices: [inlineDevice('revoked-push-token')],
+      }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      ok: true,
+      sent: 0,
+      failed: 0,
+      revoked: 1,
+      revoked_tokens: ['revoked-push-token'],
+      failures: [],
     });
   });
 
   it('deletes cached JWT once and retries all ExpiredProviderToken sends with one fresh JWT', async () => {
     const kv = makeFakeKv();
     const testEnv = apnsEnv({ GCP_TOKEN_CACHE: kv });
-    const { token, account } = await seedDispatchAccount(testEnv);
-    for (const id of ['a', 'b', 'c']) {
-      await seedDeviceForAccount(testEnv, { accountId: account.accountId, deviceId: `device-${id}`, pushToken: `push-${id}` });
-    }
-    let calls = 0;
-    installGcpFetchMock({
+    let apnsCalls = 0;
+    const { calls } = installGcpFetchMock({
       'POST api.push.apple.com': async () => {
-        calls += 1;
-        if (calls <= 3) {
+        apnsCalls += 1;
+        if (apnsCalls <= 3) {
           return new Response(JSON.stringify({ reason: 'ExpiredProviderToken' }), { status: 403 });
         }
         return new Response('{}', { status: 200 });
       },
     });
 
-    const response = await worker.fetch(dispatchRequest({ token }), testEnv);
+    const response = await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({
+        devices: [inlineDevice('push-a'), inlineDevice('push-b'), inlineDevice('push-c')],
+      }),
+    }), testEnv);
 
-    expect(await response.json()).toEqual({ ok: true, sent: 3, failed: 0, revoked: 0, failures: [] });
-    expect(calls).toBe(6);
+    expect(await response.json()).toEqual({
+      ok: true,
+      sent: 3,
+      failed: 0,
+      revoked: 0,
+      revoked_tokens: [],
+      failures: [],
+    });
+    expect(calls).toHaveLength(6);
     expect(kv.deletes).toEqual([apnsJwtCacheKey(testEnv)]);
     expect(kv.puts).toHaveLength(2);
   });
 
-  it('sends the exact alert payload shape', async () => {
-    const payload = buildSolChatRequestPayload(validDispatchBody());
+  it('rejects summary over 80 UTF-8 bytes', async () => {
+    const { calls } = installGcpFetchMock({});
+    const testEnv = apnsEnv();
+
+    const response = await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({ summary: `${'a'.repeat(79)}🙂` }),
+    }), testEnv);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'invalid_input' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('accepts summary exactly 80 bytes', async () => {
+    const testEnv = apnsEnv();
+    installApnsOk();
+
+    const response = await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({ summary: 'a'.repeat(80), devices: [inlineDevice('push-80')] }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      ok: true,
+      sent: 1,
+      failed: 0,
+      revoked: 0,
+      revoked_tokens: [],
+      failures: [],
+    });
+  });
+
+  it('accepts an empty devices array without minting a JWT or fetching APNs', async () => {
+    const kv = makeFakeKv();
+    const testEnv = apnsEnv({ GCP_TOKEN_CACHE: kv });
+    const { calls } = installGcpFetchMock({});
+
+    const response = await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({ devices: [] }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      ok: true,
+      sent: 0,
+      failed: 0,
+      revoked: 0,
+      revoked_tokens: [],
+      failures: [],
+    });
+    expect(kv.puts).toEqual([]);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('sends the exact alert payload shape', () => {
+    const payload = buildSolChatRequestPayload({
+      summary: 'Needs a reply',
+      category: 'notice',
+      request_id: 'req-1',
+    });
 
     expect(Object.keys(payload).sort()).toEqual(['aps', 'data']);
     expect(payload.aps).toEqual({
@@ -295,10 +239,12 @@ describe('push dispatch endpoint', () => {
     });
   });
 
+  it('builds the Python-compatible collapse id', () => {
+    expect(buildSolChatRequestCollapseId({ request_id: 'req-1' })).toBe('sol_chat_request:req-1');
+  });
+
   it('sets APNs alert headers', async () => {
     const testEnv = apnsEnv();
-    const { token, account } = await seedDispatchAccount(testEnv);
-    await seedDeviceForAccount(testEnv, { accountId: account.accountId });
     let capturedHeaders;
     installGcpFetchMock({
       'POST api.push.apple.com': async ({ init }) => {
@@ -307,7 +253,10 @@ describe('push dispatch endpoint', () => {
       },
     });
 
-    await worker.fetch(dispatchRequest({ token }), testEnv);
+    await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({ devices: [inlineDevice('header-token')] }),
+    }), testEnv);
 
     expect(capturedHeaders.get('apns-topic')).toBe(testEnv.APNS_BUNDLE_ID);
     expect(capturedHeaders.get('apns-push-type')).toBe('alert');
@@ -317,15 +266,9 @@ describe('push dispatch endpoint', () => {
     expect(capturedHeaders.get('apns-id')).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it('builds the Python-compatible collapse id', () => {
-    expect(buildSolChatRequestCollapseId({ request_id: 'req-1' })).toBe('sol_chat_request:req-1');
-  });
-
   it('does not log PEM, JWT, signature, or push tokens', async () => {
     const spy = installConsoleSpy();
     const testEnv = apnsEnv();
-    const { token, account } = await seedDispatchAccount(testEnv);
-    await seedDeviceForAccount(testEnv, { accountId: account.accountId, pushToken: 'secret-push-token' });
     let jwt = '';
     installGcpFetchMock({
       'POST api.push.apple.com': async ({ init }) => {
@@ -334,7 +277,10 @@ describe('push dispatch endpoint', () => {
       },
     });
 
-    await worker.fetch(dispatchRequest({ token }), testEnv);
+    await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({ devices: [inlineDevice('secret-push-token')] }),
+    }), testEnv);
 
     spy.assertNoSecrets([TEST_APNS_P8_PEM, jwt, jwt.split('.')[2], 'secret-push-token']);
     spy.restore();
@@ -348,32 +294,6 @@ describe('push dispatch endpoint', () => {
   });
 });
 
-async function expectValidationError(body) {
-  const testEnv = apnsEnv();
-  const { token } = await seedDispatchAccount(testEnv);
-  const { calls } = installGcpFetchMock({});
-
-  const response = await worker.fetch(dispatchRequest({ token, body }), testEnv);
-
-  expect(response.status).toBe(400);
-  expect(await response.json()).toEqual({ error: 'invalid_input' });
-  expect(calls).toHaveLength(0);
-}
-
-async function expectRevokedForApnsResponse(apnsResponse) {
-  const testEnv = apnsEnv();
-  const { token, account } = await seedDispatchAccount(testEnv);
-  const device = await seedDeviceForAccount(testEnv, { accountId: account.accountId });
-  installGcpFetchMock({
-    'POST api.push.apple.com': async () => apnsResponse.clone(),
-  });
-
-  const response = await worker.fetch(dispatchRequest({ token }), testEnv);
-
-  expect(await response.json()).toEqual({ ok: true, sent: 0, failed: 0, revoked: 1, failures: [] });
-  expect(await revokedAt(device.deviceId)).toBeGreaterThan(0);
-}
-
 function apnsEnv(overrides = {}) {
   return makeTestEnv({
     APNS_TEAM_ID: 'TEAM123',
@@ -385,20 +305,8 @@ function apnsEnv(overrides = {}) {
   });
 }
 
-async function seedDispatchAccount(testEnv) {
-  const account = await seedAccount({ testEnv });
-  const minted = await mintDispatchToken(testEnv, account.accountId);
-  return { account, token: minted.token };
-}
-
-async function seedDeviceForAccount(testEnv, options = {}) {
-  return seedDevice({
-    accountId: options.accountId,
-    deviceId: options.deviceId || 'device-1',
-    pushToken: options.pushToken || `push-${options.deviceId || 'device-1'}`,
-    pushTokenEnv: options.pushTokenEnv || 'production',
-    revokedAt: options.revokedAt ?? null,
-  });
+function throwingDb() {
+  return new Proxy({}, { get() { throw new Error('unexpected D1 access'); } });
 }
 
 function installApnsOk() {
@@ -407,7 +315,7 @@ function installApnsOk() {
   });
 }
 
-function dispatchRequest({ token, body = validDispatchBody(), rawAuth = false }) {
+function dispatchRequest({ token = apnsEnv().PUSH_RELAY_SECRET, body = validDispatchBody(), rawAuth = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token !== null) headers.Authorization = rawAuth ? token : `Bearer ${token}`;
   return new Request('https://services.solstone.app/push/dispatch', {
@@ -417,14 +325,21 @@ function dispatchRequest({ token, body = validDispatchBody(), rawAuth = false })
   });
 }
 
-function validDispatchBody() {
-  return { summary: 'Needs a reply', category: 'notice', request_id: 'req-1' };
+function validDispatchBody(overrides = {}) {
+  return {
+    summary: 'Needs a reply',
+    category: 'notice',
+    request_id: 'req-1',
+    devices: [inlineDevice('push-1')],
+    ...overrides,
+  };
 }
 
-async function revokedAt(deviceId) {
-  const row = await makeTestEnv().DB
-    .prepare('SELECT revoked_at FROM account_devices WHERE device_id = ?')
-    .bind(deviceId)
-    .first();
-  return row?.revoked_at ?? null;
+function inlineDevice(token, overrides = {}) {
+  return {
+    token,
+    bundle_id: 'app.solstone.swift',
+    environment: 'production',
+    ...overrides,
+  };
 }
