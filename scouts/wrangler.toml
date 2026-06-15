@@ -8,5 +8,5 @@ routes = [{ pattern = "scouts.solstone.app", custom_domain = true }]
 
 # Retired program — this worker now only 301-redirects to services.solstone.app/scout.
 # The scouts-portal D1, cron, email, and program vars are no longer bound (scout
-# records migrated into the account-portal worker; D1 retained as a backup, to be
-# deleted after a grace period).
+# records migrated into the account-portal worker). The retained backup D1 was
+# deleted 2026-06-15 once the migration was confirmed solid.
