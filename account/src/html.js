@@ -464,6 +464,16 @@ ${flashes}
 ${content}`,
   });
 
+  if (entitlement?.source === 'comp' && status === 'active') {
+    return page({
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>active</span>',
+      content: `<div class="card">
+  <p>solstone is hosting your private link relay, free, while you're an approved scout.</p>
+  <p class="disclosure">lan-direct and bring-your-own relays are always free, anytime.</p>
+</div>`,
+    });
+  }
+
   if (isSubscribe) {
     return page({
       content: `<p class="lead">let solstone host your private link relay, so it stays reachable when your devices are asleep or away from home.</p>
@@ -1234,6 +1244,7 @@ function billingFlashMessages(flash) {
   if (flash.checkout === 'invalid') messages.push('choose yearly or monthly billing.');
   if (flash.checkout === 'email') messages.push("billing couldn't start. try again.");
   if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
+  if (flash.checkout === 'comped') messages.push("you're already covered free as a scout.");
   if (flash.billing === 'missing') messages.push('billing management is available after hosting starts.');
   if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');

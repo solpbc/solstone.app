@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  COMP_ENTITLED_THROUGH,
   entitledUntilFor,
   pushEntitlementGrant,
+  reconcileSplEntitlement,
   SPL_HOSTED_SERVICE,
   syncAccountEntitlementToRelay,
 } from '../src/relay-grant.js';
@@ -12,6 +14,7 @@ import {
   resetDb,
   seedAccount,
   seedEntitlement,
+  seedScoutApplication,
   seedSplBinding,
 } from './helpers.js';
 
@@ -35,8 +38,9 @@ describe('relay grant helpers', () => {
 
     expect(SPL_HOSTED_SERVICE).toBe('spl_hosted');
     expect(entitledUntilFor(null, nowSeconds, env)).toBe(0);
-    expect(entitledUntilFor({ status: 'active', current_period_end: 1_900_000_000 }, nowSeconds, env)).toBe(1_900_000_000);
-    expect(entitledUntilFor({ status: 'active', current_period_end: null }, nowSeconds, env)).toBe(nowSeconds + 14 * 86400);
+    expect(entitledUntilFor({ status: 'active', source: 'comp', current_period_end: null }, nowSeconds, env)).toBe(COMP_ENTITLED_THROUGH);
+    expect(entitledUntilFor({ status: 'active', source: 'stripe', current_period_end: 1_900_000_000 }, nowSeconds, env)).toBe(1_900_000_000);
+    expect(entitledUntilFor({ status: 'active', source: 'stripe', current_period_end: null }, nowSeconds, env)).toBe(nowSeconds + 14 * 86400);
     expect(entitledUntilFor({ status: 'past_due', current_period_end: 1_900_000_000 }, nowSeconds, env)).toBe(nowSeconds + 14 * 86400);
     expect(entitledUntilFor({ status: 'canceled' }, nowSeconds, env)).toBe(0);
     expect(entitledUntilFor({ status: 'lapsed' }, nowSeconds, env)).toBe(0);
@@ -148,4 +152,131 @@ describe('relay grant helpers', () => {
       { instance_id: OTHER_INSTANCE_ID, entitled_until: 0 },
     ]);
   });
+
+  it('reconciles spl entitlements with paid-over-comp precedence', async () => {
+    const testEnv = makeTestEnv();
+    const { calls } = installRelayFetchMock();
+    const nowMs = 1_700_000_000_000;
+
+    const scoutOnly = await seedAccount({ email: 'scout-only@example.com', testEnv });
+    await seedScoutApplication({ accountId: scoutOnly.accountId, status: 'approved', approved_at: 2_000 });
+    await seedSplBinding({ accountId: scoutOnly.accountId, instanceId: INSTANCE_ID });
+    await reconcileSplEntitlement(testEnv, scoutOnly.accountId, nowMs);
+    await expect(entitlementRow(testEnv, scoutOnly.accountId)).resolves.toMatchObject({
+      status: 'active',
+      source: 'comp',
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: COMP_ENTITLED_THROUGH });
+
+    const paidOnly = await seedAccount({ email: 'paid-only@example.com', testEnv });
+    await seedEntitlement({
+      accountId: paidOnly.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_900_000_000,
+      source: 'stripe',
+      sourceRef: 'sub_paid_only',
+    });
+    await reconcileSplEntitlement(testEnv, paidOnly.accountId, nowMs);
+    const paidOnlyRow = await entitlementRow(testEnv, paidOnly.accountId);
+    expect(paidOnlyRow).toMatchObject({
+      status: 'active',
+      current_period_end: 1_900_000_000,
+      source: 'stripe',
+    });
+    expect(entitledUntilFor(paidOnlyRow, 1_700_000_000, testEnv)).toBe(1_900_000_000);
+
+    const paidScout = await seedAccount({ email: 'paid-scout@example.com', testEnv });
+    await seedScoutApplication({ accountId: paidScout.accountId, status: 'approved', approved_at: 2_000 });
+    await seedEntitlement({
+      accountId: paidScout.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_900_000_111,
+      source: 'stripe',
+      sourceRef: 'sub_paid_scout',
+    });
+    await reconcileSplEntitlement(testEnv, paidScout.accountId, nowMs);
+    await expect(entitlementRow(testEnv, paidScout.accountId)).resolves.toMatchObject({
+      status: 'active',
+      current_period_end: 1_900_000_111,
+      source: 'stripe',
+    });
+
+    const paidLapseScout = await seedAccount({ email: 'paid-lapse-scout@example.com', testEnv });
+    await seedScoutApplication({ accountId: paidLapseScout.accountId, status: 'approved', approved_at: 2_000 });
+    await seedEntitlement({
+      accountId: paidLapseScout.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_900_000_222,
+      source: 'stripe',
+      sourceRef: 'sub_lapsed_scout',
+    });
+    await reconcileSplEntitlement(testEnv, paidLapseScout.accountId, nowMs, undefined, { paid: null });
+    await expect(entitlementRow(testEnv, paidLapseScout.accountId)).resolves.toMatchObject({
+      status: 'active',
+      source: 'comp',
+    });
+
+    const revokePaid = await seedAccount({ email: 'revoke-paid@example.com', testEnv });
+    await seedScoutApplication({ accountId: revokePaid.accountId, status: 'revoked', revoked_at: 2_000 });
+    await seedEntitlement({
+      accountId: revokePaid.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_900_000_333,
+      source: 'stripe',
+      sourceRef: 'sub_revoke_paid',
+    });
+    await reconcileSplEntitlement(testEnv, revokePaid.accountId, nowMs);
+    await expect(entitlementRow(testEnv, revokePaid.accountId)).resolves.toMatchObject({
+      status: 'active',
+      source: 'stripe',
+    });
+
+    const revokeComp = await seedAccount({ email: 'revoke-comp@example.com', testEnv });
+    await seedScoutApplication({ accountId: revokeComp.accountId, status: 'revoked', revoked_at: 2_000 });
+    await seedEntitlement({
+      accountId: revokeComp.accountId,
+      status: 'active',
+      currentPeriodEnd: null,
+      source: 'comp',
+      sourceRef: null,
+    });
+    await seedSplBinding({ accountId: revokeComp.accountId, instanceId: OTHER_INSTANCE_ID });
+    calls.length = 0;
+    await reconcileSplEntitlement(testEnv, revokeComp.accountId, nowMs);
+    await expect(entitlementRow(testEnv, revokeComp.accountId)).resolves.toMatchObject({
+      status: 'lapsed',
+      source: 'comp',
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ instance_id: OTHER_INSTANCE_ID, entitled_until: 0 });
+
+    const lapsedStripe = await seedAccount({ email: 'lapsed-stripe@example.com', testEnv });
+    await seedEntitlement({
+      accountId: lapsedStripe.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_900_000_444,
+      source: 'stripe',
+      sourceRef: 'sub_lapsed_stripe',
+    });
+    await reconcileSplEntitlement(testEnv, lapsedStripe.accountId, nowMs, undefined, { paid: null });
+    await expect(entitlementRow(testEnv, lapsedStripe.accountId)).resolves.toMatchObject({
+      status: 'lapsed',
+      source: 'stripe',
+    });
+
+    const lapsedMissing = await seedAccount({ email: 'lapsed-missing@example.com', testEnv });
+    await reconcileSplEntitlement(testEnv, lapsedMissing.accountId, nowMs);
+    await expect(entitlementRow(testEnv, lapsedMissing.accountId)).resolves.toMatchObject({
+      status: 'lapsed',
+      source: 'comp',
+    });
+  });
 });
+
+async function entitlementRow(testEnv, accountId) {
+  return testEnv.DB
+    .prepare('SELECT account_id, service, status, current_period_end, source, source_ref, updated_at FROM entitlements WHERE account_id = ? AND service = ?')
+    .bind(accountId, SPL_HOSTED_SERVICE)
+    .first();
+}

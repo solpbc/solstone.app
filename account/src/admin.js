@@ -10,6 +10,7 @@ import {
   upsertScoutApplicationApproved,
 } from './db.js';
 import { json } from './index.js';
+import { reconcileSplEntitlement } from './relay-grant.js';
 import { importScoutRecords } from './scout-migrate.js';
 import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
 
@@ -97,10 +98,10 @@ async function handleScoutAdmin(request, env, url, parts, ctx) {
     return listScouts(env, url.searchParams.get('status'));
   }
   if (request.method === 'POST' && parts.length === 4 && parts[3] === 'pre-approve') {
-    return preApproveScout(request, env);
+    return preApproveScout(request, env, ctx);
   }
   if (request.method === 'POST' && parts.length === 5 && parts[4] === 'approve') {
-    return approveScout(env, decodeURIComponent(parts[3]));
+    return approveScout(env, decodeURIComponent(parts[3]), ctx);
   }
   if (request.method === 'POST' && parts.length === 5 && parts[4] === 'revoke') {
     return revokeScout(env, decodeURIComponent(parts[3]), ctx);
@@ -124,7 +125,7 @@ async function listScouts(env, status) {
   return json({ scouts }, { headers: SECURITY_HEADERS });
 }
 
-async function approveScout(env, accountId) {
+async function approveScout(env, accountId, ctx) {
   const application = await getScoutApplicationByAccount(env.DB, { accountId });
   if (!application) {
     return json({ error: 'scout application not found' }, { status: 404, headers: SECURITY_HEADERS });
@@ -132,10 +133,13 @@ async function approveScout(env, accountId) {
   if (application.status === 'revoked') {
     return json({ error: 'revoked is terminal; use pre-approve' }, { status: 409, headers: SECURITY_HEADERS });
   }
+  const nowMs = Date.now();
   if (application.status === 'approved') {
+    await reconcileSplEntitlement(env, accountId, nowMs, ctx);
     return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
   }
-  await approveScoutApplication(env.DB, { accountId, nowMs: Date.now() });
+  await approveScoutApplication(env.DB, { accountId, nowMs });
+  await reconcileSplEntitlement(env, accountId, nowMs, ctx);
   return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
 }
 
@@ -150,10 +154,11 @@ async function revokeScout(env, accountId, ctx) {
   const nowMs = Date.now();
   await revokeScoutApplication(env.DB, { accountId, nowMs });
   await disableActiveGeminiKey({ env, accountId, nowMs, ctx });
+  await reconcileSplEntitlement(env, accountId, nowMs, ctx);
   return json({ account_id: accountId, status: 'revoked' }, { headers: SECURITY_HEADERS });
 }
 
-async function preApproveScout(request, env) {
+async function preApproveScout(request, env, ctx) {
   let body;
   try {
     body = await request.json();
@@ -176,6 +181,7 @@ async function preApproveScout(request, env) {
     nowMs,
   });
   await upsertScoutApplicationApproved(env.DB, { accountId, nowMs });
+  await reconcileSplEntitlement(env, accountId, nowMs, ctx);
   return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
 }
 

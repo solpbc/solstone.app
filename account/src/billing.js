@@ -2,8 +2,8 @@ import { hashKey, timingSafeEqual } from './crypto.js';
 import {
   getAccountByStripeCustomer,
   getEntitlement,
+  getScoutApplicationStatusByAccount,
   getStripeCustomerByAccount,
-  upsertEntitlement,
   upsertStripeCustomer,
 } from './db.js';
 import { renderBillingReturn, renderServicesSpl } from './html.js';
@@ -22,7 +22,7 @@ import {
   subscriptionPeriodEnd,
   verifyWebhookSignature,
 } from './stripe.js';
-import { SPL_HOSTED_SERVICE as SERVICE, syncAccountEntitlementToRelay } from './relay-grant.js';
+import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 
 const SOURCE = 'stripe';
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
@@ -67,6 +67,9 @@ export async function handleBillingCheckout(req, env) {
   if (!priceId) return signedInRedirect('/services/spl?checkout=invalid');
 
   const accountId = guard.session.account_id;
+  const scoutApp = await getScoutApplicationStatusByAccount(env.DB, { accountId });
+  if (scoutApp?.status === 'approved') return signedInRedirect('/services/spl?checkout=comped');
+
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId });
   const menu = customerRow ? null : await loadMenuContext(env, accountId, guard.nowMs);
   if (!customerRow && !menu?.email) return signedInRedirect('/services/spl?checkout=email');
@@ -164,16 +167,14 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   if (!accountId || !stripeCustomerId || !subscriptionId) return;
   await upsertStripeCustomer(env.DB, { accountId, stripeCustomerId, nowMs });
   const subscription = await getSubscription(env, subscriptionId);
-  await upsertEntitlement(env.DB, {
-    accountId,
-    service: SERVICE,
-    status: 'active',
-    currentPeriodEnd: subscriptionPeriodEnd(subscription),
-    source: SOURCE,
-    sourceRef: subscription.id,
-    nowMs,
+  await reconcileSplEntitlement(env, accountId, nowMs, ctx, {
+    paid: {
+      status: 'active',
+      currentPeriodEnd: subscriptionPeriodEnd(subscription),
+      source: SOURCE,
+      sourceRef: subscription.id,
+    },
   });
-  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
 }
 
 async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
@@ -182,32 +183,22 @@ async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
   const status = mapSubscriptionStatus(obj?.status);
   if (!status) return;
   const accountId = accountRow.account_id;
-  await upsertEntitlement(env.DB, {
-    accountId,
-    service: SERVICE,
-    status,
-    currentPeriodEnd: subscriptionPeriodEnd(obj),
-    source: SOURCE,
-    sourceRef: obj?.id || null,
-    nowMs,
-  });
-  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
+  const paid = status === 'lapsed'
+    ? null
+    : {
+        status,
+        currentPeriodEnd: subscriptionPeriodEnd(obj),
+        source: SOURCE,
+        sourceRef: obj?.id || null,
+      };
+  await reconcileSplEntitlement(env, accountId, nowMs, ctx, { paid });
 }
 
 async function handleSubscriptionDeleted(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   if (!accountRow) return;
   const accountId = accountRow.account_id;
-  await upsertEntitlement(env.DB, {
-    accountId,
-    service: SERVICE,
-    status: 'lapsed',
-    currentPeriodEnd: subscriptionPeriodEnd(obj),
-    source: SOURCE,
-    sourceRef: obj?.id || null,
-    nowMs,
-  });
-  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
+  await reconcileSplEntitlement(env, accountId, nowMs, ctx, { paid: null });
 }
 
 async function handleInvoicePaid(env, obj, nowMs, ctx) {
@@ -216,32 +207,28 @@ async function handleInvoicePaid(env, obj, nowMs, ctx) {
   if (!accountRow || !subscriptionId) return;
   const subscription = await getSubscription(env, subscriptionId);
   const accountId = accountRow.account_id;
-  await upsertEntitlement(env.DB, {
-    accountId,
-    service: SERVICE,
-    status: 'active',
-    currentPeriodEnd: subscriptionPeriodEnd(subscription),
-    source: SOURCE,
-    sourceRef: subscription.id,
-    nowMs,
+  await reconcileSplEntitlement(env, accountId, nowMs, ctx, {
+    paid: {
+      status: 'active',
+      currentPeriodEnd: subscriptionPeriodEnd(subscription),
+      source: SOURCE,
+      sourceRef: subscription.id,
+    },
   });
-  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
 }
 
 async function handleInvoicePaymentFailed(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   if (!accountRow) return;
   const accountId = accountRow.account_id;
-  await upsertEntitlement(env.DB, {
-    accountId,
-    service: SERVICE,
-    status: 'past_due',
-    currentPeriodEnd: null,
-    source: SOURCE,
-    sourceRef: null,
-    nowMs,
+  await reconcileSplEntitlement(env, accountId, nowMs, ctx, {
+    paid: {
+      status: 'past_due',
+      currentPeriodEnd: null,
+      source: SOURCE,
+      sourceRef: null,
+    },
   });
-  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
 }
 
 function mapSubscriptionStatus(status) {

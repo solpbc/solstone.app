@@ -49,7 +49,7 @@ import {
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
-import { SPL_HOSTED_SERVICE, syncAccountEntitlementToRelay } from './relay-grant.js';
+import { SPL_HOSTED_SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 
 const HANDOFF_POLL_MS = 1500;
@@ -432,7 +432,7 @@ export async function handleEnableSplGet(req, env) {
   return noStoreHtml(renderEnableSplConsent({ csrf, nonce, instance, entitled }));
 }
 
-export async function handleEnableSplConfirm(req, env) {
+export async function handleEnableSplConfirm(req, env, ctx) {
   if (!originAllowed(req)) return noStoreResponse(forbidden());
   const form = await readForm(req);
   if (!form) return splError(400);
@@ -462,6 +462,7 @@ export async function handleEnableSplConfirm(req, env) {
   if (instance) {
     await upsertSplBinding(env.DB, { accountId: session.account_id, instanceId: instance, nowMs });
   }
+  await reconcileSplEntitlement(env, session.account_id, nowMs, ctx);
   const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE });
   const entitled = isSplEntitled(entitlement);
   const payload = entitled
@@ -486,7 +487,6 @@ export async function handleEnableSplConfirm(req, env) {
     return splError(503);
   }
   if (!entitled) return noStoreHtml(renderEnableSplNeedsSubscription());
-  if (instance) await syncAccountEntitlementToRelay(env, session.account_id);
   return noStoreHtml(renderEnableSplDone());
 }
 

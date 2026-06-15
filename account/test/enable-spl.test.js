@@ -203,7 +203,13 @@ describe('/enable/spl', () => {
       subscribe_url: 'https://services.solstone.app/services/spl',
     });
     expect(binding).toMatchObject({ account_id: account.accountId, instance_id: VALID_INSTANCE });
-    expect(calls).toHaveLength(0);
+    // Reconcile creates the lapsed comp row and pushes a benign revoke for the new binding.
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ instance_id: VALID_INSTANCE, entitled_until: 0 });
+    await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
+      status: 'lapsed',
+      source: 'comp',
+    });
   });
 
   it('writes an approved handoff and pushes an inline relay grant when entitled with an instance', async () => {
@@ -337,6 +343,13 @@ async function splBindingRow(accountId, instanceId) {
   return workerEnv.DB
     .prepare('SELECT account_id, instance_id, created_at, last_seen_at FROM spl_bindings WHERE account_id = ? AND instance_id = ?')
     .bind(accountId, instanceId)
+    .first();
+}
+
+async function entitlementRow(accountId) {
+  return workerEnv.DB
+    .prepare('SELECT account_id, service, status, current_period_end, source, source_ref, updated_at FROM entitlements WHERE account_id = ? AND service = ?')
+    .bind(accountId, 'spl_hosted')
     .first();
 }
 

@@ -421,6 +421,25 @@ export async function seedAccount({ email = 'person@example.com', nowMs = Date.n
   return { ...created, emailLower, addressLowerHash, addressEncrypted, nowMs, testEnv };
 }
 
+export async function seedScoutApplication({
+  accountId,
+  status,
+  applied_at = null,
+  approved_at = null,
+  revoked_at = null,
+  createdAt = 1_000,
+}) {
+  await env.DB
+    .prepare(
+      `INSERT INTO scout_applications (
+         account_id, status, use_case, data_acked_at, applied_at,
+         approved_at, revoked_at, created_at, updated_at
+       ) VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?)`
+    )
+    .bind(accountId, status, applied_at, approved_at, revoked_at, createdAt, createdAt)
+    .run();
+}
+
 export async function seedAccountEmail({
   accountId,
   address = 'secondary@example.com',

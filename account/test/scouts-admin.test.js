@@ -2,11 +2,15 @@ import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
+import { COMP_ENTITLED_THROUGH, SPL_HOSTED_SERVICE } from '../src/relay-grant.js';
 import {
   makeTestEnv,
   resetDb,
   rowCount,
   seedAccount,
+  seedEntitlement,
+  seedScoutApplication,
+  seedSplBinding,
 } from './helpers.js';
 import {
   installJwksStub,
@@ -210,6 +214,35 @@ describe('admin scout endpoints', () => {
     expectNoGoogleFetches();
   });
 
+  it('approves a scout with an spl binding, writes comp entitlement, and pushes relay grant', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'approve-comp@example.com', nowMs: 1_000, testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'pending', applied_at: 2_000 });
+    await seedSplBinding({ accountId: account.accountId });
+    const { calls } = await installJwksRelayRecorder();
+    const ctx = createExecutionContext();
+
+    const response = await worker.fetch(
+      adminRequest(`/admin/scouts/${account.accountId}/approve`, token, { method: 'POST' }),
+      testEnv,
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'approved' });
+    await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
+      status: 'active',
+      source: 'comp',
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({
+      instance_id: '11111111-1111-1111-1111-111111111111',
+      entitled_until: COMP_ENTITLED_THROUGH,
+    });
+  });
+
   it('revokes pending and approved applications without touching keys or GCP', async () => {
     const token = await mintToken();
     const testEnv = makeTestEnv();
@@ -255,6 +288,43 @@ describe('admin scout endpoints', () => {
     );
     await expect(rowCount('provisioned_keys')).resolves.toBe(keyCountBefore);
     expectNoGoogleFetches();
+  });
+
+  it('revokes a comp-only scout, lapses entitlement, and pushes zero relay grant', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'revoke-comp@example.com', nowMs: 1_000, testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 2_000 });
+    await seedEntitlement({
+      accountId: account.accountId,
+      status: 'active',
+      currentPeriodEnd: null,
+      source: 'comp',
+      sourceRef: null,
+    });
+    await seedSplBinding({ accountId: account.accountId });
+    const { calls } = await installJwksRelayRecorder();
+    const ctx = createExecutionContext();
+
+    const response = await worker.fetch(
+      adminRequest(`/admin/scouts/${account.accountId}/revoke`, token, { method: 'POST' }),
+      testEnv,
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'revoked' });
+    await expect(applicationRow(account.accountId)).resolves.toMatchObject({ status: 'revoked' });
+    await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
+      status: 'lapsed',
+      source: 'comp',
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({
+      instance_id: '11111111-1111-1111-1111-111111111111',
+      entitled_until: 0,
+    });
   });
 
   it('revokes an approved scout and turns off its active Gemini key', async () => {
@@ -306,7 +376,8 @@ describe('admin scout endpoints', () => {
     await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'revoked' });
     expect(application.status).toBe('revoked');
     expect(keyRow.revoked_at).toBeGreaterThan(0);
-    expect(waitSpy).toHaveBeenCalledTimes(1);
+    // Gemini delete and entitlement relay sync both schedule work.
+    expect(waitSpy).toHaveBeenCalledTimes(2);
     expect(deleted).toEqual([seededKey.keyResourceName]);
   });
 
@@ -335,7 +406,8 @@ describe('admin scout endpoints', () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'revoked' });
     expect(application.status).toBe('revoked');
-    expect(waitSpy).not.toHaveBeenCalled();
+    // Entitlement relay sync still runs; no Gemini delete is scheduled.
+    expect(waitSpy).toHaveBeenCalledTimes(1);
     expectNoGoogleFetches();
   });
 
@@ -366,6 +438,27 @@ describe('admin scout endpoints', () => {
     expect(application.status).toBe('approved');
     expect(application.approved_at).toBeGreaterThan(0);
     expect(application.data_acked_at).toBeNull();
+  });
+
+  it('pre-approves fresh emails with a comp entitlement row', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+
+    const response = await worker.fetch(
+      adminRequest('/admin/scouts/pre-approve', token, {
+        method: 'POST',
+        body: { email: 'Comped@Example.com' },
+      }),
+      testEnv
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ account_id: body.account_id, status: 'approved' });
+    await expect(entitlementRow(body.account_id)).resolves.toMatchObject({
+      status: 'active',
+      source: 'comp',
+    });
   });
 
   it('pre-approve reuses existing accounts and transitions pending or revoked applications', async () => {
@@ -461,25 +554,6 @@ async function expectJsonError(response, status, error) {
   await expect(response.json()).resolves.toEqual({ error });
 }
 
-async function seedScoutApplication({
-  accountId,
-  status,
-  applied_at = null,
-  approved_at = null,
-  revoked_at = null,
-  createdAt = 1_000,
-}) {
-  await workerEnv.DB
-    .prepare(
-      `INSERT INTO scout_applications (
-         account_id, status, use_case, data_acked_at, applied_at,
-         approved_at, revoked_at, created_at, updated_at
-       ) VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?)`
-    )
-    .bind(accountId, status, applied_at, approved_at, revoked_at, createdAt, createdAt)
-    .run();
-}
-
 async function seedProvisionedKey({
   accountId,
   keyStringEncrypted,
@@ -516,6 +590,13 @@ async function applicationRow(accountId) {
        WHERE account_id = ?`
     )
     .bind(accountId)
+    .first();
+}
+
+async function entitlementRow(accountId) {
+  return workerEnv.DB
+    .prepare('SELECT account_id, service, status, current_period_end, source, source_ref, updated_at FROM entitlements WHERE account_id = ? AND service = ?')
+    .bind(accountId, SPL_HOSTED_SERVICE)
     .first();
 }
 
@@ -563,6 +644,22 @@ function installImmediateTimeout() {
     callback();
     return 1;
   });
+}
+
+async function installJwksRelayRecorder() {
+  const calls = [];
+  await installJwksStubWith(async (input, init = {}) => {
+    const href = typeof input === 'string' ? input : input.url;
+    const url = new URL(href);
+    const method = (init.method || 'GET').toUpperCase();
+    if (method === 'POST' && url.host === 'link.solstone.app' && url.pathname === '/admin/entitlement') {
+      const body = init.body ? JSON.parse(init.body) : null;
+      calls.push({ method, url, init, body });
+      return jsonResponse({ ok: true });
+    }
+    return null;
+  });
+  return { calls };
 }
 
 function jsonResponse(body, status = 200) {

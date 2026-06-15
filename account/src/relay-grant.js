@@ -1,16 +1,82 @@
-import { getEntitlement, listSplBindings } from './db.js';
+import {
+  getEntitlement,
+  getScoutApplicationStatusByAccount,
+  listSplBindings,
+  upsertEntitlement,
+} from './db.js';
 
 export const SPL_HOSTED_SERVICE = 'spl_hosted';
+export const COMP_ENTITLED_THROUGH = 4102444800;
 
 export function entitledUntilFor(entitlementRow, nowSeconds, env) {
   const grace = Number(env.RELAY_GRACE_DAYS || 14) * 86400;
   if (!entitlementRow) return 0;
   if (entitlementRow.status === 'active') {
+    if (entitlementRow.source === 'comp') return COMP_ENTITLED_THROUGH;
     return entitlementRow.current_period_end || nowSeconds + grace;
   }
   if (entitlementRow.status === 'past_due') return nowSeconds + grace;
   if (entitlementRow.status === 'canceled' || entitlementRow.status === 'lapsed') return 0;
   return 0;
+}
+
+export function paidSignalFromRow(row) {
+  if (row && row.source !== 'comp' && (row.status === 'active' || row.status === 'past_due')) {
+    return {
+      status: row.status,
+      currentPeriodEnd: row.current_period_end,
+      source: row.source,
+      sourceRef: row.source_ref,
+    };
+  }
+  return null;
+}
+
+export async function reconcileSplEntitlement(env, accountId, nowMs, ctx, opts = {}) {
+  const row = await getEntitlement(env.DB, { accountId, service: SPL_HOSTED_SERVICE });
+  const paid = opts.paid !== undefined ? opts.paid : paidSignalFromRow(row);
+
+  if (paid) {
+    await upsertEntitlement(env.DB, {
+      accountId,
+      service: SPL_HOSTED_SERVICE,
+      status: paid.status,
+      currentPeriodEnd: paid.currentPeriodEnd ?? null,
+      source: paid.source,
+      sourceRef: paid.sourceRef ?? null,
+      nowMs,
+    });
+  } else {
+    const application = await getScoutApplicationStatusByAccount(env.DB, { accountId });
+    if (application?.status === 'approved') {
+      await upsertEntitlement(env.DB, {
+        accountId,
+        service: SPL_HOSTED_SERVICE,
+        status: 'active',
+        currentPeriodEnd: null,
+        source: 'comp',
+        sourceRef: null,
+        nowMs,
+      });
+    } else {
+      await upsertEntitlement(env.DB, {
+        accountId,
+        service: SPL_HOSTED_SERVICE,
+        status: 'lapsed',
+        currentPeriodEnd: null,
+        source: row?.source ?? 'comp',
+        sourceRef: null,
+        nowMs,
+      });
+    }
+  }
+
+  const sync = syncAccountEntitlementToRelay(env, accountId);
+  if (typeof ctx?.waitUntil === 'function') {
+    ctx.waitUntil(sync);
+  } else {
+    await sync;
+  }
 }
 
 export async function pushEntitlementGrant(env, { instanceId, entitledUntil }) {

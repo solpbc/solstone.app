@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0013 — billing entitlements
+-- account-portal D1 schema after 0014 — billing entitlements + comp source
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS entitlements (
   -- current_period_end: Stripe Unix SECONDS, stored verbatim. Never milliseconds.
   -- The spl relay lode compares its grant window against this value in seconds.
   current_period_end INTEGER,
-  source TEXT NOT NULL CHECK (source IN ('stripe','apple','google')),
+  source TEXT NOT NULL CHECK (source IN ('stripe','apple','google','comp')),
   source_ref TEXT,
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (account_id, service),

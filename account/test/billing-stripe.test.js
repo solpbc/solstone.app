@@ -1,7 +1,7 @@
 import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { TEST_CSRF, installStripeFetchMock, makeTestEnv, resetDb, seedAccount, seedEntitlement, seedSession, signStripeWebhook } from './helpers.js';
+import { TEST_CSRF, installStripeFetchMock, makeTestEnv, resetDb, seedAccount, seedEntitlement, seedScoutApplication, seedSession, signStripeWebhook } from './helpers.js';
 
 describe('billing stripe core', () => {
   beforeEach(async () => {
@@ -118,7 +118,9 @@ describe('billing stripe core', () => {
     });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'lapsed',
-      current_period_end: 1_800_000_222,
+      // Stripe deletion sends paid=null; DB COALESCE preserves the prior paid period.
+      current_period_end: 1_800_000_000,
+      source: 'stripe',
     });
 
     await sendEvent(testEnv, {
@@ -183,6 +185,23 @@ describe('billing stripe core', () => {
     expect(calls[1].body.has('customer_email')).toBe(false);
   });
 
+  it('redirects approved scouts away from Stripe checkout', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'checkout-comped@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 1_000 });
+    const { calls } = installStripeFetchMock();
+
+    const response = await postForm('/billing/checkout', testEnv, new URLSearchParams({
+      csrf: TEST_CSRF,
+      plan: 'annual',
+    }), session.cookie);
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/services/spl?checkout=comped');
+    expect(calls).toHaveLength(0);
+  });
+
   it('creates billing portal sessions for existing Stripe customers', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'portal@example.com', testEnv });
@@ -224,6 +243,27 @@ describe('billing stripe core', () => {
 
     const returned = await get('/billing/return?status=success', testEnv, session.cookie);
     expect(await returned.text()).toContain('payment received. it can take a moment to show up here.');
+  });
+
+  it('renders comped scout hosting without renewal or billing management', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'render-comp@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({
+      accountId: account.accountId,
+      status: 'active',
+      currentPeriodEnd: null,
+      source: 'comp',
+      sourceRef: null,
+    });
+
+    const response = await get('/services/spl', testEnv, session.cookie);
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("solstone is hosting your private link relay, free, while you're an approved scout.");
+    expect(html).not.toContain('renews');
+    expect(html).not.toContain('action="/billing/portal"');
   });
 });
 

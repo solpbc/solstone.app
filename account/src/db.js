@@ -792,6 +792,18 @@ export async function getScoutApplicationByAccount(db, { accountId }) {
   return row || null;
 }
 
+export async function getScoutApplicationStatusByAccount(db, { accountId }) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, status
+       FROM scout_applications
+       WHERE account_id = ?`
+    )
+    .bind(accountId)
+    .first();
+  return row || null;
+}
+
 export async function listScoutApplications(db, { status }) {
   const sql = `SELECT sa.account_id, sa.status, sa.applied_at, sa.approved_at, sa.revoked_at,
                       pe.address_encrypted AS primary_address_encrypted,
