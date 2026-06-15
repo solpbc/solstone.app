@@ -981,6 +981,26 @@ export async function upsertStripeCustomer(db, { accountId, stripeCustomerId, no
     .run();
 }
 
+export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO spl_bindings (account_id, instance_id, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(account_id, instance_id) DO UPDATE SET
+         last_seen_at = excluded.last_seen_at`
+    )
+    .bind(accountId, instanceId, nowMs, nowMs)
+    .run();
+}
+
+export async function listSplBindings(db, accountId) {
+  const { results } = await db
+    .prepare('SELECT instance_id FROM spl_bindings WHERE account_id = ?')
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
 }

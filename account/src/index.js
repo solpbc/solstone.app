@@ -773,7 +773,7 @@ export default {
         parts[2] === 'webhook' &&
         req.method === 'POST'
       ) {
-        return handleStripeWebhook(req, env);
+        return handleStripeWebhook(req, env, ctx);
       }
 
       if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {

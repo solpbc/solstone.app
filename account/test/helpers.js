@@ -56,6 +56,9 @@ export function makeTestEnv(overrides = {}) {
     STRIPE_WEBHOOK_SECRET: overrides.STRIPE_WEBHOOK_SECRET || 'whsec_account_portal',
     STRIPE_PRICE_ANNUAL: overrides.STRIPE_PRICE_ANNUAL || 'price_annual_test',
     STRIPE_PRICE_MONTHLY: overrides.STRIPE_PRICE_MONTHLY || 'price_monthly_test',
+    RELAY_GRANT_URL: overrides.RELAY_GRANT_URL || 'https://link.solstone.app',
+    RELAY_GRACE_DAYS: overrides.RELAY_GRACE_DAYS || '14',
+    RELAY_GRANT_SECRET: overrides.RELAY_GRANT_SECRET || 'test-relay-grant-secret',
   };
 }
 
@@ -182,6 +185,34 @@ export function installStripeFetchMock(handlers = {}) {
     ];
     const handler = keys.map((key) => handlers[key]).find(Boolean);
     if (!handler) throw new Error(`unhandled stripe fetch: ${method} ${url.href}`);
+    return handler({ method, url, init, body, calls });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return { calls, fetchMock };
+}
+
+export function installRelayFetchMock(handlers = {}) {
+  const calls = [];
+  const fetchMock = vi.fn(async (input, init = {}) => {
+    const href = typeof input === 'string' ? input : input.url;
+    const url = new URL(href);
+    const method = (init.method || 'GET').toUpperCase();
+    if (url.host !== 'link.solstone.app') {
+      throw new Error(`disallowed host reached fetch: ${url.host}`);
+    }
+    const body = init.body ? JSON.parse(init.body) : null;
+    calls.push({ method, url, init, body });
+    const keys = [
+      `${method} ${url.host}${url.pathname}${url.search}`,
+      `${method} ${url.host}${url.pathname}`,
+      `${method} ${url.host}`,
+      url.host,
+      'default',
+    ];
+    const handler = keys.map((key) => handlers[key]).find(Boolean) || (() => new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
     return handler({ method, url, init, body, calls });
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -532,6 +563,22 @@ export async function seedEntitlement({
     .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, updatedAt)
     .run();
   return { accountId, service, status, currentPeriodEnd, source, sourceRef, updatedAt };
+}
+
+export async function seedSplBinding({
+  accountId,
+  instanceId = '11111111-1111-1111-1111-111111111111',
+  createdAt = Date.now(),
+  lastSeenAt = createdAt,
+} = {}) {
+  await env.DB
+    .prepare(
+      `INSERT INTO spl_bindings (account_id, instance_id, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?)`
+    )
+    .bind(accountId, instanceId, createdAt, lastSeenAt)
+    .run();
+  return { accountId, instanceId, createdAt, lastSeenAt };
 }
 
 export async function seedCredential({

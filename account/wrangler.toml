@@ -42,9 +42,10 @@ service = "extro-support"
 # STRIPE_WEBHOOK_SECRET — Stripe webhook endpoint signing secret.
 # Create the Stripe webhook endpoint on API version 2024-09-30.acacia.
 #
-# Relay grant secrets for the sibling relay lode only; this worker does not use them.
-# RELAY_GRANT_SECRET — shared secret for relay grant calls.
-# RELAY_GRANT_URL — relay grant endpoint URL.
+# Relay grant:
+# RELAY_GRANT_SECRET — shared secret for relay grant calls, set via `wrangler secret put`.
+# RELAY_GRANT_URL — relay grant endpoint URL, without a trailing slash.
+# RELAY_GRACE_DAYS — billing grace window for relay grants.
 
 [[send_email]]
 name = "EMAIL"
@@ -58,6 +59,8 @@ SIGNUP_DISABLED = "false"
 SCOUT_GCP_PROJECT = "solstone-scouts"
 STRIPE_PRICE_ANNUAL = "replace_with_stripe_annual_id"
 STRIPE_PRICE_MONTHLY = "replace_with_stripe_monthly_id"
+RELAY_GRANT_URL = "https://link.solstone.app"
+RELAY_GRACE_DAYS = "14"
 
 [triggers]
 crons = ["0 */6 * * *"]

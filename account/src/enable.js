@@ -14,17 +14,20 @@ import {
   findDeviceByPushKey,
   findServiceHandoffStatus,
   getAccountTransparencyRow,
+  getEntitlement,
   getScoutApplicationByAccount,
   insertDevice,
   insertServiceHandoff,
   revokeDevicePriorAndInsertNew,
   setScoutApplicationDataAcked,
+  upsertSplBinding,
   upsertScoutApplicationPending,
 } from './db.js';
 import {
   BUNDLE_ID_REGEX,
   DEVICE_TOKEN_REGEX,
   HANDOFF_TTL_MS,
+  INSTANCE_ID_REGEX,
   MAX_USE_CASE_LEN,
   NONCE_REGEX,
   PUSH_PLATFORM_ALLOWLIST,
@@ -42,9 +45,11 @@ import {
   renderEnableSplConsent,
   renderEnableSplDone,
   renderEnableSplError,
+  renderEnableSplNeedsSubscription,
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
+import { SPL_HOSTED_SERVICE, syncAccountEntitlementToRelay } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 
 const HANDOFF_POLL_MS = 1500;
@@ -58,7 +63,7 @@ const decoder = new TextDecoder();
 const RESUME_PATH_WHITELIST = new Map([
   [ENABLE_PATH, validateScoutResumeParams],
   [ENABLE_PUSH_PATH, validatePushResumeParams],
-  [ENABLE_SPL_PATH, validateScoutResumeParams],
+  [ENABLE_SPL_PATH, validateSplResumeParams],
 ]);
 
 export async function provisionScoutForAccount({ env, accountId, ctx }) {
@@ -415,12 +420,16 @@ export async function handleEnableSplGet(req, env) {
   const url = new URL(req.url);
   const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
   if (!NONCE_REGEX.test(nonce)) return splError(400);
+  const instance = parseOptionalInstance(url.searchParams);
+  const resumeQuery = splResumeQuery(nonce, instance);
 
   const session = await getValidSession(req, env, Date.now());
-  if (!session) return signInRedirect(env, ENABLE_SPL_PATH, `?nonce=${nonce}`);
+  if (!session) return signInRedirect(env, ENABLE_SPL_PATH, resumeQuery);
 
   const csrf = await csrfToken(env);
-  return noStoreHtml(renderEnableSplConsent({ csrf, nonce }));
+  const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE });
+  const entitled = isSplEntitled(entitlement);
+  return noStoreHtml(renderEnableSplConsent({ csrf, nonce, instance, entitled }));
 }
 
 export async function handleEnableSplConfirm(req, env) {
@@ -435,8 +444,10 @@ export async function handleEnableSplConfirm(req, env) {
     return redirect('/', 303, { 'Cache-Control': 'no-store' });
   }
 
+  const instance = parseOptionalInstance(form);
+  const resumeQuery = splResumeQuery(nonce, instance);
   const session = await getValidSession(req, env, Date.now());
-  if (!session) return signInRedirect(env, ENABLE_SPL_PATH, `?nonce=${nonce}`);
+  if (!session) return signInRedirect(env, ENABLE_SPL_PATH, resumeQuery);
   const account = await getAccountTransparencyRow(env.DB, session.account_id);
   if (!account) {
     return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
@@ -448,7 +459,18 @@ export async function handleEnableSplConfirm(req, env) {
   }
 
   const nowMs = Date.now();
-  const payload = { service: 'spl', state: 'approved', approved_at: new Date(nowMs).toISOString() };
+  if (instance) {
+    await upsertSplBinding(env.DB, { accountId: session.account_id, instanceId: instance, nowMs });
+  }
+  const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE });
+  const entitled = isSplEntitled(entitlement);
+  const payload = entitled
+    ? { service: 'spl', state: 'approved', approved_at: new Date(nowMs).toISOString() }
+    : {
+        service: 'spl',
+        state: 'needs_subscription',
+        subscribe_url: `${new URL(req.url).origin}/services/spl`,
+      };
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
   try {
     const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
@@ -463,6 +485,8 @@ export async function handleEnableSplConfirm(req, env) {
   } catch {
     return splError(503);
   }
+  if (!entitled) return noStoreHtml(renderEnableSplNeedsSubscription());
+  if (instance) await syncAccountEntitlementToRelay(env, session.account_id);
   return noStoreHtml(renderEnableSplDone());
 }
 
@@ -536,6 +560,23 @@ function pushQuery({ nonce, deviceToken, platform, bundleId }) {
   return `?${params.toString()}`;
 }
 
+function splResumeQuery(nonce, instance) {
+  const params = new URLSearchParams({ nonce });
+  if (instance) params.set('instance', instance);
+  return `?${params.toString()}`;
+}
+
+function parseOptionalInstance(params) {
+  const values = params.getAll('instance');
+  if (values.length !== 1) return null;
+  const instance = values[0]?.toString() || '';
+  return INSTANCE_ID_REGEX.test(instance) ? instance : null;
+}
+
+function isSplEntitled(entitlement) {
+  return entitlement?.status === 'active' || entitlement?.status === 'past_due';
+}
+
 function parsePostedSource({ nonce }) {
   if (nonce) return NONCE_REGEX.test(nonce) ? { mode: 'nonce', nonce } : null;
   return null;
@@ -599,6 +640,14 @@ function validatePushResumeParams(params) {
     DEVICE_TOKEN_REGEX.test(deviceTokenValues[0]) &&
     PUSH_PLATFORM_ALLOWLIST.includes(platformValues[0]) &&
     BUNDLE_ID_REGEX.test(bundleIdValues[0]);
+}
+
+function validateSplResumeParams(params) {
+  const nonceValues = params.getAll('nonce');
+  const instanceValues = params.getAll('instance');
+  if (nonceValues.length !== 1 || !NONCE_REGEX.test(nonceValues[0])) return false;
+  if (instanceValues.length === 0) return true;
+  return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
 }
 
 function enableError(message, status) {

@@ -54,6 +54,7 @@ const VALID_PUSH_NONCE = '2'.repeat(52);
 const VALID_PUSH_DEVICE_TOKEN = 'A'.repeat(64);
 const VALID_PUSH_BUNDLE_ID = 'app.solstone.swift';
 const VALID_SPL_NONCE = '3'.repeat(52);
+const VALID_SPL_ENTITLED_NONCE = '4'.repeat(52);
 
 describe('brand canon', () => {
   beforeEach(async () => {
@@ -154,6 +155,9 @@ describe('brand canon', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'push-canon@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    const splAccount = await seedAccount({ email: 'spl-canon@example.com', testEnv });
+    const splSession = await seedSession(splAccount.accountId, { testEnv });
+    await seedEntitlement({ accountId: splAccount.accountId, status: 'active' });
     const consent = await get(pushPath(), testEnv, session.cookie);
     const done = await post('/enable/push/confirm', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
@@ -164,12 +168,18 @@ describe('brand canon', () => {
       action: 'allow',
     }), session.cookie);
     const error = await get('/enable/push', testEnv);
-    const splConsent = await get(`/enable/spl?nonce=${VALID_SPL_NONCE}`, testEnv, session.cookie);
-    const splDone = await post('/enable/spl/confirm', testEnv, new URLSearchParams({
+    const splUnentitledConsent = await get(`/enable/spl?nonce=${VALID_SPL_NONCE}`, testEnv, session.cookie);
+    const splNeedsSubscription = await post('/enable/spl/confirm', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       nonce: VALID_SPL_NONCE,
       action: 'allow',
     }), session.cookie);
+    const splEntitledConsent = await get(`/enable/spl?nonce=${VALID_SPL_ENTITLED_NONCE}`, testEnv, splSession.cookie);
+    const splApproved = await post('/enable/spl/confirm', testEnv, new URLSearchParams({
+      csrf: TEST_CSRF,
+      nonce: VALID_SPL_ENTITLED_NONCE,
+      action: 'allow',
+    }), splSession.cookie);
     const splError = await get('/enable/spl', testEnv);
 
     expect('your sign-in').not.toMatch(enableSurfaceStrictRe);
@@ -177,8 +187,10 @@ describe('brand canon', () => {
       ['enable notifications consent', consent],
       ['enable notifications done', done],
       ['enable notifications error', error],
-      ['enable spl consent', splConsent],
-      ['enable spl done', splDone],
+      ['enable spl unentitled consent', splUnentitledConsent],
+      ['enable spl needs subscription', splNeedsSubscription],
+      ['enable spl entitled consent', splEntitledConsent],
+      ['enable spl approved', splApproved],
       ['enable spl error', splError],
     ]) {
       const body = await response.text();

@@ -36,6 +36,7 @@ describe('static source checks', () => {
       'passkey.js',
       'provisioning.js',
       'push.js',
+      'relay-grant.js',
       'retention.js',
       'scout-migrate.js',
       'session.js',

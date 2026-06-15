@@ -305,7 +305,13 @@ you got here some other way, you can close this tab.</p>
   });
 }
 
-export function renderEnableSplConsent({ csrf, nonce }) {
+export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = false }) {
+  const instanceInput = instance
+    ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
+    : '';
+  const disclosure = entitled
+    ? '<p class="disclosure">you can review or change private link access from the journal anytime.</p>'
+    : '<p class="disclosure"><a href="/services/spl">set up solstone hosting</a> to let solstone host your private link relay.</p>';
   return layout({
     title: 'enable private link access',
     body: `${brandbar()}
@@ -329,13 +335,14 @@ export function renderEnableSplConsent({ csrf, nonce }) {
   <form method="post" action="/enable/spl/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
+    ${instanceInput}
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
       <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
     </div>
   </form>
 </div>
-<p class="disclosure">you can review or change private link access from the journal anytime.</p>`,
+${disclosure}`,
   });
 }
 
@@ -346,6 +353,18 @@ export function renderEnableSplDone() {
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} private link access enabled</h2>
   <p>private link access is approved for this journal. you can close this tab.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSplNeedsSubscription() {
+  return layout({
+    title: 'solstone hosting needed',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">solstone hosting needed</h2>
+  <p>let solstone host your private link relay before this journal can use it.</p>
+  <a class="btn primary" href="/services/spl">set up solstone hosting</a>
 </div>`,
   });
 }

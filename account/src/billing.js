@@ -22,8 +22,8 @@ import {
   subscriptionPeriodEnd,
   verifyWebhookSignature,
 } from './stripe.js';
+import { SPL_HOSTED_SERVICE as SERVICE, syncAccountEntitlementToRelay } from './relay-grant.js';
 
-const SERVICE = 'spl_hosted';
 const SOURCE = 'stripe';
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
 const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}/billing/return?status=success`;
@@ -112,7 +112,7 @@ export async function handleBillingReturn(req, env) {
   }));
 }
 
-export async function handleStripeWebhook(req, env) {
+export async function handleStripeWebhook(req, env, ctx) {
   const rawBody = await req.text();
   const nowSeconds = Math.floor(Date.now() / 1000);
   const valid = await verifyWebhookSignature(
@@ -130,34 +130,34 @@ export async function handleStripeWebhook(req, env) {
     return json({ ok: false }, { status: 400 });
   }
 
-  await applyStripeEvent(env, event, Date.now());
+  await applyStripeEvent(env, event, Date.now(), ctx);
   return json({ ok: true });
 }
 
-async function applyStripeEvent(env, event, nowMs) {
+async function applyStripeEvent(env, event, nowMs, ctx) {
   const obj = event?.data?.object;
   switch (event?.type) {
     case 'checkout.session.completed':
-      await handleCheckoutCompleted(env, obj, nowMs);
+      await handleCheckoutCompleted(env, obj, nowMs, ctx);
       return;
     case 'customer.subscription.updated':
-      await handleSubscriptionChanged(env, obj, nowMs);
+      await handleSubscriptionChanged(env, obj, nowMs, ctx);
       return;
     case 'customer.subscription.deleted':
-      await handleSubscriptionDeleted(env, obj, nowMs);
+      await handleSubscriptionDeleted(env, obj, nowMs, ctx);
       return;
     case 'invoice.paid':
-      await handleInvoicePaid(env, obj, nowMs);
+      await handleInvoicePaid(env, obj, nowMs, ctx);
       return;
     case 'invoice.payment_failed':
-      await handleInvoicePaymentFailed(env, obj, nowMs);
+      await handleInvoicePaymentFailed(env, obj, nowMs, ctx);
       return;
     default:
       return;
   }
 }
 
-async function handleCheckoutCompleted(env, obj, nowMs) {
+async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   const accountId = obj?.client_reference_id || '';
   const stripeCustomerId = typeof obj?.customer === 'string' ? obj.customer : '';
   const subscriptionId = typeof obj?.subscription === 'string' ? obj.subscription : '';
@@ -173,15 +173,17 @@ async function handleCheckoutCompleted(env, obj, nowMs) {
     sourceRef: subscription.id,
     nowMs,
   });
+  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
 }
 
-async function handleSubscriptionChanged(env, obj, nowMs) {
+async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   if (!accountRow) return;
   const status = mapSubscriptionStatus(obj?.status);
   if (!status) return;
+  const accountId = accountRow.account_id;
   await upsertEntitlement(env.DB, {
-    accountId: accountRow.account_id,
+    accountId,
     service: SERVICE,
     status,
     currentPeriodEnd: subscriptionPeriodEnd(obj),
@@ -189,13 +191,15 @@ async function handleSubscriptionChanged(env, obj, nowMs) {
     sourceRef: obj?.id || null,
     nowMs,
   });
+  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
 }
 
-async function handleSubscriptionDeleted(env, obj, nowMs) {
+async function handleSubscriptionDeleted(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   if (!accountRow) return;
+  const accountId = accountRow.account_id;
   await upsertEntitlement(env.DB, {
-    accountId: accountRow.account_id,
+    accountId,
     service: SERVICE,
     status: 'lapsed',
     currentPeriodEnd: subscriptionPeriodEnd(obj),
@@ -203,15 +207,17 @@ async function handleSubscriptionDeleted(env, obj, nowMs) {
     sourceRef: obj?.id || null,
     nowMs,
   });
+  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
 }
 
-async function handleInvoicePaid(env, obj, nowMs) {
+async function handleInvoicePaid(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   const subscriptionId = typeof obj?.subscription === 'string' ? obj.subscription : '';
   if (!accountRow || !subscriptionId) return;
   const subscription = await getSubscription(env, subscriptionId);
+  const accountId = accountRow.account_id;
   await upsertEntitlement(env.DB, {
-    accountId: accountRow.account_id,
+    accountId,
     service: SERVICE,
     status: 'active',
     currentPeriodEnd: subscriptionPeriodEnd(subscription),
@@ -219,13 +225,15 @@ async function handleInvoicePaid(env, obj, nowMs) {
     sourceRef: subscription.id,
     nowMs,
   });
+  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
 }
 
-async function handleInvoicePaymentFailed(env, obj, nowMs) {
+async function handleInvoicePaymentFailed(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   if (!accountRow) return;
+  const accountId = accountRow.account_id;
   await upsertEntitlement(env.DB, {
-    accountId: accountRow.account_id,
+    accountId,
     service: SERVICE,
     status: 'past_due',
     currentPeriodEnd: null,
@@ -233,6 +241,7 @@ async function handleInvoicePaymentFailed(env, obj, nowMs) {
     sourceRef: null,
     nowMs,
   });
+  ctx.waitUntil(syncAccountEntitlementToRelay(env, accountId));
 }
 
 function mapSubscriptionStatus(status) {

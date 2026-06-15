@@ -6,14 +6,18 @@ import { verifyEnableResume } from '../src/enable.js';
 import {
   TEST_CSRF,
   installConsoleSpy,
+  installRelayFetchMock,
   makeTestEnv,
   resetDb,
   seedAccount,
+  seedEntitlement,
   seedSession,
 } from './helpers.js';
 
 const VALID_NONCE = '2'.repeat(52);
 const OTHER_NONCE = '3'.repeat(52);
+const VALID_INSTANCE = '11111111-1111-1111-1111-111111111111';
+const OTHER_INSTANCE = '22222222-2222-2222-2222-222222222222';
 
 describe('/enable/spl', () => {
   beforeEach(async () => {
@@ -21,6 +25,7 @@ describe('/enable/spl', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -53,6 +58,17 @@ describe('/enable/spl', () => {
     expect(resume).toEqual({ path: '/enable/spl', queryString: query });
   });
 
+  it('redirects signed-out requests with a valid instance in the resume flow', async () => {
+    const testEnv = makeTestEnv();
+    const query = `?nonce=${VALID_NONCE}&instance=${VALID_INSTANCE}`;
+    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/spl${query}`), testEnv);
+    const location = new URL(response.headers.get('Location'), 'https://services.solstone.app');
+    const resume = await verifyEnableResume(location.searchParams.get('next'), location.searchParams.get('next_sig'), testEnv);
+
+    expect(response.status).toBe(303);
+    expect(resume).toEqual({ path: '/enable/spl', queryString: query });
+  });
+
   it('renders signed-in consent with hidden csrf and nonce fields', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
@@ -67,6 +83,25 @@ describe('/enable/spl', () => {
     expect(body).toContain('this journal is asking to enable private link access.');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
+  });
+
+  it('ignores malformed or repeated instance params on consent', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const malformed = await worker.fetch(new Request(splUrl({ instance: 'zz' }), {
+      headers: { Cookie: session.cookie },
+    }), testEnv);
+    const repeated = await worker.fetch(new Request(`${splUrl()}&instance=${VALID_INSTANCE}&instance=${OTHER_INSTANCE}`, {
+      headers: { Cookie: session.cookie },
+    }), testEnv);
+
+    for (const response of [malformed, repeated]) {
+      const body = await response.text();
+      expect(response.status).toBe(200);
+      expect(body).not.toContain('name="instance"');
+      expect(body).toContain('<a href="/services/spl">set up solstone hosting</a> to let solstone host your private link relay.');
+    }
   });
 
   it('enforces origin, csrf, cancel, and stale account guards on confirm', async () => {
@@ -97,6 +132,7 @@ describe('/enable/spl', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({ accountId: account.accountId, status: 'active' });
     try {
       const response = await worker.fetch(confirmRequest({ cookie: session.cookie }), testEnv);
       const payloadEncrypted = (await serviceHandoffRow(VALID_NONCE, testEnv)).payload_encrypted;
@@ -145,11 +181,61 @@ describe('/enable/spl', () => {
     await expectNoSplHandoff({ testEnv, nonce: VALID_NONCE });
   });
 
+  it('writes a needs-subscription handoff with a binding and no relay push when unentitled', async () => {
+    const testEnv = makeTestEnv();
+    const { calls } = installRelayFetchMock();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(confirmRequest({
+      cookie: session.cookie,
+      extraForm: { instance: VALID_INSTANCE },
+    }), testEnv);
+    const body = await response.text();
+    const payload = await pollSplHandoff({ testEnv, nonce: VALID_NONCE });
+    const binding = await splBindingRow(account.accountId, VALID_INSTANCE);
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('set up solstone hosting');
+    expect(payload).toEqual({
+      service: 'spl',
+      state: 'needs_subscription',
+      subscribe_url: 'https://services.solstone.app/services/spl',
+    });
+    expect(binding).toMatchObject({ account_id: account.accountId, instance_id: VALID_INSTANCE });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('writes an approved handoff and pushes an inline relay grant when entitled with an instance', async () => {
+    const testEnv = makeTestEnv();
+    const { calls } = installRelayFetchMock();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({
+      accountId: account.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_900_000_000,
+    });
+
+    const response = await worker.fetch(confirmRequest({
+      cookie: session.cookie,
+      extraForm: { instance: VALID_INSTANCE },
+    }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('private link access is approved for this journal. you can close this tab.');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ instance_id: VALID_INSTANCE, entitled_until: 1_900_000_000 });
+    expect(calls[0].init.headers.Authorization).toBe('Bearer test-relay-grant-secret');
+  });
+
   it('ignores smuggled fields and derives the payload server-side', async () => {
     const spy = installConsoleSpy();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({ accountId: account.accountId, status: 'active' });
     const smuggled = {
       home_label: 'h',
       instance_id: 'i',
@@ -244,6 +330,13 @@ async function serviceHandoffRow(nonce, testEnv) {
   return workerEnv.DB
     .prepare('SELECT payload_encrypted FROM service_handoffs WHERE handoff_hash = ? AND service = ?')
     .bind(await hashServiceHandoffNonce(nonce, testEnv), 'spl')
+    .first();
+}
+
+async function splBindingRow(accountId, instanceId) {
+  return workerEnv.DB
+    .prepare('SELECT account_id, instance_id, created_at, last_seen_at FROM spl_bindings WHERE account_id = ? AND instance_id = ?')
+    .bind(accountId, instanceId)
     .first();
 }
 

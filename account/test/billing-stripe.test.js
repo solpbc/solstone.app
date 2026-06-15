@@ -1,4 +1,4 @@
-import { env as workerEnv } from 'cloudflare:test';
+import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { TEST_CSRF, installStripeFetchMock, makeTestEnv, resetDb, seedAccount, seedEntitlement, seedSession, signStripeWebhook } from './helpers.js';
@@ -235,11 +235,14 @@ async function sendEvent(testEnv, event) {
 
 async function postWebhook(testEnv, rawBody, t = Math.floor(Date.now() / 1000)) {
   const signature = await signStripeWebhook(rawBody, testEnv.STRIPE_WEBHOOK_SECRET, t);
-  return worker.fetch(new Request('https://services.solstone.app/stripe/webhook', {
+  const ctx = createExecutionContext();
+  const response = await worker.fetch(new Request('https://services.solstone.app/stripe/webhook', {
     method: 'POST',
     headers: { 'Stripe-Signature': signature },
     body: rawBody,
-  }), testEnv);
+  }), testEnv, ctx);
+  await waitOnExecutionContext(ctx);
+  return response;
 }
 
 function get(path, testEnv, cookie = '') {
