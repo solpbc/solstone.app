@@ -275,7 +275,7 @@ pipx install solstone-linux
 solstone-linux install-service
 solstone-linux setup
 
-`setup` prompts for your journal URL and registers the observer for you. if this machine can't reach your solstone host, mint a key from there with `sol observer create &lt;name&gt;` and paste it during setup.
+`setup` registers the observer against your journal over the local http://localhost:5015 link, so there's no URL to type. if this machine reaches your solstone host directly instead, run `solstone-linux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
@@ -321,7 +321,7 @@ pipx install solstone-tmux
 solstone-tmux install-service
 solstone-tmux setup
 
-`setup` prompts for your journal URL and registers the observer for you. if this machine can't reach your solstone host, mint a key from there with `sol observer create &lt;name&gt;` and paste it during setup.
+`setup` registers the observer against your journal over the local http://localhost:5015 link, so there's no URL to type. if this machine reaches your solstone host directly instead, run `solstone-tmux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
