@@ -26,7 +26,7 @@
         .page-intro p {
             font-size: 1rem;
             line-height: 1.6;
-            color: #555;
+            color: var(--ink-soft);
         }
         .cards {
             display: grid;
@@ -37,7 +37,8 @@
             padding: 0 1.5rem;
         }
         .card {
-            border: 1px solid #e0e0e0;
+            background: var(--cream-bright);
+            border: 1px solid var(--hairline);
             border-radius: 10px;
             padding: 1.75rem;
             display: flex;
@@ -47,12 +48,12 @@
             font-family: var(--font-display);
             font-size: 1.15rem;
             font-weight: 700;
-            color: #222;
+            color: var(--ink);
             margin-bottom: 0.35rem;
         }
         .card .subtitle {
             font-size: 0.9rem;
-            color: #767676;
+            color: var(--ink-faint);
             margin-bottom: 1rem;
         }
         .card ul {
@@ -62,7 +63,7 @@
         }
         .card ul li {
             font-size: 0.88rem;
-            color: #555;
+            color: var(--ink-soft);
             padding-left: 1rem;
             position: relative;
         }
@@ -70,7 +71,7 @@
             content: "·";
             position: absolute;
             left: 0;
-            color: #bbb;
+            color: var(--ink-faint);
             font-weight: 700;
         }
         .card-actions {
@@ -103,7 +104,7 @@
         }
         .gh-link {
             font-size: 0.82rem;
-            color: #767676;
+            color: var(--ink-faint);
             text-decoration: none;
             transition: color 0.15s;
         }
@@ -137,13 +138,13 @@
         }
         .download-clarifier {
             font-size: 0.82rem;
-            color: #555;
+            color: var(--ink-soft);
             margin: 0;
             line-height: 1.4;
         }
         .trust-signal {
             font-size: 0.78rem;
-            color: #888;
+            color: var(--ink-faint);
             margin: 0;
             line-height: 1.4;
         }
@@ -152,7 +153,7 @@
             align-items: center;
             gap: 0.85rem;
             padding-top: 0.85rem;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--hairline);
         }
         .secondary-action .copy-btn {
             font-size: 0.74rem;
@@ -168,21 +169,21 @@
             margin-top: 1.5rem;
         }
         .supplemental .card {
-            border-color: #eee;
-            background: #fafafa;
+            border-color: var(--hairline);
+            background: var(--cream-bright);
         }
         .supplemental .card h2 {
             font-size: 1.05rem;
-            color: #555;
+            color: var(--ink-soft);
         }
         .supplemental .card .subtitle {
-            color: #767676;
+            color: var(--ink-faint);
         }
         .section-title {
             font-family: var(--font-display);
             font-size: 1rem;
             font-weight: 700;
-            color: #555;
+            color: var(--ink-soft);
             text-align: center;
             margin: 1.75rem 0 0.75rem;
             max-width: 820px;
@@ -193,18 +194,19 @@
             grid-template-columns: 1fr 1fr 1fr;
         }
         .card.placeholder {
-            border: 1px dashed #999;
+            background: none;
+            border: 1px dashed var(--hairline-2);
         }
         .card.placeholder h2 {
-            color: #999;
+            color: var(--ink-faint);
         }
         .card.placeholder .subtitle {
-            color: #999;
+            color: var(--ink-faint);
             margin-bottom: 0.5rem;
         }
         .card.placeholder .coming-soon {
             font-size: 0.88rem;
-            color: #999;
+            color: var(--ink-faint);
             margin: 0;
         }
         .blurb {
@@ -372,12 +374,12 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-tmux.
             announce('text selected — press ctrl+c (or cmd+c on mac) to copy');
             blurb.style.display = 'block';
             blurb.style.whiteSpace = 'pre-wrap';
-            blurb.style.background = '#f5f5f5';
-            blurb.style.border = '1px solid #ddd';
+            blurb.style.background = 'var(--orange-wash)';
+            blurb.style.border = '1px solid var(--hairline-2)';
             blurb.style.borderRadius = '6px';
             blurb.style.padding = '1rem';
             blurb.style.fontSize = '0.8rem';
-            blurb.style.color = '#555';
+            blurb.style.color = 'var(--ink-soft)';
             blurb.style.marginTop = '1rem';
             blurb.style.fontFamily = 'monospace';
             blurb.style.maxHeight = '300px';

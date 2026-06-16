@@ -15,8 +15,8 @@ body {
     flex-direction: column;
     align-items: center;
     font-family: var(--font-body);
-    background: var(--paper);
-    color: #333;
+    background: var(--cream);
+    color: var(--ink-soft);
     line-height: 1.5;
 }
 h1, h2 {
@@ -28,18 +28,18 @@ h1 {
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: lowercase;
-    color: #222;
+    color: var(--ink);
 }
 footer {
     margin-top: auto;
     padding: 3rem 0 2rem;
     font-family: var(--font-display);
     font-size: 0.85rem;
-    color: #767676;
+    color: var(--ink-faint);
     text-align: center;
 }
 footer a {
-    color: #767676;
+    color: var(--ink-faint);
     text-decoration: none;
 }
 footer a:hover {
@@ -51,12 +51,12 @@ footer a:hover {
     }
 }
 .early-days {
-    background: #FFF4DE;
-    border: 1px solid #F0C97A;
+    background: var(--orange-wash);
+    border: 1px solid var(--hairline-2);
     border-left: 3px solid var(--orange);
     border-radius: 6px;
     padding: 0.85rem 1.1rem;
-    color: #5a4422;
+    color: var(--ink-soft);
     font-size: 0.92rem;
     line-height: 1.6;
     text-align: left;
