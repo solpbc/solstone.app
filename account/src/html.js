@@ -13,7 +13,7 @@ const SUPPORT_STATUS_LABELS = {
 };
 const SUPPORT_AUTHOR_LABELS = {
   human: 'you',
-  operator: 'sol pbc support',
+  operator: 'solstone support',
   agent: 'your solstone keeper',
   anonymous: 'you (via the form)',
 };
@@ -438,7 +438,7 @@ ${welcomePanel}
     ${IC_SUPPORT_SVG}
     <div class="body">
       <div class="title">support</div>
-      <div class="desc">get help from sol pbc, or follow up on a request you've opened.</div>
+      <div class="desc">get help from solstone support, or follow up on a request you've opened.</div>
     </div>
     <div class="trail">${CHEVRON_SVG}</div>
   </a>
@@ -1181,7 +1181,7 @@ function supportStatusLabel(status) {
 }
 
 function supportAuthorLabel(authorKind) {
-  return SUPPORT_AUTHOR_LABELS[authorKind] || 'sol pbc support';
+  return SUPPORT_AUTHOR_LABELS[authorKind] || 'solstone support';
 }
 
 function supportNotices(notices) {

@@ -40,7 +40,7 @@ describe('support detail', () => {
     expect(body).toContain('need help');
     expect(body).toContain('waiting on you');
     expect(body).toContain('you');
-    expect(body).toContain('sol pbc support');
+    expect(body).toContain('solstone support');
     expect(body).toContain('your solstone keeper');
     expect(body).toContain('you (via the form)');
     expect(body).toContain('pending');
@@ -74,7 +74,7 @@ describe('support detail', () => {
     expect(body).toContain('attachment removed after triage');
     expect(body).toContain('looked at the log');
     expect(body).toContain('you');
-    expect(body).toContain('sol pbc support');
+    expect(body).toContain('solstone support');
     expect(body).toContain('your solstone keeper');
     expect(body).toContain('you (via the form)');
     expect(body).toContain('first');
@@ -106,7 +106,7 @@ describe('support detail', () => {
     const body = await response.text();
 
     expect(body).toContain('in progress');
-    expect(body).toContain('sol pbc support');
+    expect(body).toContain('solstone support');
     expect(body).not.toContain('internal-only');
     expect(body).not.toContain('robot');
   });
