@@ -1,6 +1,13 @@
 /* services.solstone.app — VPX redesign stylesheet (design-in-code, project #1)
    Applies the services brand canon (cmo/brand/services.md) + design tokens
-   (vpx/design-system/tokens.md). Warm, trust-first, the macOS System Settings →
+   (vpx/design-system/tokens.md). This is the REFERENCE implementation of the web
+   token canon: the :root below mirrors vpx/design-system/web/tokens.css (the
+   consumable SOT) byte-for-byte — verified 2026-06-15. Do NOT diverge a value
+   here; change tokens.md → re-derive tokens.css → mirror it here. (Full
+   <link>-import of the shared file is deferred to a deliberate account deploy —
+   this is a billing/auth worker, so we don't rewire its asset pipeline for a
+   no-op refactor.)
+   Warm, trust-first, the macOS System Settings →
    iCloud register: each service is a row with an honest line + an on/off state.
    a11y: sol orange #E8923A is DECORATION-ONLY (carries no text); all orange text
    uses the accessible #B06A1A token; primary buttons are dark-ink-on-orange (7.13:1). */
