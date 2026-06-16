@@ -22,6 +22,7 @@ import {
   updatePasskeyCredentialCounter,
 } from './db.js';
 import { getValidSession, sessionCookie } from './session.js';
+import { verifyEnableResume } from './enable.js';
 
 const RP_ID = 'solstone.app';
 const RP_NAME = 'solstone';
@@ -262,8 +263,15 @@ export async function passkeyAuthFinish(req, env) {
     const sessionToken = generateSessionToken();
     const idHash = await hashWithPepper(sessionToken, env);
     await createSession(env.DB, { idHash, accountId: credentialRow.account_id, nowMs });
+    let redirect = '/';
+    const next = body?.next;
+    const nextSig = body?.next_sig;
+    if (next && nextSig) {
+      const resume = await verifyEnableResume(next, nextSig, env);
+      if (resume) redirect = `${resume.path}${resume.queryString}`;
+    }
     return jsonResponse(
-      { ok: true, redirect: '/' },
+      { ok: true, redirect },
       200,
       { 'Set-Cookie': sessionCookie(sessionToken) }
     );
