@@ -16,6 +16,7 @@
     <link rel="canonical" href="https://solstone.app/download/macos">
     <link rel="icon" type="image/svg+xml" href="/static/sol-ring-icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="stylesheet" href="/static/tokens.css">
     <style>
         @font-face {
             font-family: 'Comfortaa';
@@ -34,8 +35,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #fff;
+            font-family: var(--font-body);
+            background: var(--paper);
             padding: 2rem 0;
         }
         a {
@@ -46,7 +47,7 @@
             margin-bottom: 2.5rem;
         }
         h1 {
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 2.2rem;
             font-weight: 700;
             letter-spacing: 0.08em;
@@ -66,19 +67,20 @@
         }
         .download-btn {
             display: inline-block;
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 1.05rem;
             font-weight: 600;
             text-transform: lowercase;
             letter-spacing: 0.03em;
-            color: #fff;
-            background: #E8923A;
+            color: var(--ink);
+            background: var(--orange);
             padding: 0.85rem 2rem;
             border-radius: 8px;
             transition: background 0.15s;
         }
         .download-btn:hover {
-            background: #d97e25;
+            background: var(--orange-ink);
+            color: var(--paper);
         }
         .fallback {
             margin-top: 1.5rem;
@@ -91,7 +93,7 @@
             text-decoration: underline;
         }
         .fallback a:hover {
-            color: #E8923A;
+            color: var(--orange-ink);
         }
         .links {
             margin-top: 2.5rem;
@@ -107,12 +109,12 @@
             transition: color 0.15s;
         }
         .links a:hover {
-            color: #E8923A;
+            color: var(--orange-ink);
         }
         footer {
             margin-top: auto;
             padding-top: 3rem;
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 0.85rem;
             color: #767676;
             text-align: center;
@@ -132,9 +134,9 @@
             top: -3rem;
             left: 0.5rem;
             z-index: 1000;
-            background: #222;
+            background: var(--ink);
             color: #fff;
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 0.9rem;
             padding: 0.6rem 1rem;
             border-radius: 0 0 6px 6px;
@@ -145,7 +147,7 @@
             top: 0;
         }
         :focus-visible {
-            outline: 2px solid #E8923A;
+            outline: 2px solid var(--focus);
             outline-offset: 2px;
         }
         main {

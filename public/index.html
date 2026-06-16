@@ -44,6 +44,7 @@
       }
     }
     </script>
+    <link rel="stylesheet" href="/static/tokens.css">
     <link rel="stylesheet" href="/static/base.css">
     <style>
         h1 {
@@ -54,7 +55,7 @@
             margin-bottom: 0.6rem;
         }
         h2 {
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-weight: 400;
             font-size: 1.3rem;
             letter-spacing: 0.03em;
@@ -106,12 +107,12 @@
             transition: color 0.15s;
         }
         .cta:hover {
-            color: #E8923A;
+            color: var(--orange-ink);
             text-decoration: none;
         }
         .cta-primary {
             font-weight: 700;
-            color: #B36A1D;
+            color: var(--orange-ink);
         }
         /* keep each CTA centered on its own line (was the body's per-child
            centering before the nav landmark wrapped them) */

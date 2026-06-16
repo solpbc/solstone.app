@@ -14,8 +14,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-family: system-ui, -apple-system, sans-serif;
-    background: #fff;
+    font-family: var(--font-body);
+    background: var(--paper);
     color: #333;
     line-height: 1.5;
 }
@@ -23,7 +23,7 @@ h1, h2 {
     line-height: 1.3;
 }
 h1 {
-    font-family: 'Comfortaa', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: 1.8rem;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -33,7 +33,7 @@ h1 {
 footer {
     margin-top: auto;
     padding: 3rem 0 2rem;
-    font-family: 'Comfortaa', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: 0.85rem;
     color: #767676;
     text-align: center;
@@ -53,7 +53,7 @@ footer a:hover {
 .early-days {
     background: #FFF4DE;
     border: 1px solid #F0C97A;
-    border-left: 3px solid #E8923A;
+    border-left: 3px solid var(--orange);
     border-radius: 6px;
     padding: 0.85rem 1.1rem;
     color: #5a4422;
@@ -66,9 +66,9 @@ footer a:hover {
     font-style: normal;
 }
 .early-days .stage-label {
-    font-family: 'Comfortaa', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
-    color: #B36A1D;
+    color: var(--orange-ink);
     letter-spacing: 0.01em;
 }
 /* --- accessibility (shared) --- */
@@ -78,9 +78,9 @@ footer a:hover {
     top: -3rem;
     left: 0.5rem;
     z-index: 1000;
-    background: #222;
+    background: var(--ink);
     color: #fff;
-    font-family: 'Comfortaa', system-ui, sans-serif;
+    font-family: var(--font-display);
     font-size: 0.9rem;
     padding: 0.6rem 1rem;
     border-radius: 0 0 6px 6px;
@@ -91,9 +91,9 @@ footer a:hover {
     top: 0;
 }
 /* visible focus indicator on keyboard focus only — generalizes the install
-   toggle treatment (orange accent #E8923A) across every interactive element */
+   toggle treatment (accessible orange --focus) across every interactive element */
 :focus-visible {
-    outline: 2px solid #E8923A;
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
 /* <main> is a passthrough region: reproduce body's centering for its children,
