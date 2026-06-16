@@ -6,6 +6,15 @@ main = "src/index.js"
 
 routes = [{ pattern = "scouts.solstone.app", custom_domain = true }]
 
+# The redirect worker exports only fetch(); explicitly clear all cron triggers so
+# the runtime never fires a scheduled() event into a handler that doesn't exist.
+# Omitting [triggers] does NOT delete an existing server-side schedule (a wrangler
+# gotcha); an empty crons array does. The old "0 */6 * * *" scout-portal cron was
+# orphaned by the 2026-06-12 redirect convergence and threw scriptThrewException
+# on every 6h tick until this explicit clear.
+[triggers]
+crons = []
+
 # Retired program — this worker now only 301-redirects to services.solstone.app/scout.
 # The scouts-portal D1, cron, email, and program vars are no longer bound (scout
 # records migrated into the account-portal worker). The retained backup D1 was
