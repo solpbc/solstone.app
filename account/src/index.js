@@ -71,6 +71,7 @@ import {
   renderLanding,
   renderNotFound,
   renderServicesDashboard,
+  renderTerms,
   renderVerify,
   VERIFY_ERROR,
 } from './html.js';
@@ -434,6 +435,10 @@ export default {
 
       if (url.pathname === '/goodbye' && req.method === 'GET') {
         return html(renderGoodbye());
+      }
+
+      if (url.pathname === '/terms' && req.method === 'GET') {
+        return html(renderTerms());
       }
 
       if (parts.length === 2 && parts[1] === 'sign-in' && req.method === 'GET') {

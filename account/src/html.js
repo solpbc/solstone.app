@@ -39,7 +39,7 @@ function brandbar() {
 }
 
 function footer() {
-  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a></footer>`;
+  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a></footer>`;
 }
 
 function topbar({ email = null, lastSignInAt = null, now = null } = {}) {
@@ -462,7 +462,8 @@ ${flashes}
   <h1>solstone hosted — private link</h1>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}`,
+${content}
+<p class="disclosure"><a href="/terms">terms</a></p>`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
@@ -1120,6 +1121,79 @@ export function renderGoodbye() {
 <h1>signed out.</h1>
 <p class="lead">see you next time.</p>
 <a class="btn secondary" href="/">start over</a>`,
+  });
+}
+
+export function renderTerms() {
+  const title = 'solstone hosted — private link · terms';
+  return layout({
+    title,
+    body: `${brandbar()}
+<h1>${esc(title)}</h1>
+<p class="meta"><em>${esc(`last updated: June 16, 2026 · operated by sol pbc, a colorado public benefit corporation`)}</em></p>
+<p>${esc(`these terms cover `)}<strong>${esc(`solstone hosted — private link`)}</strong>${esc(`: the relay sol pbc operates so you can reach your own journal from anywhere — phone to home — without running your own relay. they're between you and sol pbc. by subscribing, you agree to them.`)}</p>
+<h2>${esc(`1. you never have to pay us`)}</h2>
+<p>${esc(`this is a convenience, not a gate. the same private connection is always available for free:`)}</p>
+<ul>
+  <li><strong>${esc(`lan-direct`)}</strong>${esc(` — phone and home on the same network connect directly, no relay, no charge.`)}</li>
+  <li><strong>${esc(`bring your own transport`)}</strong>${esc(` — point solstone at your own vpn, tailscale, or tunnel.`)}</li>
+  <li><strong>${esc(`self-host the relay`)}</strong>${esc(` — the relay is open source. run it yourself.`)}</li>
+</ul>
+<p>${esc(`all three are private by the `)}<em>${esc(`same construction`)}</em>${esc(` as the paid relay. `)}<strong>${esc(`the hosted relay is convenience — never a privacy upgrade.`)}</strong>${esc(` if you stop paying, you lose the convenience, not your journal and not your privacy.`)}</p>
+<h2>${esc(`2. what you're buying`)}</h2>
+<ul>
+  <li>${esc(`the `)}<strong>${esc(`operated relay`)}</strong>${esc(` — a private channel between your devices and your home journal, run by sol pbc so you don't have to run one.`)}</li>
+  <li><strong>${esc(`blind by construction.`)}</strong>${esc(` sol pbc operates the relay but `)}<strong>${esc(`cannot read what's inside your traffic.`)}</strong>${esc(` the relay passes encrypted bytes between your devices; it has no key to read them and keeps no copy of what flows through. to move those bytes it does handle basic connection details — your devices' network addresses, timing, and how much data moved — never the contents. it runs on third-party cloud infrastructure, which sees only those same encrypted bytes and connection details. hosting the pipe does not mean reading what's in it.`)}</li>
+  <li>${esc(`a flat `)}<strong>${esc(`annual or monthly`)}</strong>${esc(` price, `)}<strong>${esc(`per home journal`)}</strong>${esc(` — not per device. all your paired devices reach that journal over the one subscription. the current price is shown to you when you subscribe.`)}</li>
+</ul>
+<h2>${esc(`3. subscription and automatic renewal`)}</h2>
+<ul>
+  <li><strong>${esc(`your subscription renews automatically`)}</strong>${esc(` at the end of each term — once a year on the annual plan, once a month on the monthly plan — at your plan's then-current price, using your payment method on file, `)}<strong>${esc(`until you cancel.`)}</strong>${esc(` you agree to these renewal terms when you confirm the subscription at checkout, where the price, the billing interval, and the automatic renewal are shown and you affirmatively agree to them before any charge.`)}</li>
+  <li>${esc(`for the `)}<strong>${esc(`annual`)}</strong>${esc(` plan, we email you a reminder `)}<strong>${esc(`15–45 days before each renewal`)}</strong>${esc(`, with the renewal date, the amount, and a one-click link to cancel — so a yearly charge is never a surprise.`)}</li>
+  <li>${esc(`we'll tell you in advance if the price ever changes; a price change only takes effect on a renewal after we've notified you, and you can cancel before it applies.`)}</li>
+</ul>
+<h2>${esc(`4. canceling — and what happens to your journal`)}</h2>
+<ul>
+  <li><strong>${esc(`cancel anytime, in two clicks.`)}</strong>${esc(` the billing portal cancels your subscription — no phone call, no email, no retention maze. canceling is as easy as subscribing.`)}</li>
+  <li>${esc(`when you cancel, the `)}<strong>${esc(`hosted relay keeps working until the end of the period you've already paid for`)}</strong>${esc(`, then stops. we don't prorate or claw back; you keep what you paid for.`)}</li>
+  <li><strong>${esc(`nothing is lost when the relay stops.`)}</strong>${esc(` your journal, your data, and your device pairings are untouched — your journal lives on your devices. the free paths — lan-direct and bring-your-own-transport — keep working. you drop to the free tier; you do not lose your data. (without the hosted relay, you reach your journal on your own network or through a transport you set up.)`)}</li>
+  <li>${esc(`re-subscribe anytime to turn the hosted relay back on. one tap.`)}</li>
+</ul>
+<h2>${esc(`5. refunds`)}</h2>
+<ul>
+  <li>${esc(`because canceling lets you keep the hosted relay through the end of the period you paid for, we don't run refund math on cancellation.`)}</li>
+  <li>${esc(`if you're charged in error — a duplicate charge, a charge after you canceled, a billing mistake — email `)}<code>${esc(`support@solstone.app`)}</code>${esc(` or use the billing portal and `)}<strong>${esc(`we'll refund the incorrect amount.`)}</strong>${esc(` this doesn't affect any chargeback or refund right you have through your card issuer or under the law.`)}</li>
+  <li>${esc(`nothing here waives any refund or cancellation right the law gives you where you live.`)}</li>
+</ul>
+<h2>${esc(`6. fair use`)}</h2>
+<p>${esc(`the hosted relay is for reaching your own journal from your own devices. don't use it to attack, overload, or relay for others at a scale that degrades the service for everyone else. sustained abuse can suspend the hosted relay — never your journal or the free paths.`)}</p>
+<h2>${esc(`7. payment is handled by stripe`)}</h2>
+<ul>
+  <li>${esc(`sol pbc does not take or store your card. payments run through `)}<strong>${esc(`stripe`)}</strong>${esc(`, our payment processor. when you subscribe, your card and payment details go `)}<strong>${esc(`directly to stripe`)}</strong>${esc(` and are handled under stripe's own `)}<a href="https://stripe.com/legal">${esc(`terms`)}</a>${esc(` and `)}<a href="https://stripe.com/privacy">${esc(`privacy policy`)}</a>${esc(`. that's your choice to pay by card, and it's how the charge happens.`)}</li>
+  <li>${esc(`sol pbc receives from stripe only what it needs to run your subscription: that a payment succeeded or failed, when it renews, and a reference that ties the subscription to your solstone sign-in. `)}<strong>${esc(`your card number never touches sol pbc's servers.`)}</strong></li>
+  <li>${esc(`stripe is bound, as our payment processor, not to use the limited information we send it for anything except processing your payments — and, as a regulated payment company, it also runs the fraud and anti-money-laundering checks the law requires of it. sol pbc never sends stripe anything from your journal.`)}</li>
+</ul>
+<h2>${esc(`8. the service is provided as-is`)}</h2>
+<p>${esc(`we work to keep the hosted relay up, but we don't guarantee uninterrupted service. the relay can go down for maintenance or for reasons outside our control. if it's down, the free paths (lan-direct, byo, self-host) are always your fallback.`)}</p>
+<p><strong>${esc(`to the fullest extent permitted by law, the hosted relay is provided "as is" and "as available," and sol pbc disclaims all implied warranties, including merchantability and fitness for a particular purpose. sol pbc is not liable for indirect, incidental, or consequential damages, and sol pbc's total liability for the hosted relay is limited to the fees you paid for it in the 12 months before the claim.`)}</strong>${esc(` nothing in these terms limits liability that cannot be limited by law — including for fraud, gross negligence, willful misconduct, or personal injury — or any statutory right you have as a consumer.`)}</p>
+<h2>${esc(`9. how your data is used`)}</h2>
+<p>${esc(`running the hosted relay involves two very different things, and we keep them apart:`)}</p>
+<ul>
+  <li><strong>${esc(`your journal traffic`)}</strong>${esc(` — the encrypted bytes that flow between your devices and your home. sol pbc `)}<strong>${esc(`cannot read these.`)}</strong>${esc(` the relay has no key to your content and keeps no copy of it. nothing in your journal is ever read, stored, analyzed, sold, shared, profiled, used for advertising, or used to train any model. it passes through and is gone.`)}</li>
+  <li><strong>${esc(`your billing details`)}</strong>${esc(` — your email, the fact that you subscribe to the hosted relay, your renewal dates, and a reference that links the subscription to your sign-in. we use this `)}<strong>${esc(`only`)}</strong>${esc(` to run your subscription and keep the relay on for you. we do `)}<strong>${esc(`not`)}</strong>${esc(` sell it, license it, share it for anyone else's purposes, or use it for advertising, profiling, behavioral tracking, or model training.`)}</li>
+</ul>
+<p>${esc(`this isn't just our policy — it's `)}<strong>${esc(`structural.`)}</strong>${esc(` sol pbc's `)}<strong>${esc(`articles of incorporation (Article 8, the Customer Privacy Covenant)`)}</strong>${esc(` legally bind the company never to sell, license, or share your data, and never to use it for targeted advertising or behavioral profiling — and that promise survives any sale, merger, or change of control of the company. you can read it at `)}<a href="https://solpbc.org">${esc(`solpbc.org`)}</a>${esc(`.`)}</p>
+<p>${esc(`for the complete picture — every category of data we handle, every infrastructure and payment provider we rely on to run the service (including cloudflare and stripe), how long we keep each thing, and exactly how to exercise your rights — see our `)}<a href="https://solpbc.org/privacy">${esc(`privacy policy`)}</a>${esc(`.`)}</p>
+<h2>${esc(`10. how long we keep it, and your rights`)}</h2>
+<ul>
+  <li>${esc(`we keep your billing details for `)}<strong>${esc(`as long as you have a subscription, plus the period tax and financial-records law requires us to keep afterward`)}</strong>${esc(` (generally up to seven years for transaction records). when neither applies anymore, we delete them.`)}</li>
+  <li>${esc(`you can `)}<strong>${esc(`see, correct, export, or delete`)}</strong>${esc(` your sign-in and billing data anytime — most of it directly from your settings at `)}<code>${esc(`services.solstone.app/settings/data`)}</code>${esc(`, and the rest by emailing `)}<code>${esc(`support@solstone.app`)}</code>${esc(`. deleting your subscription data ends the hosted relay; it never touches your journal.`)}</li>
+  <li>${esc(`you have the privacy rights your state or country gives you — including the `)}<strong>${esc(`Colorado Privacy Act`)}</strong>${esc(`, and the `)}<strong>${esc(`CCPA/CPRA`)}</strong>${esc(` in California and `)}<strong>${esc(`GDPR`)}</strong>${esc(` in the EU/UK — to access, correct, delete, and port your data, and to opt out. sol pbc's covenants go further than any of them require. exercise any of them at `)}<code>${esc(`support@solstone.app`)}</code>${esc(`; if we deny a request, you can appeal by replying to that email, and we'll respond within the time the law allows.`)}</li>
+</ul>
+<h2>${esc(`11. changes to these terms`)}</h2>
+<p>${esc(`we may update these terms. if a change is material, we'll notify you before it takes effect. for a change that takes effect at your next renewal, you can cancel before then if you don't agree. if a material change has to take effect mid-term, we'll give you notice and a way to cancel with a prorated refund of the unused period. we'll keep the current version posted here with its date.`)}</p>
+<h2>${esc(`12. who you're dealing with, and the law that applies`)}</h2>
+<p>${esc(`these terms are between you and `)}<strong>${esc(`sol pbc`)}</strong>${esc(`, a Colorado public benefit corporation. they're governed by Colorado law. questions: `)}<code>${esc(`support@solstone.app`)}</code>${esc(`.`)}</p>`,
   });
 }
 
