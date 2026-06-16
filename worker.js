@@ -6,14 +6,18 @@ const LINUX_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-linux/r
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
 
 async function latestMacosDmgUrl() {
-  const res = await fetch(APPCAST_URL, {
-    cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
-  });
-  if (!res.ok) return null;
-  const xml = await res.text();
-  // publish-appcast.py prepends new <item>s, so the first <enclosure ... .dmg> is the latest.
-  const match = xml.match(/<enclosure[^>]*\burl="([^"]+\.dmg)"/);
-  return match ? match[1] : null;
+  try {
+    const res = await fetch(APPCAST_URL, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return null;
+    const xml = await res.text();
+    // publish-appcast.py prepends new <item>s, so the first <enclosure ... .dmg> is the latest.
+    const match = xml.match(/<enclosure[^>]*\burl="([^"]+\.dmg)"/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
 }
 
 export default {
