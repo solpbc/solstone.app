@@ -58,8 +58,8 @@ CF_ACCESS_AUD = "a48343311f9157cfb056e5aa70878dc8aab4962769a8e1743486b6a88405410
 EMAIL_PATH_DISABLED = "false"
 SIGNUP_DISABLED = "false"
 SCOUT_GCP_PROJECT = "solstone-scouts"
-STRIPE_PRICE_ANNUAL = "replace_with_stripe_annual_id"
-STRIPE_PRICE_MONTHLY = "replace_with_stripe_monthly_id"
+STRIPE_PRICE_ANNUAL = "price_1TjnJB3ew4P2jFrx820NPkX4"
+STRIPE_PRICE_MONTHLY = "price_1TjnJC3ew4P2jFrxANwt3ya8"
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 
