@@ -65,6 +65,39 @@ describe('relay grant helpers', () => {
     expect(calls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: 1_900_000_000 });
   });
 
+  it('routes the grant push through the RELAY service binding when bound', async () => {
+    const bindingCalls = [];
+    const testEnv = makeTestEnv({
+      RELAY: {
+        async fetch(input, init) {
+          bindingCalls.push({ url: input, init, body: JSON.parse(init.body) });
+          return new Response(JSON.stringify({ ok: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        },
+      },
+    });
+    // When the binding is present the public fetch must not be used at all.
+    const globalFetch = vi.fn(async () => {
+      throw new Error('grant push must not hit public fetch when RELAY is bound');
+    });
+    vi.stubGlobal('fetch', globalFetch);
+
+    const ok = await pushEntitlementGrant(testEnv, {
+      instanceId: INSTANCE_ID,
+      entitledUntil: 1_900_000_000,
+    });
+
+    expect(ok).toBe(true);
+    expect(bindingCalls).toHaveLength(1);
+    expect(bindingCalls[0].url).toBe('https://link.solstone.app/admin/entitlement');
+    expect(bindingCalls[0].init.method).toBe('POST');
+    expect(bindingCalls[0].init.headers.Authorization).toBe('Bearer test-relay-grant-secret');
+    expect(bindingCalls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: 1_900_000_000 });
+    expect(globalFetch).not.toHaveBeenCalled();
+  });
+
   it('soft-fails relay push errors without leaking secrets', async () => {
     const testEnv = makeTestEnv();
     const spy = installConsoleSpy();

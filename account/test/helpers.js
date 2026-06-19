@@ -63,6 +63,7 @@ export function makeTestEnv(overrides = {}) {
     RELAY_GRANT_SECRET: overrides.RELAY_GRANT_SECRET || 'test-relay-grant-secret',
     HUB_WEBHOOK_URL: overrides.HUB_WEBHOOK_URL,
     HUB_WEBHOOK_SECRET: overrides.HUB_WEBHOOK_SECRET,
+    RELAY: overrides.RELAY,
   };
 }
 

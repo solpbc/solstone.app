@@ -82,14 +82,22 @@ export async function reconcileSplEntitlement(env, accountId, nowMs, ctx, opts =
 export async function pushEntitlementGrant(env, { instanceId, entitledUntil }) {
   let status = 'error';
   try {
-    const response = await fetch(`${env.RELAY_GRANT_URL}/admin/entitlement`, {
+    const target = `${env.RELAY_GRANT_URL}/admin/entitlement`;
+    const init = {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${env.RELAY_GRANT_SECRET}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ instance_id: instanceId, entitled_until: entitledUntil }),
-    });
+    };
+    // Prefer the worker-to-worker service binding (env.RELAY) so the entitlement
+    // grant push travels in-process instead of over the public internet. The
+    // relay still validates the same Bearer GRANT_SECRET, so its bearer-gated
+    // /admin/entitlement endpoint stays unchanged for self-hosters and the
+    // operator CLI. Fall back to a public fetch when the binding is absent
+    // (local dev / tests / any deploy without RELAY bound).
+    const response = env.RELAY ? await env.RELAY.fetch(target, init) : await fetch(target, init);
     status = response.status;
     if (response.status !== 200) {
       console.error('relay_grant_push_failed', status);

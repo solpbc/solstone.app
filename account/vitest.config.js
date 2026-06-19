@@ -15,6 +15,10 @@ export default defineWorkersConfig({
             name: 'extro-support',
             modules: true,
             script: 'export default { async fetch() { return new Response(JSON.stringify({ error: "test support worker not configured" }), { status: 500, headers: { "Content-Type": "application/json" } }); } }',
+          }, {
+            name: 'spl-relay',
+            modules: true,
+            script: 'export default { async fetch() { return new Response(JSON.stringify({ error: "test relay worker not configured" }), { status: 500, headers: { "Content-Type": "application/json" } }); } }',
           }],
           d1Databases: ['DB'],
           d1Persist: false,

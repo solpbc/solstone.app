@@ -29,6 +29,16 @@ id = "9707e650b35847f5aaf180ae0164e90b"
 binding = "SUPPORT_WORKER"
 service = "extro-support"
 
+# Internal service binding to the spl-relay worker. The account->relay entitlement
+# grant push (relay-grant.js pushEntitlementGrant) routes worker-to-worker over
+# this binding instead of the public internet. The relay still exposes its
+# Bearer-gated /admin/entitlement endpoint for self-hosters and the operator CLI;
+# the binding only removes the public hop for our own prod money path. Absent the
+# binding, pushEntitlementGrant falls back to a public fetch of RELAY_GRANT_URL.
+[[services]]
+binding = "RELAY"
+service = "spl-relay"
+
 # Support service auth secret (set via `wrangler secret put`):
 # SERVICES_AUTH_TOKEN — shared secret sent to the support worker on internal requests.
 #
