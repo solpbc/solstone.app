@@ -12,6 +12,8 @@ import {
   TEST_APNS_P8_PEM,
 } from './helpers.js';
 
+const OLD_PUSH_RELAY_SECRET = 'test-push-relay-secret';
+
 describe('push dedup endpoint', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -32,6 +34,16 @@ describe('push dedup endpoint', () => {
     const { calls } = installGcpFetchMock({});
 
     const response = await worker.fetch(dedupRequest({ token: 'wrong-secret' }), apnsEnv());
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'invalid_token' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('rejects the retired shared-secret bearer without APNs fetch', async () => {
+    const { calls } = installGcpFetchMock({});
+
+    const response = await worker.fetch(dedupRequest({ token: OLD_PUSH_RELAY_SECRET }), apnsEnv());
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'invalid_token' });
@@ -98,7 +110,7 @@ describe('push dedup endpoint', () => {
     const { calls } = installApnsOk();
 
     const response = await worker.fetch(dedupRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDedupBody({ devices: [inlineDevice('push-1')] }),
     }), testEnv);
 
@@ -140,7 +152,7 @@ describe('push dedup endpoint', () => {
     });
 
     await worker.fetch(dedupRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDedupBody({ devices: [inlineDevice('header-token')] }),
     }), testEnv);
 
@@ -180,7 +192,7 @@ describe('push dedup endpoint', () => {
     });
 
     await worker.fetch(dedupRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDedupBody({ devices: [inlineDevice('secret-push-token')] }),
     }), testEnv);
 
@@ -193,7 +205,7 @@ async function expectValidationError(body) {
   const testEnv = apnsEnv();
   const { calls } = installGcpFetchMock({});
 
-  const response = await worker.fetch(dedupRequest({ token: testEnv.PUSH_RELAY_SECRET, body }), testEnv);
+  const response = await worker.fetch(dedupRequest({ token: await relayToken(testEnv), body }), testEnv);
 
   expect(response.status).toBe(400);
   expect(await response.json()).toEqual({ error: 'invalid_input' });
@@ -217,7 +229,15 @@ function installApnsOk() {
   });
 }
 
-function dedupRequest({ token = apnsEnv().PUSH_RELAY_SECRET, body = validDedupBody() } = {}) {
+async function relayToken(testEnv, overrides = {}) {
+  return mintReachRelayToken(testEnv, {
+    instanceId: '11111111-1111-1111-1111-111111111111',
+    iat: Math.floor(Date.now() / 1000),
+    ...overrides,
+  });
+}
+
+function dedupRequest({ token = null, body = validDedupBody() } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token !== null) headers.Authorization = `Bearer ${token}`;
   return new Request('https://services.solstone.app/push/dedup', {

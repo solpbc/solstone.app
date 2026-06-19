@@ -14,6 +14,8 @@ import {
   TEST_APNS_P8_PEM,
 } from './helpers.js';
 
+const OLD_PUSH_RELAY_SECRET = 'test-push-relay-secret';
+
 describe('push dispatch endpoint', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -25,7 +27,7 @@ describe('push dispatch endpoint', () => {
     const { calls } = installApnsOk();
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({
         devices: [inlineDevice('push-a'), inlineDevice('push-b')],
       }),
@@ -56,9 +58,10 @@ describe('push dispatch endpoint', () => {
 
   it('rejects malformed bearer without APNs fetch', async () => {
     const { calls } = installGcpFetchMock({});
-    const token = apnsEnv().PUSH_RELAY_SECRET;
+    const testEnv = apnsEnv();
+    const token = await relayToken(testEnv);
 
-    const response = await worker.fetch(dispatchRequest({ token, rawAuth: true }), apnsEnv());
+    const response = await worker.fetch(dispatchRequest({ token, rawAuth: true }), testEnv);
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'invalid_token' });
@@ -69,6 +72,16 @@ describe('push dispatch endpoint', () => {
     const { calls } = installGcpFetchMock({});
 
     const response = await worker.fetch(dispatchRequest({ token: 'wrong-secret' }), apnsEnv());
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'invalid_token' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('rejects the retired shared-secret bearer without APNs fetch', async () => {
+    const { calls } = installGcpFetchMock({});
+
+    const response = await worker.fetch(dispatchRequest({ token: OLD_PUSH_RELAY_SECRET }), apnsEnv());
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'invalid_token' });
@@ -138,7 +151,7 @@ describe('push dispatch endpoint', () => {
     });
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({
         devices: [
           inlineDevice('prod-token', { environment: 'production' }),
@@ -168,7 +181,7 @@ describe('push dispatch endpoint', () => {
     });
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({
         devices: [inlineDevice('revoked-push-token')],
       }),
@@ -192,7 +205,7 @@ describe('push dispatch endpoint', () => {
     });
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({
         devices: [inlineDevice('bad-device-token')],
       }),
@@ -221,7 +234,7 @@ describe('push dispatch endpoint', () => {
     });
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({
         devices: [inlineDevice('stale-410-token')],
       }),
@@ -252,7 +265,7 @@ describe('push dispatch endpoint', () => {
     });
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({
         devices: [inlineDevice('push-a'), inlineDevice('push-b'), inlineDevice('push-c')],
       }),
@@ -276,7 +289,7 @@ describe('push dispatch endpoint', () => {
     const testEnv = apnsEnv();
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({ summary: `${'a'.repeat(79)}🙂` }),
     }), testEnv);
 
@@ -290,7 +303,7 @@ describe('push dispatch endpoint', () => {
     installApnsOk();
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({ summary: 'a'.repeat(80), devices: [inlineDevice('push-80')] }),
     }), testEnv);
 
@@ -310,7 +323,7 @@ describe('push dispatch endpoint', () => {
     const { calls } = installGcpFetchMock({});
 
     const response = await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({ devices: [] }),
     }), testEnv);
 
@@ -363,7 +376,7 @@ describe('push dispatch endpoint', () => {
     });
 
     await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({ devices: [inlineDevice('header-token')] }),
     }), testEnv);
 
@@ -387,7 +400,7 @@ describe('push dispatch endpoint', () => {
     });
 
     await worker.fetch(dispatchRequest({
-      token: testEnv.PUSH_RELAY_SECRET,
+      token: await relayToken(testEnv),
       body: validDispatchBody({ devices: [inlineDevice('secret-push-token')] }),
     }), testEnv);
 
@@ -424,7 +437,15 @@ function installApnsOk() {
   });
 }
 
-function dispatchRequest({ token = apnsEnv().PUSH_RELAY_SECRET, body = validDispatchBody(), rawAuth = false } = {}) {
+async function relayToken(testEnv, overrides = {}) {
+  return mintReachRelayToken(testEnv, {
+    instanceId: '11111111-1111-1111-1111-111111111111',
+    iat: Math.floor(Date.now() / 1000),
+    ...overrides,
+  });
+}
+
+function dispatchRequest({ token = null, body = validDispatchBody(), rawAuth = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token !== null) headers.Authorization = rawAuth ? token : `Bearer ${token}`;
   return new Request('https://services.solstone.app/push/dispatch', {

@@ -4,6 +4,7 @@ import { mintReachRelayToken } from '../src/reach.js';
 import { makeTestEnv } from './helpers.js';
 
 const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
+const OLD_PUSH_RELAY_SECRET = 'test-push-relay-secret';
 
 describe('push relay authorization', () => {
   it('returns instance id for a valid reach relay token', async () => {
@@ -17,13 +18,11 @@ describe('push relay authorization', () => {
     expect(result).toEqual({ instanceId: INSTANCE_ID });
   });
 
-  it('returns null instance id for the transitional shared secret', async () => {
-    const testEnv = makeTestEnv();
+  it('returns a 401 Response for the retired shared secret', async () => {
+    const result = await authorizeRelay(authRequest(`Bearer ${OLD_PUSH_RELAY_SECRET}`), makeTestEnv());
 
-    const result = await authorizeRelay(authRequest(`Bearer ${testEnv.PUSH_RELAY_SECRET}`), testEnv);
-
-    expect(result).not.toBeInstanceOf(Response);
-    expect(result).toEqual({ instanceId: null });
+    expect(result).toBeInstanceOf(Response);
+    expect(result.status).toBe(401);
   });
 
   it('returns a 401 Response for garbage bearer', async () => {

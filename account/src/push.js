@@ -1,4 +1,3 @@
-import { timingSafeEqual } from './crypto.js';
 import { json } from './index.js';
 import { verifyReachRelayToken } from './reach.js';
 
@@ -78,7 +77,6 @@ export async function authorizeRelay(req, env) {
   const presented = match[1];
   const reach = await verifyReachRelayToken(presented, env);
   if (reach) return { instanceId: reach.instanceId };
-  if (timingSafeEqual(presented, env.PUSH_RELAY_SECRET)) return { instanceId: null };
   return json({ error: 'invalid_token' }, { status: 401 });
 }
 
