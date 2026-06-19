@@ -323,7 +323,7 @@ async function apnsSend(env, jwt, device, payload, headers) {
     if (response.status === 403 && reason === 'ExpiredProviderToken') {
       return { token: device.token, kind: 'expired', reason };
     }
-    if (isRevocableReason(response.status, reason)) {
+    if (isRevocableStatus(response.status)) {
       return { token: device.token, kind: 'revoked', reason: reason || String(response.status) };
     }
     console.warn('apns_send_failed', { status: response.status, reason: reason || '' });
@@ -345,8 +345,8 @@ function responseReason(body) {
   }
 }
 
-function isRevocableReason(status, reason) {
-  return status === 410 || reason === 'BadDeviceToken' || reason === 'Unregistered';
+function isRevocableStatus(status) {
+  return status === 410;
 }
 
 function dispatchHeadersFor(env, jwt, requestId) {

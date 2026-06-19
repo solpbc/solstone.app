@@ -128,6 +128,59 @@ describe('push dispatch endpoint', () => {
     });
   });
 
+  it('retains the token on 400 BadDeviceToken instead of revoking it', async () => {
+    const spy = installConsoleSpy();
+    const testEnv = apnsEnv({ DB: throwingDb() });
+    installGcpFetchMock({
+      'POST api.push.apple.com': async () => new Response(JSON.stringify({ reason: 'BadDeviceToken' }), { status: 400 }),
+    });
+
+    const response = await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({
+        devices: [inlineDevice('bad-device-token')],
+      }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      ok: false,
+      sent: 0,
+      failed: 1,
+      revoked: 0,
+      revoked_tokens: [],
+      failures: [{ token: 'bad-device-token', reason: 'BadDeviceToken' }],
+    });
+    expect(spy.calls).toContainEqual({
+      level: 'warn',
+      args: ['apns_send_failed', { status: 400, reason: 'BadDeviceToken' }],
+    });
+    spy.assertNoSecrets(['bad-device-token']);
+    spy.restore();
+  });
+
+  it('revokes on 410 BadDeviceToken (keys on status, not reason)', async () => {
+    const testEnv = apnsEnv({ DB: throwingDb() });
+    installGcpFetchMock({
+      'POST api.push.apple.com': async () => new Response(JSON.stringify({ reason: 'BadDeviceToken' }), { status: 410 }),
+    });
+
+    const response = await worker.fetch(dispatchRequest({
+      token: testEnv.PUSH_RELAY_SECRET,
+      body: validDispatchBody({
+        devices: [inlineDevice('stale-410-token')],
+      }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      ok: true,
+      sent: 0,
+      failed: 0,
+      revoked: 1,
+      revoked_tokens: ['stale-410-token'],
+      failures: [],
+    });
+  });
+
   it('deletes cached JWT once and retries all ExpiredProviderToken sends with one fresh JWT', async () => {
     const kv = makeFakeKv();
     const testEnv = apnsEnv({ GCP_TOKEN_CACHE: kv });
