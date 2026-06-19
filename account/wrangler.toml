@@ -4,6 +4,12 @@ compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 main = "src/index.js"
 
+# Disable the *.workers.dev preview URL: a live workers.dev hostname bypasses the
+# custom domain's edge CF Access on /admin/*, leaving only the in-worker JWT check
+# (one layer instead of two). The portal is reached only via the custom domain.
+# (CSO audit F5.)
+workers_dev = false
+
 routes = [{ pattern = "services.solstone.app", custom_domain = true }]
 
 [[d1_databases]]
