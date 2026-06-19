@@ -59,6 +59,14 @@ service = "extro-support"
 # RELAY_GRANT_SECRET — shared secret for relay grant calls, set via `wrangler secret put`.
 # RELAY_GRANT_URL — relay grant endpoint URL, without a trailing slash.
 # RELAY_GRACE_DAYS — billing grace window for relay grants.
+#
+# Security audit sink (set via `wrangler secret put`):
+# HUB_WEBHOOK_URL — extro-hub webhook ingress for durable T4 security events
+#   (e.g. https://extro.solpbc.org/hooks/security). The /admin/impersonate handler
+#   POSTs a typed `impersonate` / `impersonate_denied` event here so the audit trail
+#   is durable + alerting, not just an ephemeral console.warn. Unset = no-op (the
+#   console.warn breadcrumb still fires). NEVER carries the raw session token.
+# HUB_WEBHOOK_SECRET — shared X-Hub-Secret bearer for the hub webhook ingress.
 
 [[send_email]]
 name = "EMAIL"

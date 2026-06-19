@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
 import { revokeSession } from '../src/db.js';
-import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
-import { installJwksStub, mintToken } from './jwks-helper.js';
+import { fetchWithCtx, makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
+import { installJwksStub, installJwksStubWith, mintToken } from './jwks-helper.js';
+
+const HUB_URL = 'https://extro.solpbc.org/hooks/security';
 
 const IMPERSONATE_TTL_MS = 60 * 60 * 1000;
 const DEFAULT_SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -308,6 +310,114 @@ describe('admin impersonate endpoint', () => {
 
     expect(row.expires_at - row.created_at).toBe(DEFAULT_SESSION_TTL_MS);
     expect(row.last_user_agent).toBeNull();
+  });
+});
+
+describe('admin impersonate durable security events', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function installHubStub(calls) {
+    return installJwksStubWith(async (input, init = {}) => {
+      const href = typeof input === 'string' ? input : input.url;
+      if (href === HUB_URL) {
+        calls.push({ headers: init.headers || {}, body: JSON.parse(init.body) });
+        return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
+      }
+      return null;
+    });
+  }
+
+  it('emits a durable CSO hub event on mint and never includes the raw token', async () => {
+    const hubCalls = [];
+    await installHubStub(hubCalls);
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({
+      IMPERSONATE_ALLOWED: account.accountId,
+      HUB_WEBHOOK_URL: HUB_URL,
+      HUB_WEBHOOK_SECRET: 'test-hub-secret',
+    });
+    const token = await mintToken();
+
+    const { response } = await fetchWithCtx(
+      worker,
+      adminRequest('/admin/impersonate', token, { method: 'POST', body: { account_id: account.accountId } }),
+      testEnv
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(hubCalls).toHaveLength(1);
+    expect(hubCalls[0].headers['X-Hub-Secret']).toBe('test-hub-secret');
+    expect(hubCalls[0].body).toMatchObject({
+      type: 'impersonate',
+      office: 'cso',
+      tier: 'T4',
+      operator: 'jer@solpbc.org',
+      account_id: account.accountId,
+    });
+    expect(hubCalls[0].body.session_id_hash).toEqual(expect.any(String));
+    expect(typeof hubCalls[0].body.ts).toBe('string');
+    expect(JSON.stringify(hubCalls[0].body)).not.toContain(body.session_token);
+  });
+
+  it('emits a durable CSO hub event on a denied (disabled) attempt', async () => {
+    const hubCalls = [];
+    await installHubStub(hubCalls);
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({
+      HUB_WEBHOOK_URL: HUB_URL,
+      HUB_WEBHOOK_SECRET: 'test-hub-secret',
+    });
+    const token = await mintToken();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { response } = await fetchWithCtx(
+      worker,
+      adminRequest('/admin/impersonate', token, { method: 'POST', body: { account_id: account.accountId } }),
+      testEnv
+    );
+
+    expect(response.status).toBe(404);
+    expect(hubCalls).toHaveLength(1);
+    expect(hubCalls[0].body).toMatchObject({
+      type: 'impersonate_denied',
+      office: 'cso',
+      tier: 'T4',
+      operator: 'jer@solpbc.org',
+      account_id: account.accountId,
+      reason: 'disabled',
+    });
+  });
+
+  it('does not POST a hub event when the sink is unconfigured, and still mints', async () => {
+    let hubHit = false;
+    await installJwksStubWith(async (input) => {
+      const href = typeof input === 'string' ? input : input.url;
+      if (href.includes('/hooks/')) {
+        hubHit = true;
+        return new Response('{}', { status: 200 });
+      }
+      return null;
+    });
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const token = await mintToken();
+
+    const { response } = await fetchWithCtx(
+      worker,
+      adminRequest('/admin/impersonate', token, { method: 'POST', body: { account_id: account.accountId } }),
+      testEnv
+    );
+
+    expect(response.status).toBe(200);
+    expect(hubHit).toBe(false);
   });
 });
 

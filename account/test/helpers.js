@@ -61,6 +61,8 @@ export function makeTestEnv(overrides = {}) {
     RELAY_GRANT_URL: overrides.RELAY_GRANT_URL || 'https://link.solstone.app',
     RELAY_GRACE_DAYS: overrides.RELAY_GRACE_DAYS || '14',
     RELAY_GRANT_SECRET: overrides.RELAY_GRANT_SECRET || 'test-relay-grant-secret',
+    HUB_WEBHOOK_URL: overrides.HUB_WEBHOOK_URL,
+    HUB_WEBHOOK_SECRET: overrides.HUB_WEBHOOK_SECRET,
   };
 }
 
