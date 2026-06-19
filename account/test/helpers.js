@@ -43,6 +43,7 @@ export function makeTestEnv(overrides = {}) {
     TURNSTILE_SECRET: 'test-turnstile-secret',
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
+    IMPERSONATE_ALLOWED: overrides.IMPERSONATE_ALLOWED,
     EMAIL_PATH_DISABLED: overrides.EMAIL_PATH_DISABLED || 'false',
     SIGNUP_DISABLED: overrides.SIGNUP_DISABLED || 'false',
     SUPPORT_WORKER: overrides.SUPPORT_WORKER,

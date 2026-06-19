@@ -215,10 +215,17 @@ async function impersonateAccount(request, env, admin) {
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
 
+  const operator = admin.email || admin.service;
+  const allowlist = parseImpersonateAllowlist(env);
+  if (!allowlist.has(account.id.toLowerCase())) {
+    const reason = allowlist.size === 0 ? 'disabled' : 'not_allowlisted';
+    console.warn(JSON.stringify({ event: 'admin_impersonate_denied', operator, account_id: account.id, reason }));
+    return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
+  }
+
   const nowMs = Date.now();
   const token = generateSessionToken();
   const idHash = await hashWithPepper(token, env);
-  const operator = admin.email || admin.service;
   const marker = `impersonation by ${operator}`;
   await createSession(env.DB, {
     idHash,
@@ -399,6 +406,15 @@ async function decryptIpOrNull(value, env) {
 
 function isoOrNull(ms) {
   return ms == null ? null : new Date(ms).toISOString();
+}
+
+function parseImpersonateAllowlist(env) {
+  return new Set(
+    String(env.IMPERSONATE_ALLOWED ?? '')
+      .split(',')
+      .map((id) => id.trim().toLowerCase())
+      .filter(Boolean)
+  );
 }
 
 function isEmailLike(value) {

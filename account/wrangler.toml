@@ -25,6 +25,12 @@ service = "extro-support"
 
 # Support service auth secret (set via `wrangler secret put`):
 # SERVICES_AUTH_TOKEN — shared secret sent to the support worker on internal requests.
+#
+# Impersonation allowlist (set transiently via `wrangler secret put`):
+# IMPERSONATE_ALLOWED — comma-separated account UUIDs permitted as POST /admin/impersonate targets.
+#   Unset/empty = impersonation disabled (default; no account can be impersonated, even with a valid CF Access token).
+#   Provision only for a specific test run (`wrangler secret put IMPERSONATE_ALLOWED`) and remove it after
+#   (`wrangler secret delete IMPERSONATE_ALLOWED`). No default; never a [vars] entry; never hardcode account ids.
 
 # APNs push dispatch secrets (set via `wrangler secret put`):
 # APNS_TEAM_ID — Apple Developer Team ID (used as JWT issuer).

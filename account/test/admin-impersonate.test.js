@@ -21,8 +21,8 @@ describe('admin impersonate endpoint', () => {
   });
 
   it('mints a one-hour session by account_id', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'target@example.com', testEnv });
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
     const token = await mintToken();
 
     const response = await worker.fetch(
@@ -48,8 +48,8 @@ describe('admin impersonate endpoint', () => {
   });
 
   it('authenticates end-to-end as the target account', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'target@example.com', testEnv });
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
     const token = await mintToken();
     const minted = await impersonate(token, { account_id: account.accountId }, testEnv);
 
@@ -63,8 +63,8 @@ describe('admin impersonate endpoint', () => {
   });
 
   it('mints by email with normalization', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'target@example.com', testEnv });
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
     const token = await mintToken();
 
     const body = await impersonate(token, { email: 'Target@Example.com' }, testEnv);
@@ -73,8 +73,8 @@ describe('admin impersonate endpoint', () => {
   });
 
   it('uses the short one-hour ttl instead of the default session ttl', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'target@example.com', testEnv });
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
     const token = await mintToken();
 
     await impersonate(token, { account_id: account.accountId }, testEnv);
@@ -85,8 +85,8 @@ describe('admin impersonate endpoint', () => {
   });
 
   it('shows the audit marker in admin session details and remains revocable', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'target@example.com', testEnv });
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
     const token = await mintToken();
     const minted = await impersonate(token, { account_id: account.accountId }, testEnv);
 
@@ -109,8 +109,8 @@ describe('admin impersonate endpoint', () => {
   });
 
   it('marks service-token operator sessions', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'target@example.com', testEnv });
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
     const token = await mintToken({ payload: { common_name: 'service-token' } });
 
     const body = await impersonate(token, { account_id: account.accountId }, testEnv);
@@ -203,8 +203,8 @@ describe('admin impersonate endpoint', () => {
   });
 
   it('emits an audit log line without the raw token', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'target@example.com', testEnv });
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
     const token = await mintToken();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -215,6 +215,86 @@ describe('admin impersonate endpoint', () => {
     expect(logged).toContain('"operator":"jer@solpbc.org"');
     expect(logged).toContain(`"account_id":"${account.accountId}"`);
     expect(logged).not.toContain(body.session_token);
+  });
+
+  it('denies impersonation when the allowlist is unset (default-off)', async () => {
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv();
+    const token = await mintToken();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const response = await worker.fetch(adminRequest('/admin/impersonate', token, {
+      method: 'POST',
+      body: { account_id: account.accountId },
+    }), testEnv);
+    const body = await response.json();
+    const row = await workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM sessions').first();
+    const logged = warn.mock.calls.flat().join('\n');
+
+    expect(response.status).toBe(404);
+    expect(body).toEqual({ error: 'account not found' });
+    expect(row.count).toBe(0);
+    expect(logged).toContain('"event":"admin_impersonate_denied"');
+    expect(logged).toContain('"reason":"disabled"');
+    expect(logged).toContain('"operator":"jer@solpbc.org"');
+    expect(logged).toContain(`"account_id":"${account.accountId}"`);
+  });
+
+  it('denies impersonation for an account that is not on the allowlist', async () => {
+    const accountA = await seedAccount({ email: 'target-a@example.com' });
+    const accountB = await seedAccount({ email: 'target-b@example.com' });
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: accountA.accountId });
+    const token = await mintToken();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await impersonate(token, { account_id: accountA.accountId }, testEnv);
+    const response = await worker.fetch(adminRequest('/admin/impersonate', token, {
+      method: 'POST',
+      body: { account_id: accountB.accountId },
+    }), testEnv);
+    const body = await response.json();
+    const row = await sessionRowForAccount(accountB.accountId);
+    const logged = warn.mock.calls.flat().join('\n');
+
+    expect(response.status).toBe(404);
+    expect(body).toEqual({ error: 'account not found' });
+    expect(row).toBeNull();
+    expect(logged).toContain('"reason":"not_allowlisted"');
+    expect(logged).toContain(`"account_id":"${accountB.accountId}"`);
+  });
+
+  it('parses the allowlist tolerating spaces, mixed case, and empty commas', async () => {
+    const accountA = await seedAccount({ email: 'target-a@example.com' });
+    const accountB = await seedAccount({ email: 'target-b@example.com' });
+    const allowed = ` ${accountA.accountId} , ,${accountB.accountId.toUpperCase()}, `;
+    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: allowed });
+    const token = await mintToken();
+
+    await impersonate(token, { account_id: accountA.accountId }, testEnv);
+    await impersonate(token, { account_id: accountB.accountId }, testEnv);
+  });
+
+  it('denied responses are indistinguishable from the unknown-account 404', async () => {
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv();
+    const token = await mintToken();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const deniedResponse = await worker.fetch(adminRequest('/admin/impersonate', token, {
+      method: 'POST',
+      body: { account_id: account.accountId },
+    }), testEnv);
+    const deniedBody = await deniedResponse.json();
+    const unknownResponse = await worker.fetch(adminRequest('/admin/impersonate', token, {
+      method: 'POST',
+      body: { account_id: '00000000-0000-0000-0000-000000000000' },
+    }), testEnv);
+    const unknownBody = await unknownResponse.json();
+
+    expect(deniedResponse.status).toBe(404);
+    expect(unknownResponse.status).toBe(404);
+    expect(deniedBody).toEqual({ error: 'account not found' });
+    expect(unknownBody).toEqual({ error: 'account not found' });
   });
 
   it('keeps existing session callers on the default ttl with no user agent', async () => {
