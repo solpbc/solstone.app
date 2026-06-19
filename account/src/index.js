@@ -48,6 +48,7 @@ import {
   handleServicesDevices,
 } from './devices.js';
 import { handlePushDedup, handlePushDispatch } from './push.js';
+import { handleReachRelayToken } from './reach.js';
 import {
   handleBillingCheckout,
   handleBillingPortal,
@@ -743,6 +744,16 @@ export default {
         req.method === 'POST'
       ) {
         return handlePushDedup(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'reach' &&
+        parts[2] === 'push' &&
+        parts[3] === 'relay-token' &&
+        req.method === 'POST'
+      ) {
+        return handleReachRelayToken(req, env);
       }
 
       if (

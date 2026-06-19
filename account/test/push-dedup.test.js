@@ -4,6 +4,7 @@ import {
   buildSilentChatLifecycleCollapseId,
   buildSilentChatLifecyclePayload,
 } from '../src/push.js';
+import { mintReachRelayToken } from '../src/reach.js';
 import {
   installConsoleSpy,
   installGcpFetchMock,
@@ -31,6 +32,61 @@ describe('push dedup endpoint', () => {
     const { calls } = installGcpFetchMock({});
 
     const response = await worker.fetch(dedupRequest({ token: 'wrong-secret' }), apnsEnv());
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'invalid_token' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('authorizes with a valid reach relay token', async () => {
+    const instanceId = '11111111-1111-1111-1111-111111111111';
+    const testEnv = apnsEnv({ DB: throwingDb() });
+    const iat = Math.floor(Date.now() / 1000);
+    const token = await mintReachRelayToken(testEnv, { instanceId, iat });
+    const { calls } = installApnsOk();
+
+    const response = await worker.fetch(dedupRequest({ token }), testEnv);
+    const text = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(text)).toEqual({
+      ok: true,
+      sent: 1,
+      failed: 0,
+      revoked: 0,
+      revoked_tokens: [],
+      failures: [],
+    });
+    expect(text).not.toContain(instanceId);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('rejects an expired reach relay token without APNs fetch', async () => {
+    const testEnv = apnsEnv();
+    const iat = Math.floor(Date.now() / 1000) - 90000;
+    const token = await mintReachRelayToken(testEnv, {
+      instanceId: '11111111-1111-1111-1111-111111111111',
+      iat,
+    });
+    const { calls } = installGcpFetchMock({});
+
+    const response = await worker.fetch(dedupRequest({ token }), testEnv);
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'invalid_token' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('rejects a reach token signed with the wrong secret without APNs fetch', async () => {
+    const testEnv = apnsEnv();
+    const iat = Math.floor(Date.now() / 1000);
+    const token = await mintReachRelayToken(
+      { ...testEnv, REACH_RELAY_TOKEN_SECRET: 'other-secret' },
+      { instanceId: '11111111-1111-1111-1111-111111111111', iat }
+    );
+    const { calls } = installGcpFetchMock({});
+
+    const response = await worker.fetch(dedupRequest({ token }), testEnv);
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: 'invalid_token' });
@@ -187,4 +243,8 @@ function inlineDevice(token, overrides = {}) {
     environment: 'production',
     ...overrides,
   };
+}
+
+function throwingDb() {
+  return new Proxy({}, { get() { throw new Error('unexpected D1 access'); } });
 }

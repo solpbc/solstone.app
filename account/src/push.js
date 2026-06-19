@@ -1,5 +1,6 @@
 import { timingSafeEqual } from './crypto.js';
 import { json } from './index.js';
+import { verifyReachRelayToken } from './reach.js';
 
 const APNS_JWT_TTL_SECONDS = 3300;
 const APNS_CATEGORY_SOL_CHAT_REQUEST = 'SOLSTONE_SOL_CHAT_REQUEST';
@@ -7,8 +8,8 @@ const KIND_SOL_CHAT_REQUEST = 'sol_chat_request';
 const encoder = new TextEncoder();
 
 export async function handlePushDispatch(req, env) {
-  const denied = authorizeRelay(req, env);
-  if (denied) return denied;
+  const auth = await authorizeRelay(req, env);
+  if (auth instanceof Response) return auth;
   const body = await readJsonObject(req);
   if (body instanceof Response) return body;
   const input = validateDispatchBody(body);
@@ -39,8 +40,8 @@ export async function handlePushDispatch(req, env) {
 }
 
 export async function handlePushDedup(req, env) {
-  const denied = authorizeRelay(req, env);
-  if (denied) return denied;
+  const auth = await authorizeRelay(req, env);
+  if (auth instanceof Response) return auth;
   const body = await readJsonObject(req);
   if (body instanceof Response) return body;
   const input = validateDedupBody(body);
@@ -70,13 +71,15 @@ export async function handlePushDedup(req, env) {
   return json(result);
 }
 
-function authorizeRelay(req, env) {
+export async function authorizeRelay(req, env) {
   const auth = req.headers.get('Authorization') || '';
   const match = auth.match(/^Bearer\s+(.+)$/i);
-  if (!match || !timingSafeEqual(match[1], env.PUSH_RELAY_SECRET)) {
-    return json({ error: 'invalid_token' }, { status: 401 });
-  }
-  return null;
+  if (!match) return json({ error: 'invalid_token' }, { status: 401 });
+  const presented = match[1];
+  const reach = await verifyReachRelayToken(presented, env);
+  if (reach) return { instanceId: reach.instanceId };
+  if (timingSafeEqual(presented, env.PUSH_RELAY_SECRET)) return { instanceId: null };
+  return json({ error: 'invalid_token' }, { status: 401 });
 }
 
 export async function mintApnsJwt(env) {
