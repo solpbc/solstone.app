@@ -1,8 +1,9 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
-import { decryptEmail, encryptEmail, hashWithPepper } from './crypto.js';
+import { decryptEmail, encryptEmail, generateSessionToken, hashWithPepper } from './crypto.js';
 import {
   approveScoutApplication,
   createAccountWithEmail,
+  createSession,
   findEmailByHash,
   getScoutApplicationByAccount,
   listScoutApplications,
@@ -12,12 +13,14 @@ import {
 import { json } from './index.js';
 import { reconcileSplEntitlement } from './relay-grant.js';
 import { importScoutRecords } from './scout-migrate.js';
+import { SESSION_COOKIE } from './session.js';
 import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
 const ISSUER = 'https://solpbc.cloudflareaccess.com';
 const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const IMPERSONATE_TTL_MS = 60 * 60 * 1000;
 
 const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -58,6 +61,9 @@ export async function handleAdmin(request, env, url, ctx) {
     }
     if (parts[2] === 'migrate') {
       return await handleScoutMigrate(request, env, parts);
+    }
+    if (parts.length === 3 && parts[2] === 'impersonate') {
+      return await impersonateAccount(request, env, admin);
     }
     if (request.method !== 'GET') {
       return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
@@ -183,6 +189,54 @@ async function preApproveScout(request, env, ctx) {
   await upsertScoutApplicationApproved(env.DB, { accountId, nowMs });
   await reconcileSplEntitlement(env, accountId, nowMs, ctx);
   return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
+}
+
+async function impersonateAccount(request, env, admin) {
+  if (request.method !== 'POST') {
+    return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
+  }
+
+  const seg = typeof body?.account_id === 'string'
+    ? body.account_id
+    : (typeof body?.email === 'string' ? body.email : '');
+  if (!seg) {
+    return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
+  }
+
+  const account = await resolveAccount(env, seg);
+  if (!account) {
+    return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
+  }
+
+  const nowMs = Date.now();
+  const token = generateSessionToken();
+  const idHash = await hashWithPepper(token, env);
+  const operator = admin.email || admin.service;
+  const marker = `impersonation by ${operator}`;
+  await createSession(env.DB, {
+    idHash,
+    accountId: account.id,
+    nowMs,
+    ttlMs: IMPERSONATE_TTL_MS,
+    lastUserAgent: marker,
+  });
+  console.warn(JSON.stringify({ event: 'admin_impersonate', operator, account_id: account.id, session_id_hash: idHash }));
+  return json(
+    {
+      account_id: account.id,
+      session_token: token,
+      cookie_name: SESSION_COOKIE,
+      expires_at: new Date(nowMs + IMPERSONATE_TTL_MS).toISOString(),
+    },
+    { headers: SECURITY_HEADERS }
+  );
 }
 
 async function listAccounts(env) {

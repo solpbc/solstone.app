@@ -217,10 +217,10 @@ export async function updateAccountLastSignin(db, accountId, nowMs) {
     .run();
 }
 
-export async function createSession(db, { idHash, accountId, nowMs }) {
+export async function createSession(db, { idHash, accountId, nowMs, ttlMs = SESSION_TTL_MS, lastUserAgent = null }) {
   await db
-    .prepare('INSERT INTO sessions (id_hash, account_id, created_at, expires_at, last_active_at) VALUES (?, ?, ?, ?, ?)')
-    .bind(idHash, accountId, nowMs, nowMs + SESSION_TTL_MS, nowMs)
+    .prepare('INSERT INTO sessions (id_hash, account_id, created_at, expires_at, last_active_at, last_user_agent) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(idHash, accountId, nowMs, nowMs + ttlMs, nowMs, lastUserAgent)
     .run();
 }
 
