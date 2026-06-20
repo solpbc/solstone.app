@@ -19,6 +19,8 @@ describe('legacy customer-facing redirects', () => {
     ['GET', '/settings/data', '/transparency', 302],
     ['GET', '/services/scout', '/scout', 302],
     ['GET', '/services/devices', '/devices', 302],
+    ['GET', '/services/spl', '/private-network', 302],
+    ['GET', '/services/spl?checkout=success', '/private-network?checkout=success', 302],
     ['POST', '/settings/sessions/abc/revoke', '/sign-in/sessions/abc/revoke', 308],
     ['POST', '/settings/gemini/rotate', '/scout/rotate', 308],
   ])('%s %s redirects to %s', async (method, path, location, status) => {

@@ -38,7 +38,7 @@ describe('terms page', () => {
     const testEnv = makeTestEnv();
     const subscribeAccount = await seedAccount({ email: 'terms-subscribe@example.com', testEnv });
     const subscribeSession = await seedSession(subscribeAccount.accountId, { testEnv });
-    const subscribeResponse = await get('/services/spl', testEnv, subscribeSession.cookie);
+    const subscribeResponse = await get('/private-network', testEnv, subscribeSession.cookie);
     const subscribeBody = await subscribeResponse.text();
 
     expect(subscribeBody).toContain('href="/terms"');
@@ -46,7 +46,7 @@ describe('terms page', () => {
     const activeAccount = await seedAccount({ email: 'terms-active@example.com', testEnv });
     const activeSession = await seedSession(activeAccount.accountId, { testEnv });
     await seedEntitlement({ accountId: activeAccount.accountId, status: 'active' });
-    const activeResponse = await get('/services/spl', testEnv, activeSession.cookie);
+    const activeResponse = await get('/private-network', testEnv, activeSession.cookie);
     const activeBody = await activeResponse.text();
 
     expect(activeBody).toContain('href="/terms"');

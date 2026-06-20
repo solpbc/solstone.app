@@ -80,7 +80,7 @@ describe('/enable/spl', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('this journal is asking to enable private link access.');
+    expect(body).toContain('this journal is asking to enable private network access.');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
   });
@@ -100,7 +100,7 @@ describe('/enable/spl', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).not.toContain('name="instance"');
-      expect(body).toContain('<a href="/services/spl">set up solstone hosting</a> to let solstone host your private link relay.');
+      expect(body).toContain('<a href="/private-network">set up your private network</a> — sol pbc runs the relay for you.');
     }
   });
 
@@ -141,7 +141,7 @@ describe('/enable/spl', () => {
       const second = await worker.fetch(new Request(`https://services.solstone.app/handoff/spl?nonce=${VALID_NONCE}`), testEnv);
 
       expect(response.status).toBe(200);
-      expect(await response.text()).toContain('private link access is approved for this journal. you can close this tab.');
+      expect(await response.text()).toContain('private network access is approved for this journal. you can close this tab.');
       expect(handoff.status).toBe(200);
       expect(payload).toEqual({
         service: 'spl',
@@ -196,11 +196,11 @@ describe('/enable/spl', () => {
     const binding = await splBindingRow(account.accountId, VALID_INSTANCE);
 
     expect(response.status).toBe(200);
-    expect(body).toContain('set up solstone hosting');
+    expect(body).toContain('set up your private network');
     expect(payload).toEqual({
       service: 'spl',
       state: 'needs_subscription',
-      subscribe_url: 'https://services.solstone.app/services/spl',
+      subscribe_url: 'https://services.solstone.app/private-network',
     });
     expect(binding).toMatchObject({ account_id: account.accountId, instance_id: VALID_INSTANCE });
     // Reconcile creates the lapsed comp row and pushes a benign revoke for the new binding.
@@ -230,7 +230,7 @@ describe('/enable/spl', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('private link access is approved for this journal. you can close this tab.');
+    expect(body).toContain('private network access is approved for this journal. you can close this tab.');
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({ instance_id: VALID_INSTANCE, entitled_until: 1_900_000_000 });
     expect(calls[0].init.headers.Authorization).toBe('Bearer test-relay-grant-secret');

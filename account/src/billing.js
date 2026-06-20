@@ -29,7 +29,7 @@ const SOURCE = 'stripe';
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
 const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}/billing/return?status=success`;
 const CHECKOUT_CANCEL_URL = `${PUBLIC_ORIGIN}/billing/return?status=cancel`;
-const PORTAL_RETURN_URL = `${PUBLIC_ORIGIN}/services/spl`;
+const PORTAL_RETURN_URL = `${PUBLIC_ORIGIN}/private-network`;
 
 export async function handleServicesSpl(req, env) {
   const guard = await requireSignedInSession(req, env);
@@ -69,15 +69,15 @@ export async function handleBillingCheckout(req, env) {
     : plan === 'monthly'
       ? env.STRIPE_PRICE_MONTHLY
       : '';
-  if (!priceId) return signedInRedirect('/services/spl?checkout=invalid');
+  if (!priceId) return signedInRedirect('/private-network?checkout=invalid');
 
   const accountId = guard.session.account_id;
   const scoutApp = await getScoutApplicationStatusByAccount(env.DB, { accountId });
-  if (scoutApp?.status === 'approved') return signedInRedirect('/services/spl?checkout=comped');
+  if (scoutApp?.status === 'approved') return signedInRedirect('/private-network?checkout=comped');
 
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId });
   const menu = customerRow ? null : await loadMenuContext(env, accountId, guard.nowMs);
-  if (!customerRow && !menu?.email) return signedInRedirect('/services/spl?checkout=email');
+  if (!customerRow && !menu?.email) return signedInRedirect('/private-network?checkout=email');
 
   const checkout = await createCheckoutSession(env, {
     accountId,
@@ -88,7 +88,7 @@ export async function handleBillingCheckout(req, env) {
     cancelUrl: CHECKOUT_CANCEL_URL,
     idempotencyKey: crypto.randomUUID(),
   });
-  if (!checkout?.url) return signedInRedirect('/services/spl?checkout=error');
+  if (!checkout?.url) return signedInRedirect('/private-network?checkout=error');
   return signedInRedirect(checkout.url);
 }
 
@@ -100,12 +100,12 @@ export async function handleBillingPortal(req, env) {
   if (!await validCsrf(form, env)) return noStore(forbidden());
 
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId: guard.session.account_id });
-  if (!customerRow) return signedInRedirect('/services/spl?billing=missing');
+  if (!customerRow) return signedInRedirect('/private-network?billing=missing');
   const portal = await createPortalSession(env, {
     customer: customerRow.stripe_customer_id,
     returnUrl: PORTAL_RETURN_URL,
   });
-  if (!portal?.url) return signedInRedirect('/services/spl?billing=error');
+  if (!portal?.url) return signedInRedirect('/private-network?billing=error');
   return signedInRedirect(portal.url);
 }
 

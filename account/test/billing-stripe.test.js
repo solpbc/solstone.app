@@ -198,7 +198,7 @@ describe('billing stripe core', () => {
     }), session.cookie);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/services/spl?checkout=comped');
+    expect(response.headers.get('Location')).toBe('/private-network?checkout=comped');
     expect(calls).toHaveLength(0);
   });
 
@@ -215,30 +215,31 @@ describe('billing stripe core', () => {
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe('https://billing.stripe.test/session');
     expect(calls[0].body.get('customer')).toBe('cus_portal');
-    expect(calls[0].body.get('return_url')).toBe('https://services.solstone.app/services/spl');
+    expect(calls[0].body.get('return_url')).toBe('https://services.solstone.app/private-network');
   });
 
-  it('renders subscribe, active, past due, and return states behind signed-in session', async () => {
+  it('renders public, subscribe, active, past due, and return states through private network', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'render@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const unauth = await worker.fetch(new Request('https://services.solstone.app/services/spl'), testEnv);
-    expect(unauth.status).toBe(303);
+    const unauth = await worker.fetch(new Request('https://services.solstone.app/private-network'), testEnv);
+    expect(unauth.status).toBe(200);
+    expect(await unauth.text()).toContain('<h1>private network</h1>');
 
-    const subscribe = await get('/services/spl', testEnv, session.cookie);
+    const subscribe = await get('/private-network', testEnv, session.cookie);
     expect(subscribe.status).toBe(200);
     expect(await subscribe.text()).toContain('pay yearly');
 
     await seedEntitlement({ accountId: account.accountId, status: 'active', currentPeriodEnd: 1_800_000_000 });
-    const active = await get('/services/spl', testEnv, session.cookie);
+    const active = await get('/private-network', testEnv, session.cookie);
     const activeHtml = await active.text();
     expect(activeHtml).toContain('your private network is on');
     expect(activeHtml).toContain('renews 2027-01-15');
     expect(activeHtml).toContain('manage billing');
 
     await seedEntitlement({ accountId: account.accountId, status: 'past_due', currentPeriodEnd: 1_800_000_000 });
-    const pastDue = await get('/services/spl', testEnv, session.cookie);
+    const pastDue = await get('/private-network', testEnv, session.cookie);
     expect(await pastDue.text()).toContain("your last payment didn't go through");
 
     const returned = await get('/billing/return?status=success', testEnv, session.cookie);
@@ -257,7 +258,7 @@ describe('billing stripe core', () => {
       sourceRef: null,
     });
 
-    const response = await get('/services/spl', testEnv, session.cookie);
+    const response = await get('/private-network', testEnv, session.cookie);
     const html = await response.text();
 
     expect(response.status).toBe(200);

@@ -147,6 +147,7 @@ const LEGACY_REDIRECTS = [
   { method: 'GET', from: '/sign-in/data', to: '/transparency' },
   { method: 'GET', from: '/services/scout', to: '/scout' },
   { method: 'GET', from: '/services/devices', to: '/devices' },
+  { method: 'GET', from: '/services/spl', to: '/private-network' },
   { method: 'POST', from: '/settings/sessions/revoke-others', to: '/sign-in/sessions/revoke-others' },
   { method: 'POST', from: '/settings/emails/add', to: '/sign-in/emails/add' },
   { method: 'POST', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
@@ -565,15 +566,6 @@ export default {
         req.method === 'GET'
       ) {
         return handleServicesDevices(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'services' &&
-        parts[2] === 'spl' &&
-        req.method === 'GET'
-      ) {
-        return handleServicesSpl(req, env);
       }
 
       if (

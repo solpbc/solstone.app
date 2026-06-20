@@ -99,7 +99,7 @@ export function layout({ title, body, afterMain = '' }) {
 </html>`;
 }
 
-export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. solstone itself runs on your machine — you don't sign in to use it.") {
+export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. solstone itself runs on your device — you don't sign in to use it.") {
   const resumeHtml = resume.next && resume.nextSig
     ? `<input type="hidden" name="next" value="${escAttr(resume.next)}">
   <input type="hidden" name="next_sig" value="${escAttr(resume.nextSig)}">`
@@ -187,14 +187,14 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <div class="n">1</div>
     <div>
       <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it — no observations, nothing sol has experienced alongside you. just: this is your machine.</div>
+      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it — no observations, nothing sol has experienced alongside you. just: this is your device.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">2</div>
     <div>
       <div class="gt">enable solstone scout</div>
-      <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this machine. the key is yours and it stays here. sol pbc sets it up — it never sits between you and Gemini, and never sees what you ask sol.</div>
+      <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this device. the key is yours and it stays here. sol pbc sets it up — it never sits between you and Gemini, and never sees what you ask sol.</div>
     </div>
   </div>
   <form method="post" action="/enable/scout/confirm">
@@ -224,7 +224,7 @@ export function renderEnableScoutDone() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone scout enabled</h2>
-  <p>sol pbc set up a Gemini key for you and put it on this machine — you never had to touch it, and nothing from your journal crossed to set it up. you can close this tab.</p>
+  <p>sol pbc set up a Gemini key for you and put it on this device — you never had to touch it, and nothing from your journal crossed to set it up. you can close this tab.</p>
   <a class="btn secondary" href="/scout">manage solstone scout</a>
 </div>`,
   });
@@ -268,10 +268,10 @@ export function renderEnableScoutError({ message }) {
 
 export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bundleId }) {
   return layout({
-    title: 'enable solstone private notifications',
+    title: 'enable notifications',
     body: `${brandbar()}
-<h1>enable solstone private notifications</h1>
-<p class="lead">solstone private notifications wants to reach this device for you. two things, and only these two:</p>
+<h1>enable notifications</h1>
+<p class="lead">notifications want to reach this device for you. two things, and only these two:</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
@@ -283,7 +283,7 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">enable solstone private notifications</div>
+      <div class="gt">enable notifications</div>
       <div class="gd">sol will send a short heads-up (an 80-character summary, never the full thing) to this device when there's something worth your attention. you can turn it off in your services anytime.</div>
     </div>
   </div>
@@ -299,17 +299,17 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
     </div>
   </form>
 </div>
-<p class="disclosure">you can see exactly which devices solstone private notifications reaches — and turn it off — in your services anytime.</p>`,
+<p class="disclosure">you can see exactly which devices notifications reach — and turn it off — in your services anytime.</p>`,
   });
 }
 
 export function renderEnablePushDone() {
   return layout({
-    title: 'solstone private notifications enabled',
+    title: 'notifications enabled',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone private notifications enabled</h2>
-  <p>your phone is connected to solstone private notifications. you can close this tab.</p>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} notifications enabled</h2>
+  <p>your phone is connected to notifications. you can close this tab.</p>
   <a class="btn secondary" href="/devices">manage notifications</a>
 </div>`,
   });
@@ -317,10 +317,10 @@ export function renderEnablePushDone() {
 
 export function renderEnablePushError() {
   return layout({
-    title: 'could not enable solstone private notifications',
+    title: 'could not enable notifications',
     body: `${brandbar()}
 <div class="card">
-  <h1>could not enable solstone private notifications</h1>
+  <h1>could not enable notifications</h1>
   <p>something didn't look right with that link.</p>
   <p>if you got here from your solstone app, try again from the app. if
 you got here some other way, you can close this tab.</p>
@@ -333,25 +333,25 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
   const disclosure = entitled
-    ? '<p class="disclosure">you can review or change private link access from the journal anytime.</p>'
-    : '<p class="disclosure"><a href="/services/spl">set up solstone hosting</a> to let solstone host your private link relay.</p>';
+    ? '<p class="disclosure">you can review or change private network access from the journal anytime.</p>'
+    : '<p class="disclosure"><a href="/private-network">set up your private network</a> — sol pbc runs the relay for you.</p>';
   return layout({
-    title: 'enable private link access',
+    title: 'enable private network access',
     body: `${brandbar()}
-<h1>enable private link access</h1>
-<p class="lead">this journal is asking to enable private link access. two things, and only these two:</p>
+<h1>enable private network access</h1>
+<p class="lead">this journal is asking to enable private network access. two things, and only these two:</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal — no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for private link access.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal — no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for private network access.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">enable private link access</div>
+      <div class="gt">enable private network access</div>
       <div class="gd">sol pbc records an approval for this journal and hands that approval back through this local handoff. nothing from the journal is sent to sol pbc to do this.</div>
     </div>
   </div>
@@ -371,33 +371,33 @@ ${disclosure}`,
 
 export function renderEnableSplDone() {
   return layout({
-    title: 'private link access enabled',
+    title: 'private network access enabled',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} private link access enabled</h2>
-  <p>private link access is approved for this journal. you can close this tab.</p>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} private network access enabled</h2>
+  <p>private network access is approved for this journal. you can close this tab.</p>
 </div>`,
   });
 }
 
 export function renderEnableSplNeedsSubscription() {
   return layout({
-    title: 'solstone hosting needed',
+    title: 'private network needed',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">solstone hosting needed</h2>
-  <p>let solstone host your private link relay before this journal can use it.</p>
-  <a class="btn primary" href="/services/spl">set up solstone hosting</a>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">private network needed</h2>
+  <p>sol pbc runs the relay for your private network before this journal can use it.</p>
+  <a class="btn primary" href="/private-network">set up your private network</a>
 </div>`,
   });
 }
 
 export function renderEnableSplError() {
   return layout({
-    title: 'could not enable private link access',
+    title: 'could not enable private network access',
     body: `${brandbar()}
 <div class="card">
-  <h1>could not enable private link access</h1>
+  <h1>could not enable private network access</h1>
   <p>something didn't look right with that link.</p>
   <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
 </div>`,
@@ -660,11 +660,11 @@ export function renderBillingReturn({ status, menu }) {
   return layout({
     title: 'private network',
     body: `${topbar(menu)}
-<a class="back" href="/services/spl">${BACK_SVG} your private network</a>
+<a class="back" href="/private-network">${BACK_SVG} your private network</a>
 <div class="card">
   <h1>private network</h1>
   <p>${esc(message)}</p>
-  <a class="btn secondary" href="/services/spl">back to your private network</a>
+  <a class="btn secondary" href="/private-network">back to your private network</a>
 </div>`,
   });
 }
@@ -683,7 +683,7 @@ export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0, 
     ${IC_SESSION_SVG}
     <div class="body">
       <div class="title">sessions</div>
-      <div class="desc">the machines and phones signed in right now — sign any of them out.</div>
+      <div class="desc">the devices and phones signed in right now — sign any of them out.</div>
     </div>
     <div class="trail"><span class="meta" style="margin:0">${esc(sessionCount)} active</span>${CHEVRON_SVG}</div>
   </a>
@@ -896,7 +896,7 @@ export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
     body: `${topbar(menu)}
 <a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
 <h1>sessions</h1>
-<p class="lead">the machines and phones currently signed in to manage your services. sign any of them out — the current one stays.</p>
+<p class="lead">the devices and phones currently signed in to manage your services. sign any of them out — the current one stays.</p>
 <div class="group">${rowHtml}</div>
 ${revokeOthers}`,
   });
@@ -1090,7 +1090,7 @@ ${scoutLinks}`,
   if (active) {
     return page({
       statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;solstone scout is on',
-      lead: 'sol pbc set up a Google Gemini key for you. the key lives in your journal on this machine and is never shown here.',
+      lead: 'sol pbc set up a Google Gemini key for you. the key lives in your journal on your device and is never shown here.',
       content: `${keySection}
 ${historySection}`,
     });
@@ -1266,13 +1266,13 @@ export function renderGoodbye() {
 }
 
 export function renderTerms() {
-  const title = 'solstone hosted — private link · terms';
+  const title = 'private network · terms';
   return layout({
     title,
     body: `${brandbar()}
 <h1>${esc(title)}</h1>
 <p class="meta"><em>${esc(`last updated: June 16, 2026 · operated by sol pbc, a colorado public benefit corporation`)}</em></p>
-<p>${esc(`these terms cover `)}<strong>${esc(`solstone hosted — private link`)}</strong>${esc(`: the relay sol pbc operates so you can reach your own journal from anywhere — phone to home — without running your own relay. they're between you and sol pbc. by subscribing, you agree to them.`)}</p>
+<p>${esc(`these terms cover `)}<strong>${esc(`private network`)}</strong>${esc(`: the relay sol pbc operates so you can reach your own journal from anywhere — phone to home — without running your own relay. they're between you and sol pbc. by subscribing, you agree to them.`)}</p>
 <h2>${esc(`1. you never have to pay us`)}</h2>
 <p>${esc(`this is a convenience, not a gate. the same private connection is always available for free:`)}</p>
 <ul>

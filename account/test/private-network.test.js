@@ -95,19 +95,6 @@ describe('private network', () => {
     expect(body).not.toContain('your private network is on');
   });
 
-  it('renders the same private network page through /services/spl', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'services-private@example.com', testEnv });
-    const session = await seedSession(account.accountId, { testEnv });
-    await seedEntitlement({ accountId: account.accountId, status: 'active', enabledAt: ENABLED_AT });
-
-    const response = await get('/services/spl', testEnv, { Cookie: session.cookie });
-    const body = await response.text();
-
-    expect(body).toContain('your private network is on');
-    expect(body).toContain('manage billing');
-  });
-
   it('stamps enabled_at once on first activation', async () => {
     const testEnv = makeTestEnv();
     const first = await seedAccount({ email: 'stamp-one@example.com', testEnv });

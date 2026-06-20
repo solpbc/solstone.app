@@ -470,7 +470,7 @@ export async function handleEnableSplConfirm(req, env, ctx) {
     : {
         service: 'spl',
         state: 'needs_subscription',
-        subscribe_url: `${new URL(req.url).origin}/services/spl`,
+        subscribe_url: `${new URL(req.url).origin}/private-network`,
       };
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
   try {

@@ -36,6 +36,11 @@ const FORBIDDEN_PHRASES = [
   'your service plan',
   'free trial',
   'service status: trial',
+  'machine',
+  'let solstone',
+  'solstone is hosting',
+  'private container',
+  'solstone private notifications',
   'solstone host',
   'solstone hosted',
   'private link',
@@ -127,8 +132,6 @@ describe('brand canon', () => {
       ['data', await get('/transparency', testEnv, withPasskeySession.cookie), true],
       ['scout active', await get('/scout', testEnv, withPasskeySession.cookie), true],
       ['scout empty', await get('/scout', testEnv, noScoutSession.cookie), true],
-      ['spl active', await get('/services/spl', testEnv, splActiveSession.cookie), true],
-      ['spl empty', await get('/services/spl', testEnv, splEmptySession.cookie), true],
       ['private-network active', await get('/private-network', testEnv, splActiveSession.cookie), true],
       ['private-network empty', await get('/private-network', testEnv, splEmptySession.cookie), true],
       ['devices', await get('/devices', testEnv, withPasskeySession.cookie), true],
@@ -199,6 +202,8 @@ describe('brand canon', () => {
       ['enable spl error', splError],
     ]) {
       const body = await response.text();
+      const scanBody = stripHref(body);
+      expect(scanBody, name).not.toMatch(forbiddenRe);
       expect(body, name).not.toMatch(enableSurfaceStrictRe);
     }
   });

@@ -100,7 +100,7 @@ describe('settings gemini dashboard', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('solstone scout is on');
-    expect(body).toContain('key lives in your journal on this machine and is never shown here.');
+    expect(body).toContain('key lives in your journal on your device and is never shown here.');
     expect(body).toContain('action="/scout/rotate"');
     expect(body).toContain('action="/scout/disable"');
     expect(body).toContain('action="/scout/forget"');
