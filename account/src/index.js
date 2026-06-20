@@ -18,6 +18,7 @@ import {
   countActiveDevices,
   findActiveProvisionedKey,
   findEmailByHash,
+  getEntitlement,
   hasAnyActivePasskey,
   matchOtp,
   upsertOtp,
@@ -71,7 +72,7 @@ import {
   renderGoodbye,
   renderLanding,
   renderNotFound,
-  renderServicesDashboard,
+  renderServicesCatalog,
   renderTerms,
   renderVerify,
   VERIFY_ERROR,
@@ -90,6 +91,7 @@ import {
   passkeyRegisterStart,
 } from './passkey.js';
 import { runRetention } from './retention.js';
+import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -302,14 +304,17 @@ export default {
         const resume = await validResumeFromParams(url.searchParams, env);
         if (session) {
           if (resume) return redirect(`${resume.path}${resume.queryString}`);
-          return handleServicesDashboard(req, env, session);
+          return handleServicesCatalog(req, env, session);
         }
         if (getSessionToken(req)) {
           return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
         }
-        const csrf = await csrfToken(env);
-        const subhead = supportSignInPrompt(resume?.path);
-        return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}, subhead || undefined));
+        if (resume || url.searchParams.has('signin')) {
+          const csrf = await csrfToken(env);
+          const subhead = supportSignInPrompt(resume?.path);
+          return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}, subhead || undefined));
+        }
+        return html(renderServicesCatalog({ signedIn: false }));
       }
 
       if (url.pathname === '/signin/start' && req.method === 'POST') {
@@ -807,18 +812,21 @@ export default {
   },
 };
 
-async function handleServicesDashboard(req, env, session) {
+async function handleServicesCatalog(req, env, session) {
   const url = new URL(req.url);
   const now = Date.now();
-  const [menu, hasPasskey, scoutKey, deviceCount] = await Promise.all([
+  const [menu, hasPasskey, scoutKey, deviceCount, entitlement] = await Promise.all([
     loadMenuContext(env, session.account_id, now),
     hasAnyActivePasskey(env.DB, session.account_id),
     findActiveProvisionedKey(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER }),
     countActiveDevices(env.DB, session.account_id),
+    getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE }),
   ]);
-  return html(renderServicesDashboard({
+  const networkActive = entitlement?.status === 'active' || entitlement?.status === 'past_due';
+  return html(renderServicesCatalog({
+    signedIn: true,
     welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
-    menu, scoutActive: scoutKey != null, deviceCount,
+    menu, scoutActive: scoutKey != null, deviceCount, networkActive,
   }), { headers: { 'Cache-Control': 'no-store' } });
 }
 

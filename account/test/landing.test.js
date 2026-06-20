@@ -8,7 +8,7 @@ describe('landing page', () => {
   });
 
   it('renders the services landing copy, OTP form, passkey slot, and disclosure', async () => {
-    const response = await worker.fetch(new Request('https://services.solstone.app/'), makeTestEnv());
+    const response = await worker.fetch(new Request('https://services.solstone.app/?signin'), makeTestEnv());
     const body = await response.text();
 
     expect(response.status).toBe(200);

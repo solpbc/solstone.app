@@ -139,7 +139,7 @@ describe('/signin/start', () => {
 
   it('accepts the csrf token rendered on the landing form', async () => {
     const testEnv = makeTestEnv();
-    const landing = await worker.fetch(new Request('https://services.solstone.app/'), testEnv);
+    const landing = await worker.fetch(new Request('https://services.solstone.app/?signin'), testEnv);
     const csrf = extractCsrf(await landing.text());
     const response = await worker.fetch(
       startRequest('roundtrip@example.com', {}, { csrf }),

@@ -39,6 +39,11 @@ export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet 
   --focus:        #B06A1A;
   --radius:       14px;
   --radius-sm:    9px;
+  /* tag tokens — pending CMO palette ratification */
+  --tag-builtin-ink: #8A5314;
+  --tag-free-bg:     #EDEFEA;
+  --tag-free-ink:    #4F5848;
+  --tag-neutral-bg:  #F0ECE2;
 }
 
 * { box-sizing: border-box; }
@@ -202,6 +207,29 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 .pill .dot { width: 7px; height: 7px; border-radius: 50%; }
 .pill.on .dot  { background: var(--orange); }
 .pill.off .dot { background: #C2B89F; }
+
+/* catalog + service-page components (services-sitemap-revamp lode 1) */
+.price { font-family:"Inter",sans-serif; font-weight:600; font-size:.92rem; color:var(--ink); white-space:nowrap; }
+.price .per { color:var(--ink-faint); font-weight:400; }
+.tag { display:inline-flex; align-items:center; font-size:.74rem; font-weight:600; letter-spacing:.02em; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+.tag.builtin { background:var(--orange-wash); color:var(--tag-builtin-ink); }      /* was #8A5314 */
+.tag.free { background:var(--tag-free-bg); color:var(--tag-free-ink); }             /* was #EDEFEA / #4F5848 */
+.tag.soon { background:var(--tag-neutral-bg); color:var(--ink-faint); }            /* was #F0ECE2 */
+.brandlock { display:flex; align-items:center; gap:8px; color:var(--orange-ink); font-size:.95rem; margin:0 0 18px; }
+.brandlock .dot { width:7px; height:7px; border-radius:50%; background:var(--orange); flex:none; }
+.hero-tag { font-family:"Comfortaa",sans-serif; font-weight:700; font-size:1.18rem; color:var(--orange-ink); margin:2px 0 14px; }
+.beat { display:flex; align-items:flex-start; gap:13px; padding:16px 0; border-top:1px solid var(--hairline); }
+.beat:first-child { border-top:0; }
+.beat > svg { flex:none; width:22px; height:22px; color:var(--orange-ink); }
+.beat .bt { font-weight:600; color:var(--ink); margin:0 0 3px; }
+.beat .bd { color:var(--ink-soft); font-size:.92rem; line-height:1.5; margin:0; }
+.beat .bi { flex:none; color:var(--orange-ink); margin-top:1px; }
+.pricecard { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.pricecard .big { font-family:"Comfortaa",sans-serif; font-weight:700; font-size:1.5rem; color:var(--ink); }
+.pricecard .alt { color:var(--ink-faint); font-size:.9rem; margin-top:2px; }
+.statusline { display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--ink-soft); font-size:.95rem; }
+.statusline .k { color:var(--ink-faint); }
+.free-note { color:var(--ink-faint); font-size:.86rem; }
 
 /* a real toggle (for services that can be turned OFF from the web) */
 .switch { position: relative; width: 46px; height: 28px; flex: none; }

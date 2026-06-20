@@ -30,6 +30,9 @@ const IC_SESSION_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="
 const IC_PASSKEY_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="14" r="3.4"/><path d="M10.6 11.4 19 3M16 6l2 2M14 8l1.6 1.6"/></svg>';
 const IC_EMAIL_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/></svg>';
 const IC_EMPTY_DATA_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="6.5" ry="3"/><path d="M5.5 6v8c0 1.7 2.9 3 6.5 3 .9 0 1.8-.1 2.6-.3"/><path d="M18.5 6v5.5"/><path d="M5.5 10c0 1.7 2.9 3 6.5 3 1.7 0 3.2-.3 4.4-.8"/><path d="M17 15l4 4M21 15l-4 4"/></svg>';
+const IC_NET = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.4"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M6.6 7.4 10 10.4M17.4 7.4 14 10.4M6.6 16.6 10 13.6M17.4 16.6 14 13.6"/></svg>';
+const IC_BACKUP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>';
+const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 12v3"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
 const SCOUT_COVENANT_LINE = "your questions to solstone scout go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
 const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page — nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are — no analytics, no behavioral data, no third-party tracking. these aren't promises — they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
@@ -62,6 +65,20 @@ function topbar({ email = null, lastSignInAt = null, now = null } = {}) {
     </div>
   </details>
 </div>`;
+}
+
+const BRANDLOCK = `<p class="brandlock"><span class="dot"></span>your journal is always private, only yours.</p>`;
+
+function brandbarSignin() {
+  return `<div class="topbar"><a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a><a href="/?signin" style="color:var(--orange-ink);font-weight:600;text-decoration:none">sign in</a></div>`;
+}
+
+function row(href, ic, title, desc, trail) {
+  return `<a class="row" href="${href}">${ic}<div class="body"><div class="title">${title}</div><div class="desc">${desc}</div></div><div class="trail">${trail}${CHEVRON_SVG}</div></a>`;
+}
+
+function pill(kind, label) {
+  return `<span class="pill ${kind}"><span class="dot"></span>${label}</span>`;
 }
 
 export function layout({ title, body, afterMain = '' }) {
@@ -384,19 +401,32 @@ export function renderEnableSplError() {
 
 // === services surfaces ===
 
-export function renderServicesDashboard({ welcome, menu, scoutActive, deviceCount }) {
+export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, scoutActive = false, deviceCount = 0, networkActive = false } = {}) {
+  if (!signedIn) {
+    return layout({
+      title: 'solstone services',
+      body: `${brandbarSignin()}
+<h1>solstone services</h1>
+${BRANDLOCK}
+<p class="intro"><strong>solstone runs on your device.</strong> these are the optional parts sol pbc runs for you — turn one on when it helps, off whenever you want. nothing here is required to use solstone.</p>
+<div class="group">
+  ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere — over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
+  ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe — only you can read it.', '<span class="tag free">free · byo</span>')}
+  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'let sol reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
+  ${row('/sealed-container', IC_VAULT, 'sealed container', 'your whole journal, run for you inside a sealed box even sol pbc can’t see into.', '<span class="tag soon">coming</span>')}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', 'join the alpha — we set you up with a Gemini key on your device.', '<span class="tag free">free</span>')}
+</div>
+<p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on — solstone itself never asks you to sign in.</p>`,
+    });
+  }
+
   const notice = menu.decryptOk === false
     ? `<p class="notice">we couldn't decrypt your email address. you're still signed in.</p>`
     : '';
-  const scoutDesc = scoutActive
-    ? 'your alpha-tester service — sol pbc set up a Gemini key on this machine.'
-    : 'your alpha-tester service — sol pbc sets up a Gemini key on your machine.';
-  const scoutPill = scoutActive
-    ? '<span class="pill on"><span class="dot"></span>on</span>'
-    : '<span class="pill off"><span class="dot"></span>off</span>';
-  const pushPill = deviceCount > 0
-    ? `<span class="pill on"><span class="dot"></span>${esc(countLabel(deviceCount, 'device', 'devices'))}</span>`
-    : '<span class="pill off"><span class="dot"></span>off</span>';
+  const networkPill = pill(networkActive ? 'on' : 'off', networkActive ? 'on' : 'off');
+  const backupPill = pill('off', 'off');
+  const notifPill = pill(deviceCount > 0 ? 'on' : 'off', deviceCount > 0 ? 'on' : 'off');
+  const scoutPill = pill(scoutActive ? 'on' : 'off', scoutActive ? 'on' : 'off');
   const welcomePanel = welcome
     ? `<div class="card" style="margin-bottom:24px">
   <h2>set up a passkey for next time</h2>
@@ -415,33 +445,19 @@ export function renderServicesDashboard({ welcome, menu, scoutActive, deviceCoun
     body: `${topbar(menu)}
 <h1>your services</h1>
 ${notice}
-<p class="intro"><strong>solstone runs on your machine.</strong> these services are optional — turn them on when they help, turn them off whenever you want. nothing here is required to use solstone.</p>
+${BRANDLOCK}
+<p class="intro"><strong>solstone runs on your device.</strong> these services are optional — turn them on when they help, off whenever you want. nothing here is required.</p>
 ${welcomePanel}
 <div class="group">
-  <a class="row" href="/scout">
-    ${IC_SCOUT_SVG}
-    <div class="body">
-      <div class="title">solstone scout</div>
-      <div class="desc">${scoutDesc}</div>
-    </div>
-    <div class="trail">${scoutPill}${CHEVRON_SVG}</div>
-  </a>
-  <a class="row" href="/devices">
-    ${IC_PUSH_SVG}
-    <div class="body">
-      <div class="title">solstone private notifications</div>
-      <div class="desc">sol can reach your other devices when there's something worth a look.</div>
-    </div>
-    <div class="trail">${pushPill}${CHEVRON_SVG}</div>
-  </a>
-  <a class="row" href="/support">
-    ${IC_SUPPORT_SVG}
-    <div class="body">
-      <div class="title">support</div>
-      <div class="desc">get help from solstone support, or follow up on a request you've opened.</div>
-    </div>
-    <div class="trail">${CHEVRON_SVG}</div>
-  </a>
+  ${row('/private-network', IC_NET, 'private network', 'your private network — reach your journal from anywhere.', networkPill)}
+  ${row('/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
+  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters — built in.', notifPill)}
+  ${row('/sealed-container', IC_VAULT, 'sealed container', 'your journal in a sealed box.', '<span class="tag soon">coming</span>')}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', 'a Gemini key on your device.', scoutPill)}
+</div>
+<div class="group" style="margin-top:22px">
+  ${row('/sign-in', IC_SESSION_SVG, 'your sign-in', 'sessions, passkeys, and email addresses.', '')}
+  ${row('/transparency', IC_EMPTY_DATA_SVG, 'data transparency', 'everything sol pbc holds for your sign-in.', '')}
 </div>`,
     afterMain: welcome ? `<script>${ENROLL_JS}</script>` : '',
   });
@@ -1378,10 +1394,6 @@ function formatUnixSecondsDate(seconds) {
   const value = Number(seconds);
   if (!Number.isFinite(value)) return '—';
   return new Date(value * 1000).toISOString().slice(0, 10);
-}
-
-function countLabel(count, singular, plural) {
-  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 export function formatDate(tsMs) {

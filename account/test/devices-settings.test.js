@@ -74,7 +74,7 @@ describe('settings devices', () => {
     expect(body).not.toContain('<script>alert(1)</script>');
   });
 
-  it('shows device count on services dashboard', async () => {
+  it('shows notifications as on in the services catalog when a device is active', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -84,8 +84,9 @@ describe('settings devices', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('href="/devices"');
-    expect(body).toContain('1 device');
+    expect(body).toContain('href="/notifications"');
+    expect(body).toMatch(/href="\/notifications"[\s\S]*?<span class="pill on"><span class="dot"><\/span>on<\/span>/);
+    expect(body).not.toContain('1 device');
   });
 });
 

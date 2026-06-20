@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
 
-describe('services dashboard rendering', () => {
+describe('services catalog rendering', () => {
   beforeEach(async () => {
     await resetDb();
     vi.restoreAllMocks();
   });
 
-  it('renders account email, last sign-in, service rows, and sign-out form', async () => {
+  it('renders account email, last sign-in, catalog rows, and sign-out form', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'dash@example.com', testEnv, nowMs: Date.now() - 60_000 });
     const session = await seedSession(account.accountId, { testEnv });
@@ -23,12 +23,23 @@ describe('services dashboard rendering', () => {
     expect(body).toContain('<div class="lbl">signed in as</div>');
     expect(body).toContain('<div class="who">dash@example.com</div>');
     expect(body).toContain('last sign-in 1 minute ago');
+    expect(body).toContain('your journal is always private, only yours.');
+    expect(body).toContain('href="/private-network"');
+    expect(body).toContain('<div class="title">private network</div>');
+    expect(body).toContain('href="/backup"');
+    expect(body).toContain('<div class="title">encrypted backup</div>');
+    expect(body).toContain('href="/notifications"');
+    expect(body).toContain('<div class="title">notifications</div>');
+    expect(body).toContain('href="/sealed-container"');
+    expect(body).toContain('<div class="title">sealed container</div>');
     expect(body).toContain('href="/scout"');
-    expect(body).toContain('<div class="title">solstone scout</div>');
+    expect(body).toContain('<div class="title">scout</div>');
+    expect(body).toContain('href="/sign-in"');
+    expect(body).toContain('<div class="title">your sign-in</div>');
+    expect(body).toContain('href="/transparency"');
+    expect(body).toContain('<div class="title">data transparency</div>');
     expect(body).toContain('<span class="pill off"><span class="dot"></span>off</span>');
     expect(body).not.toContain('not set up');
-    expect(body).toContain('href="/devices"');
-    expect(body).toContain('<div class="title">solstone private notifications</div>');
     expect(body).toContain('href="https://solpbc.org/privacy"');
     expect(body).toContain('how we earn your trust');
     expect(body).toContain('<a href="/sign-in">manage sign-in</a>');
@@ -70,7 +81,7 @@ describe('services dashboard rendering', () => {
     expect(afterBody).not.toContain('id="passkey-add"');
   });
 
-  it('keeps services dashboard and sign-out available when email decrypt fails', async () => {
+  it('keeps services catalog and sign-out available when email decrypt fails', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
