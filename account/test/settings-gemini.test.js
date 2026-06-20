@@ -29,11 +29,13 @@ describe('settings gemini dashboard', () => {
     vi.restoreAllMocks();
   });
 
-  it('requires a session for GET /scout', async () => {
+  it('serves the public scout landing for a signed-out GET /scout', async () => {
     const response = await worker.fetch(settingsGet('/scout'), makeTestEnv());
+    const body = await response.text();
 
-    expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('/');
+    expect(response.status).toBe(200);
+    expect(body).toContain('<h1>solstone scout</h1>');
+    expect(body).toContain('join the solstone alpha');
   });
 
   it('renders revoked application as terminal even when a key row exists', async () => {

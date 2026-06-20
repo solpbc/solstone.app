@@ -68,10 +68,15 @@ import {
 } from './emails.js';
 import {
   renderError,
+  renderBackupLanding,
   renderForbidden,
   renderGoodbye,
   renderLanding,
   renderNotFound,
+  renderNotificationsLanding,
+  renderPrivateNetworkLanding,
+  renderScoutLanding,
+  renderSealedContainerLanding,
   renderServicesCatalog,
   renderTerms,
   renderVerify,
@@ -447,6 +452,22 @@ export default {
         return html(renderTerms());
       }
 
+      if (url.pathname === '/private-network' && req.method === 'GET') {
+        return html(renderPrivateNetworkLanding());
+      }
+
+      if (url.pathname === '/backup' && req.method === 'GET') {
+        return html(renderBackupLanding());
+      }
+
+      if (url.pathname === '/notifications' && req.method === 'GET') {
+        return html(renderNotificationsLanding());
+      }
+
+      if (url.pathname === '/sealed-container' && req.method === 'GET') {
+        return html(renderSealedContainerLanding());
+      }
+
       if (parts.length === 2 && parts[1] === 'sign-in' && req.method === 'GET') {
         return handleSignInShell(req, env);
       }
@@ -558,6 +579,8 @@ export default {
         parts[1] === 'scout' &&
         req.method === 'GET'
       ) {
+        const session = await getValidSession(req, env, Date.now());
+        if (!session) return html(renderScoutLanding());
         return handleServicesScout(req, env);
       }
 

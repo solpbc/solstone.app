@@ -33,6 +33,7 @@ const IC_EMPTY_DATA_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" strok
 const IC_NET = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.4"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M6.6 7.4 10 10.4M17.4 7.4 14 10.4M6.6 16.6 10 13.6M17.4 16.6 14 13.6"/></svg>';
 const IC_BACKUP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>';
 const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 12v3"/></svg>';
+const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
 const SCOUT_COVENANT_LINE = "your questions to solstone scout go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
 const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page — nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are — no analytics, no behavioral data, no third-party tracking. these aren't promises — they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
@@ -79,6 +80,10 @@ function row(href, ic, title, desc, trail) {
 
 function pill(kind, label) {
   return `<span class="pill ${kind}"><span class="dot"></span>${label}</span>`;
+}
+
+function beat(ic, t, d) {
+  return `<div class="beat">${ic.replace('class="ic"', 'class="ic bi"')}<div><p class="bt">${t}</p><p class="bd">${d}</p></div></div>`;
 }
 
 export function layout({ title, body, afterMain = '' }) {
@@ -460,6 +465,120 @@ ${welcomePanel}
   ${row('/transparency', IC_EMPTY_DATA_SVG, 'data transparency', 'everything sol pbc holds for your sign-in.', '')}
 </div>`,
     afterMain: welcome ? `<script>${ENROLL_JS}</script>` : '',
+  });
+}
+
+export function renderPrivateNetworkLanding() {
+  return layout({
+    title: 'private network',
+    body: brandbarSignin()
+      + `\n<a class="back" href="/">${BACK_SVG} services</a>
+<h1>private network</h1>
+<p class="hero-tag">your private network</p>
+<p class="lead">reach your journal from your phone, your laptop, from anywhere — a private network only your own devices can enter, like a vpn dedicated to solstone. your journal never leaves home; your devices just reach it.</p>
+${BRANDLOCK}
+<div class="card">
+  ${beat(IC_NET, 'your own network — always free', 'on the same wifi, or over your own vpn, your devices reach your journal directly. sol pbc is never in the path.')}
+  ${beat(IC_GLOBE, 'your private network, from anywhere', 'sol pbc runs a blind relay so your devices stay reachable when you’re away from home or asleep — your private network spanning wherever your devices are. operated by sol pbc.')}
+  ${beat(IC_VAULT, 'blind by construction', 'the relay passes along encrypted bytes it can’t read — sol pbc operates it but <strong>cannot see your traffic</strong>. there’s no key to reveal, by design, not by promise.')}
+</div>
+<div class="card">
+  <div class="pricecard">
+    <div><div class="big">$20 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $2.49 / month · per journal, not per device</div></div>
+    <a class="btn primary" href="/?signin">sign in to enable</a>
+  </div>
+  <p class="free-note" style="margin:14px 0 0">you never have to pay us. on your own network — same wifi, your own vpn — reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
+</div>
+<p class="disclosure">open source, self-hostable — run your own relay if you’d rather. <a href="/terms">terms</a></p>`,
+  });
+}
+
+export function renderBackupLanding() {
+  return layout({
+    title: 'encrypted backup',
+    body: brandbarSignin()
+      + `\n<a class="back" href="/">${BACK_SVG} services</a>
+<h1>encrypted backup</h1>
+<p class="lead">keep an encrypted copy of your journal somewhere safe — encrypted on your device before it ever leaves, so only you can read it.</p>
+${BRANDLOCK}
+<div class="card">
+  ${beat(IC_BACKUP, 'your own bucket — always free', 'point solstone at your own storage — backblaze b2, s3, any bucket. sol pbc is never in the path.')}
+  ${beat(IC_GLOBE, 'hosted by sol pbc — coming later', 'let sol pbc keep the encrypted copy for you. coming later — for now, bring your own bucket.')}
+  ${beat(IC_VAULT, 'encrypted before it leaves', 'your journal is encrypted on your device with a key only you hold. whoever stores the copy only ever sees an unreadable blob.')}
+</div>
+<div class="card">
+  <div class="pricecard">
+    <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">with your own bucket</span></span></div><div class="alt">hosted by sol pbc — coming later</div></div>
+    <a class="btn primary" href="/?signin">set up backup</a>
+  </div>
+</div>
+<p class="disclosure">open source, self-hostable. <a href="/terms">terms</a></p>`,
+  });
+}
+
+export function renderNotificationsLanding() {
+  return layout({
+    title: 'notifications',
+    body: brandbarSignin()
+      + `\n<a class="back" href="/">${BACK_SVG} services</a>
+<h1>notifications</h1>
+<p class="hero-tag">built in</p>
+<p class="lead">let sol reach you on your devices when there’s something worth a look — a short heads-up, never the full thing.</p>
+${BRANDLOCK}
+<div class="card">
+  ${beat(IC_PUSH_SVG, 'built into solstone', 'notifications come with solstone — free, with no hosted service to enable. you turn them on for each device, and choose what reaches you.')}
+  ${beat(IC_GLOBE, 'on your devices', 'sol sends a short summary to your phone or laptop — an 80-character heads-up, never the content itself.')}
+  ${beat(IC_VAULT, 'not a tracking surface', 'no analytics, no behavioral profiling, no third parties. notifications never become a way to watch you — Article 8.')}
+</div>
+<div class="card">
+  <div class="statusline"><span class="tag builtin">built in</span> <span>turn on notifications on each device you want to hear from.</span></div>
+</div>
+<p class="disclosure"><a href="/terms">terms</a></p>`,
+  });
+}
+
+export function renderSealedContainerLanding() {
+  return layout({
+    title: 'sealed container',
+    body: brandbarSignin()
+      + `\n<a class="back" href="/">${BACK_SVG} services</a>
+<h1>sealed container</h1>
+<p class="hero-tag">your journal, in a sealed box</p>
+<p class="lead">your whole journal, run for you inside a per-owner sealed container that even sol pbc can’t see into.</p>
+${BRANDLOCK}
+<div class="card">
+  ${beat(IC_VAULT, 'the whole journal, run for you', 'not just a copy or a way in — your entire journal runs inside the sealed container, so you don’t have to run anything yourself.')}
+  ${beat(IC_NET, 'hardware-sealed', 'it runs inside a hardware-attested AMD SEV-SNP container. sol pbc operates the box but cannot open it.')}
+  ${beat(IC_GLOBE, 'mathematical, not contractual', 'you can verify your own enclave. the privacy is enforced by hardware, not promised by policy.')}
+</div>
+<div class="card">
+  <div class="statusline"><span class="tag soon">coming soon</span><span>this isn’t available yet — pricing at launch.</span></div>
+</div>
+<p class="disclosure"><a href="/terms">terms</a></p>`,
+  });
+}
+
+export function renderScoutLanding() {
+  return layout({
+    title: 'solstone scout',
+    body: brandbarSignin()
+      + `\n<a class="back" href="/">${BACK_SVG} services</a>
+<h1>solstone scout</h1>
+<p class="lead">join the solstone alpha — we set you up with a Google Gemini key on your device so sol can think, and bring you into the tester cohort.</p>
+${BRANDLOCK}
+<div class="card">
+  ${beat(IC_PASSKEY_SVG, 'a key on your device', 'sol pbc creates a Gemini key for you and puts it on your device. the key is yours and never leaves it.')}
+  ${beat(IC_SCOUT_SVG, 'never in the middle', 'sol pbc sets it up but never sits between you and Gemini, and never sees what you ask sol.')}
+  ${beat(IC_GLOBE, 'the alpha cohort', 'scout testers get early features and a direct line to tell us what they’re seeing.')}
+</div>
+<div class="card">
+  <div class="pricecard">
+    <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">· alpha, invite-only</span></span></div></div>
+    <a class="btn primary" href="/?signin">request access</a>
+  </div>
+  <p class="free-note" style="margin:14px 0 0">your questions to sol go straight to Google Gemini under Google’s terms. sol pbc sets up the key but never sits between you and Gemini.</p>
+</div>
+<p class="disclosure"><a href="/terms">terms</a></p>`,
   });
 }
 
