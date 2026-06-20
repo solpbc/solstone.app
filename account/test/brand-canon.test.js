@@ -36,6 +36,9 @@ const FORBIDDEN_PHRASES = [
   'your service plan',
   'free trial',
   'service status: trial',
+  'solstone host',
+  'solstone hosted',
+  'private link',
 ];
 
 const SERVICE_VERBS = [
@@ -126,6 +129,8 @@ describe('brand canon', () => {
       ['scout empty', await get('/scout', testEnv, noScoutSession.cookie), true],
       ['spl active', await get('/services/spl', testEnv, splActiveSession.cookie), true],
       ['spl empty', await get('/services/spl', testEnv, splEmptySession.cookie), true],
+      ['private-network active', await get('/private-network', testEnv, splActiveSession.cookie), true],
+      ['private-network empty', await get('/private-network', testEnv, splEmptySession.cookie), true],
       ['devices', await get('/devices', testEnv, withPasskeySession.cookie), true],
       ['support list', await get('/support', testEnv, withPasskeySession.cookie), true],
       ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],

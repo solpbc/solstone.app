@@ -582,66 +582,72 @@ ${BRANDLOCK}
   });
 }
 
-export function renderServicesSpl({ entitlement, csrf, flash = {}, menu }) {
+export function renderServicesSpl({ entitlement, csrf, flash = {}, menu, deviceCount = 0, lastSeen = null, nowMs }) {
   const flashes = billingFlashMessages(flash);
   const status = entitlement?.status || '';
-  const isManage = status === 'active' || status === 'past_due';
-  const isPastDue = status === 'past_due';
-  const isSubscribe = !isManage;
+  const detailParts = [];
+  if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
+  if (lastSeen != null) detailParts.push(`last seen ${formatRelativeTime(lastSeen, nowMs)}`);
+  detailParts.push(`${deviceCount} device${deviceCount === 1 ? '' : 's'} reaching your journal`);
+  const statusDetail = detailParts.join(' · ');
+  const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;your private network is on';
+  const controlGroup = `<div class="group">
+  <div class="row" style="cursor:default">${IC_NET}<div class="body"><div class="title">your private network</div><div class="desc">${esc(statusDetail)}</div></div></div>
+</div>`;
   const page = ({ statusLine = '', content }) => layout({
-    title: 'solstone hosted — private link',
+    title: 'private network',
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 ${flashes}
 <div class="pagehead">
-  <h1>solstone hosted — private link</h1>
+  <h1>private network</h1>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}
-<p class="disclosure"><a href="/terms">terms</a></p>`,
+${content}`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
     return page({
-      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>active</span>',
-      content: `<div class="card">
-  <p>solstone is hosting your private link relay, free, while you're an approved scout.</p>
-  <p class="disclosure">lan-direct and bring-your-own relays are always free, anytime.</p>
-</div>`,
+      statusLine: onStatusLine,
+      content: `${controlGroup}
+<p class="disclosure" style="margin-top:24px">free while you're an approved scout · on your own network — same wifi, your own vpn — reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
-  if (isSubscribe) {
+  if (status === 'active') {
     return page({
-      content: `<p class="lead">let solstone host your private link relay, so it stays reachable when your devices are asleep or away from home.</p>
+      statusLine: onStatusLine,
+      content: `${controlGroup}
+<div class="btn-row" style="margin-top:16px">
+  ${billingPortalForm({ csrf })}
+  ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger' })}
+</div>
+<p class="disclosure" style="margin-top:24px">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · billed through stripe. on your own network — same wifi, your own vpn — reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+    });
+  }
+
+  if (status === 'past_due') {
+    return page({
+      statusLine: onStatusLine,
+      content: `${controlGroup}
+<p class="notice">your last payment didn't go through. manage billing to keep your private network reachable while you're away — your own network stays free either way.</p>
+<div class="btn-row" style="margin-top:16px">
+  ${billingPortalForm({ csrf })}
+  ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger' })}
+</div>
+<p class="disclosure" style="margin-top:24px">billed through stripe. on your own network — same wifi, your own vpn — reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+    });
+  }
+
+  return page({
+    content: `<p class="lead">sol pbc runs a blind relay so your devices stay reachable when they're asleep or away from home.</p>
 <div class="card">
-  <p>you never have to pay us. lan-direct and bring-your-own relays are always free — this only covers letting solstone host the relay for you.</p>
+  <p>you never have to pay us. on your own network — same wifi, your own vpn — reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
   <div class="group">
     ${billingCheckoutRow({ csrf, plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true })}
     ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false })}
   </div>
   <p class="disclosure">billed securely through stripe.</p>
-</div>`,
-    });
-  }
-
-  if (isPastDue) {
-    return page({
-      statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>renewal needs attention</span>',
-      content: `<div class="card">
-  <p>the last payment didn't go through. solstone keeps hosting your relay for now — renew to keep it running. lan-direct still works either way.</p>
-  ${billingPortalForm(csrf)}
-</div>`,
-    });
-  }
-
-  return page({
-    statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>active</span>',
-    content: `<div class="card">
-  <p>solstone is hosting your private link relay.</p>
-  <p class="notice">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))}</p>
-  ${billingPortalForm(csrf)}
-  <p class="disclosure">lan-direct and bring-your-own relays are always free, anytime.</p>
 </div>`,
   });
 }
@@ -650,15 +656,15 @@ export function renderBillingReturn({ status, menu }) {
   const success = status === 'success';
   const message = success
     ? 'payment received. it can take a moment to show up here.'
-    : 'no charge made. you can set up hosting anytime — lan-direct and bring-your-own stay free.';
+    : 'no charge made. you can turn on the relay anytime — on your own network, reaching your journal is always free.';
   return layout({
-    title: 'solstone hosted',
+    title: 'private network',
     body: `${topbar(menu)}
-<a class="back" href="/services/spl">${BACK_SVG} solstone hosted</a>
+<a class="back" href="/services/spl">${BACK_SVG} your private network</a>
 <div class="card">
-  <h1>solstone hosted — private link</h1>
+  <h1>private network</h1>
   <p>${esc(message)}</p>
-  <a class="btn secondary" href="/services/spl">back to solstone hosted</a>
+  <a class="btn secondary" href="/services/spl">back to your private network</a>
 </div>`,
   });
 }
@@ -1465,10 +1471,10 @@ function billingCheckoutRow({ csrf, plan, title, buttonText, primary }) {
 </div>`;
 }
 
-function billingPortalForm(csrf) {
+function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary' }) {
   return `<form method="post" action="/billing/portal">
   <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-  <button class="btn primary" type="submit">manage billing</button>
+  <button class="${buttonClass}" type="submit">${esc(buttonText)}</button>
 </form>`;
 }
 

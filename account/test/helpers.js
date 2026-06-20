@@ -570,23 +570,25 @@ export async function seedEntitlement({
   currentPeriodEnd = 1_800_000_000,
   source = 'stripe',
   sourceRef = 'sub_seeded',
+  enabledAt = null,
   updatedAt = Date.now(),
 } = {}) {
   await env.DB
     .prepare(
       `INSERT INTO entitlements (
-         account_id, service, status, current_period_end, source, source_ref, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+         account_id, service, status, current_period_end, source, source_ref, enabled_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(account_id, service) DO UPDATE SET
          status = excluded.status,
          current_period_end = excluded.current_period_end,
          source = excluded.source,
          source_ref = excluded.source_ref,
+         enabled_at = excluded.enabled_at,
          updated_at = excluded.updated_at`
     )
-    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, updatedAt)
+    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, updatedAt)
     .run();
-  return { accountId, service, status, currentPeriodEnd, source, sourceRef, updatedAt };
+  return { accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, updatedAt };
 }
 
 export async function seedSplBinding({

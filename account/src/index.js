@@ -453,7 +453,9 @@ export default {
       }
 
       if (url.pathname === '/private-network' && req.method === 'GET') {
-        return html(renderPrivateNetworkLanding());
+        const session = await getValidSession(req, env, Date.now());
+        if (!session) return html(renderPrivateNetworkLanding());
+        return handleServicesSpl(req, env);
       }
 
       if (url.pathname === '/backup' && req.method === 'GET') {

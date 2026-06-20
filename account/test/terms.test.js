@@ -34,7 +34,7 @@ describe('terms page', () => {
     expect(body).not.toContain('`');
   });
 
-  it('links to terms from solstone hosted subscribe and active surfaces', async () => {
+  it('links to terms from private network subscribe and active surfaces', async () => {
     const testEnv = makeTestEnv();
     const subscribeAccount = await seedAccount({ email: 'terms-subscribe@example.com', testEnv });
     const subscribeSession = await seedSession(subscribeAccount.accountId, { testEnv });

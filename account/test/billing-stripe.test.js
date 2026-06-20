@@ -233,19 +233,19 @@ describe('billing stripe core', () => {
     await seedEntitlement({ accountId: account.accountId, status: 'active', currentPeriodEnd: 1_800_000_000 });
     const active = await get('/services/spl', testEnv, session.cookie);
     const activeHtml = await active.text();
-    expect(activeHtml).toContain('active');
+    expect(activeHtml).toContain('your private network is on');
     expect(activeHtml).toContain('renews 2027-01-15');
     expect(activeHtml).toContain('manage billing');
 
     await seedEntitlement({ accountId: account.accountId, status: 'past_due', currentPeriodEnd: 1_800_000_000 });
     const pastDue = await get('/services/spl', testEnv, session.cookie);
-    expect(await pastDue.text()).toContain("the last payment didn't go through");
+    expect(await pastDue.text()).toContain("your last payment didn't go through");
 
     const returned = await get('/billing/return?status=success', testEnv, session.cookie);
     expect(await returned.text()).toContain('payment received. it can take a moment to show up here.');
   });
 
-  it('renders comped scout hosting without renewal or billing management', async () => {
+  it('renders comped scout private network without renewal or billing management', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'render-comp@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -261,7 +261,8 @@ describe('billing stripe core', () => {
     const html = await response.text();
 
     expect(response.status).toBe(200);
-    expect(html).toContain("solstone is hosting your private link relay, free, while you're an approved scout.");
+    expect(html).toContain("free while you're an approved scout");
+    expect(html).toContain('your private network is on');
     expect(html).not.toContain('renews');
     expect(html).not.toContain('action="/billing/portal"');
   });

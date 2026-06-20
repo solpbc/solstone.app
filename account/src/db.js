@@ -416,6 +416,18 @@ export async function countActiveDevices(db, accountId) {
   return Number(row?.c || 0);
 }
 
+export async function getRelayDeviceSignal(db, accountId) {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS count, MAX(last_seen_at) AS lastSeenAt
+       FROM account_devices
+       WHERE account_id = ? AND revoked_at IS NULL`
+    )
+    .bind(accountId)
+    .first();
+  return { count: Number(row?.count || 0), lastSeenAt: row?.lastSeenAt ?? null };
+}
+
 export async function getDeviceById(db, deviceId) {
   const row = await db
     .prepare('SELECT device_id, account_id, revoked_at FROM account_devices WHERE device_id = ?')
@@ -923,7 +935,7 @@ export async function setScoutApplicationDataAcked(db, { accountId, nowMs }) {
 export async function getEntitlement(db, { accountId, service }) {
   const row = await db
     .prepare(
-      `SELECT account_id, service, status, current_period_end, source, source_ref, updated_at
+      `SELECT account_id, service, status, current_period_end, source, source_ref, enabled_at, updated_at
        FROM entitlements
        WHERE account_id = ? AND service = ?`
     )
@@ -941,19 +953,21 @@ export async function upsertEntitlement(db, {
   sourceRef,
   nowMs,
 }) {
+  const enabledAt = status === 'active' ? nowMs : null;
   await db
     .prepare(
       `INSERT INTO entitlements (
-         account_id, service, status, current_period_end, source, source_ref, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+         account_id, service, status, current_period_end, source, source_ref, enabled_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(account_id, service) DO UPDATE SET
          status = excluded.status,
          current_period_end = COALESCE(excluded.current_period_end, entitlements.current_period_end),
          source = excluded.source,
          source_ref = COALESCE(excluded.source_ref, entitlements.source_ref),
+         enabled_at = COALESCE(entitlements.enabled_at, excluded.enabled_at),
          updated_at = excluded.updated_at`
     )
-    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, nowMs)
+    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, nowMs)
     .run();
 }
 
