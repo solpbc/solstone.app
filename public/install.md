@@ -33,7 +33,7 @@ journal setup
 
 `solstone[journal]` bundles everything a journal host needs — the default CPU transcription runtime is included and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install `solstone[journal-cuda]` **instead of** `solstone[journal]` (pick one — the CPU and GPU runtimes must not both install).
 
-want only the thin `sol` client — to talk to a journal running elsewhere (a second machine, or a journal you reach over your private link)? install bare `solstone` (no extras), or run it ephemerally with `uvx`:
+want only the thin `sol` client — to talk to a journal running elsewhere (a second device, or a journal you reach over your private network)? install bare `solstone` (no extras), or run it ephemerally with `uvx`:
 
 ```bash
 uv tool install solstone        # the sol client, on PATH

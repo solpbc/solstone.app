@@ -274,13 +274,13 @@ then read INSTALL.md and follow it.</pre>
             </div>
             <pre class="blurb" id="blurb-linux">install the solstone-linux observer — it experiences your screen and audio along with you on linux desktops using PipeWire and GStreamer, and sends to your journal.
 
-on the machine that will host the observer:
+on the device that will host the observer:
 
 pipx install solstone-linux
 solstone-linux install-service
 solstone-linux setup
 
-`setup` registers the observer against your journal over the local http://localhost:5015 link, so there's no URL to type. if this machine reaches your solstone host directly instead, run `solstone-linux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
+`setup` registers the observer against your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your solstone host directly instead, run `solstone-linux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
@@ -320,13 +320,13 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux
             </div>
             <pre class="blurb" id="blurb-tmux">install the solstone-tmux observer — it experiences your tmux sessions along with you, taking in what's on each pane every 5 seconds. lightweight, pure python, no system dependencies.
 
-on the machine that will host the observer:
+on the device that will host the observer:
 
 pipx install solstone-tmux
 solstone-tmux install-service
 solstone-tmux setup
 
-`setup` registers the observer against your journal over the local http://localhost:5015 link, so there's no URL to type. if this machine reaches your solstone host directly instead, run `solstone-tmux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
+`setup` registers the observer against your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your solstone host directly instead, run `solstone-tmux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
