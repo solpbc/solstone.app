@@ -194,7 +194,7 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <div class="n">2</div>
     <div>
       <div class="gt">enable solstone scout</div>
-      <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this device. the key is yours and it stays here. sol pbc sets it up — it never sits between you and Gemini, and never sees what you ask sol.</div>
+      <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this device. the key is yours and it stays on your device. sol pbc sets it up — it never sits between you and Gemini, and never sees what you ask sol.</div>
     </div>
   </div>
   <form method="post" action="/enable/scout/confirm">
@@ -914,7 +914,7 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '', menu 
   <div class="empty">
     ${IC_PUSH_SVG}
     <h2>notifications aren't on yet</h2>
-    <p>turn it on from solstone on your device — it opens this page so you can confirm, then sol can reach your other devices.</p>
+    <p>turn it on from solstone on your device — it opens this page so you can confirm, then sol can reach your devices.</p>
     <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable push</strong> — or turn it on from the solstone app.</div>
   </div>
 </div>`
