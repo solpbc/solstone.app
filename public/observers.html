@@ -276,9 +276,11 @@ then read INSTALL.md and follow it.</pre>
 
 on the device that will host the observer:
 
-pipx install solstone-linux
+pipx install --system-site-packages solstone-linux
 solstone-linux install-service
 solstone-linux setup
+
+the `--system-site-packages` flag is required — it reuses your distro's system PyGObject/GStreamer bindings (install them first per the repo's INSTALL.md) instead of rebuilding PyGObject from source, which fails on most distros with a `girepository-2.0` build error.
 
 `setup` registers the observer against your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your solstone host directly instead, run `solstone-linux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
 
