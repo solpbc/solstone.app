@@ -107,6 +107,10 @@ RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"
 R2_BUCKET = "solstone-backups"
+# spb operated tier LAUNCHED 2026-06-23 (founder go): broker minting + the 30-day
+# lapse sweep are live. Set to anything other than "true" to dark-disable instantly.
+SPB_MINT_ENABLED = "true"
+SPB_SWEEP_ENABLED = "true"
 
 [triggers]
 crons = ["0 */6 * * *", "0 3 * * *"]
