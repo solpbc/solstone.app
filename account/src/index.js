@@ -78,6 +78,7 @@ import {
 import {
   renderError,
   renderBackupLanding,
+  renderBackupTerms,
   renderForbidden,
   renderGoodbye,
   renderLanding,
@@ -434,7 +435,7 @@ export default {
       if (
         parts.length === 3 &&
         parts[1] === 'enable' &&
-        parts[2] === 'spb' &&
+        parts[2] === 'backup' &&
         req.method === 'GET'
       ) {
         return handleEnableSpbGet(req, env, ctx);
@@ -443,7 +444,7 @@ export default {
       if (
         parts.length === 4 &&
         parts[1] === 'enable' &&
-        parts[2] === 'spb' &&
+        parts[2] === 'backup' &&
         parts[3] === 'confirm' &&
         req.method === 'POST'
       ) {
@@ -453,7 +454,7 @@ export default {
       if (
         parts.length === 3 &&
         parts[1] === 'handoff' &&
-        parts[2] === 'spb' &&
+        parts[2] === 'backup' &&
         req.method === 'GET'
       ) {
         return handleHandoffSpb(req, env, ctx);
@@ -499,8 +500,12 @@ export default {
         return handleServicesSpl(req, env);
       }
 
-      if (url.pathname === '/services/spb' && req.method === 'GET') {
+      if (url.pathname === '/services/backup' && req.method === 'GET') {
         return handleServicesSpb(req, env);
+      }
+
+      if (url.pathname === '/services/backup/terms' && req.method === 'GET') {
+        return html(renderBackupTerms());
       }
 
       if (url.pathname === '/backup' && req.method === 'GET') {
@@ -834,7 +839,7 @@ export default {
       if (
         parts.length === 4 &&
         parts[1] === 'services' &&
-        parts[2] === 'spb' &&
+        parts[2] === 'backup' &&
         parts[3] === 'checkout' &&
         req.method === 'POST'
       ) {
@@ -844,7 +849,7 @@ export default {
       if (
         parts.length === 4 &&
         parts[1] === 'services' &&
-        parts[2] === 'spb' &&
+        parts[2] === 'backup' &&
         parts[3] === 'portal' &&
         req.method === 'POST'
       ) {

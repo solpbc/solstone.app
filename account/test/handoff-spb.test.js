@@ -22,7 +22,7 @@ const SPB_PAYLOAD = {
   status: 'approved',
 };
 
-describe('/handoff/spb', () => {
+describe('/handoff/backup', () => {
   beforeEach(async () => {
     await resetDb();
   });
@@ -33,7 +33,7 @@ describe('/handoff/spb', () => {
 
   it('rejects malformed nonces without setting cookies or varying by cookie', async () => {
     const response = await worker.fetch(
-      new Request('https://services.solstone.app/handoff/spb?nonce=bad'),
+      new Request('https://services.solstone.app/handoff/backup?nonce=bad'),
       makeTestEnv()
     );
 
@@ -50,12 +50,12 @@ describe('/handoff/spb', () => {
     await insertHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: SPB_PAYLOAD });
     try {
       const first = await worker.fetch(
-        new Request(`https://services.solstone.app/handoff/spb?nonce=${VALID_NONCE}`),
+        new Request(`https://services.solstone.app/handoff/backup?nonce=${VALID_NONCE}`),
         testEnv
       );
       const body = await first.json();
       const second = await worker.fetch(
-        new Request(`https://services.solstone.app/handoff/spb?nonce=${VALID_NONCE}`),
+        new Request(`https://services.solstone.app/handoff/backup?nonce=${VALID_NONCE}`),
         testEnv
       );
 
@@ -79,8 +79,8 @@ describe('/handoff/spb', () => {
     await insertHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: SPB_PAYLOAD });
     try {
       const [first, second] = await Promise.all([
-        worker.fetch(new Request(`https://services.solstone.app/handoff/spb?nonce=${VALID_NONCE}`), testEnv),
-        worker.fetch(new Request(`https://services.solstone.app/handoff/spb?nonce=${VALID_NONCE}`), testEnv),
+        worker.fetch(new Request(`https://services.solstone.app/handoff/backup?nonce=${VALID_NONCE}`), testEnv),
+        worker.fetch(new Request(`https://services.solstone.app/handoff/backup?nonce=${VALID_NONCE}`), testEnv),
       ]);
       const ok = [first, second].filter((response) => response.status === 200);
       const gone = [first, second].filter((response) => response.status === 410);
@@ -98,7 +98,7 @@ describe('/handoff/spb', () => {
   it('returns 204 after the long-poll budget when no spb handoff exists', async () => {
     vi.useFakeTimers();
     const pending = worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spb?nonce=${VALID_NONCE}`),
+      new Request(`https://services.solstone.app/handoff/backup?nonce=${VALID_NONCE}`),
       makeTestEnv()
     );
     await Promise.resolve();
@@ -153,15 +153,15 @@ describe('/handoff/spb', () => {
     });
 
     const scoutPending = worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spb?nonce=${VALID_NONCE}`),
+      new Request(`https://services.solstone.app/handoff/backup?nonce=${VALID_NONCE}`),
       testEnv
     );
     const pushPending = worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spb?nonce=${OTHER_NONCE}`),
+      new Request(`https://services.solstone.app/handoff/backup?nonce=${OTHER_NONCE}`),
       testEnv
     );
     const splPending = worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spb?nonce=${THIRD_NONCE}`),
+      new Request(`https://services.solstone.app/handoff/backup?nonce=${THIRD_NONCE}`),
       testEnv
     );
     await Promise.resolve();
@@ -180,11 +180,11 @@ describe('/handoff/spb', () => {
     await insertHandoff({ testEnv, accountId: account.accountId, nonce: OTHER_NONCE, payload: SPB_PAYLOAD });
 
     const noCookie = await responseSnapshot(await worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spb?nonce=${VALID_NONCE}`),
+      new Request(`https://services.solstone.app/handoff/backup?nonce=${VALID_NONCE}`),
       testEnv
     ));
     const withCookie = await responseSnapshot(await worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spb?nonce=${OTHER_NONCE}`, {
+      new Request(`https://services.solstone.app/handoff/backup?nonce=${OTHER_NONCE}`, {
         headers: { Cookie: 'account_session=unrelated' },
       }),
       testEnv

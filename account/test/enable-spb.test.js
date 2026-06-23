@@ -20,7 +20,7 @@ const VALID_INSTANCE = '11111111-1111-1111-1111-111111111111';
 const OTHER_INSTANCE = '22222222-2222-2222-2222-222222222222';
 const SPB_SERVICE = 'spb_hosted';
 
-describe('/enable/spb', () => {
+describe('/enable/backup', () => {
   beforeEach(async () => {
     await resetDb();
   });
@@ -49,25 +49,25 @@ describe('/enable/spb', () => {
   it('redirects signed-out requests through the byte-preserving resume flow', async () => {
     const testEnv = makeTestEnv();
     const query = `?nonce=${VALID_NONCE}`;
-    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/spb${query}`), testEnv);
+    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/backup${query}`), testEnv);
     const location = new URL(response.headers.get('Location'), 'https://services.solstone.app');
     const resume = await verifyEnableResume(location.searchParams.get('next'), location.searchParams.get('next_sig'), testEnv);
 
     expect(response.status).toBe(303);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(location.pathname).toBe('/');
-    expect(resume).toEqual({ path: '/enable/spb', queryString: query });
+    expect(resume).toEqual({ path: '/enable/backup', queryString: query });
   });
 
   it('redirects signed-out requests with a valid instance in the resume flow', async () => {
     const testEnv = makeTestEnv();
     const query = `?nonce=${VALID_NONCE}&instance=${VALID_INSTANCE}`;
-    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/spb${query}`), testEnv);
+    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/backup${query}`), testEnv);
     const location = new URL(response.headers.get('Location'), 'https://services.solstone.app');
     const resume = await verifyEnableResume(location.searchParams.get('next'), location.searchParams.get('next_sig'), testEnv);
 
     expect(response.status).toBe(303);
-    expect(resume).toEqual({ path: '/enable/spb', queryString: query });
+    expect(resume).toEqual({ path: '/enable/backup', queryString: query });
   });
 
   it('renders signed-in consent with hidden csrf, nonce, and valid instance fields', async () => {
@@ -102,7 +102,7 @@ describe('/enable/spb', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).not.toContain('name="instance"');
-      expect(body).toContain('<a href="/services/spb">set up encrypted backup</a> — sol pbc keeps the encrypted copy for you.');
+      expect(body).toContain('<a href="/services/backup">set up encrypted backup</a> — sol pbc keeps the encrypted copy for you.');
     }
   });
 
@@ -157,7 +157,7 @@ describe('/enable/spb', () => {
       prefix: `users/${account.accountId}/${VALID_INSTANCE}/`,
       broker_token: expect.any(String),
       status: 'needs_subscription',
-      subscribe_url: 'https://services.solstone.app/services/spb',
+      subscribe_url: 'https://services.solstone.app/services/backup',
     });
     expect(binding).toMatchObject({
       account_id: account.accountId,
@@ -282,7 +282,7 @@ function spbUrl(overrides = {}) {
     nonce: VALID_NONCE,
     ...overrides,
   });
-  return `https://services.solstone.app/enable/spb?${params.toString()}`;
+  return `https://services.solstone.app/enable/backup?${params.toString()}`;
 }
 
 function confirmRequest({
@@ -304,7 +304,7 @@ function confirmRequest({
     'Content-Type': 'application/x-www-form-urlencoded',
   };
   if (cookie) headers.Cookie = cookie;
-  return new Request('https://services.solstone.app/enable/spb/confirm', {
+  return new Request('https://services.solstone.app/enable/backup/confirm', {
     method: 'POST',
     headers,
     body,
@@ -319,7 +319,7 @@ function repeatedInstanceConfirmRequest(cookie) {
   });
   body.append('instance', VALID_INSTANCE);
   body.append('instance', OTHER_INSTANCE);
-  return new Request('https://services.solstone.app/enable/spb/confirm', {
+  return new Request('https://services.solstone.app/enable/backup/confirm', {
     method: 'POST',
     headers: {
       Origin: 'https://services.solstone.app',

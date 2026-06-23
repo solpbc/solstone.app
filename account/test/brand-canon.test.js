@@ -142,8 +142,8 @@ describe('brand canon', () => {
       ['scout empty', await get('/scout', testEnv, noScoutSession.cookie), true],
       ['private-network active', await get('/private-network', testEnv, splActiveSession.cookie), true],
       ['private-network empty', await get('/private-network', testEnv, splEmptySession.cookie), true],
-      ['encrypted backup active', await get('/services/spb', testEnv, spbActiveSession.cookie), true],
-      ['encrypted backup empty', await get('/services/spb', testEnv, spbEmptySession.cookie), true],
+      ['encrypted backup active', await get('/services/backup', testEnv, spbActiveSession.cookie), true],
+      ['encrypted backup empty', await get('/services/backup', testEnv, spbEmptySession.cookie), true],
       ['devices', await get('/devices', testEnv, withPasskeySession.cookie), true],
       ['support list', await get('/support', testEnv, withPasskeySession.cookie), true],
       ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],
@@ -204,21 +204,21 @@ describe('brand canon', () => {
     const spbEntitledAccount = await seedAccount({ email: 'spb-entitled-canon@example.com', testEnv });
     const spbEntitledSession = await seedSession(spbEntitledAccount.accountId, { testEnv });
     await seedEntitlement({ accountId: spbEntitledAccount.accountId, service: 'spb_hosted', status: 'active' });
-    const spbUnentitledConsent = await get(`/enable/spb?nonce=${VALID_SPB_NONCE}`, testEnv, spbSession.cookie);
-    const spbNeedsSubscription = await post('/enable/spb/confirm', testEnv, new URLSearchParams({
+    const spbUnentitledConsent = await get(`/enable/backup?nonce=${VALID_SPB_NONCE}`, testEnv, spbSession.cookie);
+    const spbNeedsSubscription = await post('/enable/backup/confirm', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       nonce: VALID_SPB_NONCE,
       instance: VALID_SPB_INSTANCE,
       action: 'allow',
     }), spbSession.cookie);
-    const spbEntitledConsent = await get(`/enable/spb?nonce=${VALID_SPB_ENTITLED_NONCE}&instance=${VALID_SPB_INSTANCE}`, testEnv, spbEntitledSession.cookie);
-    const spbApproved = await post('/enable/spb/confirm', testEnv, new URLSearchParams({
+    const spbEntitledConsent = await get(`/enable/backup?nonce=${VALID_SPB_ENTITLED_NONCE}&instance=${VALID_SPB_INSTANCE}`, testEnv, spbEntitledSession.cookie);
+    const spbApproved = await post('/enable/backup/confirm', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       nonce: VALID_SPB_ENTITLED_NONCE,
       instance: VALID_SPB_INSTANCE,
       action: 'allow',
     }), spbEntitledSession.cookie);
-    const spbError = await get('/enable/spb', testEnv);
+    const spbError = await get('/enable/backup', testEnv);
 
     expect('your sign-in').not.toMatch(enableSurfaceStrictRe);
     for (const [name, response] of [

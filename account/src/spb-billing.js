@@ -20,7 +20,7 @@ import {
 import { SPB_HOSTED_SERVICE as SERVICE } from './spb-entitlement.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
-const SPB_SERVICE_PATH = '/services/spb';
+const SPB_SERVICE_PATH = '/services/backup';
 const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}${SPB_SERVICE_PATH}?checkout=success`;
 const CHECKOUT_CANCEL_URL = `${PUBLIC_ORIGIN}${SPB_SERVICE_PATH}?checkout=cancel`;
 const PORTAL_RETURN_URL = `${PUBLIC_ORIGIN}${SPB_SERVICE_PATH}`;

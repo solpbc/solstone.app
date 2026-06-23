@@ -34,6 +34,16 @@ describe('terms page', () => {
     expect(body).not.toContain('`');
   });
 
+  it('serves the public backup terms page without a session', async () => {
+    const testEnv = makeTestEnv();
+    const response = await get('/services/backup/terms', testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(body).toContain('operated tier of encrypted backup');
+  });
+
   it('links to terms from private network subscribe and active surfaces', async () => {
     const testEnv = makeTestEnv();
     const subscribeAccount = await seedAccount({ email: 'terms-subscribe@example.com', testEnv });

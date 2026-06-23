@@ -64,7 +64,7 @@ const HANDOFF_POLL_BUDGET_MS = 30_000;
 const ENABLE_PATH = '/enable/scout';
 const ENABLE_PUSH_PATH = '/enable/push';
 const ENABLE_SPL_PATH = '/enable/spl';
-const ENABLE_SPB_PATH = '/enable/spb';
+const ENABLE_SPB_PATH = '/enable/backup';
 const GEMINI_PROVIDER = 'gemini';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -588,7 +588,7 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
     broker_token: brokerToken,
     status: entitled ? 'approved' : 'needs_subscription',
   };
-  if (!entitled) payload.subscribe_url = `${origin}/services/spb`;
+  if (!entitled) payload.subscribe_url = `${origin}/services/backup`;
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
   try {
     const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);

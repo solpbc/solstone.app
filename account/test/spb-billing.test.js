@@ -25,8 +25,8 @@ describe('spb encrypted backup billing', () => {
     vi.restoreAllMocks();
   });
 
-  it('redirects signed-out /services/spb through the signed-in guard', async () => {
-    const response = await worker.fetch(new Request('https://services.solstone.app/services/spb'), makeTestEnv());
+  it('redirects signed-out /services/backup through the signed-in guard', async () => {
+    const response = await worker.fetch(new Request('https://services.solstone.app/services/backup'), makeTestEnv());
 
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe('/');
@@ -38,11 +38,11 @@ describe('spb encrypted backup billing', () => {
     const account = await seedAccount({ email: 'spb-render@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const subscribe = await get('/services/spb', testEnv, session.cookie);
+    const subscribe = await get('/services/backup', testEnv, session.cookie);
     const subscribeHtml = await subscribe.text();
     expect(subscribe.status).toBe(200);
     expect(subscribeHtml).toContain('encrypted backup');
-    expect(subscribeHtml).toContain('action="/services/spb/checkout"');
+    expect(subscribeHtml).toContain('action="/services/backup/checkout"');
     expect(subscribeHtml).toContain('pay yearly');
 
     await seedEntitlement({
@@ -51,12 +51,12 @@ describe('spb encrypted backup billing', () => {
       status: 'active',
       currentPeriodEnd: 1_800_000_000,
     });
-    const active = await get('/services/spb?checkout=success', testEnv, session.cookie);
+    const active = await get('/services/backup?checkout=success', testEnv, session.cookie);
     const activeHtml = await active.text();
     expect(activeHtml).toContain('payment received. it can take a moment to show up here.');
     expect(activeHtml).toContain('your encrypted backup is on');
     expect(activeHtml).toContain('renews 2027-01-15');
-    expect(activeHtml).toContain('action="/services/spb/portal"');
+    expect(activeHtml).toContain('action="/services/backup/portal"');
 
     await seedEntitlement({
       accountId: account.accountId,
@@ -66,10 +66,10 @@ describe('spb encrypted backup billing', () => {
       source: 'comp',
       sourceRef: null,
     });
-    const comped = await get('/services/spb', testEnv, session.cookie);
+    const comped = await get('/services/backup', testEnv, session.cookie);
     const compedHtml = await comped.text();
     expect(compedHtml).toContain("free while you're an approved scout");
-    expect(compedHtml).not.toContain('action="/services/spb/portal"');
+    expect(compedHtml).not.toContain('action="/services/backup/portal"');
 
     await seedEntitlement({
       accountId: account.accountId,
@@ -77,7 +77,7 @@ describe('spb encrypted backup billing', () => {
       status: 'past_due',
       currentPeriodEnd: 1_800_000_000,
     });
-    const pastDue = await get('/services/spb?checkout=cancel&billing=missing', testEnv, session.cookie);
+    const pastDue = await get('/services/backup?checkout=cancel&billing=missing', testEnv, session.cookie);
     const pastDueHtml = await pastDue.text();
     expect(pastDueHtml).toContain("your last payment didn't go through");
     expect(pastDueHtml).toContain('no charge made.');
@@ -92,7 +92,7 @@ describe('spb encrypted backup billing', () => {
       'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_spb', url: 'https://checkout.stripe.test/spb-session' }),
     });
 
-    const annual = await postForm('/services/spb/checkout', testEnv, new URLSearchParams({
+    const annual = await postForm('/services/backup/checkout', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       plan: 'annual',
     }), session.cookie);
@@ -102,12 +102,12 @@ describe('spb encrypted backup billing', () => {
     expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('spb');
     expect(calls[0].body.get('subscription_data[metadata][account_id]')).toBe(account.accountId);
     expect(calls[0].body.get('line_items[0][price]')).toBe(testEnv.STRIPE_PRICE_SPB_ANNUAL);
-    expect(calls[0].body.get('success_url')).toBe('https://services.solstone.app/services/spb?checkout=success');
-    expect(calls[0].body.get('cancel_url')).toBe('https://services.solstone.app/services/spb?checkout=cancel');
+    expect(calls[0].body.get('success_url')).toBe('https://services.solstone.app/services/backup?checkout=success');
+    expect(calls[0].body.get('cancel_url')).toBe('https://services.solstone.app/services/backup?checkout=cancel');
     expect(calls[0].body.get('customer_email')).toBe('spb-checkout@example.com');
 
     await seedStripeCustomer(account.accountId, 'cus_spb_existing');
-    const monthly = await postForm('/services/spb/checkout', testEnv, new URLSearchParams({
+    const monthly = await postForm('/services/backup/checkout', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       plan: 'monthly',
     }), session.cookie);
@@ -125,41 +125,41 @@ describe('spb encrypted backup billing', () => {
       'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_without_url' }),
     });
 
-    const invalid = await postForm('/services/spb/checkout', testEnv, new URLSearchParams({
+    const invalid = await postForm('/services/backup/checkout', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       plan: 'weekly',
     }), session.cookie);
     expect(invalid.status).toBe(303);
-    expect(invalid.headers.get('Location')).toBe('/services/spb?checkout=invalid');
+    expect(invalid.headers.get('Location')).toBe('/services/backup?checkout=invalid');
     expect(calls).toHaveLength(0);
 
     await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 1_000 });
-    const comped = await postForm('/services/spb/checkout', testEnv, new URLSearchParams({
+    const comped = await postForm('/services/backup/checkout', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       plan: 'annual',
     }), session.cookie);
     expect(comped.status).toBe(303);
-    expect(comped.headers.get('Location')).toBe('/services/spb?checkout=comped');
+    expect(comped.headers.get('Location')).toBe('/services/backup?checkout=comped');
     expect(calls).toHaveLength(0);
 
     const other = await seedAccount({ email: 'spb-no-email@example.com', testEnv });
     const otherSession = await seedSession(other.accountId, { testEnv });
     await workerEnv.DB.prepare('UPDATE accounts SET primary_email_id = NULL WHERE id = ?').bind(other.accountId).run();
-    const noEmail = await postForm('/services/spb/checkout', testEnv, new URLSearchParams({
+    const noEmail = await postForm('/services/backup/checkout', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       plan: 'annual',
     }), otherSession.cookie);
     expect(noEmail.status).toBe(303);
-    expect(noEmail.headers.get('Location')).toBe('/services/spb?checkout=email');
+    expect(noEmail.headers.get('Location')).toBe('/services/backup?checkout=email');
 
     const errorAccount = await seedAccount({ email: 'spb-error@example.com', testEnv });
     const errorSession = await seedSession(errorAccount.accountId, { testEnv });
-    const stripeError = await postForm('/services/spb/checkout', testEnv, new URLSearchParams({
+    const stripeError = await postForm('/services/backup/checkout', testEnv, new URLSearchParams({
       csrf: TEST_CSRF,
       plan: 'annual',
     }), errorSession.cookie);
     expect(stripeError.status).toBe(303);
-    expect(stripeError.headers.get('Location')).toBe('/services/spb?checkout=error');
+    expect(stripeError.headers.get('Location')).toBe('/services/backup?checkout=error');
     expect(calls).toHaveLength(1);
   });
 
@@ -167,20 +167,20 @@ describe('spb encrypted backup billing', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'spb-portal@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
-    const missing = await postForm('/services/spb/portal', testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
+    const missing = await postForm('/services/backup/portal', testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
     expect(missing.status).toBe(303);
-    expect(missing.headers.get('Location')).toBe('/services/spb?billing=missing');
+    expect(missing.headers.get('Location')).toBe('/services/backup?billing=missing');
 
     await seedStripeCustomer(account.accountId, 'cus_spb_portal');
     const { calls } = installStripeFetchMock({
       'POST api.stripe.com/v1/billing_portal/sessions': async () => stripeJson({ id: 'bps_spb', url: 'https://billing.stripe.test/spb-session' }),
     });
-    const response = await postForm('/services/spb/portal', testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
+    const response = await postForm('/services/backup/portal', testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
 
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe('https://billing.stripe.test/spb-session');
     expect(calls[0].body.get('customer')).toBe('cus_spb_portal');
-    expect(calls[0].body.get('return_url')).toBe('https://services.solstone.app/services/spb');
+    expect(calls[0].body.get('return_url')).toBe('https://services.solstone.app/services/backup');
   });
 });
 
