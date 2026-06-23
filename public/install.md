@@ -25,11 +25,13 @@ prereqs: `uv` from astral.sh: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 run a journal here — the full host:
 
 ```bash
-uv tool install 'solstone[journal]'
+uv tool install --with-executables-from solstone-journal-host 'solstone[journal]'
 journal setup
 ```
 
-(or `pipx install 'solstone[journal]' && journal setup` if you prefer pipx. the quotes keep your shell from globbing the `[journal]` brackets.)
+(or `pipx install --include-deps 'solstone[journal]' && journal setup` if you prefer pipx. the quotes keep your shell from globbing the `[journal]` brackets.)
+
+the `journal` and `mlx-vlm-server` commands live in the `solstone-journal-host` package that `[journal]` pulls in. `pip` exposes them natively, but `uv tool` and `pipx` only expose the base package's commands unless you add the flag shown above — without it you'd get `sol` but no `journal`.
 
 `solstone[journal]` bundles everything a journal host needs — the default CPU transcription runtime is included and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install `solstone[journal-cuda]` **instead of** `solstone[journal]` (pick one — the CPU and GPU runtimes must not both install).
 
