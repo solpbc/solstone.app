@@ -1,6 +1,7 @@
-import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseGitHubReleaseItems, renderReleasesPage } from "./releases.js";
+import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseGitHubReleaseItems, parseWinFeedItems, renderReleasesPage } from "./releases.js";
 
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
+const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win.json";
 const JOURNAL_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-journal/releases";
 const LINUX_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-linux/releases";
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
@@ -95,6 +96,25 @@ export default {
       }
 
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.macos);
+    }
+
+    // Windows reads the live Velopack feed (our own R2 surface, not GitHub) —
+    // mirrors /releases/macos reading the live appcast. Per-release notes ride in
+    // each Full asset's NotesMarkdown; the page auto-reflects every release.
+    if (url.pathname === "/releases/windows") {
+      let items = [];
+      try {
+        const res = await fetch(WIN_FEED_URL, {
+          cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+        });
+        if (res.ok) {
+          items = parseWinFeedItems(await res.json());
+        }
+      } catch {
+        items = [];
+      }
+
+      return releasesResponse(items, RELEASE_PAGE_CONFIGS.windows);
     }
 
     const response = await env.ASSETS.fetch(request);

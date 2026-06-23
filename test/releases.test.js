@@ -6,6 +6,7 @@ import {
   formatReleaseDate,
   parseAppcastItems,
   parseGitHubReleaseItems,
+  parseWinFeedItems,
   renderNotesMarkdown,
   renderReleasesPage,
 } from "../releases.js";
@@ -391,4 +392,86 @@ test("live-shape appcast fixture parses and renders eight releases", () => {
     ["1.3.4", "1.3.3", "1.3.2", "1.3.1", "1.3.0", "1.2.0", "1.1.3", "1.1.2"],
   );
   assert.equal((html.match(/<article class="release">/g) ?? []).length, 8);
+});
+
+test("parseWinFeedItems maps Full assets newest-first, skips deltas, note-less, and malformed", () => {
+  const feed = {
+    Assets: [
+      { PackageId: "Solstone", Version: "0.3.0", Type: "Full", FileName: "Solstone-0.3.0-full.nupkg", NotesMarkdown: "### Added\n- newest" },
+      { PackageId: "Solstone", Version: "0.3.0", Type: "Delta", FileName: "Solstone-0.3.0-delta.nupkg", NotesMarkdown: "### Added\n- newest" },
+      { PackageId: "Solstone", Version: "0.2.0", Type: "Full", FileName: "Solstone-0.2.0-full.nupkg", NotesMarkdown: "### Fixed\n- middle" },
+      { PackageId: "Solstone", Version: "0.1.0", Type: "Full", FileName: "Solstone-0.1.0-full.nupkg" },
+    ],
+  };
+
+  assert.deepEqual(parseWinFeedItems(feed), [
+    { version: "0.3.0", pubDate: null, description: "### Added\n- newest" },
+    { version: "0.2.0", pubDate: null, description: "### Fixed\n- middle" },
+  ]);
+
+  // empty/whitespace NotesMarkdown is treated as "no notes" and skipped.
+  assert.deepEqual(
+    parseWinFeedItems({ Assets: [{ Version: "0.1.1", Type: "Full", NotesMarkdown: "  " }] }),
+    [],
+  );
+
+  // the real live feed shape (no notes on any asset) yields [] -> the page shows
+  // the graceful "unavailable" body, never a hollow list of bare versions.
+  assert.deepEqual(
+    parseWinFeedItems({
+      Assets: [
+        { PackageId: "Solstone", Version: "0.1.1", Type: "Full", FileName: "Solstone-0.1.1-full.nupkg", SHA1: "x", SHA256: "y", Size: 1 },
+        { PackageId: "Solstone", Version: "0.1.1", Type: "Delta", FileName: "Solstone-0.1.1-delta.nupkg", SHA1: "x", SHA256: "y", Size: 1 },
+        { PackageId: "Solstone", Version: "0.1.0", Type: "Full", FileName: "Solstone-0.1.0-full.nupkg", SHA1: "x", SHA256: "y", Size: 1 },
+      ],
+    }),
+    [],
+  );
+
+  // defensive de-dupe: at most one row per version (keep the first Full seen).
+  assert.deepEqual(
+    parseWinFeedItems({
+      Assets: [
+        { Version: "0.5.0", Type: "Full", NotesMarkdown: "first" },
+        { Version: "0.5.0", Type: "Full", NotesMarkdown: "second" },
+      ],
+    }),
+    [{ version: "0.5.0", pubDate: null, description: "first" }],
+  );
+
+  // malformed inputs never throw.
+  assert.deepEqual(parseWinFeedItems(null), []);
+  assert.deepEqual(parseWinFeedItems({}), []);
+  assert.deepEqual(parseWinFeedItems({ Assets: "nope" }), []);
+  assert.deepEqual(parseWinFeedItems({ Assets: [null, { Type: "Full" }] }), []);
+});
+
+test("renderReleasesPage renders the windows stream with notes, no date, and an active Windows pill", () => {
+  const items = parseWinFeedItems({
+    Assets: [
+      { Version: "0.3.0", Type: "Full", NotesMarkdown: "### Added\n- a windows thing" },
+      { Version: "0.3.0", Type: "Delta", NotesMarkdown: "### Added\n- a windows thing" },
+    ],
+  });
+  const html = renderReleasesPage(items, RELEASE_PAGE_CONFIGS.windows);
+
+  assert.equal(RELEASE_PAGE_CONFIGS.windows.stream, "windows");
+  assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/windows">/);
+  assert.match(html, /<title>Windows app releases — solstone<\/title>/);
+  assert.match(html, /<h2 id="v0\.3\.0">solstone for Windows 0\.3\.0<\/h2>/);
+  assert.match(html, /a windows thing/);
+  // the Velopack feed carries no per-release date — the page renders none.
+  assert.doesNotMatch(html, /class="rel-date"/);
+  // download permalink + the Windows pill marked active on its own page.
+  assert.match(html, /<a href="\/download\/windows" class="intro-dl">download solstone for Windows →<\/a>/);
+  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">Windows<\/span>/);
+
+  // and the Windows pill renders as a link in the desktop trio on other streams.
+  const macosHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.macos);
+  assert.match(macosHtml, /<a class="ss-pill" href="\/releases\/windows">Windows<\/a>/);
+  assert.ok(
+    macosHtml.indexOf('>macOS<') < macosHtml.indexOf('href="/releases/windows"') &&
+      macosHtml.indexOf('href="/releases/windows"') < macosHtml.indexOf('href="/releases/linux"'),
+    "Windows pill sits between macOS and Linux",
+  );
 });

@@ -28,6 +28,7 @@ const PAGES = [
   ["/observers", "public/observers.html"],
   ["/releases", "releases.js"],
   ["/releases/macos", "releases.js"],
+  ["/releases/windows", "releases.js"],
   ["/releases/linux", "releases.js"],
 ];
 

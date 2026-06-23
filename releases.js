@@ -215,6 +215,26 @@ export const RELEASE_PAGE_CONFIGS = {
     articleTitle: (version) => `solstone for Linux ${version}`,
     linkifyBundledJournal: true,
   },
+  windows: {
+    pageTitle: "Windows app releases — solstone",
+    ogTitle: "Windows app releases",
+    metaDescription:
+      "release notes for the solstone Windows app, in plain language. installer, tray, settings, and auto-update changes.",
+    ogUrl: "https://solstone.app/releases/windows",
+    canonicalUrl: "https://solstone.app/releases/windows",
+    stream: "windows",
+    heading: "Windows app releases",
+    intro:
+      "these are the Windows app's own changes: installer, tray, settings, auto-update, and the Windows observer.",
+    primaryLink: { href: "/download/windows", text: "download solstone for Windows →" },
+    sourceUrl: "https://github.com/solpbc/solstone-windows",
+    unavailableUrl: "https://github.com/solpbc/solstone-windows/releases",
+    unavailableLabel: "see every Windows app release on github →",
+    articleTitle: (version) => `solstone for Windows ${version}`,
+    // The Windows observer is a pairing client, not a journal host — its notes
+    // never say "updated the bundled solstone journal to X", so keep linkify off.
+    linkifyBundledJournal: false,
+  },
 };
 
 export function parseAppcastItems(xml) {
@@ -281,6 +301,32 @@ export function parseGitHubReleaseItems(releases) {
       };
     })
     .filter(Boolean);
+}
+
+// Parse a Velopack release feed (releases.win.json) into the shared item shape.
+// The feed is a single { Assets: [...] } array, newest release first, with both a
+// "Full" and a "Delta" asset per version; per-release notes live in NotesMarkdown
+// (omitted/empty when a release was packed without notes), and there is no date
+// field. We keep one row per version (the Full asset), map NotesMarkdown ->
+// description, and — mirroring parseAppcastItems' empty-<description> skip — drop
+// note-less releases so the page never shows a hollow list of bare versions.
+export function parseWinFeedItems(feed) {
+  const assets = feed?.Assets;
+  if (!Array.isArray(assets)) return [];
+
+  const items = [];
+  const seen = new Set();
+  for (const asset of assets) {
+    if (asset?.Type !== "Full") continue;
+    const version = String(asset.Version ?? "").trim();
+    if (!version || seen.has(version)) continue;
+    const description = String(asset.NotesMarkdown ?? "").trim();
+    if (!description) continue;
+    seen.add(version);
+    items.push({ version, pubDate: null, description });
+  }
+
+  return items;
 }
 
 function normalizeTagVersion(tagName) {
@@ -379,6 +425,7 @@ function streamSwitcher(currentStream) {
     '            <span class="ss-lead">release notes for:</span>',
     pill("journal", "journal", "/releases", "ss-home"),
     pill("macos", "macOS", "/releases/macos"),
+    pill("windows", "Windows", "/releases/windows"),
     pill("linux", "Linux", "/releases/linux"),
     '            <span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>',
     "</nav>",
