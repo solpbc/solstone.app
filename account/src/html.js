@@ -482,7 +482,7 @@ export function renderEnableSpbError() {
 
 // === services surfaces ===
 
-export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, scoutActive = false, deviceCount = 0, networkActive = false } = {}) {
+export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, scoutActive = false, deviceCount = 0, networkActive = false, backupActive = false } = {}) {
   if (!signedIn) {
     return layout({
       title: 'solstone services',
@@ -505,7 +505,7 @@ ${BRANDLOCK}
     ? `<p class="notice">we couldn't decrypt your email address. you're still signed in.</p>`
     : '';
   const networkPill = pill(networkActive ? 'on' : 'off', networkActive ? 'on' : 'off');
-  const backupPill = pill('off', 'off');
+  const backupPill = pill(backupActive ? 'on' : 'off', backupActive ? 'on' : 'off');
   const notifPill = pill(deviceCount > 0 ? 'on' : 'off', deviceCount > 0 ? 'on' : 'off');
   const scoutPill = pill(scoutActive ? 'on' : 'off', scoutActive ? 'on' : 'off');
   const welcomePanel = welcome

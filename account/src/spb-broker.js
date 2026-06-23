@@ -94,7 +94,10 @@ export async function handleBackupCredentials(req, env, ctx) {
 }
 
 function refusePreIdentity(env, ctx, outcome, body, status) {
-  alertRefusal(env, ctx, outcome, null, null);
+  // refused_killswitch is the expected operator state while minting is disabled (dark),
+  // not a security anomaly — don't page on it (scanner/health-probe noise). Real probes
+  // (refused_binding, a bad bearer token) still alert.
+  if (outcome !== 'refused_killswitch') alertRefusal(env, ctx, outcome, null, null);
   console.warn(JSON.stringify({ event: 'spb_mint_refused', outcome }));
   return json(body, { status });
 }

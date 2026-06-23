@@ -107,6 +107,7 @@ import {
 import { runRetention } from './retention.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { runSpbLapseSweep } from './spb-sweep.js';
+import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -908,18 +909,20 @@ export default {
 async function handleServicesCatalog(req, env, session) {
   const url = new URL(req.url);
   const now = Date.now();
-  const [menu, hasPasskey, scoutKey, deviceCount, entitlement] = await Promise.all([
+  const [menu, hasPasskey, scoutKey, deviceCount, entitlement, spbEntitlement] = await Promise.all([
     loadMenuContext(env, session.account_id, now),
     hasAnyActivePasskey(env.DB, session.account_id),
     findActiveProvisionedKey(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER }),
     countActiveDevices(env.DB, session.account_id),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE }),
+    getEntitlement(env.DB, { accountId: session.account_id, service: SPB_HOSTED_SERVICE }),
   ]);
   const networkActive = entitlement?.status === 'active' || entitlement?.status === 'past_due';
+  const backupActive = spbEntitlement?.status === 'active' || spbEntitlement?.status === 'past_due';
   return html(renderServicesCatalog({
     signedIn: true,
     welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
-    menu, scoutActive: scoutKey != null, deviceCount, networkActive,
+    menu, scoutActive: scoutKey != null, deviceCount, networkActive, backupActive,
   }), { headers: { 'Cache-Control': 'no-store' } });
 }
 
