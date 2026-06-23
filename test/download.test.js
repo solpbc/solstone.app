@@ -77,3 +77,13 @@ test("macOS download redirects to the latest dmg enclosure", async (t) => {
     assert.equal(res.headers.get("location"), dmg);
   }
 });
+
+const WINDOWS_SETUP = "https://updates.solstone.app/solstone-windows/Solstone-win-Setup.exe";
+
+test("Windows download 302s to the stable Velopack Setup.exe (no feed parse)", async () => {
+  for (const path of ["/download/windows", "/download/windows.exe"]) {
+    const res = await fetchDownload(path);
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get("location"), WINDOWS_SETUP);
+  }
+});

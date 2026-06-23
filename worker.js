@@ -51,6 +51,18 @@ export default {
       return new Response(pageResponse.body, { status: 200, headers });
     }
 
+    // Windows installer permalink: 302 to the latest Velopack Setup.exe on R2.
+    // Velopack emits a stable Setup.exe name, so this always points at the
+    // current release — no feed parse needed (unlike the versioned macOS DMG).
+    // Velopack auto-update does NOT use this path; it reads
+    // updates.solstone.app/solstone-windows/releases.win.json directly.
+    if (url.pathname === "/download/windows" || url.pathname === "/download/windows.exe") {
+      return Response.redirect(
+        "https://updates.solstone.app/solstone-windows/Solstone-win-Setup.exe",
+        302,
+      );
+    }
+
     if (url.pathname === "/install") {
       const rewritten = new URL(request.url);
       rewritten.pathname = "/install.html";
