@@ -1041,6 +1041,28 @@ export async function clearSpbBindingLapsed(db, { accountId }) {
     .run();
 }
 
+export async function findSpbBindingByTokenHash(db, tokenHash) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, instance_id, lapsed_at
+       FROM spb_bindings
+       WHERE token_hash = ? AND token_hash IS NOT NULL`
+    )
+    .bind(tokenHash)
+    .first();
+  return row || null;
+}
+
+export async function insertSpbMintAudit(db, { accountId, instanceId, prefix, scope, ttl, outcome, ts }) {
+  await db
+    .prepare(
+      `INSERT INTO spb_mint_audit (account_id, instance_id, prefix, scope, ttl, outcome, ts)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(accountId, instanceId, prefix, scope, ttl, outcome, ts)
+    .run();
+}
+
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
 }

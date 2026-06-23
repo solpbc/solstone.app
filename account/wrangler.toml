@@ -72,11 +72,18 @@ service = "spl-relay"
 #
 # Security audit sink (set via `wrangler secret put`):
 # HUB_WEBHOOK_URL — extro-hub webhook ingress for durable T4 security events
-#   (e.g. https://extro.solpbc.org/hooks/security). The /admin/impersonate handler
-#   POSTs a typed `impersonate` / `impersonate_denied` event here so the audit trail
-#   is durable + alerting, not just an ephemeral console.warn. Unset = no-op (the
-#   console.warn breadcrumb still fires). NEVER carries the raw session token.
+#   (e.g. https://extro.solpbc.org/hooks/security). T4 handlers POST typed events
+#   here so the audit trail is durable + alerting, not just an ephemeral
+#   console.warn. Unset = no-op (the console.warn breadcrumb still fires).
+#   NEVER carries raw tokens, credentials, or other secret material.
 # HUB_WEBHOOK_SECRET — shared X-Hub-Secret bearer for the hub webhook ingress.
+#
+# SPB R2 credential broker secrets (set via `wrangler secret put`):
+# R2_PARENT_ACCESS_KEY_ID — parent R2 S3 access key id used as the minted access_key_id.
+# R2_PARENT_SECRET_ACCESS_KEY — parent R2 S3 secret access key used only as the HS256 signing key;
+#   never returned or logged.
+# SPB_MINT_ENABLED — broker kill-switch. Leave UNSET in prod (default-off) until spike S1
+#   passes, then set to "true".
 
 [[send_email]]
 name = "EMAIL"
@@ -94,6 +101,8 @@ STRIPE_PRICE_SPB_ANNUAL = "price_spb_annual_placeholder"
 STRIPE_PRICE_SPB_MONTHLY = "price_spb_monthly_placeholder"
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
+R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"
+R2_BUCKET = "solstone-backups"
 
 [triggers]
 crons = ["0 */6 * * *"]

@@ -9,6 +9,14 @@ import { paidSignalFromRow, reconcileSplEntitlement } from './relay-grant.js';
 
 export const SPB_HOSTED_SERVICE = 'spb_hosted';
 
+export function isSpbEntitledToServe(row, nowSeconds, env) {
+  const grace = Number(env.RELAY_GRACE_DAYS || 14) * 86400;
+  if (!row) return false;
+  if (row.status === 'active') return true;
+  if (row.status === 'past_due') return nowSeconds <= (row.current_period_end ?? 0) + grace;
+  return false;
+}
+
 export async function reconcileSpbEntitlement(env, accountId, nowMs, ctx, opts = {}) {
   // ctx is intentionally unused: SPB keeps caller symmetry but has no relay/background work.
   const row = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });

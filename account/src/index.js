@@ -50,6 +50,7 @@ import {
 } from './devices.js';
 import { handlePushDedup, handlePushDispatch } from './push.js';
 import { handleReachRelayToken } from './reach.js';
+import { handleBackupCredentials } from './spb-broker.js';
 import {
   handleBillingCheckout,
   handleBillingPortal,
@@ -776,6 +777,15 @@ export default {
         req.method === 'POST'
       ) {
         return handleReachRelayToken(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'backup' &&
+        parts[2] === 'credentials' &&
+        req.method === 'POST'
+      ) {
+        return handleBackupCredentials(req, env, ctx);
       }
 
       if (

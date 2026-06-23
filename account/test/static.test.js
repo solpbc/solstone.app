@@ -30,6 +30,7 @@ describe('static source checks', () => {
       'enable.js',
       'gcp.js',
       'html.js',
+      'hub.js',
       'index.js',
       'inline/passkey-enroll.js',
       'inline/passkey-landing.js',
@@ -42,6 +43,7 @@ describe('static source checks', () => {
       'scout-migrate.js',
       'session.js',
       'settings.js',
+      'spb-broker.js',
       'spb-entitlement.js',
       'stripe.js',
       'support-constants.js',
@@ -59,10 +61,10 @@ describe('static source checks', () => {
     expect(source).not.toContain('@simplewebauthn/browser');
   });
 
-  it('only imports jose from admin.js', () => {
+  it('only imports jose from admin.js and spb-broker.js', () => {
     expect(sourceEntries
       .filter((entry) => entry.text.includes('jose'))
-      .map((entry) => entry.name)).toEqual(['admin.js']);
+      .map((entry) => entry.name)).toEqual(['admin.js', 'spb-broker.js']);
   });
 
   it('does not import from scouts', () => {

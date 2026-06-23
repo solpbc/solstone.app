@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0016 — spb entitlement support
+-- account-portal D1 schema after 0017 — spb mint audit
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -282,3 +282,15 @@ CREATE TABLE IF NOT EXISTS spb_bindings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spb_bindings_account_id ON spb_bindings(account_id);
+
+CREATE TABLE IF NOT EXISTS spb_mint_audit (
+  account_id TEXT,
+  instance_id TEXT,
+  prefix TEXT,
+  scope TEXT,
+  ttl INTEGER,
+  outcome TEXT NOT NULL CHECK (outcome IN ('minted','refused_entitlement','refused_scope')),
+  ts INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_spb_mint_audit_account_id ON spb_mint_audit(account_id);

@@ -65,6 +65,11 @@ export function makeTestEnv(overrides = {}) {
     RELAY_GRANT_SECRET: overrides.RELAY_GRANT_SECRET || 'test-relay-grant-secret',
     HUB_WEBHOOK_URL: overrides.HUB_WEBHOOK_URL,
     HUB_WEBHOOK_SECRET: overrides.HUB_WEBHOOK_SECRET,
+    R2_PARENT_ACCESS_KEY_ID: overrides.R2_PARENT_ACCESS_KEY_ID ?? 'test-r2-parent-access-key-id',
+    R2_PARENT_SECRET_ACCESS_KEY: overrides.R2_PARENT_SECRET_ACCESS_KEY ?? 'test-r2-parent-secret-access-key',
+    R2_ACCOUNT_ID: overrides.R2_ACCOUNT_ID ?? '3f2c1528c7d4d9685819ea9e9e307c92',
+    R2_BUCKET: overrides.R2_BUCKET ?? 'solstone-backups',
+    SPB_MINT_ENABLED: overrides.SPB_MINT_ENABLED ?? 'true',
     RELAY: overrides.RELAY,
   };
 }
@@ -112,6 +117,7 @@ export async function resetDb() {
     'stripe_customers',
     'spl_bindings',
     'spb_bindings',
+    'spb_mint_audit',
     'scout_applications',
     'gemini_reveal_acks',
     'enable_scout_codes',

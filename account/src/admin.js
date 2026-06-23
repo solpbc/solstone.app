@@ -15,6 +15,7 @@ import { reconcileAllServices } from './spb-entitlement.js';
 import { importScoutRecords } from './scout-migrate.js';
 import { SESSION_COOKIE } from './session.js';
 import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
+import { emitSecurityEvent } from './hub.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
 const ISSUER = 'https://solpbc.cloudflareaccess.com';
@@ -189,26 +190,6 @@ async function preApproveScout(request, env, ctx) {
   await upsertScoutApplicationApproved(env.DB, { accountId, nowMs });
   await reconcileAllServices(env, accountId, nowMs, ctx);
   return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
-}
-
-// Durable audit + alert for the T4 session-mint primitive. POST a typed
-// security event to the extro-hub webhook ingress (durable, git-tracked CSO
-// request + queue-visible alert), so the audit trail survives the ephemeral
-// Worker log. Mirrors the solpbc.org contact-form hub-event pattern: fire via
-// waitUntil so it never blocks the response, no-op when unconfigured, and NEVER
-// include the raw session token (only its hash + identity-plane metadata).
-function emitSecurityEvent(env, ctx, payload) {
-  if (!env.HUB_WEBHOOK_URL) return;
-  const body = JSON.stringify({ office: 'cso', ts: new Date().toISOString(), ...payload });
-  const task = fetch(env.HUB_WEBHOOK_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Hub-Secret': env.HUB_WEBHOOK_SECRET || '',
-    },
-    body,
-  }).catch(() => {});
-  if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(task);
 }
 
 async function impersonateAccount(request, env, admin, ctx) {
