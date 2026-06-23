@@ -41,7 +41,7 @@ describe('spb operated backup billing', () => {
     const subscribe = await get('/services/spb', testEnv, session.cookie);
     const subscribeHtml = await subscribe.text();
     expect(subscribe.status).toBe(200);
-    expect(subscribeHtml).toContain('operated backup');
+    expect(subscribeHtml).toContain('encrypted backup');
     expect(subscribeHtml).toContain('action="/services/spb/checkout"');
     expect(subscribeHtml).toContain('pay yearly');
 
@@ -54,7 +54,7 @@ describe('spb operated backup billing', () => {
     const active = await get('/services/spb?checkout=success', testEnv, session.cookie);
     const activeHtml = await active.text();
     expect(activeHtml).toContain('payment received. it can take a moment to show up here.');
-    expect(activeHtml).toContain('operated backup is on');
+    expect(activeHtml).toContain('your encrypted backup is on');
     expect(activeHtml).toContain('renews 2027-01-15');
     expect(activeHtml).toContain('action="/services/spb/portal"');
 
@@ -81,7 +81,7 @@ describe('spb operated backup billing', () => {
     const pastDueHtml = await pastDue.text();
     expect(pastDueHtml).toContain("your last payment didn't go through");
     expect(pastDueHtml).toContain('no charge made.');
-    expect(pastDueHtml).toContain('billing management is available after operated backup starts.');
+    expect(pastDueHtml).toContain('billing management is available after encrypted backup starts.');
   });
 
   it('creates checkout sessions with spb prices, metadata, and return urls', async () => {

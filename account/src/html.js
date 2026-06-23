@@ -579,12 +579,12 @@ export function renderBackupLanding() {
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_BACKUP, 'your own bucket — always free', 'point solstone at your own storage — backblaze b2, s3, any bucket. sol pbc is never in the path.')}
-  ${beat(IC_GLOBE, 'hosted by sol pbc — coming later', 'let sol pbc keep the encrypted copy for you. coming later — for now, bring your own bucket.')}
+  ${beat(IC_GLOBE, 'operated by sol pbc — $48/year', "rather not run a bucket? let sol pbc keep the encrypted copy for you, in storage sol pbc operates. it's encrypted on your device first, so sol pbc only ever holds an unreadable blob.")}
   ${beat(IC_VAULT, 'encrypted before it leaves', 'your journal is encrypted on your device with a key only you hold. whoever stores the copy only ever sees an unreadable blob.')}
 </div>
 <div class="card">
   <div class="pricecard">
-    <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">with your own bucket</span></span></div><div class="alt">hosted by sol pbc — coming later</div></div>
+    <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">with your own bucket</span></span></div><div class="alt">$48 / year · $4.99 / month — operated by sol pbc</div></div>
     <a class="btn primary" href="/?signin">set up backup</a>
   </div>
 </div>
@@ -733,24 +733,24 @@ export function renderServicesSpb({ entitlement, csrf, flash = {}, menu }) {
   const status = entitlement?.status || '';
   const detailParts = [];
   if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
-  detailParts.push('encrypted backup operated by sol pbc');
+  detailParts.push('operated by sol pbc');
   const statusDetail = detailParts.join(' · ');
-  const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;operated backup is on';
+  const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;your encrypted backup is on';
   const controlGroup = `<div class="group">
-  <div class="row" style="cursor:default">${IC_BACKUP}<div class="body"><div class="title">operated backup</div><div class="desc">${esc(statusDetail)}</div></div></div>
+  <div class="row" style="cursor:default">${IC_BACKUP}<div class="body"><div class="title">encrypted backup</div><div class="desc">${esc(statusDetail)}</div></div></div>
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: '/services/spb/portal' })}
   ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/services/spb/portal' })}
 </div>`;
-  const byoDisclosure = 'with your own bucket — backblaze b2, s3, any bucket — backup is always free.';
   const page = ({ statusLine = '', content }) => layout({
-    title: 'operated backup',
+    title: 'encrypted backup',
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 ${flashes}
 <div class="pagehead">
-  <h1>operated backup</h1>
+  <h1>encrypted backup</h1>
+  <p class="meta">operated by sol pbc</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
 ${content}`,
@@ -760,7 +760,7 @@ ${content}`,
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="disclosure" style="margin-top:24px">free while you're an approved scout · ${byoDisclosure} sol pbc keeps the encrypted copy for you. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">free while you're an approved scout. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -769,7 +769,7 @@ ${content}`,
       statusLine: onStatusLine,
       content: `${controlGroup}
 ${portalActions}
-<p class="disclosure" style="margin-top:24px">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · billed through stripe. ${byoDisclosure} this covers backup storage operated by sol pbc. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -777,22 +777,23 @@ ${portalActions}
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="notice">your last payment didn't go through. manage billing to keep operated backup available — your own bucket stays free either way.</p>
+<p class="notice">your last payment didn't go through. manage billing to keep encrypted backup running — your encrypted copy is safe while you sort this out.</p>
 ${portalActions}
-<p class="disclosure" style="margin-top:24px">billed through stripe. ${byoDisclosure} this covers backup storage operated by sol pbc. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
   return page({
-    content: `<p class="lead">sol pbc keeps the encrypted copy for you. your journal is encrypted on your device before it leaves, so only you can read it.</p>
+    content: `<p class="lead">sol pbc keeps an encrypted copy of your journal for you. it's encrypted on your device before it leaves, so only you can read it.</p>
 <div class="card">
-  <p>you never have to pay us. ${byoDisclosure} this only covers storage operated by sol pbc.</p>
+  <p>turn on encrypted backup</p>
   <div class="group">
-    ${billingCheckoutRow({ csrf, plan: 'annual', title: 'yearly plan', buttonText: 'pay yearly', primary: true, action: '/services/spb/checkout' })}
-    ${billingCheckoutRow({ csrf, plan: 'monthly', title: 'monthly plan', buttonText: 'pay monthly', primary: false, action: '/services/spb/checkout' })}
+    ${billingCheckoutRow({ csrf, plan: 'annual', title: '$48 / year', buttonText: 'pay yearly', primary: true, action: '/services/spb/checkout' })}
+    ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$4.99 / month', buttonText: 'pay monthly', primary: false, action: '/services/spb/checkout' })}
   </div>
-  <p class="disclosure">billed securely through stripe.</p>
-</div>`,
+  <p class="disclosure">billed securely through Stripe.</p>
+</div>
+<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days — turn it back on within that window and it's still there. after 30 days it's deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
   });
 }
 
@@ -1636,12 +1637,12 @@ function billingFlashMessages(flash) {
 function spbBillingFlashMessages(flash) {
   const messages = [];
   if (flash.checkout === 'success') messages.push('payment received. it can take a moment to show up here.');
-  if (flash.checkout === 'cancel') messages.push('no charge made. you can turn on operated backup anytime — your own bucket stays free.');
+  if (flash.checkout === 'cancel') messages.push('no charge made. you can turn on encrypted backup anytime.');
   if (flash.checkout === 'invalid') messages.push('choose yearly or monthly billing.');
   if (flash.checkout === 'email') messages.push("billing couldn't start. try again.");
   if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
   if (flash.checkout === 'comped') messages.push("you're already covered free as a scout.");
-  if (flash.billing === 'missing') messages.push('billing management is available after operated backup starts.');
+  if (flash.billing === 'missing') messages.push('billing management is available after encrypted backup starts.');
   if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
