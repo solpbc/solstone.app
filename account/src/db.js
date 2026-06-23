@@ -1056,6 +1056,27 @@ export async function clearSpbBindingLapsed(db, { accountId }) {
     .run();
 }
 
+export async function selectDueLapsedBindings(db, cutoffMs) {
+  const { results } = await db
+    .prepare(
+      `SELECT account_id, instance_id
+       FROM spb_bindings
+       WHERE lapsed_at IS NOT NULL
+         AND lapsed_at <= ?
+       ORDER BY lapsed_at ASC, rowid ASC`
+    )
+    .bind(cutoffMs)
+    .all();
+  return results || [];
+}
+
+export async function deleteSpbBinding(db, { accountId, instanceId }) {
+  await db
+    .prepare('DELETE FROM spb_bindings WHERE account_id = ? AND instance_id = ?')
+    .bind(accountId, instanceId)
+    .run();
+}
+
 export async function findSpbBindingByTokenHash(db, tokenHash) {
   const row = await db
     .prepare(
@@ -1075,6 +1096,24 @@ export async function insertSpbMintAudit(db, { accountId, instanceId, prefix, sc
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(accountId, instanceId, prefix, scope, ttl, outcome, ts)
+    .run();
+}
+
+export async function insertSpbSweepAudit(db, {
+  accountId,
+  instanceId,
+  prefix,
+  objectsDeleted,
+  multipartAborted,
+  ts,
+}) {
+  await db
+    .prepare(
+      `INSERT INTO spb_sweep_audit (
+         account_id, instance_id, prefix, objects_deleted, multipart_aborted, ts
+       ) VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(accountId, instanceId, prefix, objectsDeleted, multipartAborted, ts)
     .run();
 }
 

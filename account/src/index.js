@@ -106,6 +106,7 @@ import {
 } from './passkey.js';
 import { runRetention } from './retention.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
+import { runSpbLapseSweep } from './spb-sweep.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -132,6 +133,7 @@ const EMAIL_DAY_LIMIT = 5;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const GEMINI_PROVIDER = 'gemini';
+const SWEEP_CRON = '0 3 * * *';
 
 const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -895,7 +897,11 @@ export default {
     }
   },
   async scheduled(event, env, ctx) {
-    await runRetention(env);
+    if (event.cron === SWEEP_CRON) {
+      await runSpbLapseSweep(env, ctx);
+    } else {
+      await runRetention(env);
+    }
   },
 };
 

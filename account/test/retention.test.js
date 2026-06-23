@@ -2,7 +2,14 @@ import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { runRetention } from '../src/retention.js';
-import { makeTestEnv, resetDb, rowCount } from './helpers.js';
+import {
+  installS3FetchMock,
+  makeTestEnv,
+  resetDb,
+  rowCount,
+  seedAccount,
+  seedSpbBinding,
+} from './helpers.js';
 
 const NOW = 1_700_000_000_000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -29,6 +36,7 @@ describe('retention cron', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -288,6 +296,39 @@ describe('retention cron', () => {
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(JSON.parse(warn.mock.calls[0][0]).event).toBe('retention_sweep');
+  });
+
+  it('dispatches the dedicated SPB sweep cron without running retention', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'scheduled-spb@example.com', testEnv });
+    await seedSpbBinding({
+      accountId: account.accountId,
+      instanceId: '11111111-1111-1111-1111-111111111111',
+      lapsedAt: NOW - 31 * DAY_MS,
+    });
+    installS3FetchMock(testEnv, {
+      default: ({ method, url }) => {
+        if (method === 'GET' && url.searchParams.get('list-type') === '2') {
+          return new Response('<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>', {
+            headers: { 'Content-Type': 'application/xml' },
+          });
+        }
+        if (method === 'GET' && url.searchParams.has('uploads')) {
+          return new Response('<ListMultipartUploadsResult><IsTruncated>false</IsTruncated></ListMultipartUploadsResult>', {
+            headers: { 'Content-Type': 'application/xml' },
+          });
+        }
+        throw new Error(`unexpected R2 request: ${method} ${url.href}`);
+      },
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const ctx = createExecutionContext();
+
+    await worker.scheduled({ cron: '0 3 * * *' }, testEnv, ctx);
+    await waitOnExecutionContext(ctx);
+
+    const events = warn.mock.calls.map((call) => JSON.parse(call[0]).event);
+    expect(events).toEqual(['spb_lapse_sweep']);
   });
 });
 

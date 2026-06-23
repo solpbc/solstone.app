@@ -70,6 +70,7 @@ export function makeTestEnv(overrides = {}) {
     R2_ACCOUNT_ID: overrides.R2_ACCOUNT_ID ?? '3f2c1528c7d4d9685819ea9e9e307c92',
     R2_BUCKET: overrides.R2_BUCKET ?? 'solstone-backups',
     SPB_MINT_ENABLED: overrides.SPB_MINT_ENABLED ?? 'true',
+    SPB_SWEEP_ENABLED: overrides.SPB_SWEEP_ENABLED ?? 'true',
     RELAY: overrides.RELAY,
   };
 }
@@ -118,6 +119,7 @@ export async function resetDb() {
     'spl_bindings',
     'spb_bindings',
     'spb_mint_audit',
+    'spb_sweep_audit',
     'scout_applications',
     'gemini_reveal_acks',
     'enable_scout_codes',
@@ -179,6 +181,42 @@ export function installGcpFetchMock(handlers = {}) {
   return { calls, fetchMock };
 }
 
+export function installS3FetchMock(testEnv, handlers = {}) {
+  const calls = [];
+  const allowedHost = `${testEnv.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+  const bucketPath = `/${testEnv.R2_BUCKET}`;
+  const fetchMock = vi.fn(async (input, init = {}) => {
+    const href = typeof input === 'string' ? input : input.url;
+    const url = new URL(href);
+    const method = (init.method || input.method || 'GET').toUpperCase();
+    const headers = Object.fromEntries(new Headers(init.headers || input.headers || {}).entries());
+    const bodyText = typeof init.body === 'string' ? init.body : '';
+    calls.push({ method, url, headers, bodyText });
+    if (url.host !== allowedHost) {
+      throw new Error(`disallowed R2 host reached fetch: ${url.host}`);
+    }
+    if (url.pathname !== bucketPath && !url.pathname.startsWith(`${bucketPath}/`)) {
+      throw new Error(`disallowed R2 bucket path reached fetch: ${url.pathname}`);
+    }
+    const subresource = s3SubresourceKey(url);
+    const keys = [
+      `${method} ${url.host}${url.pathname}${url.search}`,
+      subresource ? `${method} ${url.host}${url.pathname}${subresource}` : null,
+      `${method} ${url.host}${url.pathname}`,
+      subresource ? `${method} ${url.host}${subresource}` : null,
+      subresource ? `${method} ${subresource}` : null,
+      `${method} ${url.host}`,
+      url.host,
+      'default',
+    ].filter(Boolean);
+    const handler = keys.map((key) => handlers[key]).find(Boolean);
+    if (!handler) throw new Error(`unhandled R2 fetch: ${method} ${url.href}`);
+    return handler({ method, url, headers, bodyText, init, calls });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return { calls, fetchMock };
+}
+
 export function installStripeFetchMock(handlers = {}) {
   const calls = [];
   const fetchMock = vi.fn(async (input, init = {}) => {
@@ -203,6 +241,14 @@ export function installStripeFetchMock(handlers = {}) {
   });
   vi.stubGlobal('fetch', fetchMock);
   return { calls, fetchMock };
+}
+
+function s3SubresourceKey(url) {
+  if (url.searchParams.has('delete')) return '?delete';
+  if (url.searchParams.has('uploads')) return '?uploads';
+  if (url.searchParams.get('list-type') === '2') return '?list-type=2';
+  if (url.searchParams.has('uploadId')) return '?uploadId';
+  return null;
 }
 
 export function installRelayFetchMock(handlers = {}) {

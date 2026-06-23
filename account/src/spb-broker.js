@@ -1,4 +1,3 @@
-import { SignJWT } from 'jose';
 import { hashWithPepper } from './crypto.js';
 import {
   findSpbBindingByTokenHash,
@@ -7,30 +6,8 @@ import {
 } from './db.js';
 import { emitSecurityEvent } from './hub.js';
 import { json } from './index.js';
+import { mintScopedCredential } from './r2-credential.js';
 import { isSpbEntitledToServe, SPB_HOSTED_SERVICE } from './spb-entitlement.js';
-
-const BACKUP_ACTIONS = [
-  'HeadObject',
-  'GetObject',
-  'GetBucketLocation',
-  'ListObjectsV1',
-  'ListObjectsV2',
-  'ListMultipartUploads',
-  'ListParts',
-  'PutObject',
-  'CreateMultipartUpload',
-  'UploadPart',
-  'CompleteMultipartUpload',
-  'AbortMultipartUpload',
-];
-const MAINTENANCE_ACTIONS = [...BACKUP_ACTIONS, 'DeleteObject', 'DeleteObjects'];
-const SPB_MINT_TTL_BACKUP = 3600;
-const SPB_MINT_TTL_MAINTENANCE = 900;
-const SCOPES = {
-  backup: { actions: BACKUP_ACTIONS, ttl: SPB_MINT_TTL_BACKUP },
-  maintenance: { actions: MAINTENANCE_ACTIONS, ttl: SPB_MINT_TTL_MAINTENANCE },
-};
-const encoder = new TextEncoder();
 
 export async function handleBackupCredentials(req, env, ctx) {
   try {
@@ -73,8 +50,8 @@ export async function handleBackupCredentials(req, env, ctx) {
 
     const body = await readJson(req);
     const scope = body?.scope;
-    const scopeConfig = scopeConfigFor(scope);
-    if (!scopeConfig) {
+    const credential = await mintScopedCredential(env, { prefix, scope, nowSeconds });
+    if (!credential) {
       await audit(env, {
         accountId,
         instanceId,
@@ -88,22 +65,7 @@ export async function handleBackupCredentials(req, env, ctx) {
       return json({ error: 'invalid_scope' }, { status: 400 });
     }
 
-    const { actions, ttl } = scopeConfig;
-    const host = `${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-    const jwt = await new SignJWT({
-      bucket: env.R2_BUCKET,
-      paths: { prefixPaths: [prefix] },
-      actions,
-    })
-      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
-      .setIssuer(env.R2_PARENT_ACCESS_KEY_ID)
-      .setSubject(env.R2_ACCOUNT_ID)
-      .setAudience(host)
-      .setIssuedAt(nowSeconds)
-      .setExpirationTime(nowSeconds + ttl)
-      .sign(encoder.encode(env.R2_PARENT_SECRET_ACCESS_KEY));
-    const secretAccessKey = await sha256Hex(jwt);
-    const sessionToken = btoa(`jwt/${jwt}`);
+    const { accessKeyId, secretAccessKey, sessionToken, host, bucket, ttl } = credential;
     const expiresAt = new Date((nowSeconds + ttl) * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
     await audit(env, {
@@ -117,11 +79,11 @@ export async function handleBackupCredentials(req, env, ctx) {
     });
 
     return json({
-      access_key_id: env.R2_PARENT_ACCESS_KEY_ID,
+      access_key_id: accessKeyId,
       secret_access_key: secretAccessKey,
       session_token: sessionToken,
       endpoint: `https://${host}`,
-      bucket: env.R2_BUCKET,
+      bucket,
       prefix,
       expires_at: expiresAt,
     });
@@ -159,16 +121,6 @@ async function readJson(req) {
   }
 }
 
-function scopeConfigFor(scope) {
-  if (typeof scope !== 'string') return null;
-  return Object.prototype.hasOwnProperty.call(SCOPES, scope) ? SCOPES[scope] : null;
-}
-
-function prefixFor(accountId, instanceId) {
+export function prefixFor(accountId, instanceId) {
   return `users/${accountId}/${instanceId}/`;
-}
-
-async function sha256Hex(value) {
-  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(value));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }

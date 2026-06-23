@@ -84,6 +84,10 @@ service = "spl-relay"
 #   never returned or logged.
 # SPB_MINT_ENABLED — broker kill-switch. Leave UNSET in prod (default-off) until spike S1
 #   passes, then set to "true".
+# SPB_SWEEP_ENABLED — lapse-retention sweep kill-switch. Leave UNSET in prod (default-off)
+#   until the real-R2 sweep spike passes, then set to "true". The daily 0 3 * * * cron
+#   self-mints a maintenance-scoped temp credential per binding; the parent R2 secret stays
+#   signing-key-only and is never used directly against objects.
 
 [[send_email]]
 name = "EMAIL"
@@ -105,4 +109,4 @@ R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"
 R2_BUCKET = "solstone-backups"
 
 [triggers]
-crons = ["0 */6 * * *"]
+crons = ["0 */6 * * *", "0 3 * * *"]
