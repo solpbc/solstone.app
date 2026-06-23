@@ -14,7 +14,7 @@ import {
 
 const SPB_SERVICE = 'spb_hosted';
 
-describe('spb operated backup billing', () => {
+describe('spb encrypted backup billing', () => {
   beforeEach(async () => {
     await resetDb();
     vi.restoreAllMocks();

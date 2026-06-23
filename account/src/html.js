@@ -409,25 +409,25 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = 
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
   const disclosure = entitled
-    ? '<p class="disclosure">you can review or change operated backup from the journal anytime.</p>'
-    : '<p class="disclosure"><a href="/services/spb">set up operated backup</a> — sol pbc keeps the encrypted copy for you.</p>';
+    ? '<p class="disclosure">you can review or change encrypted backup from the journal anytime.</p>'
+    : '<p class="disclosure"><a href="/services/spb">set up encrypted backup</a> — sol pbc keeps the encrypted copy for you.</p>';
   return layout({
-    title: 'enable operated backup',
+    title: 'enable encrypted backup',
     body: `${brandbar()}
-<h1>enable operated backup</h1>
-<p class="lead">this journal is asking to enable operated backup. two things, and only these two:</p>
+<h1>enable encrypted backup</h1>
+<p class="lead">this journal is asking to enable encrypted backup. two things, and only these two:</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal — no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for operated backup.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal — no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for encrypted backup.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">enable operated backup</div>
+      <div class="gt">enable encrypted backup</div>
       <div class="gd">sol pbc records this journal's backup prefix and hands back a broker token through this local handoff. the encrypted backup remains readable only by you.</div>
     </div>
   </div>
@@ -447,33 +447,33 @@ ${disclosure}`,
 
 export function renderEnableSpbDone() {
   return layout({
-    title: 'operated backup enabled',
+    title: 'encrypted backup enabled',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} operated backup enabled</h2>
-  <p>operated backup is approved for this journal. you can close this tab.</p>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} encrypted backup enabled</h2>
+  <p>encrypted backup is approved for this journal. you can close this tab.</p>
 </div>`,
   });
 }
 
 export function renderEnableSpbNeedsSubscription() {
   return layout({
-    title: 'operated backup needed',
+    title: 'encrypted backup needed',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">operated backup needed</h2>
-  <p>sol pbc keeps the encrypted copy for you before this journal can use operated backup.</p>
-  <a class="btn primary" href="/services/spb">set up operated backup</a>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">encrypted backup needed</h2>
+  <p>sol pbc keeps the encrypted copy for you before this journal can use encrypted backup.</p>
+  <a class="btn primary" href="/services/spb">set up encrypted backup</a>
 </div>`,
   });
 }
 
 export function renderEnableSpbError() {
   return layout({
-    title: 'could not enable operated backup',
+    title: 'could not enable encrypted backup',
     body: `${brandbar()}
 <div class="card">
-  <h1>could not enable operated backup</h1>
+  <h1>could not enable encrypted backup</h1>
   <p>something didn't look right with that link.</p>
   <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
 </div>`,

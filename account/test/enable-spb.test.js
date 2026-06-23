@@ -81,7 +81,7 @@ describe('/enable/spb', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('this journal is asking to enable operated backup.');
+    expect(body).toContain('this journal is asking to enable encrypted backup.');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
@@ -102,7 +102,7 @@ describe('/enable/spb', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).not.toContain('name="instance"');
-      expect(body).toContain('<a href="/services/spb">set up operated backup</a> — sol pbc keeps the encrypted copy for you.');
+      expect(body).toContain('<a href="/services/spb">set up encrypted backup</a> — sol pbc keeps the encrypted copy for you.');
     }
   });
 
@@ -148,7 +148,7 @@ describe('/enable/spb', () => {
     const binding = await spbBindingRow(account.accountId, VALID_INSTANCE);
 
     expect(response.status).toBe(200);
-    expect(body).toContain('set up operated backup');
+    expect(body).toContain('set up encrypted backup');
     expect(payload).toEqual({
       broker_endpoint: 'https://services.solstone.app',
       account_id: account.accountId,
@@ -182,7 +182,7 @@ describe('/enable/spb', () => {
     const binding = await spbBindingRow(account.accountId, VALID_INSTANCE);
 
     expect(response.status).toBe(200);
-    expect(body).toContain('operated backup is approved for this journal. you can close this tab.');
+    expect(body).toContain('encrypted backup is approved for this journal. you can close this tab.');
     expect(payload).toEqual({
       broker_endpoint: 'https://services.solstone.app',
       account_id: account.accountId,
