@@ -1019,6 +1019,21 @@ export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
     .run();
 }
 
+export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO spb_bindings (
+         account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at
+       ) VALUES (?, ?, ?, ?, ?, NULL)
+       ON CONFLICT(account_id, instance_id) DO UPDATE SET
+         token_hash = excluded.token_hash,
+         last_seen_at = excluded.last_seen_at,
+         lapsed_at = NULL`
+    )
+    .bind(accountId, instanceId, nowMs, nowMs, tokenHash)
+    .run();
+}
+
 export async function listSplBindings(db, accountId) {
   const { results } = await db
     .prepare('SELECT instance_id FROM spl_bindings WHERE account_id = ?')

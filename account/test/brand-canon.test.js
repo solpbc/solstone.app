@@ -63,6 +63,9 @@ const VALID_PUSH_DEVICE_TOKEN = 'A'.repeat(64);
 const VALID_PUSH_BUNDLE_ID = 'app.solstone.swift';
 const VALID_SPL_NONCE = '3'.repeat(52);
 const VALID_SPL_ENTITLED_NONCE = '4'.repeat(52);
+const VALID_SPB_NONCE = '5'.repeat(52);
+const VALID_SPB_ENTITLED_NONCE = '6'.repeat(52);
+const VALID_SPB_INSTANCE = '11111111-1111-1111-1111-111111111111';
 
 describe('brand canon', () => {
   beforeEach(async () => {
@@ -120,6 +123,11 @@ describe('brand canon', () => {
     await seedEntitlement({ accountId: splActive.accountId, status: 'active' });
     const splEmpty = await seedAccount({ email: 'spl-empty@example.com', testEnv });
     const splEmptySession = await seedSession(splEmpty.accountId, { testEnv });
+    const spbActive = await seedAccount({ email: 'spb-active@example.com', testEnv });
+    const spbActiveSession = await seedSession(spbActive.accountId, { testEnv });
+    await seedEntitlement({ accountId: spbActive.accountId, service: 'spb_hosted', status: 'active' });
+    const spbEmpty = await seedAccount({ email: 'spb-empty@example.com', testEnv });
+    const spbEmptySession = await seedSession(spbEmpty.accountId, { testEnv });
 
     const surfaces = [
       ['signed-out landing', await get('/', testEnv)],
@@ -134,6 +142,8 @@ describe('brand canon', () => {
       ['scout empty', await get('/scout', testEnv, noScoutSession.cookie), true],
       ['private-network active', await get('/private-network', testEnv, splActiveSession.cookie), true],
       ['private-network empty', await get('/private-network', testEnv, splEmptySession.cookie), true],
+      ['operated backup active', await get('/services/spb', testEnv, spbActiveSession.cookie), true],
+      ['operated backup empty', await get('/services/spb', testEnv, spbEmptySession.cookie), true],
       ['devices', await get('/devices', testEnv, withPasskeySession.cookie), true],
       ['support list', await get('/support', testEnv, withPasskeySession.cookie), true],
       ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],
@@ -189,6 +199,26 @@ describe('brand canon', () => {
       action: 'allow',
     }), splSession.cookie);
     const splError = await get('/enable/spl', testEnv);
+    const spbAccount = await seedAccount({ email: 'spb-canon@example.com', testEnv });
+    const spbSession = await seedSession(spbAccount.accountId, { testEnv });
+    const spbEntitledAccount = await seedAccount({ email: 'spb-entitled-canon@example.com', testEnv });
+    const spbEntitledSession = await seedSession(spbEntitledAccount.accountId, { testEnv });
+    await seedEntitlement({ accountId: spbEntitledAccount.accountId, service: 'spb_hosted', status: 'active' });
+    const spbUnentitledConsent = await get(`/enable/spb?nonce=${VALID_SPB_NONCE}`, testEnv, spbSession.cookie);
+    const spbNeedsSubscription = await post('/enable/spb/confirm', testEnv, new URLSearchParams({
+      csrf: TEST_CSRF,
+      nonce: VALID_SPB_NONCE,
+      instance: VALID_SPB_INSTANCE,
+      action: 'allow',
+    }), spbSession.cookie);
+    const spbEntitledConsent = await get(`/enable/spb?nonce=${VALID_SPB_ENTITLED_NONCE}&instance=${VALID_SPB_INSTANCE}`, testEnv, spbEntitledSession.cookie);
+    const spbApproved = await post('/enable/spb/confirm', testEnv, new URLSearchParams({
+      csrf: TEST_CSRF,
+      nonce: VALID_SPB_ENTITLED_NONCE,
+      instance: VALID_SPB_INSTANCE,
+      action: 'allow',
+    }), spbEntitledSession.cookie);
+    const spbError = await get('/enable/spb', testEnv);
 
     expect('your sign-in').not.toMatch(enableSurfaceStrictRe);
     for (const [name, response] of [
@@ -200,6 +230,11 @@ describe('brand canon', () => {
       ['enable spl entitled consent', splEntitledConsent],
       ['enable spl approved', splApproved],
       ['enable spl error', splError],
+      ['enable spb unentitled consent', spbUnentitledConsent],
+      ['enable spb needs subscription', spbNeedsSubscription],
+      ['enable spb entitled consent', spbEntitledConsent],
+      ['enable spb approved', spbApproved],
+      ['enable spb error', spbError],
     ]) {
       const body = await response.text();
       const scanBody = stripHref(body);

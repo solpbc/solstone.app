@@ -404,6 +404,82 @@ export function renderEnableSplError() {
   });
 }
 
+export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = false }) {
+  const instanceInput = instance
+    ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
+    : '';
+  const disclosure = entitled
+    ? '<p class="disclosure">you can review or change operated backup from the journal anytime.</p>'
+    : '<p class="disclosure"><a href="/services/spb">set up operated backup</a> — sol pbc keeps the encrypted copy for you.</p>';
+  return layout({
+    title: 'enable operated backup',
+    body: `${brandbar()}
+<h1>enable operated backup</h1>
+<p class="lead">this journal is asking to enable operated backup. two things, and only these two:</p>
+<div class="card">
+  <div class="grant">
+    <div class="n">1</div>
+    <div>
+      <div class="gt">know this request is yours</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal — no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for operated backup.</div>
+    </div>
+  </div>
+  <div class="grant">
+    <div class="n">2</div>
+    <div>
+      <div class="gt">enable operated backup</div>
+      <div class="gd">sol pbc records this journal's backup prefix and hands back a broker token through this local handoff. the encrypted backup remains readable only by you.</div>
+    </div>
+  </div>
+  <form method="post" action="/enable/spb/confirm">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="nonce" value="${escAttr(nonce)}">
+    ${instanceInput}
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+    </div>
+  </form>
+</div>
+${disclosure}`,
+  });
+}
+
+export function renderEnableSpbDone() {
+  return layout({
+    title: 'operated backup enabled',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} operated backup enabled</h2>
+  <p>operated backup is approved for this journal. you can close this tab.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSpbNeedsSubscription() {
+  return layout({
+    title: 'operated backup needed',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">operated backup needed</h2>
+  <p>sol pbc keeps the encrypted copy for you before this journal can use operated backup.</p>
+  <a class="btn primary" href="/services/spb">set up operated backup</a>
+</div>`,
+  });
+}
+
+export function renderEnableSpbError() {
+  return layout({
+    title: 'could not enable operated backup',
+    body: `${brandbar()}
+<div class="card">
+  <h1>could not enable operated backup</h1>
+  <p>something didn't look right with that link.</p>
+  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
+</div>`,
+  });
+}
+
 // === services surfaces ===
 
 export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, scoutActive = false, deviceCount = 0, networkActive = false } = {}) {
@@ -646,6 +722,74 @@ ${content}`,
   <div class="group">
     ${billingCheckoutRow({ csrf, plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true })}
     ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false })}
+  </div>
+  <p class="disclosure">billed securely through stripe.</p>
+</div>`,
+  });
+}
+
+export function renderServicesSpb({ entitlement, csrf, flash = {}, menu }) {
+  const flashes = spbBillingFlashMessages(flash);
+  const status = entitlement?.status || '';
+  const detailParts = [];
+  if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
+  detailParts.push('encrypted backup operated by sol pbc');
+  const statusDetail = detailParts.join(' · ');
+  const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;operated backup is on';
+  const controlGroup = `<div class="group">
+  <div class="row" style="cursor:default">${IC_BACKUP}<div class="body"><div class="title">operated backup</div><div class="desc">${esc(statusDetail)}</div></div></div>
+</div>`;
+  const portalActions = `<div class="btn-row" style="margin-top:16px">
+  ${billingPortalForm({ csrf, action: '/services/spb/portal' })}
+  ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/services/spb/portal' })}
+</div>`;
+  const byoDisclosure = 'with your own bucket — backblaze b2, s3, any bucket — backup is always free.';
+  const page = ({ statusLine = '', content }) => layout({
+    title: 'operated backup',
+    body: `${topbar(menu)}
+<a class="back" href="/">${BACK_SVG} your services</a>
+${flashes}
+<div class="pagehead">
+  <h1>operated backup</h1>
+  ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
+</div>
+${content}`,
+  });
+
+  if (entitlement?.source === 'comp' && status === 'active') {
+    return page({
+      statusLine: onStatusLine,
+      content: `${controlGroup}
+<p class="disclosure" style="margin-top:24px">free while you're an approved scout · ${byoDisclosure} sol pbc keeps the encrypted copy for you. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+    });
+  }
+
+  if (status === 'active') {
+    return page({
+      statusLine: onStatusLine,
+      content: `${controlGroup}
+${portalActions}
+<p class="disclosure" style="margin-top:24px">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · billed through stripe. ${byoDisclosure} this covers backup storage operated by sol pbc. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+    });
+  }
+
+  if (status === 'past_due') {
+    return page({
+      statusLine: onStatusLine,
+      content: `${controlGroup}
+<p class="notice">your last payment didn't go through. manage billing to keep operated backup available — your own bucket stays free either way.</p>
+${portalActions}
+<p class="disclosure" style="margin-top:24px">billed through stripe. ${byoDisclosure} this covers backup storage operated by sol pbc. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+    });
+  }
+
+  return page({
+    content: `<p class="lead">sol pbc keeps the encrypted copy for you. your journal is encrypted on your device before it leaves, so only you can read it.</p>
+<div class="card">
+  <p>you never have to pay us. ${byoDisclosure} this only covers storage operated by sol pbc.</p>
+  <div class="group">
+    ${billingCheckoutRow({ csrf, plan: 'annual', title: 'yearly plan', buttonText: 'pay yearly', primary: true, action: '/services/spb/checkout' })}
+    ${billingCheckoutRow({ csrf, plan: 'monthly', title: 'monthly plan', buttonText: 'pay monthly', primary: false, action: '/services/spb/checkout' })}
   </div>
   <p class="disclosure">billed securely through stripe.</p>
 </div>`,
@@ -1456,14 +1600,14 @@ function renderSupportAttachment(attachment) {
 </div>`;
 }
 
-function billingCheckoutRow({ csrf, plan, title, buttonText, primary }) {
+function billingCheckoutRow({ csrf, plan, title, buttonText, primary, action = '/billing/checkout' }) {
   // Display copy must match the configured Stripe price IDs; env stores opaque price IDs only.
   const buttonClass = primary ? 'btn primary' : 'btn secondary';
   return `<div class="row" style="cursor:default">
   <div class="body">
     <div class="title">${esc(title)}</div>
   </div>
-  <div class="trail"><form method="post" action="/billing/checkout">
+  <div class="trail"><form method="post" action="${escAttr(action)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="plan" value="${escAttr(plan)}">
     <button class="${buttonClass}" type="submit">${esc(buttonText)}</button>
@@ -1471,8 +1615,8 @@ function billingCheckoutRow({ csrf, plan, title, buttonText, primary }) {
 </div>`;
 }
 
-function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary' }) {
-  return `<form method="post" action="/billing/portal">
+function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary', action = '/billing/portal' }) {
+  return `<form method="post" action="${escAttr(action)}">
   <input type="hidden" name="csrf" value="${escAttr(csrf)}">
   <button class="${buttonClass}" type="submit">${esc(buttonText)}</button>
 </form>`;
@@ -1485,6 +1629,19 @@ function billingFlashMessages(flash) {
   if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
   if (flash.checkout === 'comped') messages.push("you're already covered free as a scout.");
   if (flash.billing === 'missing') messages.push('billing management is available after hosting starts.');
+  if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
+  return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
+}
+
+function spbBillingFlashMessages(flash) {
+  const messages = [];
+  if (flash.checkout === 'success') messages.push('payment received. it can take a moment to show up here.');
+  if (flash.checkout === 'cancel') messages.push('no charge made. you can turn on operated backup anytime — your own bucket stays free.');
+  if (flash.checkout === 'invalid') messages.push('choose yearly or monthly billing.');
+  if (flash.checkout === 'email') messages.push("billing couldn't start. try again.");
+  if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
+  if (flash.checkout === 'comped') messages.push("you're already covered free as a scout.");
+  if (flash.billing === 'missing') messages.push('billing management is available after operated backup starts.');
   if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }

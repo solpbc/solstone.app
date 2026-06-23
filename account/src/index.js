@@ -30,10 +30,13 @@ import {
   handleEnablePushGet,
   handleEnableScoutConfirm,
   handleEnableScoutGet,
+  handleEnableSpbConfirm,
+  handleEnableSpbGet,
   handleEnableSplConfirm,
   handleEnableSplGet,
   handleHandoffPush,
   handleHandoffScout,
+  handleHandoffSpb,
   handleHandoffSpl,
   handleScoutStatus,
   verifyEnableResume,
@@ -58,6 +61,11 @@ import {
   handleServicesSpl,
   handleStripeWebhook,
 } from './billing.js';
+import {
+  handleServicesSpb,
+  handleSpbCheckout,
+  handleSpbPortal,
+} from './spb-billing.js';
 import {
   handleAddEmail,
   handleMakeEmailPrimary,
@@ -420,6 +428,34 @@ export default {
         return handleHandoffSpl(req, env, ctx);
       }
 
+      if (
+        parts.length === 3 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'spb' &&
+        req.method === 'GET'
+      ) {
+        return handleEnableSpbGet(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'spb' &&
+        parts[3] === 'confirm' &&
+        req.method === 'POST'
+      ) {
+        return handleEnableSpbConfirm(req, env, ctx);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'handoff' &&
+        parts[2] === 'spb' &&
+        req.method === 'GET'
+      ) {
+        return handleHandoffSpb(req, env, ctx);
+      }
+
       if (url.pathname === '/passkey/register/start') {
         return passkeyRegisterStart(req, env);
       }
@@ -458,6 +494,10 @@ export default {
         const session = await getValidSession(req, env, Date.now());
         if (!session) return html(renderPrivateNetworkLanding());
         return handleServicesSpl(req, env);
+      }
+
+      if (url.pathname === '/services/spb' && req.method === 'GET') {
+        return handleServicesSpb(req, env);
       }
 
       if (url.pathname === '/backup' && req.method === 'GET') {
@@ -786,6 +826,26 @@ export default {
         req.method === 'POST'
       ) {
         return handleBackupCredentials(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'services' &&
+        parts[2] === 'spb' &&
+        parts[3] === 'checkout' &&
+        req.method === 'POST'
+      ) {
+        return handleSpbCheckout(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'services' &&
+        parts[2] === 'spb' &&
+        parts[3] === 'portal' &&
+        req.method === 'POST'
+      ) {
+        return handleSpbPortal(req, env);
       }
 
       if (

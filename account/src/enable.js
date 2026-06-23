@@ -1,6 +1,7 @@
 import {
   decryptEmail,
   encryptEmail,
+  generateSessionToken,
   hashKey,
   hashServiceHandoffNonce,
   hashWithPepper,
@@ -20,6 +21,7 @@ import {
   insertServiceHandoff,
   revokeDevicePriorAndInsertNew,
   setScoutApplicationDataAcked,
+  upsertSpbBinding,
   upsertSplBinding,
   upsertScoutApplicationPending,
 } from './db.js';
@@ -46,17 +48,23 @@ import {
   renderEnableSplDone,
   renderEnableSplError,
   renderEnableSplNeedsSubscription,
+  renderEnableSpbConsent,
+  renderEnableSpbDone,
+  renderEnableSpbError,
+  renderEnableSpbNeedsSubscription,
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
 import { SPL_HOSTED_SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
+import { SPB_HOSTED_SERVICE, reconcileSpbEntitlement } from './spb-entitlement.js';
 
 const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
 const ENABLE_PATH = '/enable/scout';
 const ENABLE_PUSH_PATH = '/enable/push';
 const ENABLE_SPL_PATH = '/enable/spl';
+const ENABLE_SPB_PATH = '/enable/spb';
 const GEMINI_PROVIDER = 'gemini';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -64,6 +72,7 @@ const RESUME_PATH_WHITELIST = new Map([
   [ENABLE_PATH, validateScoutResumeParams],
   [ENABLE_PUSH_PATH, validatePushResumeParams],
   [ENABLE_SPL_PATH, validateSplResumeParams],
+  [ENABLE_SPB_PATH, validateSpbResumeParams],
 ]);
 
 export async function provisionScoutForAccount({ env, accountId, ctx }) {
@@ -517,6 +526,114 @@ export async function handleHandoffSpl(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
+export async function handleEnableSpbGet(req, env) {
+  const url = new URL(req.url);
+  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return spbError(400);
+  const instance = parseOptionalInstance(url.searchParams);
+  const resumeQuery = spbResumeQuery(nonce, instance);
+
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPB_PATH, resumeQuery);
+
+  const csrf = await csrfToken(env);
+  const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPB_HOSTED_SERVICE });
+  const entitled = isSpbEntitled(entitlement);
+  return noStoreHtml(renderEnableSpbConsent({ csrf, nonce, instance, entitled }));
+}
+
+export async function handleEnableSpbConfirm(req, env, ctx) {
+  if (!originAllowed(req)) return noStoreResponse(forbidden());
+  const form = await readForm(req);
+  if (!form) return spbError(400);
+
+  const nonce = (form.get('nonce')?.toString() || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return spbError(400);
+
+  if ((form.get('action')?.toString() || '') === 'cancel') {
+    return redirect('/', 303, { 'Cache-Control': 'no-store' });
+  }
+
+  const instance = parseOptionalInstance(form);
+  if (!instance) return spbError(400);
+  const resumeQuery = spbResumeQuery(nonce, instance);
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPB_PATH, resumeQuery);
+  const account = await getAccountTransparencyRow(env.DB, session.account_id);
+  if (!account) {
+    return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
+  }
+
+  const csrf = await csrfToken(env);
+  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
+    return spbError(403);
+  }
+
+  const nowMs = Date.now();
+  const accountId = session.account_id;
+  const brokerToken = generateSessionToken();
+  const tokenHash = await hashWithPepper(brokerToken, env);
+  await upsertSpbBinding(env.DB, { accountId, instanceId: instance, tokenHash, nowMs });
+  await reconcileSpbEntitlement(env, accountId, nowMs, ctx);
+  const entitlement = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });
+  const entitled = isSpbEntitled(entitlement);
+  const origin = new URL(req.url).origin;
+  const prefix = `users/${accountId}/${instance}/`;
+  const payload = {
+    broker_endpoint: origin,
+    account_id: accountId,
+    instance_id: instance,
+    bucket: env.R2_BUCKET,
+    prefix,
+    broker_token: brokerToken,
+    status: entitled ? 'approved' : 'needs_subscription',
+  };
+  if (!entitled) payload.subscribe_url = `${origin}/services/spb`;
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  try {
+    const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
+    await insertServiceHandoff(env.DB, {
+      handoffHash,
+      accountId,
+      service: 'spb',
+      payloadEncrypted,
+      createdAt: nowMs,
+      expiresAt: nowMs + HANDOFF_TTL_MS,
+    });
+  } catch {
+    return spbError(503);
+  }
+  if (!entitled) return noStoreHtml(renderEnableSpbNeedsSubscription());
+  return noStoreHtml(renderEnableSpbDone());
+}
+
+export async function handleHandoffSpb(req, env) {
+  const url = new URL(req.url);
+  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return handoffJson({ error: 'invalid_request' }, { status: 400 });
+
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  const started = Date.now();
+  while (Date.now() - started <= HANDOFF_POLL_BUDGET_MS) {
+    const nowMs = Date.now();
+    const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spb' });
+    if (consumed) {
+      const plaintext = await decryptEmail(consumed.payload_encrypted, env);
+      return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
+    }
+
+    const status = await findServiceHandoffStatus(env.DB, { handoffHash, service: 'spb' });
+    if (status && (status.consumed_at != null || status.expires_at <= nowMs)) {
+      return handoffJson({ error: 'gone' }, { status: 410 });
+    }
+
+    const elapsed = Date.now() - started;
+    if (elapsed >= HANDOFF_POLL_BUDGET_MS) break;
+    await sleep(Math.min(HANDOFF_POLL_MS, HANDOFF_POLL_BUDGET_MS - elapsed));
+  }
+  return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+}
+
 function parseEnableRequest(url) {
   const nonceParam = url.searchParams.get('nonce');
   const nonce = (nonceParam || '').trim().toUpperCase();
@@ -566,6 +683,12 @@ function splResumeQuery(nonce, instance) {
   return `?${params.toString()}`;
 }
 
+function spbResumeQuery(nonce, instance) {
+  const params = new URLSearchParams({ nonce });
+  if (instance) params.set('instance', instance);
+  return `?${params.toString()}`;
+}
+
 function parseOptionalInstance(params) {
   const values = params.getAll('instance');
   if (values.length !== 1) return null;
@@ -574,6 +697,10 @@ function parseOptionalInstance(params) {
 }
 
 function isSplEntitled(entitlement) {
+  return entitlement?.status === 'active' || entitlement?.status === 'past_due';
+}
+
+function isSpbEntitled(entitlement) {
   return entitlement?.status === 'active' || entitlement?.status === 'past_due';
 }
 
@@ -650,6 +777,14 @@ function validateSplResumeParams(params) {
   return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
 }
 
+function validateSpbResumeParams(params) {
+  const nonceValues = params.getAll('nonce');
+  const instanceValues = params.getAll('instance');
+  if (nonceValues.length !== 1 || !NONCE_REGEX.test(nonceValues[0])) return false;
+  if (instanceValues.length === 0) return true;
+  return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
+}
+
 function enableError(message, status) {
   return noStoreHtml(renderEnableScoutError({ message }), { status });
 }
@@ -660,6 +795,10 @@ function pushError(status) {
 
 function splError(status) {
   return noStoreHtml(renderEnableSplError(), { status });
+}
+
+function spbError(status) {
+  return noStoreHtml(renderEnableSpbError(), { status });
 }
 
 function noStoreHtml(body, init = {}) {
