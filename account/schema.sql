@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0015 — billing entitlements + comp source
+-- account-portal D1 schema after 0016 — spb entitlement support
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -234,7 +234,7 @@ CREATE TABLE IF NOT EXISTS gemini_reveal_acks (
 
 CREATE TABLE IF NOT EXISTS entitlements (
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('spl_hosted')),
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted','spb_hosted')),
   status TEXT NOT NULL CHECK (status IN ('active','past_due','canceled','lapsed')),
   -- current_period_end: Stripe Unix SECONDS, stored verbatim. Never milliseconds.
   -- The spl relay lode compares its grant window against this value in seconds.
@@ -267,3 +267,18 @@ CREATE TABLE IF NOT EXISTS spl_bindings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spl_bindings_account_id ON spl_bindings(account_id);
+
+-- spb_bindings: schema hook for SPB hosted access. P1 records only binding
+-- identity plus the lapsed clock used by later retention/sweep work.
+CREATE TABLE IF NOT EXISTS spb_bindings (
+  account_id TEXT NOT NULL,
+  instance_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  last_seen_at INTEGER NOT NULL,
+  token_hash TEXT,
+  lapsed_at INTEGER,
+  PRIMARY KEY (account_id, instance_id),
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_spb_bindings_account_id ON spb_bindings(account_id);

@@ -58,6 +58,8 @@ export function makeTestEnv(overrides = {}) {
     STRIPE_WEBHOOK_SECRET: overrides.STRIPE_WEBHOOK_SECRET || 'whsec_account_portal',
     STRIPE_PRICE_ANNUAL: overrides.STRIPE_PRICE_ANNUAL || 'price_annual_test',
     STRIPE_PRICE_MONTHLY: overrides.STRIPE_PRICE_MONTHLY || 'price_monthly_test',
+    STRIPE_PRICE_SPB_ANNUAL: overrides.STRIPE_PRICE_SPB_ANNUAL || 'price_spb_annual_test',
+    STRIPE_PRICE_SPB_MONTHLY: overrides.STRIPE_PRICE_SPB_MONTHLY || 'price_spb_monthly_test',
     RELAY_GRANT_URL: overrides.RELAY_GRANT_URL || 'https://link.solstone.app',
     RELAY_GRACE_DAYS: overrides.RELAY_GRACE_DAYS || '14',
     RELAY_GRANT_SECRET: overrides.RELAY_GRANT_SECRET || 'test-relay-grant-secret',
@@ -109,6 +111,7 @@ export async function resetDb() {
     'entitlements',
     'stripe_customers',
     'spl_bindings',
+    'spb_bindings',
     'scout_applications',
     'gemini_reveal_acks',
     'enable_scout_codes',
@@ -605,6 +608,25 @@ export async function seedSplBinding({
     .bind(accountId, instanceId, createdAt, lastSeenAt)
     .run();
   return { accountId, instanceId, createdAt, lastSeenAt };
+}
+
+export async function seedSpbBinding({
+  accountId,
+  instanceId = '11111111-1111-1111-1111-111111111111',
+  createdAt = Date.now(),
+  lastSeenAt = createdAt,
+  tokenHash = null,
+  lapsedAt = null,
+} = {}) {
+  await env.DB
+    .prepare(
+      `INSERT INTO spb_bindings (
+         account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at
+       ) VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(accountId, instanceId, createdAt, lastSeenAt, tokenHash, lapsedAt)
+    .run();
+  return { accountId, instanceId, createdAt, lastSeenAt, tokenHash, lapsedAt };
 }
 
 export async function seedCredential({

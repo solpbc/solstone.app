@@ -13,12 +13,13 @@ export async function createCheckoutSession(env, {
   successUrl,
   cancelUrl,
   idempotencyKey,
+  service = 'spl',
 }) {
   if (!idempotencyKey) throw new Error('stripe checkout requires idempotency key');
   const body = new URLSearchParams();
   body.set('mode', 'subscription');
   body.set('client_reference_id', accountId);
-  body.set('subscription_data[metadata][service]', 'spl');
+  body.set('subscription_data[metadata][service]', service);
   body.set('subscription_data[metadata][account_id]', accountId);
   body.set('allow_promotion_codes', 'true');
   body.set('automatic_tax[enabled]', 'true');

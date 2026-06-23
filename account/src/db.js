@@ -1027,6 +1027,20 @@ export async function listSplBindings(db, accountId) {
   return results || [];
 }
 
+export async function markSpbBindingLapsed(db, { accountId, nowMs }) {
+  await db
+    .prepare('UPDATE spb_bindings SET lapsed_at = ? WHERE account_id = ? AND lapsed_at IS NULL')
+    .bind(nowMs, accountId)
+    .run();
+}
+
+export async function clearSpbBindingLapsed(db, { accountId }) {
+  await db
+    .prepare('UPDATE spb_bindings SET lapsed_at = NULL WHERE account_id = ?')
+    .bind(accountId)
+    .run();
+}
+
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
 }

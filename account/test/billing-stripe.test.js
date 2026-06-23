@@ -1,6 +1,7 @@
 import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import { createCheckoutSession } from '../src/stripe.js';
 import { TEST_CSRF, installStripeFetchMock, makeTestEnv, resetDb, seedAccount, seedEntitlement, seedScoutApplication, seedSession, signStripeWebhook } from './helpers.js';
 
 describe('billing stripe core', () => {
@@ -142,6 +143,51 @@ describe('billing stripe core', () => {
       current_period_end: 1_900_000_000,
       source_ref: 'sub_invoice',
     });
+    await expect(entitlementRow(account.accountId, 'spb_hosted')).resolves.toBeNull();
+  });
+
+  it('routes spb-tagged invoice payment failures without fetching the subscription', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'spb-invoice-failed@example.com', testEnv });
+    await seedStripeCustomer(account.accountId, 'cus_mapped');
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: 'spl_hosted',
+      status: 'active',
+      currentPeriodEnd: 1_800_000_000,
+      sourceRef: 'sub_spl_existing',
+    });
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: 'spb_hosted',
+      status: 'active',
+      currentPeriodEnd: 1_950_000_000,
+      sourceRef: 'sub_spb_existing',
+    });
+    const { calls } = installStripeFetchMock();
+
+    await sendEvent(testEnv, {
+      type: 'invoice.payment_failed',
+      data: {
+        object: {
+          customer: 'cus_mapped',
+          subscription: 'sub_invoice',
+          subscription_details: { metadata: { service: 'spb' } },
+        },
+      },
+    });
+
+    expect(calls.filter((call) => call.method === 'GET' && call.url.pathname.startsWith('/v1/subscriptions/'))).toHaveLength(0);
+    await expect(entitlementRow(account.accountId, 'spb_hosted')).resolves.toMatchObject({
+      status: 'past_due',
+      current_period_end: 1_950_000_000,
+      source_ref: 'sub_spb_existing',
+    });
+    await expect(entitlementRow(account.accountId, 'spl_hosted')).resolves.toMatchObject({
+      status: 'active',
+      current_period_end: 1_800_000_000,
+      source_ref: 'sub_spl_existing',
+    });
   });
 
   it('creates checkout sessions with locked Stripe fields and redirects to hosted checkout', async () => {
@@ -183,6 +229,29 @@ describe('billing stripe core', () => {
     expect(calls[1].body.get('line_items[0][price]')).toBe('price_monthly_test');
     expect(calls[1].body.get('customer')).toBe('cus_existing');
     expect(calls[1].body.has('customer_email')).toBe(false);
+  });
+
+  it('creates spb checkout sessions when service and price are provided directly', async () => {
+    const testEnv = makeTestEnv();
+    const { calls } = installStripeFetchMock({
+      'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_spb', url: 'https://checkout.stripe.test/spb-session' }),
+    });
+
+    const checkout = await createCheckoutSession(testEnv, {
+      accountId: 'acct_spb_checkout',
+      priceId: testEnv.STRIPE_PRICE_SPB_ANNUAL,
+      customer: 'cus_spb_checkout',
+      customerEmail: '',
+      successUrl: 'https://services.solstone.app/billing/return?status=success',
+      cancelUrl: 'https://services.solstone.app/billing/return?status=cancel',
+      idempotencyKey: 'spb-checkout-idempotency-key',
+      service: 'spb',
+    });
+
+    expect(checkout.url).toBe('https://checkout.stripe.test/spb-session');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('spb');
+    expect(calls[0].body.get('line_items[0][price]')).toBe('price_spb_annual_test');
   });
 
   it('redirects approved scouts away from Stripe checkout', async () => {
@@ -319,10 +388,10 @@ async function seedStripeCustomer(accountId, stripeCustomerId) {
     .run();
 }
 
-async function entitlementRow(accountId) {
+async function entitlementRow(accountId, service = 'spl_hosted') {
   return workerEnv.DB
     .prepare('SELECT account_id, service, status, current_period_end, source, source_ref, updated_at FROM entitlements WHERE account_id = ? AND service = ?')
-    .bind(accountId, 'spl_hosted')
+    .bind(accountId, service)
     .first();
 }
 

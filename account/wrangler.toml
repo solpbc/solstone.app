@@ -90,6 +90,8 @@ SIGNUP_DISABLED = "false"
 SCOUT_GCP_PROJECT = "solstone-scouts"
 STRIPE_PRICE_ANNUAL = "price_1TjnJB3ew4P2jFrx820NPkX4"
 STRIPE_PRICE_MONTHLY = "price_1TjnJC3ew4P2jFrxANwt3ya8"
+STRIPE_PRICE_SPB_ANNUAL = "price_spb_annual_placeholder"
+STRIPE_PRICE_SPB_MONTHLY = "price_spb_monthly_placeholder"
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 

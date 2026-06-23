@@ -42,6 +42,7 @@ describe('static source checks', () => {
       'scout-migrate.js',
       'session.js',
       'settings.js',
+      'spb-entitlement.js',
       'stripe.js',
       'support-constants.js',
       'support.js',

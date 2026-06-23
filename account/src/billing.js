@@ -24,6 +24,7 @@ import {
   verifyWebhookSignature,
 } from './stripe.js';
 import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-grant.js';
+import { reconcileSpbEntitlement } from './spb-entitlement.js';
 
 const SOURCE = 'stripe';
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
@@ -165,6 +166,15 @@ async function applyStripeEvent(env, event, nowMs, ctx) {
   }
 }
 
+function serviceTag(metadataHolder) {
+  return metadataHolder?.metadata?.service === 'spb' ? 'spb' : 'spl';
+}
+
+async function reconcileForService(service, env, accountId, nowMs, ctx, opts) {
+  if (service === 'spb') return reconcileSpbEntitlement(env, accountId, nowMs, ctx, opts);
+  return reconcileSplEntitlement(env, accountId, nowMs, ctx, opts);
+}
+
 async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   const accountId = obj?.client_reference_id || '';
   const stripeCustomerId = typeof obj?.customer === 'string' ? obj.customer : '';
@@ -172,7 +182,7 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   if (!accountId || !stripeCustomerId || !subscriptionId) return;
   await upsertStripeCustomer(env.DB, { accountId, stripeCustomerId, nowMs });
   const subscription = await getSubscription(env, subscriptionId);
-  await reconcileSplEntitlement(env, accountId, nowMs, ctx, {
+  await reconcileForService(serviceTag(subscription), env, accountId, nowMs, ctx, {
     paid: {
       status: 'active',
       currentPeriodEnd: subscriptionPeriodEnd(subscription),
@@ -196,14 +206,14 @@ async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
         source: SOURCE,
         sourceRef: obj?.id || null,
       };
-  await reconcileSplEntitlement(env, accountId, nowMs, ctx, { paid });
+  await reconcileForService(serviceTag(obj), env, accountId, nowMs, ctx, { paid });
 }
 
 async function handleSubscriptionDeleted(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   if (!accountRow) return;
   const accountId = accountRow.account_id;
-  await reconcileSplEntitlement(env, accountId, nowMs, ctx, { paid: null });
+  await reconcileForService(serviceTag(obj), env, accountId, nowMs, ctx, { paid: null });
 }
 
 async function handleInvoicePaid(env, obj, nowMs, ctx) {
@@ -212,7 +222,7 @@ async function handleInvoicePaid(env, obj, nowMs, ctx) {
   if (!accountRow || !subscriptionId) return;
   const subscription = await getSubscription(env, subscriptionId);
   const accountId = accountRow.account_id;
-  await reconcileSplEntitlement(env, accountId, nowMs, ctx, {
+  await reconcileForService(serviceTag(subscription), env, accountId, nowMs, ctx, {
     paid: {
       status: 'active',
       currentPeriodEnd: subscriptionPeriodEnd(subscription),
@@ -226,7 +236,8 @@ async function handleInvoicePaymentFailed(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   if (!accountRow) return;
   const accountId = accountRow.account_id;
-  await reconcileSplEntitlement(env, accountId, nowMs, ctx, {
+  // Stripe copies subscription metadata onto invoice.subscription_details; no extra getSubscription call is made.
+  await reconcileForService(serviceTag(obj.subscription_details), env, accountId, nowMs, ctx, {
     paid: {
       status: 'past_due',
       currentPeriodEnd: null,

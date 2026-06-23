@@ -11,7 +11,7 @@ import {
   upsertScoutApplicationApproved,
 } from './db.js';
 import { json } from './index.js';
-import { reconcileSplEntitlement } from './relay-grant.js';
+import { reconcileAllServices } from './spb-entitlement.js';
 import { importScoutRecords } from './scout-migrate.js';
 import { SESSION_COOKIE } from './session.js';
 import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
@@ -141,11 +141,11 @@ async function approveScout(env, accountId, ctx) {
   }
   const nowMs = Date.now();
   if (application.status === 'approved') {
-    await reconcileSplEntitlement(env, accountId, nowMs, ctx);
+    await reconcileAllServices(env, accountId, nowMs, ctx);
     return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
   }
   await approveScoutApplication(env.DB, { accountId, nowMs });
-  await reconcileSplEntitlement(env, accountId, nowMs, ctx);
+  await reconcileAllServices(env, accountId, nowMs, ctx);
   return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
 }
 
@@ -160,7 +160,7 @@ async function revokeScout(env, accountId, ctx) {
   const nowMs = Date.now();
   await revokeScoutApplication(env.DB, { accountId, nowMs });
   await disableActiveGeminiKey({ env, accountId, nowMs, ctx });
-  await reconcileSplEntitlement(env, accountId, nowMs, ctx);
+  await reconcileAllServices(env, accountId, nowMs, ctx);
   return json({ account_id: accountId, status: 'revoked' }, { headers: SECURITY_HEADERS });
 }
 
@@ -187,7 +187,7 @@ async function preApproveScout(request, env, ctx) {
     nowMs,
   });
   await upsertScoutApplicationApproved(env.DB, { accountId, nowMs });
-  await reconcileSplEntitlement(env, accountId, nowMs, ctx);
+  await reconcileAllServices(env, accountId, nowMs, ctx);
   return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
 }
 

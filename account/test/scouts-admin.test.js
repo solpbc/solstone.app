@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
 import { COMP_ENTITLED_THROUGH, SPL_HOSTED_SERVICE } from '../src/relay-grant.js';
+import { SPB_HOSTED_SERVICE } from '../src/spb-entitlement.js';
 import {
   makeTestEnv,
   resetDb,
@@ -10,6 +11,7 @@ import {
   seedAccount,
   seedEntitlement,
   seedScoutApplication,
+  seedSpbBinding,
   seedSplBinding,
 } from './helpers.js';
 import {
@@ -220,6 +222,7 @@ describe('admin scout endpoints', () => {
     const account = await seedAccount({ email: 'approve-comp@example.com', nowMs: 1_000, testEnv });
     await seedScoutApplication({ accountId: account.accountId, status: 'pending', applied_at: 2_000 });
     await seedSplBinding({ accountId: account.accountId });
+    await seedSpbBinding({ accountId: account.accountId, lapsedAt: 999 });
     const { calls } = await installJwksRelayRecorder();
     const ctx = createExecutionContext();
 
@@ -235,6 +238,13 @@ describe('admin scout endpoints', () => {
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'active',
       source: 'comp',
+    });
+    await expect(entitlementRow(account.accountId, SPB_HOSTED_SERVICE)).resolves.toMatchObject({
+      status: 'active',
+      source: 'comp',
+    });
+    await expect(spbBindingRow(account.accountId)).resolves.toMatchObject({
+      lapsed_at: null,
     });
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({
@@ -302,7 +312,16 @@ describe('admin scout endpoints', () => {
       source: 'comp',
       sourceRef: null,
     });
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: SPB_HOSTED_SERVICE,
+      status: 'active',
+      currentPeriodEnd: null,
+      source: 'comp',
+      sourceRef: null,
+    });
     await seedSplBinding({ accountId: account.accountId });
+    await seedSpbBinding({ accountId: account.accountId });
     const { calls } = await installJwksRelayRecorder();
     const ctx = createExecutionContext();
 
@@ -320,6 +339,12 @@ describe('admin scout endpoints', () => {
       status: 'lapsed',
       source: 'comp',
     });
+    await expect(entitlementRow(account.accountId, SPB_HOSTED_SERVICE)).resolves.toMatchObject({
+      status: 'lapsed',
+      source: 'comp',
+    });
+    const spbBinding = await spbBindingRow(account.accountId);
+    expect(spbBinding.lapsed_at).toBeGreaterThan(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({
       instance_id: '11111111-1111-1111-1111-111111111111',
@@ -593,10 +618,17 @@ async function applicationRow(accountId) {
     .first();
 }
 
-async function entitlementRow(accountId) {
+async function entitlementRow(accountId, service = SPL_HOSTED_SERVICE) {
   return workerEnv.DB
     .prepare('SELECT account_id, service, status, current_period_end, source, source_ref, updated_at FROM entitlements WHERE account_id = ? AND service = ?')
-    .bind(accountId, SPL_HOSTED_SERVICE)
+    .bind(accountId, service)
+    .first();
+}
+
+async function spbBindingRow(accountId) {
+  return workerEnv.DB
+    .prepare('SELECT account_id, instance_id, lapsed_at FROM spb_bindings WHERE account_id = ?')
+    .bind(accountId)
     .first();
 }
 
