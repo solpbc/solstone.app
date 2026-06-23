@@ -1,9 +1,9 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import migration from '../migrations/0018_spb_sweep_audit.sql?raw';
+import migration from '../migrations/0019_spb_sweep_audit.sql?raw';
 import { resetDb } from './helpers.js';
 
-describe('migration 0018 spb sweep audit', () => {
+describe('migration 0019 spb sweep audit', () => {
   beforeEach(async () => {
     await resetDb();
     await workerEnv.DB.prepare('DROP TABLE IF EXISTS spb_sweep_audit').run();
