@@ -37,6 +37,10 @@
   --orange-wash:  #FBEFDD;  /* soft orange tint for on-pills / accents */
   --danger:       #9F2D2D;  /* destructive text (5.9:1 on light) */
   --focus:        #B06A1A;
+  /* type — mirrors tokens.css; @font-face for Comfortaa+Inter is self-hosted above */
+  --font-display: "Comfortaa", ui-rounded, "Trebuchet MS", system-ui, sans-serif;
+  --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:    ui-monospace, "SF Mono", Menlo, monospace;
   --radius:       14px;
   --radius-sm:    9px;
   /* tag tokens — pending CMO palette ratification */
@@ -53,7 +57,7 @@ body {
   min-height: 100vh;
   background: var(--cream);
   color: var(--ink);
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -70,7 +74,7 @@ main {
    in CSS, so third-party proper nouns (Gemini) keep canonical case per
    cmo/brand/voice-terminology.md § third-party brand casing. */
 h1 {
-  font-family: "Comfortaa", system-ui, sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.6rem;
   letter-spacing: -0.01em;
@@ -78,7 +82,7 @@ h1 {
   line-height: 1.2;
 }
 h2 {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 1.02rem;
   margin: 0 0 6px;
@@ -98,7 +102,7 @@ a:hover { text-decoration: underline; }
 .brandbar { display: flex; align-items: center; gap: 9px; margin-bottom: 28px; }
 .brandbar .mark { width: 26px; height: 26px; flex: none; }
 .brandbar .wordmark {
-  font-family: "Comfortaa", system-ui, sans-serif; font-weight: 700;
+  font-family: var(--font-display); font-weight: 700;
   font-size: 1.22rem; color: var(--ink); letter-spacing: 0.01em;
 }
 
@@ -118,7 +122,7 @@ a:hover { text-decoration: underline; }
 .topbar .home:hover { text-decoration: none; }
 .topbar .home .mark { width: 24px; height: 24px; flex: none; }
 .topbar .home .wordmark {
-  font-family: "Comfortaa", system-ui, sans-serif; font-weight: 700;
+  font-family: var(--font-display); font-weight: 700;
   font-size: 1.12rem; color: var(--ink); letter-spacing: 0.01em;
 }
 .usermenu { position: relative; }
@@ -134,7 +138,7 @@ a:hover { text-decoration: underline; }
   width: 32px; height: 32px; border-radius: 50%; flex: none;
   background: var(--orange-wash); color: #8A5314;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 0.95rem; font-family: "Comfortaa", system-ui, sans-serif;
+  font-weight: 700; font-size: 0.95rem; font-family: var(--font-display);
 }
 .usermenu .caret { width: 11px; height: 7px; color: var(--ink-faint); }
 .usermenu[open] > summary { border-color: var(--hairline-2); background: #fff; }
@@ -209,7 +213,7 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 .pill.off .dot { background: #C2B89F; }
 
 /* catalog + service-page components (services-sitemap-revamp lode 1) */
-.price { font-family:"Inter",sans-serif; font-weight:600; font-size:.92rem; color:var(--ink); white-space:nowrap; }
+.price { font-family:var(--font-body); font-weight:600; font-size:.92rem; color:var(--ink); white-space:nowrap; }
 .price .per { color:var(--ink-faint); font-weight:400; }
 .tag { display:inline-flex; align-items:center; font-size:.74rem; font-weight:600; letter-spacing:.02em; padding:3px 9px; border-radius:999px; white-space:nowrap; }
 .tag.builtin { background:var(--orange-wash); color:var(--tag-builtin-ink); }      /* was #8A5314 */
@@ -217,7 +221,7 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 .tag.soon { background:var(--tag-neutral-bg); color:var(--ink-faint); }            /* was #F0ECE2 */
 .brandlock { display:flex; align-items:center; gap:8px; color:var(--orange-ink); font-size:.95rem; margin:0 0 18px; }
 .brandlock .dot { width:7px; height:7px; border-radius:50%; background:var(--orange); flex:none; }
-.hero-tag { font-family:"Comfortaa",sans-serif; font-weight:700; font-size:1.18rem; color:var(--orange-ink); margin:2px 0 14px; }
+.hero-tag { font-family:var(--font-display); font-weight:700; font-size:1.18rem; color:var(--orange-ink); margin:2px 0 14px; }
 .beat { display:flex; align-items:flex-start; gap:13px; padding:16px 0; border-top:1px solid var(--hairline); }
 .beat:first-child { border-top:0; }
 .beat > svg { flex:none; width:22px; height:22px; color:var(--orange-ink); }
@@ -225,7 +229,7 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 .beat .bd { color:var(--ink-soft); font-size:.92rem; line-height:1.5; margin:0; }
 .beat .bi { flex:none; color:var(--orange-ink); margin-top:1px; }
 .pricecard { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
-.pricecard .big { font-family:"Comfortaa",sans-serif; font-weight:700; font-size:1.5rem; color:var(--ink); }
+.pricecard .big { font-family:var(--font-display); font-weight:700; font-size:1.5rem; color:var(--ink); }
 .pricecard .alt { color:var(--ink-faint); font-size:.9rem; margin-top:2px; }
 .statusline { display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--ink-soft); font-size:.95rem; }
 .statusline .k { color:var(--ink-faint); }
