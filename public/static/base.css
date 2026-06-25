@@ -1,9 +1,5 @@
-@font-face {
-    font-family: 'Comfortaa';
-    src: url('Comfortaa-Variable.woff2') format('woff2');
-    font-weight: 400 700;
-    font-display: swap;
-}
+/* Comfortaa @font-face now ships with tokens.css (loaded before base.css on
+   every page) — single declaration, no per-surface duplication. */
 * {
     margin: 0;
     padding: 0;

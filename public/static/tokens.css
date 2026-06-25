@@ -24,6 +24,24 @@
  *   never white-on-orange.
  * ========================================================================== */
 
+/* ── brand font loader — ships WITH the tokens ───────────────────────────────
+ * The @font-face lives HERE, not in a surface's own stylesheet, so that loading
+ * tokens.css guarantees BOTH the --font-display variable AND the Comfortaa file
+ * it names. This closes the 2026-06-24 solstone.app/releases regression class:
+ * a surface had loaded the variable's *consumer* (base.css) without its *loader*,
+ * so --font-display fell back to the UA serif. CONVENTION: every vendoring
+ * surface ships `Comfortaa-Variable.woff2` in the SAME directory as tokens.css,
+ * so this relative src resolves everywhere with one byte-identical declaration.
+ * Inter is intentionally NOT loaded here — it is system-fallback-acceptable
+ * (see --font-body); surfaces that self-host Inter (e.g. the services portal)
+ * keep their own @font-face. */
+@font-face {
+  font-family: 'Comfortaa';
+  src: url('Comfortaa-Variable.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
 :root {
   /* ── brand identity — CMO owns (cmo/brand/sol/index.md) ───────────────── */
   --gold:        #F5C740; /* sun rays — decoration only */
@@ -52,9 +70,22 @@
   --hairline:    #ECE3D0; /* warm divider / border */
   --hairline-2:  #E2D7BF; /* stronger warm border */
 
-  /* ── semantic ────────────────────────────────────────────────────────── */
-  --danger:      #9F2D2D; /* destructive text */
-  --focus:       #B06A1A; /* visible focus ring (= orange-ink) */
+  /* ── semantic — status palette (added 2026-06-24, Phase 5 DS0) ───────────
+   * Each family mirrors the orange triad: base = decoration/icon/left-border
+   * (NOT text on light), -ink = accessible text/detail (≥4.5:1 on every canon
+   * ground), -wash = soft badge/band fill. WARM-ONLY: green + gold-amber + red,
+   * NO cool blue (sol is a warm brand). "info / in-progress / neutral / waiting"
+   * states are NOT a color — use --ink-faint/--ink-soft on --hairline/--cream-bright.
+   * Contrast verified on cream: success-ink 5.88 / warn-ink 6.69 / danger 6.58. */
+  --danger:        #9F2D2D; /* destructive / error text */
+  --danger-wash:   #F8E9E6; /* error band / destructive-state fill */
+  --success:       #3F9D6A; /* done / healthy — decoration / icon / border only */
+  --success-ink:   #166534; /* success text + detail (accessible) */
+  --success-wash:  #E7F1E9; /* success badge / band fill */
+  --warn:          #C99A2E; /* caution / pending-action / known-issue — gold-amber, distinct from brand orange; decoration only */
+  --warn-ink:      #7C4A0C; /* warn text + detail (accessible) */
+  --warn-wash:     #FBF1D6; /* warn badge / band fill */
+  --focus:         #B06A1A; /* visible focus ring (= orange-ink) */
 
   /* ── type ────────────────────────────────────────────────────────────────
    * --font-display: brand register — headings + wordmark, Comfortaa Bold 700.
