@@ -79,7 +79,7 @@ footer a:hover {
     left: 0.5rem;
     z-index: 1000;
     background: var(--ink);
-    color: #fff;
+    color: var(--ink-on-dark);
     font-family: var(--font-display);
     font-size: 0.9rem;
     padding: 0.6rem 1rem;

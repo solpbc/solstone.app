@@ -42,77 +42,77 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         }
         .page-intro h1 { margin-bottom: 1rem; overflow-wrap: anywhere; }
         .page-intro p {
-            font-size: 1rem; line-height: 1.6; color: #555;
+            font-size: 1rem; line-height: 1.6; color: var(--ink-soft);
         }
         .intro-dl {
             display: inline-block; margin-top: 1.25rem;
-            font-family: 'Comfortaa', system-ui, sans-serif;
-            font-size: 0.9rem; color: #767676; text-decoration: none;
+            font-family: var(--font-display);
+            font-size: 0.9rem; color: var(--ink-faint); text-decoration: none;
             transition: color 0.15s;
         }
-        .intro-dl:hover { color: #E8923A; }
+        .intro-dl:hover { color: var(--orange-ink); }
         .stream-switch {
             position: sticky; top: 0; z-index: 10;
             margin-top: 1.25rem; padding: 0.6rem 1rem;
             width: 100%; max-width: 720px;
             display: flex; flex-wrap: wrap; gap: 0.4rem;
             align-items: center; justify-content: center;
-            background: #fff; border-bottom: 1px solid #ececec;
+            background: var(--cream-bright); border-bottom: 1px solid var(--hairline);
         }
         .ss-lead {
-            font-family: 'Comfortaa', system-ui, sans-serif;
-            font-size: 0.8rem; color: #999; margin-right: 0.15rem;
+            font-family: var(--font-display);
+            font-size: 0.8rem; color: var(--ink-faint); margin-right: 0.15rem;
         }
         .ss-pill {
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 0.9rem; line-height: 1;
             text-decoration: none; padding: 0.5rem 0.85rem; border-radius: 999px;
-            color: #555; transition: color 0.15s, background 0.15s;
+            color: var(--ink-soft); transition: color 0.15s, background 0.15s;
         }
-        a.ss-pill:hover { color: #b06a1a; background: #faf3ea; }
-        .ss-active { background: #E8923A; color: #333; font-weight: 700; }       /* you-are-here (dark text = AA contrast on orange) */
-        .ss-home:not(.ss-active) { box-shadow: inset 0 -2px 0 #E8923A; }         /* journal primacy underline */
-        .ss-soon { color: #bbb; cursor: default; }
-        .ss-pill:focus-visible { outline: 2px solid #E8923A; outline-offset: 2px; }
+        a.ss-pill:hover { color: var(--orange-ink); background: var(--orange-wash); }
+        .ss-active { background: var(--orange); color: var(--ink); font-weight: 700; }       /* you-are-here (dark text = AA contrast on orange) */
+        .ss-home:not(.ss-active) { box-shadow: inset 0 -2px 0 var(--orange); }         /* journal primacy underline */
+        .ss-soon { color: var(--ink-faint); cursor: default; }
+        .ss-pill:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
         .releases {
             max-width: 720px; width: 100%; padding: 0 1.5rem;
             text-align: left;
         }
         .release {
             padding: 1.75rem 0;
-            border-top: 1px solid #ececec;
+            border-top: 1px solid var(--hairline);
         }
         .release:first-of-type { border-top: none; }
         .release h2 {
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 1.35rem; font-weight: 700;
             text-transform: lowercase; letter-spacing: 0.03em;
-            color: #222; margin-bottom: 0.2rem;
+            color: var(--ink); margin-bottom: 0.2rem;
             scroll-margin-top: 3.5rem;   /* anchor jump doesn't hide under top edge */
         }
         .release .rel-date {
-            font-size: 0.85rem; color: #999; margin-bottom: 1.1rem;
+            font-size: 0.85rem; color: var(--ink-faint); margin-bottom: 1.1rem;
         }
         .release h3.rel-section {
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 0.82rem; font-weight: 700;
             text-transform: lowercase; letter-spacing: 0.04em;
-            color: #B36A1D; margin: 1.25rem 0 0.5rem;
+            color: var(--orange-ink); margin: 1.25rem 0 0.5rem;
         }
-        .release p { font-size: 0.95rem; line-height: 1.65; color: #444; margin: 0.5rem 0; }
+        .release p { font-size: 0.95rem; line-height: 1.65; color: var(--ink-soft); margin: 0.5rem 0; }
         .release ul { margin: 0.25rem 0 0.5rem; padding-left: 1.25rem; }
-        .release li { font-size: 0.95rem; line-height: 1.6; color: #444; margin-bottom: 0.5rem; }
-        .release li::marker { color: #E8923A; }
+        .release li { font-size: 0.95rem; line-height: 1.6; color: var(--ink-soft); margin-bottom: 0.5rem; }
+        .release li::marker { color: var(--orange); }
         .release code {
-            font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-            font-size: 0.84em; background: #f5f5f5;
-            padding: 0.05rem 0.35rem; border-radius: 3px; color: #333;
+            font-family: var(--font-mono);
+            font-size: 0.84em; background: var(--cream-bright);
+            padding: 0.05rem 0.35rem; border-radius: 3px; color: var(--ink);
         }
-        .release a { color: #b06a1a; text-decoration: underline; }
-        .release a:hover { color: #E8923A; }
+        .release a { color: var(--orange-ink); text-decoration: underline; }
+        .release a:hover { color: var(--orange-ink); }
         .rel-links a:focus-visible,
         .release a:focus-visible {
-            outline: 2px solid #E8923A;
+            outline: 2px solid var(--focus);
             outline-offset: 3px;
         }
         .rel-links {
@@ -120,10 +120,10 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             display: flex; flex-direction: column; gap: 0.5rem; text-align: left;
         }
         .rel-links a {
-            color: #767676; font-size: 0.95rem; text-decoration: none;
+            color: var(--ink-faint); font-size: 0.95rem; text-decoration: none;
             transition: color 0.15s;
         }
-        .rel-links a:hover { color: #E8923A; }
+        .rel-links a:hover { color: var(--orange-ink); }
         @media (max-width: 640px) {
             .ss-lead {
                 flex-basis: 100%; text-align: center; margin: 0 0 0.2rem;

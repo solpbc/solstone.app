@@ -74,7 +74,7 @@
             padding: 0.5rem 1rem;
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s, color 0.15s;
-            color: #fff;
+            color: var(--ink-on-dark);
         }
         .copy-btn:hover {
             background: var(--orange);
@@ -154,7 +154,7 @@
         #mode-single:checked ~ .mode-toggle label[for="mode-single"],
         #mode-multi:checked ~ .mode-toggle label[for="mode-multi"] {
             background: var(--ink);
-            color: #fff;
+            color: var(--ink-on-dark);
         }
         .diagram-switcher input[type="radio"]:focus-visible + .mode-toggle label,
         .mode-toggle label:focus-visible {
@@ -209,7 +209,7 @@
         #plat-macos:checked ~ .platform-toggle label[for="plat-macos"],
         #plat-linux:checked ~ .platform-toggle label[for="plat-linux"] {
             background: var(--ink);
-            color: #fff;
+            color: var(--ink-on-dark);
         }
         .platform-card input[type="radio"]:focus-visible + .platform-toggle label,
         .platform-toggle label:focus-visible {
@@ -271,7 +271,7 @@
         }
         .platform-prereq code,
         .install-finish code {
-            font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+            font-family: var(--font-mono);
             font-size: 0.84em;
             background: var(--orange-wash);
             padding: 0.05rem 0.35rem;
@@ -279,7 +279,7 @@
             color: var(--ink-soft);
         }
         .install-steps {
-            font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+            font-family: var(--font-mono);
             font-size: 0.82rem;
             color: var(--ink-soft);
             background: var(--orange-wash);

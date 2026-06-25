@@ -25,11 +25,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: var(--font-body);
             background: var(--cream);
         }
         h1 {
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 2.5rem;
             font-weight: 700;
             letter-spacing: 0.1em;
@@ -72,7 +72,7 @@
         footer {
             margin-top: auto;
             padding: 2rem 0;
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            font-family: var(--font-display);
             font-size: 0.85rem;
             color: var(--ink-faint);
         }
@@ -88,9 +88,9 @@
             top: -3rem;
             left: 0.5rem;
             z-index: 1000;
-            background: #222;
-            color: #fff;
-            font-family: 'Comfortaa', system-ui, sans-serif;
+            background: var(--ink);
+            color: var(--ink-on-dark);
+            font-family: var(--font-display);
             font-size: 0.9rem;
             padding: 0.6rem 1rem;
             border-radius: 0 0 6px 6px;
@@ -101,7 +101,7 @@
             top: 0;
         }
         :focus-visible {
-            outline: 2px solid #E8923A;
+            outline: 2px solid var(--focus);
             outline-offset: 2px;
         }
         main {
