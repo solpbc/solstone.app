@@ -236,6 +236,26 @@ export const RELEASE_PAGE_CONFIGS = {
     // never say "updated the bundled solstone journal to X", so keep linkify off.
     linkifyBundledJournal: false,
   },
+  android: {
+    pageTitle: "Android app releases — solstone",
+    ogTitle: "Android app releases",
+    metaDescription:
+      "release notes for the solstone Android app, in plain language. observer, pairing, and sync changes.",
+    ogUrl: "https://solstone.app/releases/android",
+    canonicalUrl: "https://solstone.app/releases/android",
+    stream: "android",
+    heading: "Android app releases",
+    intro:
+      "these are the Android app's own changes: the observer, pairing, and sync behavior. the Android app is in beta — builds reach trusted testers through the App Tester app.",
+    // Beta channel, invite-only — there is no public download yet, so no primary CTA.
+    primaryLink: null,
+    sourceUrl: "https://github.com/solpbc/solstone-android",
+    unavailableUrl: "https://github.com/solpbc/solstone-android/releases",
+    unavailableLabel: "see every Android app release on github →",
+    articleTitle: (version) => `solstone for Android ${version}`,
+    // The Android observer is a pairing client, not a journal host — keep linkify off.
+    linkifyBundledJournal: false,
+  },
 };
 
 export function parseAppcastItems(xml) {
@@ -428,6 +448,7 @@ function streamSwitcher(currentStream) {
     pill("macos", "macOS", "/releases/macos"),
     pill("windows", "Windows", "/releases/windows"),
     pill("linux", "Linux", "/releases/linux"),
+    pill("android", "Android", "/releases/android"),
     '            <span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>',
     "</nav>",
   ].join("\n");

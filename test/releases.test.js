@@ -475,3 +475,35 @@ test("renderReleasesPage renders the windows stream with notes, no date, and an 
     "Windows pill sits between macOS and Linux",
   );
 });
+
+test("renderReleasesPage renders the android stream from github releases with an active Android pill", () => {
+  const items = parseGitHubReleaseItems([
+    {
+      tag_name: "v0.1.0",
+      published_at: "2026-06-27T00:00:00Z",
+      body: "## [0.1.0] - 2026-06-27\n\n### Added\n- an android thing",
+    },
+  ]);
+  const html = renderReleasesPage(items, RELEASE_PAGE_CONFIGS.android);
+
+  assert.equal(RELEASE_PAGE_CONFIGS.android.stream, "android");
+  assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/android">/);
+  assert.match(html, /<title>Android app releases — solstone<\/title>/);
+  assert.match(html, /<h2 id="v0\.1\.0">solstone for Android 0\.1\.0<\/h2>/);
+  assert.match(html, /an android thing/);
+  // GitHub releases carry a date; the release heading is stripped from the body.
+  assert.match(html, /class="rel-date"/);
+  assert.doesNotMatch(html, /## \[0\.1\.0\]/);
+  // beta channel: no public download, so no primary CTA on the intro.
+  assert.doesNotMatch(html, /class="intro-dl"/);
+  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">Android<\/span>/);
+
+  // and the Android pill renders as a link after Linux on other streams.
+  const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
+  assert.match(linuxHtml, /<a class="ss-pill" href="\/releases\/android">Android<\/a>/);
+  assert.ok(
+    linuxHtml.indexOf('href="/releases/linux"') < linuxHtml.indexOf('href="/releases/android"') &&
+      linuxHtml.indexOf('href="/releases/android"') < linuxHtml.indexOf("iOS soon"),
+    "Android pill sits between Linux and the iOS-soon marker",
+  );
+});

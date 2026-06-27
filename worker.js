@@ -4,6 +4,7 @@ const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
 const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win.json";
 const JOURNAL_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-journal/releases";
 const LINUX_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-linux/releases";
+const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-android/releases";
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
 
 async function latestMacosDmgUrl() {
@@ -80,6 +81,13 @@ export default {
     if (url.pathname === "/releases/linux") {
       const items = await githubReleaseItems(LINUX_RELEASES_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.linux);
+    }
+
+    // Android reads GitHub releases (same path as journal/linux) — per-release notes
+    // ride in each release body (the cut CHANGELOG section), tag `vX.Y.Z`.
+    if (url.pathname === "/releases/android") {
+      const items = await githubReleaseItems(ANDROID_RELEASES_URL);
+      return releasesResponse(items, RELEASE_PAGE_CONFIGS.android);
     }
 
     if (url.pathname === "/releases/macos") {

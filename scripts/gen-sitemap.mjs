@@ -30,6 +30,7 @@ const PAGES = [
   ["/releases/macos", "releases.js"],
   ["/releases/windows", "releases.js"],
   ["/releases/linux", "releases.js"],
+  ["/releases/android", "releases.js"],
 ];
 
 const BASE = "https://solstone.app";
