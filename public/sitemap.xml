@@ -14,18 +14,22 @@
   </url>
   <url>
     <loc>https://solstone.app/releases</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-06-27</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/macos</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-06-27</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/windows</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-06-27</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/linux</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-06-27</lastmod>
+  </url>
+  <url>
+    <loc>https://solstone.app/releases/android</loc>
+    <lastmod>2026-06-27</lastmod>
   </url>
 </urlset>
