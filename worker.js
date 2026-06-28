@@ -26,6 +26,16 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // solstone.app is a static/redirect site — every route is GET/HEAD only.
+    // Reject other methods up front with a 405 so a body-bearing request (e.g.
+    // bot POSTs to /wp-login.php, /.env, /xmlrpc.php) never reaches the asset
+    // fallbacks below: env.ASSETS.fetch(request) disturbs the body stream, and
+    // reconstructing a Request from it then throws "ReadableStream is disturbed"
+    // (scriptThrewException). Same class as the solpbc.org fix (req_4jqldsxb).
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return methodNotAllowed("GET, HEAD");
+    }
+
     // Binary URL: /download/macos/latest (and the legacy .dmg alias) 302 to the
     // current versioned DMG on updates.solstone.app. Sparkle auto-update does
     // NOT use this path — it reads updates.solstone.app/.../appcast.xml directly.
@@ -47,7 +57,7 @@ export default {
     if (url.pathname === "/download/macos") {
       const pageUrl = new URL(request.url);
       pageUrl.pathname = "/download-macos";
-      const pageResponse = await env.ASSETS.fetch(new Request(pageUrl, request));
+      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
       const headers = new Headers(pageResponse.headers);
       headers.set("Content-Type", "text/html; charset=utf-8");
       return new Response(pageResponse.body, { status: 200, headers });
@@ -68,7 +78,7 @@ export default {
     if (url.pathname === "/install") {
       const rewritten = new URL(request.url);
       rewritten.pathname = "/install.html";
-      return env.ASSETS.fetch(new Request(rewritten, request));
+      return env.ASSETS.fetch(assetRequest(rewritten, request));
     }
 
     // Human-shareable release history: always returns a valid page, with
@@ -130,7 +140,7 @@ export default {
     if (response.status === 404) {
       const notFoundUrl = new URL(request.url);
       notFoundUrl.pathname = "/404";
-      const notFoundResponse = await env.ASSETS.fetch(new Request(notFoundUrl, request));
+      const notFoundResponse = await env.ASSETS.fetch(assetRequest(notFoundUrl, request));
       return new Response(notFoundResponse.body, {
         status: 404,
         headers: notFoundResponse.headers,
@@ -146,6 +156,22 @@ export default {
     return response;
   },
 };
+
+function methodNotAllowed(allow) {
+  return new Response(null, { status: 405, headers: { Allow: allow } });
+}
+
+// Reconstruct an asset-fallback request with only method + headers — never the
+// body. Cloning the original Request (its body) after env.ASSETS.fetch() has
+// disturbed the stream throws "ReadableStream is disturbed"; copying method/
+// headers only is body-free and safe. Belt-and-suspenders behind the GET/HEAD
+// guard above. Mirrors solpbc.org's assetRequest() (req_4jqldsxb).
+function assetRequest(url, request) {
+  return new Request(url, {
+    method: request.method,
+    headers: request.headers,
+  });
+}
 
 async function githubReleaseItems(apiUrl) {
   try {
