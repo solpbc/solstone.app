@@ -25,7 +25,7 @@ describe('services catalog', () => {
       expect(body).toContain(name);
     }
     expect(body).toContain('$20');
-    expect(body).toContain('free · byo');
+    expect(body).toContain('$48');
     expect(body).toContain('built in');
     expect(body).toContain('coming');
     expect(body).toContain('your journal is always private, only yours.');

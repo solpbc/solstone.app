@@ -100,7 +100,7 @@ describe('/enable/spl', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).not.toContain('name="instance"');
-      expect(body).toContain('<a href="/private-network">set up your private network</a> — sol pbc runs the relay for you.');
+      expect(body).toContain('<a href="/private-network">set up your private network</a>. sol pbc runs the relay for you.');
     }
   });
 

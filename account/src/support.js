@@ -43,7 +43,7 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 
 export function supportSignInPrompt(path) {
   if (path === '/support') {
-    return "sign in with your email to see your support. we'll send a 6-digit code — no password, no account to create.";
+    return "sign in with your email to see your support. we'll send a 6-digit code, no password, no account to create.";
   }
   const id = supportIdFromPath(path);
   if (!id) return null;

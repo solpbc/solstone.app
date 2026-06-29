@@ -137,7 +137,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('approved — enable solstone scout in your journal to receive your key.');
+    expect(body).toContain('approved. enable solstone scout in your journal to receive your key.');
     expect(body).toContain('action="/scout/apply"');
     expect(body).toContain('name="data_ack" value="yes" required');
     expect(body).not.toContain('name="use_case"');
@@ -163,7 +163,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('approved — enable solstone scout in your journal to receive your key.');
+    expect(body).toContain('approved. enable solstone scout in your journal to receive your key.');
     expect(body).not.toContain('action="/scout/apply"');
     expect(body).not.toContain('name="data_ack"');
     expect(body).not.toContain('confirm scout terms');
@@ -189,7 +189,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('pending — applied 3 minutes ago');
+    expect(body).toContain('pending, applied 3 minutes ago');
     expect(body).toContain('we have your scout request. there is nothing else to do here yet.');
     expect(body).not.toContain('action="/scout/apply"');
     expect(body).not.toContain('action="/scout/rotate"');
@@ -224,7 +224,7 @@ describe('settings gemini dashboard', () => {
     expect(off.status).toBe(200);
     expect(offBody).toContain('href="https://solstone.app/releases"');
     expect(offBody).toContain("what's new in solstone");
-    expect(offBody).toContain("release notes — what's shipped and what's changing.");
+    expect(offBody).toContain("release notes: what's shipped and what's changing.");
     expect(offBody).toContain('share feedback');
     expect(offBody).toContain("tell us what you're seeing, or report a problem.");
 

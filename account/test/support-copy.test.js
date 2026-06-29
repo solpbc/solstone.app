@@ -27,9 +27,9 @@ describe('support copy and leak checks', () => {
     const body = await response.text();
 
     expect(body).toContain('your support');
-    expect(body).toContain('no open requests. need help? open one below — or your solstone keeper can file one for you.');
+    expect(body).toContain('no open requests. need help? open one below, or your solstone keeper can file one for you.');
     expect(body).toContain('open a request');
-    expect(body).toContain("tell us what's going on. you can attach screenshots or logs here — it's easier than email.");
+    expect(body).toContain("tell us what's going on. you can attach screenshots or logs here. it's easier than email.");
     expect(body).toContain("what's going on?");
     expect(body).toContain('the details');
     expect(body).toContain('which product?');
@@ -37,7 +37,7 @@ describe('support copy and leak checks', () => {
     expect(body).toContain('vit');
     expect(body).toContain('attachments');
     expect(body).toContain('optional screenshots/logs');
-    expect(body).toContain("screenshots and logs are used only to triage your request — once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage — never the files themselves.");
+    expect(body).toContain("screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage, never the files themselves.");
   });
 
   it('renders exact reply helper and removed attachment phrase without poisoned attachment values', async () => {
@@ -99,7 +99,7 @@ describe('support copy and leak checks', () => {
     const response = await worker.fetch(create('/support', session.cookie), testEnv);
     const body = await response.text();
 
-    expect(body).toContain("got it — this is request #REQ_COPY_NEW. we'll email you at copy@example.com and you can follow it right here.");
+    expect(body).toContain("got it, this is request #REQ_COPY_NEW. we'll email you at copy@example.com and you can follow it right here.");
   });
 
   it('keeps support-rendered HTML free of banned support words', async () => {
@@ -134,7 +134,7 @@ describe('support copy and leak checks', () => {
     const detailBody = await supportLandingBody('/support/REQ_COPY', testEnv);
     const accountMatches = listPrompt.match(/\baccount\b/gi) || [];
 
-    expect(listPrompt).toContain("sign in with your email to see your support. we'll send a 6-digit code — no password, no account to create.");
+    expect(listPrompt).toContain("sign in with your email to see your support. we'll send a 6-digit code, no password, no account to create.");
     expect(detailBody).toContain("sign in with your email to see request #REQ_COPY. we'll send a 6-digit code.");
     expect(accountMatches).toHaveLength(1);
     expect(detailBody).not.toMatch(/\baccount\b/i);

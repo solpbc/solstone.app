@@ -25,7 +25,8 @@ describe('service landing pages', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('<h1>encrypted backup</h1>');
     expect(body).toContain('keep an encrypted copy of your journal somewhere safe');
-    expect(body).toContain('set up backup');
+    expect(body).toContain('sign in to enable');
+    expect(body).toContain('$48');
   });
 
   it('renders the notifications landing page without a CTA button', async () => {
@@ -46,7 +47,7 @@ describe('service landing pages', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('<h1>sealed container</h1>');
     expect(body).toContain('<span class="tag soon">coming soon</span>');
-    expect(body).toContain('this isn’t available yet — pricing at launch.');
+    expect(body).toContain('this isn’t available yet. pricing at launch.');
     expect(body).not.toMatch(/class="btn/);
     expect(body).not.toContain('notify');
   });

@@ -102,7 +102,7 @@ describe('/enable/backup', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).not.toContain('name="instance"');
-      expect(body).toContain('<a href="/services/backup">set up encrypted backup</a> — sol pbc keeps the encrypted copy for you.');
+      expect(body).toContain('<a href="/services/backup">set up encrypted backup</a>. sol pbc keeps the encrypted copy for you.');
     }
   });
 

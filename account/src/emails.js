@@ -236,7 +236,7 @@ export async function handleRemoveEmail(req, env, emailId) {
   if (!row) return signedInRedirect('/sign-in/emails');
 
   return renderEmailsPage(env, guard.session, guard.nowMs, {
-    removeError: 'cannot remove this email — your sign-in needs at least one verified email',
+    removeError: 'cannot remove this email, your sign-in needs at least one verified email',
     status: 403,
   });
 }
@@ -368,7 +368,7 @@ async function decryptStoredValue(encryptedValue, env) {
 
 function codeExpiryText(expiresAt, nowMs) {
   const expires = Number(expiresAt);
-  if (!Number.isFinite(expires) || expires <= nowMs) return 'code expired — request a new one';
+  if (!Number.isFinite(expires) || expires <= nowMs) return 'code expired, request a new one';
   const diff = expires - nowMs;
   if (diff < 60_000) return 'code expires in less than 1 minute';
   const minutes = Math.ceil(diff / 60_000);

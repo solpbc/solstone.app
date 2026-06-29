@@ -36,7 +36,7 @@ const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="curren
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
 const SCOUT_COVENANT_LINE = "your questions to solstone scout go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
-const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page — nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are — no analytics, no behavioral data, no third-party tracking. these aren't promises — they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
+const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page. nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are: no analytics, no behavioral data, no third-party tracking. these aren't promises, they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
   return `<div class="brandbar">${MARK_SVG}<span class="wordmark">solstone</span></div>`;
@@ -99,7 +99,7 @@ export function layout({ title, body, afterMain = '' }) {
 </html>`;
 }
 
-export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. solstone itself runs on your device — you don't sign in to use it.") {
+export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. solstone itself runs on your device. you don't sign in to use it.") {
   const resumeHtml = resume.next && resume.nextSig
     ? `<input type="hidden" name="next" value="${escAttr(resume.next)}">
   <input type="hidden" name="next_sig" value="${escAttr(resume.nextSig)}">`
@@ -120,7 +120,7 @@ export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "si
     <button class="btn primary block" type="submit">continue</button>
   </form>
 </div>
-<p class="disclosure">no analytics, no tracking, no third parties. this is the only solstone surface that ever knows it's you — and only after you sign in.</p>`,
+<p class="disclosure">no analytics, no tracking, no third parties. this is the only solstone surface that ever knows it's you, and only after you sign in.</p>`,
     afterMain: `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script>${LANDING_JS}</script>`,
   });
@@ -187,14 +187,14 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <div class="n">1</div>
     <div>
       <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it — no observations, nothing sol has experienced alongside you. just: this is your device.</div>
+      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no observations, nothing sol has experienced alongside you. just: this is your device.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">2</div>
     <div>
       <div class="gt">enable solstone scout</div>
-      <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this device. the key is yours and it stays on your device. sol pbc sets it up — it never sits between you and Gemini, and never sees what you ask sol.</div>
+      <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this device. the key is yours and it stays on your device. sol pbc sets it up. it never sits between you and Gemini, and never sees what you ask sol.</div>
     </div>
   </div>
   <form method="post" action="/enable/scout/confirm">
@@ -214,7 +214,7 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     </div>
   </form>
 </div>
-<p class="disclosure">you can see exactly what you enabled — and turn either off — in your services anytime.</p>`,
+<p class="disclosure">you can see exactly what you enabled, and turn either off, in your services anytime.</p>`,
   });
 }
 
@@ -224,7 +224,7 @@ export function renderEnableScoutDone() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone scout enabled</h2>
-  <p>sol pbc set up a Gemini key for you and put it on this device — you never had to touch it, and nothing from your journal crossed to set it up. you can close this tab.</p>
+  <p>sol pbc set up a Gemini key for you and put it on this device. you never had to touch it, and nothing from your journal crossed to set it up. you can close this tab.</p>
   <a class="btn secondary" href="/scout">manage solstone scout</a>
 </div>`,
   });
@@ -277,7 +277,7 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
     <div class="n">1</div>
     <div>
       <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it — no observations, nothing sol has experienced alongside you. just: this is your phone.</div>
+      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no observations, nothing sol has experienced alongside you. just: this is your phone.</div>
     </div>
   </div>
   <div class="grant">
@@ -299,7 +299,7 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
     </div>
   </form>
 </div>
-<p class="disclosure">you can see exactly which devices notifications reach — and turn it off — in your services anytime.</p>`,
+<p class="disclosure">you can see exactly which devices notifications reach, and turn it off, in your services anytime.</p>`,
   });
 }
 
@@ -334,7 +334,7 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     : '';
   const disclosure = entitled
     ? '<p class="disclosure">you can review or change private network access from the journal anytime.</p>'
-    : '<p class="disclosure"><a href="/private-network">set up your private network</a> — sol pbc runs the relay for you.</p>';
+    : '<p class="disclosure"><a href="/private-network">set up your private network</a>. sol pbc runs the relay for you.</p>';
   return layout({
     title: 'enable private network access',
     body: `${brandbar()}
@@ -345,7 +345,7 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal — no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for private network access.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal: no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for private network access.</div>
     </div>
   </div>
   <div class="grant">
@@ -410,7 +410,7 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = 
     : '';
   const disclosure = entitled
     ? '<p class="disclosure">you can review or change encrypted backup from the journal anytime.</p>'
-    : '<p class="disclosure"><a href="/services/backup">set up encrypted backup</a> — sol pbc keeps the encrypted copy for you.</p>';
+    : '<p class="disclosure"><a href="/services/backup">set up encrypted backup</a>. sol pbc keeps the encrypted copy for you.</p>';
   return layout({
     title: 'enable encrypted backup',
     body: `${brandbar()}
@@ -421,7 +421,7 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal — no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for encrypted backup.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal: no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for encrypted backup.</div>
     </div>
   </div>
   <div class="grant">
@@ -489,15 +489,15 @@ export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, sc
       body: `${brandbarSignin()}
 <h1>solstone services</h1>
 ${BRANDLOCK}
-<p class="intro"><strong>solstone runs on your device.</strong> these are the optional parts sol pbc runs for you — turn one on when it helps, off whenever you want. nothing here is required to use solstone.</p>
+<p class="intro"><strong>solstone runs on your device.</strong> these are the optional parts sol pbc runs for you. turn one on when it helps, off whenever you want. nothing here is required to use solstone.</p>
 <div class="group">
-  ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere — over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
-  ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe — only you can read it.', '<span class="tag free">free · byo</span>')}
+  ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
+  ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'let sol reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
   ${row('/sealed-container', IC_VAULT, 'sealed container', 'your whole journal, run for you inside a sealed box even sol pbc can’t see into.', '<span class="tag soon">coming</span>')}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', 'join the alpha — we set you up with a Gemini key on your device.', '<span class="tag free">free</span>')}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', 'join the alpha. we set you up with a Gemini key on your device.', '<span class="tag free">free</span>')}
 </div>
-<p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on — solstone itself never asks you to sign in.</p>`,
+<p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on. solstone itself never asks you to sign in.</p>`,
     });
   }
 
@@ -527,12 +527,12 @@ ${BRANDLOCK}
 <h1>your services</h1>
 ${notice}
 ${BRANDLOCK}
-<p class="intro"><strong>solstone runs on your device.</strong> these services are optional — turn them on when they help, off whenever you want. nothing here is required.</p>
+<p class="intro"><strong>solstone runs on your device.</strong> these services are optional. turn them on when they help, off whenever you want. nothing here is required.</p>
 ${welcomePanel}
 <div class="group">
-  ${row('/private-network', IC_NET, 'private network', 'your private network — reach your journal from anywhere.', networkPill)}
+  ${row('/private-network', IC_NET, 'private network', 'your private network: reach your journal from anywhere.', networkPill)}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
-  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters — built in.', notifPill)}
+  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters, built in.', notifPill)}
   ${row('/sealed-container', IC_VAULT, 'sealed container', 'your journal in a sealed box.', '<span class="tag soon">coming</span>')}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'a Gemini key on your device.', scoutPill)}
 </div>
@@ -551,21 +551,21 @@ export function renderPrivateNetworkLanding() {
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>private network</h1>
 <p class="hero-tag">your private network</p>
-<p class="lead">reach your journal from your phone, your laptop, from anywhere — a private network only your own devices can enter, like a vpn dedicated to solstone. your journal never leaves home; your devices just reach it.</p>
+<p class="lead">reach your journal from your phone, your laptop, from anywhere: a private network only your own devices can enter, like a vpn dedicated to solstone. your journal never leaves home; your devices just reach it.</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_NET, 'your own network — always free', 'on the same wifi, or over your own vpn, your devices reach your journal directly. sol pbc is never in the path.')}
-  ${beat(IC_GLOBE, 'your private network, from anywhere', 'sol pbc runs a blind relay so your devices stay reachable when you’re away from home or asleep — your private network spanning wherever your devices are. operated by sol pbc.')}
-  ${beat(IC_VAULT, 'blind by construction', 'the relay passes along encrypted bytes it can’t read — sol pbc operates it but <strong>cannot see your traffic</strong>. there’s no key to reveal, by design, not by promise.')}
+  ${beat(IC_NET, 'your own network, always free', 'on the same wifi, or over your own vpn, your devices reach your journal directly. sol pbc is never in the path.')}
+  ${beat(IC_GLOBE, 'your private network, from anywhere', 'sol pbc runs a blind relay so your devices stay reachable when you’re away from home or asleep, your private network spanning wherever your devices are. operated by sol pbc.')}
+  ${beat(IC_VAULT, 'blind by construction', 'the relay passes along encrypted bytes it can’t read. sol pbc operates it but <strong>cannot see your traffic</strong>. there’s no key to reveal, by design, not by promise.')}
 </div>
 <div class="card">
   <div class="pricecard">
     <div><div class="big">$20 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $2.49 / month · per journal, not per device</div></div>
     <a class="btn primary" href="/?signin">sign in to enable</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">you never have to pay us. on your own network — same wifi, your own vpn — reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
+  <p class="free-note" style="margin:14px 0 0">you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
 </div>
-<p class="disclosure">open source, self-hostable — run your own relay if you’d rather. <a href="/terms">terms</a></p>`,
+<p class="disclosure">open source, self-hostable. run your own relay if you’d rather. <a href="/terms">terms</a></p>`,
   });
 }
 
@@ -575,18 +575,19 @@ export function renderBackupLanding() {
     body: brandbarSignin()
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>encrypted backup</h1>
-<p class="lead">keep an encrypted copy of your journal somewhere safe — encrypted on your device before it ever leaves, so only you can read it.</p>
+<p class="lead">keep an encrypted copy of your journal somewhere safe: encrypted on your device before it ever leaves, so only you can read it.</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_BACKUP, 'your own bucket — always free', 'point solstone at your own storage — backblaze b2, s3, any bucket. sol pbc is never in the path.')}
-  ${beat(IC_GLOBE, 'operated by sol pbc — $48/year', "rather not run a bucket? let sol pbc keep the encrypted copy for you, in storage sol pbc operates. it's encrypted on your device first, so sol pbc only ever holds an unreadable blob.")}
+  ${beat(IC_BACKUP, 'your own bucket, always free', 'point solstone at your own storage: backblaze b2, s3, any bucket. sol pbc is never in the path.')}
+  ${beat(IC_GLOBE, 'operated by sol pbc, $48/year', "rather not run a bucket? let sol pbc keep the encrypted copy for you, in storage sol pbc operates. it's encrypted on your device first, so sol pbc only ever holds an unreadable blob.")}
   ${beat(IC_VAULT, 'encrypted before it leaves', 'your journal is encrypted on your device with a key only you hold. whoever stores the copy only ever sees an unreadable blob.')}
 </div>
 <div class="card">
   <div class="pricecard">
-    <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">with your own bucket</span></span></div><div class="alt">$48 / year · $4.99 / month — operated by sol pbc</div></div>
-    <a class="btn primary" href="/?signin">set up backup</a>
+    <div><div class="big">$48 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $4.99 / month · operated by sol pbc</div></div>
+    <a class="btn primary" href="/?signin">sign in to enable</a>
   </div>
+  <p class="free-note" style="margin:14px 0 0">you never have to pay us. bring your own bucket (backblaze b2, s3, any bucket) free, set up from your journal. this only covers the storage sol pbc runs for you.</p>
 </div>
 <p class="disclosure">open source, self-hostable. <a href="/services/backup/terms">terms</a></p>`,
   });
@@ -599,12 +600,12 @@ export function renderNotificationsLanding() {
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>notifications</h1>
 <p class="hero-tag">built in</p>
-<p class="lead">let sol reach you on your devices when there’s something worth a look — a short heads-up, never the full thing.</p>
+<p class="lead">let sol reach you on your devices when there’s something worth a look: a short heads-up, never the full thing.</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_PUSH_SVG, 'built into solstone', 'notifications come with solstone — free, with no hosted service to enable. you turn them on for each device, and choose what reaches you.')}
-  ${beat(IC_GLOBE, 'on your devices', 'sol sends a short summary to your phone or laptop — an 80-character heads-up, never the content itself.')}
-  ${beat(IC_VAULT, 'not a tracking surface', 'no analytics, no behavioral profiling, no third parties. notifications never become a way to watch you — Article 8.')}
+  ${beat(IC_PUSH_SVG, 'built into solstone', 'notifications come with solstone, free, with no hosted service to enable. you turn them on for each device, and choose what reaches you.')}
+  ${beat(IC_GLOBE, 'on your devices', 'sol sends a short summary to your phone or laptop: an 80-character heads-up, never the content itself.')}
+  ${beat(IC_VAULT, 'not a tracking surface', 'no analytics, no behavioral profiling, no third parties. notifications never become a way to watch you: Article 8.')}
 </div>
 <div class="card">
   <div class="statusline"><span class="tag builtin">built in</span> <span>turn on notifications on each device you want to hear from.</span></div>
@@ -623,12 +624,12 @@ export function renderSealedContainerLanding() {
 <p class="lead">your whole journal, run for you inside a per-owner sealed container that even sol pbc can’t see into.</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_VAULT, 'the whole journal, run for you', 'not just a copy or a way in — your entire journal runs inside the sealed container, so you don’t have to run anything yourself.')}
+  ${beat(IC_VAULT, 'the whole journal, run for you', 'not just a copy or a way in: your entire journal runs inside the sealed container, so you don’t have to run anything yourself.')}
   ${beat(IC_NET, 'hardware-sealed', 'it runs inside a hardware-attested AMD SEV-SNP container. sol pbc operates the box but cannot open it.')}
   ${beat(IC_GLOBE, 'mathematical, not contractual', 'you can verify your own enclave. the privacy is enforced by hardware, not promised by policy.')}
 </div>
 <div class="card">
-  <div class="statusline"><span class="tag soon">coming soon</span><span>this isn’t available yet — pricing at launch.</span></div>
+  <div class="statusline"><span class="tag soon">coming soon</span><span>this isn’t available yet. pricing at launch.</span></div>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });
@@ -640,7 +641,7 @@ export function renderScoutLanding() {
     body: brandbarSignin()
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>solstone scout</h1>
-<p class="lead">join the solstone alpha — we set you up with a Google Gemini key on your device so sol can think, and bring you into the tester cohort.</p>
+<p class="lead">join the solstone alpha. we set you up with a Google Gemini key on your device so sol can think, and bring you into the tester cohort.</p>
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_PASSKEY_SVG, 'a key on your device', 'sol pbc creates a Gemini key for you and puts it on your device. the key is yours and never leaves it.')}
@@ -686,7 +687,7 @@ ${content}`,
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="disclosure" style="margin-top:24px">free while you're an approved scout · on your own network — same wifi, your own vpn — reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">free while you're an approved scout · on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -698,7 +699,7 @@ ${content}`,
   ${billingPortalForm({ csrf })}
   ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger' })}
 </div>
-<p class="disclosure" style="margin-top:24px">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · billed through stripe. on your own network — same wifi, your own vpn — reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · billed through stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -706,19 +707,19 @@ ${content}`,
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="notice">your last payment didn't go through. manage billing to keep your private network reachable while you're away — your own network stays free either way.</p>
+<p class="notice">your last payment didn't go through. manage billing to keep your private network reachable while you're away. your own network stays free either way.</p>
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
   ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger' })}
 </div>
-<p class="disclosure" style="margin-top:24px">billed through stripe. on your own network — same wifi, your own vpn — reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">billed through stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
   return page({
     content: `<p class="lead">sol pbc runs a blind relay so your devices stay reachable when they're asleep or away from home.</p>
 <div class="card">
-  <p>you never have to pay us. on your own network — same wifi, your own vpn — reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
+  <p>you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
   <div class="group">
     ${billingCheckoutRow({ csrf, plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true })}
     ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false })}
@@ -777,7 +778,7 @@ ${portalActions}
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="notice">your last payment didn't go through. manage billing to keep encrypted backup running — your encrypted copy is safe while you sort this out.</p>
+<p class="notice">your last payment didn't go through. manage billing to keep encrypted backup running. your encrypted copy is safe while you sort this out.</p>
 ${portalActions}
 <p class="disclosure" style="margin-top:24px">billed through Stripe. <a href="/backup">how it works</a> · <a href="/services/backup/terms">terms</a></p>`,
     });
@@ -793,7 +794,7 @@ ${portalActions}
   </div>
   <p class="disclosure">billed securely through Stripe.</p>
 </div>
-<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days — turn it back on within that window and it's still there. after 30 days it's deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/services/backup/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days. turn it back on within that window and it's still there. after 30 days it's deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/services/backup/terms">terms</a></p>`,
   });
 }
 
@@ -801,7 +802,7 @@ export function renderBillingReturn({ status, menu }) {
   const success = status === 'success';
   const message = success
     ? 'payment received. it can take a moment to show up here.'
-    : 'no charge made. you can turn on the relay anytime — on your own network, reaching your journal is always free.';
+    : 'no charge made. you can turn on the relay anytime. on your own network, reaching your journal is always free.';
   return layout({
     title: 'private network',
     body: `${topbar(menu)}
@@ -822,13 +823,13 @@ export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0, 
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>your sign-in</h1>
-<p class="lead">how you get into this page to manage your services. solstone itself never asks you to sign in — this is the only place sign-in lives.</p>
+<p class="lead">how you get into this page to manage your services. solstone itself never asks you to sign in. this is the only place sign-in lives.</p>
 <div class="group">
   <a class="row" href="/sign-in/sessions">
     ${IC_SESSION_SVG}
     <div class="body">
       <div class="title">sessions</div>
-      <div class="desc">the devices and phones signed in right now — sign any of them out.</div>
+      <div class="desc">the devices and phones signed in right now. sign any of them out.</div>
     </div>
     <div class="trail"><span class="meta" style="margin:0">${esc(sessionCount)} active</span>${CHEVRON_SVG}</div>
   </a>
@@ -1041,7 +1042,7 @@ export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
     body: `${topbar(menu)}
 <a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
 <h1>sessions</h1>
-<p class="lead">the devices and phones currently signed in to manage your services. sign any of them out — the current one stays.</p>
+<p class="lead">the devices and phones currently signed in to manage your services. sign any of them out. the current one stays.</p>
 <div class="group">${rowHtml}</div>
 ${revokeOthers}`,
   });
@@ -1059,8 +1060,8 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '', menu 
   <div class="empty">
     ${IC_PUSH_SVG}
     <h2>notifications aren't on yet</h2>
-    <p>turn it on from solstone on your device — it opens this page so you can confirm, then sol can reach your devices.</p>
-    <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable push</strong> — or turn it on from the solstone app.</div>
+    <p>turn it on from solstone on your device. it opens this page so you can confirm, then sol can reach your devices.</p>
+    <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable push</strong>, or turn it on from the solstone app.</div>
   </div>
 </div>`
     : '';
@@ -1126,7 +1127,7 @@ export function renderSignInPasskeys({ rows, enrollJsIncluded, menu }) {
     body: `${topbar(menu)}
 <a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
 <h1>passkeys</h1>
-<p class="lead">how you sign in. you can have more than one — useful for backup, or for signing in from a second device.</p>
+<p class="lead">how you sign in. you can have more than one, useful for backup, or for signing in from a second device.</p>
 ${emptyState}
 ${groupHtml}
 <div class="card">
@@ -1187,10 +1188,10 @@ ${activeControls}`
   const historySection = rows.length > 0
     ? `<p class="section-label">history</p>
 <div class="group">${auditRows}</div>
-<p class="disclosure">last-used is the one piece of metadata sol pbc keeps — it's here so you can audit the key yourself. sol pbc never sees what you ask sol.</p>`
+<p class="disclosure">last-used is the one piece of metadata sol pbc keeps. it's here so you can audit the key yourself. sol pbc never sees what you ask sol.</p>`
     : '';
   // the old standalone scouts program had a news feed and a feedback form;
-  // the converged portal drops both, but their destinations live on — news →
+  // the converged portal drops both, but their destinations live on, news →
   // the public release notes, feedback → support. give them a permanent home
   // here, present in every scout state, as first-class destination rows.
   const scoutLinks = `<div class="group" style="margin-top:26px">
@@ -1198,7 +1199,7 @@ ${activeControls}`
     ${IC_NEWS_SVG}
     <div class="body">
       <div class="title">what's new in solstone ${EXT_SVG}</div>
-      <div class="desc">release notes — what's shipped and what's changing.</div>
+      <div class="desc">release notes: what's shipped and what's changing.</div>
     </div>
     <div class="trail">${CHEVRON_SVG}</div>
   </a>
@@ -1250,7 +1251,7 @@ ${historySection}`,
       : '';
     return page({
       statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span>',
-      lead: 'approved — enable solstone scout in your journal to receive your key.',
+      lead: 'approved. enable solstone scout in your journal to receive your key.',
       content: `${ackForm}
 ${historySection}`,
     });
@@ -1259,7 +1260,7 @@ ${historySection}`,
   if (application?.status === 'pending') {
     const pendingText = application.applied_at == null
       ? 'pending'
-      : `pending — applied ${formatRelativeTime(application.applied_at, nowMs)}`;
+      : `pending, applied ${formatRelativeTime(application.applied_at, nowMs)}`;
     return page({
       statusLine: `<span class="pill off" style="vertical-align:middle"><span class="dot"></span>${esc(pendingText)}</span>`,
       lead: 'we have your scout request. there is nothing else to do here yet.',
@@ -1273,7 +1274,7 @@ ${historySection}`,
   <h2>request access</h2>
   ${scoutApplyForm({ includeUseCase: true, buttonText: 'apply' })}
 </div>
-<p class="disclosure">solstone runs without scout. you can always bring your own Gemini key by hand instead — turning on scout just means sol pbc sets one up for you.</p>`,
+<p class="disclosure">solstone runs without scout. you can always bring your own Gemini key by hand instead. turning on scout just means sol pbc sets one up for you.</p>`,
   });
 }
 
@@ -1320,7 +1321,7 @@ export function renderSupportList({
   </div>
 </div>`).join('');
   const emptyState = requests.length === 0 && !failure
-    ? '<p>no open requests. need help? open one below — or your solstone keeper can file one for you.</p>'
+    ? '<p>no open requests. need help? open one below, or your solstone keeper can file one for you.</p>'
     : '';
   const groupHtml = rowsHtml ? `<div class="group">${rowsHtml}</div>` : '';
   return layout({
@@ -1375,7 +1376,7 @@ ${attachments.length ? `<div class="group">${attachmentRows}</div>` : attachment
 <div class="card">
   <h2>reply</h2>
   <p>add a reply, or attach a screenshot or log.</p>
-  <p class="notice">screenshots and logs are used only to triage your request — once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage — never the files themselves.</p>
+  <p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage, never the files themselves.</p>
   <form method="post" action="/support/${escAttr(id)}/reply" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <label for="reply-content">reply</label>
@@ -1557,7 +1558,7 @@ export function renderBackupTerms() {
   });
 }
 
-// Shown when the CSRF synchronizer token is missing or doesn't match — the
+// Shown when the CSRF synchronizer token is missing or doesn't match, the
 // rare residual case once the body-carried token defeats the common
 // email-security link/header rewriting. Actionable and deliberately
 // state-free (no host or account input) so the body is byte-identical on
@@ -1626,7 +1627,7 @@ function supportCreateConfirmation({ id, email, uploadFailed = false }) {
   const uploadNotice = uploadFailed
     ? '<p class="error">your request was opened, but the attachments could not be uploaded.</p>'
     : '';
-  return `<p class="notice">got it — this is request #${esc(id)}. we'll email you at ${esc(email)} and you can follow it right here.</p>
+  return `<p class="notice">got it, this is request #${esc(id)}. we'll email you at ${esc(email)} and you can follow it right here.</p>
 <p><a href="/support/${escAttr(id)}">view request</a></p>
 ${uploadNotice}`;
 }
@@ -1634,7 +1635,7 @@ ${uploadNotice}`;
 function renderSupportOpenForm(csrf) {
   return `<div class="card">
   <h2>open a request</h2>
-  <p>tell us what's going on. you can attach screenshots or logs here — it's easier than email.</p>
+  <p>tell us what's going on. you can attach screenshots or logs here. it's easier than email.</p>
   <form method="post" action="/support" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <label for="support-subject">what's going on?</label>
@@ -1647,7 +1648,7 @@ function renderSupportOpenForm(csrf) {
       <option value="vit">vit</option>
     </select>
     <label for="support-file">attachments</label>
-    <p class="notice">screenshots and logs are used only to triage your request — once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage — never the files themselves.</p>
+    <p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage, never the files themselves.</p>
     <p>optional screenshots/logs</p>
     <input id="support-file" type="file" name="file" multiple>
     <button class="btn primary" type="submit">open a request</button>

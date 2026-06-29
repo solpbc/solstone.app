@@ -82,9 +82,9 @@ describe('support list', () => {
     const response = await worker.fetch(get('/support', session.cookie), testEnv);
     const body = await response.text();
 
-    expect(body).toContain('no open requests. need help? open one below — or your solstone keeper can file one for you.');
+    expect(body).toContain('no open requests. need help? open one below, or your solstone keeper can file one for you.');
     expect(body).toContain('open a request');
-    expect(body).toContain("tell us what's going on. you can attach screenshots or logs here — it's easier than email.");
+    expect(body).toContain("tell us what's going on. you can attach screenshots or logs here. it's easier than email.");
     expect(body).toContain("what's going on?");
     expect(body).toContain('the details');
     expect(body).toContain('which product?');

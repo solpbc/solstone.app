@@ -43,7 +43,7 @@ describe('support create', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain("got it — this is request #REQ_NEW. we'll email you at primary@example.com and you can follow it right here.");
+    expect(body).toContain("got it, this is request #REQ_NEW. we'll email you at primary@example.com and you can follow it right here.");
     expect(body).toContain('href="/support/REQ_NEW"');
     expect(support.requests[0]).toMatchObject({
       method: 'POST',
@@ -127,7 +127,7 @@ describe('support create', () => {
     const body = await response.text();
 
     expect(body).toContain("we couldn't open that request. try again.");
-    expect(body).not.toContain('got it — this is request');
+    expect(body).not.toContain('got it, this is request');
   });
 
   it('requires same-origin and a valid csrf token', async () => {

@@ -104,7 +104,7 @@ describe('settings emails list and add flow', () => {
     expect(body).toContain(`/sign-in/emails/verify?address=unverified%40example.com`);
     expect(body).toContain(`/sign-in/emails/${unverified.id}/remove`);
     expect(body).toContain('code expires in');
-    expect(body).toContain('code expired — request a new one');
+    expect(body).toContain('code expired, request a new one');
     expect(body).toContain('action="/sign-in/emails/add"');
     expect(body).toContain('name="address"');
     expect(primarySection(body)).not.toContain('make-primary');

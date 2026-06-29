@@ -85,7 +85,7 @@ describe('settings transparency data view', () => {
     expect(body).toContain('<title>data transparency</title>');
     expect(body).toContain('<h1>data transparency</h1>');
     expect(body).toContain('your name, your phone, your address, or where you are');
-    expect(body).toContain("these aren't promises — they're structural commitments under");
+    expect(body).toContain("these aren't promises, they're structural commitments under");
     expect(body).toContain('Article 8 of our articles of incorporation');
     expect(body).toContain('Article III of the bylaws');
     expect(body).toContain('href="https://solpbc.org/articles#s8-3"');
