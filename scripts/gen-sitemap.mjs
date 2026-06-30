@@ -33,6 +33,18 @@ const PAGES = [
   ["/releases/android", "releases.js"],
 ];
 
+// Shared brand/head assets are part of every page's crawl-facing presentation.
+// The site runbook requires icon changes to bump sitemap lastmod even when no
+// HTML file changes; the header wordmark and token CSS follow the same global
+// dependency shape.
+const GLOBAL_LASTMOD_FILES = [
+  "public/favicon.ico",
+  "public/apple-touch-icon.png",
+  "public/static/tokens.css",
+  "public/static/sol-ring-icon.svg",
+  "public/static/sol-wordmark.svg",
+];
+
 const BASE = "https://solstone.app";
 
 function git(cmd) {
@@ -51,9 +63,13 @@ function lastmod(file) {
   return committed || todayLocal();
 }
 
+function newestLastmod(files) {
+  return files.map(lastmod).sort().at(-1);
+}
+
 const urls = PAGES.map(([path, file]) => {
   const loc = path === "/" ? `${BASE}/` : `${BASE}${path}`;
-  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod(file)}</lastmod>\n  </url>`;
+  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${newestLastmod([file, ...GLOBAL_LASTMOD_FILES])}</lastmod>\n  </url>`;
 }).join("\n");
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -66,5 +82,5 @@ const out = resolve(repoRoot, "public/sitemap.xml");
 writeFileSync(out, xml);
 console.log(`wrote ${out}`);
 for (const [path, file] of PAGES) {
-  console.log(`  ${path.padEnd(16)} ← ${file.padEnd(20)} ${lastmod(file)}`);
+  console.log(`  ${path.padEnd(16)} ← ${file.padEnd(20)} ${newestLastmod([file, ...GLOBAL_LASTMOD_FILES])}`);
 }
