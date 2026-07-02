@@ -22,6 +22,25 @@ async function latestMacosDmgUrl() {
   }
 }
 
+async function latestWindowsSetupUrl() {
+  try {
+    const res = await fetch(WIN_FEED_URL, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return null;
+    const feed = await res.json();
+    // The feed lists newest release first, so the first "Full" asset is the
+    // current version. Deltas carry a Version too but aren't standalone
+    // installers, so scan for the first Full rather than taking Assets[0].
+    const asset = feed?.Assets?.find((a) => a?.Type === "Full");
+    const version = String(asset?.Version ?? "").trim();
+    if (!version) return null;
+    return `https://updates.solstone.app/solstone-windows/solstone-setup-${version}.exe`;
+  } catch {
+    return null;
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -63,16 +82,19 @@ export default {
       return new Response(pageResponse.body, { status: 200, headers });
     }
 
-    // Windows installer permalink: 302 to the latest Velopack Setup.exe on R2.
-    // Velopack emits a stable Setup.exe name, so this always points at the
-    // current release — no feed parse needed (unlike the versioned macOS DMG).
+    // Windows installer permalink: resolve the current version from the live
+    // Velopack feed and 302 to the constructed versioned Setup.exe on R2.
     // Velopack auto-update does NOT use this path; it reads
     // updates.solstone.app/solstone-windows/releases.win.json directly.
     if (url.pathname === "/download/windows" || url.pathname === "/download/windows.exe") {
-      return Response.redirect(
-        "https://updates.solstone.app/solstone-windows/Solstone-win-Setup.exe",
-        302,
-      );
+      const setupUrl = await latestWindowsSetupUrl();
+      if (!setupUrl) {
+        return new Response("Latest Windows download is temporarily unavailable. Try again shortly.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+        });
+      }
+      return Response.redirect(setupUrl, 302);
     }
 
     if (url.pathname === "/install") {
