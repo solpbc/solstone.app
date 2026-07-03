@@ -489,7 +489,7 @@ export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, sc
       body: `${brandbarSignin()}
 <h1>solstone services</h1>
 ${BRANDLOCK}
-<p class="intro"><strong>solstone runs on your device.</strong> these are the optional parts sol pbc runs for you. turn one on when it helps, off whenever you want. nothing here is required to use solstone.</p>
+<p class="intro"><strong>sol and your journal run on your devices.</strong> these are the optional parts sol pbc runs for you. turn one on when it helps, off whenever you want. nothing here is required to use solstone.</p>
 <div class="group">
   ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
@@ -527,7 +527,7 @@ ${BRANDLOCK}
 <h1>your services</h1>
 ${notice}
 ${BRANDLOCK}
-<p class="intro"><strong>solstone runs on your device.</strong> these services are optional. turn them on when they help, off whenever you want. nothing here is required.</p>
+<p class="intro"><strong>sol and your journal run on your devices.</strong> these services are optional. turn them on when they help, off whenever you want. nothing here is required.</p>
 ${welcomePanel}
 <div class="group">
   ${row('/private-network', IC_NET, 'private network', 'your private network: reach your journal from anywhere.', networkPill)}
