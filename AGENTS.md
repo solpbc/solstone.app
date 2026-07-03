@@ -165,8 +165,12 @@ load-bearing ones live here:
 - **Brand canon (owner-facing copy).** Lowercase-first; no surveillance verbs
   (watch/capture/record/monitor/track/collect); avoid the forbidden phrasings
   enforced by `account/test/brand-canon.test.js`. solstone copy follows the
-  two-register canon (owner-facing: observers + journal, sol the keeper). When
-  you touch owner-visible strings, run the brand-canon test.
+  sol platform canon (2026-07-03): solstone = the platform, **sol** = the app on
+  every device, **the journal** = the memory sol keeps. "observers" and the
+  "keeper" title are retired from customer-facing copy ("observer" stays
+  engineering-internal); any statement of sol's presence lands the journal in
+  the same breath. When you touch owner-visible strings, run the brand-canon
+  test.
 - **`scouts/` is retired** — a redirect-only Worker. Note the `wrangler.toml`
   cron gotcha documented there: an empty `crons = []` is required to *clear* a
   server-side schedule; omitting `[triggers]` does not delete it.

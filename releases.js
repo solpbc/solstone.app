@@ -135,7 +135,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
 <body>
     <a href="#main" class="skip-link">skip to content</a>
     <header>
-        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/sol-wordmark.svg" alt="solstone" style="height:40px;"></a>
+        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/sol-wordmark.svg" alt="sol — solstone home" style="height:40px;"></a>
     </header>
     <main id="main" tabindex="-1">
         <div class="page-intro">
@@ -155,7 +155,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             <a href="/">back to solstone.app &rarr;</a>
         </nav>
     </main>
-    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; <a href="/releases">releases</a> &middot; your data stays on your machine — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; <a href="/releases">releases</a> &middot; your data stays on your device — never sold, never shared. solstone is a trademark of sol pbc.</footer>
 </body>
 </html>`;
 
@@ -163,34 +163,34 @@ const RELEASES_PLACEHOLDER = "            <!-- per-version <article> blocks here
 
 export const RELEASE_PAGE_CONFIGS = {
   journal: {
-    pageTitle: "solstone journal releases — solstone",
-    ogTitle: "solstone journal releases",
+    pageTitle: "journal releases — solstone",
+    ogTitle: "journal releases",
     metaDescription:
-      "what's new in the solstone journal, in plain language. your co-brain runs on your machine — never sold, never shared.",
+      "what's new in the journal — the memory sol keeps — in plain language. it runs on your device: never sold, never shared.",
     ogUrl: "https://solstone.app/releases",
     canonicalUrl: "https://solstone.app/releases",
     stream: "journal",
-    heading: "solstone journal releases",
+    heading: "journal releases",
     intro:
-      "what's new in the solstone journal, newest first. sol lives in your journal and tends your memories there; these are the journal's own changes.",
+      "what's new in the journal, newest first. the journal is the memory sol keeps, on a computer you choose; these are the journal's own changes.",
     primaryLink: { href: "/install", text: "install solstone →" },
     sourceUrl: "https://github.com/solpbc/solstone-journal",
     unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
     unavailableLabel: "see every journal release on github →",
-    articleTitle: (version) => `solstone journal ${version}`,
+    articleTitle: (version) => `journal ${version}`,
     linkifyBundledJournal: false,
   },
   macos: {
     pageTitle: "macOS app releases — solstone",
     ogTitle: "macOS app releases",
     metaDescription:
-      "release notes for the solstone macOS app, in plain language. installer, menubar, settings, and auto-update changes.",
+      "release notes for the solstone macOS app, in plain language. installer, menu bar, settings, and auto-update changes.",
     ogUrl: "https://solstone.app/releases/macos",
     canonicalUrl: "https://solstone.app/releases/macos",
     stream: "macos",
     heading: "macOS app releases",
     intro:
-      "these are the macOS app's own changes: installer, menubar, settings, auto-update, and the macOS observer.",
+      "these are the macOS app's own changes: installer, menu bar, settings, and auto-update — sol on your Mac.",
     primaryLink: { href: "/download/macos", text: "download solstone for macOS →" },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
@@ -199,20 +199,20 @@ export const RELEASE_PAGE_CONFIGS = {
     linkifyBundledJournal: true,
   },
   linux: {
-    pageTitle: "Linux observer releases — solstone",
-    ogTitle: "Linux observer releases",
+    pageTitle: "Linux app releases — solstone",
+    ogTitle: "Linux app releases",
     metaDescription:
-      "release notes for the solstone Linux observer, in plain language. installation, systemd service, desktop integration, and sync changes.",
+      "release notes for the solstone Linux desktop app, in plain language. installation, systemd service, desktop integration, and sync changes.",
     ogUrl: "https://solstone.app/releases/linux",
     canonicalUrl: "https://solstone.app/releases/linux",
     stream: "linux",
-    heading: "Linux observer releases",
+    heading: "Linux app releases",
     intro:
-      "these are the Linux observer's own changes: installation, systemd service, desktop integration, and sync behavior.",
-    primaryLink: { href: "/install", text: "install solstone for Linux →" },
+      "these are the Linux desktop app's own changes: installation, systemd service, desktop integration, and how it syncs to your journal — sol on your Linux desktop.",
+    primaryLink: { href: "/observers", text: "get sol for Linux →" },
     sourceUrl: "https://github.com/solpbc/solstone-linux",
     unavailableUrl: "https://github.com/solpbc/solstone-linux/releases",
-    unavailableLabel: "see every Linux observer release on github →",
+    unavailableLabel: "see every Linux release on github →",
     articleTitle: (version) => `solstone for Linux ${version}`,
     linkifyBundledJournal: true,
   },
@@ -226,7 +226,7 @@ export const RELEASE_PAGE_CONFIGS = {
     stream: "windows",
     heading: "Windows app releases",
     intro:
-      "these are the Windows app's own changes: installer, tray, settings, auto-update, and the Windows observer.",
+      "these are the Windows app's own changes: installer, tray, settings, and auto-update — sol on your Windows PC.",
     primaryLink: { href: "/download/windows", text: "download solstone for Windows →" },
     sourceUrl: "https://github.com/solpbc/solstone-windows",
     unavailableUrl: "https://github.com/solpbc/solstone-windows/releases",
@@ -240,13 +240,13 @@ export const RELEASE_PAGE_CONFIGS = {
     pageTitle: "Android app releases — solstone",
     ogTitle: "Android app releases",
     metaDescription:
-      "release notes for the solstone Android app, in plain language. observer, pairing, and sync changes.",
+      "release notes for the solstone Android app, in plain language. pairing and sync changes.",
     ogUrl: "https://solstone.app/releases/android",
     canonicalUrl: "https://solstone.app/releases/android",
     stream: "android",
     heading: "Android app releases",
     intro:
-      "these are the Android app's own changes: the observer, pairing, and sync behavior. the Android app is in beta — builds reach trusted testers through the App Tester app.",
+      "these are the Android app's own changes: pairing, and how it syncs to your journal — sol on your Android phone. the Android app is in beta — builds reach trusted testers through the App Tester app.",
     // Beta channel, invite-only — there is no public download yet, so no primary CTA.
     primaryLink: null,
     sourceUrl: "https://github.com/solpbc/solstone-android",

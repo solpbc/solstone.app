@@ -41,7 +41,7 @@ describe('support detail', () => {
     expect(body).toContain('waiting on you');
     expect(body).toContain('you');
     expect(body).toContain('solstone support');
-    expect(body).toContain('your solstone keeper');
+    expect(body).toContain('<div class="title">sol</div>');
     expect(body).toContain('you (via the form)');
     expect(body).toContain('pending');
     expect(body).toContain('attachment removed after triage');
@@ -75,7 +75,7 @@ describe('support detail', () => {
     expect(body).toContain('looked at the log');
     expect(body).toContain('you');
     expect(body).toContain('solstone support');
-    expect(body).toContain('your solstone keeper');
+    expect(body).toContain('<div class="title">sol</div>');
     expect(body).toContain('you (via the form)');
     expect(body).toContain('first');
     expect(body).toContain('second');

@@ -44,6 +44,15 @@ const FORBIDDEN_PHRASES = [
   'solstone host',
   'solstone hosted',
   'private link',
+  // sol platform naming architecture (2026-07-03): "observers" retired from
+  // customer-facing copy (engineering-internal only); the "keeper" title is
+  // retired (care is carried by verbs — sol keeps, tends); "meet sol" is on
+  // the never-list. 'keeper' alone stays allowed: the passkeys surface may
+  // legitimately render the Keeper password-manager provider label.
+  'observer',
+  'solstone keeper',
+  'your keeper',
+  'meet sol',
 ];
 
 const SERVICE_VERBS = [

@@ -184,11 +184,11 @@ test("renderReleasesPage renders graceful fallback inside full chrome", () => {
   const html = renderReleasesPage([]);
 
   assert.match(html, /release notes are temporarily unavailable/);
-  assert.match(html, /<title>solstone journal releases — solstone<\/title>/);
+  assert.match(html, /<title>journal releases — solstone<\/title>/);
   assert.match(html, /https:\/\/github\.com\/solpbc\/solstone-journal\/releases/);
   assert.match(
     html,
-    /<footer>&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; <a href="\/releases">releases<\/a> &middot; your data stays on your machine — never sold, never shared\. solstone is a trademark of sol pbc\.<\/footer>/,
+    /<footer>&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; <a href="\/releases">releases<\/a> &middot; your data stays on your device — never sold, never shared\. solstone is a trademark of sol pbc\.<\/footer>/,
   );
 });
 
@@ -208,8 +208,8 @@ test("renderReleasesPage renders articles in order and omits null dates", () => 
 
   assert.equal((html.match(/<article class="release">/g) ?? []).length, 2);
   assert.ok(html.indexOf('id="v1.3.4"') < html.indexOf('id="v1.3.3"'));
-  assert.match(html, /<h2 id="v1\.3\.4">solstone journal 1\.3\.4<\/h2>/);
-  assert.match(html, /<h2 id="v1\.3\.3">solstone journal 1\.3\.3<\/h2>/);
+  assert.match(html, /<h2 id="v1\.3\.4">journal 1\.3\.4<\/h2>/);
+  assert.match(html, /<h2 id="v1\.3\.3">journal 1\.3\.3<\/h2>/);
   assert.match(html, /<p class="rel-date">may 28, 2026<\/p>/);
 
   const secondArticle = html.slice(html.indexOf('id="v1.3.3"'), html.indexOf("</article>", html.indexOf('id="v1.3.3"')));
@@ -223,7 +223,7 @@ test("renderReleasesPage preserves chrome copy", () => {
 
   assert.match(
     html,
-    /<meta property="og:description" content="what's new in the solstone journal, in plain language\. your co-brain runs on your machine — never sold, never shared\.">/,
+    /<meta property="og:description" content="what's new in the journal — the memory sol keeps — in plain language\. it runs on your device: never sold, never shared\.">/,
   );
   assert.match(
     macosHtml,

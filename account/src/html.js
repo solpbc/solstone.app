@@ -14,7 +14,7 @@ const SUPPORT_STATUS_LABELS = {
 const SUPPORT_AUTHOR_LABELS = {
   human: 'you',
   operator: 'solstone support',
-  agent: 'your solstone keeper',
+  agent: 'sol',
   anonymous: 'you (via the form)',
 };
 const MARK_SVG = '<svg class="mark" viewBox="2.5 2.5 27 27" role="img" aria-label="solstone"><path fill="#FFCF33" d="M16.0 2.5 L18.6 7.3 A9.1 9.1 0 0 0 13.4 7.3 Z M23.9 5.1 L23.2 10.5 A9.1 9.1 0 0 0 19.0 7.4 Z M28.8 11.8 L25.1 15.8 A9.1 9.1 0 0 0 23.5 10.9 Z M28.8 20.2 L23.5 21.1 A9.1 9.1 0 0 0 25.1 16.2 Z M23.9 26.9 L19.0 24.6 A9.1 9.1 0 0 0 23.2 21.5 Z M16.0 29.5 L13.4 24.7 A9.1 9.1 0 0 0 18.6 24.7 Z M8.1 26.9 L8.8 21.5 A9.1 9.1 0 0 0 13.0 24.6 Z M3.2 20.2 L6.9 16.2 A9.1 9.1 0 0 0 8.5 21.1 Z M3.2 11.8 L8.5 10.9 A9.1 9.1 0 0 0 6.9 15.8 Z M8.1 5.1 L13.0 7.4 A9.1 9.1 0 0 0 8.8 10.5 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8923A" stroke-width="1.7"/></svg>';
@@ -99,7 +99,7 @@ export function layout({ title, body, afterMain = '' }) {
 </html>`;
 }
 
-export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. solstone itself runs on your device. you don't sign in to use it.") {
+export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. sol and your journal run on your devices. you don't sign in to use them.") {
   const resumeHtml = resume.next && resume.nextSig
     ? `<input type="hidden" name="next" value="${escAttr(resume.next)}">
   <input type="hidden" name="next_sig" value="${escAttr(resume.nextSig)}">`
@@ -187,7 +187,7 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <div class="n">1</div>
     <div>
       <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no observations, nothing sol has experienced alongside you. just: this is your device.</div>
+      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no entries, nothing sol has taken in alongside you. just: this is your device.</div>
     </div>
   </div>
   <div class="grant">
@@ -277,7 +277,7 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
     <div class="n">1</div>
     <div>
       <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no observations, nothing sol has experienced alongside you. just: this is your phone.</div>
+      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no entries, nothing sol has taken in alongside you. just: this is your phone.</div>
     </div>
   </div>
   <div class="grant">
@@ -345,7 +345,7 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal: no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for private network access.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing sol has taken in alongside you. just: this journal asked for private network access.</div>
     </div>
   </div>
   <div class="grant">
@@ -421,7 +421,7 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal: no observations, no entries, nothing sol has experienced alongside you. just: this journal asked for encrypted backup.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing sol has taken in alongside you. just: this journal asked for encrypted backup.</div>
     </div>
   </div>
   <div class="grant">
@@ -1321,7 +1321,7 @@ export function renderSupportList({
   </div>
 </div>`).join('');
   const emptyState = requests.length === 0 && !failure
-    ? '<p>no open requests. need help? open one below, or your solstone keeper can file one for you.</p>'
+    ? '<p>no open requests. need help? open one below, or sol can file one for you.</p>'
     : '';
   const groupHtml = rowsHtml ? `<div class="group">${rowsHtml}</div>` : '';
   return layout({
