@@ -244,6 +244,36 @@
         .blurb {
             display: none;
         }
+        /* ── the sunrise-gradient ground (founder-ratified 2026-07-03) ──────
+           canon: cmo/brand/sol/index.md § the sunrise-gradient ground;
+           decision: records/decisions/260703-cmo-solstone-app-sunrise-gradient-ground.md.
+           Scoped to this page (+ /install); the CMO site sweep extends it.
+           The flat cream field retires as a page ground here; cards go paper
+           white and hairlines lighten to sit on the gradient. */
+        :root {
+            --cream: #FEFCF8;
+            --cream-bright: #FFFFFF;
+            --hairline: #F0E8D8;
+            --hairline-2: #E6DCC6;
+        }
+        body {
+            background:
+                radial-gradient(ellipse 900px 420px at 50% -140px,
+                    rgba(255, 207, 51, 0.30) 0%,
+                    rgba(255, 207, 51, 0) 70%),
+                linear-gradient(180deg,
+                    #FFF3CF 0%,
+                    #FCF3E0 24%,
+                    #FEFCF8 58%,
+                    #FFFFFF 100%);
+        }
+        /* alert box tracks the cards' content column instead of its own 600px
+           cap (Mike finding #1) — .cards is max-width 820/90vw with 1.5rem
+           side padding, so the visible card edge is 3rem narrower */
+        .early-days {
+            max-width: calc(820px - 3rem);
+            width: calc(90vw - 3rem);
+        }
         @media (max-width: 640px) {
             .cards,
             .cards.placeholders {
@@ -324,28 +354,7 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux
         </div>
     </div>
 
-    <div class="section-title">more devices on the way</div>
-
-    <div class="cards placeholders">
-        <div class="card placeholder">
-            <h2>windows</h2>
-            <p class="subtitle">sol for windows — screen and audio</p>
-            <p class="coming-soon"><em>in beta</em></p>
-        </div>
-
-        <div class="card placeholder">
-            <h2>iPhone/iPad</h2>
-            <p class="subtitle">sol for iPhone and iPad</p>
-            <p class="coming-soon"><em>in beta with testers</em></p>
-        </div>
-
-        <div class="card placeholder">
-            <h2>android</h2>
-            <p class="subtitle">sol for android</p>
-            <p class="coming-soon"><em>in beta with testers</em></p>
-        </div>
-    </div>
-
+    <!-- available today sits above coming-soon (Mike finding #6) -->
     <div class="supplemental">
         <div class="card">
             <h2>+ add your terminal</h2>
@@ -367,6 +376,28 @@ solstone-tmux setup
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
 cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux</pre>
+        </div>
+    </div>
+
+    <div class="section-title">more devices on the way</div>
+
+    <div class="cards placeholders">
+        <div class="card placeholder">
+            <h2>windows</h2>
+            <p class="subtitle">sol for windows — screen and audio</p>
+            <p class="coming-soon"><em>in beta</em></p>
+        </div>
+
+        <div class="card placeholder">
+            <h2>iPhone/iPad</h2>
+            <p class="subtitle">sol for iPhone and iPad</p>
+            <p class="coming-soon"><em>in beta with testers</em></p>
+        </div>
+
+        <div class="card placeholder">
+            <h2>android</h2>
+            <p class="subtitle">sol for android</p>
+            <p class="coming-soon"><em>in beta with testers</em></p>
         </div>
     </div>
     </main>
