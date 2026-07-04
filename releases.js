@@ -209,7 +209,7 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "Linux app releases",
     intro:
       "these are the Linux desktop app's own changes: installation, systemd service, desktop integration, and how it syncs to your journal — sol on your Linux desktop.",
-    primaryLink: { href: "/observers", text: "get sol for Linux →" },
+    primaryLink: { href: "/download", text: "get sol for Linux →" },
     sourceUrl: "https://github.com/solpbc/solstone-linux",
     unavailableUrl: "https://github.com/solpbc/solstone-linux/releases",
     unavailableLabel: "see every Linux release on github →",

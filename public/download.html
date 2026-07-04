@@ -9,7 +9,7 @@
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="https://solstone.app/observers">
+    <link rel="canonical" href="https://solstone.app/download">
     <link rel="icon" type="image/svg+xml" href="/static/sol-ring-icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/tokens.css">
@@ -22,6 +22,21 @@
         }
         .page-intro h1 {
             margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        /* sunrise signature: gold→orange underline beneath the page h1
+           (cmo/brand/sol/index.md § the sunrise-gradient ground) */
+        .page-intro h1::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            width: 76px;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #FFCF33, #E8923A);
         }
         .page-intro p {
             font-size: 1rem;
@@ -38,11 +53,13 @@
         }
         .card {
             background: var(--cream-bright);
-            border: 1px solid var(--hairline);
+            border: 1px solid rgba(176, 106, 26, 0.08);
             border-radius: 10px;
             padding: 1.75rem;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 1px 2px rgba(139, 90, 24, 0.05),
+                        0 12px 32px -18px rgba(139, 90, 24, 0.22);
         }
         .card h2 {
             font-family: var(--font-display);
@@ -76,6 +93,7 @@
         }
         .card-actions {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 1rem;
             margin-top: auto;
@@ -91,6 +109,7 @@
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s, color 0.15s;
             color: var(--ink-on-dark);
+            white-space: nowrap;
         }
         .copy-btn:hover {
             background: var(--orange);
@@ -107,6 +126,7 @@
             color: var(--ink-faint);
             text-decoration: none;
             transition: color 0.15s;
+            white-space: nowrap;
         }
         .gh-link:hover {
             color: var(--orange-ink);
@@ -124,17 +144,16 @@
             font-family: var(--font-display);
             font-size: 0.95rem;
             font-weight: 700;
-            background: var(--orange);
+            background: linear-gradient(135deg, #FFCF33 0%, #E8923A 100%);
             color: var(--ink);
             text-decoration: none;
             border: none;
             border-radius: 6px;
             padding: 0.65rem 1.1rem;
-            transition: background-color 0.15s;
         }
         .download-btn:hover {
-            background: var(--orange-ink);
-            color: var(--paper);
+            background: linear-gradient(135deg, #F2BF2B 0%, #DB8330 100%);
+            color: var(--ink);
         }
         .download-clarifier {
             font-size: 0.82rem;
@@ -150,14 +169,26 @@
         }
         .secondary-action {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 0.85rem;
             padding-top: 0.85rem;
             border-top: 1px solid var(--hairline);
         }
+        /* one primary action per card (Mike finding #4): when a card already
+           has a download button, its copy button steps down to a quiet outline
+           so it reads as the secondary it is */
         .secondary-action .copy-btn {
             font-size: 0.74rem;
             padding: 0.35rem 0.75rem;
+            background: none;
+            border-color: var(--hairline-2);
+            color: var(--ink-soft);
+        }
+        .secondary-action .copy-btn:hover {
+            background: none;
+            border-color: var(--orange-ink);
+            color: var(--ink);
         }
         .secondary-action .gh-link {
             font-size: 0.74rem;
@@ -169,7 +200,7 @@
             margin-top: 1.5rem;
         }
         .supplemental .card {
-            border-color: var(--hairline);
+            border-color: rgba(176, 106, 26, 0.08);
             background: var(--cream-bright);
         }
         .supplemental .card h2 {
@@ -196,6 +227,7 @@
         .card.placeholder {
             background: none;
             border: 1px dashed var(--hairline-2);
+            box-shadow: none;
         }
         .card.placeholder h2 {
             color: var(--ink-faint);

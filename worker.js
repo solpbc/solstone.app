@@ -97,6 +97,19 @@ export default {
       return Response.redirect(setupUrl, 302);
     }
 
+    // The per-device get-sol page lives at /download (index of the /download/*
+    // family). /observers is the retired pre-2026-07-03 name and /downloads a
+    // likely guess — both 301 here so old links keep working.
+    if (url.pathname === "/download") {
+      const rewritten = new URL(request.url);
+      rewritten.pathname = "/download.html";
+      return env.ASSETS.fetch(assetRequest(rewritten, request));
+    }
+
+    if (url.pathname === "/observers" || url.pathname === "/downloads") {
+      return Response.redirect(`${url.origin}/download`, 301);
+    }
+
     if (url.pathname === "/install") {
       const rewritten = new URL(request.url);
       rewritten.pathname = "/install.html";

@@ -25,7 +25,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PAGES = [
   ["/", "public/index.html"],
   ["/install", "public/install.html"],
-  ["/observers", "public/observers.html"],
+  ["/download", "public/download.html"],
   ["/releases", "releases.js"],
   ["/releases/macos", "releases.js"],
   ["/releases/windows", "releases.js"],

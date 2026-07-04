@@ -22,6 +22,21 @@
         }
         .page-intro h1 {
             margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        /* sunrise signature: gold→orange underline beneath the page h1
+           (cmo/brand/sol/index.md § the sunrise-gradient ground) */
+        .page-intro h1::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            width: 76px;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #FFCF33, #E8923A);
         }
         .page-intro p {
             font-size: 1rem;
@@ -46,11 +61,13 @@
         }
         .card {
             background: var(--cream-bright);
-            border: 1px solid var(--hairline);
+            border: 1px solid rgba(176, 106, 26, 0.08);
             border-radius: 10px;
             padding: 1.75rem;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 1px 2px rgba(139, 90, 24, 0.05),
+                        0 12px 32px -18px rgba(139, 90, 24, 0.22);
         }
         .card .subtitle {
             font-size: 0.92rem;
@@ -60,6 +77,7 @@
         }
         .card-actions {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 1rem;
             margin-top: 1rem;
@@ -75,6 +93,7 @@
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s, color 0.15s;
             color: var(--ink-on-dark);
+            white-space: nowrap;
         }
         .copy-btn:hover {
             background: var(--orange);
@@ -91,6 +110,7 @@
             color: var(--ink-faint);
             text-decoration: none;
             transition: color 0.15s;
+            white-space: nowrap;
         }
         .gh-link:hover {
             color: var(--orange-ink);
@@ -102,7 +122,7 @@
             margin-top: 1.5rem;
         }
         .supplemental .card {
-            border-color: var(--hairline);
+            border-color: rgba(176, 106, 26, 0.08);
             background: var(--cream-bright);
         }
         .supplemental .card h2 {
@@ -182,9 +202,12 @@
         .dg-meta   { font-family: var(--font-body); fill: var(--ink-faint-paper); }
         .dg-mono   { font-family: var(--font-mono); fill: var(--ink-faint-paper); }
         .dg-soon   { font-family: var(--font-body); font-style: italic; fill: var(--ink-faint-paper); }
-        .dg-card   { fill: var(--paper); stroke: var(--hairline); stroke-width: 1; }
-        .dg-card.soon { stroke: var(--hairline-2); stroke-dasharray: 6 4; }
-        .dg-journal { fill: var(--cream-bright); stroke: var(--hairline); stroke-width: 1; }
+        /* de-rectilinearized (Mike Salamon review 2026-07-03): depth comes from
+           fills + warm drop shadows, not outline strokes; the journal containment
+           keeps a warm wash — warmth lives where the covenant binds. */
+        .dg-card   { fill: var(--paper); stroke: none; filter: drop-shadow(0 1.5px 3px rgba(139, 90, 24, 0.16)); }
+        .dg-card.soon { fill: rgba(255, 255, 255, 0.5); stroke: var(--hairline-2); stroke-width: 1; stroke-dasharray: 6 4; filter: none; }
+        .dg-journal { fill: #FBF1DB; stroke: none; }
         .dg-flow   { stroke: var(--hairline-2); stroke-width: 1.5; }
         .dg-arrow  { fill: var(--hairline-2); }
         /* Platform tabs (mirrors the diagram toggle) */
@@ -263,18 +286,17 @@
             font-family: var(--font-display);
             font-size: 0.95rem;
             font-weight: 700;
-            background: var(--orange);
+            background: linear-gradient(135deg, #FFCF33 0%, #E8923A 100%);
             color: var(--ink);
             text-decoration: none;
             border: none;
             border-radius: 6px;
             padding: 0.65rem 1.1rem;
-            transition: background-color 0.15s;
             margin-bottom: 0.5rem;
         }
         .download-btn:hover {
-            background: var(--orange-ink);
-            color: var(--paper);
+            background: linear-gradient(135deg, #F2BF2B 0%, #DB8330 100%);
+            color: var(--ink);
         }
         .trust-signal {
             font-size: 0.78rem;
@@ -345,6 +367,36 @@
         .blurb {
             display: none;
         }
+        /* ── the sunrise-gradient ground (founder-ratified 2026-07-03) ──────
+           canon: cmo/brand/sol/index.md § the sunrise-gradient ground;
+           decision: records/decisions/260703-cmo-solstone-app-sunrise-gradient-ground.md.
+           Scoped to this page (+ /download); the CMO site sweep extends it.
+           The flat cream field retires as a page ground here; cards go paper
+           white and hairlines lighten to sit on the gradient. */
+        :root {
+            --cream: #FEFCF8;
+            --cream-bright: #FFFFFF;
+            --hairline: #F0E8D8;
+            --hairline-2: #E6DCC6;
+        }
+        body {
+            background:
+                radial-gradient(ellipse 900px 420px at 50% -140px,
+                    rgba(255, 207, 51, 0.30) 0%,
+                    rgba(255, 207, 51, 0) 70%),
+                linear-gradient(180deg,
+                    #FFF3CF 0%,
+                    #FCF3E0 24%,
+                    #FEFCF8 58%,
+                    #FFFFFF 100%);
+        }
+        /* alert box tracks the cards' content column instead of its own 600px
+           cap (Mike finding #1) — .cards is max-width 820/90vw with 1.5rem
+           side padding, so the visible card edge is 3rem narrower */
+        .early-days {
+            max-width: calc(820px - 3rem);
+            width: calc(90vw - 3rem);
+        }
     </style>
 </head>
 <body>
@@ -368,17 +420,17 @@
         <div class="diagram-panel diagram-single">
             <svg class="dg" viewBox="0 0 720 448" role="img" aria-label="solstone on a single device: sol runs on your device, takes in your screen and audio along with you, and keeps it all in your journal at ~/journal">
                 <text x="360" y="14" text-anchor="middle" font-size="11" class="dg-label">your device</text>
-                <rect x="24" y="24" width="672" height="400" rx="8" class="dg-card"/>
-                <rect x="72" y="52" width="576" height="72" rx="4" class="dg-card"/>
+                <rect x="24" y="24" width="672" height="400" rx="12" class="dg-card"/>
+                <rect x="72" y="52" width="576" height="72" rx="6" class="dg-card"/>
                 <text x="360" y="78" text-anchor="middle" font-size="15" class="dg-title">sol</text>
                 <text x="360" y="98" text-anchor="middle" font-size="12" class="dg-desc">screen + audio, taken in along with you</text>
                 <text x="360" y="115" text-anchor="middle" font-size="10" class="dg-meta">macos · linux · tmux</text>
                 <line x1="360" y1="124" x2="360" y2="168" class="dg-flow"/>
                 <polygon points="360,170 356,162 364,162" class="dg-arrow"/>
                 <text x="360" y="190" text-anchor="middle" font-size="11" class="dg-label">your journal</text>
-                <rect x="60" y="200" width="600" height="200" rx="8" class="dg-journal"/>
+                <rect x="60" y="200" width="600" height="200" rx="12" class="dg-journal"/>
                 <text x="360" y="227" text-anchor="middle" font-size="11" class="dg-mono">~/journal</text>
-                <rect x="92" y="246" width="536" height="104" rx="4" class="dg-card"/>
+                <rect x="92" y="246" width="536" height="104" rx="6" class="dg-card"/>
                 <text x="360" y="282" text-anchor="middle" font-size="15" class="dg-title">the memory</text>
                 <text x="360" y="304" text-anchor="middle" font-size="12" class="dg-desc">everything sol takes in — kept, transcribed, and organized here</text>
                 <text x="360" y="324" text-anchor="middle" font-size="10" class="dg-meta">transcription · vision · search · dashboard</text>
@@ -386,43 +438,37 @@
             </svg>
         </div>
         <div class="diagram-panel diagram-multi">
-            <svg class="dg" viewBox="0 0 840 430" role="img" aria-label="solstone across devices: sol runs on each desktop and device (linux, macos, tmux; windows and mobile coming soon) and keeps everything in your journal at ~/journal">
-                <text x="420" y="14" text-anchor="middle" font-size="11" class="dg-label">desktops &amp; devices</text>
-                <rect x="16" y="24" width="152" height="80" rx="6" class="dg-card"/>
-                <text x="92" y="48" text-anchor="middle" font-size="13" class="dg-title">linux</text>
-                <text x="92" y="68" text-anchor="middle" font-size="11" class="dg-desc">runs sol: screen + audio</text>
-                <text x="92" y="86" text-anchor="middle" font-size="10" class="dg-mono">solstone-linux</text>
-                <rect x="180" y="24" width="152" height="80" rx="6" class="dg-card"/>
-                <text x="256" y="48" text-anchor="middle" font-size="13" class="dg-title">macos</text>
-                <text x="256" y="68" text-anchor="middle" font-size="11" class="dg-desc">runs sol: screen + audio</text>
-                <text x="256" y="86" text-anchor="middle" font-size="10" class="dg-mono">solstone-macos</text>
-                <rect x="344" y="24" width="152" height="80" rx="6" class="dg-card"/>
-                <text x="420" y="48" text-anchor="middle" font-size="13" class="dg-title">tmux</text>
-                <text x="420" y="68" text-anchor="middle" font-size="11" class="dg-desc">runs sol: terminal sessions</text>
-                <text x="420" y="86" text-anchor="middle" font-size="10" class="dg-mono">solstone-tmux</text>
-                <rect x="508" y="24" width="152" height="80" rx="6" class="dg-card soon"/>
-                <text x="584" y="56" text-anchor="middle" font-size="13" class="dg-title soon">windows</text>
-                <text x="584" y="76" text-anchor="middle" font-size="10" class="dg-soon">coming soon</text>
-                <rect x="672" y="24" width="152" height="80" rx="6" class="dg-card soon"/>
-                <text x="748" y="56" text-anchor="middle" font-size="13" class="dg-title soon">mobile</text>
-                <text x="748" y="76" text-anchor="middle" font-size="10" class="dg-soon">coming soon</text>
-                <line x1="92" y1="104" x2="92" y2="138" class="dg-flow"/>
-                <line x1="256" y1="104" x2="256" y2="138" class="dg-flow"/>
-                <line x1="420" y1="104" x2="420" y2="138" class="dg-flow"/>
-                <line x1="584" y1="104" x2="584" y2="138" class="dg-flow"/>
-                <line x1="748" y1="104" x2="748" y2="138" class="dg-flow"/>
-                <line x1="92" y1="138" x2="748" y2="138" class="dg-flow"/>
-                <circle cx="420" cy="138" r="3" class="dg-arrow"/>
-                <line x1="420" y1="141" x2="420" y2="180" class="dg-flow"/>
-                <polygon points="420,182 416,174 424,174" class="dg-arrow"/>
-                <text x="420" y="200" text-anchor="middle" font-size="11" class="dg-label">your journal</text>
-                <rect x="120" y="210" width="600" height="200" rx="8" class="dg-journal"/>
-                <text x="420" y="237" text-anchor="middle" font-size="11" class="dg-mono">~/journal</text>
-                <rect x="152" y="256" width="536" height="104" rx="4" class="dg-card"/>
-                <text x="420" y="292" text-anchor="middle" font-size="15" class="dg-title">the memory</text>
-                <text x="420" y="314" text-anchor="middle" font-size="12" class="dg-desc">everything sol takes in — kept, transcribed, and organized here</text>
-                <text x="420" y="334" text-anchor="middle" font-size="10" class="dg-meta">transcription · vision · search · dashboard</text>
-                <text x="420" y="390" text-anchor="middle" font-size="11" class="dg-meta">your journal is always private, only yours</text>
+            <svg class="dg" viewBox="0 0 840 452" role="img" aria-label="solstone across devices: sol runs on each of your devices (linux, macos, tmux; windows and mobile coming soon) and keeps everything in your journal at ~/journal">
+                <text x="420" y="14" text-anchor="middle" font-size="11" class="dg-label">your devices</text>
+                <rect x="16" y="24" width="808" height="128" rx="12" class="dg-card"/>
+                <rect x="40" y="48" width="144" height="80" rx="6" class="dg-card"/>
+                <text x="112" y="72" text-anchor="middle" font-size="13" class="dg-title">linux</text>
+                <text x="112" y="92" text-anchor="middle" font-size="11" class="dg-desc">runs sol: screen + audio</text>
+                <text x="112" y="110" text-anchor="middle" font-size="10" class="dg-mono">solstone-linux</text>
+                <rect x="194" y="48" width="144" height="80" rx="6" class="dg-card"/>
+                <text x="266" y="72" text-anchor="middle" font-size="13" class="dg-title">macos</text>
+                <text x="266" y="92" text-anchor="middle" font-size="11" class="dg-desc">runs sol: screen + audio</text>
+                <text x="266" y="110" text-anchor="middle" font-size="10" class="dg-mono">solstone-macos</text>
+                <rect x="348" y="48" width="144" height="80" rx="6" class="dg-card"/>
+                <text x="420" y="72" text-anchor="middle" font-size="13" class="dg-title">tmux</text>
+                <text x="420" y="92" text-anchor="middle" font-size="11" class="dg-desc">runs sol: terminal sessions</text>
+                <text x="420" y="110" text-anchor="middle" font-size="10" class="dg-mono">solstone-tmux</text>
+                <rect x="502" y="48" width="144" height="80" rx="6" class="dg-card soon"/>
+                <text x="574" y="80" text-anchor="middle" font-size="13" class="dg-title soon">windows</text>
+                <text x="574" y="100" text-anchor="middle" font-size="10" class="dg-soon">coming soon</text>
+                <rect x="656" y="48" width="144" height="80" rx="6" class="dg-card soon"/>
+                <text x="728" y="80" text-anchor="middle" font-size="13" class="dg-title soon">mobile</text>
+                <text x="728" y="100" text-anchor="middle" font-size="10" class="dg-soon">coming soon</text>
+                <line x1="420" y1="152" x2="420" y2="196" class="dg-flow"/>
+                <polygon points="420,198 416,190 424,190" class="dg-arrow"/>
+                <text x="420" y="218" text-anchor="middle" font-size="11" class="dg-label">your journal</text>
+                <rect x="120" y="228" width="600" height="200" rx="12" class="dg-journal"/>
+                <text x="420" y="255" text-anchor="middle" font-size="11" class="dg-mono">~/journal</text>
+                <rect x="152" y="274" width="536" height="104" rx="6" class="dg-card"/>
+                <text x="420" y="310" text-anchor="middle" font-size="15" class="dg-title">the memory</text>
+                <text x="420" y="332" text-anchor="middle" font-size="12" class="dg-desc">everything sol takes in — kept, transcribed, and organized here</text>
+                <text x="420" y="352" text-anchor="middle" font-size="10" class="dg-meta">transcription · vision · search · dashboard</text>
+                <text x="420" y="408" text-anchor="middle" font-size="11" class="dg-meta">your journal is always private, only yours</text>
             </svg>
         </div>
     </div>
@@ -483,7 +529,7 @@ journal setup</pre>
                     <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                 </div>
                 <p class="install-finish"><code>solstone[journal]</code> bundles everything your journal needs to run here — the default CPU transcription runtime is included and <code>journal setup</code> downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install <code>solstone[journal-cuda]</code> instead (pick one — not both). <code>uv tool</code> and <code>pipx</code> expose the <code>journal</code> command only with the flag shown above; <code>pip</code> exposes it natively. want only the thin <code>sol</code> client to talk to a journal running elsewhere? <code>uv tool install solstone</code> (no extras), or <code>uvx solstone</code> for a one-shot.</p>
-                <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. to run sol on your linux desktop, see <a href="/observers" class="gh-link" style="text-decoration:underline;">solstone.app/observers</a>.</p>
+                <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. to run sol on your linux desktop, see <a href="/download" class="gh-link" style="text-decoration:underline;">solstone.app/download</a>.</p>
             </div>
         </div>
     </div>
@@ -491,7 +537,7 @@ journal setup</pre>
     <div class="supplemental">
         <div class="card">
             <h2>already have solstone installed?</h2>
-            <p class="subtitle">get sol on more of your devices at <a href="/observers" class="gh-link" style="text-decoration:underline;">solstone.app/observers</a>.</p>
+            <p class="subtitle">get sol on more of your devices at <a href="/download" class="gh-link" style="text-decoration:underline;">solstone.app/download</a>.</p>
         </div>
     </div>
 

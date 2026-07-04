@@ -44,8 +44,8 @@ uv tool install solstone        # the sol client, on PATH
 uvx solstone --help             # or one-shot, no install
 ```
 
-then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/observers](https://solstone.app/observers).
+then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
 
 ## already have solstone installed?
 
-get sol on more of your devices at https://solstone.app/observers.
+get sol on more of your devices at https://solstone.app/download.
