@@ -6,7 +6,7 @@ metadata:
   author: sol-pbc
   version: "1.0"
   website: https://solstone.app
-  repository: https://github.com/solpbc/solstone
+  repository: https://github.com/solpbc/solstone-journal
 ---
 
 # solstone installation
@@ -27,7 +27,7 @@ the guide covers platform detection, prerequisites, installation, setup, service
 
 ## quick reference
 
-- **repo:** https://github.com/solpbc/solstone
+- **repo:** https://github.com/solpbc/solstone-journal
 - **macOS app (sol on your Mac):** https://github.com/solpbc/solstone-macos
 - **requires:** python 3.11+, uv, ffmpeg, a Google AI Studio API key
 - **install (run a journal here):** `uv tool install solstone-journal && uv tool install solstone && journal setup` — two tools so both `journal` and `sol` land on your PATH (`pip install solstone-journal` exposes both natively in one step; NVIDIA GPU owners install `solstone-journal-cuda` instead of `solstone-journal`, never both)

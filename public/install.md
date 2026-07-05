@@ -18,7 +18,7 @@ paste this prompt into claude code, codex cli, gemini cli, or similar: `install 
      revise to the educational sol / journal / both surface when Track B ships. -->
 [download for macOS](https://solstone.app/download/macos) — signed by sol pbc, notarized by Apple. sets up sol and your journal on this Mac, opens the first-run wizard, and updates over a signed channel.
 
-building from source? use the developer path in [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md).
+building from source? use the developer path in [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md).
 
 ### linux
 
@@ -44,7 +44,7 @@ uv tool install solstone        # the sol client, on PATH
 uvx solstone --help             # or one-shot, no install
 ```
 
-then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
+then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
 
 ## migrating from a pre-split install
 
