@@ -1,6 +1,7 @@
 import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseGitHubReleaseItems, parseWinFeedItems, renderReleasesPage } from "./releases.js";
 
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
+const JOURNAL_MACOS_APPCAST_URL = "https://updates.solstone.app/journal-macos/appcast.xml";
 const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win.json";
 const JOURNAL_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-journal/releases";
 const LINUX_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-linux/releases";
@@ -133,6 +134,22 @@ export default {
     if (url.pathname === "/releases/android") {
       const items = await githubReleaseItems(ANDROID_RELEASES_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.android);
+    }
+
+    if (url.pathname === "/releases/journal-macos") {
+      let items = [];
+      try {
+        const res = await fetch(JOURNAL_MACOS_APPCAST_URL, {
+          cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+        });
+        if (res.ok) {
+          items = parseAppcastItems(await res.text());
+        }
+      } catch {
+        items = [];
+      }
+
+      return releasesResponse(items, RELEASE_PAGE_CONFIGS.journalMacos);
     }
 
     if (url.pathname === "/releases/macos") {

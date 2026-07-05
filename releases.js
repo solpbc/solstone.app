@@ -198,6 +198,24 @@ export const RELEASE_PAGE_CONFIGS = {
     articleTitle: (version) => `solstone for macOS ${version}`,
     linkifyBundledJournal: true,
   },
+  journalMacos: {
+    pageTitle: "journal for mac releases — solstone",
+    ogTitle: "journal for mac releases",
+    metaDescription:
+      "release notes for the journal app on mac, in plain language. the journal — the memory sol keeps — as its own app.",
+    ogUrl: "https://solstone.app/releases/journal-macos",
+    canonicalUrl: "https://solstone.app/releases/journal-macos",
+    stream: "journal-macos",
+    heading: "journal for mac releases",
+    intro:
+      "these are the journal app's own changes on mac — your journal, its window, and its updates.",
+    primaryLink: { href: "/download/macos", text: "download for mac →" },
+    sourceUrl: "https://github.com/solpbc/solstone-macos",
+    unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
+    unavailableLabel: "see every macOS app release on github →",
+    articleTitle: (version) => `journal for mac ${version}`,
+    linkifyBundledJournal: true,
+  },
   linux: {
     pageTitle: "Linux app releases — solstone",
     ogTitle: "Linux app releases",
