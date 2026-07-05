@@ -27,15 +27,15 @@ prereqs: `uv` from astral.sh: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 run your journal here — the full host:
 
 ```bash
-uv tool install --with-executables-from solstone-journal-host 'solstone[journal]'
+uv tool install solstone-journal && uv tool install solstone
 journal setup
 ```
 
-(or `pipx install --include-deps 'solstone[journal]' && journal setup` if you prefer pipx. the quotes keep your shell from globbing the `[journal]` brackets.)
+(or `pipx install solstone-journal && pipx install solstone && journal setup` if you prefer pipx.)
 
-the `journal` and `mlx-vlm-server` commands live in the `solstone-journal-host` package that `[journal]` pulls in. `pip` exposes them natively, but `uv tool` and `pipx` only expose the base package's commands unless you add the flag shown above — without it you'd get `sol` but no `journal`.
+the `journal` host lives in the `solstone-journal` package; the `sol` client lives in `solstone`. `pip install solstone-journal` exposes both natively (`sol` comes along as a dependency). `uv tool` and `pipx` isolate each tool to its own package, so you install both `solstone-journal` and `solstone` to put both `journal` and `sol` on your PATH.
 
-`solstone[journal]` bundles everything your journal needs to run here — the default CPU transcription runtime is included and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install `solstone[journal-cuda]` **instead of** `solstone[journal]` (pick one — the CPU and GPU runtimes must not both install).
+`solstone-journal` bundles everything your journal needs to run here — the default CPU transcription runtime is included and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install `solstone-journal-cuda` **instead of** `solstone-journal` (pick one — the CPU and GPU runtimes must not both install).
 
 want only the thin `sol` client — to talk to a journal running elsewhere (a second device, or a journal you reach over your private network)? install bare `solstone` (no extras), or run it ephemerally with `uvx`:
 
@@ -45,6 +45,18 @@ uvx solstone --help             # or one-shot, no install
 ```
 
 then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
+
+## migrating from a pre-split install
+
+already ran `solstone[journal]`, `solstone-journal-host`, or an older bare `solstone` journal? those spellings are retired — swap to the split packages once, matching how you installed:
+
+```bash
+pip:   pip uninstall solstone-journal-host && pip install solstone-journal
+pipx:  pipx uninstall solstone && pipx install solstone-journal && pipx install solstone
+uv:    uv tool uninstall solstone && uv tool install solstone-journal && uv tool install solstone
+```
+
+your journal directory and `journal setup` are unchanged — you're only renaming the package.
 
 ## already have solstone installed?
 

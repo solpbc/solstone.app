@@ -30,7 +30,8 @@ the guide covers platform detection, prerequisites, installation, setup, service
 - **repo:** https://github.com/solpbc/solstone
 - **macOS app (sol on your Mac):** https://github.com/solpbc/solstone-macos
 - **requires:** python 3.11+, uv, ffmpeg, a Google AI Studio API key
-- **install (run a journal here):** `uv tool install --with-executables-from solstone-journal-host 'solstone[journal]' && journal setup` — the flag is required so `uv tool` exposes the `journal`/`mlx-vlm-server` commands (they live in the `solstone-journal-host` package `[journal]` pulls in; `pip` exposes them natively, `uv tool`/`pipx` need the flag / `--include-deps`)
+- **install (run a journal here):** `uv tool install solstone-journal && uv tool install solstone && journal setup` — two tools so both `journal` and `sol` land on your PATH (`pip install solstone-journal` exposes both natively in one step; NVIDIA GPU owners install `solstone-journal-cuda` instead of `solstone-journal`, never both)
 - **install (thin `sol` client only, talk to a journal elsewhere):** `uv tool install solstone` — or `uvx solstone` for a one-shot
+- **migrate from a pre-split install:** `pip uninstall solstone-journal-host && pip install solstone-journal` (pip) · `pipx uninstall solstone && pipx install solstone-journal && pipx install solstone` (pipx) · `uv tool uninstall solstone && uv tool install solstone-journal && uv tool install solstone` (uv) — `journal setup` unchanged
 - **configure:** open http://localhost:5015 after setup; the first-run wizard handles password, identity, and gemini API key
 - **docs:** https://solstone.app/llms.txt
