@@ -13,6 +13,7 @@ import {
   seedCredential,
   seedDevice,
   seedEntitlement,
+  seedScoutApplication,
   seedSession,
   startRequest,
   stubTurnstile,
@@ -75,6 +76,9 @@ const VALID_SPL_ENTITLED_NONCE = '4'.repeat(52);
 const VALID_SPB_NONCE = '5'.repeat(52);
 const VALID_SPB_ENTITLED_NONCE = '6'.repeat(52);
 const VALID_SPB_INSTANCE = '11111111-1111-1111-1111-111111111111';
+const VALID_SPP_NONCE = '7'.repeat(52);
+const VALID_SPP_EARLY_NONCE = '8'.repeat(52);
+const VALID_SPP_INSTANCE = '11111111-1111-1111-1111-111111111111';
 
 describe('brand canon', () => {
   beforeEach(async () => {
@@ -228,6 +232,20 @@ describe('brand canon', () => {
       action: 'allow',
     }), spbEntitledSession.cookie);
     const spbError = await get('/enable/backup', testEnv);
+    const sppScoutAccount = await seedAccount({ email: 'spp-scout-canon@example.com', testEnv });
+    const sppScoutSession = await seedSession(sppScoutAccount.accountId, { testEnv });
+    await seedScoutApplication({ accountId: sppScoutAccount.accountId, status: 'approved', approved_at: 1_000 });
+    const sppPlainAccount = await seedAccount({ email: 'spp-plain-canon@example.com', testEnv });
+    const sppPlainSession = await seedSession(sppPlainAccount.accountId, { testEnv });
+    const sppConsent = await get(`/enable/spp?nonce=${VALID_SPP_NONCE}&instance=${VALID_SPP_INSTANCE}`, testEnv, sppScoutSession.cookie);
+    const sppDone = await post('/enable/spp/confirm', testEnv, new URLSearchParams({
+      csrf: TEST_CSRF,
+      nonce: VALID_SPP_NONCE,
+      instance: VALID_SPP_INSTANCE,
+      action: 'allow',
+    }), sppScoutSession.cookie);
+    const sppEarlyAccess = await get(`/enable/spp?nonce=${VALID_SPP_EARLY_NONCE}`, testEnv, sppPlainSession.cookie);
+    const sppError = await get('/enable/spp', testEnv);
 
     expect('your sign-in').not.toMatch(enableSurfaceStrictRe);
     for (const [name, response] of [
@@ -244,6 +262,10 @@ describe('brand canon', () => {
       ['enable spb entitled consent', spbEntitledConsent],
       ['enable spb approved', spbApproved],
       ['enable spb error', spbError],
+      ['enable spp consent', sppConsent],
+      ['enable spp done', sppDone],
+      ['enable spp early access', sppEarlyAccess],
+      ['enable spp error', sppError],
     ]) {
       const body = await response.text();
       const scanBody = stripHref(body);

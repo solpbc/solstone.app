@@ -34,10 +34,13 @@ import {
   handleEnableSpbGet,
   handleEnableSplConfirm,
   handleEnableSplGet,
+  handleEnableSppConfirm,
+  handleEnableSppGet,
   handleHandoffPush,
   handleHandoffScout,
   handleHandoffSpb,
   handleHandoffSpl,
+  handleHandoffSpp,
   handleScoutStatus,
   verifyEnableResume,
 } from './enable.js';
@@ -458,6 +461,34 @@ export default {
         req.method === 'GET'
       ) {
         return handleHandoffSpb(req, env, ctx);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'spp' &&
+        req.method === 'GET'
+      ) {
+        return handleEnableSppGet(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'spp' &&
+        parts[3] === 'confirm' &&
+        req.method === 'POST'
+      ) {
+        return handleEnableSppConfirm(req, env, ctx);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'handoff' &&
+        parts[2] === 'spp' &&
+        req.method === 'GET'
+      ) {
+        return handleHandoffSpp(req, env, ctx);
       }
 
       if (url.pathname === '/passkey/register/start') {

@@ -111,6 +111,11 @@ R2_BUCKET = "solstone-backups"
 # lapse sweep are live. Set to anything other than "true" to dark-disable instantly.
 SPB_MINT_ENABLED = "true"
 SPB_SWEEP_ENABLED = "true"
+# spp confidential-processing (scout alpha). SPP_ENGINE_ENDPOINT is a placeholder
+# until the confidential inference engine is live; the portal hands it to the device
+# through the local handoff but never calls it. Non-secret config only.
+SPP_ENGINE_ENDPOINT = "https://processing.solstone.app"
+SPP_ENGINE_MODEL = "Qwen/Qwen3.5-4B"
 
 [triggers]
 crons = ["0 */6 * * *", "0 3 * * *"]

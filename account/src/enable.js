@@ -17,13 +17,16 @@ import {
   getAccountTransparencyRow,
   getEntitlement,
   getScoutApplicationByAccount,
+  getScoutApplicationStatusByAccount,
   insertDevice,
   insertServiceHandoff,
+  insertSppMintAudit,
   revokeDevicePriorAndInsertNew,
   setScoutApplicationDataAcked,
+  upsertScoutApplicationPending,
   upsertSpbBinding,
   upsertSplBinding,
-  upsertScoutApplicationPending,
+  upsertSppBinding,
 } from './db.js';
 import {
   BUNDLE_ID_REGEX,
@@ -52,12 +55,17 @@ import {
   renderEnableSpbDone,
   renderEnableSpbError,
   renderEnableSpbNeedsSubscription,
+  renderEnableSppConsent,
+  renderEnableSppDone,
+  renderEnableSppEarlyAccess,
+  renderEnableSppError,
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
 import { SPL_HOSTED_SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 import { SPB_HOSTED_SERVICE, reconcileSpbEntitlement } from './spb-entitlement.js';
+import { reconcileSppEntitlement } from './spp-entitlement.js';
 
 const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
@@ -65,6 +73,7 @@ const ENABLE_PATH = '/enable/scout';
 const ENABLE_PUSH_PATH = '/enable/push';
 const ENABLE_SPL_PATH = '/enable/spl';
 const ENABLE_SPB_PATH = '/enable/backup';
+const ENABLE_SPP_PATH = '/enable/spp';
 const GEMINI_PROVIDER = 'gemini';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -73,6 +82,7 @@ const RESUME_PATH_WHITELIST = new Map([
   [ENABLE_PUSH_PATH, validatePushResumeParams],
   [ENABLE_SPL_PATH, validateSplResumeParams],
   [ENABLE_SPB_PATH, validateSpbResumeParams],
+  [ENABLE_SPP_PATH, validateSppResumeParams],
 ]);
 
 export async function provisionScoutForAccount({ env, accountId, ctx }) {
@@ -634,6 +644,121 @@ export async function handleHandoffSpb(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
+export async function handleEnableSppGet(req, env) {
+  const url = new URL(req.url);
+  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return sppError(400);
+  const instance = parseOptionalInstance(url.searchParams);
+  const resumeQuery = sppResumeQuery(nonce, instance);
+
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPP_PATH, resumeQuery);
+
+  const scout = await getScoutApplicationStatusByAccount(env.DB, { accountId: session.account_id });
+  if (scout?.status !== 'approved') return noStoreHtml(renderEnableSppEarlyAccess());
+
+  const csrf = await csrfToken(env);
+  return noStoreHtml(renderEnableSppConsent({ csrf, nonce, instance }));
+}
+
+export async function handleEnableSppConfirm(req, env, ctx) {
+  if (!originAllowed(req)) return noStoreResponse(forbidden());
+  const form = await readForm(req);
+  if (!form) return sppError(400);
+
+  const nonce = (form.get('nonce')?.toString() || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return sppError(400);
+
+  if ((form.get('action')?.toString() || '') === 'cancel') {
+    return redirect('/', 303, { 'Cache-Control': 'no-store' });
+  }
+
+  const instance = parseOptionalInstance(form);
+  if (!instance) return sppError(400);
+  const resumeQuery = sppResumeQuery(nonce, instance);
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPP_PATH, resumeQuery);
+  const account = await getAccountTransparencyRow(env.DB, session.account_id);
+  if (!account) {
+    return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
+  }
+
+  const csrf = await csrfToken(env);
+  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
+    return sppError(403);
+  }
+
+  const nowMs = Date.now();
+  const accountId = session.account_id;
+
+  // Scout gate: re-read status at the head of the issuance branch. Only an approved
+  // scout obtains a credential; a non-scout records a content-free refusal and never
+  // reaches the mint — no token, no binding, no handoff.
+  const scout = await getScoutApplicationStatusByAccount(env.DB, { accountId });
+  if (scout?.status !== 'approved') {
+    await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'refused_entitlement', nowMs });
+    return noStoreHtml(renderEnableSppEarlyAccess());
+  }
+
+  const token = generateSessionToken();
+  const tokenHash = await hashWithPepper(token, env);
+  await upsertSppBinding(env.DB, { accountId, instanceId: instance, tokenHash, nowMs });
+  await reconcileSppEntitlement(env, accountId, nowMs, ctx);
+  const payload = {
+    state: 'approved',
+    endpoint_url: env.SPP_ENGINE_ENDPOINT,
+    served_model_id: env.SPP_ENGINE_MODEL,
+    credential: token,
+    account_id: accountId,
+    instance_id: instance,
+    created_at: new Date(nowMs).toISOString(),
+  };
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  try {
+    const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
+    await insertServiceHandoff(env.DB, {
+      handoffHash,
+      accountId,
+      service: 'spp',
+      payloadEncrypted,
+      createdAt: nowMs,
+      expiresAt: nowMs + HANDOFF_TTL_MS,
+    });
+  } catch {
+    return sppError(503);
+  }
+  await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'minted', nowMs });
+  return noStoreHtml(renderEnableSppDone());
+}
+
+export async function handleHandoffSpp(req, env) {
+  // Byte-for-byte mirror of handleHandoffSpb with service: 'spp'.
+  const url = new URL(req.url);
+  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return handoffJson({ error: 'invalid_request' }, { status: 400 });
+
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  const started = Date.now();
+  while (Date.now() - started <= HANDOFF_POLL_BUDGET_MS) {
+    const nowMs = Date.now();
+    const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spp' });
+    if (consumed) {
+      const plaintext = await decryptEmail(consumed.payload_encrypted, env);
+      return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
+    }
+
+    const status = await findServiceHandoffStatus(env.DB, { handoffHash, service: 'spp' });
+    if (status && (status.consumed_at != null || status.expires_at <= nowMs)) {
+      return handoffJson({ error: 'gone' }, { status: 410 });
+    }
+
+    const elapsed = Date.now() - started;
+    if (elapsed >= HANDOFF_POLL_BUDGET_MS) break;
+    await sleep(Math.min(HANDOFF_POLL_MS, HANDOFF_POLL_BUDGET_MS - elapsed));
+  }
+  return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+}
+
 function parseEnableRequest(url) {
   const nonceParam = url.searchParams.get('nonce');
   const nonce = (nonceParam || '').trim().toUpperCase();
@@ -684,6 +809,12 @@ function splResumeQuery(nonce, instance) {
 }
 
 function spbResumeQuery(nonce, instance) {
+  const params = new URLSearchParams({ nonce });
+  if (instance) params.set('instance', instance);
+  return `?${params.toString()}`;
+}
+
+function sppResumeQuery(nonce, instance) {
   const params = new URLSearchParams({ nonce });
   if (instance) params.set('instance', instance);
   return `?${params.toString()}`;
@@ -785,6 +916,14 @@ function validateSpbResumeParams(params) {
   return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
 }
 
+function validateSppResumeParams(params) {
+  const nonceValues = params.getAll('nonce');
+  const instanceValues = params.getAll('instance');
+  if (nonceValues.length !== 1 || !NONCE_REGEX.test(nonceValues[0])) return false;
+  if (instanceValues.length === 0) return true;
+  return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
+}
+
 function enableError(message, status) {
   return noStoreHtml(renderEnableScoutError({ message }), { status });
 }
@@ -799,6 +938,10 @@ function splError(status) {
 
 function spbError(status) {
   return noStoreHtml(renderEnableSpbError(), { status });
+}
+
+function sppError(status) {
+  return noStoreHtml(renderEnableSppError(), { status });
 }
 
 function noStoreHtml(body, init = {}) {

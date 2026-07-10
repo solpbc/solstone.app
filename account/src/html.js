@@ -480,6 +480,86 @@ export function renderEnableSpbError() {
   });
 }
 
+export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
+  const instanceInput = instance
+    ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
+    : '';
+  return layout({
+    title: 'enable confidential processing',
+    body: `${brandbar()}
+<h1>enable confidential processing</h1>
+<p class="lead">this journal is asking to enable confidential processing. here is exactly what that means:</p>
+<div class="card">
+  <div class="grant">
+    <div class="n">1</div>
+    <div>
+      <div class="gt">know this request is yours</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing sol has taken in alongside you. just: this journal asked for confidential processing.</div>
+    </div>
+  </div>
+  <div class="grant">
+    <div class="n">2</div>
+    <div>
+      <div class="gt">what confidential processing does</div>
+      <div class="gd">when sol uses confidential processing, the text it needs a model to work through leaves this device for a sealed engine sol pbc runs, is processed there, and the result returns to the journal. sol pbc operates the engine as a confidential workload, built so your text is not sol pbc's to read.</div>
+    </div>
+  </div>
+  <div class="grant">
+    <div class="n">3</div>
+    <div>
+      <div class="gt">enable confidential processing</div>
+      <div class="gd">sol pbc hands this device a credential through this local handoff so this journal alone can reach the engine. the credential lives on your device; sol pbc keeps only a hash of it.</div>
+    </div>
+  </div>
+  <form method="post" action="/enable/spp/confirm">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="nonce" value="${escAttr(nonce)}">
+    ${instanceInput}
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+    </div>
+  </form>
+</div>
+<p class="disclosure">confidential processing is in early access for scouts. it stays off until you allow it here, and you can turn it off from the journal anytime.</p>`,
+  });
+}
+
+export function renderEnableSppEarlyAccess() {
+  return layout({
+    title: 'confidential processing is coming',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">confidential processing is coming</h2>
+  <p>confidential processing lets sol work through this journal's text with a model sol pbc runs inside a sealed engine — built so your text stays out of sol pbc's reach. it's in early access, and scouts get it first.</p>
+  <p>this journal isn't in the scout alpha yet, so there's nothing to enable here. you can close this tab.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSppDone() {
+  return layout({
+    title: 'confidential processing enabled',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} confidential processing enabled</h2>
+  <p>confidential processing is approved for this journal. you can close this tab.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSppError() {
+  return layout({
+    title: 'could not enable confidential processing',
+    body: `${brandbar()}
+<div class="card">
+  <h1>could not enable confidential processing</h1>
+  <p>something didn't look right with that link.</p>
+  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
+</div>`,
+  });
+}
+
 // === services surfaces ===
 
 export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, scoutActive = false, deviceCount = 0, networkActive = false, backupActive = false } = {}) {

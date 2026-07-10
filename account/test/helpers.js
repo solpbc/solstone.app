@@ -71,6 +71,8 @@ export function makeTestEnv(overrides = {}) {
     R2_BUCKET: overrides.R2_BUCKET ?? 'solstone-backups',
     SPB_MINT_ENABLED: overrides.SPB_MINT_ENABLED ?? 'true',
     SPB_SWEEP_ENABLED: overrides.SPB_SWEEP_ENABLED ?? 'true',
+    SPP_ENGINE_ENDPOINT: overrides.SPP_ENGINE_ENDPOINT ?? 'https://processing.solstone.app',
+    SPP_ENGINE_MODEL: overrides.SPP_ENGINE_MODEL ?? 'Qwen/Qwen3.5-4B',
     RELAY: overrides.RELAY,
   };
 }
