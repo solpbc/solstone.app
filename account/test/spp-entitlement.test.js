@@ -47,6 +47,21 @@ describe('spp entitlement helpers', () => {
     });
   });
 
+  it('lapses accounts whose scout application is revoked', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'spp-revoked@example.com', testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'revoked', revoked_at: 2_000 });
+
+    await reconcileSppEntitlement(testEnv, account.accountId, 1_700_000_000_000);
+
+    await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
+      status: 'lapsed',
+      current_period_end: null,
+      source: 'comp',
+      source_ref: null,
+    });
+  });
+
   it('serves only active entitlements', () => {
     expect(isSppEntitledToServe({ status: 'active' }, 1_700_000_000, {})).toBe(true);
     expect(isSppEntitledToServe({ status: 'lapsed' }, 1_700_000_000, {})).toBe(false);
