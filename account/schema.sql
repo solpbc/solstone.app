@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0018 — service handoffs spb
+-- account-portal D1 schema after 0022 — spp entitlement + schema core
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -168,7 +168,7 @@ CREATE INDEX IF NOT EXISTS idx_provisioned_keys_account_id
 CREATE TABLE IF NOT EXISTS service_handoffs (
   handoff_hash TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('scout','push','spl','spb')),
+  service TEXT NOT NULL CHECK (service IN ('scout','push','spl','spb','spp')),
   payload_encrypted BLOB NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL CHECK (expires_at > created_at),
@@ -234,7 +234,7 @@ CREATE TABLE IF NOT EXISTS gemini_reveal_acks (
 
 CREATE TABLE IF NOT EXISTS entitlements (
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('spl_hosted','spb_hosted')),
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted','spb_hosted','spp_hosted')),
   status TEXT NOT NULL CHECK (status IN ('active','past_due','canceled','lapsed')),
   -- current_period_end: Stripe Unix SECONDS, stored verbatim. Never milliseconds.
   -- The spl relay lode compares its grant window against this value in seconds.
@@ -283,6 +283,20 @@ CREATE TABLE IF NOT EXISTS spb_bindings (
 
 CREATE INDEX IF NOT EXISTS idx_spb_bindings_account_id ON spb_bindings(account_id);
 
+-- spp_bindings: schema hook for SPP confidential-processing access.
+-- Records binding identity plus broker-token lookup; SPP has no lapse clock or retention lifecycle.
+CREATE TABLE IF NOT EXISTS spp_bindings (
+  account_id TEXT NOT NULL,
+  instance_id TEXT NOT NULL,
+  token_hash TEXT,
+  created_at INTEGER NOT NULL,
+  last_seen_at INTEGER NOT NULL,
+  PRIMARY KEY (account_id, instance_id),
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_spp_bindings_account_id ON spp_bindings(account_id);
+
 CREATE TABLE IF NOT EXISTS spb_mint_audit (
   account_id TEXT,
   instance_id TEXT,
@@ -294,6 +308,16 @@ CREATE TABLE IF NOT EXISTS spb_mint_audit (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spb_mint_audit_account_id ON spb_mint_audit(account_id);
+
+CREATE TABLE IF NOT EXISTS spp_mint_audit (
+  account_id TEXT,
+  instance_id TEXT,
+  scope TEXT CHECK (scope IN ('inference')),
+  outcome TEXT NOT NULL CHECK (outcome IN ('minted','refused_entitlement')),
+  ts INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_spp_mint_audit_account_id ON spp_mint_audit(account_id);
 
 CREATE TABLE IF NOT EXISTS spb_sweep_audit (
   account_id TEXT,

@@ -1034,6 +1034,19 @@ export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, n
     .run();
 }
 
+export async function upsertSppBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO spp_bindings (account_id, instance_id, token_hash, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(account_id, instance_id) DO UPDATE SET
+         token_hash = excluded.token_hash,
+         last_seen_at = excluded.last_seen_at`
+    )
+    .bind(accountId, instanceId, tokenHash, nowMs, nowMs)
+    .run();
+}
+
 export async function listSplBindings(db, accountId) {
   const { results } = await db
     .prepare('SELECT instance_id FROM spl_bindings WHERE account_id = ?')
@@ -1089,6 +1102,18 @@ export async function findSpbBindingByTokenHash(db, tokenHash) {
   return row || null;
 }
 
+export async function findSppBindingByTokenHash(db, tokenHash) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, instance_id
+       FROM spp_bindings
+       WHERE token_hash = ? AND token_hash IS NOT NULL`
+    )
+    .bind(tokenHash)
+    .first();
+  return row || null;
+}
+
 export async function insertSpbMintAudit(db, { accountId, instanceId, prefix, scope, ttl, outcome, ts }) {
   await db
     .prepare(
@@ -1096,6 +1121,16 @@ export async function insertSpbMintAudit(db, { accountId, instanceId, prefix, sc
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(accountId, instanceId, prefix, scope, ttl, outcome, ts)
+    .run();
+}
+
+export async function insertSppMintAudit(db, { accountId, instanceId, scope, outcome, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO spp_mint_audit (account_id, instance_id, scope, outcome, ts)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .bind(accountId, instanceId, scope, outcome, nowMs)
     .run();
 }
 

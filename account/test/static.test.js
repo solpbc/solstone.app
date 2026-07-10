@@ -49,6 +49,7 @@ describe('static source checks', () => {
       'spb-broker.js',
       'spb-entitlement.js',
       'spb-sweep.js',
+      'spp-entitlement.js',
       'stripe.js',
       'support-constants.js',
       'support.js',
