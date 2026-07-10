@@ -714,9 +714,10 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     created_at: new Date(nowMs).toISOString(),
   };
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  let inserted;
   try {
     const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
-    await insertServiceHandoff(env.DB, {
+    inserted = await insertServiceHandoff(env.DB, {
       handoffHash,
       accountId,
       service: 'spp',
@@ -727,6 +728,9 @@ export async function handleEnableSppConfirm(req, env, ctx) {
   } catch {
     return sppError(503);
   }
+  // A duplicate nonce collision means the credential was not landed in a handoff;
+  // fail closed rather than record a false 'minted' audit for an undelivered credential.
+  if (!inserted.ok) return sppError(503);
   await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'minted', nowMs });
   return noStoreHtml(renderEnableSppDone());
 }

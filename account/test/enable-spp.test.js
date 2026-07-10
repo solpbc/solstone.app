@@ -1,7 +1,7 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { decryptEmail, hashServiceHandoffNonce, hashWithPepper } from '../src/crypto.js';
+import { decryptEmail, encryptEmail, hashServiceHandoffNonce, hashWithPepper } from '../src/crypto.js';
 import { verifyEnableResume } from '../src/enable.js';
 import {
   TEST_CSRF,
@@ -189,6 +189,22 @@ describe('/enable/spp', () => {
     });
   });
 
+  it('fails closed without a minted audit when the handoff nonce already exists', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 1_000 });
+    const sentinel = { state: 'sentinel', marker: 'pre-existing-spp-handoff' };
+    await insertSppHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: sentinel });
+
+    const response = await worker.fetch(confirmRequest({ cookie: session.cookie }), testEnv);
+
+    expect(response.status).toBe(503);
+    await expect(sppMintAuditRow(account.accountId, VALID_INSTANCE)).resolves.toBeNull();
+    await expect(rowCount('spp_mint_audit')).resolves.toBe(0);
+    await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual(sentinel);
+  });
+
   it('refuses non-scout issuance without minting a credential, binding, or handoff', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
@@ -303,6 +319,24 @@ async function serviceHandoffRow(nonce, testEnv) {
     .prepare('SELECT payload_encrypted FROM service_handoffs WHERE handoff_hash = ? AND service = ?')
     .bind(await hashServiceHandoffNonce(nonce, testEnv), 'spp')
     .first();
+}
+
+async function insertSppHandoff({ testEnv, accountId, nonce, payload }) {
+  const nowMs = Date.now();
+  await workerEnv.DB
+    .prepare(
+      `INSERT INTO service_handoffs (
+         handoff_hash, account_id, service, payload_encrypted, created_at, expires_at
+       ) VALUES (?, ?, 'spp', ?, ?, ?)`
+    )
+    .bind(
+      await hashServiceHandoffNonce(nonce, testEnv),
+      accountId,
+      await encryptEmail(JSON.stringify(payload), testEnv),
+      nowMs,
+      nowMs + 60_000
+    )
+    .run();
 }
 
 async function sppBindingRow(accountId, instanceId) {
