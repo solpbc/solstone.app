@@ -16,13 +16,24 @@ import {
 } from './helpers.js';
 
 const BANNED = [
+  // CLO #28(a): spp is shared + operated + processes plaintext transiently — never the
+  // sealed-container "can't-see-in" claim (that is a separate, legitimate service).
   'sealed engine',
+  'sealed',
   "not sol pbc's to read",
   "stays out of sol pbc's reach",
   "sol pbc can't see in",
   "sol pbc can't read",
+  "can't read what's processed",
+  'sealed out of',
   'only you can read it',
+  // CLO #28(b): no asserted "verified" state before the real attestation crypto ships;
+  // only the honest fail-closed verify register ("must verify … or it doesn't send").
   'verified by your journal',
+  'verifies that seal',
+  'verifies the engine',
+  'verifies the hardware',
+  'checks the hardware before it sends',
   'never sees',
   'activate',
   'subscribe',
@@ -88,7 +99,12 @@ describe('spp copy boundary', () => {
     const combined = surfaces.map(([, body]) => stripHref(body)).join('\n').toLowerCase();
     expect(combined).toContain('no content is retained · no human reviews it · nothing is used to train');
     expect(combined).toContain('no third-party ai provider');
-    expect(combined).toContain('confidential cloud hardware sol pbc operates');
+    expect(combined).toContain('confidential hardware sol pbc operates');
+    // CLO #28(c): substrate honesty — Azure named, cloud host excluded (not a can't-see-in claim).
+    expect(combined).toContain('microsoft azure');
+    expect(combined).toContain("the hardware boundary keeps the cloud host excluded from what's processed");
+    // CLO #28(b): the honest fail-closed verify register must be present.
+    expect(combined).toContain('must verify the service before anything is sent');
   });
 });
 

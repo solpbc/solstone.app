@@ -36,7 +36,7 @@ const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="curren
 const IC_CHIP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/></svg>';
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
-const SCOUT_COVENANT_LINE = "your questions to solstone scout go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
+const SCOUT_COVENANT_LINE = "your questions to sol go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
 const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page. nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are: no analytics, no behavioral data, no third-party tracking. these aren't promises, they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
@@ -179,10 +179,10 @@ export function renderError() {
 
 export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
   return layout({
-    title: 'enable solstone scout',
+    title: 'enable scout',
     body: `${brandbar()}
-<h1>enable solstone scout</h1>
-<p class="lead">solstone on this device wants to enable solstone scout for you. two things, and only these two:</p>
+<h1>enable scout</h1>
+<p class="lead">solstone on this device wants to enable scout for you. two things, and only these two:</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
@@ -194,7 +194,7 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">enable solstone scout</div>
+      <div class="gt">enable scout</div>
       <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this device. the key is yours and it stays on your device. sol pbc sets it up. it never sits between you and Gemini, and never sees what you ask sol.</div>
     </div>
   </div>
@@ -221,24 +221,24 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
 
 export function renderEnableScoutDone() {
   return layout({
-    title: 'solstone scout enabled',
+    title: 'scout enabled',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone scout enabled</h2>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} scout enabled</h2>
   <p>sol pbc set up a Gemini key for you and put it on this device. you never had to touch it, and nothing from your journal crossed to set it up. you can close this tab.</p>
-  <a class="btn secondary" href="/scout">manage solstone scout</a>
+  <a class="btn secondary" href="/scout">manage scout</a>
 </div>`,
   });
 }
 
 export function renderEnableScoutPendingDone() {
   return layout({
-    title: 'solstone scout request received',
+    title: 'scout request received',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} solstone scout request received</h2>
-  <p>solstone scout is invite-only right now, and your request is under review. nothing was set up yet, and nothing from your journal crossed.</p>
-  <p>once approved, you'll be able to enable solstone scout from your services.</p>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} scout request received</h2>
+  <p>scout is invite-only right now, and your request is under review. nothing was set up yet, and nothing from your journal crossed.</p>
+  <p>once approved, you'll be able to enable scout from your services.</p>
   <a class="btn secondary" href="/">open your services</a>
 </div>`,
   });
@@ -246,21 +246,21 @@ export function renderEnableScoutPendingDone() {
 
 export function renderEnableScoutRevokedDone() {
   return layout({
-    title: "solstone scout isn't available",
+    title: "scout isn't available",
     body: `${brandbar()}
 <div class="card">
-  <h2>solstone scout isn't available</h2>
-  <p>solstone scout isn't available for this sign-in. nothing was set up.</p>
+  <h2>scout isn't available</h2>
+  <p>scout isn't available for this sign-in. nothing was set up.</p>
 </div>`,
   });
 }
 
 export function renderEnableScoutError({ message }) {
   return layout({
-    title: 'could not enable solstone scout',
+    title: 'could not enable scout',
     body: `${brandbar()}
 <div class="card">
-  <h1>could not enable solstone scout</h1>
+  <h1>could not enable scout</h1>
   <p>${esc(message || 'that request could not be completed.')}</p>
   <p>if you got here from solstone on your device, run the enable command again for a fresh link. otherwise, you can close this tab.</p>
 </div>`,
@@ -502,14 +502,14 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <div class="n">2</div>
     <div>
       <div class="gt">what leaves your device</div>
-      <div class="gd">when sol uses confidential processing, only the thinking leaves this device — <a href="/confidential-processing/data">the text and images sol needs a model to work through</a>. your journal never leaves; it stays here on your computer. your recordings never leave either — speech is turned to text on your device first. what leaves goes to a model sol pbc runs itself: no third-party AI provider is in the path. it's processed and not kept — no content retained, no human review, nothing used to train.</div>
+      <div class="gd">when sol uses confidential processing, only the thinking leaves this device — <a href="/confidential-processing/data">the text and images sol needs a model to work through</a>. your journal never leaves; it stays on your computer. your recordings never leave either — speech is turned to text on your device first. what leaves goes to a model sol pbc runs itself: no third-party AI provider is in the path. it's processed and not kept — no content retained, no human review, nothing used to train.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">3</div>
     <div>
-      <div class="gt">your journal checks the hardware first</div>
-      <div class="gd">before it sends anything, your journal checks the hardware on the other end and will only send if that check passes — if it can't verify, it doesn't send, and sol tells you why. the engine runs on confidential cloud hardware sol pbc operates, sealed by the hardware itself so the cloud host can't read what's processed — and your journal is what verifies that seal. sol pbc hands this device a credential through this local handoff so only this journal can reach the engine; the credential lives on your device, and sol pbc keeps only a hash of it.</div>
+      <div class="gt">your journal must verify before it sends</div>
+      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes — if it can't verify, it doesn't send, and sol tells you why. the engine runs on confidential hardware sol pbc operates: a model sol pbc runs itself, with no third-party AI provider in the path. sol pbc hands this device a credential through this local handoff so only this journal can reach the engine; the credential lives on your device, and sol pbc keeps only a hash of it.</div>
     </div>
   </div>
   <form method="post" action="/enable/spp/confirm">
@@ -518,7 +518,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     ${instanceInput}
     <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--ink)">
       <input type="checkbox" name="data_ack" value="yes" required style="width:auto;min-height:0;margin:0">
-      <span>i understand what turning this on sends, and that my journal verifies the engine before it sends.</span>
+      <span>i understand what turning this on sends, and that my journal must verify the service before anything is sent.</span>
     </label>
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
@@ -536,7 +536,7 @@ export function renderEnableSppEarlyAccess() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">confidential processing is coming</h2>
-  <p>confidential processing lets sol think through your journal's text and images on a model sol pbc runs itself — on confidential cloud hardware sol pbc operates, sealed by the hardware so the host can't read what's processed, and your journal verifies that seal before it sends. it's processed and not kept: no content retained, no human review, nothing used to train. no third-party AI provider is ever in the path.</p>
+  <p>confidential processing lets sol think through your journal's text and images on a model sol pbc runs itself — on confidential hardware sol pbc operates, which keeps nothing: it's processed and not kept, no content retained, no human review, nothing used to train. your journal must verify the service before anything is sent — if it can't verify, it doesn't send. no third-party AI provider is ever in the path.</p>
   <p>this journal isn't in the scout alpha yet, so there's nothing to enable here. you can close this tab.</p>
 </div>`,
   });
@@ -730,13 +730,13 @@ export function renderConfidentialProcessingLanding() {
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>confidential processing</h1>
 <p class="hero-tag">let sol think off your device</p>
-<p class="lead">sol sends <a href="/confidential-processing/data">only the thinking off your device</a> — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.</p>
+<p class="lead">sol sends <a href="/confidential-processing/data">only the thinking off your device</a> — never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.</p>
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_CHIP, 'the thinking, off your device', 'let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.')}
-  ${beat(IC_VAULT, 'the hardware sol pbc operates', "runs on confidential cloud hardware sol pbc operates — the host is sealed out of what's processed, and your journal verifies that seal before it sends.")}
+  ${beat(IC_VAULT, "sol pbc's own engine", "a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.")}
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_GLOBE, 'your journal does the checking', 'your journal checks the hardware before it sends anything.')}
+  ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent — if it can't verify, it doesn't send.")}
 </div>
 <div class="card">
   <div class="statusline"><span class="tag soon">coming soon</span><span>scouts get confidential processing first. it isn't open yet — when it is, the scout program is the way in.</span></div>
@@ -758,11 +758,11 @@ export function renderConfidentialProcessingData() {
 <h2>where it goes</h2>
 <p>a model sol pbc runs itself. no third-party AI provider is in the path.</p>
 <h2>the hardware</h2>
-<p>confidential cloud hardware sol pbc operates, sealed by the hardware so the cloud host can't read what's processed.</p>
+<p>confidential GPUs in Microsoft Azure that sol pbc operates. the hardware boundary keeps the cloud host excluded from what's processed, and the model that runs on it is sol pbc's own — no third-party AI provider is in the path.</p>
 <h2>what's kept</h2>
 <p>no content is retained · no human reviews it · nothing is used to train.</p>
 <h2>the check</h2>
-<p>your journal verifies the hardware before it sends anything; if it can't verify, it doesn't send.</p>
+<p>your journal must verify the service before anything is sent; if it can't verify, it doesn't send.</p>
 <h2>your choice</h2>
 <p>off until you turn it on; turn it off from the journal anytime; nothing is stranded (nothing was kept to strand).</p>
 <h2>the covenants</h2>
@@ -772,10 +772,10 @@ export function renderConfidentialProcessingData() {
 
 export function renderScoutLanding() {
   return layout({
-    title: 'solstone scout',
+    title: 'scout',
     body: brandbarSignin()
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
-<h1>solstone scout</h1>
+<h1>scout</h1>
 <p class="lead">join the solstone alpha. we set you up with a Google Gemini key on your device so sol can think, and bring you into the tester cohort.</p>
 ${BRANDLOCK}
 <div class="card">
@@ -951,9 +951,9 @@ ${content}`,
     return page({
       statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;confidential processing is on for this journal',
       content: `<div class="group">
-  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">enabled — your journal verifies the engine each time it sends</div></div></div>
+  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">enabled for your journal</div></div></div>
 </div>
-<p class="disclosure" style="margin-top:24px">your journal checks the hardware before it sends anything. <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">your journal must verify the service before anything is sent — if it can't verify, it doesn't send. <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -962,7 +962,7 @@ ${content}`,
     content: `<p class="lead">scouts get confidential processing first. it isn't open yet — when it is, the scout program is the way in.</p>
 <div class="card">
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.')}
+  ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device — never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.')}
 </div>
 <p class="disclosure" style="margin-top:24px"><a href="/scout">scout</a> · <a href="/terms">terms</a></p>`,
   });
@@ -1383,12 +1383,12 @@ ${activeControls}`
   </a>
 </div>`;
   const page = ({ statusLine, lead, content = '' }) => layout({
-    title: 'solstone scout',
+    title: 'scout',
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 ${flashes}
 <div class="pagehead">
-  <h1>solstone scout</h1>
+  <h1>scout</h1>
   <p class="signed-in">${statusLine}</p>
 </div>
 <p class="lead">${lead}</p>
@@ -1399,13 +1399,13 @@ ${scoutLinks}`,
   if (application?.status === 'revoked') {
     return page({
       statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>access has ended</span>',
-      lead: 'access to solstone scout has ended.',
+      lead: 'access to scout has ended.',
     });
   }
 
   if (active) {
     return page({
-      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;solstone scout is on',
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;scout is on',
       lead: 'sol pbc set up a Google Gemini key for you. the key lives in your journal on your device and is never shown here.',
       content: `${keySection}
 ${historySection}`,
@@ -1421,7 +1421,7 @@ ${historySection}`,
       : '';
     return page({
       statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span>',
-      lead: 'approved. enable solstone scout in your journal to receive your key.',
+      lead: 'approved. enable scout in your journal to receive your key.',
       content: `${ackForm}
 ${historySection}`,
     });
@@ -1439,7 +1439,7 @@ ${historySection}`,
 
   return page({
     statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>off</span>',
-    lead: 'request solstone scout for this account.',
+    lead: 'request scout for this account.',
     content: `<div class="card">
   <h2>request access</h2>
   ${scoutApplyForm({ includeUseCase: true, buttonText: 'apply' })}

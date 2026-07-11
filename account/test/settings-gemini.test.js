@@ -34,7 +34,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('<h1>solstone scout</h1>');
+    expect(body).toContain('<h1>scout</h1>');
     expect(body).toContain('join the solstone alpha');
   });
 
@@ -64,7 +64,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('access to solstone scout has ended.');
+    expect(body).toContain('access to scout has ended.');
     expect(body).not.toContain('action="/scout/apply"');
     expect(body).not.toContain('action="/scout/rotate"');
     expect(body).not.toContain('action="/scout/disable"');
@@ -99,7 +99,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('solstone scout is on');
+    expect(body).toContain('scout is on');
     expect(body).toContain('key lives in your journal on your device and is never shown here.');
     expect(body).toContain('action="/scout/rotate"');
     expect(body).toContain('action="/scout/disable"');
@@ -137,7 +137,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('approved. enable solstone scout in your journal to receive your key.');
+    expect(body).toContain('approved. enable scout in your journal to receive your key.');
     expect(body).toContain('action="/scout/apply"');
     expect(body).toContain('name="data_ack" value="yes" required');
     expect(body).not.toContain('name="use_case"');
@@ -163,7 +163,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('approved. enable solstone scout in your journal to receive your key.');
+    expect(body).toContain('approved. enable scout in your journal to receive your key.');
     expect(body).not.toContain('action="/scout/apply"');
     expect(body).not.toContain('name="data_ack"');
     expect(body).not.toContain('confirm scout terms');
@@ -205,7 +205,7 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('request solstone scout for this account.');
+    expect(body).toContain('request scout for this account.');
     expect(body).toContain('action="/scout/apply"');
     expect(body).toContain('name="data_ack" value="yes" required');
     expect(body).toContain('name="use_case"');
@@ -237,7 +237,7 @@ describe('settings gemini dashboard', () => {
     });
     const revoked = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
     const revokedBody = await revoked.text();
-    expect(revokedBody).toContain('access to solstone scout has ended.');
+    expect(revokedBody).toContain('access to scout has ended.');
     expect(revokedBody).toContain('href="https://solstone.app/releases"');
     expect(revokedBody).toContain('share feedback');
   });

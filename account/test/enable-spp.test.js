@@ -86,7 +86,7 @@ describe('/enable/spp', () => {
     expect(body).toContain("this journal is asking to turn on confidential processing. here's exactly what that means — and it stays off until you allow it.");
     expect(body).toContain('href="/confidential-processing/data"');
     expect(body).toContain('name="data_ack" value="yes" required');
-    expect(body).toContain('i understand what turning this on sends, and that my journal verifies the engine before it sends.');
+    expect(body).toContain('i understand what turning this on sends, and that my journal must verify the service before anything is sent.');
     expect(body).toContain('name="action" value="cancel" type="submit" formnovalidate');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);

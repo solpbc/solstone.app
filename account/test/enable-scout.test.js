@@ -59,7 +59,7 @@ describe('/enable/scout', () => {
     expect(await entry.clone().text()).not.toContain('action="/enable/scout"');
     expect(consent.status).toBe(200);
     expect(consent.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('solstone on this device wants to enable solstone scout for you.');
+    expect(body).toContain('solstone on this device wants to enable scout for you.');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="account_id" value="${account.accountId}"`);
     expect(body).toContain('name="data_ack" value="yes" required');
@@ -88,7 +88,7 @@ describe('/enable/scout', () => {
 
       expect(confirm.status).toBe(200);
       expect(confirm.headers.get('Cache-Control')).toBe('no-store');
-      expect(await confirm.text()).toContain('solstone scout enabled');
+      expect(await confirm.text()).toContain('scout enabled');
       await expect(rowCount('service_handoffs')).resolves.toBe(1);
       expect(handoff.status).toBe(200);
       expect(handoff.headers.get('Cache-Control')).toBe('no-store');
@@ -185,7 +185,7 @@ describe('/enable/scout', () => {
       const { response: handoff, payload } = await readHandoff(testEnv);
 
       expect(confirm.status).toBe(200);
-      expect(body).toContain('solstone scout request received');
+      expect(body).toContain('scout request received');
       expect(row).toMatchObject({
         account_id: account.accountId,
         status: 'pending',
@@ -268,8 +268,8 @@ describe('/enable/scout', () => {
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
-    expect(await first.text()).toContain('solstone scout request received');
-    expect(await second.text()).toContain('solstone scout request received');
+    expect(await first.text()).toContain('scout request received');
+    expect(await second.text()).toContain('scout request received');
     await expect(rowCount('scout_applications')).resolves.toBe(1);
     await expect(applicationRow(account.accountId)).resolves.toMatchObject({ status: 'pending' });
     await expect(rowCount('provisioned_keys')).resolves.toBe(0);
@@ -405,9 +405,9 @@ describe('/enable/scout', () => {
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
-    expect(firstBody).toContain('solstone scout request received');
-    expect(secondBody).toContain('solstone scout request received');
-    expect(secondBody).not.toContain('solstone scout enabled');
+    expect(firstBody).toContain('scout request received');
+    expect(secondBody).toContain('scout request received');
+    expect(secondBody).not.toContain('scout enabled');
     await expect(rowCount('scout_applications')).resolves.toBe(1);
   });
 
@@ -427,7 +427,7 @@ describe('/enable/scout', () => {
     const { response: handoff, payload } = await readHandoff(testEnv);
 
     expect(confirm.status).toBe(200);
-    expect(body).toContain("solstone scout isn't available");
+    expect(body).toContain("scout isn't available");
     expect(handoff.status).toBe(200);
     expect(payload).toEqual({ state: 'revoked', account_id: account.accountId });
     await expect(rowCount('provisioned_keys')).resolves.toBe(0);

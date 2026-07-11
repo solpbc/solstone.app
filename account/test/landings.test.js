@@ -60,15 +60,18 @@ describe('service landing pages', () => {
     expect(body).toContain('<h1>confidential processing</h1>');
     expect(body).toContain('no content is retained · no human reviews it · nothing is used to train');
     expect(body).toContain('let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.');
-    expect(body).toContain('sol sends <a href="/confidential-processing/data">only the thinking off your device</a> — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.');
+    expect(body).toContain('sol sends <a href="/confidential-processing/data">only the thinking off your device</a> — never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.');
     expect(body).toContain('href="/confidential-processing/data"');
-    expect(body).toContain('the hardware sol pbc operates');
-    expect(body).toContain("runs on confidential cloud hardware sol pbc operates — the host is sealed out of what's processed, and your journal verifies that seal before it sends.");
+    expect(body).toContain("sol pbc's own engine");
+    expect(body).toContain("a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.");
     expect(body).toContain('your journal does the checking');
+    expect(body).toContain("your journal must verify the service before anything is sent — if it can't verify, it doesn't send.");
     expect(body).toContain('<span class="tag soon">coming soon</span>');
     expect(body).not.toMatch(/class="btn/);
     expect(body).not.toContain('$');
-    expect(body).not.toContain('sealed engine');
+    expect(body).not.toContain('sealed');
+    expect(body).not.toContain("verifies that seal");
+    expect(body).not.toContain('checks the hardware before it sends');
     expect(body).not.toContain('never sees');
   });
 
@@ -89,7 +92,8 @@ describe('service landing pages', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('confidential processing is on for this journal');
-    expect(body).toContain('enabled — your journal verifies the engine each time it sends');
+    expect(body).toContain('enabled for your journal');
+    expect(body).not.toContain('verifies the engine');
     expect(body).not.toContain('$');
     expect(body).not.toContain('never sees');
     expect(body).not.toMatch(/class="btn/);
@@ -111,7 +115,7 @@ describe('service landing pages', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('<h1>solstone scout</h1>');
+    expect(body).toContain('<h1>scout</h1>');
     expect(body).toContain('join the solstone alpha');
     expect(body).toContain('request access');
     expect(body).toContain('your questions to sol go straight to Google Gemini under Google’s terms.');
