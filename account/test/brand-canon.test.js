@@ -154,6 +154,8 @@ describe('brand canon', () => {
 
     const surfaces = [
       ['signed-out landing', await get('/', testEnv)],
+      ['confidential-processing landing', await get('/confidential-processing', testEnv)],
+      ['confidential-processing data', await get('/confidential-processing/data', testEnv)],
       ['signed-in services dashboard', await get('/', testEnv, withPasskeySession.cookie), true],
       ['signed-in welcome services dashboard', await get('/', testEnv, noPasskeySession.cookie), true],
       ['sign-in hub', await get('/sign-in', testEnv, withPasskeySession.cookie), true],
@@ -254,6 +256,7 @@ describe('brand canon', () => {
       csrf: TEST_CSRF,
       nonce: VALID_SPP_NONCE,
       instance: VALID_SPP_INSTANCE,
+      data_ack: 'yes',
       action: 'allow',
     }), sppScoutSession.cookie);
     const sppEarlyAccess = await get(`/enable/spp?nonce=${VALID_SPP_EARLY_NONCE}`, testEnv, sppPlainSession.cookie);

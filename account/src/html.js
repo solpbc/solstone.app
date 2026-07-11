@@ -489,7 +489,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     title: 'enable confidential processing',
     body: `${brandbar()}
 <h1>enable confidential processing</h1>
-<p class="lead">this journal is asking to enable confidential processing. here is exactly what that means:</p>
+<p class="lead">this journal is asking to turn on confidential processing. here's exactly what that means — and it stays off until you allow it.</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
@@ -501,28 +501,32 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">what confidential processing does</div>
-      <div class="gd">when sol uses confidential processing, the text it needs a model to work through leaves this device for a sealed engine sol pbc runs, is processed there, and the result returns to the journal. sol pbc operates the engine as a confidential workload, built so your text is not sol pbc's to read.</div>
+      <div class="gt">what leaves your device</div>
+      <div class="gd">when sol uses confidential processing, only the thinking leaves this device — <a href="/confidential-processing/data">the text and images sol needs a model to work through</a>. your journal never leaves; it stays here on your computer. your recordings never leave either — speech is turned to text on your device first. what leaves goes to a model sol pbc runs itself: no third-party AI provider is in the path. it's processed and not kept — no content retained, no human review, nothing used to train.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">3</div>
     <div>
-      <div class="gt">enable confidential processing</div>
-      <div class="gd">sol pbc hands this device a credential through this local handoff so this journal alone can reach the engine. the credential lives on your device; sol pbc keeps only a hash of it.</div>
+      <div class="gt">your journal checks the hardware first</div>
+      <div class="gd">before it sends anything, your journal checks the hardware on the other end and will only send if that check passes — if it can't verify, it doesn't send, and sol tells you why. the engine runs on confidential cloud hardware sol pbc operates, sealed by the hardware itself so the cloud host can't read what's processed — and your journal is what verifies that seal. sol pbc hands this device a credential through this local handoff so only this journal can reach the engine; the credential lives on your device, and sol pbc keeps only a hash of it.</div>
     </div>
   </div>
   <form method="post" action="/enable/spp/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     ${instanceInput}
+    <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--ink)">
+      <input type="checkbox" name="data_ack" value="yes" required style="width:auto;min-height:0;margin:0">
+      <span>i understand what turning this on sends, and that my journal verifies the engine before it sends.</span>
+    </label>
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
     </div>
   </form>
 </div>
-<p class="disclosure">confidential processing is in early access for scouts. it stays off until you allow it here, and you can turn it off from the journal anytime.</p>`,
+<p class="disclosure">confidential processing is in early access — scouts get it first. it stays off until you allow it here, and you can turn it off from the journal anytime.</p>`,
   });
 }
 
@@ -532,7 +536,7 @@ export function renderEnableSppEarlyAccess() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">confidential processing is coming</h2>
-  <p>confidential processing lets sol work through this journal's text with a model sol pbc runs inside a sealed engine — built so your text stays out of sol pbc's reach. it's in early access, and scouts get it first.</p>
+  <p>confidential processing lets sol think through your journal's text and images on a model sol pbc runs itself — on confidential cloud hardware sol pbc operates, sealed by the hardware so the host can't read what's processed, and your journal verifies that seal before it sends. it's processed and not kept: no content retained, no human review, nothing used to train. no third-party AI provider is ever in the path.</p>
   <p>this journal isn't in the scout alpha yet, so there's nothing to enable here. you can close this tab.</p>
 </div>`,
   });
@@ -726,17 +730,43 @@ export function renderConfidentialProcessingLanding() {
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>confidential processing</h1>
 <p class="hero-tag">let sol think off your device</p>
-<p class="lead">sol sends only the thinking off your device — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates.</p>
+<p class="lead">sol sends <a href="/confidential-processing/data">only the thinking off your device</a> — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.</p>
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_CHIP, 'the thinking, off your device', 'let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.')}
+  ${beat(IC_VAULT, 'the hardware sol pbc operates', "runs on confidential cloud hardware sol pbc operates — the host is sealed out of what's processed, and your journal verifies that seal before it sends.")}
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_GLOBE, 'checked, not promised', 'your journal checks the hardware before it sends anything.')}
+  ${beat(IC_GLOBE, 'your journal does the checking', 'your journal checks the hardware before it sends anything.')}
 </div>
 <div class="card">
   <div class="statusline"><span class="tag soon">coming soon</span><span>scouts get confidential processing first. it isn't open yet — when it is, the scout program is the way in.</span></div>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
+  });
+}
+
+export function renderConfidentialProcessingData() {
+  const title = 'confidential processing';
+  return layout({
+    title,
+    body: `${brandbar()}
+<h1>${esc(title)}</h1>
+<h2>what leaves your device</h2>
+<p>the text and images sol needs a model to work through.</p>
+<h2>what doesn't</h2>
+<p>your journal (stays on your computer) and your recordings (speech becomes text on your device first; raw audio never leaves in v1).</p>
+<h2>where it goes</h2>
+<p>a model sol pbc runs itself. no third-party AI provider is in the path.</p>
+<h2>the hardware</h2>
+<p>confidential cloud hardware sol pbc operates, sealed by the hardware so the cloud host can't read what's processed.</p>
+<h2>what's kept</h2>
+<p>no content is retained · no human reviews it · nothing is used to train.</p>
+<h2>the check</h2>
+<p>your journal verifies the hardware before it sends anything; if it can't verify, it doesn't send.</p>
+<h2>your choice</h2>
+<p>off until you turn it on; turn it off from the journal anytime; nothing is stranded (nothing was kept to strand).</p>
+<h2>the covenants</h2>
+<p>the covenants: <a href="/terms">terms</a> · <a href="https://solpbc.org/privacy">privacy</a></p>`,
   });
 }
 
@@ -919,9 +949,9 @@ ${content}`,
 
   if (status === 'active') {
     return page({
-      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;confidential processing is on',
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;confidential processing is on for this journal',
       content: `<div class="group">
-  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">enabled, verified by your journal</div></div></div>
+  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">enabled — your journal verifies the engine each time it sends</div></div></div>
 </div>
 <p class="disclosure" style="margin-top:24px">your journal checks the hardware before it sends anything. <a href="/terms">terms</a></p>`,
     });
@@ -932,7 +962,7 @@ ${content}`,
     content: `<p class="lead">scouts get confidential processing first. it isn't open yet — when it is, the scout program is the way in.</p>
 <div class="card">
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates.')}
+  ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.')}
 </div>
 <p class="disclosure" style="margin-top:24px"><a href="/scout">scout</a> · <a href="/terms">terms</a></p>`,
   });

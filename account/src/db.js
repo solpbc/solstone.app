@@ -1034,16 +1034,35 @@ export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, n
     .run();
 }
 
-export async function upsertSppBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
+export async function upsertSppBinding(db, {
+  accountId,
+  instanceId,
+  tokenHash,
+  nowMs,
+  consentAckedAt,
+  consentDisclosureVersion,
+}) {
   await db
     .prepare(
-      `INSERT INTO spp_bindings (account_id, instance_id, token_hash, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO spp_bindings (
+         account_id, instance_id, token_hash, created_at, last_seen_at,
+         consent_acked_at, consent_disclosure_version
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(account_id, instance_id) DO UPDATE SET
          token_hash = excluded.token_hash,
-         last_seen_at = excluded.last_seen_at`
+         last_seen_at = excluded.last_seen_at,
+         consent_acked_at = excluded.consent_acked_at,
+         consent_disclosure_version = excluded.consent_disclosure_version`
     )
-    .bind(accountId, instanceId, tokenHash, nowMs, nowMs)
+    .bind(
+      accountId,
+      instanceId,
+      tokenHash,
+      nowMs,
+      nowMs,
+      consentAckedAt,
+      consentDisclosureVersion
+    )
     .run();
 }
 

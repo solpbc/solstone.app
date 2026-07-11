@@ -83,7 +83,11 @@ describe('/enable/spp', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('this journal is asking to enable confidential processing.');
+    expect(body).toContain("this journal is asking to turn on confidential processing. here's exactly what that means — and it stays off until you allow it.");
+    expect(body).toContain('href="/confidential-processing/data"');
+    expect(body).toContain('name="data_ack" value="yes" required');
+    expect(body).toContain('i understand what turning this on sends, and that my journal verifies the engine before it sends.');
+    expect(body).toContain('name="action" value="cancel" type="submit" formnovalidate');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
@@ -158,10 +162,19 @@ describe('/enable/spp', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 1_000 });
+    const contentSentinel = 'private-journal-content-sentinel';
 
-    const response = await worker.fetch(confirmRequest({ cookie: session.cookie }), testEnv);
+    const response = await worker.fetch(confirmRequest({
+      cookie: session.cookie,
+      extraForm: {
+        instance: VALID_INSTANCE,
+        data_ack: 'yes',
+        content: contentSentinel,
+      },
+    }), testEnv);
     const body = await response.text();
     const payload = await decryptedHandoff(VALID_NONCE, testEnv);
+    const storedHandoff = await serviceHandoffRow(VALID_NONCE, testEnv);
     const binding = await sppBindingRow(account.accountId, VALID_INSTANCE);
     const audit = await sppMintAuditRow(account.accountId, VALID_INSTANCE);
 
@@ -181,12 +194,40 @@ describe('/enable/spp', () => {
       account_id: account.accountId,
       instance_id: VALID_INSTANCE,
       token_hash: await hashWithPepper(payload.credential, testEnv),
+      consent_acked_at: expect.any(Number),
+      consent_disclosure_version: 'spp-consent-v1',
     });
+    expect(binding.consent_acked_at).toBe(binding.last_seen_at);
+    expect(JSON.stringify(binding)).not.toContain(payload.credential);
+    expect(JSON.stringify(binding)).not.toContain(contentSentinel);
+    expect(storedHandoff.payload_encrypted).not.toContain(payload.credential);
+    expect(storedHandoff.payload_encrypted).not.toContain(contentSentinel);
+    expect(JSON.stringify(payload)).not.toContain(contentSentinel);
     expect(audit).toMatchObject({ scope: 'inference', outcome: 'minted' });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'active',
       source: 'comp',
     });
+  });
+
+  it('rejects an approved scout without data acknowledgment before any write', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 1_000 });
+
+    const response = await worker.fetch(confirmRequest({
+      cookie: session.cookie,
+      extraForm: { instance: VALID_INSTANCE },
+    }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(400);
+    expect(body).toContain("something didn't look right with that link.");
+    await expect(rowCount('spp_bindings')).resolves.toBe(0);
+    await expect(rowCount('service_handoffs')).resolves.toBe(0);
+    await expect(rowCount('spp_mint_audit')).resolves.toBe(0);
+    await expect(entitlementRow(account.accountId)).resolves.toBeNull();
   });
 
   it('fails closed without a minted audit when the handoff nonce already exists', async () => {
@@ -269,7 +310,10 @@ function confirmRequest({
   action = 'allow',
   csrf = TEST_CSRF,
   origin = 'https://services.solstone.app',
-  extraForm = { instance: VALID_INSTANCE },
+  extraForm = {
+    instance: VALID_INSTANCE,
+    data_ack: 'yes',
+  },
 } = {}) {
   const body = new URLSearchParams({
     csrf,
@@ -342,7 +386,8 @@ async function insertSppHandoff({ testEnv, accountId, nonce, payload }) {
 async function sppBindingRow(accountId, instanceId) {
   return workerEnv.DB
     .prepare(
-      `SELECT account_id, instance_id, token_hash, created_at, last_seen_at
+      `SELECT account_id, instance_id, token_hash, created_at, last_seen_at,
+              consent_acked_at, consent_disclosure_version
        FROM spp_bindings
        WHERE account_id = ? AND instance_id = ?`
     )

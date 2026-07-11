@@ -60,11 +60,15 @@ describe('service landing pages', () => {
     expect(body).toContain('<h1>confidential processing</h1>');
     expect(body).toContain('no content is retained · no human reviews it · nothing is used to train');
     expect(body).toContain('let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.');
-    expect(body).toContain('sol sends only the thinking off your device — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates.');
+    expect(body).toContain('sol sends <a href="/confidential-processing/data">only the thinking off your device</a> — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.');
+    expect(body).toContain('href="/confidential-processing/data"');
+    expect(body).toContain('the hardware sol pbc operates');
+    expect(body).toContain("runs on confidential cloud hardware sol pbc operates — the host is sealed out of what's processed, and your journal verifies that seal before it sends.");
+    expect(body).toContain('your journal does the checking');
     expect(body).toContain('<span class="tag soon">coming soon</span>');
     expect(body).not.toMatch(/class="btn/);
     expect(body).not.toContain('$');
-    expect(body).not.toContain('sealed');
+    expect(body).not.toContain('sealed engine');
     expect(body).not.toContain('never sees');
   });
 
@@ -84,8 +88,8 @@ describe('service landing pages', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('confidential processing is on');
-    expect(body).toContain('enabled, verified by your journal');
+    expect(body).toContain('confidential processing is on for this journal');
+    expect(body).toContain('enabled — your journal verifies the engine each time it sends');
     expect(body).not.toContain('$');
     expect(body).not.toContain('never sees');
     expect(body).not.toMatch(/class="btn/);

@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0022 — spp entitlement + schema core
+-- account-portal D1 schema after 0023 — spp entitlement + schema core
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -291,6 +291,8 @@ CREATE TABLE IF NOT EXISTS spp_bindings (
   token_hash TEXT,
   created_at INTEGER NOT NULL,
   last_seen_at INTEGER NOT NULL,
+  consent_acked_at INTEGER,
+  consent_disclosure_version TEXT,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );

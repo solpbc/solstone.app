@@ -23,6 +23,8 @@ describe('spp binding database helpers', () => {
       instanceId: INSTANCE_ID,
       tokenHash: 'token-hash-1',
       nowMs: 1_000,
+      consentAckedAt: 1_000,
+      consentDisclosureVersion: 'spp-consent-v1',
     });
     await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-1')).resolves.toEqual({
       account_id: account.accountId,
@@ -34,6 +36,8 @@ describe('spp binding database helpers', () => {
       instanceId: INSTANCE_ID,
       tokenHash: 'token-hash-2',
       nowMs: 2_000,
+      consentAckedAt: 2_000,
+      consentDisclosureVersion: 'spp-consent-v2',
     });
 
     await expect(bindingRow(account.accountId)).resolves.toEqual({
@@ -42,6 +46,8 @@ describe('spp binding database helpers', () => {
       token_hash: 'token-hash-2',
       created_at: 1_000,
       last_seen_at: 2_000,
+      consent_acked_at: 2_000,
+      consent_disclosure_version: 'spp-consent-v2',
     });
     await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-1')).resolves.toBeNull();
     await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-2')).resolves.toEqual({
@@ -82,7 +88,8 @@ describe('spp binding database helpers', () => {
 async function bindingRow(accountId) {
   return workerEnv.DB
     .prepare(
-      `SELECT account_id, instance_id, token_hash, created_at, last_seen_at
+      `SELECT account_id, instance_id, token_hash, created_at, last_seen_at,
+              consent_acked_at, consent_disclosure_version
        FROM spp_bindings
        WHERE account_id = ? AND instance_id = ?`
     )

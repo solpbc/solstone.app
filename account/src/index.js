@@ -79,6 +79,7 @@ import {
   handleVerifyEmailPost,
 } from './emails.js';
 import {
+  renderConfidentialProcessingData,
   renderConfidentialProcessingLanding,
   renderError,
   renderBackupLanding,
@@ -538,6 +539,10 @@ export default {
         const session = await getValidSession(req, env, Date.now());
         if (!session) return html(renderConfidentialProcessingLanding());
         return handleServicesSpp(env, session);
+      }
+
+      if (url.pathname === '/confidential-processing/data' && req.method === 'GET') {
+        return html(renderConfidentialProcessingData());
       }
 
       if (url.pathname === '/services/backup' && req.method === 'GET') {

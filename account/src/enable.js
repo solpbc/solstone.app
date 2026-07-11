@@ -65,7 +65,10 @@ import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
 import { SPL_HOSTED_SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 import { SPB_HOSTED_SERVICE, reconcileSpbEntitlement } from './spb-entitlement.js';
-import { reconcileSppEntitlement } from './spp-entitlement.js';
+import {
+  SPP_CONSENT_DISCLOSURE_VERSION,
+  reconcileSppEntitlement,
+} from './spp-entitlement.js';
 
 const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
@@ -688,6 +691,8 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     return sppError(403);
   }
 
+  if (form.get('data_ack')?.toString() !== 'yes') return sppError(400);
+
   const nowMs = Date.now();
   const accountId = session.account_id;
 
@@ -702,7 +707,14 @@ export async function handleEnableSppConfirm(req, env, ctx) {
 
   const token = generateSessionToken();
   const tokenHash = await hashWithPepper(token, env);
-  await upsertSppBinding(env.DB, { accountId, instanceId: instance, tokenHash, nowMs });
+  await upsertSppBinding(env.DB, {
+    accountId,
+    instanceId: instance,
+    tokenHash,
+    nowMs,
+    consentAckedAt: nowMs,
+    consentDisclosureVersion: SPP_CONSENT_DISCLOSURE_VERSION,
+  });
   await reconcileSppEntitlement(env, accountId, nowMs, ctx);
   const payload = {
     state: 'approved',
