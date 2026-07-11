@@ -33,6 +33,7 @@ const IC_EMPTY_DATA_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" strok
 const IC_NET = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.4"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M6.6 7.4 10 10.4M17.4 7.4 14 10.4M6.6 16.6 10 13.6M17.4 16.6 14 13.6"/></svg>';
 const IC_BACKUP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>';
 const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 12v3"/></svg>';
+const IC_CHIP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/></svg>';
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
 const SCOUT_COVENANT_LINE = "your questions to solstone scout go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
@@ -562,7 +563,7 @@ export function renderEnableSppError() {
 
 // === services surfaces ===
 
-export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, scoutActive = false, deviceCount = 0, networkActive = false, backupActive = false } = {}) {
+export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, scoutActive = false, deviceCount = 0, networkActive = false, backupActive = false, sppActive = false } = {}) {
   if (!signedIn) {
     return layout({
       title: 'solstone services',
@@ -575,6 +576,7 @@ ${BRANDLOCK}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'let sol reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
   ${row('/sealed-container', IC_VAULT, 'sealed container', 'your whole journal, run for you inside a sealed box even sol pbc can’t see into.', '<span class="tag soon">coming</span>')}
+  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag soon">coming</span>')}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'join the alpha. we set you up with a Gemini key on your device.', '<span class="tag free">free</span>')}
 </div>
 <p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on. solstone itself never asks you to sign in.</p>`,
@@ -587,6 +589,7 @@ ${BRANDLOCK}
   const networkPill = pill(networkActive ? 'on' : 'off', networkActive ? 'on' : 'off');
   const backupPill = pill(backupActive ? 'on' : 'off', backupActive ? 'on' : 'off');
   const notifPill = pill(deviceCount > 0 ? 'on' : 'off', deviceCount > 0 ? 'on' : 'off');
+  const sppPill = pill(sppActive ? 'on' : 'off', sppActive ? 'on' : 'off');
   const scoutPill = pill(scoutActive ? 'on' : 'off', scoutActive ? 'on' : 'off');
   const welcomePanel = welcome
     ? `<div class="card" style="margin-bottom:24px">
@@ -614,6 +617,7 @@ ${welcomePanel}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters, built in.', notifPill)}
   ${row('/sealed-container', IC_VAULT, 'sealed container', 'your journal in a sealed box.', '<span class="tag soon">coming</span>')}
+  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'sol’s thinking, off your device on confidential hardware.', sppPill)}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'a Gemini key on your device.', scoutPill)}
 </div>
 <div class="group" style="margin-top:22px">
@@ -715,6 +719,27 @@ ${BRANDLOCK}
   });
 }
 
+export function renderConfidentialProcessingLanding() {
+  return layout({
+    title: 'confidential processing',
+    body: brandbarSignin()
+      + `\n<a class="back" href="/">${BACK_SVG} services</a>
+<h1>confidential processing</h1>
+<p class="hero-tag">let sol think off your device</p>
+<p class="lead">sol sends only the thinking off your device — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates.</p>
+${BRANDLOCK}
+<div class="card">
+  ${beat(IC_CHIP, 'the thinking, off your device', 'let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.')}
+  ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
+  ${beat(IC_GLOBE, 'checked, not promised', 'your journal checks the hardware before it sends anything.')}
+</div>
+<div class="card">
+  <div class="statusline"><span class="tag soon">coming soon</span><span>scouts get confidential processing first. it isn't open yet — when it is, the scout program is the way in.</span></div>
+</div>
+<p class="disclosure"><a href="/terms">terms</a></p>`,
+  });
+}
+
 export function renderScoutLanding() {
   return layout({
     title: 'solstone scout',
@@ -727,6 +752,7 @@ ${BRANDLOCK}
   ${beat(IC_PASSKEY_SVG, 'a key on your device', 'sol pbc creates a Gemini key for you and puts it on your device. the key is yours and never leaves it.')}
   ${beat(IC_SCOUT_SVG, 'never in the middle', 'sol pbc sets it up but never sits between you and Gemini, and never sees what you ask sol.')}
   ${beat(IC_GLOBE, 'the alpha cohort', 'scout testers get early features and a direct line to tell us what they’re seeing.')}
+  ${beat(IC_CHIP, 'confidential processing, coming', 'join the alpha — get early access to confidential processing and help shape solstone.')}
 </div>
 <div class="card">
   <div class="pricecard">
@@ -875,6 +901,40 @@ ${portalActions}
   <p class="disclosure">billed securely through Stripe.</p>
 </div>
 <p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days. turn it back on within that window and it's still there. after 30 days it's deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/services/backup/terms">terms</a></p>`,
+  });
+}
+
+export function renderServicesSpp({ entitlement, menu }) {
+  const status = entitlement?.status || '';
+  const page = ({ statusLine, content }) => layout({
+    title: 'confidential processing',
+    body: `${topbar(menu)}
+<a class="back" href="/">${BACK_SVG} your services</a>
+<div class="pagehead">
+  <h1>confidential processing</h1>
+  ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
+</div>
+${content}`,
+  });
+
+  if (status === 'active') {
+    return page({
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;confidential processing is on',
+      content: `<div class="group">
+  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">enabled, verified by your journal</div></div></div>
+</div>
+<p class="disclosure" style="margin-top:24px">your journal checks the hardware before it sends anything. <a href="/terms">terms</a></p>`,
+    });
+  }
+
+  return page({
+    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>early access</span>',
+    content: `<p class="lead">scouts get confidential processing first. it isn't open yet — when it is, the scout program is the way in.</p>
+<div class="card">
+  ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
+  ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates.')}
+</div>
+<p class="disclosure" style="margin-top:24px"><a href="/scout">scout</a> · <a href="/terms">terms</a></p>`,
   });
 }
 

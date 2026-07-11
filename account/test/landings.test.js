@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
-import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
+import { makeTestEnv, resetDb, seedAccount, seedEntitlement, seedSession } from './helpers.js';
 
 describe('service landing pages', () => {
   beforeEach(async () => {
@@ -50,6 +50,56 @@ describe('service landing pages', () => {
     expect(body).toContain('this isn’t available yet. pricing at launch.');
     expect(body).not.toMatch(/class="btn/);
     expect(body).not.toContain('notify');
+  });
+
+  it('renders the confidential processing landing page without a CTA button', async () => {
+    const response = await get('/confidential-processing', makeTestEnv());
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('<h1>confidential processing</h1>');
+    expect(body).toContain('no content is retained · no human reviews it · nothing is used to train');
+    expect(body).toContain('let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.');
+    expect(body).toContain('sol sends only the thinking off your device — never your journal, which stays here on your computer. it runs on confidential hardware sol pbc operates.');
+    expect(body).toContain('<span class="tag soon">coming soon</span>');
+    expect(body).not.toMatch(/class="btn/);
+    expect(body).not.toContain('$');
+    expect(body).not.toContain('sealed');
+    expect(body).not.toContain('never sees');
+  });
+
+  it('renders enabled confidential processing management without billing controls', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: 'spp_hosted',
+      status: 'active',
+      source: 'comp',
+    });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await get('/confidential-processing', testEnv, { Cookie: session.cookie });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(body).toContain('confidential processing is on');
+    expect(body).toContain('enabled, verified by your journal');
+    expect(body).not.toContain('$');
+    expect(body).not.toContain('never sees');
+    expect(body).not.toMatch(/class="btn/);
+  });
+
+  it('keeps the public confidential processing catalog row free of pricing and forbidden claims', async () => {
+    const response = await get('/', makeTestEnv());
+    const body = await response.text();
+    const match = body.match(/<a class="row" href="\/confidential-processing"[\s\S]*?<\/a>/);
+
+    expect(match).not.toBeNull();
+    const row = match?.[0] || '';
+    expect(row).not.toContain('$');
+    expect(row).not.toContain('never sees');
   });
 
   it('renders the public scout landing page when signed out', async () => {

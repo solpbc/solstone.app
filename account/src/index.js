@@ -79,6 +79,7 @@ import {
   handleVerifyEmailPost,
 } from './emails.js';
 import {
+  renderConfidentialProcessingLanding,
   renderError,
   renderBackupLanding,
   renderBackupTerms,
@@ -91,6 +92,7 @@ import {
   renderScoutLanding,
   renderSealedContainerLanding,
   renderServicesCatalog,
+  renderServicesSpp,
   renderTerms,
   renderVerify,
   VERIFY_ERROR,
@@ -112,6 +114,7 @@ import { runRetention } from './retention.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { runSpbLapseSweep } from './spb-sweep.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
+import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -531,6 +534,12 @@ export default {
         return handleServicesSpl(req, env);
       }
 
+      if (url.pathname === '/confidential-processing' && req.method === 'GET') {
+        const session = await getValidSession(req, env, Date.now());
+        if (!session) return html(renderConfidentialProcessingLanding());
+        return handleServicesSpp(req, env, session);
+      }
+
       if (url.pathname === '/services/backup' && req.method === 'GET') {
         return handleServicesSpb(req, env);
       }
@@ -945,20 +954,34 @@ export default {
 async function handleServicesCatalog(req, env, session) {
   const url = new URL(req.url);
   const now = Date.now();
-  const [menu, hasPasskey, scoutKey, deviceCount, entitlement, spbEntitlement] = await Promise.all([
+  const [menu, hasPasskey, scoutKey, deviceCount, entitlement, spbEntitlement, sppEntitlement] = await Promise.all([
     loadMenuContext(env, session.account_id, now),
     hasAnyActivePasskey(env.DB, session.account_id),
     findActiveProvisionedKey(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER }),
     countActiveDevices(env.DB, session.account_id),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE }),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPB_HOSTED_SERVICE }),
+    getEntitlement(env.DB, { accountId: session.account_id, service: SPP_HOSTED_SERVICE }),
   ]);
   const networkActive = entitlement?.status === 'active' || entitlement?.status === 'past_due';
   const backupActive = spbEntitlement?.status === 'active' || spbEntitlement?.status === 'past_due';
+  const sppActive = sppEntitlement?.status === 'active';
   return html(renderServicesCatalog({
     signedIn: true,
     welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
-    menu, scoutActive: scoutKey != null, deviceCount, networkActive, backupActive,
+    menu, scoutActive: scoutKey != null, deviceCount, networkActive, backupActive, sppActive,
+  }), { headers: { 'Cache-Control': 'no-store' } });
+}
+
+async function handleServicesSpp(req, env, session) {
+  const now = Date.now();
+  const [menu, sppEntitlement] = await Promise.all([
+    loadMenuContext(env, session.account_id, now),
+    getEntitlement(env.DB, { accountId: session.account_id, service: SPP_HOSTED_SERVICE }),
+  ]);
+  return html(renderServicesSpp({
+    menu,
+    entitlement: sppEntitlement,
   }), { headers: { 'Cache-Control': 'no-store' } });
 }
 

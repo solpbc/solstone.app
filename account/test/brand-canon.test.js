@@ -141,6 +141,16 @@ describe('brand canon', () => {
     await seedEntitlement({ accountId: spbActive.accountId, service: 'spb_hosted', status: 'active' });
     const spbEmpty = await seedAccount({ email: 'spb-empty@example.com', testEnv });
     const spbEmptySession = await seedSession(spbEmpty.accountId, { testEnv });
+    const sppActive = await seedAccount({ email: 'spp-active@example.com', testEnv });
+    const sppActiveSession = await seedSession(sppActive.accountId, { testEnv });
+    await seedEntitlement({
+      accountId: sppActive.accountId,
+      service: 'spp_hosted',
+      status: 'active',
+      source: 'comp',
+    });
+    const sppEmpty = await seedAccount({ email: 'spp-empty@example.com', testEnv });
+    const sppEmptySession = await seedSession(sppEmpty.accountId, { testEnv });
 
     const surfaces = [
       ['signed-out landing', await get('/', testEnv)],
@@ -157,6 +167,8 @@ describe('brand canon', () => {
       ['private-network empty', await get('/private-network', testEnv, splEmptySession.cookie), true],
       ['encrypted backup active', await get('/services/backup', testEnv, spbActiveSession.cookie), true],
       ['encrypted backup empty', await get('/services/backup', testEnv, spbEmptySession.cookie), true],
+      ['confidential-processing enabled', await get('/confidential-processing', testEnv, sppActiveSession.cookie), true],
+      ['confidential-processing early access', await get('/confidential-processing', testEnv, sppEmptySession.cookie), true],
       ['devices', await get('/devices', testEnv, withPasskeySession.cookie), true],
       ['support list', await get('/support', testEnv, withPasskeySession.cookie), true],
       ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],

@@ -21,7 +21,7 @@ describe('services catalog', () => {
     expect(response.status).toBe(200);
     expect(response.status).toBeLessThan(300);
     expect(body).toContain('solstone services');
-    for (const name of ['private network', 'encrypted backup', 'notifications', 'sealed container', 'scout']) {
+    for (const name of ['private network', 'encrypted backup', 'notifications', 'sealed container', 'confidential processing', 'scout']) {
       expect(body).toContain(name);
     }
     expect(body).toContain('$20');
