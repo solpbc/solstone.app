@@ -26,7 +26,7 @@ describe('services catalog rendering', () => {
     expect(body).toContain('your journal is always private, only yours.');
     expect(body).toContain('href="/private-network"');
     expect(body).toContain('<div class="title">private network</div>');
-    expect(body).toContain('href="/backup"');
+    expect(body).toContain('href="/services/backup"');
     expect(body).toContain('<div class="title">encrypted backup</div>');
     expect(body).toContain('href="/notifications"');
     expect(body).toContain('<div class="title">notifications</div>');
@@ -44,6 +44,7 @@ describe('services catalog rendering', () => {
     expect(body).not.toContain('not set up');
     expect(body).toContain('href="https://solpbc.org/privacy"');
     expect(body).toContain('how we earn your trust');
+    expect(body).toContain('<a href="https://solstone.app">solstone.app →</a>');
     expect(body).toContain('<a href="/sign-in">manage sign-in</a>');
     expect(body).toContain('<form method="post" action="/signout">');
   });

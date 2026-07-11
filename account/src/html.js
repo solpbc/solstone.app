@@ -44,7 +44,7 @@ function brandbar() {
 }
 
 function footer() {
-  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a></footer>`;
+  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
 }
 
 function topbar({ email = null, lastSignInAt = null, now = null } = {}) {
@@ -618,7 +618,7 @@ ${BRANDLOCK}
 ${welcomePanel}
 <div class="group">
   ${row('/private-network', IC_NET, 'private network', 'your private network: reach your journal from anywhere.', networkPill)}
-  ${row('/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
+  ${row('/services/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters, built in.', notifPill)}
   ${row('/sealed-container', IC_VAULT, 'sealed container', 'your journal in a sealed box.', '<span class="tag soon">coming</span>')}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'sol’s thinking, off your device on confidential hardware.', sppPill)}
@@ -1644,7 +1644,7 @@ export function renderTerms() {
 <h2>${esc(`10. how long we keep it, and your rights`)}</h2>
 <ul>
   <li>${esc(`we keep your billing details for `)}<strong>${esc(`as long as you have a subscription, plus the period tax and financial-records law requires us to keep afterward`)}</strong>${esc(` (generally up to seven years for transaction records). when neither applies anymore, we delete them.`)}</li>
-  <li>${esc(`you can `)}<strong>${esc(`see, correct, export, or delete`)}</strong>${esc(` your sign-in and billing data anytime — most of it directly from your settings at `)}<code>${esc(`services.solstone.app/settings/data`)}</code>${esc(`, and the rest by emailing `)}<code>${esc(`support@solstone.app`)}</code>${esc(`. deleting your subscription data ends the hosted relay; it never touches your journal.`)}</li>
+  <li>${esc(`you can `)}<strong>${esc(`see, correct, export, or delete`)}</strong>${esc(` your sign-in and billing data anytime — most of it directly from your settings at `)}<code>${esc(`services.solstone.app/transparency`)}</code>${esc(`, and the rest by emailing `)}<code>${esc(`support@solstone.app`)}</code>${esc(`. deleting your subscription data ends the hosted relay; it never touches your journal.`)}</li>
   <li>${esc(`you have the privacy rights your state or country gives you — including the `)}<strong>${esc(`Colorado Privacy Act`)}</strong>${esc(`, and the `)}<strong>${esc(`CCPA/CPRA`)}</strong>${esc(` in California and `)}<strong>${esc(`GDPR`)}</strong>${esc(` in the EU/UK — to access, correct, delete, and port your data, and to opt out. sol pbc's covenants go further than any of them require. exercise any of them at `)}<code>${esc(`support@solstone.app`)}</code>${esc(`; if we deny a request, you can appeal by replying to that email, and we'll respond within the time the law allows.`)}</li>
 </ul>
 <h2>${esc(`11. changes to these terms`)}</h2>
@@ -1718,7 +1718,7 @@ export function renderBackupTerms() {
 <ul>
   <li>${esc(`we keep your `)}<strong>${esc(`encrypted backup`)}</strong>${esc(` for as long as your subscription is active. `)}<strong>${esc(`when your subscription lapses, we keep it for 30 days, then permanently delete it`)}</strong>${esc(` (§ 4). you can also delete it yourself at any time from the backup management screen in solstone, which removes it from our storage; deleting it never touches your journal on your own devices.`)}</li>
   <li>${esc(`we keep your `)}<strong>${esc(`billing details`)}</strong>${esc(` for `)}<strong>${esc(`as long as you have a subscription, plus the period tax and financial-records law requires us to keep afterward`)}</strong>${esc(` (generally up to seven years for transaction records). when neither applies anymore, we delete them.`)}</li>
-  <li>${esc(`you can `)}<strong>${esc(`see, correct, export, or delete`)}</strong>${esc(` your sign-in and billing data anytime — most of it directly from your settings at `)}<code>${esc(`services.solstone.app/settings/data`)}</code>${esc(`, and the rest by emailing `)}<code>${esc(`support@solstone.app`)}</code>${esc(`. your backup itself is encrypted and under your control: you restore it with your recovery key, and you delete it from the backup screen.`)}</li>
+  <li>${esc(`you can `)}<strong>${esc(`see, correct, export, or delete`)}</strong>${esc(` your sign-in and billing data anytime — most of it directly from your settings at `)}<code>${esc(`services.solstone.app/transparency`)}</code>${esc(`, and the rest by emailing `)}<code>${esc(`support@solstone.app`)}</code>${esc(`. your backup itself is encrypted and under your control: you restore it with your recovery key, and you delete it from the backup screen.`)}</li>
   <li>${esc(`you have the privacy rights your state or country gives you — including the `)}<strong>${esc(`Colorado Privacy Act`)}</strong>${esc(`, and the `)}<strong>${esc(`CCPA/CPRA`)}</strong>${esc(` in California and `)}<strong>${esc(`GDPR`)}</strong>${esc(` in the EU/UK — to access, correct, delete, and port your data, and to opt out. sol pbc's covenants go further than any of them require. exercise any of them at `)}<code>${esc(`support@solstone.app`)}</code>${esc(`; we'll respond as fast as we can, and within the time the law requires — 45 days under the Colorado Privacy Act, with the extensions the law allows. `)}<strong>${esc(`if we deny a request,`)}</strong>${esc(` you can appeal by replying to that email; we'll respond to the appeal within 45 days, and if we deny the appeal, you can raise it with the `)}<a href="https://coag.gov/office-sections/consumer-protection/">${esc(`Colorado Attorney General`)}</a>${esc(`.`)}</li>
 </ul>
 <h2>${esc(`11. changes to these terms`)}</h2>
