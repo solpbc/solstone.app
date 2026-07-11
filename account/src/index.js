@@ -537,7 +537,7 @@ export default {
       if (url.pathname === '/confidential-processing' && req.method === 'GET') {
         const session = await getValidSession(req, env, Date.now());
         if (!session) return html(renderConfidentialProcessingLanding());
-        return handleServicesSpp(req, env, session);
+        return handleServicesSpp(env, session);
       }
 
       if (url.pathname === '/services/backup' && req.method === 'GET') {
@@ -973,7 +973,7 @@ async function handleServicesCatalog(req, env, session) {
   }), { headers: { 'Cache-Control': 'no-store' } });
 }
 
-async function handleServicesSpp(req, env, session) {
+async function handleServicesSpp(env, session) {
   const now = Date.now();
   const [menu, sppEntitlement] = await Promise.all([
     loadMenuContext(env, session.account_id, now),

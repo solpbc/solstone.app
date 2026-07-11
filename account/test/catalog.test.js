@@ -39,6 +39,7 @@ describe('services catalog', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     await seedEntitlement({ accountId: account.accountId, service: 'spl_hosted', status: 'active' });
+    await seedEntitlement({ accountId: account.accountId, service: 'spp_hosted', status: 'active', source: 'comp' });
     await seedDevice({ accountId: account.accountId });
     const session = await seedSession(account.accountId, { testEnv });
 
@@ -53,6 +54,7 @@ describe('services catalog', () => {
     expect(body).toContain('href="/transparency"');
     expect(body).toMatch(/href="\/private-network"[\s\S]*?<span class="pill on"><span class="dot"><\/span>on<\/span>/);
     expect(body).toMatch(/href="\/notifications"[\s\S]*?<span class="pill on"><span class="dot"><\/span>on<\/span>/);
+    expect(body).toMatch(/href="\/confidential-processing"[\s\S]*?<span class="pill on"><span class="dot"><\/span>on<\/span>/);
     expect(body).not.toContain('last seen');
   });
 
