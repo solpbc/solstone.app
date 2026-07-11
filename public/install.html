@@ -367,28 +367,64 @@
         .blurb {
             display: none;
         }
-        /* ── the sunrise-gradient ground (founder-ratified 2026-07-03) ──────
-           canon: cmo/brand/sol/index.md § the sunrise-gradient ground;
-           decision: records/decisions/260703-cmo-solstone-app-sunrise-gradient-ground.md.
-           Scoped to this page (+ /download); the CMO site sweep extends it.
-           The flat cream field retires as a page ground here; cards go paper
-           white and hairlines lighten to sit on the gradient. */
-        :root {
-            --cream: #FEFCF8;
-            --cream-bright: #FFFFFF;
-            --hairline: #F0E8D8;
-            --hairline-2: #E6DCC6;
+        /* The sunrise-gradient ground is now shared: <body class="sunrise"> in
+           base.css (canon: cmo/brand/sol/index.md § the sunrise-gradient ground).
+           No per-page copy of the recipe. */
+        /* the three-ways-to-think rows — a quiet System-Settings register: no
+           tiers, no comparison table. one row per way sol can think. */
+        .think-ways {
+            max-width: 820px;
+            width: 90vw;
+            padding: 0 1.5rem;
         }
-        body {
-            background:
-                radial-gradient(ellipse 900px 420px at 50% -140px,
-                    rgba(255, 207, 51, 0.30) 0%,
-                    rgba(255, 207, 51, 0) 70%),
-                linear-gradient(180deg,
-                    #FFF3CF 0%,
-                    #FCF3E0 24%,
-                    #FEFCF8 58%,
-                    #FFFFFF 100%);
+        .think-ways .card {
+            gap: 0;
+        }
+        .think-way {
+            padding: 1.1rem 0;
+        }
+        .think-way + .think-way {
+            border-top: 1px solid var(--hairline);
+        }
+        .think-way h3 {
+            font-family: var(--font-display);
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 0.35rem;
+            letter-spacing: 0.01em;
+        }
+        .think-way p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--ink-soft);
+            margin: 0;
+        }
+        .think-way a {
+            color: var(--orange-ink);
+            text-decoration: underline;
+        }
+        .think-invariant {
+            font-size: 0.86rem;
+            line-height: 1.6;
+            color: var(--ink-faint);
+            margin: 1rem 0 0;
+            padding-top: 0.9rem;
+            border-top: 1px solid var(--hairline);
+        }
+        .windows-pointer {
+            max-width: 820px;
+            width: 90vw;
+            padding: 0 1.5rem;
+            font-size: 0.86rem;
+            line-height: 1.6;
+            color: var(--ink-faint);
+            margin: 0.85rem auto 0;
+            text-align: center;
+        }
+        .windows-pointer a {
+            color: var(--orange-ink);
+            text-decoration: underline;
         }
         /* alert box tracks the cards' content column instead of its own 600px
            cap (Mike finding #1) — .cards is max-width 820/90vw with 1.5rem
@@ -399,7 +435,7 @@
         }
     </style>
 </head>
-<body>
+<body class="sunrise">
     <a href="#main" class="skip-link">skip to content</a>
     <header>
         <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/sol-wordmark.svg" alt="sol — solstone home" style="height:40px;"></a>
@@ -438,7 +474,7 @@
             </svg>
         </div>
         <div class="diagram-panel diagram-multi">
-            <svg class="dg" viewBox="0 0 840 452" role="img" aria-label="solstone across devices: sol runs on each of your devices (linux, macos, tmux; windows and mobile coming soon) and keeps everything in your journal at ~/journal">
+            <svg class="dg" viewBox="0 0 840 452" role="img" aria-label="solstone across devices: sol runs on each of your devices (linux, macos, tmux; windows and mobile in beta) and keeps everything in your journal at ~/journal">
                 <text x="420" y="14" text-anchor="middle" font-size="11" class="dg-label">your devices</text>
                 <rect x="16" y="24" width="808" height="128" rx="12" class="dg-card"/>
                 <rect x="40" y="48" width="144" height="80" rx="6" class="dg-card"/>
@@ -453,12 +489,13 @@
                 <text x="420" y="72" text-anchor="middle" font-size="13" class="dg-title">tmux</text>
                 <text x="420" y="92" text-anchor="middle" font-size="11" class="dg-desc">runs sol: terminal sessions</text>
                 <text x="420" y="110" text-anchor="middle" font-size="10" class="dg-mono">solstone-tmux</text>
-                <rect x="502" y="48" width="144" height="80" rx="6" class="dg-card soon"/>
-                <text x="574" y="80" text-anchor="middle" font-size="13" class="dg-title soon">windows</text>
-                <text x="574" y="100" text-anchor="middle" font-size="10" class="dg-soon">coming soon</text>
+                <rect x="502" y="48" width="144" height="80" rx="6" class="dg-card"/>
+                <text x="574" y="72" text-anchor="middle" font-size="13" class="dg-title">windows</text>
+                <text x="574" y="92" text-anchor="middle" font-size="11" class="dg-desc">runs sol: screen + audio</text>
+                <text x="574" y="110" text-anchor="middle" font-size="10" class="dg-soon">in beta</text>
                 <rect x="656" y="48" width="144" height="80" rx="6" class="dg-card soon"/>
                 <text x="728" y="80" text-anchor="middle" font-size="13" class="dg-title soon">mobile</text>
-                <text x="728" y="100" text-anchor="middle" font-size="10" class="dg-soon">coming soon</text>
+                <text x="728" y="100" text-anchor="middle" font-size="10" class="dg-soon">in beta</text>
                 <line x1="420" y1="152" x2="420" y2="196" class="dg-flow"/>
                 <polygon points="420,198 416,190 424,190" class="dg-arrow"/>
                 <text x="420" y="218" text-anchor="middle" font-size="11" class="dg-label">your journal</text>
@@ -474,6 +511,25 @@
     </div>
 
     <p class="early-days"><span class="stage-label">early days.</span> solstone is open source and hands-on. you'll spend time in the terminal, you'll find rough edges, and we'll fix them together as we go.</p>
+
+    <h2 class="install-section-title">three ways sol thinks</h2>
+    <div class="think-ways">
+        <div class="card">
+            <div class="think-way">
+                <h3>local — the default.</h3>
+                <p>on a capable machine, sol thinks right here: the bundled local models, set up in the background during install. capable means roughly 6–8 GB of GPU memory, or an Apple Silicon Mac with 16 GB — setup checks for you before anything downloads.</p>
+            </div>
+            <div class="think-way">
+                <h3>your own AI engine.</h3>
+                <p>bring your own token (Claude, Gemini, or OpenAI) — or point sol at any OpenAI-compatible endpoint you run. sol pbc is never in the path.</p>
+            </div>
+            <div class="think-way">
+                <h3>confidential processing — coming, scouts first.</h3>
+                <p>let sol think off your device on confidential hardware sol pbc runs that keeps nothing: no content retained, no human review, nothing used to train. your journal stays on your device. <a href="https://services.solstone.app/confidential-processing">how it works →</a></p>
+            </div>
+            <p class="think-invariant">whichever you choose: your journal always lives on your device, and sol never picks a place for your thinking silently — if no engine is chosen, sol says so and waits.</p>
+        </div>
+    </div>
 
     <h2 class="install-section-title">install with a coding agent</h2>
     <div class="cards">
@@ -503,7 +559,7 @@
                 <!-- install copy reflects CURRENT packaging (one download sets up sol + journal);
                      revise to the educational sol / journal / both surface when Track B ships. -->
                 <p class="trust-signal">signed by sol pbc, notarized by Apple. sets up sol and your journal on this Mac, then opens the first-run wizard. updates over a signed channel.</p>
-                <p class="install-finish">the wizard connects a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you &mdash; no separate command-line tool to install.</p>
+                <p class="install-finish">the wizard sets your identity and asks how sol should think — local on this Mac (the default when your hardware can), your own AI engine, or confidential processing (coming, scouts first). nothing to connect unless you choose to.</p>
 
                 <details class="dev-path">
                     <summary>building from source? (developer path)</summary>
@@ -515,7 +571,7 @@ journal setup</pre>
                             <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human" aria-label="copy for human: macOS install commands">copy for human</button>
                             <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                         </div>
-                        <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and connecting a gemini API key.</p>
+                        <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and choosing how sol thinks (see the three ways above). your journal stays on this machine whichever you choose.</p>
                     </div>
                 </details>
             </div>
@@ -528,11 +584,13 @@ journal setup</pre>
                     <button class="copy-btn" data-target="steps-linux" data-default-label="copy for human" aria-label="copy for human: linux install commands">copy for human</button>
                     <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                 </div>
-                <p class="install-finish"><code>solstone-journal</code> bundles everything your journal needs to run here — the default CPU transcription runtime is included and <code>journal setup</code> downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install <code>solstone-journal-cuda</code> instead of <code>solstone-journal</code> (pick one — never both). installing the two tools puts both the <code>journal</code> host and the <code>sol</code> client on your PATH; <code>pip install solstone-journal</code> does the same in one step (<code>sol</code> comes along). want only the thin <code>sol</code> client, to talk to a journal running elsewhere? <code>uv tool install solstone</code>, or <code>uvx solstone</code> for a one-shot.</p>
-                <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. to run sol on your linux desktop, see <a href="/download" class="gh-link" style="text-decoration:underline;">solstone.app/download</a>.</p>
+                <p class="install-finish"><code>solstone-journal</code> bundles everything your journal needs to run here — the default CPU transcription runtime is included and <code>journal setup</code> downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install <code>solstone-journal-cuda</code> instead of <code>solstone-journal</code> (pick one — never both). the same GPU powers local thinking — the default brain on capable hardware. installing the two tools puts both the <code>journal</code> host and the <code>sol</code> client on your PATH; <code>pip install solstone-journal</code> does the same in one step (<code>sol</code> comes along). want only the thin <code>sol</code> client, to talk to a journal running elsewhere? <code>uv tool install solstone</code>, or <code>uvx solstone</code> for a one-shot.</p>
+                <p class="install-finish">then open <code>http://localhost:5015</code> — the first-run wizard walks you through setting your identity and choosing how sol thinks (see the three ways above). your journal stays on this machine whichever you choose. to run sol on your linux desktop, see <a href="/download" class="gh-link" style="text-decoration:underline;">solstone.app/download</a>.</p>
             </div>
         </div>
     </div>
+
+    <p class="windows-pointer">on windows? get sol for windows at <a href="/download">solstone.app/download</a> — it pairs with the journal on your mac or linux machine. (the journal itself runs on mac and linux today.)</p>
 
     <div class="supplemental">
         <div class="card">
@@ -544,9 +602,9 @@ journal setup</pre>
     <div class="supplemental">
         <div class="card">
             <h2>want to help shape what comes next?</h2>
-            <p class="subtitle">solstone is being built in the open. scouts get early access, a direct line to the founder, and a hand in shaping the co-brain you actually want. sign in with your bluesky account.</p>
+            <p class="subtitle">solstone is being built in the open. scouts get early features first — including confidential processing when it opens — and a direct line to tell us what they're seeing.</p>
             <div class="card-actions">
-                <a href="https://scouts.solstone.app" class="gh-link">apply as a scout &rarr;</a>
+                <a href="https://services.solstone.app/scout" class="gh-link">join the scouts &rarr;</a>
             </div>
         </div>
     </div>
@@ -554,7 +612,12 @@ journal setup</pre>
 
     <div class="visually-hidden" role="status" aria-live="polite" id="copy-status"></div>
 
-    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; <a href="/releases">releases</a> &middot; your data stays on your device — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <footer>
+        <nav class="footer-nav" aria-label="footer">
+            <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
+        </nav>
+        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal lives on your device — never sold, never shared. solstone is a trademark of sol pbc.</div>
+    </footer>
 
     <script>
         // announce transient state to assistive tech via the polite live region

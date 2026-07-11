@@ -155,7 +155,12 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             <a href="/">back to solstone.app &rarr;</a>
         </nav>
     </main>
-    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; <a href="/releases">releases</a> &middot; your data stays on your device — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <footer>
+        <nav class="footer-nav" aria-label="footer">
+            <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
+        </nav>
+        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal lives on your device — never sold, never shared. solstone is a trademark of sol pbc.</div>
+    </footer>
 </body>
 </html>`;
 
@@ -464,6 +469,7 @@ function streamSwitcher(currentStream) {
     '            <span class="ss-lead">release notes for:</span>',
     pill("journal", "journal", "/releases", "ss-home"),
     pill("macos", "macOS", "/releases/macos"),
+    pill("journal-macos", "journal for mac", "/releases/journal-macos"),
     pill("windows", "Windows", "/releases/windows"),
     pill("linux", "Linux", "/releases/linux"),
     pill("android", "Android", "/releases/android"),

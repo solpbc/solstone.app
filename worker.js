@@ -86,8 +86,9 @@ export default {
     // Windows installer permalink: resolve the current version from the live
     // Velopack feed and 302 to the constructed versioned Setup.exe on R2.
     // Velopack auto-update does NOT use this path; it reads
-    // updates.solstone.app/solstone-windows/releases.win.json directly.
-    if (url.pathname === "/download/windows" || url.pathname === "/download/windows.exe") {
+    // updates.solstone.app/solstone-windows/releases.win.json directly. The
+    // legacy /download/windows.exe alias 302s here too so old links keep working.
+    if (url.pathname === "/download/windows/latest" || url.pathname === "/download/windows.exe") {
       const setupUrl = await latestWindowsSetupUrl();
       if (!setupUrl) {
         return new Response("Latest Windows download is temporarily unavailable. Try again shortly.", {
@@ -96,6 +97,19 @@ export default {
         });
       }
       return Response.redirect(setupUrl, 302);
+    }
+
+    // Human-shareable URL: /download/windows is an HTML page (mirrors
+    // /download/macos) so link unfurlers get Open Graph tags and render a rich
+    // preview. The page auto-downloads via JS and shows a visible button; the
+    // binary itself lives at /download/windows/latest.
+    if (url.pathname === "/download/windows") {
+      const pageUrl = new URL(request.url);
+      pageUrl.pathname = "/download-windows";
+      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
+      const headers = new Headers(pageResponse.headers);
+      headers.set("Content-Type", "text/html; charset=utf-8");
+      return new Response(pageResponse.body, { status: 200, headers });
     }
 
     // The per-device get-sol page lives at /download (index of the /download/*

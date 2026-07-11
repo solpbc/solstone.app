@@ -7,8 +7,11 @@
     <link rel="icon" type="image/svg+xml" href="/static/sol-ring-icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/tokens.css">
+    <link rel="stylesheet" href="/static/base.css">
     <style>
-        /* Comfortaa loads via tokens.css (linked above) — no per-page @font-face. */
+        /* Comfortaa loads via tokens.css (linked above) — no per-page @font-face.
+           base.css supplies the shared sunrise ground (<body class="sunrise">) and
+           the footer spine; the rules below are this page's own layout. */
         * {
             margin: 0;
             padding: 0;
@@ -21,7 +24,6 @@
             align-items: center;
             justify-content: center;
             font-family: var(--font-body);
-            background: var(--cream);
         }
         h1 {
             font-family: var(--font-display);
@@ -110,7 +112,7 @@
         }
     </style>
 </head>
-<body>
+<body class="sunrise">
     <a href="#main" class="skip-link">skip to content</a>
     <header>
         <a href="/"><img src="/static/sol-wordmark.svg" alt="sol — solstone home" class="logo"></a>
@@ -121,10 +123,16 @@
         <nav class="links" aria-label="helpful links">
             <a href="/install">get started &rarr;</a>
             <a href="/download">get sol on your devices &rarr;</a>
+            <a href="https://support.solstone.app">support &rarr;</a>
             <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
             <a href="/">back to solstone.app &rarr;</a>
         </nav>
     </main>
-    <footer>&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your data stays on your device — never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <footer>
+        <nav class="footer-nav" aria-label="footer">
+            <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
+        </nav>
+        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal lives on your device — never sold, never shared. solstone is a trademark of sol pbc.</div>
+    </footer>
 </body>
 </html>

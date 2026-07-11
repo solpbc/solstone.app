@@ -2,7 +2,7 @@
 
 solstone is the platform, in two parts: sol — the app that lives on your devices, experiences your day with you, and keeps it all in your journal — the memory, on a computer you choose. open source, made by sol pbc.
 
-your data stays on your device. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, and any acquisition is conditional on the successor being legally bound to preserve the benefit purpose.
+your journal always lives on your device; how sol thinks is your choice — local by default. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, and any acquisition is conditional on the successor being legally bound to preserve the benefit purpose.
 
 ## install with a coding agent
 
@@ -35,7 +35,7 @@ journal setup
 
 the `journal` host lives in the `solstone-journal` package; the `sol` client lives in `solstone`. `pip install solstone-journal` exposes both natively (`sol` comes along as a dependency). `uv tool` and `pipx` isolate each tool to its own package, so you install both `solstone-journal` and `solstone` to put both `journal` and `sol` on your PATH.
 
-`solstone-journal` bundles everything your journal needs to run here — the default CPU transcription runtime is included and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install `solstone-journal-cuda` **instead of** `solstone-journal` (pick one — the CPU and GPU runtimes must not both install).
+`solstone-journal` bundles everything your journal needs to run here — the default CPU transcription runtime is included and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install `solstone-journal-cuda` **instead of** `solstone-journal` (pick one — the CPU and GPU runtimes must not both install). the same GPU powers local thinking — the default brain on capable hardware.
 
 want only the thin `sol` client — to talk to a journal running elsewhere (a second device, or a journal you reach over your private network)? install bare `solstone` (no extras), or run it ephemerally with `uvx`:
 
@@ -44,7 +44,20 @@ uv tool install solstone        # the sol client, on PATH
 uvx solstone --help             # or one-shot, no install
 ```
 
-then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and connecting a gemini API key. prefer OpenAI or Anthropic? choose the provider in Settings and it's set up for you — no separate command-line tool to install. see [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
+then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and choosing how sol thinks: local on this machine (the default when your hardware can), your own AI engine (bring a Claude, Gemini, or OpenAI token, or point sol at any OpenAI-compatible endpoint you run), or confidential processing (coming, scouts first). your journal stays on this machine whichever you choose. see [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
+
+### windows
+
+get sol for windows — it runs sol on your PC (screen and system audio, mic when present) and pairs with a journal running on your mac or linux machine. the journal host runs on mac and linux today, so keep your journal on one of those and pair windows to it. two ways to install:
+
+- **signed installer:** download from [solstone.app/download/windows](https://solstone.app/download/windows) and run it — installs per-user in the tray, no admin needed, and updates itself.
+- **scoop:** `scoop bucket add solstone https://github.com/solpbc/scoop-solstone` then `scoop install solstone` (run `scoop update solstone` to update).
+
+signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.
+
+<!-- winget STAGED — do not publish until winget PR microsoft/winget-pkgs#392222 merges (ghwatch ghw_3fef53f9 flips it):
+- **winget:** `winget install solstone`
+-->
 
 ## migrating from a pre-split install
 

@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>download solstone for macOS</title>
-    <meta name="description" content="download solstone for macOS — sol lives on your Mac, experiences your day with you, and keeps it all in your journal. nothing to connect, no services to authorize. open source, self-hostable.">
-    <meta property="og:title" content="download solstone for macOS">
-    <meta property="og:description" content="sol lives on your Mac, experiences your day with you, and keeps it all in your journal. nothing to connect, no services to authorize. download the macOS app.">
-    <meta property="og:url" content="https://solstone.app/download/macos">
+    <title>download solstone for windows</title>
+    <meta name="description" content="download solstone for windows — sol runs on your PC, takes in your screen and system audio, and keeps it all in your journal. pairs with a journal running on your mac or linux machine. open source, self-hostable.">
+    <meta property="og:title" content="download solstone for windows">
+    <meta property="og:description" content="sol runs on your PC, takes in your screen and system audio, and keeps everything in your journal — pairs with a journal on your mac or linux machine. download the windows app (beta).">
+    <meta property="og:url" content="https://solstone.app/download/windows">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="https://solstone.app/download/macos">
+    <link rel="canonical" href="https://solstone.app/download/windows">
     <link rel="icon" type="image/svg+xml" href="/static/sol-ring-icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/tokens.css">
@@ -21,7 +21,8 @@
     <style>
         /* Comfortaa loads via tokens.css (linked above) — no per-page @font-face.
            base.css supplies the shared sunrise ground (<body class="sunrise">) and
-           the footer spine; the rules below are this page's own layout. */
+           the footer spine; the rules below are this page's own layout (mirrors
+           download-macos.html). */
         * {
             margin: 0;
             padding: 0;
@@ -60,24 +61,40 @@
             line-height: 1.6;
             color: var(--ink-soft);
             text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .journal-note {
+            max-width: 480px;
+            width: 90vw;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--ink-faint);
+            text-align: center;
             margin-bottom: 2.25rem;
+        }
+        .journal-note a {
+            color: var(--ink-faint);
+            text-decoration: underline;
+        }
+        .journal-note a:hover {
+            color: var(--orange-ink);
         }
         .download-btn {
             display: inline-block;
             font-family: var(--font-display);
             font-size: 1.05rem;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: lowercase;
             letter-spacing: 0.03em;
             color: var(--ink);
-            background: var(--orange);
+            background: linear-gradient(135deg, #FFCF33 0%, #E8923A 100%);
             padding: 0.85rem 2rem;
             border-radius: 8px;
             transition: background 0.15s;
         }
         .download-btn:hover {
-            background: var(--orange-ink);
-            color: var(--paper);
+            background: linear-gradient(135deg, #F2BF2B 0%, #DB8330 100%);
+            color: var(--ink);
         }
         .fallback {
             margin-top: 1.5rem;
@@ -91,6 +108,15 @@
         }
         .fallback a:hover {
             color: var(--orange-ink);
+        }
+        .smartscreen-note {
+            max-width: 480px;
+            width: 90vw;
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: var(--ink-faint);
+            text-align: center;
+            margin-top: 1.5rem;
         }
         .links {
             margin-top: 2.5rem;
@@ -115,7 +141,7 @@
             font-size: 0.85rem;
             color: var(--ink-faint);
             text-align: center;
-            max-width: 520px;
+            max-width: 560px;
             width: 90vw;
             line-height: 1.6;
         }
@@ -125,37 +151,6 @@
         footer a:hover {
             text-decoration: underline;
         }
-        /* --- accessibility --- */
-        .skip-link {
-            position: absolute;
-            top: -3rem;
-            left: 0.5rem;
-            z-index: 1000;
-            background: var(--ink);
-            color: var(--ink-on-dark);
-            font-family: var(--font-display);
-            font-size: 0.9rem;
-            padding: 0.6rem 1rem;
-            border-radius: 0 0 6px 6px;
-            text-decoration: none;
-            transition: top 0.15s;
-        }
-        .skip-link:focus {
-            top: 0;
-        }
-        :focus-visible {
-            outline: 2px solid var(--focus);
-            outline-offset: 2px;
-        }
-        main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-        main:focus {
-            outline: none;
-        }
     </style>
 </head>
 <body class="sunrise">
@@ -164,15 +159,15 @@
         <a href="/"><img src="/static/sol-wordmark.svg" alt="sol — solstone home" class="logo"></a>
     </header>
     <main id="main" tabindex="-1">
-        <h1>download solstone for macOS</h1>
-        <!-- install copy reflects CURRENT packaging (one download sets up sol + journal);
-             revise to the educational sol / journal / both surface when Track B ships. -->
-        <p class="message">your download should start automatically. it sets up sol and your journal on this Mac, then the first-run wizard asks how sol should think — everything stays on your device unless you choose otherwise.</p>
-        <a href="/download/macos/latest" class="download-btn" id="dl">download for macOS</a>
-        <p class="fallback">didn't start? <a href="/download/macos/latest">click here to download</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
+        <h1>download solstone for windows</h1>
+        <p class="message">your download should start automatically. the installer sets up sol on this PC — sol pairs with your journal and keeps everything it takes in there.</p>
+        <p class="journal-note">sol for windows pairs with a journal — the memory — running on your mac or linux machine. don't have a journal yet? <a href="/install">start at solstone.app/install</a>.</p>
+        <a href="/download/windows/latest" class="download-btn" id="dl">download for windows</a>
+        <p class="fallback">didn't start? <a href="/download/windows/latest">click here to download</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
+        <p class="smartscreen-note">signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.</p>
         <nav class="links" aria-label="more">
-            <a href="/releases/macos">what's new in this version &rarr;</a>
-            <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
+            <a href="/releases/windows">what's new in this version &rarr;</a>
+            <a href="https://github.com/solpbc/solstone-windows">source code on github &rarr;</a>
             <a href="/">back to solstone.app &rarr;</a>
         </nav>
     </main>
@@ -187,7 +182,7 @@
         // fallback (browsers can block scripted navigation). Crawlers/unfurlers
         // don't run JS — they read the Open Graph tags above and render a card.
         setTimeout(function () {
-            window.location.href = '/download/macos/latest';
+            window.location.href = '/download/windows/latest';
         }, 600);
     </script>
 </body>

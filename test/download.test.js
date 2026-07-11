@@ -78,7 +78,10 @@ test("macOS download redirects to the latest dmg enclosure", async (t) => {
   }
 });
 
-const WINDOWS_PATHS = ["/download/windows", "/download/windows.exe"];
+// /download/windows is now the human-shareable HTML page (mirrors /download/macos);
+// the binary permalink moved to /download/windows/latest, with the legacy
+// /download/windows.exe alias still 302ing to the installer.
+const WINDOWS_PATHS = ["/download/windows/latest", "/download/windows.exe"];
 const WIN_UNAVAILABLE_MESSAGE = "Latest Windows download is temporarily unavailable. Try again shortly.";
 
 async function assertWinUnavailableResponse(res) {
@@ -205,4 +208,23 @@ test("Windows download redirects to a full asset version without notes", async (
     assert.equal(res.status, 302);
     assert.equal(res.headers.get("location"), setup);
   }
+});
+
+test("/download/windows serves the HTML page (200, text/html), never the binary", async () => {
+  // Mirrors /download/macos: the human-shareable URL renders the asset page so
+  // link unfurlers get Open Graph tags; the binary lives at /download/windows/latest.
+  const env = {
+    ASSETS: {
+      async fetch(req) {
+        assert.equal(new URL(req.url).pathname, "/download-windows");
+        return new Response("<h1>download solstone for windows</h1>", {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      },
+    },
+  };
+  const res = await worker.fetch(new Request("https://solstone.app/download/windows"), env);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("content-type"), "text/html; charset=utf-8");
 });

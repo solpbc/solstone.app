@@ -24,8 +24,8 @@
       "description": "solstone: sol keeps a journal of what you see and hear — an open source, local-first memory the agents you use can work from. Runs on your own devices. Your journal is always private, only yours.",
       "url": "https://solstone.app",
       "applicationCategory": "LifestyleApplication",
-      "operatingSystem": "Linux, macOS",
-      "softwareRequirements": "Python 3.10+, git, ffmpeg, uv",
+      "operatingSystem": "Linux, macOS, Windows",
+      "softwareRequirements": "uv, ripgrep",
       "installUrl": "https://solstone.app/install",
       "downloadUrl": "https://github.com/solpbc/solstone-journal",
       "codeRepository": "https://github.com/solpbc/solstone-journal",
@@ -136,7 +136,7 @@
         }
     </style>
 </head>
-<body>
+<body class="sunrise">
     <a href="#main" class="skip-link">skip to content</a>
     <header>
         <a href="/"><img src="static/sol-wordmark.svg" alt="sol — solstone home" class="logo"></a>
@@ -147,13 +147,18 @@
         <p class="tagline">sol and your journal, all yours: sol lives on your devices, experiences your day with you, and keeps it all in your journal — the memory your agents can finally read. open source, local-first. your journal is always private, only yours.</p>
         <p class="beat">every agent you run inherits nothing. every session starts cold. your journal changes that: your projects, the people, what you decided last time — context your agents can work from. none of it leaves your control.</p>
         <p class="beat" style="font-size: 0.9rem;">solstone is the platform. <strong>sol</strong> is the app. <strong>the journal</strong> is the memory it keeps.</p>
-        <p class="trust">open source and yours. all processing on your device. sol pbc can never sell your data, and any future acquisition is conditional on the successor being legally bound to preserve the same protections. these aren't promises; they're irrevocable covenants in the <a href="https://solpbc.org/articles" style="color:var(--ink-faint);">articles of incorporation</a>.</p>
+        <p class="trust">open source and yours. your journal always lives on your device, and how sol thinks is your choice — local by default. sol pbc can never sell your data, and any future acquisition is conditional on the successor being legally bound to preserve the same protections. these aren't promises; they're irrevocable covenants in the <a href="https://solpbc.org/articles" style="color:var(--ink-faint);">articles of incorporation</a>.</p>
         <p class="early-days"><span class="stage-label">early days.</span> solstone is open source and hands-on, so expect time in the terminal and a few rough edges as we build.</p>
         <nav class="cta-nav" aria-label="get started">
             <a href="/install" class="cta cta-primary">get started →</a>
             <a href="/download" class="cta">get sol on every device →</a>
         </nav>
     </main>
-    <footer>© 2026 <a href="https://solpbc.org">sol pbc</a> · <a href="/releases">releases</a> · your data stays on your device, never sold, never shared. solstone is a trademark of sol pbc.</footer>
+    <footer>
+        <nav class="footer-nav" aria-label="footer">
+            <a href="/install">get started</a> · <a href="/download">download</a> · <a href="/releases">releases</a> · <a href="https://services.solstone.app">services</a> · <a href="https://support.solstone.app">support</a>
+        </nav>
+        <div class="footer-covenant">© 2026 <a href="https://solpbc.org">sol pbc</a> · your journal lives on your device — never sold, never shared. solstone is a trademark of sol pbc.</div>
+    </footer>
 </body>
 </html>

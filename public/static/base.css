@@ -41,6 +41,40 @@ footer a {
 footer a:hover {
     text-decoration: underline;
 }
+/* ── shared footer spine (every solstone.app page) ────────────────────────────
+   Two quiet rows: a nav row + the covenant row. One definition here; every page
+   that links base.css renders the identical spine. */
+.footer-nav {
+    margin-bottom: 0.55rem;
+}
+.footer-covenant {
+    max-width: 600px;
+    width: 90vw;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+/* ── the sunrise-gradient ground (founder-ratified 2026-07-03) ────────────────
+   canon: cmo/brand/sol/index.md § the sunrise-gradient ground;
+   decision: records/decisions/260703-cmo-solstone-app-sunrise-gradient-ground.md.
+   Opt-in per page via <body class="sunrise"> so the release-history template
+   (its own layout) is unaffected. The flat cream field retires as a page ground
+   on sunrise pages; cards go paper white and hairlines lighten to sit on the
+   gradient (the token overrides below cascade to every descendant of body). */
+body.sunrise {
+    --cream:        #FEFCF8;
+    --cream-bright: #FFFFFF;
+    --hairline:     #F0E8D8;
+    --hairline-2:   #E6DCC6;
+    background:
+        radial-gradient(ellipse 900px 420px at 50% -140px,
+            rgba(255, 207, 51, 0.30) 0%,
+            rgba(255, 207, 51, 0) 70%),
+        linear-gradient(180deg,
+            #FFF3CF 0%,
+            #FCF3E0 24%,
+            #FEFCF8 58%,
+            #FFFFFF 100%);
+}
 @media (max-width: 640px) {
     h1 {
         font-size: 1.5rem;

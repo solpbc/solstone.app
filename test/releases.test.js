@@ -186,9 +186,14 @@ test("renderReleasesPage renders graceful fallback inside full chrome", () => {
   assert.match(html, /release notes are temporarily unavailable/);
   assert.match(html, /<title>journal releases — solstone<\/title>/);
   assert.match(html, /https:\/\/github\.com\/solpbc\/solstone-journal\/releases/);
+  // shared footer spine: a nav row + the covenant row (matches every solstone.app page)
   assert.match(
     html,
-    /<footer>&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; <a href="\/releases">releases<\/a> &middot; your data stays on your device — never sold, never shared\. solstone is a trademark of sol pbc\.<\/footer>/,
+    /<nav class="footer-nav" aria-label="footer">[\s\S]*?<a href="\/install">get started<\/a>[\s\S]*?<a href="https:\/\/support\.solstone\.app">support<\/a>[\s\S]*?<\/nav>/,
+  );
+  assert.match(
+    html,
+    /<div class="footer-covenant">&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; your journal lives on your device — never sold, never shared\. solstone is a trademark of sol pbc\.<\/div>/,
   );
 });
 

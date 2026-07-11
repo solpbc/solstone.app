@@ -1,18 +1,18 @@
 # solstone
 
-> solstone is an open source, local-first platform in two parts: sol — the app that lives on your devices, experiences your day with you, and keeps it all in your journal — and the journal, the memory the agents you use can work from. your journal is always private, only yours. made by sol pbc, a public benefit corporation with irrevocable data covenants — customer data can never be sold, and any acquisition must preserve the same protections. macOS installs through the signed app; on linux, install the journal host with `uv tool install solstone-journal && uv tool install solstone` (or `pip install solstone-journal`, which puts both on PATH in one step). the bare `solstone` package (`uv tool install solstone`, or `uvx solstone`) is the thin `sol` client for talking to a journal running elsewhere.
+> solstone is an open source, local-first platform in two parts: sol — the app that lives on your devices, experiences your day with you, and keeps it all in your journal — and the journal, the memory the agents you use can work from. your journal is always private, only yours. made by sol pbc, a public benefit corporation with irrevocable data covenants — customer data can never be sold, and any acquisition must preserve the same protections. the journal always lives on your device; how sol thinks is the owner's choice — local by default on capable hardware, a bring-your-own AI engine, or confidential processing (coming, scouts first) operated by sol pbc. macOS installs through the signed app; on linux, install the journal host with `uv tool install solstone-journal && uv tool install solstone` (or `pip install solstone-journal`, which puts both on PATH in one step). the bare `solstone` package (`uv tool install solstone`, or `uvx solstone`) is the thin `sol` client for talking to a journal running elsewhere.
 
 sol runs quietly in the background, taking in your screen and audio along with you and keeping it all in your journal. AI transcribes conversations, surfaces entities (people, companies, projects), detects meetings, builds knowledge graphs, and surfaces daily insights. everything is stored in daily journal directories on your filesystem. the web interface provides full-text search, transcript browsing, entity browsing, AI chat, and calendar views.
 
-the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the company's founding documents contain irrevocable covenants: customer data can never be sold or shared, and any acquisition is conditional on the successor preserving the benefit purpose and assuming covenants no less protective than Article 8. the code is open source — every claim is verifiable.
+the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the company's founding documents contain irrevocable covenants: customer data can never be sold, licensed, sublicensed, or leased, and any acquisition is conditional on the successor preserving the benefit purpose and assuming covenants no less protective than Article 8. the code is open source — every claim is verifiable.
 
 ## Docs
 
 - [Get started](https://solstone.app/install): Human-friendly install page with copy-for-your-agent instructions. For raw agent-only instructions, use [install.md](https://solstone.app/install.md).
 - [README](https://github.com/solpbc/solstone-journal/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
-- [Get sol on your devices](https://solstone.app/download): sol for macOS, Linux, and tmux — pick your platform and copy the prompt for your agent
+- [Get sol on your devices](https://solstone.app/download): sol for macOS, Linux, Windows (beta), and tmux — pick your platform and copy the prompt for your agent
 - [Journal structure](https://github.com/solpbc/solstone-journal/blob/main/docs/JOURNAL.md): Data model and daily directory layout
-- [AI providers](https://github.com/solpbc/solstone-journal/blob/main/docs/PROVIDERS.md): Configuring Google Gemini, OpenAI, and Anthropic backends
+- [AI providers](https://github.com/solpbc/solstone-journal/blob/main/docs/PROVIDERS.md): Thinking setup: local by default, bring-your-own engine or endpoint, confidential processing
 - [Web interface](https://github.com/solpbc/solstone-journal/blob/main/docs/CONVEY.md): The 17-app web UI for browsing journal data
 - [Troubleshooting](https://github.com/solpbc/solstone-journal/blob/main/docs/DOCTOR.md): Diagnostics and common issues
 
