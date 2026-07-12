@@ -291,8 +291,7 @@ async function readForm(req) {
   }
 }
 
-export default {
-  async fetch(req, env, ctx) {
+async function routeRequest(req, env, ctx) {
     const url = new URL(req.url);
     const parts = url.pathname.split('/');
     const db = env.DB;
@@ -943,6 +942,16 @@ export default {
       console.error('account portal request failed');
       return html(renderError(), { status: 500 });
     }
+}
+
+export default {
+  async fetch(req, env, ctx) {
+    const isHead = req.method === 'HEAD';
+    const response = await routeRequest(isHead ? new Request(req, { method: 'GET' }) : req, env, ctx);
+    if (isHead) {
+      return new Response(null, { status: response.status, statusText: response.statusText, headers: response.headers });
+    }
+    return response;
   },
   async scheduled(event, env, ctx) {
     if (event.cron === SWEEP_CRON) {
