@@ -93,7 +93,54 @@ describe('/enable/spp', () => {
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
   });
 
-  it('renders early access without an enrollment affordance for non-scouts', async () => {
+  it('creates a content-free early-access handoff and refusal audit for a non-scout with an instance', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(new Request(sppUrl({ instance: VALID_INSTANCE }), {
+      headers: { Cookie: session.cookie },
+    }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('confidential processing is coming');
+    await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
+    await expect(rowCount('service_handoffs')).resolves.toBe(1);
+    await expect(rowCount('spp_mint_audit')).resolves.toBe(1);
+    await expect(sppMintAuditRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
+      scope: 'inference',
+      outcome: 'refused_entitlement',
+    });
+    await expect(rowCount('spp_bindings')).resolves.toBe(0);
+    await expect(entitlementRow(account.accountId)).resolves.toBeNull();
+  });
+
+  it('returns a non-scout early-access handoff once through the polling endpoint', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const enable = await worker.fetch(new Request(sppUrl({ instance: VALID_INSTANCE }), {
+      headers: { Cookie: session.cookie },
+    }), testEnv);
+    const first = await worker.fetch(
+      new Request(`https://services.solstone.app/handoff/spp?nonce=${VALID_NONCE}`),
+      testEnv
+    );
+    const second = await worker.fetch(
+      new Request(`https://services.solstone.app/handoff/spp?nonce=${VALID_NONCE}`),
+      testEnv
+    );
+
+    expect(enable.status).toBe(200);
+    expect(first.status).toBe(200);
+    await expect(first.json()).resolves.toEqual({ state: 'early_access' });
+    expect(second.status).toBe(410);
+    await expect(second.json()).resolves.toEqual({ error: 'gone' });
+  });
+
+  it('renders early access without an enrollment affordance or audit when no instance is present', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -106,6 +153,87 @@ describe('/enable/spp', () => {
     expect(body).toContain('confidential processing is coming');
     expect(body).not.toContain('action="/enable/spp/confirm"');
     expect(body).not.toContain('name="action"');
+    await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
+    await expect(rowCount('service_handoffs')).resolves.toBe(1);
+    await expect(rowCount('spp_mint_audit')).resolves.toBe(0);
+  });
+
+  it('keeps repeated non-scout GETs idempotent', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const request = () => new Request(sppUrl({ instance: VALID_INSTANCE }), {
+      headers: { Cookie: session.cookie },
+    });
+
+    const first = await worker.fetch(request(), testEnv);
+    const second = await worker.fetch(request(), testEnv);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    await expect(rowCount('service_handoffs')).resolves.toBe(1);
+    await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
+    await expect(rowCount('spp_mint_audit')).resolves.toBe(1);
+    await expect(rowCount('spp_bindings')).resolves.toBe(0);
+    await expect(entitlementRow(account.accountId)).resolves.toBeNull();
+  });
+
+  it('fails closed without a handoff or audit when early-access encryption fails', async () => {
+    const testEnv = makeTestEnv();
+    const brokenEnv = makeTestEnv({ ENCRYPTION_SECRET: 'AAAA' });
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(new Request(sppUrl({ instance: VALID_INSTANCE }), {
+      headers: { Cookie: session.cookie },
+    }), brokenEnv);
+
+    expect(response.status).toBe(503);
+    await expect(rowCount('service_handoffs')).resolves.toBe(0);
+    await expect(rowCount('spp_mint_audit')).resolves.toBe(0);
+  });
+
+  it('treats a duplicate non-scout handoff as success without overwriting or re-auditing', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const sentinel = { state: 'sentinel', marker: 'pre-existing' };
+    await insertSppHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: sentinel });
+
+    const response = await worker.fetch(new Request(sppUrl({ instance: VALID_INSTANCE }), {
+      headers: { Cookie: session.cookie },
+    }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('confidential processing is coming');
+    await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual(sentinel);
+    await expect(rowCount('service_handoffs')).resolves.toBe(1);
+    await expect(rowCount('spp_mint_audit')).resolves.toBe(0);
+    await expect(rowCount('spp_bindings')).resolves.toBe(0);
+  });
+
+  it('keeps the non-scout early-access handoff content-free and out of logs', async () => {
+    const spy = installConsoleSpy();
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    try {
+      const response = await worker.fetch(new Request(sppUrl({ instance: VALID_INSTANCE }), {
+        headers: { Cookie: session.cookie },
+      }), testEnv);
+      const row = await serviceHandoffRow(VALID_NONCE, testEnv);
+      const payload = await decryptedHandoff(VALID_NONCE, testEnv);
+      const serialized = JSON.stringify(payload);
+
+      expect(response.status).toBe(200);
+      expect(payload).toEqual({ state: 'early_access' });
+      expect(serialized).not.toContain(account.accountId);
+      expect(serialized).not.toContain(VALID_INSTANCE);
+      spy.assertNoSecrets([VALID_NONCE, row.payload_encrypted]);
+    } finally {
+      spy.restore();
+    }
   });
 
   for (const status of ['pending', 'revoked']) {
@@ -115,7 +243,7 @@ describe('/enable/spp', () => {
       const session = await seedSession(account.accountId, { testEnv });
       await seedScoutApplication({ accountId: account.accountId, status });
 
-      const response = await worker.fetch(new Request(sppUrl(), {
+      const response = await worker.fetch(new Request(sppUrl({ instance: VALID_INSTANCE }), {
         headers: { Cookie: session.cookie },
       }), testEnv);
       const body = await response.text();
@@ -124,6 +252,12 @@ describe('/enable/spp', () => {
       expect(body).toContain('confidential processing is coming');
       expect(body).not.toContain('action="/enable/spp/confirm"');
       expect(body).not.toContain('name="action"');
+      await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
+      await expect(rowCount('spp_mint_audit')).resolves.toBe(1);
+      await expect(sppMintAuditRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
+        scope: 'inference',
+        outcome: 'refused_entitlement',
+      });
     });
   }
 
@@ -246,7 +380,7 @@ describe('/enable/spp', () => {
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual(sentinel);
   });
 
-  it('refuses non-scout issuance without minting a credential, binding, or handoff', async () => {
+  it('refuses non-scout issuance with a content-free early-access handoff, no credential or binding', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -257,9 +391,9 @@ describe('/enable/spp', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('confidential processing is coming');
     expect(body).not.toContain('credential');
-    await expect(serviceHandoffRow(VALID_NONCE, testEnv)).resolves.toBeNull();
+    await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
     await expect(rowCount('spp_bindings')).resolves.toBe(0);
-    await expect(rowCount('service_handoffs')).resolves.toBe(0);
+    await expect(rowCount('service_handoffs')).resolves.toBe(1);
     await expect(rowCount('spp_mint_audit')).resolves.toBe(1);
     await expect(sppMintAuditRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
       scope: 'inference',

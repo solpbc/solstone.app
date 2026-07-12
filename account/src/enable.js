@@ -647,6 +647,29 @@ export async function handleHandoffSpb(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
+async function refuseSppToEarlyAccess({ env, nonce, accountId, instance, nowMs }) {
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  let inserted;
+  try {
+    const payloadEncrypted = await encryptEmail(JSON.stringify({ state: 'early_access' }), env);
+    inserted = await insertServiceHandoff(env.DB, {
+      handoffHash,
+      accountId,
+      service: 'spp',
+      payloadEncrypted,
+      createdAt: nowMs,
+      expiresAt: nowMs + HANDOFF_TTL_MS,
+    });
+  } catch {
+    return sppError(503);
+  }
+  // A duplicate is an idempotent refusal; audit only a fresh, instance-scoped handoff.
+  if (inserted.ok && instance) {
+    await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'refused_entitlement', nowMs });
+  }
+  return noStoreHtml(renderEnableSppEarlyAccess());
+}
+
 export async function handleEnableSppGet(req, env) {
   const url = new URL(req.url);
   const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
@@ -658,7 +681,9 @@ export async function handleEnableSppGet(req, env) {
   if (!session) return signInRedirect(env, ENABLE_SPP_PATH, resumeQuery);
 
   const scout = await getScoutApplicationStatusByAccount(env.DB, { accountId: session.account_id });
-  if (scout?.status !== 'approved') return noStoreHtml(renderEnableSppEarlyAccess());
+  if (scout?.status !== 'approved') {
+    return refuseSppToEarlyAccess({ env, nonce, accountId: session.account_id, instance, nowMs: Date.now() });
+  }
 
   const csrf = await csrfToken(env);
   return noStoreHtml(renderEnableSppConsent({ csrf, nonce, instance }));
@@ -697,12 +722,11 @@ export async function handleEnableSppConfirm(req, env, ctx) {
   const accountId = session.account_id;
 
   // Scout gate: re-read status at the head of the issuance branch. Only an approved
-  // scout obtains a credential; a non-scout records a content-free refusal and never
-  // reaches the mint — no token, no binding, no handoff.
+  // scout obtains a credential; a non-scout records a content-free terminal refusal
+  // and never reaches the mint — no token or binding.
   const scout = await getScoutApplicationStatusByAccount(env.DB, { accountId });
   if (scout?.status !== 'approved') {
-    await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'refused_entitlement', nowMs });
-    return noStoreHtml(renderEnableSppEarlyAccess());
+    return refuseSppToEarlyAccess({ env, nonce, accountId, instance, nowMs });
   }
 
   const token = generateSessionToken();
