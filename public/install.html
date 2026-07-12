@@ -305,7 +305,8 @@
             line-height: 1.4;
         }
         .platform-prereq code,
-        .install-finish code {
+        .install-finish code,
+        .card .subtitle code {
             font-family: var(--font-mono);
             font-size: 0.84em;
             background: var(--orange-wash);
@@ -507,6 +508,13 @@
                 <text x="420" y="352" text-anchor="middle" font-size="10" class="dg-meta">transcription · vision · search · dashboard</text>
                 <text x="420" y="408" text-anchor="middle" font-size="11" class="dg-meta">your journal is always private, only yours</text>
             </svg>
+        </div>
+    </div>
+
+    <h2 class="install-section-title">your journal is just files</h2>
+    <div class="cards">
+        <div class="card">
+            <p class="subtitle">open it and it's dated folders of plain markdown, json, and your own raw audio and screen captures (if you opt to preserve them after processing). you can <code>cat</code> it, <code>grep</code> it, put it in <code>git</code>, and back it up like any other folder. no proprietary format, no schema only we can read, nothing locked inside a database. the only database is a search index, and it's disposable: delete it and it rebuilds itself from the files. the files are the memory. everything else is derived. that's what "owned by you" has to mean to be real.</p>
         </div>
     </div>
 
