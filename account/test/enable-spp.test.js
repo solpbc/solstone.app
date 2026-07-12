@@ -199,14 +199,17 @@ describe('/enable/spp', () => {
     const session = await seedSession(account.accountId, { testEnv });
     const sentinel = { state: 'sentinel', marker: 'pre-existing' };
     await insertSppHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: sentinel });
+    const preparedSql = [];
+    const recordingEnv = recordPreparedSql(testEnv, preparedSql);
 
     const response = await worker.fetch(new Request(sppUrl({ instance: VALID_INSTANCE }), {
       headers: { Cookie: session.cookie },
-    }), testEnv);
+    }), recordingEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
     expect(body).toContain('confidential processing is coming');
+    expect(preparedSql.some((sql) => /INSERT INTO service_handoffs/i.test(sql))).toBe(true);
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual(sentinel);
     await expect(rowCount('service_handoffs')).resolves.toBe(1);
     await expect(rowCount('spp_mint_audit')).resolves.toBe(0);
@@ -515,6 +518,18 @@ async function insertSppHandoff({ testEnv, accountId, nonce, payload }) {
       nowMs + 60_000
     )
     .run();
+}
+
+function recordPreparedSql(testEnv, sink) {
+  return {
+    ...testEnv,
+    DB: {
+      prepare(sql) {
+        sink.push(sql);
+        return testEnv.DB.prepare(sql);
+      },
+    },
+  };
 }
 
 async function sppBindingRow(accountId, instanceId) {
