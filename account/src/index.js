@@ -91,7 +91,6 @@ import {
   renderNotificationsLanding,
   renderPrivateNetworkLanding,
   renderScoutLanding,
-  renderSealedContainerLanding,
   renderServicesCatalog,
   renderServicesSpp,
   renderTerms,
@@ -168,6 +167,8 @@ const LEGACY_REDIRECTS = [
   { method: 'GET', from: '/services/scout', to: '/scout' },
   { method: 'GET', from: '/services/devices', to: '/devices' },
   { method: 'GET', from: '/services/spl', to: '/private-network' },
+  // retired service (spc mothballed 2026-07-12) — not a rename; land old links on the catalog
+  { method: 'GET', from: '/sealed-container', to: '/' },
   { method: 'POST', from: '/settings/sessions/revoke-others', to: '/sign-in/sessions/revoke-others' },
   { method: 'POST', from: '/settings/emails/add', to: '/sign-in/emails/add' },
   { method: 'POST', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
@@ -559,10 +560,6 @@ export default {
 
       if (url.pathname === '/notifications' && req.method === 'GET') {
         return html(renderNotificationsLanding());
-      }
-
-      if (url.pathname === '/sealed-container' && req.method === 'GET') {
-        return html(renderSealedContainerLanding());
       }
 
       if (parts.length === 2 && parts[1] === 'sign-in' && req.method === 'GET') {

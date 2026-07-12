@@ -40,18 +40,6 @@ describe('service landing pages', () => {
     expect(body).not.toMatch(/class="btn/);
   });
 
-  it('renders the sealed container landing page without a CTA button', async () => {
-    const response = await get('/sealed-container', makeTestEnv());
-    const body = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(body).toContain('<h1>sealed container</h1>');
-    expect(body).toContain('<span class="tag soon">coming soon</span>');
-    expect(body).toContain('this isn’t available yet. pricing at launch.');
-    expect(body).not.toMatch(/class="btn/);
-    expect(body).not.toContain('notify');
-  });
-
   it('renders the confidential processing landing page without a CTA button', async () => {
     const response = await get('/confidential-processing', makeTestEnv());
     const body = await response.text();

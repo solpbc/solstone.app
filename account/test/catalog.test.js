@@ -21,7 +21,7 @@ describe('services catalog', () => {
     expect(response.status).toBe(200);
     expect(response.status).toBeLessThan(300);
     expect(body).toContain('solstone services');
-    for (const name of ['private network', 'encrypted backup', 'notifications', 'sealed container', 'confidential processing', 'scout']) {
+    for (const name of ['private network', 'encrypted backup', 'notifications', 'confidential processing', 'scout']) {
       expect(body).toContain(name);
     }
     expect(body).toContain('$20');
@@ -33,6 +33,21 @@ describe('services catalog', () => {
     expect(body).toContain('no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on');
     expect(body).toContain('href="/transparency"');
     expect(body).not.toContain('action="/signin/start"');
+  });
+
+  it('omits the retired sealed container from public and signed-in catalogs', async () => {
+    const testEnv = makeTestEnv();
+    const publicResponse = await worker.fetch(new Request('https://services.solstone.app/'), testEnv);
+    const publicBody = await publicResponse.text();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const signedInResponse = await worker.fetch(catalogRequest(session.cookie), testEnv);
+    const signedInBody = await signedInResponse.text();
+
+    for (const body of [publicBody, signedInBody]) {
+      expect(body).not.toContain('sealed container');
+      expect(body).not.toContain('/sealed-container');
+    }
   });
 
   it('renders the signed-in catalog with no-store, account rows, and active service signals', async () => {

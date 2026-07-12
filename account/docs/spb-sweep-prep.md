@@ -258,7 +258,7 @@ Simplest robust approach for these narrow S3 XML shapes:
 - `GET /private-network`: `account/src/index.js:457-461`.
 - `GET /backup`: `account/src/index.js:463-465`.
 - `GET /notifications`: `account/src/index.js:467-469`.
-- `GET /sealed-container`: `account/src/index.js:471-473`.
+- `GET /sealed-container`: retired (spc mothballed 2026-07-12); 302-redirects to `/` via `LEGACY_REDIRECTS` in `account/src/index.js`.
 - `GET /sign-in`: `account/src/index.js:475-477`.
 - `GET /sign-in/emails`: `account/src/index.js:479-486`.
 - `POST /sign-in/emails/add`: `account/src/index.js:488-496`.

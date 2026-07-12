@@ -579,7 +579,6 @@ ${BRANDLOCK}
   ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'let sol reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
-  ${row('/sealed-container', IC_VAULT, 'sealed container', 'your whole journal, run for you inside a sealed box even sol pbc can’t see into.', '<span class="tag soon">coming</span>')}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag soon">coming</span>')}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'join the alpha. we set you up with a Gemini key on your device.', '<span class="tag free">free</span>')}
 </div>
@@ -620,7 +619,6 @@ ${welcomePanel}
   ${row('/private-network', IC_NET, 'private network', 'your private network: reach your journal from anywhere.', networkPill)}
   ${row('/services/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters, built in.', notifPill)}
-  ${row('/sealed-container', IC_VAULT, 'sealed container', 'your journal in a sealed box.', '<span class="tag soon">coming</span>')}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'sol’s thinking, off your device on confidential hardware.', sppPill)}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'a Gemini key on your device.', scoutPill)}
 </div>
@@ -697,27 +695,6 @@ ${BRANDLOCK}
 </div>
 <div class="card">
   <div class="statusline"><span class="tag builtin">built in</span> <span>turn on notifications on each device you want to hear from.</span></div>
-</div>
-<p class="disclosure"><a href="/terms">terms</a></p>`,
-  });
-}
-
-export function renderSealedContainerLanding() {
-  return layout({
-    title: 'sealed container',
-    body: brandbarSignin()
-      + `\n<a class="back" href="/">${BACK_SVG} services</a>
-<h1>sealed container</h1>
-<p class="hero-tag">your journal, in a sealed box</p>
-<p class="lead">your whole journal, run for you inside a per-owner sealed container that even sol pbc can’t see into.</p>
-${BRANDLOCK}
-<div class="card">
-  ${beat(IC_VAULT, 'the whole journal, run for you', 'not just a copy or a way in: your entire journal runs inside the sealed container, so you don’t have to run anything yourself.')}
-  ${beat(IC_NET, 'hardware-sealed', 'it runs inside a hardware-attested AMD SEV-SNP container. sol pbc operates the box but cannot open it.')}
-  ${beat(IC_GLOBE, 'mathematical, not contractual', 'you can verify your own enclave. the privacy is enforced by hardware, not promised by policy.')}
-</div>
-<div class="card">
-  <div class="statusline"><span class="tag soon">coming soon</span><span>this isn’t available yet. pricing at launch.</span></div>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });

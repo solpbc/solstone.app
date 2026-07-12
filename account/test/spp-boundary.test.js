@@ -16,8 +16,9 @@ import {
 } from './helpers.js';
 
 const BANNED = [
-  // CLO #28(a): spp is shared + operated + processes plaintext transiently — never the
-  // sealed-container "can't-see-in" claim (that is a separate, legitimate service).
+  // CLO #28(a): sealed container (spc) was mothballed 2026-07-12, but the ban still stands —
+  // spp is shared, operated infrastructure that processes plaintext transiently, so it may never
+  // make the can't-see-in claim.
   'sealed engine',
   'sealed',
   "not sol pbc's to read",
