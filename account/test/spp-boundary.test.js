@@ -15,6 +15,12 @@ import {
   seedSession,
 } from './helpers.js';
 
+// CLO req_he4p6cvo (2026-07-13): the only admitted use of "premium" is this exact locked
+// negation from the /data model paragraph. It is stripped before the BANNED scan so bare
+// 'premium' stays fully banned; any drift in the sentence re-trips the guard, and the
+// positive lock below keeps the sentence from being removed.
+const CLO_LOCKED_PREMIUM_NEGATION = "there's no premium tier: nothing is held back for the service";
+
 const BANNED = [
   // CLO #28(a): sealed container (spc) was mothballed 2026-07-12, but the ban still stands —
   // spp is shared, operated infrastructure that processes plaintext transiently, so it may never
@@ -51,6 +57,9 @@ const BANNED = [
   'raw audio never leaves',
   'never hears',
   'deleted after transcription',
+  // CLO req_he4p6cvo: no hosted/local output-equivalence claim for audio; the surviving
+  // form is "there's no premium tier: nothing is held back for the service".
+  'no higher-quality hosted tier',
 ];
 
 const stripHref = (html) => html.replace(/href="[^"]*"/gi, 'href=""');
@@ -97,7 +106,7 @@ describe('spp copy boundary', () => {
     ];
 
     for (const [name, body] of surfaces) {
-      const scanBody = stripHref(body).toLowerCase();
+      const scanBody = stripHref(body).toLowerCase().replaceAll(CLO_LOCKED_PREMIUM_NEGATION, '');
       for (const phrase of BANNED) {
         expect(scanBody, `${name}: ${phrase}`).not.toContain(phrase.toLowerCase());
       }
@@ -117,6 +126,8 @@ describe('spp copy boundary', () => {
     expect(combined).toContain('on while confidential processing is in use');
     expect(combined).toContain('transcription waits on your device');
     expect(combined).toContain('parakeet-tdt-0.6b-v3');
+    expect(combined).toContain("there's no premium tier: nothing is held back for the service");
+    expect(combined).toContain('more of the faint talk around you becomes text in your journal');
   });
 });
 
