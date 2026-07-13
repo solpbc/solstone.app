@@ -54,6 +54,15 @@ const FORBIDDEN_PHRASES = [
   'solstone keeper',
   'your keeper',
   'meet sol',
+  // never-list rule 7 (founder call, 2026-07-13): "capture" is banned in every
+  // form — verb, noun ("screen captures" -> "screen frames"), and compound
+  // ("capture footprint"). it is a predatory word: what *they* do to people,
+  // which is exactly why it can never point at sol, at the owner, or at the
+  // owner's own material. the substring also fences the engineering identifiers
+  // (capture-executor, capture pipeline) out of owner copy — those keep their
+  // names in code and are not renamed, but they never reach a page.
+  // canon: cmo/brand/system-anatomy.md § the never-list.
+  'captur',
 ];
 
 const SERVICE_VERBS = [
