@@ -366,7 +366,13 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux
                 <a href="/releases/windows" class="gh-link">release notes →</a>
             </div>
             <p class="update-note">installed directly, sol updates itself; via scoop, run <code>scoop update solstone</code>.</p>
-            <!-- winget STAGED — do not publish until winget PR microsoft/winget-pkgs#392222 merges (ghwatch ghw_3fef53f9 flips it): winget install solstone -->
+            <!-- winget STAGED — merge is NOT the gate; resolution is. PR microsoft/winget-pkgs#392222
+                 (0.2.0) merged 2026-07-13, but merging only lands the manifest in the repo — it does not
+                 publish it to the winget community source index that `winget install` reads. Verified
+                 2026-07-13 against cdn.winget.microsoft.com/cache/source.msix: no solstone entry. The
+                 merged listing is also 0.2.0 (shipped: 0.2.10) with pre-brand-sweep copy. GATE: VPE
+                 version-update PR for the current release merges AND the package resolves in the index.
+                 Verify resolution before publishing this line: winget install solstone -->
             <pre class="blurb" id="blurb-scoop">scoop bucket add solstone https://github.com/solpbc/scoop-solstone
 scoop install solstone</pre>
         </div>
