@@ -745,7 +745,6 @@ export function renderConfidentialProcessingData() {
 <p>if your journal can't verify the service, transcription waits on your device — it never goes anywhere else and never silently falls back.</p>
 <p>the switch — "transcribe audio on the service" — lives in the journal's thinking app, in the confidential lane: on while confidential processing is in use, off any time, effective immediately.</p>
 <p>the model is the same either way — parakeet-tdt-0.6b-v3, the same parakeet generation sol uses on your device — and your journal checks the served model's identity. there's no premium tier: nothing is held back for the service.</p>
-<p>one honest difference, and it only shows up on hard audio. when your device has no GPU to spare, it transcribes on the CPU with a smaller, quantized build of the model. on clear speech, that path and the service produce the same transcript. on faint or overlapping speech — a quiet room, voices talking across each other — the service picks up noticeably more of it. that cuts both ways: clearer transcripts of quiet conversation, and more of the faint talk around you becomes text in your journal. if you'd rather it didn't, turn the switch off and transcription stays on your device.</p>
 <p>speech-to-text is served with parakeet-tdt-0.6b-v3, created by NVIDIA, used under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
 <h2>where it goes</h2>
 <p>a model sol pbc runs itself. no third-party AI provider is in the path.</p>
