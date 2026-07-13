@@ -147,7 +147,7 @@ describe('settings emails list and add flow', () => {
       accountId: account.accountId,
       address: 'resend@example.com',
       code: '111111',
-      expiresAt: Date.now() + 600_000,
+      expiresAt: Date.now() + 300_000,
       attempts: 3,
       testEnv,
     });
