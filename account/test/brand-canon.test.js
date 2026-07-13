@@ -37,7 +37,11 @@ const FORBIDDEN_PHRASES = [
   'your service plan',
   'free trial',
   'service status: trial',
-  'machine',
+  // narrowed 2026-07-12: the CLO-locked /data audio copy says "the CPU path on a
+  // machine without a GPU"; the canon ban is about the owner's computer being
+  // called a machine, so ban the possessive forms instead.
+  'your machine',
+  'this machine',
   'let solstone',
   'solstone is hosting',
   'private container',

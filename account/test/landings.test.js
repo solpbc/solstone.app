@@ -81,6 +81,7 @@ describe('service landing pages', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('confidential processing is on for this journal');
     expect(body).toContain('enabled for your journal');
+    expect(body).toContain('audio transcription has its own switch — "transcribe audio on the service" — in the journal\'s thinking app.');
     expect(body).not.toContain('verifies the engine');
     expect(body).not.toContain('$');
     expect(body).not.toContain('never sees');

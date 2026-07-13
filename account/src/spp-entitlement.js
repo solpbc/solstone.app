@@ -1,7 +1,7 @@
 import { getScoutApplicationStatusByAccount, upsertEntitlement } from './db.js';
 
 export const SPP_HOSTED_SERVICE = 'spp_hosted';
-export const SPP_CONSENT_DISCLOSURE_VERSION = 'spp-consent-v1';
+export const SPP_CONSENT_DISCLOSURE_VERSION = 'spp-consent-v2-audio';
 
 export function isSppEntitledToServe(row, nowSeconds, env) {
   // nowSeconds/env unused: parity with isSpbEntitledToServe for future serving callers.

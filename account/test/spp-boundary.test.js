@@ -45,6 +45,12 @@ const BANNED = [
   'solstone runs',
   'solstone stores',
   '$',
+  // A6 (2026-07-12): hosted STT joined confidential processing — the "recordings never leave" absolutes are retired and may not return.
+  'never your audio',
+  'recordings never leave',
+  'raw audio never leaves',
+  'never hears',
+  'deleted after transcription',
 ];
 
 const stripHref = (html) => html.replace(/href="[^"]*"/gi, 'href=""');
@@ -106,6 +112,11 @@ describe('spp copy boundary', () => {
     expect(combined).toContain("the hardware boundary keeps the cloud host excluded from what's processed");
     // CLO #28(b): the honest fail-closed verify register must be present.
     expect(combined).toContain('must verify the service before anything is sent');
+    expect(combined).toContain("your journal's text, images, and audio");
+    expect(combined).toContain('your audio recordings for transcription');
+    expect(combined).toContain('on while confidential processing is in use');
+    expect(combined).toContain('transcription waits on your device');
+    expect(combined).toContain('parakeet-tdt-0.6b-v3');
   });
 });
 
