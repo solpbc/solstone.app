@@ -1,5 +1,6 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { hashWithPepper } from '../src/crypto.js';
 import worker from '../src/index.js';
 import { makeTestEnv, resetDb, seedAccount, seedScoutApplication } from './helpers.js';
 import { installJwksStub, mintToken } from './jwks-helper.js';
@@ -131,7 +132,7 @@ describe('admin Scout lifecycle history', () => {
     const firstBody = JSON.parse(firstText);
     expect(firstBody.snapshot_sequence).toBe(3);
     expect(firstBody.events.map((event) => event.sequence)).toEqual([3, 2]);
-    expect(firstBody.next_cursor).toBe(encodeCursor({ a: account.accountId, s: 3, b: 1 }));
+    expect(firstBody.next_cursor).toBe(await encodeCursor({ a: account.accountId, s: 3, b: 1 }, testEnv));
     expect(firstText).toBe(JSON.stringify(firstBody));
 
     await seedEvent(account.accountId, {
@@ -207,21 +208,53 @@ describe('admin Scout lifecycle history', () => {
   it.each([
     ['not base64url', '%%%'],
     ['not JSON', 'bm90LWpzb24'],
-    ['wrong account', (id) => encodeCursor({ a: `${id}-other`, s: 1, b: 1 })],
-    ['wrong snapshot type', (id) => encodeCursor({ a: id, s: '1', b: 1 })],
-    ['wrong boundary type', (id) => encodeCursor({ a: id, s: 1, b: '1' })],
-    ['zero boundary', (id) => encodeCursor({ a: id, s: 1, b: 0 })],
-    ['boundary above snapshot', (id) => encodeCursor({ a: id, s: 1, b: 2 })],
-    ['snapshot above current max', (id) => encodeCursor({ a: id, s: 2, b: 1 })],
+    ['wrong account', (id, env) => encodeCursor({ a: `${id}-other`, s: 1, b: 1 }, env)],
+    ['wrong snapshot type', (id, env) => encodeCursor({ a: id, s: '1', b: 1 }, env)],
+    ['wrong boundary type', (id, env) => encodeCursor({ a: id, s: 1, b: '1' }, env)],
+    ['zero boundary', (id, env) => encodeCursor({ a: id, s: 1, b: 0 }, env)],
+    ['boundary above snapshot', (id, env) => encodeCursor({ a: id, s: 1, b: 2 }, env)],
+    ['snapshot above current max', (id, env) => encodeCursor({ a: id, s: 2, b: 1 }, env)],
   ])('rejects cursor with %s', async (_name, cursorValue) => {
     const token = await mintToken();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     await seedEvent(account.accountId, { correlationId: 'event-1', sequence: 1 });
-    const cursor = typeof cursorValue === 'function' ? cursorValue(account.accountId) : cursorValue;
+    const cursor = typeof cursorValue === 'function'
+      ? await cursorValue(account.accountId, testEnv)
+      : cursorValue;
 
     const response = await history(
       `${account.accountId}?cursor=${encodeURIComponent(cursor)}`,
+      token,
+      testEnv
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('{"error":"valid Scout lifecycle history cursor required","code":"invalid_scout_lifecycle_history_cursor"}');
+  });
+
+  it('rejects a tampered opaque cursor instead of returning a truncated page', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    await seedEvent(account.accountId, { correlationId: 'event-1', sequence: 1 });
+    await seedEvent(account.accountId, {
+      correlationId: 'event-2',
+      sequence: 2,
+      action: 'approve',
+      fromStatus: 'pending',
+      toStatus: 'approved',
+      actorKind: 'operator',
+      actorPrincipal: 'operator@example.com',
+      reasonCode: 'application_approved',
+    });
+    const first = await history(`${account.accountId}?limit=1`, token, testEnv);
+    const { next_cursor: cursor } = await first.json();
+    const last = cursor.at(-1);
+    const tampered = `${cursor.slice(0, -1)}${last === 'A' ? 'B' : 'A'}`;
+
+    const response = await history(
+      `${account.accountId}?cursor=${encodeURIComponent(tampered)}`,
       token,
       testEnv
     );
@@ -297,11 +330,13 @@ async function seedEvent(accountId, {
     .run();
 }
 
-function encodeCursor(cursor) {
-  return btoa(JSON.stringify(cursor))
+async function encodeCursor(cursor, testEnv) {
+  const payload = btoa(JSON.stringify(cursor))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/g, '');
+  const signature = await hashWithPepper(`scout-lifecycle-history:${payload}`, testEnv);
+  return `${payload}.${signature}`;
 }
 
 function failOnPrepare(testEnv, pattern) {

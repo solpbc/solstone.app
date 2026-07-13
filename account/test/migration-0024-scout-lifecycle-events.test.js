@@ -55,6 +55,51 @@ describe('migration 0024 Scout lifecycle events', () => {
     await expect(eventRows()).resolves.toEqual([]);
   });
 
+  it.each([
+    ['zero sequence', { sequence: 0 }],
+    ['blank correlation id', { correlationId: ' ' }],
+    ['blank actor principal', { actorPrincipal: ' ' }],
+    ['owner principal not matching the owner sign-in', { actorPrincipal: crypto.randomUUID() }],
+    ['apply from pending', { fromStatus: 'pending' }],
+    ['apply to approved', { toStatus: 'approved' }],
+    ['apply by an operator', { actorKind: 'operator' }],
+    ['apply with an invitation reason', { reasonCode: 'invitation' }],
+    ['preapprove by an owner', {
+      action: 'preapprove',
+      toStatus: 'approved',
+      actorKind: 'owner',
+      reasonCode: 'invitation',
+    }],
+    ['preapprove pending with an absent-state reason', {
+      action: 'preapprove',
+      fromStatus: 'pending',
+      toStatus: 'approved',
+      actorKind: 'operator',
+      actorPrincipal: 'operator@example.com',
+      reasonCode: 'invitation',
+    }],
+    ['approve from absent', {
+      action: 'approve',
+      toStatus: 'approved',
+      actorKind: 'operator',
+      actorPrincipal: 'operator@example.com',
+      reasonCode: 'application_approved',
+    }],
+    ['revoke from revoked', {
+      action: 'revoke',
+      fromStatus: 'revoked',
+      toStatus: 'revoked',
+      actorKind: 'service',
+      actorPrincipal: 'extro-scout',
+      reasonCode: 'owner_request',
+    }],
+  ])('rejects the impossible lifecycle event %s', async (_name, overrides) => {
+    const account = await seedAccount({ testEnv: makeTestEnv() });
+
+    await expect(insertEvent(account.accountId, overrides)).rejects.toThrow(/CHECK constraint failed/i);
+    await expect(eventRows()).resolves.toEqual([]);
+  });
+
   it('rejects duplicate correlation ids and account sequences', async () => {
     const account = await seedAccount({ testEnv: makeTestEnv() });
     await insertEvent(account.accountId, { correlationId: 'event-1', sequence: 1 });

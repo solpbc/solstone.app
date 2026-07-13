@@ -1,5 +1,11 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
-import { decryptEmail, encryptEmail, generateSessionToken, hashWithPepper } from './crypto.js';
+import {
+  decryptEmail,
+  encryptEmail,
+  generateSessionToken,
+  hashWithPepper,
+  timingSafeEqual,
+} from './crypto.js';
 import {
   createAccountWithEmail,
   createSession,
@@ -430,7 +436,12 @@ async function listScoutHistory(env, accountId, url) {
   }
 
   const rawCursor = url.searchParams.get('cursor');
-  const cursor = rawCursor === null ? null : decodeScoutLifecycleCursor(rawCursor);
+  let cursor;
+  try {
+    cursor = rawCursor === null ? null : await decodeScoutLifecycleCursor(rawCursor, env);
+  } catch {
+    return scoutLifecycleHistoryUnavailable();
+  }
   if (rawCursor !== null && !isValidScoutLifecycleCursor(cursor, accountId)) {
     return invalidScoutLifecycleHistoryCursor();
   }
@@ -468,13 +479,18 @@ async function listScoutHistory(env, accountId, url) {
     reason_code: row.reason_code,
     occurred_at: isoOrNull(row.occurred_at),
   }));
-  const nextCursor = hasMore
-    ? encodeScoutLifecycleCursor({
-      a: accountId,
-      s: snapshotSequence,
-      b: pageRows[pageRows.length - 1].sequence - 1,
-    })
-    : null;
+  let nextCursor = null;
+  if (hasMore) {
+    try {
+      nextCursor = await encodeScoutLifecycleCursor({
+        a: accountId,
+        s: snapshotSequence,
+        b: pageRows[pageRows.length - 1].sequence - 1,
+      }, env);
+    } catch {
+      return scoutLifecycleHistoryUnavailable();
+    }
+  }
   return json(
     {
       account_id: accountId,
@@ -522,17 +538,25 @@ function scoutStatusResponse(accountId, status, correlationId) {
   );
 }
 
-function encodeScoutLifecycleCursor(cursor) {
-  return btoa(JSON.stringify(cursor))
+async function encodeScoutLifecycleCursor(cursor, env) {
+  const payload = btoa(JSON.stringify(cursor))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/g, '');
+  const signature = await hashWithPepper(`scout-lifecycle-history:${payload}`, env);
+  return `${payload}.${signature}`;
 }
 
-function decodeScoutLifecycleCursor(value) {
-  if (!/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1) return null;
+async function decodeScoutLifecycleCursor(value, env) {
+  const parts = value.split('.');
+  if (parts.length !== 2) return null;
+  const [payload, signature] = parts;
+  if (!/^[A-Za-z0-9_-]+$/.test(payload) || payload.length % 4 === 1) return null;
+  if (!/^[A-Za-z0-9_-]+$/.test(signature)) return null;
+  const expected = await hashWithPepper(`scout-lifecycle-history:${payload}`, env);
+  if (!timingSafeEqual(signature, expected)) return null;
   try {
-    const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
     return JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')));
   } catch {
     return null;
@@ -543,6 +567,7 @@ function isValidScoutLifecycleCursor(cursor, accountId) {
   return cursor !== null
     && typeof cursor === 'object'
     && !Array.isArray(cursor)
+    && Object.keys(cursor).sort().join(',') === 'a,b,s'
     && typeof cursor.a === 'string'
     && cursor.a === accountId
     && Number.isSafeInteger(cursor.s)
