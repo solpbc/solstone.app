@@ -15,6 +15,18 @@ describe('admin Scout lifecycle history', () => {
     vi.restoreAllMocks();
   });
 
+  it('requires valid CF Access on the history route', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const invalidToken = await mintToken({ badSignature: true });
+
+    for (const token of [null, invalidToken]) {
+      const response = await history(account.accountId, token, testEnv);
+      expect(response.status).toBe(403);
+      expect(await response.text()).toBe('{"error":"cloudflare access required"}');
+    }
+  });
+
   it('uses account 404 before limit 400 before cursor 400 and accepts non-UUID account ids', async () => {
     const token = await mintToken();
     await insertRawAccount('legacy-account-id');
@@ -144,6 +156,42 @@ describe('admin Scout lifecycle history', () => {
       next_cursor: null,
     });
     expect(secondBody.events.map((event) => event.sequence)).toEqual([1]);
+
+    const fresh = await history(`${account.accountId}?limit=2`, token, testEnv);
+    const freshBody = await fresh.json();
+    expect(freshBody.snapshot_sequence).toBe(4);
+    expect(freshBody.events.map((event) => event.sequence)).toEqual([4, 3]);
+    expect(freshBody.events[0].correlation_id).toBe('event-4');
+  });
+
+  it('rejects a cursor minted for another account', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const accountA = await seedAccount({ email: 'cursor-a@example.com', testEnv });
+    const accountB = await seedAccount({ email: 'cursor-b@example.com', testEnv });
+    await seedEvent(accountA.accountId, { correlationId: 'account-a-event-1', sequence: 1 });
+    await seedEvent(accountA.accountId, {
+      correlationId: 'account-a-event-2',
+      sequence: 2,
+      action: 'approve',
+      fromStatus: 'pending',
+      toStatus: 'approved',
+      actorKind: 'operator',
+      actorPrincipal: 'operator@example.com',
+      reasonCode: 'application_approved',
+    });
+    const firstPage = await history(`${accountA.accountId}?limit=1`, token, testEnv);
+    const { next_cursor: cursor } = await firstPage.json();
+    expect(cursor).toEqual(expect.any(String));
+
+    const response = await history(
+      `${accountB.accountId}?cursor=${encodeURIComponent(cursor)}`,
+      token,
+      testEnv
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('{"error":"valid Scout lifecycle history cursor required","code":"invalid_scout_lifecycle_history_cursor"}');
   });
 
   it.each(['0', '101', '-1', '1.5', ''])('rejects invalid limit %j', async (limit) => {
@@ -202,8 +250,10 @@ describe('admin Scout lifecycle history', () => {
 function history(accountPath, token, testEnv) {
   const [accountId, query] = accountPath.split('?');
   const suffix = query === undefined ? '' : `?${query}`;
+  const headers = {};
+  if (token) headers['Cf-Access-Jwt-Assertion'] = token;
   return worker.fetch(new Request(`https://services.solstone.app/admin/scouts/${accountId}/history${suffix}`, {
-    headers: { 'Cf-Access-Jwt-Assertion': token },
+    headers,
   }), testEnv);
 }
 

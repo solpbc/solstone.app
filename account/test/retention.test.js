@@ -221,14 +221,36 @@ describe('retention cron', () => {
     expect(await rowExists('accounts', 'id', 'cascade-account')).toBe(false);
   });
 
-  it('keeps an old account with a verified email', async () => {
+  it('keeps a verified account and all lifecycle events byte-identical', async () => {
     await insertAccount('verified-old-account', { createdAt: NOW - 31 * DAY_MS });
     await insertEmail('verified-old-email', 'verified-old-account', { createdAt: NOW - 31 * DAY_MS, verifiedAt: NOW });
+    await insertLifecycleEvent('verified-event-1', 'verified-old-account', {
+      sequence: 1,
+      action: 'apply',
+      fromStatus: 'absent',
+      toStatus: 'pending',
+      actorKind: 'owner',
+      actorPrincipal: 'verified-old-account',
+      reasonCode: 'owner_application',
+      occurredAt: NOW - 2,
+    });
+    await insertLifecycleEvent('verified-event-2', 'verified-old-account', {
+      sequence: 2,
+      action: 'approve',
+      fromStatus: 'pending',
+      toStatus: 'approved',
+      actorKind: 'operator',
+      actorPrincipal: 'operator@example.com',
+      reasonCode: 'application_approved',
+      occurredAt: NOW - 1,
+    });
+    const before = await lifecycleEvents('verified-old-account');
 
     await runWithWarnPayload();
 
     expect(await rowExists('accounts', 'id', 'verified-old-account')).toBe(true);
     expect(await rowExists('account_emails', 'id', 'verified-old-email')).toBe(true);
+    await expect(lifecycleEvents('verified-old-account')).resolves.toEqual(before);
   });
 
   it('emits one all-zero line on an empty database', async () => {
@@ -396,6 +418,46 @@ async function insertCredential(credentialId, accountId) {
     )
     .bind(credentialId, accountId, new Uint8Array([1, 2, 3]), NOW)
     .run();
+}
+
+async function insertLifecycleEvent(correlationId, accountId, {
+  sequence,
+  action,
+  fromStatus,
+  toStatus,
+  actorKind,
+  actorPrincipal,
+  reasonCode,
+  occurredAt,
+}) {
+  await workerEnv.DB
+    .prepare(
+      `INSERT INTO scout_lifecycle_events (
+         correlation_id, account_id, sequence, action, from_status, to_status,
+         actor_kind, actor_principal, reason_code, occurred_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      correlationId,
+      accountId,
+      sequence,
+      action,
+      fromStatus,
+      toStatus,
+      actorKind,
+      actorPrincipal,
+      reasonCode,
+      occurredAt
+    )
+    .run();
+}
+
+async function lifecycleEvents(accountId) {
+  const { results } = await workerEnv.DB
+    .prepare('SELECT * FROM scout_lifecycle_events WHERE account_id = ? ORDER BY sequence')
+    .bind(accountId)
+    .all();
+  return results;
 }
 
 async function insertChallenge(challenge, { createdAt = NOW, expiresAt = NOW + DAY_MS, usedAt = null } = {}) {

@@ -304,7 +304,9 @@ describe('Scout application lifecycle db builders', () => {
     await setScoutApplicationDataAcked(workerEnv.DB, { accountId: account.accountId, nowMs: 2_000 });
 
     await expect(applicationRow(account.accountId)).resolves.toMatchObject({
+      status: 'approved',
       data_acked_at: 1_100,
+      approved_at: 1_200,
       updated_at: 1_200,
     });
   });
