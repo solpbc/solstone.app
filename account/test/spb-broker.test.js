@@ -71,7 +71,7 @@ describe('spb credential broker', () => {
     expect(Object.prototype.hasOwnProperty.call(claims.paths, 'objectPaths')).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(claims, 'scope')).toBe(false);
     expect(claims.actions).toEqual(BACKUP_ACTIONS);
-    expect(claims.exp).toBe(claims.iat + 3600);
+    expect(claims.exp).toBe(claims.iat + 259200);
     expect(body.access_key_id).toBe(testEnv.R2_PARENT_ACCESS_KEY_ID);
     expect(body.secret_access_key).toBe(await sha256Hex(jwt));
     expect(body.session_token).toBe(btoa(`jwt/${jwt}`));
@@ -86,12 +86,30 @@ describe('spb credential broker', () => {
       instance_id: INSTANCE_ID,
       prefix,
       scope: 'backup',
-      ttl: 3600,
+      ttl: 259200,
       outcome: 'minted',
     })]);
   });
 
-  it('mints shorter maintenance credentials with delete actions', async () => {
+  it('mints operated credentials for bounded backup and restore runs', async () => {
+    const { testEnv } = await seedBrokerReady();
+
+    const response = await worker.fetch(credentialsRequest({ scope: 'operated' }, BROKER_TOKEN), testEnv);
+    const body = await response.json();
+    const { claims } = decodeSessionToken(body.session_token);
+
+    expect(response.status).toBe(200);
+    expect(claims.actions).toEqual(MAINTENANCE_ACTIONS);
+    expect(claims.actions).toEqual(expect.arrayContaining(['DeleteObject', 'DeleteObjects']));
+    expect(claims.exp).toBe(claims.iat + 259200);
+    await expect(auditRows()).resolves.toEqual([expect.objectContaining({
+      scope: 'operated',
+      ttl: 259200,
+      outcome: 'minted',
+    })]);
+  });
+
+  it('mints maintenance credentials for bounded destructive work', async () => {
     const { testEnv } = await seedBrokerReady();
 
     const response = await worker.fetch(credentialsRequest({ scope: 'maintenance' }, BROKER_TOKEN), testEnv);
@@ -101,10 +119,10 @@ describe('spb credential broker', () => {
     expect(response.status).toBe(200);
     expect(claims.actions).toEqual(MAINTENANCE_ACTIONS);
     expect(claims.actions).toEqual(expect.arrayContaining(['DeleteObject', 'DeleteObjects']));
-    expect(claims.exp).toBe(claims.iat + 900);
+    expect(claims.exp).toBe(claims.iat + 86400);
     await expect(auditRows()).resolves.toEqual([expect.objectContaining({
       scope: 'maintenance',
-      ttl: 900,
+      ttl: 86400,
       outcome: 'minted',
     })]);
   });

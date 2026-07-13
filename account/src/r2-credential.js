@@ -16,11 +16,16 @@ export const BACKUP_ACTIONS = [
 ];
 export const MAINTENANCE_ACTIONS = [...BACKUP_ACTIONS, 'DeleteObject', 'DeleteObjects'];
 
-export const SPB_MINT_TTL_BACKUP = 3600;
-export const SPB_MINT_TTL_MAINTENANCE = 900;
+// One credential must cover a bounded operation: initial backup is capped at
+// 49h and restore at 54h5m across its sequential phases. Maintenance is capped
+// at 3h, so it keeps a shorter but operationally forgiving lifetime.
+export const SPB_MINT_TTL_BACKUP = 72 * 60 * 60;
+export const SPB_MINT_TTL_OPERATED = 72 * 60 * 60;
+export const SPB_MINT_TTL_MAINTENANCE = 24 * 60 * 60;
 
 export const SCOPES = {
   backup: { actions: BACKUP_ACTIONS, ttl: SPB_MINT_TTL_BACKUP },
+  operated: { actions: MAINTENANCE_ACTIONS, ttl: SPB_MINT_TTL_OPERATED },
   maintenance: { actions: MAINTENANCE_ACTIONS, ttl: SPB_MINT_TTL_MAINTENANCE },
 };
 
