@@ -53,9 +53,7 @@ footer a:hover {
     margin: 0 auto;
     line-height: 1.6;
 }
-/* ── the sunrise-gradient ground (founder-ratified 2026-07-03) ────────────────
-   canon: cmo/brand/sol/index.md § the sunrise-gradient ground;
-   decision: records/decisions/260703-cmo-solstone-app-sunrise-gradient-ground.md.
+/* ── the sunrise-gradient ground ──────────────────────────────────────────────
    Opt-in per page via <body class="sunrise"> so the release-history template
    (its own layout) is unaffected. The flat cream field retires as a page ground
    on sunrise pages; cards go paper white and hairlines lighten to sit on the

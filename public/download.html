@@ -25,8 +25,7 @@
             position: relative;
             padding-bottom: 1rem;
         }
-        /* sunrise signature: gold→orange underline beneath the page h1
-           (cmo/brand/sol/index.md § the sunrise-gradient ground) */
+        /* sunrise signature: gold→orange underline beneath the page h1 */
         .page-intro h1::after {
             content: "";
             position: absolute;
@@ -175,7 +174,7 @@
             padding-top: 0.85rem;
             border-top: 1px solid var(--hairline);
         }
-        /* one primary action per card (Mike finding #4): when a card already
+        /* one primary action per card: when a card already
            has a download button, its copy button steps down to a quiet outline
            so it reads as the secondary it is */
         .secondary-action .copy-btn {
@@ -244,8 +243,7 @@
         .blurb {
             display: none;
         }
-        /* The sunrise-gradient ground is now shared: <body class="sunrise"> in
-           base.css (canon: cmo/brand/sol/index.md § the sunrise-gradient ground).
+        /* The sunrise-gradient ground is shared: <body class="sunrise"> in base.css.
            No per-page copy of the recipe. */
         .update-note {
             font-size: 0.78rem;
@@ -262,7 +260,7 @@
             color: var(--ink-soft);
         }
         /* alert box tracks the cards' content column instead of its own 600px
-           cap (Mike finding #1) — .cards is max-width 820/90vw with 1.5rem
+           cap — .cards is max-width 820/90vw with 1.5rem
            side padding, so the visible card edge is 3rem narrower */
         .early-days {
             max-width: calc(820px - 3rem);
@@ -300,8 +298,6 @@
             </ul>
             <div class="primary-action">
                 <a href="https://solstone.app/download/macos" class="download-btn">download for macOS</a>
-                <!-- install copy reflects CURRENT packaging (one download sets up sol + journal);
-                     revise to the educational sol / journal / both surface when Track B ships. -->
                 <p class="download-clarifier">sets up sol and your journal on this Mac, then opens the first-run wizard.</p>
                 <p class="trust-signal">signed by sol pbc, notarized by Apple. updates over a signed channel.</p>
             </div>
@@ -366,19 +362,12 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux
                 <a href="/releases/windows" class="gh-link">release notes →</a>
             </div>
             <p class="update-note">installed directly, sol updates itself; via scoop, run <code>scoop update solstone</code>.</p>
-            <!-- winget STAGED — merge is NOT the gate; resolution is. PR microsoft/winget-pkgs#392222
-                 (0.2.0) merged 2026-07-13, but merging only lands the manifest in the repo — it does not
-                 publish it to the winget community source index that `winget install` reads. Verified
-                 2026-07-13 against cdn.winget.microsoft.com/cache/source.msix: no solstone entry. The
-                 merged listing is also 0.2.0 (shipped: 0.2.10) with pre-brand-sweep copy. GATE: VPE
-                 version-update PR for the current release merges AND the package resolves in the index.
-                 Verify resolution before publishing this line: winget install solstone -->
+
             <pre class="blurb" id="blurb-scoop">scoop bucket add solstone https://github.com/solpbc/scoop-solstone
 scoop install solstone</pre>
         </div>
     </div>
 
-    <!-- available today sits above coming-soon (Mike finding #6) -->
     <div class="supplemental">
         <div class="card">
             <h2>+ add your terminal</h2>

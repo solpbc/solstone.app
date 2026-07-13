@@ -14,8 +14,6 @@ paste this prompt into claude code, codex cli, gemini cli, or similar: `install 
 
 **install the native app**
 
-<!-- install copy reflects CURRENT packaging (one download sets up sol + journal);
-     revise to the educational sol / journal / both surface when Track B ships. -->
 [download for macOS](https://solstone.app/download/macos) — signed by sol pbc, notarized by Apple. sets up sol and your journal on this Mac, opens the first-run wizard, and updates over a signed channel.
 
 building from source? use the developer path in [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md).
@@ -55,15 +53,6 @@ get sol for windows — it runs sol on your PC (screen and system audio, mic whe
 
 signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.
 
-<!-- winget STAGED — merge is NOT the gate; resolution is.
-     PR microsoft/winget-pkgs#392222 (0.2.0) merged 2026-07-13, but merging only lands the manifest in
-     the repo — it does not publish it to the winget community source index that `winget install` reads.
-     Verified 2026-07-13 against cdn.winget.microsoft.com/cache/source.msix: no solstone entry.
-     The merged listing is also 0.2.0 (shipped: 0.2.10) and carries pre-brand-sweep copy.
-     GATE: VPE version-update PR for the current release merges AND the package resolves in the
-     community index. Verify resolution before publishing this line — do not flip on merge alone.
-- **winget:** `winget install solstone`
--->
 
 ## migrating from a pre-split install
 
