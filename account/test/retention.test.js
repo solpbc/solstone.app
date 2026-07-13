@@ -202,12 +202,22 @@ describe('retention cron', () => {
     await insertEmail('cascade-email', 'cascade-account', { createdAt: NOW - 31 * DAY_MS, verifiedAt: null });
     await insertSession('cascade-session', 'cascade-account', { revokedAt: NOW - 31 * DAY_MS });
     await insertCredential('cascade-credential', 'cascade-account');
+    await workerEnv.DB
+      .prepare(
+        `INSERT INTO scout_lifecycle_events (
+           correlation_id, account_id, sequence, action, from_status, to_status,
+           actor_kind, actor_principal, reason_code, occurred_at
+         ) VALUES (?, ?, 1, 'apply', 'absent', 'pending', 'owner', ?, 'owner_application', ?)`
+      )
+      .bind('cascade-event', 'cascade-account', 'cascade-account', NOW - 31 * DAY_MS)
+      .run();
 
     await runWithWarnPayload();
 
     expect(await rowExists('account_emails', 'id', 'cascade-email')).toBe(false);
     expect(await rowExists('sessions', 'id_hash', 'cascade-session')).toBe(false);
     expect(await rowExists('passkey_credentials', 'credential_id', 'cascade-credential')).toBe(false);
+    expect(await rowExists('scout_lifecycle_events', 'correlation_id', 'cascade-event')).toBe(false);
     expect(await rowExists('accounts', 'id', 'cascade-account')).toBe(false);
   });
 

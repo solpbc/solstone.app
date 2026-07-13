@@ -169,6 +169,8 @@ describe('/enable/scout', () => {
   });
 
   it('records a pending application without provisioning when no application exists', async () => {
+    const nowMs = 1_780_000_100_000;
+    vi.spyOn(Date, 'now').mockReturnValue(nowMs);
     const spy = installConsoleSpy();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
@@ -182,6 +184,7 @@ describe('/enable/scout', () => {
       });
       const body = await confirm.text();
       const row = await applicationRow(account.accountId);
+      const event = await lifecycleEvent(account.accountId);
       const { response: handoff, payload } = await readHandoff(testEnv);
 
       expect(confirm.status).toBe(200);
@@ -193,6 +196,15 @@ describe('/enable/scout', () => {
         applied_at: expect.any(Number),
         data_acked_at: expect.any(Number),
       });
+      expect(event).toMatchObject({
+        action: 'apply',
+        actor_kind: 'owner',
+        actor_principal: account.accountId,
+        occurred_at: nowMs,
+      });
+      expect(event.occurred_at).toBe(row.applied_at);
+      expect(event.occurred_at).toBe(row.created_at);
+      expect(event.occurred_at).toBe(row.updated_at);
       expect(handoff.status).toBe(200);
       expect(payload).toEqual({
         state: 'pending',
@@ -202,6 +214,30 @@ describe('/enable/scout', () => {
       });
       await expect(rowCount('provisioned_keys')).resolves.toBe(0);
       spy.assertNoSecrets([VALID_NONCE, payload.dispatch_token]);
+    } finally {
+      spy.restore();
+    }
+  });
+
+  it('returns the global error page without a success handoff when the apply batch fails', async () => {
+    const spy = installConsoleSpy();
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const failingEnv = withFailingBatch(testEnv);
+    try {
+      const confirm = await confirmNonce({
+        testEnv: failingEnv,
+        cookie: session.cookie,
+        accountId: account.accountId,
+      });
+
+      expect(confirm.status).toBe(500);
+      expect(confirm.headers.get('Content-Type')).toContain('text/html');
+      expect(await confirm.text()).toContain("that link didn't work");
+      await expect(rowCount('scout_applications')).resolves.toBe(0);
+      await expect(rowCount('scout_lifecycle_events')).resolves.toBe(0);
+      await expect(rowCount('service_handoffs')).resolves.toBe(0);
     } finally {
       spy.restore();
     }
@@ -243,6 +279,7 @@ describe('/enable/scout', () => {
       });
       expect(row.data_acked_at).toBeGreaterThan(1_000);
       expect(row.updated_at).toBeGreaterThan(1_000);
+      await expect(rowCount('scout_lifecycle_events')).resolves.toBe(0);
       expect(payload).toEqual({
         state: 'pending',
         account_id: account.accountId,
@@ -543,6 +580,13 @@ async function applicationRow(accountId) {
     .first();
 }
 
+async function lifecycleEvent(accountId) {
+  return workerEnv.DB
+    .prepare('SELECT * FROM scout_lifecycle_events WHERE account_id = ? ORDER BY sequence')
+    .bind(accountId)
+    .first();
+}
+
 async function rowCount(table) {
   const row = await workerEnv.DB.prepare(`SELECT COUNT(*) AS count FROM ${table}`).first();
   return row.count;
@@ -590,6 +634,18 @@ function failOnceOnSql(testEnv, pattern) {
       },
       batch(statements) {
         return testEnv.DB.batch(statements);
+      },
+    },
+  };
+}
+
+function withFailingBatch(testEnv) {
+  return {
+    ...testEnv,
+    DB: {
+      prepare: (...args) => testEnv.DB.prepare(...args),
+      batch() {
+        throw new Error('injected batch failure');
       },
     },
   };

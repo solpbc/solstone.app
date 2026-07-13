@@ -853,63 +853,272 @@ export async function listScoutApplications(db, { status }) {
   return results || [];
 }
 
-export async function approveScoutApplication(db, { accountId, nowMs }) {
-  await db
-    .prepare(
-      `UPDATE scout_applications
-       SET status = 'approved',
-           approved_at = ?,
-           updated_at = ?
-       WHERE account_id = ?
-         AND status = 'pending'`
-    )
-    .bind(nowMs, nowMs, accountId)
-    .run();
+export async function applyScoutPendingWithEvent(db, { accountId, useCase, dataAckedAt, nowMs }) {
+  const correlationId = crypto.randomUUID();
+  const results = await db.batch([
+    db
+      .prepare(
+        `UPDATE scout_applications
+         SET use_case = COALESCE(?2, scout_applications.use_case),
+             data_acked_at = ?3,
+             updated_at = ?4
+         WHERE account_id = ?1
+           AND status = 'pending'`
+      )
+      .bind(accountId, useCase, dataAckedAt, nowMs),
+    db
+      .prepare(
+        `INSERT INTO scout_lifecycle_events (
+           correlation_id, account_id, sequence, action, from_status, to_status,
+           actor_kind, actor_principal, reason_code, occurred_at
+         )
+         SELECT
+           ?2,
+           ?1,
+           COALESCE(
+             (SELECT MAX(sequence) FROM scout_lifecycle_events WHERE account_id = ?1),
+             0
+           ) + 1,
+           'apply',
+           'absent',
+           'pending',
+           'owner',
+           ?1,
+           'owner_application',
+           ?3
+         WHERE NOT EXISTS (
+           SELECT 1 FROM scout_applications WHERE account_id = ?1
+         )
+         RETURNING correlation_id`
+      )
+      .bind(accountId, correlationId, nowMs),
+    db
+      .prepare(
+        `INSERT INTO scout_applications (
+           account_id, status, use_case, data_acked_at, applied_at, created_at, updated_at
+         )
+         SELECT ?1, 'pending', ?2, ?3, ?4, ?4, ?4
+         WHERE NOT EXISTS (
+           SELECT 1 FROM scout_applications WHERE account_id = ?1
+         )`
+      )
+      .bind(accountId, useCase, dataAckedAt, nowMs),
+  ]);
+  const returnedCorrelationId = results?.[1]?.results?.[0]?.correlation_id || null;
+  return { transitioned: returnedCorrelationId !== null, correlationId: returnedCorrelationId };
 }
 
-export async function revokeScoutApplication(db, { accountId, nowMs }) {
-  await db
-    .prepare(
-      `UPDATE scout_applications
-       SET status = 'revoked',
-           revoked_at = ?,
-           updated_at = ?
-       WHERE account_id = ?
-         AND status != 'revoked'`
-    )
-    .bind(nowMs, nowMs, accountId)
-    .run();
+export async function transitionScoutStatusWithEvent(db, {
+  accountId,
+  action,
+  fromStatus,
+  toStatus,
+  actorKind,
+  actorPrincipal,
+  reasonCode,
+  nowMs,
+}) {
+  let eventSql;
+  let statusSql;
+  if (action === 'preapprove' && fromStatus === 'absent' && toStatus === 'approved') {
+    eventSql = `INSERT INTO scout_lifecycle_events (
+                  correlation_id, account_id, sequence, action, from_status, to_status,
+                  actor_kind, actor_principal, reason_code, occurred_at
+                )
+                SELECT
+                  ?2,
+                  ?1,
+                  COALESCE((SELECT MAX(sequence) FROM scout_lifecycle_events WHERE account_id = ?1), 0) + 1,
+                  'preapprove',
+                  'absent',
+                  'approved',
+                  ?3,
+                  ?4,
+                  ?5,
+                  ?6
+                WHERE NOT EXISTS (
+                  SELECT 1 FROM scout_applications WHERE account_id = ?1
+                )
+                RETURNING correlation_id`;
+    statusSql = `INSERT INTO scout_applications (
+                   account_id, status, applied_at, approved_at, created_at, updated_at
+                 )
+                 SELECT ?1, 'approved', NULL, ?2, ?2, ?2
+                 WHERE NOT EXISTS (
+                   SELECT 1 FROM scout_applications WHERE account_id = ?1
+                 )`;
+  } else if (action === 'preapprove' && fromStatus === 'pending' && toStatus === 'approved') {
+    eventSql = `INSERT INTO scout_lifecycle_events (
+                  correlation_id, account_id, sequence, action, from_status, to_status,
+                  actor_kind, actor_principal, reason_code, occurred_at
+                )
+                SELECT
+                  ?2,
+                  ?1,
+                  COALESCE((SELECT MAX(sequence) FROM scout_lifecycle_events WHERE account_id = ?1), 0) + 1,
+                  'preapprove',
+                  'pending',
+                  'approved',
+                  ?3,
+                  ?4,
+                  ?5,
+                  ?6
+                WHERE EXISTS (
+                  SELECT 1 FROM scout_applications WHERE account_id = ?1 AND status = 'pending'
+                )
+                RETURNING correlation_id`;
+    statusSql = `UPDATE scout_applications
+                 SET status = 'approved',
+                     approved_at = ?2,
+                     revoked_at = NULL,
+                     updated_at = ?2
+                 WHERE account_id = ?1
+                   AND status = 'pending'`;
+  } else if (action === 'preapprove' && fromStatus === 'revoked' && toStatus === 'approved') {
+    eventSql = `INSERT INTO scout_lifecycle_events (
+                  correlation_id, account_id, sequence, action, from_status, to_status,
+                  actor_kind, actor_principal, reason_code, occurred_at
+                )
+                SELECT
+                  ?2,
+                  ?1,
+                  COALESCE((SELECT MAX(sequence) FROM scout_lifecycle_events WHERE account_id = ?1), 0) + 1,
+                  'preapprove',
+                  'revoked',
+                  'approved',
+                  ?3,
+                  ?4,
+                  ?5,
+                  ?6
+                WHERE EXISTS (
+                  SELECT 1 FROM scout_applications WHERE account_id = ?1 AND status = 'revoked'
+                )
+                RETURNING correlation_id`;
+    statusSql = `UPDATE scout_applications
+                 SET status = 'approved',
+                     approved_at = ?2,
+                     revoked_at = NULL,
+                     updated_at = ?2
+                 WHERE account_id = ?1
+                   AND status = 'revoked'`;
+  } else if (action === 'approve' && fromStatus === 'pending' && toStatus === 'approved') {
+    eventSql = `INSERT INTO scout_lifecycle_events (
+                  correlation_id, account_id, sequence, action, from_status, to_status,
+                  actor_kind, actor_principal, reason_code, occurred_at
+                )
+                SELECT
+                  ?2,
+                  ?1,
+                  COALESCE((SELECT MAX(sequence) FROM scout_lifecycle_events WHERE account_id = ?1), 0) + 1,
+                  'approve',
+                  'pending',
+                  'approved',
+                  ?3,
+                  ?4,
+                  ?5,
+                  ?6
+                WHERE EXISTS (
+                  SELECT 1 FROM scout_applications WHERE account_id = ?1 AND status = 'pending'
+                )
+                RETURNING correlation_id`;
+    statusSql = `UPDATE scout_applications
+                 SET status = 'approved',
+                     approved_at = ?2,
+                     revoked_at = NULL,
+                     updated_at = ?2
+                 WHERE account_id = ?1
+                   AND status = 'pending'`;
+  } else if (action === 'revoke' && fromStatus === 'pending' && toStatus === 'revoked') {
+    eventSql = `INSERT INTO scout_lifecycle_events (
+                  correlation_id, account_id, sequence, action, from_status, to_status,
+                  actor_kind, actor_principal, reason_code, occurred_at
+                )
+                SELECT
+                  ?2,
+                  ?1,
+                  COALESCE((SELECT MAX(sequence) FROM scout_lifecycle_events WHERE account_id = ?1), 0) + 1,
+                  'revoke',
+                  'pending',
+                  'revoked',
+                  ?3,
+                  ?4,
+                  ?5,
+                  ?6
+                WHERE EXISTS (
+                  SELECT 1 FROM scout_applications WHERE account_id = ?1 AND status = 'pending'
+                )
+                RETURNING correlation_id`;
+    statusSql = `UPDATE scout_applications
+                 SET status = 'revoked',
+                     revoked_at = ?2,
+                     updated_at = ?2
+                 WHERE account_id = ?1
+                   AND status = 'pending'`;
+  } else if (action === 'revoke' && fromStatus === 'approved' && toStatus === 'revoked') {
+    eventSql = `INSERT INTO scout_lifecycle_events (
+                  correlation_id, account_id, sequence, action, from_status, to_status,
+                  actor_kind, actor_principal, reason_code, occurred_at
+                )
+                SELECT
+                  ?2,
+                  ?1,
+                  COALESCE((SELECT MAX(sequence) FROM scout_lifecycle_events WHERE account_id = ?1), 0) + 1,
+                  'revoke',
+                  'approved',
+                  'revoked',
+                  ?3,
+                  ?4,
+                  ?5,
+                  ?6
+                WHERE EXISTS (
+                  SELECT 1 FROM scout_applications WHERE account_id = ?1 AND status = 'approved'
+                )
+                RETURNING correlation_id`;
+    statusSql = `UPDATE scout_applications
+                 SET status = 'revoked',
+                     revoked_at = ?2,
+                     updated_at = ?2
+                 WHERE account_id = ?1
+                   AND status = 'approved'`;
+  } else {
+    throw new Error('unsupported Scout lifecycle transition');
+  }
+
+  const correlationId = crypto.randomUUID();
+  const results = await db.batch([
+    db.prepare(eventSql).bind(accountId, correlationId, actorKind, actorPrincipal, reasonCode, nowMs),
+    db.prepare(statusSql).bind(accountId, nowMs),
+  ]);
+  const returnedCorrelationId = results?.[0]?.results?.[0]?.correlation_id || null;
+  return { transitioned: returnedCorrelationId !== null, correlationId: returnedCorrelationId };
 }
 
-export async function upsertScoutApplicationApproved(db, { accountId, nowMs }) {
-  await db
+export async function getScoutLifecycleMaxSequence(db, accountId) {
+  const row = await db
     .prepare(
-      `INSERT INTO scout_applications (account_id, status, applied_at, approved_at, created_at, updated_at)
-       VALUES (?, 'approved', NULL, ?, ?, ?)
-       ON CONFLICT(account_id) DO UPDATE SET
-         status = 'approved',
-         approved_at = excluded.approved_at,
-         revoked_at = NULL,
-         updated_at = excluded.updated_at`
+      `SELECT COALESCE(MAX(sequence), 0) AS max_sequence
+       FROM scout_lifecycle_events
+       WHERE account_id = ?1`
     )
-    .bind(accountId, nowMs, nowMs, nowMs)
-    .run();
+    .bind(accountId)
+    .first();
+  return Number(row?.max_sequence ?? 0);
 }
 
-export async function upsertScoutApplicationPending(db, { accountId, useCase, dataAckedAt, nowMs }) {
-  await db
+export async function listScoutLifecycleEvents(db, accountId, { maxSequence, limit }) {
+  const { results } = await db
     .prepare(
-      `INSERT INTO scout_applications
-         (account_id, status, use_case, data_acked_at, applied_at, created_at, updated_at)
-       VALUES (?, 'pending', ?, ?, ?, ?, ?)
-       ON CONFLICT(account_id) DO UPDATE SET
-         use_case = COALESCE(excluded.use_case, scout_applications.use_case),
-         data_acked_at = excluded.data_acked_at,
-         updated_at = excluded.updated_at
-       WHERE scout_applications.status = 'pending'`
+      `SELECT correlation_id, sequence, action, from_status, to_status,
+              actor_kind, actor_principal, reason_code, occurred_at
+       FROM scout_lifecycle_events
+       WHERE account_id = ?1
+         AND sequence <= ?2
+       ORDER BY sequence DESC
+       LIMIT ?3`
     )
-    .bind(accountId, useCase, dataAckedAt, nowMs, nowMs, nowMs)
-    .run();
+    .bind(accountId, maxSequence, limit)
+    .all();
+  return results || [];
 }
 
 export async function upsertScoutApplicationMigrated(db, {

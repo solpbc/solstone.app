@@ -1,5 +1,6 @@
 import { decryptEmail, encryptEmail } from './crypto.js';
 import {
+  applyScoutPendingWithEvent,
   countAccountEmails,
   countActivePasskeys,
   countActiveSessions,
@@ -18,7 +19,6 @@ import {
   revokeSession,
   setScoutApplicationDataAcked,
   updateProvisionedKeyGcpLastUse,
-  upsertScoutApplicationPending,
 } from './db.js';
 import { MAX_USE_CASE_LEN } from './enable-constants.js';
 import {
@@ -31,6 +31,7 @@ import {
 import {
   formatDate,
   formatRelativeTime,
+  renderError,
   renderServicesScout,
   renderSignInPasskeys,
   renderSignInSessions,
@@ -214,7 +215,11 @@ export async function handleServicesScoutApply(req, env) {
 
   const app = await getScoutApplicationByAccount(env.DB, { accountId });
   if (!app || app.status === 'pending') {
-    await upsertScoutApplicationPending(env.DB, { accountId, useCase, dataAckedAt: guard.nowMs, nowMs: guard.nowMs });
+    try {
+      await applyScoutPendingWithEvent(env.DB, { accountId, useCase, dataAckedAt: guard.nowMs, nowMs: guard.nowMs });
+    } catch {
+      return signedInHtml(renderError(), { status: 500 });
+    }
     return signedInRedirect('/scout?apply=ok');
   }
   if (app.status === 'approved') {

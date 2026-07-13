@@ -120,7 +120,7 @@ describe('admin scout migration importer', () => {
     expect(createKeyPosts(gcp.calls)).toHaveLength(0);
   });
 
-  it('real-runs migrated application state and data ack semantics', async () => {
+  it('real-runs migrated application state and data ack semantics without fabricating lifecycle events', async () => {
     const token = await mintToken();
     const testEnv = makeTestEnv();
     await primeAdminAuth(token, testEnv);
@@ -199,6 +199,7 @@ describe('admin scout migration importer', () => {
       key: 'skipped',
       key_reason: 'not approved',
     });
+    await expect(rowCount('scout_lifecycle_events')).resolves.toBe(0);
   });
 
   it('coerces timestamps before storage and renders valid scout list timestamps', async () => {

@@ -124,6 +124,7 @@ export async function resetDb() {
     'spb_mint_audit',
     'spp_mint_audit',
     'spb_sweep_audit',
+    'scout_lifecycle_events',
     'scout_applications',
     'gemini_reveal_acks',
     'enable_scout_codes',

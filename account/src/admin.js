@@ -1,16 +1,17 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { decryptEmail, encryptEmail, generateSessionToken, hashWithPepper } from './crypto.js';
 import {
-  approveScoutApplication,
   createAccountWithEmail,
   createSession,
   findEmailByHash,
+  getAccountTransparencyRow,
   getScoutApplicationByAccount,
+  getScoutLifecycleMaxSequence,
   hasActiveProvisionedKeyMaterial,
   listEntitlementsForAccount,
   listScoutApplications,
-  revokeScoutApplication,
-  upsertScoutApplicationApproved,
+  listScoutLifecycleEvents,
+  transitionScoutStatusWithEvent,
 } from './db.js';
 import { json } from './index.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
@@ -27,6 +28,21 @@ const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const IMPERSONATE_TTL_MS = 60 * 60 * 1000;
 const HOSTED_SERVICES = [SPL_HOSTED_SERVICE, SPB_HOSTED_SERVICE, SPP_HOSTED_SERVICE];
+const SCOUT_TRANSITION_ATTEMPTS = 3;
+const SCOUT_LIFECYCLE_REASONS = {
+  preapprove: {
+    absent: ['invitation', 'operator_correction'],
+    pending: ['application_approved', 'operator_correction'],
+    revoked: ['eligibility_restored', 'operator_correction'],
+  },
+  approve: {
+    pending: ['application_approved', 'operator_correction'],
+  },
+  revoke: {
+    pending: ['owner_request', 'eligibility_ended', 'security_response', 'operator_correction'],
+    approved: ['owner_request', 'eligibility_ended', 'security_response', 'operator_correction'],
+  },
+};
 
 const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -45,6 +61,53 @@ function projectionUnavailable() {
   );
 }
 
+function invalidScoutLifecycleReason() {
+  return json(
+    { error: 'valid Scout lifecycle reason_code required', code: 'invalid_scout_lifecycle_reason' },
+    { status: 400, headers: SECURITY_HEADERS }
+  );
+}
+
+function scoutLifecycleTransitionUnavailable() {
+  return json(
+    { error: 'Scout lifecycle transition unavailable', code: 'scout_lifecycle_transition_unavailable' },
+    { status: 500, headers: SECURITY_HEADERS }
+  );
+}
+
+function scoutLifecycleDownstreamUnavailable({ transitionCommitted, correlationId }) {
+  return json(
+    {
+      error: 'Scout lifecycle downstream work unavailable',
+      code: 'scout_lifecycle_downstream_unavailable',
+      transition_committed: transitionCommitted,
+      correlation_id: correlationId,
+    },
+    { status: 500, headers: SECURITY_HEADERS }
+  );
+}
+
+function invalidScoutLifecycleHistoryLimit() {
+  return json(
+    { error: 'valid Scout lifecycle history limit required', code: 'invalid_scout_lifecycle_history_limit' },
+    { status: 400, headers: SECURITY_HEADERS }
+  );
+}
+
+function invalidScoutLifecycleHistoryCursor() {
+  return json(
+    { error: 'valid Scout lifecycle history cursor required', code: 'invalid_scout_lifecycle_history_cursor' },
+    { status: 400, headers: SECURITY_HEADERS }
+  );
+}
+
+function scoutLifecycleHistoryUnavailable() {
+  return json(
+    { error: 'Scout lifecycle history unavailable', code: 'scout_lifecycle_history_unavailable' },
+    { status: 500, headers: SECURITY_HEADERS }
+  );
+}
+
 async function validateCfAccess(request, env) {
   const token = request.headers.get('Cf-Access-Jwt-Assertion');
   if (!token) return null;
@@ -53,9 +116,16 @@ async function validateCfAccess(request, env) {
       issuer: ISSUER,
       audience: env.CF_ACCESS_AUD,
     });
-    if (typeof payload.email === 'string') return { email: payload.email.toLowerCase() };
-    if (payload.common_name) return { service: payload.common_name };
-    return null;
+    const hasEmail = Object.prototype.hasOwnProperty.call(payload, 'email');
+    const hasService = Object.prototype.hasOwnProperty.call(payload, 'common_name');
+    if (hasEmail === hasService) return null;
+    if (hasEmail) {
+      if (typeof payload.email !== 'string') return null;
+      const email = payload.email.trim().toLowerCase();
+      return email ? { email } : null;
+    }
+    if (typeof payload.common_name !== 'string' || !payload.common_name.trim()) return null;
+    return { service: payload.common_name };
   } catch {
     return null;
   }
@@ -70,7 +140,7 @@ export async function handleAdmin(request, env, url, ctx) {
   try {
     const parts = url.pathname.split('/');
     if (parts[2] === 'scouts') {
-      return await handleScoutAdmin(request, env, url, parts, ctx);
+      return await handleScoutAdmin(request, env, url, parts, admin, ctx);
     }
     if (parts[2] === 'migrate') {
       return await handleScoutMigrate(request, env, parts);
@@ -123,18 +193,24 @@ async function handleScoutMigrate(request, env, parts) {
   return json(result, { headers: SECURITY_HEADERS });
 }
 
-async function handleScoutAdmin(request, env, url, parts, ctx) {
+async function handleScoutAdmin(request, env, url, parts, admin, ctx) {
   if (request.method === 'GET' && parts.length === 3) {
     return listScouts(env, url.searchParams.get('status'));
   }
+  if (request.method === 'GET' && parts.length === 5 && parts[4] === 'history') {
+    return listScoutHistory(env, decodeURIComponent(parts[3]), url);
+  }
+  const actor = admin.email
+    ? { kind: 'operator', principal: admin.email }
+    : { kind: 'service', principal: admin.service };
   if (request.method === 'POST' && parts.length === 4 && parts[3] === 'pre-approve') {
-    return preApproveScout(request, env, ctx);
+    return preApproveScout(request, env, actor, ctx);
   }
   if (request.method === 'POST' && parts.length === 5 && parts[4] === 'approve') {
-    return approveScout(env, decodeURIComponent(parts[3]), ctx);
+    return approveScout(request, env, decodeURIComponent(parts[3]), actor, ctx);
   }
   if (request.method === 'POST' && parts.length === 5 && parts[4] === 'revoke') {
-    return revokeScout(env, decodeURIComponent(parts[3]), ctx);
+    return revokeScout(request, env, decodeURIComponent(parts[3]), actor, ctx);
   }
   return json({ error: 'scout route not found' }, { status: 404, headers: SECURITY_HEADERS });
 }
@@ -155,40 +231,112 @@ async function listScouts(env, status) {
   return json({ scouts }, { headers: SECURITY_HEADERS });
 }
 
-async function approveScout(env, accountId, ctx) {
-  const application = await getScoutApplicationByAccount(env.DB, { accountId });
-  if (!application) {
-    return json({ error: 'scout application not found' }, { status: 404, headers: SECURITY_HEADERS });
-  }
-  if (application.status === 'revoked') {
-    return json({ error: 'revoked is terminal; use pre-approve' }, { status: 409, headers: SECURITY_HEADERS });
-  }
+async function approveScout(request, env, accountId, actor, ctx) {
   const nowMs = Date.now();
-  if (application.status === 'approved') {
-    await reconcileAllServices(env, accountId, nowMs, ctx);
-    return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
+  const reasonCode = await readScoutLifecycleReason(request, 'approve');
+  if (!reasonCode) return invalidScoutLifecycleReason();
+
+  for (let attempt = 0; attempt < SCOUT_TRANSITION_ATTEMPTS; attempt += 1) {
+    let application;
+    try {
+      application = await getScoutApplicationByAccount(env.DB, { accountId });
+    } catch {
+      return scoutLifecycleTransitionUnavailable();
+    }
+    if (!application) {
+      return json({ error: 'scout application not found' }, { status: 404, headers: SECURITY_HEADERS });
+    }
+    if (application.status === 'revoked') {
+      return json({ error: 'revoked is terminal; use pre-approve' }, { status: 409, headers: SECURITY_HEADERS });
+    }
+    if (application.status === 'approved') {
+      const downstreamError = await runScoutDownstream(
+        () => reconcileAllServices(env, accountId, nowMs, ctx),
+        { transitionCommitted: false, correlationId: null }
+      );
+      if (downstreamError) return downstreamError;
+      return scoutStatusResponse(accountId, 'approved', null);
+    }
+    if (!isScoutLifecycleReasonCompatible('approve', application.status, reasonCode)) {
+      return invalidScoutLifecycleReason();
+    }
+
+    let transition;
+    try {
+      transition = await transitionScoutStatusWithEvent(env.DB, {
+        accountId,
+        action: 'approve',
+        fromStatus: application.status,
+        toStatus: 'approved',
+        actorKind: actor.kind,
+        actorPrincipal: actor.principal,
+        reasonCode,
+        nowMs,
+      });
+    } catch {
+      return scoutLifecycleTransitionUnavailable();
+    }
+    if (!transition.transitioned) continue;
+
+    const downstreamError = await runScoutDownstream(
+      () => reconcileAllServices(env, accountId, nowMs, ctx),
+      { transitionCommitted: true, correlationId: transition.correlationId }
+    );
+    if (downstreamError) return downstreamError;
+    return scoutStatusResponse(accountId, 'approved', transition.correlationId);
   }
-  await approveScoutApplication(env.DB, { accountId, nowMs });
-  await reconcileAllServices(env, accountId, nowMs, ctx);
-  return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
+  return scoutLifecycleTransitionUnavailable();
 }
 
-async function revokeScout(env, accountId, ctx) {
-  const application = await getScoutApplicationByAccount(env.DB, { accountId });
-  if (!application) {
-    return json({ error: 'scout application not found' }, { status: 404, headers: SECURITY_HEADERS });
-  }
-  if (application.status === 'revoked') {
-    return json({ account_id: accountId, status: 'revoked' }, { headers: SECURITY_HEADERS });
-  }
+async function revokeScout(request, env, accountId, actor, ctx) {
   const nowMs = Date.now();
-  await revokeScoutApplication(env.DB, { accountId, nowMs });
-  await disableActiveGeminiKey({ env, accountId, nowMs, ctx });
-  await reconcileAllServices(env, accountId, nowMs, ctx);
-  return json({ account_id: accountId, status: 'revoked' }, { headers: SECURITY_HEADERS });
+  const reasonCode = await readScoutLifecycleReason(request, 'revoke');
+  if (!reasonCode) return invalidScoutLifecycleReason();
+
+  for (let attempt = 0; attempt < SCOUT_TRANSITION_ATTEMPTS; attempt += 1) {
+    let application;
+    try {
+      application = await getScoutApplicationByAccount(env.DB, { accountId });
+    } catch {
+      return scoutLifecycleTransitionUnavailable();
+    }
+    if (!application) {
+      return json({ error: 'scout application not found' }, { status: 404, headers: SECURITY_HEADERS });
+    }
+    if (application.status === 'revoked') return scoutStatusResponse(accountId, 'revoked', null);
+    if (!isScoutLifecycleReasonCompatible('revoke', application.status, reasonCode)) {
+      return invalidScoutLifecycleReason();
+    }
+
+    let transition;
+    try {
+      transition = await transitionScoutStatusWithEvent(env.DB, {
+        accountId,
+        action: 'revoke',
+        fromStatus: application.status,
+        toStatus: 'revoked',
+        actorKind: actor.kind,
+        actorPrincipal: actor.principal,
+        reasonCode,
+        nowMs,
+      });
+    } catch {
+      return scoutLifecycleTransitionUnavailable();
+    }
+    if (!transition.transitioned) continue;
+
+    const downstreamError = await runScoutDownstream(async () => {
+      await disableActiveGeminiKey({ env, accountId, nowMs, ctx });
+      await reconcileAllServices(env, accountId, nowMs, ctx);
+    }, { transitionCommitted: true, correlationId: transition.correlationId });
+    if (downstreamError) return downstreamError;
+    return scoutStatusResponse(accountId, 'revoked', transition.correlationId);
+  }
+  return scoutLifecycleTransitionUnavailable();
 }
 
-async function preApproveScout(request, env, ctx) {
+async function preApproveScout(request, env, actor, ctx) {
+  const nowMs = Date.now();
   let body;
   try {
     body = await request.json();
@@ -200,19 +348,207 @@ async function preApproveScout(request, env, ctx) {
   if (!isEmailLike(email)) {
     return json({ error: 'valid email required' }, { status: 400, headers: SECURITY_HEADERS });
   }
+  const reasonCode = validScoutLifecycleReason('preapprove', body?.reason_code);
+  if (!reasonCode) return invalidScoutLifecycleReason();
 
   const emailLower = email.toLowerCase();
-  const addressLowerHash = await hashWithPepper(emailLower, env);
-  const addressEncrypted = await encryptEmail(emailLower, env);
-  const nowMs = Date.now();
-  const { accountId } = await createAccountWithEmail(env.DB, {
-    addressEncrypted,
-    addressLowerHash,
-    nowMs,
-  });
-  await upsertScoutApplicationApproved(env.DB, { accountId, nowMs });
-  await reconcileAllServices(env, accountId, nowMs, ctx);
-  return json({ account_id: accountId, status: 'approved' }, { headers: SECURITY_HEADERS });
+  let accountId;
+  try {
+    const addressLowerHash = await hashWithPepper(emailLower, env);
+    const addressEncrypted = await encryptEmail(emailLower, env);
+    ({ accountId } = await createAccountWithEmail(env.DB, {
+      addressEncrypted,
+      addressLowerHash,
+      nowMs,
+    }));
+  } catch {
+    return scoutLifecycleTransitionUnavailable();
+  }
+
+  for (let attempt = 0; attempt < SCOUT_TRANSITION_ATTEMPTS; attempt += 1) {
+    let application;
+    try {
+      application = await getScoutApplicationByAccount(env.DB, { accountId });
+    } catch {
+      return scoutLifecycleTransitionUnavailable();
+    }
+    if (application?.status === 'approved') {
+      const downstreamError = await runScoutDownstream(
+        () => reconcileAllServices(env, accountId, nowMs, ctx),
+        { transitionCommitted: false, correlationId: null }
+      );
+      if (downstreamError) return downstreamError;
+      return scoutStatusResponse(accountId, 'approved', null);
+    }
+    const fromStatus = application?.status ?? 'absent';
+    if (!isScoutLifecycleReasonCompatible('preapprove', fromStatus, reasonCode)) {
+      return invalidScoutLifecycleReason();
+    }
+
+    let transition;
+    try {
+      transition = await transitionScoutStatusWithEvent(env.DB, {
+        accountId,
+        action: 'preapprove',
+        fromStatus,
+        toStatus: 'approved',
+        actorKind: actor.kind,
+        actorPrincipal: actor.principal,
+        reasonCode,
+        nowMs,
+      });
+    } catch {
+      return scoutLifecycleTransitionUnavailable();
+    }
+    if (!transition.transitioned) continue;
+
+    const downstreamError = await runScoutDownstream(
+      () => reconcileAllServices(env, accountId, nowMs, ctx),
+      { transitionCommitted: true, correlationId: transition.correlationId }
+    );
+    if (downstreamError) return downstreamError;
+    return scoutStatusResponse(accountId, 'approved', transition.correlationId);
+  }
+  return scoutLifecycleTransitionUnavailable();
+}
+
+async function listScoutHistory(env, accountId, url) {
+  let account;
+  try {
+    account = await getAccountTransparencyRow(env.DB, accountId);
+  } catch {
+    return scoutLifecycleHistoryUnavailable();
+  }
+  if (!account) return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
+
+  const rawLimit = url.searchParams.get('limit');
+  let limit = 50;
+  if (rawLimit !== null) {
+    if (!/^\d+$/.test(rawLimit)) return invalidScoutLifecycleHistoryLimit();
+    limit = Number(rawLimit);
+    if (limit < 1 || limit > 100) return invalidScoutLifecycleHistoryLimit();
+  }
+
+  const rawCursor = url.searchParams.get('cursor');
+  const cursor = rawCursor === null ? null : decodeScoutLifecycleCursor(rawCursor);
+  if (rawCursor !== null && !isValidScoutLifecycleCursor(cursor, accountId)) {
+    return invalidScoutLifecycleHistoryCursor();
+  }
+
+  let currentMaxSequence;
+  try {
+    currentMaxSequence = await getScoutLifecycleMaxSequence(env.DB, accountId);
+  } catch {
+    return scoutLifecycleHistoryUnavailable();
+  }
+  if (cursor && cursor.s > currentMaxSequence) return invalidScoutLifecycleHistoryCursor();
+
+  const snapshotSequence = cursor?.s ?? currentMaxSequence;
+  const boundary = cursor?.b ?? snapshotSequence;
+  let rows;
+  try {
+    rows = await listScoutLifecycleEvents(env.DB, accountId, {
+      maxSequence: boundary,
+      limit: limit + 1,
+    });
+  } catch {
+    return scoutLifecycleHistoryUnavailable();
+  }
+
+  const hasMore = rows.length > limit;
+  const pageRows = rows.slice(0, limit);
+  const events = pageRows.map((row) => ({
+    correlation_id: row.correlation_id,
+    sequence: row.sequence,
+    action: row.action,
+    from_status: row.from_status,
+    to_status: row.to_status,
+    actor_kind: row.actor_kind,
+    actor_principal: row.actor_principal,
+    reason_code: row.reason_code,
+    occurred_at: isoOrNull(row.occurred_at),
+  }));
+  const nextCursor = hasMore
+    ? encodeScoutLifecycleCursor({
+      a: accountId,
+      s: snapshotSequence,
+      b: pageRows[pageRows.length - 1].sequence - 1,
+    })
+    : null;
+  return json(
+    {
+      account_id: accountId,
+      snapshot_sequence: snapshotSequence,
+      events,
+      next_cursor: nextCursor,
+    },
+    { headers: SECURITY_HEADERS }
+  );
+}
+
+async function readScoutLifecycleReason(request, action) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return null;
+  }
+  return validScoutLifecycleReason(action, body?.reason_code);
+}
+
+function validScoutLifecycleReason(action, reasonCode) {
+  if (typeof reasonCode !== 'string') return null;
+  const valid = Object.values(SCOUT_LIFECYCLE_REASONS[action] || {}).some((codes) => codes.includes(reasonCode));
+  return valid ? reasonCode : null;
+}
+
+function isScoutLifecycleReasonCompatible(action, fromStatus, reasonCode) {
+  return SCOUT_LIFECYCLE_REASONS[action]?.[fromStatus]?.includes(reasonCode) === true;
+}
+
+async function runScoutDownstream(work, committed) {
+  try {
+    await work();
+    return null;
+  } catch {
+    return scoutLifecycleDownstreamUnavailable(committed);
+  }
+}
+
+function scoutStatusResponse(accountId, status, correlationId) {
+  return json(
+    { account_id: accountId, status, correlation_id: correlationId },
+    { headers: SECURITY_HEADERS }
+  );
+}
+
+function encodeScoutLifecycleCursor(cursor) {
+  return btoa(JSON.stringify(cursor))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function decodeScoutLifecycleCursor(value) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1) return null;
+  try {
+    const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')));
+  } catch {
+    return null;
+  }
+}
+
+function isValidScoutLifecycleCursor(cursor, accountId) {
+  return cursor !== null
+    && typeof cursor === 'object'
+    && !Array.isArray(cursor)
+    && typeof cursor.a === 'string'
+    && cursor.a === accountId
+    && Number.isSafeInteger(cursor.s)
+    && Number.isSafeInteger(cursor.b)
+    && cursor.b >= 1
+    && cursor.b <= cursor.s;
 }
 
 async function impersonateAccount(request, env, admin, ctx) {

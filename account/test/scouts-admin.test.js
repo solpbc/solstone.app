@@ -183,7 +183,7 @@ describe('admin scout endpoints', () => {
       testEnv
     );
     expect(pendingResponse.status).toBe(200);
-    await expect(pendingResponse.json()).resolves.toEqual({ account_id: pending.accountId, status: 'approved' });
+    await expectScoutStatusResponse(pendingResponse, pending.accountId, 'approved', true);
     const pendingAfter = await applicationRow(pending.accountId);
     expect(pendingAfter.status).toBe('approved');
     expect(pendingAfter.approved_at).toBeGreaterThan(0);
@@ -193,7 +193,7 @@ describe('admin scout endpoints', () => {
       testEnv
     );
     expect(approvedResponse.status).toBe(200);
-    await expect(approvedResponse.json()).resolves.toEqual({ account_id: approved.accountId, status: 'approved' });
+    await expectScoutStatusResponse(approvedResponse, approved.accountId, 'approved', false);
     await expect(applicationRow(approved.accountId)).resolves.toEqual(approvedBefore);
 
     const revokedResponse = await worker.fetch(
@@ -234,7 +234,7 @@ describe('admin scout endpoints', () => {
     await waitOnExecutionContext(ctx);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'approved' });
+    await expectScoutStatusResponse(response, account.accountId, 'approved', true);
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'active',
       source: 'comp',
@@ -267,7 +267,7 @@ describe('admin scout endpoints', () => {
       testEnv
     );
     expect(pendingResponse.status).toBe(200);
-    await expect(pendingResponse.json()).resolves.toEqual({ account_id: pending.accountId, status: 'revoked' });
+    await expectScoutStatusResponse(pendingResponse, pending.accountId, 'revoked', true);
     const pendingAfter = await applicationRow(pending.accountId);
     expect(pendingAfter.status).toBe('revoked');
     expect(pendingAfter.revoked_at).toBeGreaterThan(0);
@@ -277,7 +277,7 @@ describe('admin scout endpoints', () => {
       testEnv
     );
     expect(approvedResponse.status).toBe(200);
-    await expect(approvedResponse.json()).resolves.toEqual({ account_id: approved.accountId, status: 'revoked' });
+    await expectScoutStatusResponse(approvedResponse, approved.accountId, 'revoked', true);
 
     const beforeSecond = await applicationRow(approved.accountId);
     const secondResponse = await worker.fetch(
@@ -285,7 +285,7 @@ describe('admin scout endpoints', () => {
       testEnv
     );
     expect(secondResponse.status).toBe(200);
-    await expect(secondResponse.json()).resolves.toEqual({ account_id: approved.accountId, status: 'revoked' });
+    await expectScoutStatusResponse(secondResponse, approved.accountId, 'revoked', false);
     await expect(applicationRow(approved.accountId)).resolves.toEqual(beforeSecond);
 
     await expectJsonError(
@@ -333,7 +333,7 @@ describe('admin scout endpoints', () => {
     await waitOnExecutionContext(ctx);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'revoked' });
+    await expectScoutStatusResponse(response, account.accountId, 'revoked', true);
     await expect(applicationRow(account.accountId)).resolves.toMatchObject({ status: 'revoked' });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'lapsed',
@@ -398,7 +398,7 @@ describe('admin scout endpoints', () => {
     const keyRow = await provisionedKeyRow(seededKey.id);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'revoked' });
+    await expectScoutStatusResponse(response, account.accountId, 'revoked', true);
     expect(application.status).toBe('revoked');
     expect(keyRow.revoked_at).toBeGreaterThan(0);
     // Gemini delete and entitlement relay sync both schedule work.
@@ -429,7 +429,7 @@ describe('admin scout endpoints', () => {
     const application = await applicationRow(account.accountId);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ account_id: account.accountId, status: 'revoked' });
+    await expectScoutStatusResponse(response, account.accountId, 'revoked', true);
     expect(application.status).toBe('revoked');
     // Entitlement relay sync still runs; no Gemini delete is scheduled.
     expect(waitSpy).toHaveBeenCalledTimes(1);
@@ -442,17 +442,16 @@ describe('admin scout endpoints', () => {
     const response = await worker.fetch(
       adminRequest('/admin/scouts/pre-approve', token, {
         method: 'POST',
-        body: { email: 'Fresh@Example.com' },
+        body: { email: 'Fresh@Example.com', reason_code: 'invitation' },
       }),
       testEnv
     );
-    const body = await response.json();
+    const body = await expectScoutStatusResponse(response, null, 'approved', true);
     const emailHash = await hashWithPepper('fresh@example.com', testEnv);
     const emailRow = await emailByHash(emailHash);
     const application = await applicationRow(body.account_id);
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ account_id: body.account_id, status: 'approved' });
     expect(await rowCount('accounts')).toBe(1);
     expect(await rowCount('account_emails')).toBe(1);
     expect(await rowCount('scout_applications')).toBe(1);
@@ -472,14 +471,13 @@ describe('admin scout endpoints', () => {
     const response = await worker.fetch(
       adminRequest('/admin/scouts/pre-approve', token, {
         method: 'POST',
-        body: { email: 'Comped@Example.com' },
+        body: { email: 'Comped@Example.com', reason_code: 'invitation' },
       }),
       testEnv
     );
-    const body = await response.json();
+    const body = await expectScoutStatusResponse(response, null, 'approved', true);
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ account_id: body.account_id, status: 'approved' });
     await expect(entitlementRow(body.account_id)).resolves.toMatchObject({
       status: 'active',
       source: 'comp',
@@ -497,7 +495,7 @@ describe('admin scout endpoints', () => {
 
     const existingResponse = await preApprove(token, 'existing@example.com', testEnv);
     expect(existingResponse.status).toBe(200);
-    await expect(existingResponse.json()).resolves.toEqual({ account_id: existing.accountId, status: 'approved' });
+    await expectScoutStatusResponse(existingResponse, existing.accountId, 'approved', true);
     expect(await rowCount('accounts')).toBe(3);
     expect(await rowCount('account_emails')).toBe(3);
     expect(await applicationRow(existing.accountId)).toMatchObject({
@@ -545,7 +543,7 @@ describe('admin scout endpoints', () => {
     const response = await worker.fetch(
       adminRequest('/admin/scouts/pre-approve', token, {
         method: 'POST',
-        body: { email: 'not-an-email' },
+        body: { email: 'not-an-email', reason_code: 'not-valid' },
       }),
       makeTestEnv()
     );
@@ -561,9 +559,16 @@ function adminRequest(path, token, { method = 'GET', body } = {}) {
   const headers = {};
   if (token) headers['Cf-Access-Jwt-Assertion'] = token;
   const init = { method, headers };
-  if (body !== undefined) {
+  let requestBody = body;
+  if (requestBody === undefined && method === 'POST' && path.endsWith('/approve')) {
+    requestBody = { reason_code: 'application_approved' };
+  }
+  if (requestBody === undefined && method === 'POST' && path.endsWith('/revoke')) {
+    requestBody = { reason_code: 'owner_request' };
+  }
+  if (requestBody !== undefined) {
     headers['Content-Type'] = 'application/json';
-    init.body = JSON.stringify(body);
+    init.body = JSON.stringify(requestBody);
   }
   return new Request(`https://services.solstone.app${path}`, init);
 }
@@ -577,6 +582,23 @@ async function expectScoutListOk(token) {
 async function expectJsonError(response, status, error) {
   expect(response.status).toBe(status);
   await expect(response.json()).resolves.toEqual({ error });
+}
+
+async function expectScoutStatusResponse(response, accountId, status, committed) {
+  const text = await response.text();
+  const body = JSON.parse(text);
+  const expectedAccountId = accountId ?? body.account_id;
+  expect(body).toEqual({
+    account_id: expectedAccountId,
+    status,
+    correlation_id: committed ? expect.stringMatching(/^[0-9a-f-]{36}$/i) : null,
+  });
+  expect(text).toBe(JSON.stringify({
+    account_id: expectedAccountId,
+    status,
+    correlation_id: body.correlation_id,
+  }));
+  return body;
 }
 
 async function seedProvisionedKey({
@@ -655,7 +677,7 @@ function preApprove(token, email, testEnv) {
   return worker.fetch(
     adminRequest('/admin/scouts/pre-approve', token, {
       method: 'POST',
-      body: { email },
+      body: { email, reason_code: 'operator_correction' },
     }),
     testEnv
   );

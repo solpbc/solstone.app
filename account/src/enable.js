@@ -9,6 +9,7 @@ import {
 } from './crypto.js';
 import { mintDispatchToken, resolveBearerAccount } from './dispatch-tokens.js';
 import {
+  applyScoutPendingWithEvent,
   bumpDeviceLastSeen,
   consumeServiceHandoff,
   findActiveProvisionedKey,
@@ -23,7 +24,6 @@ import {
   insertSppMintAudit,
   revokeDevicePriorAndInsertNew,
   setScoutApplicationDataAcked,
-  upsertScoutApplicationPending,
   upsertSpbBinding,
   upsertSplBinding,
   upsertSppBinding,
@@ -59,6 +59,7 @@ import {
   renderEnableSppDone,
   renderEnableSppEarlyAccess,
   renderEnableSppError,
+  renderError,
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
@@ -240,7 +241,11 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
   let state;
   let payload;
   if (!app || app.status === 'pending') {
-    await upsertScoutApplicationPending(env.DB, { accountId, useCase, dataAckedAt: nowMs, nowMs });
+    try {
+      await applyScoutPendingWithEvent(env.DB, { accountId, useCase, dataAckedAt: nowMs, nowMs });
+    } catch {
+      return noStoreHtml(renderError(), { status: 500 });
+    }
     const row = await getScoutApplicationByAccount(env.DB, { accountId });
     const dispatch = await mintDispatchToken(env, accountId);
     state = 'pending';

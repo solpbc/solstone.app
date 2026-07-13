@@ -255,6 +255,7 @@ describe('settings gemini dashboard', () => {
       body: { data_ack: 'yes', use_case: ' local research ' },
     }), testEnv);
     const row = await getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId });
+    const event = await lifecycleEvent(testEnv, account.accountId);
 
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe('/scout?apply=ok');
@@ -265,6 +266,34 @@ describe('settings gemini dashboard', () => {
       data_acked_at: now,
       applied_at: now,
     });
+    expect(event).toMatchObject({
+      action: 'apply',
+      actor_kind: 'owner',
+      actor_principal: account.accountId,
+      occurred_at: now,
+    });
+    expect(event.occurred_at).toBe(row.applied_at);
+    expect(event.occurred_at).toBe(row.created_at);
+    expect(event.occurred_at).toBe(row.updated_at);
+  });
+
+  it('returns the global error page without a success redirect when the apply batch fails', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const failingEnv = withFailingBatch(testEnv);
+
+    const response = await worker.fetch(settingsPost('/scout/apply', {
+      cookie: session.cookie,
+      body: { data_ack: 'yes' },
+    }), failingEnv);
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get('Location')).toBeNull();
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    await expect(response.text()).resolves.toContain("that link didn't work");
+    await expect(rowCount(testEnv, 'scout_applications')).resolves.toBe(0);
+    await expect(rowCount(testEnv, 'scout_lifecycle_events')).resolves.toBe(0);
   });
 
   it('does not write an application when dashboard apply lacks data acknowledgement', async () => {
@@ -581,6 +610,25 @@ async function activeKeyResource(testEnv, accountId) {
     .bind(accountId)
     .first();
   return row?.key_resource_name || null;
+}
+
+async function lifecycleEvent(testEnv, accountId) {
+  return testEnv.DB
+    .prepare('SELECT * FROM scout_lifecycle_events WHERE account_id = ? ORDER BY sequence')
+    .bind(accountId)
+    .first();
+}
+
+function withFailingBatch(testEnv) {
+  return {
+    ...testEnv,
+    DB: {
+      prepare: (...args) => testEnv.DB.prepare(...args),
+      batch() {
+        throw new Error('injected batch failure');
+      },
+    },
+  };
 }
 
 async function rowCount(testEnv, table) {
