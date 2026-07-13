@@ -6,15 +6,19 @@ import {
   createSession,
   findEmailByHash,
   getScoutApplicationByAccount,
+  hasActiveProvisionedKeyMaterial,
+  listEntitlementsForAccount,
   listScoutApplications,
   revokeScoutApplication,
   upsertScoutApplicationApproved,
 } from './db.js';
 import { json } from './index.js';
-import { reconcileAllServices } from './spb-entitlement.js';
+import { SPL_HOSTED_SERVICE } from './relay-grant.js';
+import { SPB_HOSTED_SERVICE, reconcileAllServices } from './spb-entitlement.js';
 import { importScoutRecords } from './scout-migrate.js';
 import { SESSION_COOKIE } from './session.js';
 import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
+import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { emitSecurityEvent } from './hub.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
@@ -22,6 +26,7 @@ const ISSUER = 'https://solpbc.cloudflareaccess.com';
 const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const IMPERSONATE_TTL_MS = 60 * 60 * 1000;
+const HOSTED_SERVICES = [SPL_HOSTED_SERVICE, SPB_HOSTED_SERVICE, SPP_HOSTED_SERVICE];
 
 const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -32,6 +37,13 @@ const SECURITY_HEADERS = {
   'Content-Security-Policy':
     "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none'",
 };
+
+function projectionUnavailable() {
+  return json(
+    { error: 'owner sign-in projection unavailable', code: 'owner_signin_projection_unavailable' },
+    { status: 500, headers: SECURITY_HEADERS }
+  );
+}
 
 async function validateCfAccess(request, env) {
   const token = request.headers.get('Cf-Access-Jwt-Assertion');
@@ -69,9 +81,20 @@ export async function handleAdmin(request, env, url, ctx) {
     if (request.method !== 'GET') {
       return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
     }
-    if (url.pathname === '/admin/accounts') return await listAccounts(env);
+    if (url.pathname === '/admin/accounts') {
+      try {
+        return await listAccounts(env);
+      } catch {
+        return projectionUnavailable();
+      }
+    }
     if (parts.length === 4 && parts[1] === 'admin' && parts[2] === 'accounts') {
-      return await showAccount(env, decodeURIComponent(parts[3]));
+      const seg = decodeURIComponent(parts[3]);
+      try {
+        return await showAccount(env, seg);
+      } catch {
+        return projectionUnavailable();
+      }
     }
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   } catch {
@@ -262,6 +285,7 @@ async function listAccounts(env) {
     .prepare(
       `SELECT accounts.id, accounts.created_at, accounts.last_signin_at,
               pe.address_encrypted AS primary_address_encrypted,
+              sa.status AS scout_status,
               (SELECT COUNT(*) FROM passkey_credentials pc
                 WHERE pc.account_id = accounts.id AND pc.revoked_at IS NULL) AS n_passkeys,
               (SELECT COUNT(*) FROM sessions s
@@ -272,6 +296,7 @@ async function listAccounts(env) {
        LEFT JOIN account_emails pe
          ON pe.id = accounts.primary_email_id
         AND pe.account_id = accounts.id
+       LEFT JOIN scout_applications sa ON sa.account_id = accounts.id
        ORDER BY accounts.created_at DESC, accounts.id DESC`
     )
     .bind(nowMs)
@@ -286,6 +311,7 @@ async function listAccounts(env) {
     n_emails: row.n_emails,
     created_at: isoOrNull(row.created_at),
     last_signin_at: isoOrNull(row.last_signin_at),
+    scout_status: row.scout_status ?? 'absent',
   })));
   return json({ accounts }, { headers: SECURITY_HEADERS });
 }
@@ -294,12 +320,37 @@ async function showAccount(env, seg) {
   const account = await resolveAccount(env, seg);
   if (!account) return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
 
-  const [primaryEmail, emails, passkeys, sessions] = await Promise.all([
+  const detailResults = await Promise.allSettled([
     getPrimaryEmail(env, account),
     listEmails(env, account.id),
     listPasskeys(env, account.id),
     listSessions(env, account.id),
+    getScoutApplicationByAccount(env.DB, { accountId: account.id }),
+    hasActiveProvisionedKeyMaterial(env.DB, { accountId: account.id, provider: 'gemini' }),
+    listEntitlementsForAccount(env.DB, { accountId: account.id }),
   ]);
+  const failed = detailResults.find((result) => result.status === 'rejected');
+  if (failed) throw failed.reason;
+  const [primaryEmail, emails, passkeys, sessions, application, hasLegacyGeminiKey, entitlementRows] =
+    detailResults.map((result) => result.value);
+  const scoutStatus = application?.status ?? 'absent';
+  const scout = {
+    status: scoutStatus,
+    applied_at: isoOrNull(application?.applied_at),
+    approved_at: isoOrNull(application?.approved_at),
+    revoked_at: isoOrNull(application?.revoked_at),
+    legacy_gemini_key: hasLegacyGeminiKey ? 'active' : 'inactive',
+  };
+  const rowsByService = Object.fromEntries(entitlementRows.map((row) => [row.service, row]));
+  const serviceEntitlements = HOSTED_SERVICES.map((service) => {
+    const row = rowsByService[service];
+    return {
+      service,
+      status: row?.status ?? null,
+      source_basis: !row ? 'none' : (row.source === 'comp' ? 'complimentary' : 'paid'),
+    };
+  });
+  const consistencyWarnings = computeConsistencyWarnings(scoutStatus, rowsByService);
 
   return json(
     {
@@ -312,9 +363,27 @@ async function showAccount(env, seg) {
       emails,
       passkeys,
       sessions,
+      scout,
+      service_entitlements: serviceEntitlements,
+      consistency_warnings: consistencyWarnings,
     },
     { headers: SECURITY_HEADERS }
   );
+}
+
+export function computeConsistencyWarnings(scoutStatus, rowsByService) {
+  const warnings = [];
+  for (const service of HOSTED_SERVICES) {
+    const row = rowsByService[service];
+    if (scoutStatus === 'approved') {
+      const paid = row && row.source !== 'comp' && (row.status === 'active' || row.status === 'past_due');
+      const complimentary = row && row.source === 'comp' && row.status === 'active';
+      if (!(paid || complimentary)) warnings.push(`approved_scout_missing_entitlement:${service}`);
+    } else if (row && row.source === 'comp' && row.status === 'active') {
+      warnings.push(`nonapproved_scout_active_complimentary_entitlement:${service}`);
+    }
+  }
+  return warnings;
 }
 
 async function resolveAccount(env, seg) {

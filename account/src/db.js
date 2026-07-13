@@ -633,6 +633,23 @@ export async function findActiveProvisionedKey(db, { accountId, provider }) {
   return row || null;
 }
 
+export async function hasActiveProvisionedKeyMaterial(db, { accountId, provider }) {
+  // Keep this predicate in lockstep with the active_key EXISTS predicate in listScoutApplications.
+  const row = await db
+    .prepare(
+      `SELECT EXISTS (
+         SELECT 1 FROM provisioned_keys
+         WHERE account_id = ?
+           AND provider = ?
+           AND revoked_at IS NULL
+           AND key_string_encrypted != ''
+       ) AS has_key`
+    )
+    .bind(accountId, provider)
+    .first();
+  return Boolean(row.has_key);
+}
+
 export async function listProvisionedKeysAudit(db, { accountId, provider }) {
   const { results } = await db
     .prepare(
@@ -942,6 +959,18 @@ export async function getEntitlement(db, { accountId, service }) {
     .bind(accountId, service)
     .first();
   return row || null;
+}
+
+export async function listEntitlementsForAccount(db, { accountId }) {
+  const { results } = await db
+    .prepare(
+      `SELECT service, status, source
+       FROM entitlements
+       WHERE account_id = ?`
+    )
+    .bind(accountId)
+    .all();
+  return results ?? [];
 }
 
 export async function upsertEntitlement(db, {

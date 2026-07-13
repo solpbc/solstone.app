@@ -99,7 +99,7 @@ describe('admin endpoints', () => {
     expect(body).toEqual({ accounts: [] });
   });
 
-  it('keeps admin responses JSON when a post-auth query throws', async () => {
+  it('returns the projection-unavailable 500 when a post-auth query throws', async () => {
     const token = await mintToken();
     const baseEnv = makeTestEnv();
     const throwingEnv = makeTestEnv({
@@ -115,8 +115,12 @@ describe('admin endpoints', () => {
 
     const response = await worker.fetch(adminRequest('/admin/accounts', token), throwingEnv);
 
-    expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: 'account not found' });
+    expect(response.status).toBe(500);
+    expect(await response.clone().text()).toBe('{"error":"owner sign-in projection unavailable","code":"owner_signin_projection_unavailable"}');
+    expect(await response.json()).toEqual({
+      error: 'owner sign-in projection unavailable',
+      code: 'owner_signin_projection_unavailable',
+    });
     expect(response.headers.get('Content-Type')).toBe('application/json');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
   });
