@@ -23,6 +23,20 @@ async function latestMacosDmgUrl() {
   }
 }
 
+async function latestJournalDmgUrl() {
+  try {
+    const res = await fetch(JOURNAL_MACOS_APPCAST_URL, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return null;
+    const xml = await res.text();
+    const match = xml.match(/<enclosure[^>]*\burl="([^"]+\.dmg)"/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 async function latestWindowsSetupUrl() {
   try {
     const res = await fetch(WIN_FEED_URL, {
@@ -77,6 +91,32 @@ export default {
     if (url.pathname === "/download/macos") {
       const pageUrl = new URL(request.url);
       pageUrl.pathname = "/download-macos";
+      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
+      const headers = new Headers(pageResponse.headers);
+      headers.set("Content-Type", "text/html; charset=utf-8");
+      return new Response(pageResponse.body, { status: 200, headers });
+    }
+
+    // Binary URL: /download/journal/latest 302s to the current versioned
+    // journal DMG on updates.solstone.app, mirroring /download/macos/latest.
+    // sol and the journal are separate macOS apps with their own Sparkle feeds.
+    if (url.pathname === "/download/journal/latest") {
+      const dmgUrl = await latestJournalDmgUrl();
+      if (!dmgUrl) {
+        return new Response("Latest journal download is temporarily unavailable. Try again shortly.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+        });
+      }
+      return Response.redirect(dmgUrl, 302);
+    }
+
+    // Human-shareable URL: /download/journal mirrors /download/macos — an HTML
+    // page for link unfurlers, auto-downloading via JS; the binary lives at
+    // /download/journal/latest.
+    if (url.pathname === "/download/journal") {
+      const pageUrl = new URL(request.url);
+      pageUrl.pathname = "/download-journal";
       const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
       const headers = new Headers(pageResponse.headers);
       headers.set("Content-Type", "text/html; charset=utf-8");

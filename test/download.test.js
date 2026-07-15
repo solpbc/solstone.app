@@ -78,6 +78,79 @@ test("macOS download redirects to the latest dmg enclosure", async (t) => {
   }
 });
 
+// /download/journal mirrors /download/macos — sol and the journal are separate
+// macOS apps with their own Sparkle feeds and their own DMG download routes.
+const JOURNAL_PATHS = ["/download/journal/latest"];
+const JOURNAL_UNAVAILABLE_MESSAGE = "Latest journal download is temporarily unavailable. Try again shortly.";
+
+test("journal download returns 503 when appcast fetch rejects", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  globalThis.fetch = () => Promise.reject(new Error("Network connection lost"));
+
+  for (const path of JOURNAL_PATHS) {
+    const res = await fetchDownload(path);
+    assert.equal(res.status, 503);
+    assert.equal(await res.text(), JOURNAL_UNAVAILABLE_MESSAGE);
+    assert.equal(res.headers.get("content-type"), "text/plain; charset=utf-8");
+    assert.equal(res.headers.get("cache-control"), "no-store");
+  }
+});
+
+test("journal download returns 503 when appcast has no dmg enclosure", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  globalThis.fetch = () => Promise.resolve(new Response("<rss><channel></channel></rss>", { status: 200 }));
+
+  for (const path of JOURNAL_PATHS) {
+    const res = await fetchDownload(path);
+    assert.equal(res.status, 503);
+    assert.equal(await res.text(), JOURNAL_UNAVAILABLE_MESSAGE);
+  }
+});
+
+test("journal download redirects to the latest dmg enclosure", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const dmg = "https://updates.solstone.app/journal-macos/releases/v1.0.7/journal-1.0.7.dmg";
+  globalThis.fetch = () =>
+    Promise.resolve(
+      new Response(`<rss><channel><item><enclosure url="${dmg}" /></item></channel></rss>`, { status: 200 }),
+    );
+
+  for (const path of JOURNAL_PATHS) {
+    const res = await fetchDownload(path);
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get("location"), dmg);
+  }
+});
+
+test("/download/journal serves the HTML page (200, text/html), never the binary", async () => {
+  const env = {
+    ASSETS: {
+      async fetch(req) {
+        assert.equal(new URL(req.url).pathname, "/download-journal");
+        return new Response("<h1>download the journal</h1>", {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      },
+    },
+  };
+  const res = await worker.fetch(new Request("https://solstone.app/download/journal"), env);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("content-type"), "text/html; charset=utf-8");
+});
+
 // /download/windows is now the human-shareable HTML page (mirrors /download/macos);
 // the binary permalink moved to /download/windows/latest, with the legacy
 // /download/windows.exe alias still 302ing to the installer.

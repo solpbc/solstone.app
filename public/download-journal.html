@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>download solstone for macOS</title>
-    <meta name="description" content="download solstone for macOS — sol lives on your Mac, experiences your day with you, and keeps it all in your journal. nothing to connect, no services to authorize. open source, self-hostable.">
-    <meta property="og:title" content="download solstone for macOS">
-    <meta property="og:description" content="sol lives on your Mac, experiences your day with you, and keeps it all in your journal. nothing to connect, no services to authorize. download the macOS app.">
-    <meta property="og:url" content="https://solstone.app/download/macos">
+    <title>download the journal for macOS</title>
+    <meta name="description" content="download the journal for macOS — the memory sol keeps, its own dock app. name your journal, keep it here, back it up like any other folder. open source, self-hostable.">
+    <meta property="og:title" content="download the journal for macOS">
+    <meta property="og:description" content="the journal is the memory sol keeps — its own dock app, signed and notarized. download it for this Mac.">
+    <meta property="og:url" content="https://solstone.app/download/journal">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="https://solstone.app/download/macos">
+    <link rel="canonical" href="https://solstone.app/download/journal">
     <link rel="icon" type="image/svg+xml" href="/static/sol-ring-icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/tokens.css">
@@ -21,7 +21,8 @@
     <style>
         /* Comfortaa loads via tokens.css (linked above) — no per-page @font-face.
            base.css supplies the shared sunrise ground (<body class="sunrise">) and
-           the footer spine; the rules below are this page's own layout. */
+           the footer spine; the rules below are this page's own layout. Mirrors
+           download-macos.html's layout — same page, different app. */
         * {
             margin: 0;
             padding: 0;
@@ -164,13 +165,13 @@
         <a href="/"><img src="/static/sol-wordmark.svg" alt="sol — solstone home" class="logo"></a>
     </header>
     <main id="main" tabindex="-1">
-        <h1>download solstone for macOS</h1>
-        <p class="message">your download should start automatically — this is <strong>sol</strong>, the app that experiences your day on this Mac and keeps it all in your journal. setting up a new Mac? <a href="/download/journal">get the journal</a> too, so there's somewhere for sol to keep it.</p>
-        <a href="/download/macos/latest" class="download-btn" id="dl">download for macOS</a>
-        <p class="fallback">didn't start? <a href="/download/macos/latest">click here to download</a> &middot; <a href="/download/journal">get the journal too &rarr;</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
+        <h1>download the journal</h1>
+        <p class="message">your download should start automatically — this is <strong>the journal</strong>, the memory sol keeps. it's a separate app from sol: open it, and its first run gets your journal named, located, and marked as yours. don't have sol yet? <a href="/download/macos">get sol</a> too — most people setting up a new Mac want both.</p>
+        <a href="/download/journal/latest" class="download-btn" id="dl">download the journal</a>
+        <p class="fallback">didn't start? <a href="/download/journal/latest">click here to download</a> &middot; <a href="/download/macos">get sol too &rarr;</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
         <nav class="links" aria-label="more">
-            <a href="/releases/macos">what's new in this version &rarr;</a>
-            <a href="https://github.com/solpbc/solstone">source code on github &rarr;</a>
+            <a href="/releases/journal-macos">what's new in this version &rarr;</a>
+            <a href="https://github.com/solpbc/solstone-macos">source code on github &rarr;</a>
             <a href="/">back to solstone.app &rarr;</a>
         </nav>
     </main>
@@ -185,7 +186,7 @@
         // fallback (browsers can block scripted navigation). Crawlers/unfurlers
         // don't run JS — they read the Open Graph tags above and render a card.
         setTimeout(function () {
-            window.location.href = '/download/macos/latest';
+            window.location.href = '/download/journal/latest';
         }, 600);
     </script>
 </body>
