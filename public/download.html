@@ -285,7 +285,7 @@
         <p>sol is the app — it lives on your devices, experiences your day with you, and keeps it all in your journal. get sol for each device you use: download it, or copy the prompt below into your coding agent and it handles the rest.</p>
     </div>
 
-    <p class="early-days"><span class="stage-label">early days.</span> sol on macOS and linux is in use today; sol for windows is in beta. it's working but still early — expect rough edges, especially around permissions and audio routing.</p>
+    <p class="early-days"><span class="stage-label">early days.</span> sol on macOS, linux, and windows is in use today — open source and hands-on. expect rough edges, and we'll fix them together as we go.</p>
 
     <div class="cards">
         <div class="card">
@@ -347,7 +347,7 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux
 
         <div class="card">
             <h2>sol on windows</h2>
-            <p class="subtitle">windows app (beta) — screen and audio, kept in your journal</p>
+            <p class="subtitle">windows app — screen and audio, kept in your journal</p>
             <ul>
                 <li>takes in your screen and system audio, mic when present</li>
                 <li>runs per-user in the tray — no admin install</li>
@@ -359,12 +359,14 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux
                 <p class="trust-signal">signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.</p>
             </div>
             <div class="secondary-action">
+                <button class="copy-btn" data-target="blurb-winget" data-default-label="copy winget install" aria-label="copy winget install command for sol on windows">copy winget install</button>
                 <button class="copy-btn" data-target="blurb-scoop" data-default-label="copy scoop install" aria-label="copy scoop install commands for sol on windows">copy scoop install</button>
                 <a href="https://github.com/solpbc/solstone-windows" class="gh-link">github →</a>
                 <a href="/releases/windows" class="gh-link">release notes →</a>
             </div>
-            <p class="update-note">installed directly, sol updates itself; via scoop, run <code>scoop update solstone</code>.</p>
+            <p class="update-note">installed directly, sol updates itself; via winget, run <code>winget upgrade solstone</code>; via scoop, run <code>scoop update solstone</code>.</p>
 
+            <pre class="blurb" id="blurb-winget">winget install solstone</pre>
             <pre class="blurb" id="blurb-scoop">scoop bucket add solstone https://github.com/solpbc/scoop-solstone
 scoop install solstone</pre>
         </div>

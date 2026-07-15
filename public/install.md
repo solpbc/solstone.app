@@ -50,6 +50,7 @@ get sol for windows — it runs sol on your PC (screen and system audio, mic whe
 
 - **signed installer:** download from [solstone.app/download/windows](https://solstone.app/download/windows) and run it — installs per-user in the tray, no admin needed, and updates itself.
 - **scoop:** `scoop bucket add solstone https://github.com/solpbc/scoop-solstone` then `scoop install solstone` (run `scoop update solstone` to update).
+- **winget:** `winget install solstone` (run `winget upgrade solstone` to update).
 
 signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.
 
