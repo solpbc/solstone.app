@@ -59,11 +59,15 @@ describe('/enable/scout', () => {
     expect(await entry.clone().text()).not.toContain('action="/enable/scout"');
     expect(consent.status).toBe(200);
     expect(consent.headers.get('Cache-Control')).toBe('no-store');
+    expect(body).toContain('href="/portal.css?v=2"');
     expect(body).toContain('solstone on this device wants to enable scout for you.');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="account_id" value="${account.accountId}"`);
+    expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
+    expect(body).toContain('<span>i understand</span>');
     expect(body).toContain('name="use_case"');
+    expect(body).toContain('name="action" value="cancel" type="submit" formnovalidate');
   });
 
   it('confirms consent, stores the encrypted handoff, and exposes it once by nonce', async () => {
@@ -167,6 +171,78 @@ describe('/enable/scout', () => {
     await expect(rowCount('service_handoffs')).resolves.toBe(0);
     expect(gcp.createCalls).toBe(0);
   });
+
+  it('honors cancel without acknowledgement or a session before any write', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+
+    const response = await confirmNonce({
+      testEnv,
+      cookie: null,
+      accountId: account.accountId,
+      action: 'cancel',
+      dataAck: null,
+    });
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/');
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    await expect(rowCount('scout_applications')).resolves.toBe(0);
+    await expect(rowCount('scout_lifecycle_events')).resolves.toBe(0);
+    await expect(rowCount('provisioned_keys')).resolves.toBe(0);
+    await expect(rowCount('service_handoffs')).resolves.toBe(0);
+  });
+
+  it.each([null, '', 'no', '1', 'YES'])(
+    'rejects missing or non-exact data acknowledgement %j before creating an application',
+    async (dataAck) => {
+      const testEnv = makeTestEnv();
+      const account = await seedAccount({ testEnv });
+      const session = await seedSession(account.accountId, { testEnv });
+
+      const response = await confirmNonce({
+        testEnv,
+        cookie: session.cookie,
+        accountId: account.accountId,
+        dataAck,
+      });
+
+      expect(response.status).toBe(400);
+      await expect(rowCount('scout_applications')).resolves.toBe(0);
+      await expect(rowCount('scout_lifecycle_events')).resolves.toBe(0);
+      await expect(rowCount('provisioned_keys')).resolves.toBe(0);
+      await expect(rowCount('service_handoffs')).resolves.toBe(0);
+    }
+  );
+
+  it.each(['', 'no', '1', 'YES'])(
+    'rejects non-exact data acknowledgement %j for an approved unacked application',
+    async (dataAck) => {
+      const testEnv = makeTestEnv();
+      const account = await seedAccount({ testEnv });
+      const session = await seedSession(account.accountId, { testEnv });
+      await seedScoutApplication({
+        accountId: account.accountId,
+        status: 'approved',
+        approved_at: 1_000,
+      });
+      const before = await applicationRow(account.accountId);
+
+      const response = await confirmNonce({
+        testEnv,
+        cookie: session.cookie,
+        accountId: account.accountId,
+        dataAck,
+      });
+
+      expect(response.status).toBe(400);
+      await expect(applicationRow(account.accountId)).resolves.toEqual(before);
+      await expect(rowCount('scout_applications')).resolves.toBe(1);
+      await expect(rowCount('scout_lifecycle_events')).resolves.toBe(0);
+      await expect(rowCount('provisioned_keys')).resolves.toBe(0);
+      await expect(rowCount('service_handoffs')).resolves.toBe(0);
+    }
+  );
 
   it('records a pending application without provisioning when no application exists', async () => {
     const nowMs = 1_780_000_100_000;
@@ -425,6 +501,8 @@ describe('/enable/scout', () => {
       data_acked_at: null,
       approved_at: 1_000,
     });
+    await expect(rowCount('scout_applications')).resolves.toBe(1);
+    await expect(rowCount('scout_lifecycle_events')).resolves.toBe(0);
     await expect(rowCount('provisioned_keys')).resolves.toBe(0);
     await expect(rowCount('service_handoffs')).resolves.toBe(0);
     expect(gcp.createCalls).toBe(0);
@@ -497,6 +575,7 @@ function confirmNonce({
   cookie,
   accountId,
   nonce = VALID_NONCE,
+  action = 'allow',
   dataAck = 'yes',
   useCase = '',
 }) {
@@ -504,17 +583,18 @@ function confirmNonce({
     csrf: TEST_CSRF,
     nonce,
     account_id: accountId,
-    action: 'allow',
+    action,
   });
   if (dataAck !== null) body.set('data_ack', dataAck);
   if (useCase !== undefined) body.set('use_case', useCase);
+  const headers = {
+    Origin: 'https://services.solstone.app',
+    'Content-Type': 'application/x-www-form-urlencoded',
+  };
+  if (cookie) headers.Cookie = cookie;
   return worker.fetch(new Request('https://services.solstone.app/enable/scout/confirm', {
     method: 'POST',
-    headers: {
-      Origin: 'https://services.solstone.app',
-      Cookie: cookie,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
+    headers,
     body,
   }), testEnv);
 }

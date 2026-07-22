@@ -1,3 +1,5 @@
+export const PORTAL_CSS_HREF = '/portal.css?v=2';
+
 export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet (design-in-code, project #1)
    Applies the services brand canon (cmo/brand/services.md) + design tokens
    (vpx/design-system/tokens.md). This is the REFERENCE implementation of the web
@@ -275,6 +277,10 @@ input[type=email], input[type=text], input.code, textarea, select {
   background: var(--cream-bright); font: inherit; color: var(--ink); margin-bottom: 14px;
 }
 input:focus, textarea:focus, select:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--orange-ink); }
+/* acknowledgement row — a real, touch-sized consent target */
+.ack { display: flex; align-items: center; gap: 10px; min-height: 46px; margin-bottom: 14px; color: var(--ink); cursor: pointer; }
+.ack input[type=checkbox] { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--orange); }
+.ack input[type=checkbox]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 input.code {
   font-family: ui-monospace, Menlo, monospace; font-size: 1.5rem;
   letter-spacing: 8px; text-align: center;

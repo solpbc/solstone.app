@@ -220,8 +220,7 @@ export async function handleEnableScoutConfirm(req, env, ctx) {
     return redirect(`${ENABLE_PATH}?nonce=${source.nonce}`, 303, { 'Cache-Control': 'no-store' });
   }
 
-  const dataAck = form.get('data_ack')?.toString();
-  if (!dataAck) {
+  if (form.get('data_ack')?.toString() !== 'yes') {
     return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 400 });
   }
 

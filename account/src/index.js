@@ -304,7 +304,7 @@ async function routeRequest(req, env, ctx) {
         return new Response(PORTAL_CSS, {
           headers: {
             'Content-Type': 'text/css; charset=utf-8',
-            'Cache-Control': 'public, max-age=31536000, immutable',
+            'Cache-Control': 'public, max-age=3600',
             ...SECURITY_HEADERS,
           },
         });

@@ -203,8 +203,7 @@ export async function handleServicesScoutApply(req, env) {
   if (guard instanceof Response) return guard;
 
   const form = await safeForm(req);
-  const dataAck = form?.get('data_ack')?.toString();
-  if (!dataAck) return signedInRedirect('/scout?apply=no_ack');
+  if (form?.get('data_ack')?.toString() !== 'yes') return signedInRedirect('/scout?apply=no_ack');
 
   const rawUseCase = form?.get('use_case')?.toString() || '';
   const trimmedUseCase = rawUseCase.trim();

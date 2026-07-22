@@ -90,8 +90,9 @@ describe('/enable/spp', () => {
     expect(body).toContain('audio has its own switch');
     expect(body).toContain('"transcribe audio on the service" lives in the journal\'s thinking app, in the confidential lane. it\'s on while confidential processing is in use. turn it off any time and it takes effect right away: speech becomes text on your device instead, and text and images continue under this choice.');
     expect(body).toContain("transcription included: if the check can't pass, your recordings wait on your device — they're never sent anywhere else, and sol never quietly does it a different way.");
+    expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
-    expect(body).toContain('i understand what turning this on sends, and that my journal must verify the service before anything is sent.');
+    expect(body).toContain('<span>i understand what turning this on sends, and that my journal must verify the service before anything is sent.</span>');
     expect(body).toContain('name="action" value="cancel" type="submit" formnovalidate');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);

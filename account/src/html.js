@@ -1,5 +1,6 @@
 // Page renderers for the served portal.css design system and same-origin brand assets.
 
+import { PORTAL_CSS_HREF } from './assets.js';
 import { ENROLL_JS } from './inline/passkey-enroll.js';
 import { LANDING_JS } from './inline/passkey-landing.js';
 
@@ -94,7 +95,7 @@ export function layout({ title, body, afterMain = '' }) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${esc(title)}</title>
-  <link rel="stylesheet" href="/portal.css">
+  <link rel="stylesheet" href="${PORTAL_CSS_HREF}">
 </head>
 <body><main>${body}${footer()}</main>${afterMain}</body>
 </html>`;
@@ -203,15 +204,12 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <input type="hidden" name="account_id" value="${escAttr(accountId)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     <p class="gd" style="margin:16px 0 12px">${SCOUT_COVENANT_LINE}</p>
-    <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--ink)">
-      <input type="checkbox" name="data_ack" value="yes" required style="width:auto;min-height:0;margin:0">
-      <span>i understand</span>
-    </label>
+    ${ackField('i understand')}
     <label for="use-case">what would you like to use it for? (optional)</label>
     <textarea id="use-case" name="use_case" maxlength="2000"></textarea>
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
     </div>
   </form>
 </div>
@@ -523,10 +521,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     ${instanceInput}
-    <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--ink)">
-      <input type="checkbox" name="data_ack" value="yes" required style="width:auto;min-height:0;margin:0">
-      <span>i understand what turning this on sends, and that my journal must verify the service before anything is sent.</span>
-    </label>
+    ${ackField('i understand what turning this on sends, and that my journal must verify the service before anything is sent.')}
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
       <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
@@ -1454,12 +1449,16 @@ function scoutApplyForm({ includeUseCase, buttonText }) {
   </form>`;
 }
 
+function ackField(copy) {
+  return `<label class="ack">
+      <input type="checkbox" name="data_ack" value="yes" required>
+      <span>${esc(copy)}</span>
+    </label>`;
+}
+
 function scoutCovenantFields() {
   return `<p class="gd" style="margin:16px 0 12px">${SCOUT_COVENANT_LINE}</p>
-    <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--ink)">
-      <input type="checkbox" name="data_ack" value="yes" required style="width:auto;min-height:0;margin:0">
-      <span>i understand</span>
-    </label>`;
+    ${ackField('i understand')}`;
 }
 
 // === support surfaces ===

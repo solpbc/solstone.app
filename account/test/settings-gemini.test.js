@@ -139,7 +139,9 @@ describe('settings gemini dashboard', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('approved. enable scout in your journal to receive your key.');
     expect(body).toContain('action="/scout/apply"');
+    expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
+    expect(body).toContain('<span>i understand</span>');
     expect(body).not.toContain('name="use_case"');
     expect(body).toContain('action="/scout/forget"');
     expect(body).not.toContain('action="/scout/rotate"');
@@ -207,7 +209,9 @@ describe('settings gemini dashboard', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('request scout for this account.');
     expect(body).toContain('action="/scout/apply"');
+    expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
+    expect(body).toContain('<span>i understand</span>');
     expect(body).toContain('name="use_case"');
     expect(body).not.toContain('/scout/reveal');
     expect(body).not.toContain('/scout/ack');
@@ -309,7 +313,56 @@ describe('settings gemini dashboard', () => {
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe('/scout?apply=no_ack');
     expect(await getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId })).toBe(null);
+    await expect(rowCount(testEnv, 'scout_applications')).resolves.toBe(0);
+    await expect(rowCount(testEnv, 'scout_lifecycle_events')).resolves.toBe(0);
   });
+
+  it.each(['', 'no', '1', 'YES'])(
+    'does not create an application for non-exact data acknowledgement %j',
+    async (dataAck) => {
+      const testEnv = makeTestEnv();
+      const account = await seedAccount({ testEnv });
+      const session = await seedSession(account.accountId, { testEnv });
+
+      const response = await worker.fetch(settingsPost('/scout/apply', {
+        cookie: session.cookie,
+        body: { data_ack: dataAck, use_case: 'local research' },
+      }), testEnv);
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get('Location')).toBe('/scout?apply=no_ack');
+      expect(await getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId })).toBe(null);
+      await expect(rowCount(testEnv, 'scout_applications')).resolves.toBe(0);
+      await expect(rowCount(testEnv, 'scout_lifecycle_events')).resolves.toBe(0);
+    }
+  );
+
+  it.each([null, '', 'no', '1', 'YES'])(
+    'does not ack an approved application for missing or non-exact data acknowledgement %j',
+    async (dataAck) => {
+      const testEnv = makeTestEnv();
+      const account = await seedAccount({ testEnv });
+      const session = await seedSession(account.accountId, { testEnv });
+      await seedScoutApplication({
+        testEnv,
+        accountId: account.accountId,
+        status: 'approved',
+        approved_at: 1_000,
+      });
+      const before = await getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId });
+
+      const response = await worker.fetch(settingsPost('/scout/apply', {
+        cookie: session.cookie,
+        body: dataAck === null ? {} : { data_ack: dataAck },
+      }), testEnv);
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get('Location')).toBe('/scout?apply=no_ack');
+      await expect(getScoutApplicationByAccount(testEnv.DB, { accountId: account.accountId })).resolves.toEqual(before);
+      await expect(rowCount(testEnv, 'scout_applications')).resolves.toBe(1);
+      await expect(rowCount(testEnv, 'scout_lifecycle_events')).resolves.toBe(0);
+    }
+  );
 
   it('rejects dashboard apply from a bad origin without writing', async () => {
     const testEnv = makeTestEnv();

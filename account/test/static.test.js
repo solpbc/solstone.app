@@ -13,6 +13,7 @@ const sourceEntries = sourceFiles.map((name) => ({
   text: readFileSync(join(srcDir, name), 'utf8'),
 }));
 const source = sourceEntries.map((entry) => entry.text).join('\n');
+const portalCss = readFileSync(join(srcDir, 'portal.css'), 'utf8');
 
 describe('static source checks', () => {
   it('scans every src/*.js file', () => {
@@ -89,7 +90,34 @@ describe('static source checks', () => {
   });
 
   it('keeps embedded portal css in sync with the source file', () => {
-    expect(readFileSync(join(srcDir, 'portal.css'), 'utf8')).toBe(PORTAL_CSS);
+    expect(portalCss).toBe(PORTAL_CSS);
+  });
+
+  it('keeps every acknowledgement checkbox on the shared accessible control contract', () => {
+    const srcText = `${source}\n${portalCss}`;
+    const checkboxInputs = srcText.match(/<input\b[^>]*type="checkbox"[^>]*>/g) || [];
+    const ackLabels = srcText.match(/<label class="ack">[\s\S]*?<\/label>/g) || [];
+    const ackInputs = ackLabels.flatMap((label) => label.match(/<input\b[^>]*type="checkbox"[^>]*>/g) || []);
+
+    expect(checkboxInputs.length).toBeGreaterThan(0);
+    for (const input of checkboxInputs) {
+      expect(input).toContain('name="data_ack" value="yes" required');
+      expect(input).not.toMatch(/\bstyle\s*=/);
+    }
+    expect(ackInputs).toEqual(checkboxInputs);
+    expect(srcText).not.toContain('width:auto;min-height:0;margin:0');
+
+    const ackRule = portalCss.match(/(?:^|\n)\.ack\s*\{([^}]*)\}/)?.[1] || '';
+    const checkboxRule = portalCss.match(/(?:^|\n)\.ack input\[type=checkbox\]\s*\{([^}]*)\}/)?.[1] || '';
+    const focusRule = portalCss.match(/(?:^|\n)\.ack input\[type=checkbox\]:focus-visible\s*\{([^}]*)\}/)?.[1] || '';
+    const px = (rule, property) => Number(rule.match(new RegExp(`${property}:\\s*(\\d+(?:\\.\\d+)?)px`))?.[1]);
+
+    expect(px(ackRule, 'min-height')).toBeGreaterThanOrEqual(46);
+    expect(px(checkboxRule, 'width')).toBeGreaterThanOrEqual(20);
+    expect(px(checkboxRule, 'height')).toBeGreaterThanOrEqual(20);
+    expect(checkboxRule).toContain('flex: none');
+    expect(checkboxRule).toContain('accent-color: var(--orange)');
+    expect(focusRule).toContain('outline: 2px solid var(--focus)');
   });
 
   it('keeps embedded font blobs in sync with source files', () => {
