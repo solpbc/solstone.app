@@ -115,6 +115,7 @@ import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { runSpbLapseSweep } from './spb-sweep.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
+import { handleSppAuthorize } from './spp-authorize.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -493,6 +494,16 @@ async function routeRequest(req, env, ctx) {
         req.method === 'GET'
       ) {
         return handleHandoffSpp(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'internal' &&
+        parts[2] === 'spp' &&
+        parts[3] === 'authorize' &&
+        req.method === 'POST'
+      ) {
+        return handleSppAuthorize(req, env);
       }
 
       if (url.pathname === '/passkey/register/start') {

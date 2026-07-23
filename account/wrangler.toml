@@ -117,6 +117,8 @@ SPB_SWEEP_ENABLED = "true"
 # is required — the journal defaults a portless https URL to 443, where nothing listens.
 # The portal hands this to the device over the local handoff; it never calls it itself.
 # Non-secret config only.
+# SPP_ENGINE_AUTH_SECRET authenticates the engine gateway to the content-free
+# /internal/spp/authorize endpoint. Provision with `wrangler secret put`; never put it here.
 SPP_ENGINE_ENDPOINT = "https://processing.solstone.app:9443"
 SPP_ENGINE_MODEL = "Qwen/Qwen3.5-4B"
 

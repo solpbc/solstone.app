@@ -73,6 +73,7 @@ export function makeTestEnv(overrides = {}) {
     SPB_SWEEP_ENABLED: overrides.SPB_SWEEP_ENABLED ?? 'true',
     SPP_ENGINE_ENDPOINT: overrides.SPP_ENGINE_ENDPOINT ?? 'https://processing.solstone.app',
     SPP_ENGINE_MODEL: overrides.SPP_ENGINE_MODEL ?? 'Qwen/Qwen3.5-4B',
+    SPP_ENGINE_AUTH_SECRET: overrides.SPP_ENGINE_AUTH_SECRET ?? 'test-spp-engine-auth-secret',
     RELAY: overrides.RELAY,
   };
 }
