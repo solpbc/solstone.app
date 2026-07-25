@@ -546,3 +546,17 @@ test("renderReleasesPage renders the ios stream from github releases with an act
   // The iPhone app is a pairing client — it never narrates a bundled journal pin.
   assert.equal(RELEASE_PAGE_CONFIGS.ios.linkifyBundledJournal, false);
 });
+
+test("an empty stream distinguishes never-released from fetch-failed", () => {
+  // iOS has cut no release yet: "temporarily unavailable" would read as broken.
+  const iosEmpty = renderReleasesPage([], RELEASE_PAGE_CONFIGS.ios);
+  assert.match(iosEmpty, /the first iPhone app release notes land with the next beta\./);
+  assert.doesNotMatch(iosEmpty, /temporarily unavailable/);
+  assert.match(iosEmpty, /<a href="https:\/\/github\.com\/solpbc\/solstone-swift\/releases">/);
+
+  // Streams with a real history keep the outage wording — for them empty IS a failure.
+  for (const key of ["journal", "macos", "linux", "windows", "android"]) {
+    const html = renderReleasesPage([], RELEASE_PAGE_CONFIGS[key]);
+    assert.match(html, /release notes are temporarily unavailable\./, `${key} keeps outage copy`);
+  }
+});

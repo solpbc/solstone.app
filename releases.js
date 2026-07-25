@@ -296,6 +296,10 @@ export const RELEASE_PAGE_CONFIGS = {
     sourceUrl: "https://github.com/solpbc/solstone-swift",
     unavailableUrl: "https://github.com/solpbc/solstone-swift/releases",
     unavailableLabel: "see every iPhone app release on github →",
+    // No iPhone release has been cut yet, so the shared "temporarily unavailable"
+    // line would read as broken rather than not-yet. Drop this once the first
+    // release lands and the page populates on its own.
+    emptyBody: "the first iPhone app release notes land with the next beta.",
     articleTitle: (version) => `solstone for iPhone ${version}`,
     // The iPhone app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
@@ -499,8 +503,15 @@ function streamSwitcher(currentStream) {
   ].join("\n");
 }
 
+// The empty section has two very different meanings and they must not share copy.
+// For a stream with a release history, zero items means the upstream fetch failed —
+// "temporarily unavailable" is right. For a stream that has never cut a release yet,
+// that sentence reads as "we are broken" when the truth is "not yet." A config can
+// override with `emptyBody` to say so plainly.
 function renderUnavailableBody(config) {
-  return `<p>release notes are temporarily unavailable. <a href="${escapeHtml(config.unavailableUrl)}">${escapeHtml(config.unavailableLabel)}</a></p>`;
+  const link = `<a href="${escapeHtml(config.unavailableUrl)}">${escapeHtml(config.unavailableLabel)}</a>`;
+  if (config.emptyBody) return `<p>${escapeHtml(config.emptyBody)} ${link}</p>`;
+  return `<p>release notes are temporarily unavailable. ${link}</p>`;
 }
 
 function renderArticle(item, config) {
