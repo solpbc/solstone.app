@@ -6,6 +6,7 @@ const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win
 const JOURNAL_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-journal/releases";
 const LINUX_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-linux/releases";
 const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-android/releases";
+const IOS_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-swift/releases";
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
 
 async function latestMacosDmgUrl() {
@@ -188,6 +189,15 @@ export default {
     if (url.pathname === "/releases/android") {
       const items = await githubReleaseItems(ANDROID_RELEASES_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.android);
+    }
+
+    // iOS reads GitHub releases (same path as journal/linux/android). An external
+    // TestFlight beta submission is the release event on iOS — internal builds are
+    // dev checkpoints and are never tagged, so they never appear here. Tag `vX.Y.Z`,
+    // notes ride in the release body. See vpe/playbooks/solstone-swift-release.md.
+    if (url.pathname === "/releases/ios") {
+      const items = await githubReleaseItems(IOS_RELEASES_URL);
+      return releasesResponse(items, RELEASE_PAGE_CONFIGS.ios);
     }
 
     if (url.pathname === "/releases/journal-macos") {

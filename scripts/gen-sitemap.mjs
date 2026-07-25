@@ -35,6 +35,7 @@ const PAGES = [
   ["/releases/windows", "releases.js"],
   ["/releases/linux", "releases.js"],
   ["/releases/android", "releases.js"],
+  ["/releases/ios", "releases.js"],
 ];
 
 // Shared brand/head assets are part of every page's crawl-facing presentation.

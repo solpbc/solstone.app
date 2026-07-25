@@ -279,6 +279,27 @@ export const RELEASE_PAGE_CONFIGS = {
     // The Android observer is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
+  ios: {
+    pageTitle: "iPhone app releases — solstone",
+    ogTitle: "iPhone app releases",
+    metaDescription:
+      "release notes for the solstone app on iPhone and Apple Watch, in plain language. pairing and sync changes.",
+    ogUrl: "https://solstone.app/releases/ios",
+    canonicalUrl: "https://solstone.app/releases/ios",
+    stream: "ios",
+    heading: "iPhone app releases",
+    intro:
+      "these are the iPhone app's own changes: pairing, the journal view, what is still waiting on your phone, and the Apple Watch — sol on your iPhone. the iPhone app is in beta — builds reach a small group of invited testers through TestFlight.",
+    // Invite-only TestFlight beta — there is no public download, so no primary CTA
+    // (same shape as Android).
+    primaryLink: null,
+    sourceUrl: "https://github.com/solpbc/solstone-swift",
+    unavailableUrl: "https://github.com/solpbc/solstone-swift/releases",
+    unavailableLabel: "see every iPhone app release on github →",
+    articleTitle: (version) => `solstone for iPhone ${version}`,
+    // The iPhone app is a pairing client, not a journal host — keep linkify off.
+    linkifyBundledJournal: false,
+  },
 };
 
 export function parseAppcastItems(xml) {
@@ -473,7 +494,7 @@ function streamSwitcher(currentStream) {
     pill("windows", "Windows", "/releases/windows"),
     pill("linux", "Linux", "/releases/linux"),
     pill("android", "Android", "/releases/android"),
-    '            <span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>',
+    pill("ios", "iPhone", "/releases/ios"),
     "</nav>",
   ].join("\n");
 }

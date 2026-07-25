@@ -244,7 +244,9 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   const journalHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.journal);
   const macosHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.macos);
   const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
-  const iosSoon = '<span class="ss-pill ss-soon" aria-disabled="true">iOS soon</span>';
+  // iOS graduated from an "iOS soon" placeholder to a real stream 2026-07-25 —
+  // the iPhone pill is now a live link on every other stream.
+  const iosPill = '<a class="ss-pill" href="/releases/ios">iPhone</a>';
 
   const assertOrder = (html, expected) => {
     let previousIndex = -1;
@@ -270,8 +272,8 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
     assert.ok(introCloseIndex < switcherIndex);
     assert.ok(switcherIndex < sectionIndex);
     assert.match(html, /scroll-margin-top: 3\.5rem;/);
-    assert.match(html, new RegExp(iosSoon.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    assert.doesNotMatch(html, /<a[^>]*>iOS soon<\/a>/);
+    assert.match(html, new RegExp(iosPill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.doesNotMatch(html, /iOS soon/);
     assert.doesNotMatch(html, /stream-links/);
     assert.doesNotMatch(html, /<script/i);
   }
@@ -280,7 +282,7 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
     '<span class="ss-pill ss-active ss-home" aria-current="page">journal</span>',
     '<a class="ss-pill" href="/releases/macos">macOS</a>',
     '<a class="ss-pill" href="/releases/linux">Linux</a>',
-    iosSoon,
+    iosPill,
   ]);
   assert.doesNotMatch(journalHtml, /<a class="ss-pill ss-active ss-home"[^>]*>journal<\/a>/);
 
@@ -288,7 +290,7 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
     '<a class="ss-pill ss-home" href="/releases">journal</a>',
     '<span class="ss-pill ss-active" aria-current="page">macOS</span>',
     '<a class="ss-pill" href="/releases/linux">Linux</a>',
-    iosSoon,
+    iosPill,
   ]);
   assert.doesNotMatch(macosHtml, /<a class="ss-pill ss-active"[^>]*>macOS<\/a>/);
 
@@ -296,7 +298,7 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
     '<a class="ss-pill ss-home" href="/releases">journal</a>',
     '<a class="ss-pill" href="/releases/macos">macOS</a>',
     '<span class="ss-pill ss-active" aria-current="page">Linux</span>',
-    iosSoon,
+    iosPill,
   ]);
   assert.doesNotMatch(linuxHtml, /<a class="ss-pill ss-active"[^>]*>Linux<\/a>/);
 
@@ -508,7 +510,39 @@ test("renderReleasesPage renders the android stream from github releases with an
   assert.match(linuxHtml, /<a class="ss-pill" href="\/releases\/android">Android<\/a>/);
   assert.ok(
     linuxHtml.indexOf('href="/releases/linux"') < linuxHtml.indexOf('href="/releases/android"') &&
-      linuxHtml.indexOf('href="/releases/android"') < linuxHtml.indexOf("iOS soon"),
-    "Android pill sits between Linux and the iOS-soon marker",
+      linuxHtml.indexOf('href="/releases/android"') < linuxHtml.indexOf('href="/releases/ios"'),
+    "Android pill sits between Linux and iPhone",
   );
+});
+
+test("renderReleasesPage renders the ios stream from github releases with an active iPhone pill", () => {
+  const items = parseGitHubReleaseItems([
+    {
+      tag_name: "v0.1.1",
+      published_at: "2026-07-26T00:00:00Z",
+      body: "## [0.1.1] - 2026-07-26\n\n### Fixed\n- an iphone thing",
+    },
+  ]);
+  const html = renderReleasesPage(items, RELEASE_PAGE_CONFIGS.ios);
+
+  assert.equal(RELEASE_PAGE_CONFIGS.ios.stream, "ios");
+  assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/ios">/);
+  assert.match(html, /<title>iPhone app releases — solstone<\/title>/);
+  assert.match(html, /<h2 id="v0\.1\.1">solstone for iPhone 0\.1\.1<\/h2>/);
+  assert.match(html, /an iphone thing/);
+  // GitHub releases carry a date; the release heading is stripped from the body.
+  assert.match(html, /class="rel-date"/);
+  assert.doesNotMatch(html, /## \[0\.1\.1\]/);
+  // invite-only TestFlight beta: no public download, so no primary CTA on the intro.
+  assert.doesNotMatch(html, /class="intro-dl"/);
+  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">iPhone<\/span>/);
+
+  // The retired "iOS soon" placeholder must not survive anywhere in the switcher.
+  assert.doesNotMatch(html, /iOS soon/);
+  const journalHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.journal);
+  assert.doesNotMatch(journalHtml, /iOS soon/);
+  assert.match(journalHtml, /<a class="ss-pill" href="\/releases\/ios">iPhone<\/a>/);
+
+  // The iPhone app is a pairing client — it never narrates a bundled journal pin.
+  assert.equal(RELEASE_PAGE_CONFIGS.ios.linkifyBundledJournal, false);
 });
