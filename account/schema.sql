@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0023 — spp entitlement + schema core
+-- account-portal D1 schema after 0025 — sandbox-run ownership + schema core
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -134,11 +134,15 @@ CREATE TABLE IF NOT EXISTS account_dispatch_tokens (
   account_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   revoked_at INTEGER,
+  sandbox_run_id TEXT,
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_account_dispatch_tokens_account_id
   ON account_dispatch_tokens(account_id);
+
+CREATE INDEX IF NOT EXISTS idx_account_dispatch_tokens_sandbox_run_id
+  ON account_dispatch_tokens(sandbox_run_id);
 
 -- Per-account Gemini API key provisioning.
 
@@ -294,18 +298,26 @@ CREATE TABLE IF NOT EXISTS stripe_customers (
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
--- spl_bindings: schema hook for the sibling relay lode. This lode creates the
--- table + index ONLY and never reads or writes it. instance_id = relay instance.
+-- spl_bindings: SPL relay instance bindings, read and written by db.js.
+-- instance_id is globally unique across accounts; sandbox_run_id is NULL for
+-- owner-created (baseline) rows.
 CREATE TABLE IF NOT EXISTS spl_bindings (
   account_id TEXT NOT NULL,
   instance_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   last_seen_at INTEGER NOT NULL,
+  sandbox_run_id TEXT,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_spl_bindings_account_id ON spl_bindings(account_id);
+
+CREATE INDEX IF NOT EXISTS idx_spl_bindings_sandbox_run_id
+  ON spl_bindings(sandbox_run_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spl_bindings_instance_id
+  ON spl_bindings(instance_id);
 
 -- spb_bindings: schema hook for SPB hosted access. P1 records only binding
 -- identity plus the lapsed clock used by later retention/sweep work.
@@ -332,11 +344,18 @@ CREATE TABLE IF NOT EXISTS spp_bindings (
   last_seen_at INTEGER NOT NULL,
   consent_acked_at INTEGER,
   consent_disclosure_version TEXT,
+  sandbox_run_id TEXT,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_spp_bindings_account_id ON spp_bindings(account_id);
+
+CREATE INDEX IF NOT EXISTS idx_spp_bindings_sandbox_run_id
+  ON spp_bindings(sandbox_run_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spp_bindings_instance_id
+  ON spp_bindings(instance_id);
 
 CREATE TABLE IF NOT EXISTS spb_mint_audit (
   account_id TEXT,
