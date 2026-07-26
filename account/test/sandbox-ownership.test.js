@@ -11,7 +11,13 @@ import {
   releaseSandboxSplBinding,
   releaseSandboxSppBinding,
 } from '../src/sandbox-ownership.js';
-import { isSandboxRunLeaseLive } from '../src/sandbox-run-lease.js';
+import {
+  isSandboxRunLeaseLive,
+  SANDBOX_CLEANUP_PHASE,
+  SANDBOX_COMPONENT_STATE,
+  SANDBOX_PROVISIONING_PHASE,
+  SANDBOX_RUN_STATUS,
+} from '../src/sandbox-run-contract.js';
 import {
   installConsoleSpy,
   makeTestEnv,
@@ -116,14 +122,14 @@ describe('sandbox ownership boundary', () => {
       runId: RUN_A.toUpperCase(),
       accountId: account.accountId,
       instanceId: INSTANCE_A.toUpperCase(),
-      status: 'provisioning',
-      provisioningPhase: 'spl_intent',
+      status: SANDBOX_RUN_STATUS.PROVISIONING,
+      provisioningPhase: SANDBOX_PROVISIONING_PHASE.SPL_INTENT,
       createdAt: 1_000,
-      dispatchState: 'deny_pending',
-      sppState: 'deny_pending',
-      spbState: 'deny_pending',
-      splRelayState: 'deny_pending',
-      splBindingState: 'deny_pending',
+      dispatchState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      sppState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      spbState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      splRelayState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      splBindingState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
     });
 
     await expect(claimSandboxSplBinding(testEnv, {
@@ -135,9 +141,18 @@ describe('sandbox ownership boundary', () => {
   });
 
   it('uses active status and a strict future expiry as the single lease authority', () => {
-    expect(isSandboxRunLeaseLive({ status: 'active', lease_expires_at: 2_001 }, 2_000)).toBe(true);
-    expect(isSandboxRunLeaseLive({ status: 'provisioning', lease_expires_at: 2_001 }, 2_000)).toBe(false);
-    expect(isSandboxRunLeaseLive({ status: 'active', lease_expires_at: 2_000 }, 2_000)).toBe(false);
+    expect(isSandboxRunLeaseLive({
+      status: 'active',
+      lease_expires_at: 2_001,
+    }, 2_000)).toBe(true);
+    expect(isSandboxRunLeaseLive({
+      status: SANDBOX_RUN_STATUS.PROVISIONING,
+      lease_expires_at: 2_001,
+    }, 2_000)).toBe(false);
+    expect(isSandboxRunLeaseLive({
+      status: SANDBOX_RUN_STATUS.ACTIVE,
+      lease_expires_at: 2_000,
+    }, 2_000)).toBe(false);
   });
 });
 
@@ -154,7 +169,9 @@ describe.each(bindingKinds)('$name sandbox binding claims', (kind) => {
   it('claims and refreshes only while the exact run intent remains current', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: `${kind.name.toLowerCase()}-retry@example.com`, testEnv });
-    const phase = kind.name === 'SPL' ? 'spl_intent' : 'spp_intent';
+    const phase = kind.name === 'SPL'
+      ? SANDBOX_PROVISIONING_PHASE.SPL_INTENT
+      : SANDBOX_PROVISIONING_PHASE.SPP_INTENT;
     await seedProvisioningRun({ accountId: account.accountId, instanceId: INSTANCE_A, phase });
     const spy = installConsoleSpy();
     try {
@@ -190,10 +207,12 @@ describe.each(bindingKinds)('$name sandbox binding claims', (kind) => {
   it('returns run_fence_lost without a write for missing, mismatched, or quiesced ownership', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: `${kind.name.toLowerCase()}-fence@example.com`, testEnv });
-    const phase = kind.name === 'SPL' ? 'spl_intent' : 'spp_intent';
+    const phase = kind.name === 'SPL'
+      ? SANDBOX_PROVISIONING_PHASE.SPL_INTENT
+      : SANDBOX_PROVISIONING_PHASE.SPP_INTENT;
     await seedProvisioningRun({ accountId: account.accountId, instanceId: INSTANCE_A, phase });
     await workerEnv.DB.prepare(
-      "UPDATE sandbox_runs SET status = 'cleanup_required', cleanup_phase = 'deny_intent' WHERE run_id = ?"
+      `UPDATE sandbox_runs SET status = '${SANDBOX_RUN_STATUS.CLEANUP_REQUIRED}', cleanup_phase = '${SANDBOX_CLEANUP_PHASE.DENY_INTENT}' WHERE run_id = ?`
     ).bind(RUN_A).run();
 
     await expect(kind.claim(testEnv, {
@@ -215,7 +234,9 @@ describe.each(bindingKinds)('$name sandbox binding claims', (kind) => {
   it('keeps a baseline incumbent byte-identical and reports ownership_conflict', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: `${kind.name.toLowerCase()}-incumbent@example.com`, testEnv });
-    const phase = kind.name === 'SPL' ? 'spl_intent' : 'spp_intent';
+    const phase = kind.name === 'SPL'
+      ? SANDBOX_PROVISIONING_PHASE.SPL_INTENT
+      : SANDBOX_PROVISIONING_PHASE.SPP_INTENT;
     await seedProvisioningRun({ accountId: account.accountId, instanceId: INSTANCE_A, phase });
     await kind.baseline(testEnv, { accountId: account.accountId, instanceId: INSTANCE_A, nowMs: 1_000 });
     const before = await bindingRow(kind.table, INSTANCE_A);
@@ -292,7 +313,7 @@ describe('sandbox dispatch ownership', () => {
       await seedProvisioningRun({
         accountId: accountA.accountId,
         instanceId: INSTANCE_A,
-        phase: 'dispatch_intent',
+        phase: SANDBOX_PROVISIONING_PHASE.DISPATCH_INTENT,
       });
       const targetA = await mintSandboxDispatchToken(testEnv, {
         sandboxRunId: RUN_A, accountId: accountA.accountId, instanceId: INSTANCE_A,
@@ -386,7 +407,7 @@ describe('sandbox dispatch ownership', () => {
       await seedProvisioningRun({
         accountId: account.accountId,
         instanceId: INSTANCE_A,
-        phase: 'dispatch_intent',
+        phase: SANDBOX_PROVISIONING_PHASE.DISPATCH_INTENT,
         createdAt: 0,
       });
       const minted = await mintSandboxDispatchToken(testEnv, {
@@ -454,7 +475,7 @@ describe('sandbox SPP deny', () => {
       await seedProvisioningRun({
         accountId: account.accountId,
         instanceId: INSTANCE_A,
-        phase: 'spp_intent',
+        phase: SANDBOX_PROVISIONING_PHASE.SPP_INTENT,
         createdAt: 0,
       });
       const claimed = await claimSandboxSppBinding(testEnv, {
@@ -513,14 +534,14 @@ async function seedProvisioningRun({ accountId, instanceId, phase, createdAt = 0
     runId: RUN_A,
     accountId,
     instanceId,
-    status: 'provisioning',
+    status: SANDBOX_RUN_STATUS.PROVISIONING,
     provisioningPhase: phase,
     createdAt,
-    dispatchState: 'deny_pending',
-    sppState: 'deny_pending',
-    spbState: 'deny_pending',
-    splRelayState: 'deny_pending',
-    splBindingState: 'deny_pending',
+    dispatchState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+    sppState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+    spbState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+    splRelayState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+    splBindingState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
   });
 }
 

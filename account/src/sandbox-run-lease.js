@@ -37,47 +37,53 @@ import {
   cleanupSpbSandboxBinding,
   denySpbSandboxBinding,
 } from './spb-sandbox-lifecycle.js';
+import {
+  hasSandboxRunOwnershipConflict,
+  isSandboxRunConfiguration,
+  isSandboxRunCreateInput,
+  isSandboxRunExpiryOnlyReport,
+  isSandboxRunReport,
+  isSandboxRunRow,
+  orderedObject,
+  renderSandboxRunReport,
+  sandboxRunErrorBody,
+  SANDBOX_BROKER_ENDPOINT,
+  SANDBOX_CAPABILITIES_KEYS,
+  SANDBOX_CLEANUP_PHASE,
+  SANDBOX_CLEANUP_TRIGGER,
+  SANDBOX_CLEANUP_TRIGGERS,
+  SANDBOX_COMPONENT,
+  SANDBOX_COMPONENT_FAILURE_RESIDUALS,
+  SANDBOX_COMPONENT_OWNERSHIP_RESIDUALS,
+  SANDBOX_COMPONENT_RELEASE_FAILURE_RESIDUALS,
+  SANDBOX_COMPONENT_STATE,
+  SANDBOX_COMPONENTS,
+  SANDBOX_CONTRACT_VERSION,
+  SANDBOX_CREATE_RESPONSE_KEYS,
+  SANDBOX_ERROR,
+  SANDBOX_LEASE_TTL_MS,
+  SANDBOX_PROFILE,
+  SANDBOX_PROVISIONING_PHASE,
+  SANDBOX_PROVISIONING_PHASES,
+  SANDBOX_RELAY_RESIDUALS,
+  SANDBOX_RESIDUAL_CODE,
+  SANDBOX_RUN_CONTRACT_JSON,
+  SANDBOX_RUN_STATUS,
+  SANDBOX_SPB_CLEANUP_OUTCOME_RESIDUALS,
+} from './sandbox-run-contract.js';
 
-const LEASE_TTL_MS = 3_600_000;
 const SANDBOX_RECONCILE_BATCH_SIZE = 10;
-const BROKER_ENDPOINT = 'https://services.solstone.app';
-const REQUEST_KEYS = ['contract_version', 'instance_id', 'profile', 'run_id'];
-const CLEANUP_TRIGGERS = new Set(['post_failure', 'delete', 'scheduled']);
-const PROVISIONING_PHASES = [
-  'created',
-  'dispatch_intent',
-  'dispatch_acquired',
-  'spl_intent',
-  'spl_acquired',
-  'spb_intent',
-  'spb_acquired',
-  'spp_intent',
-  'spp_acquired',
-  'active',
-];
-const COMPONENTS = [
-  ['dispatch', 'dispatch_state', 'dispatch_residual_code', 'dispatch_updated_at'],
-  ['spp', 'spp_state', 'spp_residual_code', 'spp_updated_at'],
-  ['spb', 'spb_state', 'spb_residual_code', 'spb_updated_at'],
-  ['spl_relay', 'spl_relay_state', 'spl_relay_residual_code', 'spl_relay_updated_at'],
-  ['spl_binding', 'spl_binding_state', 'spl_binding_residual_code', 'spl_binding_updated_at'],
-];
-const RELAY_RESIDUALS = {
-  retired_state: 'relay_retired_state',
-  instance_do_cleanup: 'relay_instance_do_cleanup',
-  rk_do_cleanup: 'relay_rk_do_cleanup',
-  device_revocation: 'relay_device_revocation',
-  entitlement_clear: 'relay_entitlement_clear',
-  pending_grant_clear: 'relay_pending_grant_clear',
-  rk_registry_clear: 'relay_rk_registry_clear',
-  verification: 'relay_verification',
-};
-
-export function isSandboxRunLeaseLive(run, nowMs) {
-  return run?.status === 'active' && nowMs < run.lease_expires_at;
-}
 
 export async function handleSandboxRunRequest(request, env, url, parts, ctx, securityHeaders) {
+  if (
+    request.method === 'GET'
+    && url.pathname === '/admin/sandbox-runs/contract'
+    && url.search === ''
+    && parts.length === 4
+  ) {
+    return serializedJson(SANDBOX_RUN_CONTRACT_JSON, 200, securityHeaders);
+  }
+
   if (request.method === 'POST' && url.pathname === '/admin/sandbox-runs' && parts.length === 3) {
     const input = await readCreateInput(request);
     if (!input) return invalidRequest(securityHeaders);
@@ -119,7 +125,19 @@ export async function handleSandboxRunRequest(request, env, url, parts, ctx, sec
         : null;
     }
     if (request.method === 'GET') {
-      return responseJson(renderSandboxRun(existing, Date.now()), 200, securityHeaders);
+      const nowMs = Date.now();
+      try {
+        if (!isSandboxRunRow(existing, { runId, accountId })) {
+          return unavailable(runId, securityHeaders);
+        }
+        const report = renderSandboxRunReport(existing, nowMs);
+        if (!isSandboxRunReport(report, { row: existing, nowMs })) {
+          return unavailable(runId, securityHeaders);
+        }
+        return responseJson(report, 200, securityHeaders);
+      } catch {
+        return unavailable(runId, securityHeaders);
+      }
     }
 
     let result;
@@ -127,7 +145,7 @@ export async function handleSandboxRunRequest(request, env, url, parts, ctx, sec
       result = await reconcileSandboxRun(env, ctx, {
         runId,
         nowMs: Date.now(),
-        trigger: 'delete',
+        trigger: SANDBOX_CLEANUP_TRIGGER.DELETE,
       });
     } catch {
       return cleanupUnavailable(runId, securityHeaders);
@@ -141,13 +159,25 @@ export async function handleSandboxRunRequest(request, env, url, parts, ctx, sec
       }
     }
     if (!row) return unavailable(runId, securityHeaders);
-    const report = renderSandboxRun(row, Date.now());
-    if (row.status === 'released') return responseJson(report, 200, securityHeaders);
-    if (isExpiryOnly(report)) {
+    let report;
+    try {
+      const nowMs = Date.now();
+      if (!isSandboxRunRow(row, { runId, accountId })) {
+        return cleanupUnavailable(runId, securityHeaders);
+      }
+      report = renderSandboxRunReport(row, nowMs);
+      if (!isSandboxRunReport(report, { row, nowMs })) {
+        return cleanupUnavailable(runId, securityHeaders);
+      }
+    } catch {
+      return cleanupUnavailable(runId, securityHeaders);
+    }
+    if (row.status === SANDBOX_RUN_STATUS.RELEASED) return responseJson(report, 200, securityHeaders);
+    if (isSandboxRunExpiryOnlyReport(report)) {
       const retryAfter = report.retry_after_seconds;
       return responseJson(report, 202, securityHeaders, { 'Retry-After': String(retryAfter) });
     }
-    if (hasOwnershipConflict(report)) return cleanupConflict(runId, securityHeaders);
+    if (hasSandboxRunOwnershipConflict(report)) return cleanupConflict(runId, securityHeaders);
     return cleanupUnavailable(runId, securityHeaders);
   }
 
@@ -158,8 +188,8 @@ export async function createSandboxRun(env, ctx, {
   accountId,
   runId,
   instanceId,
-  contractVersion = 1,
-  profile = 'full',
+  contractVersion = SANDBOX_CONTRACT_VERSION,
+  profile = SANDBOX_PROFILE,
   nowMs,
 }) {
   const startedAt = Date.now();
@@ -167,6 +197,17 @@ export async function createSandboxRun(env, ctx, {
   let inserted = null;
   let insertAttempted = false;
   let createdAt = nowMs;
+  if (!isSandboxRunConfiguration(env)) {
+    emitCreateTelemetry(
+      env,
+      ctx,
+      'config_unavailable',
+      componentsCompleted,
+      createdAt ?? Date.now(),
+      startedAt
+    );
+    return { outcome: 'unavailable' };
+  }
   try {
     const googleApiKey = await readStandingGoogleApiKey(env, accountId);
     if (!googleApiKey) {
@@ -182,7 +223,7 @@ export async function createSandboxRun(env, ctx, {
     }
 
     createdAt ??= Date.now();
-    const leaseExpiresAt = createdAt + LEASE_TTL_MS;
+    const leaseExpiresAt = createdAt + SANDBOX_LEASE_TTL_MS;
     insertAttempted = true;
     inserted = await insertSandboxRun(env.DB, {
       runId,
@@ -198,73 +239,121 @@ export async function createSandboxRun(env, ctx, {
       return { outcome: 'conflict' };
     }
 
-    await requireProvisioningPhase(env, inserted, 'created', 'dispatch_intent', createdAt);
+    await requireProvisioningPhase(
+      env,
+      inserted,
+      SANDBOX_PROVISIONING_PHASE.CREATED,
+      SANDBOX_PROVISIONING_PHASE.DISPATCH_INTENT,
+      createdAt
+    );
     const scout = await issueScoutCapability({
       env,
       accountId,
       googleApiKey,
-      ownership: sandboxOwnership(inserted, 'dispatch_intent'),
+      ownership: sandboxOwnership(inserted, SANDBOX_PROVISIONING_PHASE.DISPATCH_INTENT),
       nowMs: createdAt,
     });
-    requireIssued(scout, 'dispatch');
-    await requireOwnershipAndAdvance(env, inserted, 'dispatch_intent', 'dispatch_acquired', createdAt);
+    requireIssued(scout, SANDBOX_COMPONENT.DISPATCH);
+    await requireOwnershipAndAdvance(
+      env,
+      inserted,
+      SANDBOX_PROVISIONING_PHASE.DISPATCH_INTENT,
+      SANDBOX_PROVISIONING_PHASE.DISPATCH_ACQUIRED,
+      createdAt
+    );
     componentsCompleted += 1;
 
-    await requireProvisioningPhase(env, inserted, 'dispatch_acquired', 'spl_intent', createdAt);
+    await requireProvisioningPhase(
+      env,
+      inserted,
+      SANDBOX_PROVISIONING_PHASE.DISPATCH_ACQUIRED,
+      SANDBOX_PROVISIONING_PHASE.SPL_INTENT,
+      createdAt
+    );
     const spl = await issueSplCapability({
       env,
       accountId,
       instanceId,
-      ownership: sandboxOwnership(inserted, 'spl_intent'),
+      ownership: sandboxOwnership(inserted, SANDBOX_PROVISIONING_PHASE.SPL_INTENT),
       nowMs: createdAt,
       ctx,
       leaseExpiresAt,
     });
-    requireIssued(spl, 'spl');
-    await requireOwnershipAndAdvance(env, inserted, 'spl_intent', 'spl_acquired', createdAt);
+    requireIssued(spl, SANDBOX_COMPONENT.SPL_BINDING);
+    await requireOwnershipAndAdvance(
+      env,
+      inserted,
+      SANDBOX_PROVISIONING_PHASE.SPL_INTENT,
+      SANDBOX_PROVISIONING_PHASE.SPL_ACQUIRED,
+      createdAt
+    );
     componentsCompleted += 1;
 
-    await requireProvisioningPhase(env, inserted, 'spl_acquired', 'spb_intent', createdAt);
+    await requireProvisioningPhase(
+      env,
+      inserted,
+      SANDBOX_PROVISIONING_PHASE.SPL_ACQUIRED,
+      SANDBOX_PROVISIONING_PHASE.SPB_INTENT,
+      createdAt
+    );
     const spb = await issueSpbCapability({
       env,
       accountId,
       instanceId,
-      ownership: sandboxOwnership(inserted, 'spb_intent'),
+      ownership: sandboxOwnership(inserted, SANDBOX_PROVISIONING_PHASE.SPB_INTENT),
       nowMs: createdAt,
-      brokerEndpoint: BROKER_ENDPOINT,
+      brokerEndpoint: SANDBOX_BROKER_ENDPOINT,
       ctx,
     });
-    requireIssued(spb, 'spb');
-    await requireOwnershipAndAdvance(env, inserted, 'spb_intent', 'spb_acquired', createdAt);
+    requireIssued(spb, SANDBOX_COMPONENT.SPB);
+    await requireOwnershipAndAdvance(
+      env,
+      inserted,
+      SANDBOX_PROVISIONING_PHASE.SPB_INTENT,
+      SANDBOX_PROVISIONING_PHASE.SPB_ACQUIRED,
+      createdAt
+    );
     componentsCompleted += 1;
 
-    await requireProvisioningPhase(env, inserted, 'spb_acquired', 'spp_intent', createdAt);
+    await requireProvisioningPhase(
+      env,
+      inserted,
+      SANDBOX_PROVISIONING_PHASE.SPB_ACQUIRED,
+      SANDBOX_PROVISIONING_PHASE.SPP_INTENT,
+      createdAt
+    );
     const spp = await issueSppCapability({
       env,
       accountId,
       instanceId,
-      ownership: sandboxOwnership(inserted, 'spp_intent'),
+      ownership: sandboxOwnership(inserted, SANDBOX_PROVISIONING_PHASE.SPP_INTENT),
       nowMs: createdAt,
       ctx,
       consentAckedAt: null,
       consentDisclosureVersion: null,
     });
-    requireIssued(spp, 'spp');
-    await requireOwnershipAndAdvance(env, inserted, 'spp_intent', 'spp_acquired', createdAt);
+    requireIssued(spp, SANDBOX_COMPONENT.SPP);
+    await requireOwnershipAndAdvance(
+      env,
+      inserted,
+      SANDBOX_PROVISIONING_PHASE.SPP_INTENT,
+      SANDBOX_PROVISIONING_PHASE.SPP_ACQUIRED,
+      createdAt
+    );
     componentsCompleted += 1;
 
-    const body = {
-      run_id: runId,
-      contract_version: contractVersion,
+    const body = orderedObject(SANDBOX_CREATE_RESPONSE_KEYS, [
+      runId,
+      contractVersion,
       profile,
-      lease_expires_at: leaseExpiresAt,
-      capabilities: {
-        scout: scout.capability,
-        spl: spl.capability,
-        spb: spb.capability,
-        spp: spp.capability,
-      },
-    };
+      leaseExpiresAt,
+      orderedObject(SANDBOX_CAPABILITIES_KEYS, [
+        scout.capability,
+        spl.capability,
+        spb.capability,
+        spp.capability,
+      ]),
+    ]);
     const activationNowMs = Date.now();
     const activated = await activateSandboxRun(env.DB, {
       runId,
@@ -275,8 +364,8 @@ export async function createSandboxRun(env, ctx, {
     if (!activated) {
       throw creationFailure(
         activationNowMs >= leaseExpiresAt
-          ? 'lease_expired_before_activation'
-          : 'activation_cas_lost'
+          ? SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED_BEFORE_ACTIVATION
+          : SANDBOX_RESIDUAL_CODE.ACTIVATION_CAS_LOST
       );
     }
 
@@ -294,7 +383,7 @@ export async function createSandboxRun(env, ctx, {
       );
       return { outcome: 'unavailable' };
     }
-    const residualCode = error?.residualCode || 'activation_cas_lost';
+    const residualCode = error?.residualCode || SANDBOX_RESIDUAL_CODE.ACTIVATION_CAS_LOST;
     try {
       await requestSandboxRunCleanup(env.DB, { runId, accountId, residualCode, nowMs: Date.now() });
     } catch {
@@ -304,7 +393,7 @@ export async function createSandboxRun(env, ctx, {
       await reconcileSandboxRun(env, ctx, {
         runId,
         nowMs: Date.now(),
-        trigger: 'post_failure',
+        trigger: SANDBOX_CLEANUP_TRIGGER.POST_FAILURE,
       });
     } catch {
       // A creation failure never becomes a partial credential response.
@@ -315,14 +404,16 @@ export async function createSandboxRun(env, ctx, {
 }
 
 export async function reconcileSandboxRun(env, ctx, { runId, nowMs, trigger }) {
-  if (!CLEANUP_TRIGGERS.has(trigger)) throw new TypeError('invalid sandbox cleanup trigger');
+  if (!SANDBOX_CLEANUP_TRIGGERS.includes(trigger)) throw new TypeError('invalid sandbox cleanup trigger');
   const startedAt = Date.now();
   let run = await findSandboxRunById(env.DB, runId);
   if (!run) return { outcome: 'not_found', row: null };
-  if (run.status === 'released') return { outcome: 'released', row: run };
+  if (run.status === SANDBOX_RUN_STATUS.RELEASED) return { outcome: 'released', row: run };
 
-  if (run.status === 'provisioning' || run.status === 'active') {
-    const residualCode = trigger === 'scheduled' ? 'lease_expired' : null;
+  if (run.status === SANDBOX_RUN_STATUS.PROVISIONING || run.status === SANDBOX_RUN_STATUS.ACTIVE) {
+    const residualCode = trigger === SANDBOX_CLEANUP_TRIGGER.SCHEDULED
+      ? SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED
+      : null;
     await requestSandboxRunCleanup(env.DB, {
       runId,
       accountId: run.account_id,
@@ -337,82 +428,94 @@ export async function reconcileSandboxRun(env, ctx, { runId, nowMs, trigger }) {
   });
   if (!run) {
     const row = await findSandboxRunById(env.DB, runId);
-    return { outcome: row?.status === 'released' ? 'released' : 'failed', row };
+    return { outcome: row?.status === SANDBOX_RUN_STATUS.RELEASED ? 'released' : 'failed', row };
   }
 
   const accountId = run.account_id;
   const instanceId = run.instance_id;
   const componentResults = new Map();
-  await bestEffortPhase(env, run, 'deny_intent', nowMs);
+  await bestEffortPhase(env, run, SANDBOX_CLEANUP_PHASE.DENY_INTENT, nowMs);
 
-  componentResults.set('dispatch', await releaseLocalComponent({
+  componentResults.set(SANDBOX_COMPONENT.DISPATCH, await releaseLocalComponent({
     env,
-    component: 'dispatch',
+    component: SANDBOX_COMPONENT.DISPATCH,
     release: () => releaseSandboxDispatchTokens(env, {
       sandboxRunId: runId,
       accountId,
       nowMs,
     }),
-    releaseFailed: 'dispatch_release_failed',
-    ownershipConflict: 'dispatch_ownership_conflict',
+    releaseFailed: SANDBOX_RESIDUAL_CODE.DISPATCH_RELEASE_FAILED,
+    ownershipConflict: SANDBOX_RESIDUAL_CODE.DISPATCH_OWNERSHIP_CONFLICT,
     run,
     nowMs,
   }));
-  componentResults.set('spp', await releaseLocalComponent({
+  componentResults.set(SANDBOX_COMPONENT.SPP, await releaseLocalComponent({
     env,
-    component: 'spp',
+    component: SANDBOX_COMPONENT.SPP,
     release: () => releaseSandboxSppBinding(env, {
       sandboxRunId: runId,
       accountId,
       instanceId,
     }),
-    releaseFailed: 'spp_release_failed',
-    ownershipConflict: 'spp_ownership_conflict',
+    releaseFailed: SANDBOX_RESIDUAL_CODE.SPP_RELEASE_FAILED,
+    ownershipConflict: SANDBOX_RESIDUAL_CODE.SPP_OWNERSHIP_CONFLICT,
     run,
     nowMs,
   }));
-  componentResults.set('spb', await denySpbComponent(env, ctx, run, nowMs));
-  await bestEffortPhase(env, run, 'denied', nowMs);
+  componentResults.set(SANDBOX_COMPONENT.SPB, await denySpbComponent(env, ctx, run, nowMs));
+  await bestEffortPhase(env, run, SANDBOX_CLEANUP_PHASE.DENIED, nowMs);
 
   const beforeRelay = await safeLocalPostconditions(env, run);
   if (bindingConflicts(beforeRelay?.spl_account_id, beforeRelay?.spl_sandbox_run_id, run)) {
-    componentResults.set('spl_binding', await persistComponent(
+    componentResults.set(SANDBOX_COMPONENT.SPL_BINDING, await persistComponent(
       env,
       run,
-      'spl_binding',
-      'cleanup_failed',
-      'spl_ownership_conflict',
+      SANDBOX_COMPONENT.SPL_BINDING,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.SPL_OWNERSHIP_CONFLICT,
       nowMs
     ));
   }
-  await bestEffortPhase(env, run, 'relay_intent', nowMs);
+  await bestEffortPhase(env, run, SANDBOX_CLEANUP_PHASE.RELAY_INTENT, nowMs);
   const relay = await retireRelayComponent(env, run, beforeRelay, nowMs);
-  componentResults.set('spl_relay', relay);
-  if (relay.state === 'released') await bestEffortPhase(env, run, 'relay_retired', nowMs);
+  componentResults.set(SANDBOX_COMPONENT.SPL_RELAY, relay);
+  if (relay.state === SANDBOX_COMPONENT_STATE.RELEASED) {
+    await bestEffortPhase(env, run, SANDBOX_CLEANUP_PHASE.RELAY_RETIRED, nowMs);
+  }
 
-  if (relay.state === 'released' && !componentResults.has('spl_binding')) {
-    componentResults.set('spl_binding', await releaseLocalComponent({
+  if (relay.state === SANDBOX_COMPONENT_STATE.RELEASED
+    && !componentResults.has(SANDBOX_COMPONENT.SPL_BINDING)) {
+    componentResults.set(SANDBOX_COMPONENT.SPL_BINDING, await releaseLocalComponent({
       env,
-      component: 'spl_binding',
+      component: SANDBOX_COMPONENT.SPL_BINDING,
       release: () => releaseSandboxSplBinding(env, {
         sandboxRunId: runId,
         accountId,
         instanceId,
       }),
-      releaseFailed: 'spl_release_failed',
-      ownershipConflict: 'spl_ownership_conflict',
+      releaseFailed: SANDBOX_RESIDUAL_CODE.SPL_RELEASE_FAILED,
+      ownershipConflict: SANDBOX_RESIDUAL_CODE.SPL_OWNERSHIP_CONFLICT,
       run,
       nowMs,
     }));
   } else {
-    componentResults.set('spl_binding', { state: 'deny_pending', residual: null });
+    componentResults.set(SANDBOX_COMPONENT.SPL_BINDING, {
+      state: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      residual: null,
+    });
   }
 
-  await bestEffortPhase(env, run, 'spb_expiry', nowMs);
-  const spbCleanup = await cleanupSpbComponent(env, ctx, run, componentResults.get('spb'), nowMs);
-  componentResults.set('spb', spbCleanup);
-  await bestEffortPhase(env, run, 'spb_purge', nowMs);
-  await bestEffortPhase(env, run, 'verify', nowMs);
+  await bestEffortPhase(env, run, SANDBOX_CLEANUP_PHASE.SPB_EXPIRY, nowMs);
+  const spbCleanup = await cleanupSpbComponent(
+    env,
+    ctx,
+    run,
+    componentResults.get(SANDBOX_COMPONENT.SPB),
+    nowMs
+  );
+  componentResults.set(SANDBOX_COMPONENT.SPB, spbCleanup);
+  await bestEffortPhase(env, run, SANDBOX_CLEANUP_PHASE.SPB_PURGE, nowMs);
+  await bestEffortPhase(env, run, SANDBOX_CLEANUP_PHASE.VERIFY, nowMs);
 
   const local = await safeLocalPostconditions(env, run);
   await verifyLocalComponents(env, run, componentResults, local, nowMs);
@@ -421,22 +524,24 @@ export async function reconcileSandboxRun(env, ctx, { runId, nowMs, trigger }) {
   let outcome;
   if (local?.account_present === 1 && allComponentsReleased(run)) {
     run = await releaseSandboxRun(env.DB, { runId, accountId, nowMs }) || run;
-    outcome = run.status === 'released' ? 'released' : 'failed';
+    outcome = run.status === SANDBOX_RUN_STATUS.RELEASED ? 'released' : 'failed';
   } else if (isStoredExpiryOnly(run)) {
     run = await setSandboxRunCleanupDisposition(env.DB, {
       runId,
       accountId,
-      status: 'expiry_pending',
-      residualCode: 'spb_credential_expiry_pending',
+      status: SANDBOX_RUN_STATUS.EXPIRY_PENDING,
+      residualCode: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
       nowMs,
     }) || run;
     outcome = 'pending';
   } else {
-    const residualCode = firstResidual(run) || (local ? 'account_missing' : 'relay_failed');
+    const residualCode = firstResidual(run) || (local
+      ? SANDBOX_RESIDUAL_CODE.ACCOUNT_MISSING
+      : SANDBOX_RESIDUAL_CODE.RELAY_FAILED);
     run = await setSandboxRunCleanupDisposition(env.DB, {
       runId,
       accountId,
-      status: 'cleanup_failed',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
       residualCode,
       nowMs,
     }) || run;
@@ -470,7 +575,7 @@ export async function reconcileExpiredSandboxRuns(env, ctx, { nowMs = Date.now()
       const result = await reconcileSandboxRun(env, ctx, {
         runId: run.run_id,
         nowMs,
-        trigger: 'scheduled',
+        trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
       });
       counts.runs_advanced += 1;
       if (result.outcome === 'released') counts.runs_released += 1;
@@ -500,8 +605,8 @@ function configuredSandboxAccountId(env) {
 }
 
 function isSandboxRunRetryDeferred(run, nowMs) {
-  return run?.spb_state === 'purge_pending'
-    && run?.spb_residual_code === 'spb_credential_expiry_pending'
+  return run?.spb_state === SANDBOX_COMPONENT_STATE.PURGE_PENDING
+    && run?.spb_residual_code === SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING
     && Number.isSafeInteger(run.spb_retry_not_before)
     && nowMs < run.spb_retry_not_before;
 }
@@ -513,14 +618,7 @@ async function readCreateInput(request) {
   } catch {
     return null;
   }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const keys = Object.keys(value).sort();
-  if (keys.length !== REQUEST_KEYS.length || keys.some((key, index) => key !== REQUEST_KEYS[index])) {
-    return null;
-  }
-  if (value.contract_version !== 1 || value.profile !== 'full') return null;
-  if (!isCanonicalUuid(value.run_id) || !isCanonicalUuid(value.instance_id)) return null;
-  return value;
+  return isSandboxRunCreateInput(value) ? value : null;
 }
 
 async function readStandingGoogleApiKey(env, accountId) {
@@ -556,7 +654,7 @@ async function requireProvisioningPhase(env, run, fromPhase, toPhase, nowMs) {
     toPhase,
     nowMs,
   });
-  if (!advanced) throw creationFailure('activation_cas_lost');
+  if (!advanced) throw creationFailure(SANDBOX_RESIDUAL_CODE.ACTIVATION_CAS_LOST);
 }
 
 async function requireOwnershipAndAdvance(env, run, fromPhase, toPhase, nowMs) {
@@ -566,32 +664,36 @@ async function requireOwnershipAndAdvance(env, run, fromPhase, toPhase, nowMs) {
     instanceId: run.instance_id,
     expectedPhase: fromPhase,
   });
-  if (!owned) throw creationFailure('activation_cas_lost');
+  if (!owned) throw creationFailure(SANDBOX_RESIDUAL_CODE.ACTIVATION_CAS_LOST);
   await requireProvisioningPhase(env, run, fromPhase, toPhase, nowMs);
 }
 
 function requireIssued(result, component) {
   if (result?.outcome === 'issued') return;
-  if (result?.outcome === 'run_fence_lost') throw creationFailure('activation_cas_lost');
-  if (component === 'dispatch') {
-    throw creationFailure(result?.outcome === 'ownership_conflict'
-      ? 'dispatch_ownership_conflict'
-      : 'dispatch_issue_failed');
+  if (result?.outcome === 'run_fence_lost') {
+    throw creationFailure(SANDBOX_RESIDUAL_CODE.ACTIVATION_CAS_LOST);
   }
-  if (component === 'spl') {
-    if (result?.outcome === 'grant_failed') throw creationFailure('spl_grant_failed');
+  if (component === SANDBOX_COMPONENT.DISPATCH) {
     throw creationFailure(result?.outcome === 'ownership_conflict'
-      ? 'spl_ownership_conflict'
-      : 'spl_issue_failed');
+      ? SANDBOX_RESIDUAL_CODE.DISPATCH_OWNERSHIP_CONFLICT
+      : SANDBOX_RESIDUAL_CODE.DISPATCH_ISSUE_FAILED);
   }
-  if (component === 'spb') {
+  if (component === SANDBOX_COMPONENT.SPL_BINDING) {
+    if (result?.outcome === 'grant_failed') {
+      throw creationFailure(SANDBOX_RESIDUAL_CODE.SPL_GRANT_FAILED);
+    }
     throw creationFailure(result?.outcome === 'ownership_conflict'
-      ? 'spb_ownership_conflict'
-      : 'spb_issue_failed');
+      ? SANDBOX_RESIDUAL_CODE.SPL_OWNERSHIP_CONFLICT
+      : SANDBOX_RESIDUAL_CODE.SPL_ISSUE_FAILED);
+  }
+  if (component === SANDBOX_COMPONENT.SPB) {
+    throw creationFailure(result?.outcome === 'ownership_conflict'
+      ? SANDBOX_RESIDUAL_CODE.SPB_OWNERSHIP_CONFLICT
+      : SANDBOX_RESIDUAL_CODE.SPB_ISSUE_FAILED);
   }
   throw creationFailure(result?.outcome === 'ownership_conflict'
-    ? 'spp_ownership_conflict'
-    : 'spp_issue_failed');
+    ? SANDBOX_RESIDUAL_CODE.SPP_OWNERSHIP_CONFLICT
+    : SANDBOX_RESIDUAL_CODE.SPP_ISSUE_FAILED);
 }
 
 function creationFailure(residualCode) {
@@ -610,20 +712,38 @@ async function releaseLocalComponent({
   run,
   nowMs,
 }) {
-  if (run[`${component}_state`] === 'released') return { state: 'released', residual: null };
+  if (run[`${component}_state`] === SANDBOX_COMPONENT_STATE.RELEASED) {
+    return { state: SANDBOX_COMPONENT_STATE.RELEASED, residual: null };
+  }
   try {
     const result = await release();
     if (result.outcome === 'ownership_conflict') {
-      return persistComponent(env, run, component, 'cleanup_failed', ownershipConflict, nowMs);
+      return persistComponent(
+        env,
+        run,
+        component,
+        SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+        ownershipConflict,
+        nowMs
+      );
     }
-    return persistComponent(env, run, component, 'verify_pending', null, nowMs);
+    return persistComponent(env, run, component, SANDBOX_COMPONENT_STATE.VERIFY_PENDING, null, nowMs);
   } catch {
-    return persistComponent(env, run, component, 'cleanup_failed', releaseFailed, nowMs);
+    return persistComponent(
+      env,
+      run,
+      component,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      releaseFailed,
+      nowMs
+    );
   }
 }
 
 async function denySpbComponent(env, ctx, run, nowMs) {
-  if (run.spb_state === 'released') return { state: 'released', residual: null };
+  if (run.spb_state === SANDBOX_COMPONENT_STATE.RELEASED) {
+    return { state: SANDBOX_COMPONENT_STATE.RELEASED, residual: null };
+  }
   try {
     const result = await denySpbSandboxBinding(env, ctx, {
       sandboxRunId: run.run_id,
@@ -632,49 +752,122 @@ async function denySpbComponent(env, ctx, run, nowMs) {
       nowMs,
     });
     if (result.outcome === 'ownership_conflict') {
-      return persistComponent(env, run, 'spb', 'cleanup_failed', 'spb_ownership_conflict', nowMs);
+      return persistComponent(
+        env,
+        run,
+        SANDBOX_COMPONENT.SPB,
+        SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+        SANDBOX_RESIDUAL_CODE.SPB_OWNERSHIP_CONFLICT,
+        nowMs
+      );
     }
-    return persistComponent(env, run, 'spb', 'purge_pending', null, nowMs);
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPB,
+      SANDBOX_COMPONENT_STATE.PURGE_PENDING,
+      null,
+      nowMs
+    );
   } catch {
-    return persistComponent(env, run, 'spb', 'cleanup_failed', 'spb_denial_failed', nowMs);
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPB,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.SPB_DENIAL_FAILED,
+      nowMs
+    );
   }
 }
 
 async function retireRelayComponent(env, run, local, nowMs) {
-  if (run.spl_relay_state === 'released') return { state: 'released', residual: null };
-  if (bindingConflicts(local?.spl_account_id, local?.spl_sandbox_run_id, run)) {
-    return persistComponent(env, run, 'spl_relay', 'cleanup_failed', 'relay_failed', nowMs);
+  if (run.spl_relay_state === SANDBOX_COMPONENT_STATE.RELEASED) {
+    return { state: SANDBOX_COMPONENT_STATE.RELEASED, residual: null };
   }
-  const splAttempted = phaseAtLeast(run.provisioning_phase, 'spl_intent');
+  if (bindingConflicts(local?.spl_account_id, local?.spl_sandbox_run_id, run)) {
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPL_RELAY,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.RELAY_FAILED,
+      nowMs
+    );
+  }
+  const splAttempted = phaseAtLeast(run.provisioning_phase, SANDBOX_PROVISIONING_PHASE.SPL_INTENT);
   const exactBinding = bindingMatches(local?.spl_account_id, local?.spl_sandbox_run_id, run);
   if (!splAttempted && !exactBinding && local?.account_present === 1) {
-    return persistComponent(env, run, 'spl_relay', 'released', null, nowMs);
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPL_RELAY,
+      SANDBOX_COMPONENT_STATE.RELEASED,
+      null,
+      nowMs
+    );
   }
   try {
     const result = await retireRelayInstance(env, { instanceId: run.instance_id });
     if (result.outcome === 'retired') {
-      return persistComponent(env, run, 'spl_relay', 'released', null, nowMs);
+      return persistComponent(
+        env,
+        run,
+        SANDBOX_COMPONENT.SPL_RELAY,
+        SANDBOX_COMPONENT_STATE.RELEASED,
+        null,
+        nowMs
+      );
     }
     if (result.outcome === 'retryable_residual') {
-      const residual = RELAY_RESIDUALS[result.failedComponent] || 'relay_failed';
-      return persistComponent(env, run, 'spl_relay', 'cleanup_failed', residual, nowMs);
+      const residual = SANDBOX_RELAY_RESIDUALS[result.failedComponent]
+        || SANDBOX_RESIDUAL_CODE.RELAY_FAILED;
+      return persistComponent(
+        env,
+        run,
+        SANDBOX_COMPONENT.SPL_RELAY,
+        SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+        residual,
+        nowMs
+      );
     }
-    return persistComponent(env, run, 'spl_relay', 'cleanup_failed', 'relay_failed', nowMs);
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPL_RELAY,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.RELAY_FAILED,
+      nowMs
+    );
   } catch {
-    return persistComponent(env, run, 'spl_relay', 'cleanup_failed', 'relay_failed', nowMs);
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPL_RELAY,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.RELAY_FAILED,
+      nowMs
+    );
   }
 }
 
 async function cleanupSpbComponent(env, ctx, run, denial, nowMs) {
-  if (denial.state === 'released') return denial;
+  if (denial.state === SANDBOX_COMPONENT_STATE.RELEASED) return denial;
   if (denial.residual) return denial;
   const local = await safeLocalPostconditions(env, run);
   if (
-    !phaseAtLeast(run.provisioning_phase, 'spb_intent')
+    !phaseAtLeast(run.provisioning_phase, SANDBOX_PROVISIONING_PHASE.SPB_INTENT)
     && !bindingMatches(local?.spb_account_id, local?.spb_sandbox_run_id, run)
     && local?.account_present === 1
   ) {
-    return persistComponent(env, run, 'spb', 'verify_pending', null, nowMs);
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPB,
+      SANDBOX_COMPONENT_STATE.VERIFY_PENDING,
+      null,
+      nowMs
+    );
   }
   try {
     const result = await cleanupSpbSandboxBinding(env, ctx, {
@@ -691,40 +884,71 @@ async function cleanupSpbComponent(env, ctx, run, denial, nowMs) {
         nowMs,
       });
       if (!persisted) {
-        return persistComponent(env, run, 'spb', 'cleanup_failed', 'spb_cleanup_retryable', nowMs);
+        return persistComponent(
+          env,
+          run,
+          SANDBOX_COMPONENT.SPB,
+          SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+          SANDBOX_RESIDUAL_CODE.SPB_CLEANUP_RETRYABLE,
+          nowMs
+        );
       }
       return persistComponent(
         env,
         run,
-        'spb',
-        'purge_pending',
-        'spb_credential_expiry_pending',
+        SANDBOX_COMPONENT.SPB,
+        SANDBOX_COMPONENT_STATE.PURGE_PENDING,
+        SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
         nowMs
       );
     }
     if (result.outcome === 'cleaned') {
-      return persistComponent(env, run, 'spb', 'verify_pending', null, nowMs);
+      return persistComponent(
+        env,
+        run,
+        SANDBOX_COMPONENT.SPB,
+        SANDBOX_COMPONENT_STATE.VERIFY_PENDING,
+        null,
+        nowMs
+      );
     }
     if (
       result.outcome === 'absent'
       && local?.account_present === 1
-      && !phaseAtLeast(run.provisioning_phase, 'spb_acquired')
+      && !phaseAtLeast(run.provisioning_phase, SANDBOX_PROVISIONING_PHASE.SPB_ACQUIRED)
     ) {
       // No binding means no broker credential or R2 object was visible while the
       // account still existed. Activation is later than spb_acquired, so this run
       // never returned credentials. Keep the result reversible until the fresh
       // local postcondition below proves the account and instance are still safe.
-      return persistComponent(env, run, 'spb', 'verify_pending', null, nowMs);
+      return persistComponent(
+        env,
+        run,
+        SANDBOX_COMPONENT.SPB,
+        SANDBOX_COMPONENT_STATE.VERIFY_PENDING,
+        null,
+        nowMs
+      );
     }
-    const residual = {
-      retryable: 'spb_cleanup_retryable',
-      denial_required: 'spb_denial_required',
-      absent: 'spb_lifecycle_absent',
-      ownership_conflict: 'spb_ownership_conflict',
-    }[result.outcome] || 'spb_cleanup_retryable';
-    return persistComponent(env, run, 'spb', 'cleanup_failed', residual, nowMs);
+    const residual = SANDBOX_SPB_CLEANUP_OUTCOME_RESIDUALS[result.outcome]
+      || SANDBOX_RESIDUAL_CODE.SPB_CLEANUP_RETRYABLE;
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPB,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      residual,
+      nowMs
+    );
   } catch {
-    return persistComponent(env, run, 'spb', 'cleanup_failed', 'spb_cleanup_retryable', nowMs);
+    return persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPB,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.SPB_CLEANUP_RETRYABLE,
+      nowMs
+    );
   }
 }
 
@@ -732,51 +956,130 @@ async function verifyLocalComponents(env, run, results, local, nowMs) {
   if (!local) return;
   const accountPresent = local.account_present === 1;
   if (!accountPresent) {
-    await persistComponent(env, run, 'dispatch', 'cleanup_failed', 'account_missing', nowMs);
-    await persistComponent(env, run, 'spp', 'cleanup_failed', 'account_missing', nowMs);
-    await persistComponent(env, run, 'spl_binding', 'cleanup_failed', 'account_missing', nowMs);
-    if (results.get('spb')?.state !== 'cleanup_failed') {
-      await persistComponent(env, run, 'spb', 'cleanup_failed', 'spb_lifecycle_absent', nowMs);
+    await persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.DISPATCH,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.ACCOUNT_MISSING,
+      nowMs
+    );
+    await persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPP,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.ACCOUNT_MISSING,
+      nowMs
+    );
+    await persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPL_BINDING,
+      SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      SANDBOX_RESIDUAL_CODE.ACCOUNT_MISSING,
+      nowMs
+    );
+    if (results.get(SANDBOX_COMPONENT.SPB)?.state !== SANDBOX_COMPONENT_STATE.CLEANUP_FAILED) {
+      await persistComponent(
+        env,
+        run,
+        SANDBOX_COMPONENT.SPB,
+        SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+        SANDBOX_RESIDUAL_CODE.SPB_LIFECYCLE_ABSENT,
+        nowMs
+      );
     }
     return;
   }
 
-  if (!results.get('dispatch')?.residual) {
+  if (!results.get(SANDBOX_COMPONENT.DISPATCH)?.residual) {
     const residual = Number(local.dispatch_conflict_count) > 0
-      ? 'dispatch_ownership_conflict'
+      ? SANDBOX_RESIDUAL_CODE.DISPATCH_OWNERSHIP_CONFLICT
       : Number(local.dispatch_active_count) === 0
         ? null
-        : 'dispatch_release_failed';
-    await persistComponent(env, run, 'dispatch', residual ? 'cleanup_failed' : 'released', residual, nowMs);
+        : SANDBOX_RESIDUAL_CODE.DISPATCH_RELEASE_FAILED;
+    await persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.DISPATCH,
+      residual ? SANDBOX_COMPONENT_STATE.CLEANUP_FAILED : SANDBOX_COMPONENT_STATE.RELEASED,
+      residual,
+      nowMs
+    );
   }
 
-  if (!results.get('spp')?.residual) {
-    const residual = bindingResidual(local.spp_account_id, local.spp_sandbox_run_id, run, 'spp');
-    await persistComponent(env, run, 'spp', residual ? 'cleanup_failed' : 'released', residual, nowMs);
+  if (!results.get(SANDBOX_COMPONENT.SPP)?.residual) {
+    const residual = bindingResidual(
+      local.spp_account_id,
+      local.spp_sandbox_run_id,
+      run,
+      SANDBOX_COMPONENT.SPP
+    );
+    await persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPP,
+      residual ? SANDBOX_COMPONENT_STATE.CLEANUP_FAILED : SANDBOX_COMPONENT_STATE.RELEASED,
+      residual,
+      nowMs
+    );
   }
 
-  const spb = results.get('spb');
-  if (!spb?.residual || spb.residual === 'spb_credential_expiry_pending') {
-    if (spb?.residual === 'spb_credential_expiry_pending') {
-      await persistComponent(env, run, 'spb', 'purge_pending', spb.residual, nowMs);
+  const spb = results.get(SANDBOX_COMPONENT.SPB);
+  if (!spb?.residual || spb.residual === SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING) {
+    if (spb?.residual === SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING) {
+      await persistComponent(
+        env,
+        run,
+        SANDBOX_COMPONENT.SPB,
+        SANDBOX_COMPONENT_STATE.PURGE_PENDING,
+        spb.residual,
+        nowMs
+      );
     } else {
-      const residual = bindingResidual(local.spb_account_id, local.spb_sandbox_run_id, run, 'spb');
-      await persistComponent(env, run, 'spb', residual ? 'cleanup_failed' : 'released', residual, nowMs);
+      const residual = bindingResidual(
+        local.spb_account_id,
+        local.spb_sandbox_run_id,
+        run,
+        SANDBOX_COMPONENT.SPB
+      );
+      await persistComponent(
+        env,
+        run,
+        SANDBOX_COMPONENT.SPB,
+        residual ? SANDBOX_COMPONENT_STATE.CLEANUP_FAILED : SANDBOX_COMPONENT_STATE.RELEASED,
+        residual,
+        nowMs
+      );
     }
   }
 
-  if (results.get('spl_relay')?.state === 'released' && !results.get('spl_binding')?.residual) {
-    const residual = bindingResidual(local.spl_account_id, local.spl_sandbox_run_id, run, 'spl');
-    await persistComponent(env, run, 'spl_binding', residual ? 'cleanup_failed' : 'released', residual, nowMs);
+  if (results.get(SANDBOX_COMPONENT.SPL_RELAY)?.state === SANDBOX_COMPONENT_STATE.RELEASED
+    && !results.get(SANDBOX_COMPONENT.SPL_BINDING)?.residual) {
+    const residual = bindingResidual(
+      local.spl_account_id,
+      local.spl_sandbox_run_id,
+      run,
+      SANDBOX_COMPONENT.SPL_BINDING
+    );
+    await persistComponent(
+      env,
+      run,
+      SANDBOX_COMPONENT.SPL_BINDING,
+      residual ? SANDBOX_COMPONENT_STATE.CLEANUP_FAILED : SANDBOX_COMPONENT_STATE.RELEASED,
+      residual,
+      nowMs
+    );
   }
 }
 
 function bindingResidual(accountId, sandboxRunId, run, component) {
   if (accountId === null || accountId === undefined) return null;
   if (accountId === run.account_id && sandboxRunId === run.run_id) {
-    return component === 'spb' ? 'spb_cleanup_retryable' : `${component}_release_failed`;
+    return SANDBOX_COMPONENT_RELEASE_FAILURE_RESIDUALS[component];
   }
-  return `${component}_ownership_conflict`;
+  return SANDBOX_COMPONENT_OWNERSHIP_RESIDUALS[component];
 }
 
 function bindingMatches(accountId, sandboxRunId, run) {
@@ -799,18 +1102,11 @@ async function persistComponent(env, run, component, state, residual, nowMs) {
     });
     return { state, residual };
   } catch {
-    return { state: 'cleanup_failed', residual: residual || componentFailure(component) };
+    return {
+      state: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      residual: residual || SANDBOX_COMPONENT_FAILURE_RESIDUALS[component],
+    };
   }
-}
-
-function componentFailure(component) {
-  return {
-    dispatch: 'dispatch_release_failed',
-    spp: 'spp_release_failed',
-    spb: 'spb_cleanup_retryable',
-    spl_relay: 'relay_failed',
-    spl_binding: 'spl_release_failed',
-  }[component];
 }
 
 async function bestEffortPhase(env, run, phase, nowMs) {
@@ -839,74 +1135,34 @@ async function safeLocalPostconditions(env, run) {
 }
 
 function phaseAtLeast(actual, expected) {
-  return PROVISIONING_PHASES.indexOf(actual) >= PROVISIONING_PHASES.indexOf(expected);
+  return SANDBOX_PROVISIONING_PHASES.indexOf(actual) >= SANDBOX_PROVISIONING_PHASES.indexOf(expected);
 }
 
 function allComponentsReleased(run) {
-  return COMPONENTS.every(([, stateColumn]) => run?.[stateColumn] === 'released');
+  return SANDBOX_COMPONENTS.every((component) => (
+    run?.[component.state_column] === SANDBOX_COMPONENT_STATE.RELEASED
+  ));
 }
 
 function isStoredExpiryOnly(run) {
-  return run?.dispatch_state === 'released'
-    && run?.spp_state === 'released'
-    && run?.spb_state === 'purge_pending'
-    && run?.spb_residual_code === 'spb_credential_expiry_pending'
-    && run?.spl_relay_state === 'released'
-    && run?.spl_binding_state === 'released';
+  return run?.dispatch_state === SANDBOX_COMPONENT_STATE.RELEASED
+    && run?.spp_state === SANDBOX_COMPONENT_STATE.RELEASED
+    && run?.spb_state === SANDBOX_COMPONENT_STATE.PURGE_PENDING
+    && run?.spb_residual_code === SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING
+    && run?.spl_relay_state === SANDBOX_COMPONENT_STATE.RELEASED
+    && run?.spl_binding_state === SANDBOX_COMPONENT_STATE.RELEASED;
 }
 
 function firstResidual(run) {
-  return COMPONENTS.map(([, , residualColumn]) => run?.[residualColumn]).find(Boolean)
+  return SANDBOX_COMPONENTS.map((component) => run?.[component.residual_column]).find(Boolean)
     || run?.last_residual_code
     || null;
 }
 
 function hasStoredOwnershipConflict(run) {
-  return COMPONENTS.some(([, , residualColumn]) => run?.[residualColumn]?.endsWith('_ownership_conflict'));
-}
-
-function renderSandboxRun(row, nowMs) {
-  const leaseLive = isSandboxRunLeaseLive(row, nowMs);
-  const retryAfter = row.status === 'expiry_pending' && Number.isSafeInteger(row.spb_retry_not_before)
-    ? Math.max(1, Math.ceil((row.spb_retry_not_before - nowMs) / 1000))
-    : null;
-  return {
-    run_id: row.run_id,
-    contract_version: row.contract_version,
-    profile: row.profile,
-    status: row.status,
-    provisioning_phase: row.provisioning_phase,
-    cleanup_phase: row.cleanup_phase,
-    lease_expires_at: row.lease_expires_at,
-    lease_live: leaseLive,
-    retry_after_seconds: retryAfter,
-    components: COMPONENTS.map(([component, stateColumn, residualColumn, updatedColumn]) => {
-      const storedState = row[stateColumn];
-      const expiredActive = storedState === 'active' && !leaseLive;
-      return {
-        component,
-        state: expiredActive ? 'deny_pending' : storedState,
-        residual_code: expiredActive ? 'lease_expired' : row[residualColumn],
-        updated_at: row[updatedColumn],
-      };
-    }),
-  };
-}
-
-function isExpiryOnly(report) {
-  const components = Object.fromEntries(report.components.map((component) => [component.component, component]));
-  return report.status === 'expiry_pending'
-    && Number.isSafeInteger(report.retry_after_seconds)
-    && components.dispatch.state === 'released'
-    && components.spp.state === 'released'
-    && components.spb.state === 'purge_pending'
-    && components.spb.residual_code === 'spb_credential_expiry_pending'
-    && components.spl_relay.state === 'released'
-    && components.spl_binding.state === 'released';
-}
-
-function hasOwnershipConflict(report) {
-  return report.components.some((component) => component.residual_code?.endsWith('_ownership_conflict'));
+  return SANDBOX_COMPONENTS.some((component) => (
+    run?.[component.residual_column]?.endsWith('_ownership_conflict')
+  ));
 }
 
 function emitCreateTelemetry(env, ctx, outcome, componentsCompleted, nowMs, startedAt) {
@@ -934,13 +1190,13 @@ function emitCleanupTelemetry(env, ctx, trigger, outcome, run, nowMs, startedAt)
     components_conflicted: 0,
     components_active: 0,
   };
-  for (const [, stateColumn, residualColumn] of COMPONENTS) {
-    const state = run?.[stateColumn];
-    const residual = run?.[residualColumn];
-    if (state === 'released') counts.components_released += 1;
+  for (const component of SANDBOX_COMPONENTS) {
+    const state = run?.[component.state_column];
+    const residual = run?.[component.residual_column];
+    if (state === SANDBOX_COMPONENT_STATE.RELEASED) counts.components_released += 1;
     else if (residual?.endsWith('_ownership_conflict')) counts.components_conflicted += 1;
-    else if (state === 'cleanup_failed') counts.components_failed += 1;
-    else if (state === 'active') counts.components_active += 1;
+    else if (state === SANDBOX_COMPONENT_STATE.CLEANUP_FAILED) counts.components_failed += 1;
+    else if (state === SANDBOX_COMPONENT_STATE.ACTIVE) counts.components_active += 1;
     else counts.components_pending += 1;
   }
   const event = {
@@ -962,56 +1218,61 @@ function emitCleanupTelemetry(env, ctx, trigger, outcome, run, nowMs, startedAt)
 }
 
 function responseJson(body, status, securityHeaders, extraHeaders = {}) {
+  return serializedJson(JSON.stringify(body), status, securityHeaders, extraHeaders);
+}
+
+function serializedJson(body, status, securityHeaders, extraHeaders = {}) {
   const headers = new Headers(securityHeaders);
   headers.set('Content-Type', 'application/json');
   headers.set('Cache-Control', 'no-store');
   for (const [name, value] of Object.entries(extraHeaders)) headers.set(name, value);
-  return new Response(JSON.stringify(body), { status, headers });
+  return new Response(body, { status, headers });
 }
 
 function invalidRequest(headers) {
-  return responseJson({
-    error: 'invalid sandbox run request',
-    code: 'invalid_sandbox_run_request',
-  }, 400, headers);
+  return responseJson(
+    sandboxRunErrorBody(SANDBOX_ERROR.INVALID_REQUEST),
+    SANDBOX_ERROR.INVALID_REQUEST.status,
+    headers
+  );
 }
 
 function conflict(runId, headers) {
-  return responseJson({
-    error: 'sandbox run conflict',
-    code: 'sandbox_run_conflict',
-    run_id: runId,
-  }, 409, headers);
+  return responseJson(
+    sandboxRunErrorBody(SANDBOX_ERROR.CONFLICT, runId),
+    SANDBOX_ERROR.CONFLICT.status,
+    headers
+  );
 }
 
 function unavailable(runId, headers) {
-  return responseJson({
-    error: 'sandbox run unavailable',
-    code: 'sandbox_run_unavailable',
-    run_id: runId,
-  }, 503, headers);
+  return responseJson(
+    sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, runId),
+    SANDBOX_ERROR.UNAVAILABLE.status,
+    headers
+  );
 }
 
 function cleanupConflict(runId, headers) {
-  return responseJson({
-    error: 'sandbox run cleanup conflict',
-    code: 'sandbox_run_cleanup_conflict',
-    run_id: runId,
-  }, 409, headers);
+  return responseJson(
+    sandboxRunErrorBody(SANDBOX_ERROR.CLEANUP_CONFLICT, runId),
+    SANDBOX_ERROR.CLEANUP_CONFLICT.status,
+    headers
+  );
 }
 
 function cleanupUnavailable(runId, headers) {
-  return responseJson({
-    error: 'sandbox run cleanup unavailable',
-    code: 'sandbox_run_cleanup_unavailable',
-    run_id: runId,
-  }, 503, headers);
+  return responseJson(
+    sandboxRunErrorBody(SANDBOX_ERROR.CLEANUP_UNAVAILABLE, runId),
+    SANDBOX_ERROR.CLEANUP_UNAVAILABLE.status,
+    headers
+  );
 }
 
 function sandboxRunNotFound(runId, headers) {
-  return responseJson({
-    error: 'sandbox run not found',
-    code: 'sandbox_run_not_found',
-    run_id: runId,
-  }, 404, headers);
+  return responseJson(
+    sandboxRunErrorBody(SANDBOX_ERROR.NOT_FOUND, runId),
+    SANDBOX_ERROR.NOT_FOUND.status,
+    headers
+  );
 }

@@ -1,4 +1,9 @@
 import { hashWithPepper } from './crypto.js';
+import {
+  SANDBOX_CLEANUP_DISPOSITION_STATUSES,
+  SANDBOX_CLEANUP_PHASE_PREDECESSOR,
+  SANDBOX_COMPONENT_COLUMNS,
+} from './sandbox-run-contract.js';
 
 const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -2118,14 +2123,6 @@ export async function claimSandboxRunCleanup(db, { runId, accountId, nowMs }) {
   return results?.[0] || null;
 }
 
-const SANDBOX_COMPONENT_COLUMNS = {
-  dispatch: ['dispatch_state', 'dispatch_residual_code', 'dispatch_updated_at'],
-  spp: ['spp_state', 'spp_residual_code', 'spp_updated_at'],
-  spb: ['spb_state', 'spb_residual_code', 'spb_updated_at'],
-  spl_relay: ['spl_relay_state', 'spl_relay_residual_code', 'spl_relay_updated_at'],
-  spl_binding: ['spl_binding_state', 'spl_binding_residual_code', 'spl_binding_updated_at'],
-};
-
 export async function updateSandboxRunComponent(db, {
   runId,
   accountId,
@@ -2155,16 +2152,6 @@ export async function updateSandboxRunComponent(db, {
     .all();
   return results?.[0] || null;
 }
-
-const SANDBOX_CLEANUP_PHASE_PREDECESSOR = {
-  deny_intent: null,
-  denied: 'deny_intent',
-  relay_intent: 'denied',
-  relay_retired: 'relay_intent',
-  spb_expiry: 'relay_retired',
-  spb_purge: 'spb_expiry',
-  verify: 'spb_purge',
-};
 
 export async function advanceSandboxRunCleanupPhase(db, {
   runId,
@@ -2222,7 +2209,7 @@ export async function setSandboxRunCleanupDisposition(db, {
   residualCode,
   nowMs,
 }) {
-  if (!['expiry_pending', 'cleanup_failed'].includes(status)) {
+  if (!SANDBOX_CLEANUP_DISPOSITION_STATUSES.includes(status)) {
     throw new TypeError('invalid sandbox cleanup status');
   }
   const { results } = await db

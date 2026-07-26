@@ -1,5 +1,11 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { makeTestEnv, seedAccount, seedActiveGeminiKey, seedScoutApplication } from './helpers.js';
+import {
+  orderedObject,
+  SANDBOX_CONTRACT_VERSION,
+  SANDBOX_CREATE_REQUEST_KEYS,
+  SANDBOX_PROFILE,
+} from '../src/sandbox-run-contract.js';
 
 export const SANDBOX_NOW = 1_700_000_000_000;
 export const SANDBOX_RUN_ID = 'aaaaaaaa-1111-1111-1111-111111111111';
@@ -23,12 +29,12 @@ export function validSandboxInput({
   runId = SANDBOX_RUN_ID,
   instanceId = SANDBOX_INSTANCE_ID,
 } = {}) {
-  return {
-    contract_version: 1,
-    profile: 'full',
-    run_id: runId,
-    instance_id: instanceId,
-  };
+  return orderedObject(SANDBOX_CREATE_REQUEST_KEYS, [
+    SANDBOX_CONTRACT_VERSION,
+    instanceId,
+    SANDBOX_PROFILE,
+    runId,
+  ]);
 }
 
 export function makeRelayBinding({ onCall } = {}) {

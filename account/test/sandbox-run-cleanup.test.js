@@ -4,6 +4,18 @@ import worker from '../src/index.js';
 import { prefixFor } from '../src/spb-broker.js';
 import { reconcileSandboxRun } from '../src/sandbox-run-lease.js';
 import {
+  SANDBOX_CLEANUP_PHASE,
+  SANDBOX_CLEANUP_TRIGGER,
+  SANDBOX_COMPONENT,
+  SANDBOX_COMPONENT_STATE,
+  SANDBOX_COMPONENTS,
+  SANDBOX_ERROR,
+  SANDBOX_PROVISIONING_PHASE,
+  SANDBOX_RESIDUAL_CODE,
+  SANDBOX_RUN_STATUS,
+  sandboxRunErrorBody,
+} from '../src/sandbox-run-contract.js';
+import {
   dbDumpText,
   installConsoleSpy,
   installS3FetchMock,
@@ -72,15 +84,11 @@ describe('sandbox run DELETE cleanup', () => {
     expect(first.status).toBe(200);
     expect(first.headers.get('Cache-Control')).toBe('no-store');
     const report = JSON.parse(firstText);
-    expect(report.status).toBe('released');
-    expect(report.cleanup_phase).toBe('released');
-    expect(report.components.map(({ state }) => state)).toEqual([
-      'released',
-      'released',
-      'released',
-      'released',
-      'released',
-    ]);
+    expect(report.status).toBe(SANDBOX_RUN_STATUS.RELEASED);
+    expect(report.cleanup_phase).toBe(SANDBOX_CLEANUP_PHASE.RELEASED);
+    expect(report.components.map(({ state }) => state)).toEqual(
+      SANDBOX_COMPONENTS.map(() => SANDBOX_COMPONENT_STATE.RELEASED)
+    );
     expect(events.indexOf('dispatch_deny')).toBeLessThan(events.indexOf('relay_retire'));
     expect(events.indexOf('spp_deny')).toBeLessThan(events.indexOf('relay_retire'));
     expect(events.indexOf('spb_deny')).toBeLessThan(events.indexOf('relay_retire'));
@@ -101,7 +109,7 @@ describe('sandbox run DELETE cleanup', () => {
     expect(relay.calls).toHaveLength(relayCalls);
   });
 
-  it('returns only expiry_pending as 202 with matching bounded retry fields', async () => {
+  it('returns only expiry_pending as 202 with matching retry fields', async () => {
     const relay = makeRelayBinding();
     const seeded = await seedActiveRunResources({
       relay,
@@ -119,14 +127,14 @@ describe('sandbox run DELETE cleanup', () => {
 
     expect(first.status).toBe(202);
     expect(first.headers.get('Retry-After')).toBe('90');
-    expect(body.status).toBe('expiry_pending');
+    expect(body.status).toBe(SANDBOX_RUN_STATUS.EXPIRY_PENDING);
     expect(body.retry_after_seconds).toBe(90);
-    expect(body.components.find(({ component }) => component === 'spb')).toMatchObject({
-      state: 'purge_pending',
-      residual_code: 'spb_credential_expiry_pending',
+    expect(body.components.find(({ component }) => component === SANDBOX_COMPONENT.SPB)).toMatchObject({
+      state: SANDBOX_COMPONENT_STATE.PURGE_PENDING,
+      residual_code: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
     });
     expect(body.components.filter(({ component }) => component !== 'spb').every(
-      ({ state }) => state === 'released'
+      ({ state }) => state === SANDBOX_COMPONENT_STATE.RELEASED
     )).toBe(true);
     const row = await runRow();
     expect(row.spb_retry_not_before).toBe(SANDBOX_NOW + 90_000);
@@ -216,17 +224,15 @@ describe('sandbox run DELETE cleanup', () => {
       const text = await response.text();
 
       expect(response.status).toBe(503);
-      expect(text).toBe(JSON.stringify({
-        error: 'sandbox run cleanup unavailable',
-        code: 'sandbox_run_cleanup_unavailable',
-        run_id: SANDBOX_RUN_ID,
-      }));
+      expect(text).toBe(JSON.stringify(
+        sandboxRunErrorBody(SANDBOX_ERROR.CLEANUP_UNAVAILABLE, SANDBOX_RUN_ID)
+      ));
       expect(await runRow()).toMatchObject({
-        status: 'cleanup_failed',
-        dispatch_residual_code: 'account_missing',
-        spp_residual_code: 'account_missing',
-        spb_residual_code: 'spb_lifecycle_absent',
-        spl_binding_residual_code: 'account_missing',
+        status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+        dispatch_residual_code: SANDBOX_RESIDUAL_CODE.ACCOUNT_MISSING,
+        spp_residual_code: SANDBOX_RESIDUAL_CODE.ACCOUNT_MISSING,
+        spb_residual_code: SANDBOX_RESIDUAL_CODE.SPB_LIFECYCLE_ABSENT,
+        spl_binding_residual_code: SANDBOX_RESIDUAL_CODE.ACCOUNT_MISSING,
       });
       expect(await dbDumpText()).not.toBe(before);
       consoleSpy.assertNoSecrets([account.accountId, SANDBOX_INSTANCE_ID, SANDBOX_RUN_ID]);
@@ -236,8 +242,8 @@ describe('sandbox run DELETE cleanup', () => {
   });
 
   it.each([
-    ['account loss before SPB acquisition', 'spb_intent', false],
-    ['an acquired SPB binding that is now absent', 'spb_acquired', true],
+    ['account loss before SPB acquisition', SANDBOX_PROVISIONING_PHASE.SPB_INTENT, false],
+    ['an acquired SPB binding that is now absent', SANDBOX_PROVISIONING_PHASE.SPB_ACQUIRED, true],
   ])('keeps SPB lifecycle absence fail-closed for %s', async (_name, provisioningPhase, keepAccount) => {
     const relay = makeRelayBinding();
     const baseEnv = makeTestEnv();
@@ -246,13 +252,13 @@ describe('sandbox run DELETE cleanup', () => {
       runId: SANDBOX_RUN_ID,
       accountId: account.accountId,
       instanceId: SANDBOX_INSTANCE_ID,
-      status: 'provisioning',
+      status: SANDBOX_RUN_STATUS.PROVISIONING,
       provisioningPhase,
-      dispatchState: 'deny_pending',
-      sppState: 'deny_pending',
-      spbState: 'deny_pending',
-      splRelayState: 'deny_pending',
-      splBindingState: 'deny_pending',
+      dispatchState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      sppState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      spbState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      splRelayState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      splBindingState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
     });
     if (!keepAccount) {
       await workerEnv.DB.prepare('DELETE FROM account_emails WHERE account_id = ?')
@@ -265,15 +271,15 @@ describe('sandbox run DELETE cleanup', () => {
     const result = await reconcileSandboxRun(testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'delete',
+      trigger: SANDBOX_CLEANUP_TRIGGER.DELETE,
     });
 
     expect(result.outcome).toBe('failed');
     await expect(runRow()).resolves.toMatchObject({
-      status: 'cleanup_failed',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
       provisioning_phase: provisioningPhase,
-      spb_state: 'cleanup_failed',
-      spb_residual_code: 'spb_lifecycle_absent',
+      spb_state: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      spb_residual_code: SANDBOX_RESIDUAL_CODE.SPB_LIFECYCLE_ABSENT,
     });
   });
 
@@ -285,13 +291,13 @@ describe('sandbox run DELETE cleanup', () => {
       runId: SANDBOX_RUN_ID,
       accountId: account.accountId,
       instanceId: SANDBOX_INSTANCE_ID,
-      status: 'provisioning',
-      provisioningPhase: 'spb_intent',
-      dispatchState: 'deny_pending',
-      sppState: 'deny_pending',
-      spbState: 'deny_pending',
-      splRelayState: 'deny_pending',
-      splBindingState: 'deny_pending',
+      status: SANDBOX_RUN_STATUS.PROVISIONING,
+      provisioningPhase: SANDBOX_PROVISIONING_PHASE.SPB_INTENT,
+      dispatchState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      sppState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      spbState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      splRelayState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      splBindingState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
     });
     const testEnv = interleaveLocalPostconditionRead(
       { ...baseEnv, RELAY: relay.binding },
@@ -308,15 +314,15 @@ describe('sandbox run DELETE cleanup', () => {
     const result = await reconcileSandboxRun(testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'delete',
+      trigger: SANDBOX_CLEANUP_TRIGGER.DELETE,
     });
 
     expect(result.outcome).toBe('failed');
     await expect(runRow()).resolves.toMatchObject({
-      status: 'cleanup_failed',
-      provisioning_phase: 'spb_intent',
-      spb_state: 'cleanup_failed',
-      spb_residual_code: 'spb_lifecycle_absent',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+      provisioning_phase: SANDBOX_PROVISIONING_PHASE.SPB_INTENT,
+      spb_state: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      spb_residual_code: SANDBOX_RESIDUAL_CODE.SPB_LIFECYCLE_ABSENT,
     });
   });
 
@@ -328,13 +334,13 @@ describe('sandbox run DELETE cleanup', () => {
       runId: SANDBOX_RUN_ID,
       accountId: account.accountId,
       instanceId: SANDBOX_INSTANCE_ID,
-      status: 'provisioning',
-      provisioningPhase: 'spb_intent',
-      dispatchState: 'deny_pending',
-      sppState: 'deny_pending',
-      spbState: 'deny_pending',
-      splRelayState: 'deny_pending',
-      splBindingState: 'deny_pending',
+      status: SANDBOX_RUN_STATUS.PROVISIONING,
+      provisioningPhase: SANDBOX_PROVISIONING_PHASE.SPB_INTENT,
+      dispatchState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      sppState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      spbState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      splRelayState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      splBindingState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
     });
     const testEnv = interleaveLocalPostconditionRead(
       { ...baseEnv, RELAY: relay.binding },
@@ -351,15 +357,15 @@ describe('sandbox run DELETE cleanup', () => {
     const result = await reconcileSandboxRun(testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'delete',
+      trigger: SANDBOX_CLEANUP_TRIGGER.DELETE,
     });
 
     expect(result.outcome).toBe('conflict');
     await expect(runRow()).resolves.toMatchObject({
-      status: 'cleanup_failed',
-      provisioning_phase: 'spb_intent',
-      spb_state: 'cleanup_failed',
-      spb_residual_code: 'spb_ownership_conflict',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+      provisioning_phase: SANDBOX_PROVISIONING_PHASE.SPB_INTENT,
+      spb_state: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      spb_residual_code: SANDBOX_RESIDUAL_CODE.SPB_OWNERSHIP_CONFLICT,
     });
     await expect(workerEnv.DB.prepare(
       'SELECT token_hash, sandbox_run_id FROM spb_bindings WHERE instance_id = ?'
@@ -396,37 +402,37 @@ describe('sandbox run DELETE cleanup', () => {
     const first = await reconcileSandboxRun(seeded.testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'scheduled',
+      trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
     });
     const afterFirst = await runRow();
 
     expect(first.outcome).toBe('failed');
     expect(afterFirst).toMatchObject({
-      status: 'cleanup_failed',
-      cleanup_phase: 'relay_intent',
-      dispatch_state: 'released',
-      spp_state: 'released',
-      spb_state: 'released',
-      spl_relay_state: 'cleanup_failed',
-      spl_relay_residual_code: 'relay_instance_do_cleanup',
-      spl_binding_state: 'deny_pending',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELAY_INTENT,
+      dispatch_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spp_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spb_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spl_relay_state: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      spl_relay_residual_code: SANDBOX_RESIDUAL_CODE.RELAY_INSTANCE_DO_CLEANUP,
+      spl_binding_state: SANDBOX_COMPONENT_STATE.DENY_PENDING,
     });
 
     const second = await reconcileSandboxRun(seeded.testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'scheduled',
+      trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
     });
 
     expect(second.outcome).toBe('released');
     await expect(runRow()).resolves.toMatchObject({
-      status: 'released',
-      cleanup_phase: 'released',
-      dispatch_state: 'released',
-      spp_state: 'released',
-      spb_state: 'released',
-      spl_relay_state: 'released',
-      spl_binding_state: 'released',
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
+      dispatch_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spp_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spb_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spl_relay_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spl_binding_state: SANDBOX_COMPONENT_STATE.RELEASED,
     });
     expect(retirementAttempts).toBe(2);
   });
@@ -443,30 +449,33 @@ describe('sandbox run DELETE cleanup', () => {
     const first = await reconcileSandboxRun(seeded.testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'scheduled',
+      trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
     });
 
     expect(first.outcome).toBe('failed');
     await expect(runRow()).resolves.toMatchObject({
-      status: 'cleanup_failed',
-      dispatch_state: 'released',
-      spp_state: 'released',
-      spb_state: 'cleanup_failed',
-      spb_residual_code: 'spb_cleanup_retryable',
-      spl_relay_state: 'released',
-      spl_binding_state: 'released',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+      dispatch_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spp_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spb_state: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      spb_residual_code: SANDBOX_RESIDUAL_CODE.SPB_CLEANUP_RETRYABLE,
+      spl_relay_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spl_binding_state: SANDBOX_COMPONENT_STATE.RELEASED,
     });
     expect(state.objects).toEqual([`${prefix}second`]);
 
     const second = await reconcileSandboxRun(seeded.testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'scheduled',
+      trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
     });
 
     expect(second.outcome).toBe('released');
     expect(state.objects).toEqual([]);
-    await expect(runRow()).resolves.toMatchObject({ status: 'released', cleanup_phase: 'released' });
+    await expect(runRow()).resolves.toMatchObject({
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
+    });
   });
 
   it('isolates a D1 failure mid-cleanup and converges on the next pass', async () => {
@@ -481,28 +490,31 @@ describe('sandbox run DELETE cleanup', () => {
     const first = await reconcileSandboxRun(firstEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'scheduled',
+      trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
     });
 
     expect(first.outcome).toBe('failed');
     await expect(runRow()).resolves.toMatchObject({
-      status: 'cleanup_failed',
-      dispatch_state: 'released',
-      spp_state: 'released',
-      spb_state: 'cleanup_failed',
-      spb_residual_code: 'spb_denial_failed',
-      spl_relay_state: 'released',
-      spl_binding_state: 'released',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+      dispatch_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spp_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spb_state: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      spb_residual_code: SANDBOX_RESIDUAL_CODE.SPB_DENIAL_FAILED,
+      spl_relay_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spl_binding_state: SANDBOX_COMPONENT_STATE.RELEASED,
     });
 
     const second = await reconcileSandboxRun(seeded.testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'scheduled',
+      trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
     });
 
     expect(second.outcome).toBe('released');
-    await expect(runRow()).resolves.toMatchObject({ status: 'released', cleanup_phase: 'released' });
+    await expect(runRow()).resolves.toMatchObject({
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
+    });
   });
 
   it('retries idempotently after relay success precedes durable component acknowledgement', async () => {
@@ -520,35 +532,35 @@ describe('sandbox run DELETE cleanup', () => {
     const first = await reconcileSandboxRun(firstEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'scheduled',
+      trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
     });
 
     expect(first.outcome).toBe('failed');
     await expect(runRow()).resolves.toMatchObject({
-      status: 'cleanup_failed',
-      cleanup_phase: 'relay_intent',
-      dispatch_state: 'released',
-      spp_state: 'released',
-      spl_relay_state: 'deny_pending',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELAY_INTENT,
+      dispatch_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spp_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spl_relay_state: SANDBOX_COMPONENT_STATE.DENY_PENDING,
     });
     expect(relay.calls.filter(({ method }) => method === 'DELETE')).toHaveLength(1);
 
     const second = await reconcileSandboxRun(seeded.testEnv, null, {
       runId: SANDBOX_RUN_ID,
       nowMs: SANDBOX_NOW,
-      trigger: 'scheduled',
+      trigger: SANDBOX_CLEANUP_TRIGGER.SCHEDULED,
     });
 
     expect(second.outcome).toBe('released');
     expect(relay.calls.filter(({ method }) => method === 'DELETE')).toHaveLength(2);
     await expect(runRow()).resolves.toMatchObject({
-      status: 'released',
-      cleanup_phase: 'released',
-      dispatch_state: 'released',
-      spp_state: 'released',
-      spb_state: 'released',
-      spl_relay_state: 'released',
-      spl_binding_state: 'released',
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
+      dispatch_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spp_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spb_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spl_relay_state: SANDBOX_COMPONENT_STATE.RELEASED,
+      spl_binding_state: SANDBOX_COMPONENT_STATE.RELEASED,
     });
   });
 });

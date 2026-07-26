@@ -4,7 +4,7 @@ import {
   listSplBindings,
   upsertEntitlement,
 } from './db.js';
-import { isSandboxRunLeaseLive } from './sandbox-run-lease.js';
+import { isSandboxRunLeaseLive } from './sandbox-run-contract.js';
 
 export const SPL_HOSTED_SERVICE = 'spl_hosted';
 export const COMP_ENTITLED_THROUGH = 4102444800;

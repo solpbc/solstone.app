@@ -46,6 +46,7 @@ describe('static source checks', () => {
       's3.js',
       'sandbox-identifiers.js',
       'sandbox-ownership.js',
+      'sandbox-run-contract.js',
       'sandbox-run-lease.js',
       'scout-migrate.js',
       'session.js',

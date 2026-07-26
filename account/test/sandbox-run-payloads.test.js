@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import {
+  isSandboxRunCreateResponse,
+  SANDBOX_BROKER_ENDPOINT,
+  SANDBOX_CAPABILITIES_KEYS,
+  SANDBOX_CAPABILITY_KEYS,
+  SANDBOX_CONTRACT_VERSION,
+  SANDBOX_CREATE_RESPONSE_KEYS,
+  SANDBOX_LEASE_TTL_MS,
+  SANDBOX_PROFILE,
+  SANDBOX_SPL_CAPABILITY_SERVICE,
+  SANDBOX_SPL_CAPABILITY_STATE,
+} from '../src/sandbox-run-contract.js';
 import { resetDb } from './helpers.js';
 import { installJwksStub, mintToken } from './jwks-helper.js';
 import {
@@ -39,53 +51,26 @@ describe('sandbox run capability payload contract', () => {
 
     expect(response.status).toBe(201);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(Object.keys(body)).toEqual([
-      'run_id',
-      'contract_version',
-      'profile',
-      'lease_expires_at',
-      'capabilities',
-    ]);
-    expect(Object.keys(body.capabilities)).toEqual(['scout', 'spl', 'spb', 'spp']);
-    expect(Object.keys(body.capabilities.scout).sort()).toEqual([
-      'account_id',
-      'created_at',
-      'dispatch_token',
-      'google_api_key',
-    ]);
-    expect(Object.keys(body.capabilities.spl).sort()).toEqual([
-      'approved_at',
-      'service',
-      'state',
-    ]);
-    expect(Object.keys(body.capabilities.spb).sort()).toEqual([
-      'account_id',
-      'broker_endpoint',
-      'broker_token',
-      'bucket',
-      'instance_id',
-      'prefix',
-    ]);
-    expect(Object.keys(body.capabilities.spp).sort()).toEqual([
-      'account_id',
-      'created_at',
-      'credential',
-      'endpoint_url',
-      'served_model_id',
-    ]);
+    expect(Object.keys(body)).toEqual(SANDBOX_CREATE_RESPONSE_KEYS);
+    expect(Object.keys(body.capabilities)).toEqual(SANDBOX_CAPABILITIES_KEYS);
+    expect(Object.keys(body.capabilities.scout)).toEqual(SANDBOX_CAPABILITY_KEYS.scout);
+    expect(Object.keys(body.capabilities.spl)).toEqual(SANDBOX_CAPABILITY_KEYS.spl);
+    expect(Object.keys(body.capabilities.spb)).toEqual(SANDBOX_CAPABILITY_KEYS.spb);
+    expect(Object.keys(body.capabilities.spp)).toEqual(SANDBOX_CAPABILITY_KEYS.spp);
+    expect(isSandboxRunCreateResponse(body)).toBe(true);
     expect(body).toMatchObject({
       run_id: SANDBOX_RUN_ID,
-      contract_version: 1,
-      profile: 'full',
-      lease_expires_at: SANDBOX_NOW + 3_600_000,
+      contract_version: SANDBOX_CONTRACT_VERSION,
+      profile: SANDBOX_PROFILE,
+      lease_expires_at: SANDBOX_NOW + SANDBOX_LEASE_TTL_MS,
       capabilities: {
         spl: {
-          service: 'spl',
-          state: 'approved',
+          service: SANDBOX_SPL_CAPABILITY_SERVICE,
+          state: SANDBOX_SPL_CAPABILITY_STATE,
           approved_at: new Date(SANDBOX_NOW).toISOString(),
         },
         spb: {
-          broker_endpoint: 'https://services.solstone.app',
+          broker_endpoint: SANDBOX_BROKER_ENDPOINT,
           instance_id: SANDBOX_INSTANCE_ID,
           bucket: baseline.testEnv.R2_BUCKET,
           prefix: `users/${baseline.account.accountId}/${SANDBOX_INSTANCE_ID}/`,

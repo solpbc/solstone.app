@@ -1,5 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import {
+  orderedObject,
+  sandboxRunErrorBody,
+  SANDBOX_COMPONENT_REPORT_KEYS,
+  SANDBOX_COMPONENT_STATE,
+  SANDBOX_COMPONENTS,
+  SANDBOX_CONTRACT_VERSION,
+  SANDBOX_ERROR,
+  SANDBOX_LEASE_TTL_MS,
+  SANDBOX_OUTER_ADMIN_ENVELOPE,
+  SANDBOX_PROFILE,
+  SANDBOX_PROVISIONING_PHASE,
+  SANDBOX_REPORT_KEYS,
+  SANDBOX_RESIDUAL_CODE,
+  SANDBOX_RUN_STATUS,
+} from '../src/sandbox-run-contract.js';
 import { dbDumpText, makeTestEnv, resetDb, seedAccount, seedSandboxRun } from './helpers.js';
 import { installJwksStub, mintToken } from './jwks-helper.js';
 import {
@@ -8,19 +24,6 @@ import {
   SANDBOX_RUN_ID,
   sandboxRequest,
 } from './sandbox-run-test-helpers.js';
-
-const TOP_LEVEL_KEYS = [
-  'run_id',
-  'contract_version',
-  'profile',
-  'status',
-  'provisioning_phase',
-  'cleanup_phase',
-  'lease_expires_at',
-  'lease_live',
-  'retry_after_seconds',
-  'components',
-];
 
 describe('sandbox run GET', () => {
   beforeEach(async () => {
@@ -58,32 +61,23 @@ describe('sandbox run GET', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.get('X-Frame-Options')).toBe('DENY');
-    expect(Object.keys(body)).toEqual(TOP_LEVEL_KEYS);
+    expect(Object.keys(body)).toEqual(SANDBOX_REPORT_KEYS);
     expect(body).toMatchObject({
       run_id: SANDBOX_RUN_ID,
-      contract_version: 1,
-      profile: 'full',
-      status: 'active',
-      provisioning_phase: 'active',
+      contract_version: SANDBOX_CONTRACT_VERSION,
+      profile: SANDBOX_PROFILE,
+      status: SANDBOX_RUN_STATUS.ACTIVE,
+      provisioning_phase: SANDBOX_PROVISIONING_PHASE.ACTIVE,
       cleanup_phase: null,
       lease_live: true,
       retry_after_seconds: null,
     });
-    expect(body.components.map(({ component }) => component)).toEqual([
-      'dispatch',
-      'spp',
-      'spb',
-      'spl_relay',
-      'spl_binding',
-    ]);
+    expect(body.components.map(({ component }) => component)).toEqual(
+      SANDBOX_COMPONENTS.map((component) => component.name)
+    );
     for (const component of body.components) {
-      expect(Object.keys(component)).toEqual([
-        'component',
-        'state',
-        'residual_code',
-        'updated_at',
-      ]);
-      expect(component.state).toBe('active');
+      expect(Object.keys(component)).toEqual(SANDBOX_COMPONENT_REPORT_KEYS);
+      expect(component.state).toBe(SANDBOX_COMPONENT_STATE.ACTIVE);
       expect(component.residual_code).toBeNull();
     }
     await expect(dbDumpText()).resolves.toBe(before);
@@ -94,7 +88,7 @@ describe('sandbox run GET', () => {
     const baseEnv = makeTestEnv();
     const account = await seedAccount({ testEnv: baseEnv });
     const testEnv = { ...baseEnv, SANDBOX_ACCOUNT_ID: account.accountId };
-    const createdAt = SANDBOX_NOW - 3_600_000;
+    const createdAt = SANDBOX_NOW - SANDBOX_LEASE_TTL_MS;
     await seedSandboxRun({
       runId: SANDBOX_RUN_ID,
       accountId: account.accountId,
@@ -108,23 +102,23 @@ describe('sandbox run GET', () => {
     );
     const body = await response.json();
 
-    expect(body.status).toBe('active');
+    expect(body.status).toBe(SANDBOX_RUN_STATUS.ACTIVE);
     expect(body.lease_live).toBe(false);
     expect(body.components).toEqual(body.components.map((component) => ({
       ...component,
-      state: 'deny_pending',
-      residual_code: 'lease_expired',
+      state: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      residual_code: SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED,
     })));
     const stored = await testEnv.DB.prepare(
       'SELECT status, dispatch_state, spp_state, spb_state, spl_relay_state, spl_binding_state FROM sandbox_runs WHERE run_id = ?'
     ).bind(SANDBOX_RUN_ID).first();
     expect(stored).toEqual({
-      status: 'active',
-      dispatch_state: 'active',
-      spp_state: 'active',
-      spb_state: 'active',
-      spl_relay_state: 'active',
-      spl_binding_state: 'active',
+      status: SANDBOX_RUN_STATUS.ACTIVE,
+      dispatch_state: SANDBOX_COMPONENT_STATE.ACTIVE,
+      spp_state: SANDBOX_COMPONENT_STATE.ACTIVE,
+      spb_state: SANDBOX_COMPONENT_STATE.ACTIVE,
+      spl_relay_state: SANDBOX_COMPONENT_STATE.ACTIVE,
+      spl_binding_state: SANDBOX_COMPONENT_STATE.ACTIVE,
     });
   });
 
@@ -150,11 +144,9 @@ describe('sandbox run GET', () => {
     expect(absent.status).toBe(404);
     expect(absent.headers.get('Cache-Control')).toBe('no-store');
     expect(absent.headers.get('X-Content-Type-Options')).toBe('nosniff');
-    expect(text).toBe(JSON.stringify({
-      error: 'sandbox run not found',
-      code: 'sandbox_run_not_found',
-      run_id: SANDBOX_RUN_ID,
-    }));
+    expect(text).toBe(JSON.stringify(
+      sandboxRunErrorBody(SANDBOX_ERROR.NOT_FOUND, SANDBOX_RUN_ID)
+    ));
     expect(text).not.toContain(configured.accountId);
     expect(text).not.toContain(other.accountId);
     expect(text).not.toContain(SANDBOX_INSTANCE_ID);
@@ -164,6 +156,9 @@ describe('sandbox run GET', () => {
       testEnv
     );
     expect(unknown.status).toBe(404);
-    await expect(unknown.json()).resolves.toEqual({ error: 'account not found' });
+    await expect(unknown.json()).resolves.toEqual(orderedObject(
+      SANDBOX_OUTER_ADMIN_ENVELOPE.NOT_FOUND.fields,
+      [SANDBOX_OUTER_ADMIN_ENVELOPE.NOT_FOUND.error]
+    ));
   });
 });

@@ -72,6 +72,7 @@ export const testPartitions = Object.freeze({
     'test/sandbox-run-admin.test.js',
     'test/sandbox-run-cleanup.test.js',
     'test/sandbox-run-concurrency.test.js',
+    'test/sandbox-run-contract.test.js',
     'test/sandbox-run-faults.test.js',
     'test/sandbox-run-get.test.js',
     'test/sandbox-run-payloads.test.js',
@@ -125,6 +126,7 @@ export const testPartitions = Object.freeze({
     'test/inline-bundle-size.test.js',
     'test/partition-guard.test.js',
     'test/resource-measurement.test.js',
+    'test/sandbox-run-contract-parity.test.js',
     'test/static.test.js',
   ]),
 });

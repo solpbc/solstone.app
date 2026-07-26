@@ -20,6 +20,12 @@ import {
 import { reconcileSpbEntitlement, SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { reconcileSppEntitlement, SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { requireCanonicalUuids } from './sandbox-identifiers.js';
+import {
+  orderedObject,
+  SANDBOX_CAPABILITY_KEYS,
+  SANDBOX_SPL_CAPABILITY_SERVICE,
+  SANDBOX_SPL_CAPABILITY_STATE,
+} from './sandbox-run-contract.js';
 
 export async function issueScoutCapability({ env, accountId, googleApiKey, ownership, nowMs }) {
   const issued = await writeDispatchIssuance({ env, accountId, ownership, nowMs });
@@ -28,12 +34,12 @@ export async function issueScoutCapability({ env, accountId, googleApiKey, owner
   return {
     outcome: 'issued',
     dispatch,
-    capability: {
-      google_api_key: googleApiKey,
-      dispatch_token: dispatch.token,
-      account_id: accountId,
-      created_at: dispatch.createdAt,
-    },
+    capability: orderedObject(SANDBOX_CAPABILITY_KEYS.scout, [
+      googleApiKey,
+      dispatch.token,
+      accountId,
+      dispatch.createdAt,
+    ]),
   };
 }
 
@@ -76,11 +82,11 @@ export async function issueSplCapability({
   }
   return {
     outcome: 'issued',
-    capability: {
-      service: 'spl',
-      state: 'approved',
-      approved_at: new Date(nowMs).toISOString(),
-    },
+    capability: orderedObject(SANDBOX_CAPABILITY_KEYS.spl, [
+      SANDBOX_SPL_CAPABILITY_SERVICE,
+      SANDBOX_SPL_CAPABILITY_STATE,
+      new Date(nowMs).toISOString(),
+    ]),
   };
 }
 
@@ -102,14 +108,14 @@ export async function issueSpbCapability({
     accountId,
     service: SPB_HOSTED_SERVICE,
   });
-  const capability = {
-    broker_endpoint: brokerEndpoint,
-    account_id: accountId,
-    instance_id: instanceId,
-    bucket: env.R2_BUCKET,
-    prefix: `users/${accountId}/${instanceId}/`,
-    broker_token: brokerToken,
-  };
+  const capability = orderedObject(SANDBOX_CAPABILITY_KEYS.spb, [
+    brokerEndpoint,
+    accountId,
+    instanceId,
+    env.R2_BUCKET,
+    `users/${accountId}/${instanceId}/`,
+    brokerToken,
+  ]);
   return {
     outcome: isOwnerEntitled(entitlement) ? 'issued' : 'not_entitled',
     capability,
@@ -149,13 +155,13 @@ export async function issueSppCapability({
   }
   return {
     outcome: 'issued',
-    capability: {
-      endpoint_url: env.SPP_ENGINE_ENDPOINT,
-      served_model_id: env.SPP_ENGINE_MODEL,
+    capability: orderedObject(SANDBOX_CAPABILITY_KEYS.spp, [
+      env.SPP_ENGINE_ENDPOINT,
+      env.SPP_ENGINE_MODEL,
       credential,
-      account_id: accountId,
-      created_at: new Date(nowMs).toISOString(),
-    },
+      accountId,
+      new Date(nowMs).toISOString(),
+    ]),
   };
 }
 

@@ -2,6 +2,23 @@ import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import migration from '../migrations/0027_sandbox_run_lease.sql?raw';
 import schema from '../schema.sql?raw';
+import {
+  SANDBOX_CLEANUP_PHASE,
+  SANDBOX_CLEANUP_PHASES,
+  SANDBOX_COMPONENT_STATE,
+  SANDBOX_COMPONENT_RESIDUAL_CODES,
+  SANDBOX_COMPONENT_STATES,
+  SANDBOX_COMPONENTS,
+  SANDBOX_CONTRACT_VERSION,
+  SANDBOX_LAST_RESIDUAL_CODES,
+  SANDBOX_LEASE_TTL_MS,
+  SANDBOX_PROFILE,
+  SANDBOX_PROVISIONING_PHASE,
+  SANDBOX_PROVISIONING_PHASES,
+  SANDBOX_RESIDUAL_CODE,
+  SANDBOX_RUN_STATUS,
+  SANDBOX_RUN_STATUSES,
+} from '../src/sandbox-run-contract.js';
 import { resetDb, seedSandboxRun } from './helpers.js';
 
 const ACCOUNT_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -9,125 +26,22 @@ const ACCOUNT_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
 const RUN_ID = '22222222-2222-2222-2222-222222222222';
 const CREATED_AT = 1_000_000;
-const LEASE_MS = 3_600_000;
+const LEASE_MS = SANDBOX_LEASE_TTL_MS;
+const STATUSES = SANDBOX_RUN_STATUSES;
+const PROVISIONING_PHASES = SANDBOX_PROVISIONING_PHASES;
+const CLEANUP_PHASES = SANDBOX_CLEANUP_PHASES;
+const COMPONENT_STATES = SANDBOX_COMPONENT_STATES;
+const COMPONENTS = SANDBOX_COMPONENTS.map((component) => ({
+  name: component.name,
+  state: snakeToCamel(component.state_column),
+  residual: snakeToCamel(component.residual_column),
+  codes: SANDBOX_COMPONENT_RESIDUAL_CODES[component.name],
+}));
+const LAST_RESIDUAL_CODES = SANDBOX_LAST_RESIDUAL_CODES;
 
-const STATUSES = [
-  'provisioning',
-  'active',
-  'cleanup_required',
-  'cleaning',
-  'expiry_pending',
-  'cleanup_failed',
-  'released',
-];
-const PROVISIONING_PHASES = [
-  'created',
-  'dispatch_intent',
-  'dispatch_acquired',
-  'spl_intent',
-  'spl_acquired',
-  'spb_intent',
-  'spb_acquired',
-  'spp_intent',
-  'spp_acquired',
-  'active',
-];
-const CLEANUP_PHASES = [
-  'deny_intent',
-  'denied',
-  'relay_intent',
-  'relay_retired',
-  'spb_expiry',
-  'spb_purge',
-  'verify',
-  'released',
-];
-const COMPONENT_STATES = [
-  'active',
-  'deny_pending',
-  'purge_pending',
-  'verify_pending',
-  'released',
-  'cleanup_failed',
-];
-const COMPONENTS = [
-  {
-    name: 'dispatch',
-    state: 'dispatchState',
-    residual: 'dispatchResidualCode',
-    codes: [
-      'lease_expired',
-      'account_missing',
-      'dispatch_issue_failed',
-      'dispatch_release_failed',
-      'dispatch_ownership_conflict',
-    ],
-  },
-  {
-    name: 'spp',
-    state: 'sppState',
-    residual: 'sppResidualCode',
-    codes: [
-      'lease_expired',
-      'account_missing',
-      'spp_issue_failed',
-      'spp_release_failed',
-      'spp_ownership_conflict',
-    ],
-  },
-  {
-    name: 'spb',
-    state: 'spbState',
-    residual: 'spbResidualCode',
-    codes: [
-      'lease_expired',
-      'account_missing',
-      'spb_issue_failed',
-      'spb_denial_failed',
-      'spb_denial_required',
-      'spb_credential_expiry_pending',
-      'spb_cleanup_retryable',
-      'spb_lifecycle_absent',
-      'spb_ownership_conflict',
-    ],
-  },
-  {
-    name: 'spl_relay',
-    state: 'splRelayState',
-    residual: 'splRelayResidualCode',
-    codes: [
-      'lease_expired',
-      'account_missing',
-      'spl_grant_failed',
-      'relay_retired_state',
-      'relay_instance_do_cleanup',
-      'relay_rk_do_cleanup',
-      'relay_device_revocation',
-      'relay_entitlement_clear',
-      'relay_pending_grant_clear',
-      'relay_rk_registry_clear',
-      'relay_verification',
-      'relay_failed',
-    ],
-  },
-  {
-    name: 'spl_binding',
-    state: 'splBindingState',
-    residual: 'splBindingResidualCode',
-    codes: [
-      'lease_expired',
-      'account_missing',
-      'spl_issue_failed',
-      'spl_release_failed',
-      'spl_ownership_conflict',
-    ],
-  },
-];
-const LAST_RESIDUAL_CODES = [
-  ...new Set(COMPONENTS.flatMap((component) => component.codes)),
-  'lease_expired_before_activation',
-  'activation_cas_lost',
-];
+function snakeToCamel(value) {
+  return value.replace(/_([a-z])/g, (_match, letter) => letter.toUpperCase());
+}
 
 describe('migration 0027 sandbox-run lease', () => {
   beforeEach(async () => {
@@ -198,18 +112,22 @@ describe('migration 0027 sandbox-run lease', () => {
 
     let sequence = 100;
     for (const provisioningPhase of PROVISIONING_PHASES) {
-      const status = provisioningPhase === 'active' ? 'active' : 'provisioning';
+      const status = provisioningPhase === SANDBOX_PROVISIONING_PHASE.ACTIVE
+        ? SANDBOX_RUN_STATUS.ACTIVE
+        : SANDBOX_RUN_STATUS.PROVISIONING;
       await seedSandboxRun(validRun(sequence++, {
         status,
         provisioningPhase,
-        ...componentStates(status === 'active' ? 'active' : 'deny_pending'),
+        ...componentStates(status === SANDBOX_RUN_STATUS.ACTIVE
+          ? SANDBOX_COMPONENT_STATE.ACTIVE
+          : SANDBOX_COMPONENT_STATE.DENY_PENDING),
       }));
     }
 
     await expect(seedSandboxRun(validRun(sequence, {
-      status: 'provisioning',
+      status: SANDBOX_RUN_STATUS.PROVISIONING,
       provisioningPhase: 'dispatching',
-      ...componentStates('deny_pending'),
+      ...componentStates(SANDBOX_COMPONENT_STATE.DENY_PENDING),
     }))).rejects.toThrow(/CHECK constraint failed/i);
   });
 
@@ -218,19 +136,21 @@ describe('migration 0027 sandbox-run lease', () => {
 
     let sequence = 200;
     for (const cleanupPhase of CLEANUP_PHASES) {
-      const released = cleanupPhase === 'released';
+      const released = cleanupPhase === SANDBOX_CLEANUP_PHASE.RELEASED;
       await seedSandboxRun(validRun(sequence++, {
-        status: released ? 'released' : 'cleaning',
+        status: released ? SANDBOX_RUN_STATUS.RELEASED : SANDBOX_RUN_STATUS.CLEANING,
         cleanupPhase,
         completedAt: released ? CREATED_AT + sequence : null,
-        ...componentStates(released ? 'released' : 'deny_pending'),
+        ...componentStates(released
+          ? SANDBOX_COMPONENT_STATE.RELEASED
+          : SANDBOX_COMPONENT_STATE.DENY_PENDING),
       }));
     }
 
     await expect(seedSandboxRun(validRun(sequence, {
-      status: 'cleaning',
+      status: SANDBOX_RUN_STATUS.CLEANING,
       cleanupPhase: 'purging',
-      ...componentStates('deny_pending'),
+      ...componentStates(SANDBOX_COMPONENT_STATE.DENY_PENDING),
     }))).rejects.toThrow(/CHECK constraint failed/i);
   });
 
@@ -240,20 +160,22 @@ describe('migration 0027 sandbox-run lease', () => {
     let sequence = 300;
     for (const component of COMPONENTS) {
       for (const state of COMPONENT_STATES) {
-        const residualCode = state === 'cleanup_failed'
-          ? component.codes.find((code) => code !== 'spb_credential_expiry_pending')
+        const residualCode = state === SANDBOX_COMPONENT_STATE.CLEANUP_FAILED
+          ? component.codes.find((code) => (
+              code !== SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING
+            ))
           : null;
         await seedSandboxRun(validRun(sequence++, {
-          status: 'cleaning',
-          cleanupPhase: 'deny_intent',
+          status: SANDBOX_RUN_STATUS.CLEANING,
+          cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
           [component.state]: state,
           [component.residual]: residualCode,
         }));
       }
 
       await expect(seedSandboxRun(validRun(sequence++, {
-        status: 'cleaning',
-        cleanupPhase: 'deny_intent',
+        status: SANDBOX_RUN_STATUS.CLEANING,
+        cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
         [component.state]: 'unknown',
       }))).rejects.toThrow(/CHECK constraint failed/i);
     }
@@ -265,42 +187,44 @@ describe('migration 0027 sandbox-run lease', () => {
     let sequence = 400;
     for (const component of COMPONENTS) {
       for (const code of component.codes) {
-        const isSpbWait = code === 'spb_credential_expiry_pending';
+        const isSpbWait = code === SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING;
         await seedSandboxRun(validRun(sequence++, {
-          status: 'cleaning',
-          cleanupPhase: 'deny_intent',
-          [component.state]: isSpbWait ? 'purge_pending' : 'cleanup_failed',
+          status: SANDBOX_RUN_STATUS.CLEANING,
+          cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
+          [component.state]: isSpbWait
+            ? SANDBOX_COMPONENT_STATE.PURGE_PENDING
+            : SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
           [component.residual]: code,
         }));
       }
 
       await expect(seedSandboxRun(validRun(sequence++, {
-        status: 'cleaning',
-        cleanupPhase: 'deny_intent',
-        [component.state]: 'cleanup_failed',
+        status: SANDBOX_RUN_STATUS.CLEANING,
+        cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
+        [component.state]: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
         [component.residual]: 'not_a_residual',
       }))).rejects.toThrow(/CHECK constraint failed/i);
 
       await expect(seedSandboxRun(validRun(sequence++, {
-        status: 'cleaning',
-        cleanupPhase: 'deny_intent',
-        [component.state]: 'active',
+        status: SANDBOX_RUN_STATUS.CLEANING,
+        cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
+        [component.state]: SANDBOX_COMPONENT_STATE.ACTIVE,
         [component.residual]: component.codes[0],
       }))).rejects.toThrow(/CHECK constraint failed/i);
 
       await expect(seedSandboxRun(validRun(sequence++, {
-        status: 'cleaning',
-        cleanupPhase: 'deny_intent',
-        [component.state]: 'cleanup_failed',
+        status: SANDBOX_RUN_STATUS.CLEANING,
+        cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
+        [component.state]: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
         [component.residual]: null,
       }))).rejects.toThrow(/CHECK constraint failed/i);
     }
 
     await expect(seedSandboxRun(validRun(sequence++, {
-      status: 'cleaning',
-      cleanupPhase: 'spb_expiry',
-      spbState: 'cleanup_failed',
-      spbResidualCode: 'spb_credential_expiry_pending',
+      status: SANDBOX_RUN_STATUS.CLEANING,
+      cleanupPhase: SANDBOX_CLEANUP_PHASE.SPB_EXPIRY,
+      spbState: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      spbResidualCode: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
     }))).rejects.toThrow(/CHECK constraint failed/i);
   });
 
@@ -333,14 +257,14 @@ describe('migration 0027 sandbox-run lease', () => {
     }))).rejects.toThrow(/CHECK constraint failed/i);
 
     await expect(seedSandboxRun(validRun(701, {
-      status: 'released',
-      cleanupPhase: 'released',
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      cleanupPhase: SANDBOX_CLEANUP_PHASE.RELEASED,
       completedAt: null,
-      ...componentStates('released'),
+      ...componentStates(SANDBOX_COMPONENT_STATE.RELEASED),
     }))).rejects.toThrow(/CHECK constraint failed/i);
 
     await expect(seedSandboxRun(validRun(702, {
-      status: 'active',
+      status: SANDBOX_RUN_STATUS.ACTIVE,
       cleanupPhase: null,
       completedAt: CREATED_AT,
     }))).rejects.toThrow(/CHECK constraint failed/i);
@@ -360,20 +284,20 @@ describe('migration 0027 sandbox-run lease', () => {
     await expect(indexShape('sandbox_runs', 'idx_sandbox_runs_one_nonterminal_account'))
       .resolves.toEqual({ unique: 1, partial: 1, columns: ['account_id'] });
     const partialSql = await indexSql('idx_sandbox_runs_one_nonterminal_account');
-    for (const status of STATUSES.filter((status) => status !== 'released')) {
+    for (const status of STATUSES.filter((status) => status !== SANDBOX_RUN_STATUS.RELEASED)) {
       expect(partialSql).toContain(`'${status}'`);
     }
-    expect(partialSql).not.toContain("'released'");
+    expect(partialSql).not.toContain(`'${SANDBOX_RUN_STATUS.RELEASED}'`);
 
     await seedSandboxRun(releasedRun(800, { accountId: ACCOUNT_A }));
     await seedSandboxRun(releasedRun(801, { accountId: ACCOUNT_A }));
     await seedSandboxRun(validRun(802, { accountId: ACCOUNT_A }));
     await expect(seedSandboxRun(validRun(803, {
       accountId: ACCOUNT_A,
-      status: 'cleanup_failed',
-      cleanupPhase: 'deny_intent',
-      dispatchState: 'cleanup_failed',
-      dispatchResidualCode: 'dispatch_release_failed',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+      cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
+      dispatchState: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      dispatchResidualCode: SANDBOX_RESIDUAL_CODE.DISPATCH_RELEASE_FAILED,
     }))).rejects.toThrow(
       /UNIQUE constraint failed: sandbox_runs\.account_id: SQLITE_CONSTRAINT/
     );
@@ -408,10 +332,10 @@ describe('migration 0027 sandbox-run lease', () => {
     await seedSandboxRun(validRun(900, { accountId: ACCOUNT_A }));
     await seedSandboxRun(validRun(901, {
       accountId: ACCOUNT_A,
-      status: 'cleanup_failed',
-      cleanupPhase: 'deny_intent',
-      dispatchState: 'cleanup_failed',
-      dispatchResidualCode: 'dispatch_release_failed',
+      status: SANDBOX_RUN_STATUS.CLEANUP_FAILED,
+      cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
+      dispatchState: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      dispatchResidualCode: SANDBOX_RESIDUAL_CODE.DISPATCH_RELEASE_FAILED,
     }));
 
     await expect(runStatements(migrationStatements().slice(3))).rejects.toThrow(
@@ -428,18 +352,18 @@ describe('migration 0027 sandbox-run lease', () => {
     await workerEnv.DB
       .prepare(
         `UPDATE sandbox_runs
-         SET status = 'released',
-             cleanup_phase = 'released',
+         SET status = '${SANDBOX_RUN_STATUS.RELEASED}',
+             cleanup_phase = '${SANDBOX_CLEANUP_PHASE.RELEASED}',
              completed_at = ?,
-             dispatch_state = 'released',
+             dispatch_state = '${SANDBOX_COMPONENT_STATE.RELEASED}',
              dispatch_residual_code = NULL,
-             spp_state = 'released',
+             spp_state = '${SANDBOX_COMPONENT_STATE.RELEASED}',
              spp_residual_code = NULL,
-             spb_state = 'released',
+             spb_state = '${SANDBOX_COMPONENT_STATE.RELEASED}',
              spb_residual_code = NULL,
-             spl_relay_state = 'released',
+             spl_relay_state = '${SANDBOX_COMPONENT_STATE.RELEASED}',
              spl_relay_residual_code = NULL,
-             spl_binding_state = 'released',
+             spl_binding_state = '${SANDBOX_COMPONENT_STATE.RELEASED}',
              spl_binding_residual_code = NULL
          WHERE run_id = ?`
       )
@@ -601,46 +525,46 @@ function expectedLegacyOwnershipRows() {
 }
 
 function runForStatus(sequence, status) {
-  if (status === 'provisioning') {
+  if (status === SANDBOX_RUN_STATUS.PROVISIONING) {
     return validRun(sequence, {
       status,
-      provisioningPhase: 'created',
-      ...componentStates('deny_pending'),
+      provisioningPhase: SANDBOX_PROVISIONING_PHASE.CREATED,
+      ...componentStates(SANDBOX_COMPONENT_STATE.DENY_PENDING),
     });
   }
-  if (status === 'active') return validRun(sequence);
-  if (status === 'released') return releasedRun(sequence);
-  if (status === 'expiry_pending') {
+  if (status === SANDBOX_RUN_STATUS.ACTIVE) return validRun(sequence);
+  if (status === SANDBOX_RUN_STATUS.RELEASED) return releasedRun(sequence);
+  if (status === SANDBOX_RUN_STATUS.EXPIRY_PENDING) {
     return validRun(sequence, {
       status,
-      cleanupPhase: 'spb_expiry',
-      ...componentStates('released'),
-      spbState: 'purge_pending',
-      spbResidualCode: 'spb_credential_expiry_pending',
+      cleanupPhase: SANDBOX_CLEANUP_PHASE.SPB_EXPIRY,
+      ...componentStates(SANDBOX_COMPONENT_STATE.RELEASED),
+      spbState: SANDBOX_COMPONENT_STATE.PURGE_PENDING,
+      spbResidualCode: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
     });
   }
-  if (status === 'cleanup_failed') {
+  if (status === SANDBOX_RUN_STATUS.CLEANUP_FAILED) {
     return validRun(sequence, {
       status,
-      cleanupPhase: 'deny_intent',
-      ...componentStates('deny_pending'),
-      dispatchState: 'cleanup_failed',
-      dispatchResidualCode: 'dispatch_release_failed',
+      cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
+      ...componentStates(SANDBOX_COMPONENT_STATE.DENY_PENDING),
+      dispatchState: SANDBOX_COMPONENT_STATE.CLEANUP_FAILED,
+      dispatchResidualCode: SANDBOX_RESIDUAL_CODE.DISPATCH_RELEASE_FAILED,
     });
   }
   return validRun(sequence, {
     status,
-    cleanupPhase: 'deny_intent',
-    ...componentStates('deny_pending'),
+    cleanupPhase: SANDBOX_CLEANUP_PHASE.DENY_INTENT,
+    ...componentStates(SANDBOX_COMPONENT_STATE.DENY_PENDING),
   });
 }
 
 function releasedRun(sequence, overrides = {}) {
   return validRun(sequence, {
-    status: 'released',
-    cleanupPhase: 'released',
+    status: SANDBOX_RUN_STATUS.RELEASED,
+    cleanupPhase: SANDBOX_CLEANUP_PHASE.RELEASED,
     completedAt: CREATED_AT + sequence,
-    ...componentStates('released'),
+    ...componentStates(SANDBOX_COMPONENT_STATE.RELEASED),
     ...overrides,
   });
 }
@@ -651,10 +575,10 @@ function validRun(sequence, overrides = {}) {
     runId: idFor('a', sequence),
     accountId: idFor('b', sequence),
     instanceId: idFor('c', sequence),
-    contractVersion: 1,
-    profile: 'full',
-    status: 'active',
-    provisioningPhase: 'active',
+    contractVersion: SANDBOX_CONTRACT_VERSION,
+    profile: SANDBOX_PROFILE,
+    status: SANDBOX_RUN_STATUS.ACTIVE,
+    provisioningPhase: SANDBOX_PROVISIONING_PHASE.ACTIVE,
     cleanupPhase: null,
     createdAt,
     leaseExpiresAt: createdAt + LEASE_MS,
@@ -662,19 +586,19 @@ function validRun(sequence, overrides = {}) {
     spbRetryNotBefore: null,
     completedAt: null,
     lastResidualCode: null,
-    dispatchState: 'active',
+    dispatchState: SANDBOX_COMPONENT_STATE.ACTIVE,
     dispatchResidualCode: null,
     dispatchUpdatedAt: createdAt,
-    sppState: 'active',
+    sppState: SANDBOX_COMPONENT_STATE.ACTIVE,
     sppResidualCode: null,
     sppUpdatedAt: createdAt,
-    spbState: 'active',
+    spbState: SANDBOX_COMPONENT_STATE.ACTIVE,
     spbResidualCode: null,
     spbUpdatedAt: createdAt,
-    splRelayState: 'active',
+    splRelayState: SANDBOX_COMPONENT_STATE.ACTIVE,
     splRelayResidualCode: null,
     splRelayUpdatedAt: createdAt,
-    splBindingState: 'active',
+    splBindingState: SANDBOX_COMPONENT_STATE.ACTIVE,
     splBindingResidualCode: null,
     splBindingUpdatedAt: createdAt,
     ...overrides,

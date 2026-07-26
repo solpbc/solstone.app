@@ -33,12 +33,13 @@ Inputs:
 
 ## Topology And Safety
 
-`npm test` runs the partition guard, the ordinary Worker project, the passkey
-Worker project, and the Node project in that order with `&&`. It is fail-fast:
-a nonzero phase stops the chain and remains the command's nonzero status. The
-two Worker phases cannot overlap, and each uses `singleWorker: true` with
-`isolatedStorage: true`; the Node phase cannot spawn Miniflare. A Vitest
-workspace is intentionally not used because projects could run concurrently.
+`npm test` runs the sandbox-run contract drift check, the partition guard, the
+ordinary Worker project, the passkey Worker project, and the Node project in
+that order with `&&`. It is fail-fast: a nonzero phase stops the chain and
+remains the command's nonzero status. The two Worker phases cannot overlap,
+and each uses `singleWorker: true` with `isolatedStorage: true`; the Node phase
+cannot spawn Miniflare. A Vitest workspace is intentionally not used because
+projects could run concurrently.
 
 The Worker projects import one `vitest.worker.shared.js` definition for the
 entrypoint, Wrangler config, compatibility settings, auxiliary workers, D1,

@@ -1,6 +1,19 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import {
+  orderedObject,
+  sandboxRunErrorBody,
+  SANDBOX_CLEANUP_PHASE,
+  SANDBOX_COMPONENT_STATE,
+  SANDBOX_ERROR,
+  SANDBOX_LEASE_TTL_MS,
+  SANDBOX_OUTER_ADMIN_ENVELOPE,
+  SANDBOX_PROVISIONING_PHASE,
+  SANDBOX_PROVISIONING_PHASES,
+  SANDBOX_RESIDUAL_CODE,
+  SANDBOX_RUN_STATUS,
+} from '../src/sandbox-run-contract.js';
 import { dbDumpText, installConsoleSpy, resetDb } from './helpers.js';
 import { installJwksStubWith, mintToken } from './jwks-helper.js';
 import {
@@ -16,16 +29,7 @@ import {
   validSandboxInput,
 } from './sandbox-run-test-helpers.js';
 
-const PHASE_BOUNDARIES = [
-  'dispatch_intent',
-  'dispatch_acquired',
-  'spl_intent',
-  'spl_acquired',
-  'spb_intent',
-  'spb_acquired',
-  'spp_intent',
-  'spp_acquired',
-];
+const PHASE_BOUNDARIES = SANDBOX_PROVISIONING_PHASES.slice(1, -1);
 
 describe('sandbox run provisioning faults', () => {
   beforeEach(async () => {
@@ -57,15 +61,13 @@ describe('sandbox run provisioning faults', () => {
       const text = await response.text();
 
       expect(response.status).toBe(503);
-      expect(text).toBe(JSON.stringify({
-        error: 'sandbox run unavailable',
-        code: 'sandbox_run_unavailable',
-        run_id: SANDBOX_RUN_ID,
-      }));
+      expect(text).toBe(JSON.stringify(
+        sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+      ));
       expect(text).not.toContain(STANDING_GEMINI_KEY);
       const row = await runRow();
-      expect(row.status).toBe('released');
-      expect(row.cleanup_phase).toBe('released');
+      expect(row.status).toBe(SANDBOX_RUN_STATUS.RELEASED);
+      expect(row.cleanup_phase).toBe(SANDBOX_CLEANUP_PHASE.RELEASED);
       expect(await dbDumpText()).not.toContain(STANDING_GEMINI_KEY);
       consoleSpy.assertNoSecrets([
         STANDING_GEMINI_KEY,
@@ -98,17 +100,15 @@ describe('sandbox run provisioning faults', () => {
 
     expect(fault.wasInjected()).toBe(true);
     expect(response.status).toBe(503);
-    expect(text).toBe(JSON.stringify({
-      error: 'sandbox run unavailable',
-      code: 'sandbox_run_unavailable',
-      run_id: SANDBOX_RUN_ID,
-    }));
+    expect(text).toBe(JSON.stringify(
+      sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+    ));
     expect(text).not.toContain(STANDING_GEMINI_KEY);
     await assertDiscoverableAndConverges({
       token,
       testEnv: baseline.testEnv,
-      expectedStatus: 'provisioning',
-      expectedPhase: 'dispatch_intent',
+      expectedStatus: SANDBOX_RUN_STATUS.PROVISIONING,
+      expectedPhase: SANDBOX_PROVISIONING_PHASE.DISPATCH_INTENT,
       enableCleanup: fault.enableCleanup,
     });
   });
@@ -133,11 +133,9 @@ describe('sandbox run provisioning faults', () => {
 
     expect(fault.wasInjected()).toBe(true);
     expect(response.status).toBe(503);
-    expect(text).toBe(JSON.stringify({
-      error: 'sandbox run unavailable',
-      code: 'sandbox_run_unavailable',
-      run_id: SANDBOX_RUN_ID,
-    }));
+    expect(text).toBe(JSON.stringify(
+      sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+    ));
     expect(text).not.toContain(STANDING_GEMINI_KEY);
     await expect(workerEnv.DB.prepare(
       'SELECT COUNT(*) AS count FROM spb_bindings WHERE sandbox_run_id = ?'
@@ -145,8 +143,8 @@ describe('sandbox run provisioning faults', () => {
     await assertDiscoverableAndConverges({
       token,
       testEnv: baseline.testEnv,
-      expectedStatus: 'provisioning',
-      expectedPhase: 'spb_intent',
+      expectedStatus: SANDBOX_RUN_STATUS.PROVISIONING,
+      expectedPhase: SANDBOX_PROVISIONING_PHASE.SPB_INTENT,
       enableCleanup: fault.enableCleanup,
     });
 
@@ -169,7 +167,7 @@ describe('sandbox run provisioning faults', () => {
     const token = await mintToken();
     const baseline = await seedSandboxBaseline();
     const fault = provisioningFaultDb(baseline.testEnv.DB, {
-      phaseAdvance: 'spl_acquired',
+      phaseAdvance: SANDBOX_PROVISIONING_PHASE.SPL_ACQUIRED,
     });
     baseline.testEnv.DB = fault.db;
 
@@ -185,17 +183,15 @@ describe('sandbox run provisioning faults', () => {
     expect(fault.wasInjected()).toBe(true);
     expect(baseline.relay.calls.map(({ method }) => method)).toEqual(['POST']);
     expect(response.status).toBe(503);
-    expect(text).toBe(JSON.stringify({
-      error: 'sandbox run unavailable',
-      code: 'sandbox_run_unavailable',
-      run_id: SANDBOX_RUN_ID,
-    }));
+    expect(text).toBe(JSON.stringify(
+      sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+    ));
     expect(text).not.toContain(STANDING_GEMINI_KEY);
     await assertDiscoverableAndConverges({
       token,
       testEnv: baseline.testEnv,
-      expectedStatus: 'provisioning',
-      expectedPhase: 'spl_intent',
+      expectedStatus: SANDBOX_RUN_STATUS.PROVISIONING,
+      expectedPhase: SANDBOX_PROVISIONING_PHASE.SPL_INTENT,
       enableCleanup: fault.enableCleanup,
     });
   });
@@ -226,13 +222,16 @@ describe('sandbox run provisioning faults', () => {
 
     expect(serializationFaults).toBe(1);
     expect(response.status).toBe(404);
-    expect(text).toBe(JSON.stringify({ error: 'account not found' }));
+    expect(text).toBe(JSON.stringify(orderedObject(
+      SANDBOX_OUTER_ADMIN_ENVELOPE.NOT_FOUND.fields,
+      [SANDBOX_OUTER_ADMIN_ENVELOPE.NOT_FOUND.error]
+    )));
     expect(text).not.toContain(STANDING_GEMINI_KEY);
     await assertDiscoverableAndConverges({
       token,
       testEnv: baseline.testEnv,
-      expectedStatus: 'active',
-      expectedPhase: 'active',
+      expectedStatus: SANDBOX_RUN_STATUS.ACTIVE,
+      expectedPhase: SANDBOX_PROVISIONING_PHASE.ACTIVE,
     });
   });
 
@@ -251,16 +250,37 @@ describe('sandbox run provisioning faults', () => {
     );
 
     expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toEqual({
-      error: 'sandbox run unavailable',
-      code: 'sandbox_run_unavailable',
-      run_id: SANDBOX_RUN_ID,
-    });
+    await expect(response.json()).resolves.toEqual(
+      sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+    );
     await expect(runRow()).resolves.toMatchObject({
-      status: 'released',
-      provisioning_phase: 'spp_acquired',
-      cleanup_phase: 'released',
-      last_residual_code: 'activation_cas_lost',
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      provisioning_phase: SANDBOX_PROVISIONING_PHASE.SPP_ACQUIRED,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
+      last_residual_code: SANDBOX_RESIDUAL_CODE.ACTIVATION_CAS_LOST,
+    });
+  });
+
+  it('records the separate activation-expiry residual when the activation CAS loses at expiry', async () => {
+    await installJwksStubWith(async (input) => emptyS3Response(input));
+    const token = await mintToken();
+    const baseline = await seedSandboxBaseline();
+    baseline.testEnv.DB = expiringActivationLosingDb(baseline.testEnv.DB, () => {
+      vi.setSystemTime(SANDBOX_NOW + SANDBOX_LEASE_TTL_MS);
+    });
+
+    const response = await worker.fetch(
+      sandboxRequest('/admin/sandbox-runs', token, {
+        method: 'POST',
+        body: validSandboxInput(),
+      }),
+      baseline.testEnv
+    );
+
+    expect(response.status).toBe(503);
+    await expect(runRow()).resolves.toMatchObject({
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      last_residual_code: SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED_BEFORE_ACTIVATION,
     });
   });
 
@@ -295,11 +315,9 @@ describe('sandbox run provisioning faults', () => {
         .filter(({ event }) => event === 'sandbox_run_create');
 
       expect(response.status).toBe(503);
-      expect(text).toBe(JSON.stringify({
-        error: 'sandbox run unavailable',
-        code: 'sandbox_run_unavailable',
-        run_id: SANDBOX_RUN_ID,
-      }));
+      expect(text).toBe(JSON.stringify(
+        sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+      ));
       expect(text).not.toContain('private D1 failure detail');
       expect(createEvents).toEqual([
         expect.objectContaining({ outcome: 'run_insert_failed', components_completed: 0 }),
@@ -337,11 +355,41 @@ function activationLosingDb(baseDb) {
       if (/UPDATE sandbox_runs\s+SET status = 'active'/i.test(sql)) {
         return {
           bind() {
-            return { async all() { return { results: [] }; } };
+            return {
+              async all() { return { results: [] }; },
+            };
           },
         };
       }
       return baseDb.prepare(sql);
+    },
+    batch(statements) {
+      return baseDb.batch(statements);
+    },
+  };
+}
+
+function expiringActivationLosingDb(baseDb, onFinalPhase) {
+  return {
+    prepare(sql) {
+      if (/UPDATE sandbox_runs\s+SET status = 'active'/i.test(sql)) {
+        return { bind() { return { async all() { return { results: [] }; } }; } };
+      }
+      const statement = baseDb.prepare(sql);
+      if (!/UPDATE sandbox_runs\s+SET provisioning_phase = \?/i.test(sql)) return statement;
+      return {
+        bind(...values) {
+          const bound = statement.bind(...values);
+          if (values[0] !== SANDBOX_PROVISIONING_PHASE.SPP_ACQUIRED) return bound;
+          return {
+            async all() {
+              const result = await bound.all();
+              onFinalPhase();
+              return result;
+            },
+          };
+        },
+      };
     },
     batch(statements) {
       return baseDb.batch(statements);
@@ -423,15 +471,17 @@ async function assertDiscoverableAndConverges({
   expect(deleteResponse.status).toBe(200);
   expect(deleteBody).toMatchObject({
     run_id: SANDBOX_RUN_ID,
-    status: 'released',
+    status: SANDBOX_RUN_STATUS.RELEASED,
     provisioning_phase: expectedPhase,
-    cleanup_phase: 'released',
+    cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
   });
-  expect(deleteBody.components.every(({ state }) => state === 'released')).toBe(true);
+  expect(deleteBody.components.every(
+    ({ state }) => state === SANDBOX_COMPONENT_STATE.RELEASED
+  )).toBe(true);
   await expect(runRow()).resolves.toMatchObject({
-    status: 'released',
+    status: SANDBOX_RUN_STATUS.RELEASED,
     provisioning_phase: expectedPhase,
-    cleanup_phase: 'released',
+    cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
   });
 }
 

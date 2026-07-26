@@ -296,11 +296,16 @@ async function readForm(req) {
 async function routeRequest(req, env, ctx) {
     const url = new URL(req.url);
     const parts = url.pathname.split('/');
-    const db = env.DB;
 
     try {
       const legacy = legacyRedirect(req, url);
       if (legacy) return legacy;
+
+      if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {
+        return handleAdmin(req, env, url, ctx);
+      }
+
+      const db = env.DB;
 
       if (url.pathname === '/portal.css' && req.method === 'GET') {
         return new Response(PORTAL_CSS, {
@@ -943,10 +948,6 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handleStripeWebhook(req, env, ctx);
-      }
-
-      if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {
-        return handleAdmin(req, env, url, ctx);
       }
 
       return html(renderNotFound(), { status: 404 });

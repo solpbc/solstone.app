@@ -2,6 +2,10 @@ import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import {
+  sandboxRunErrorBody,
+  SANDBOX_ERROR,
+} from '../src/sandbox-run-contract.js';
+import {
   dbDumpText,
   installConsoleSpy,
   makeTestEnv,
@@ -61,10 +65,9 @@ describe('sandbox run POST', () => {
       );
       expect(response.status).toBe(400);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
-      await expect(response.json()).resolves.toEqual({
-        error: 'invalid sandbox run request',
-        code: 'invalid_sandbox_run_request',
-      });
+      await expect(response.json()).resolves.toEqual(
+        sandboxRunErrorBody(SANDBOX_ERROR.INVALID_REQUEST)
+      );
     }
 
     await expect(rowCount('sandbox_runs')).resolves.toBe(0);
@@ -107,12 +110,70 @@ describe('sandbox run POST', () => {
     );
 
     expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toEqual({
-      error: 'sandbox run unavailable',
-      code: 'sandbox_run_unavailable',
-      run_id: SANDBOX_RUN_ID,
-    });
+    await expect(response.json()).resolves.toEqual(
+      sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+    );
     await expect(rowCount('sandbox_runs')).resolves.toBe(0);
+  });
+
+  it.each([
+    ['missing bucket', (testEnv) => { delete testEnv.R2_BUCKET; }],
+    ['non-string bucket', (testEnv) => { testEnv.R2_BUCKET = 7; }],
+    ['blank bucket', (testEnv) => { testEnv.R2_BUCKET = ' '; }],
+    ['untrimmed bucket', (testEnv) => { testEnv.R2_BUCKET = ' bucket '; }],
+    ['missing endpoint', (testEnv) => { delete testEnv.SPP_ENGINE_ENDPOINT; }],
+    ['non-string endpoint', (testEnv) => { testEnv.SPP_ENGINE_ENDPOINT = 7; }],
+    ['relative endpoint', (testEnv) => { testEnv.SPP_ENGINE_ENDPOINT = '/engine'; }],
+    ['non-https endpoint', (testEnv) => { testEnv.SPP_ENGINE_ENDPOINT = 'http://engine.invalid'; }],
+    ['credentialed endpoint', (testEnv) => {
+      testEnv.SPP_ENGINE_ENDPOINT = 'https://operator:secret@engine.invalid';
+    }],
+    ['missing model', (testEnv) => { delete testEnv.SPP_ENGINE_MODEL; }],
+    ['non-string model', (testEnv) => { testEnv.SPP_ENGINE_MODEL = 7; }],
+    ['blank model', (testEnv) => { testEnv.SPP_ENGINE_MODEL = ' '; }],
+    ['untrimmed model', (testEnv) => { testEnv.SPP_ENGINE_MODEL = ' model '; }],
+  ])('rejects unavailable response configuration before every create side effect: %s', async (_name, poison) => {
+    const token = await mintToken();
+    const baseline = await seedSandboxBaseline();
+    poison(baseline.testEnv);
+    const before = await dbDumpText();
+    const consoleSpy = installConsoleSpy();
+    try {
+      const response = await worker.fetch(
+        sandboxRequest('/admin/sandbox-runs', token, {
+          method: 'POST',
+          body: validSandboxInput(),
+        }),
+        baseline.testEnv
+      );
+
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toEqual(
+        sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+      );
+      await expect(dbDumpText()).resolves.toBe(before);
+      expect(baseline.relay.calls).toEqual([]);
+      const createEvents = consoleSpy.calls
+        .flatMap(({ args }) => args)
+        .filter((value) => typeof value === 'string' && value.includes('sandbox_run_create'))
+        .map((value) => JSON.parse(value));
+      expect(createEvents).toHaveLength(1);
+      expect(createEvents[0]).toMatchObject({
+        event: 'sandbox_run_create',
+        outcome: 'config_unavailable',
+        components_completed: 0,
+      });
+      consoleSpy.assertNoSecrets([
+        baseline.testEnv.R2_BUCKET,
+        baseline.testEnv.SPP_ENGINE_ENDPOINT,
+        baseline.testEnv.SPP_ENGINE_MODEL,
+        SANDBOX_RUN_ID,
+        SANDBOX_INSTANCE_ID,
+        baseline.account.accountId,
+      ].filter((value) => typeof value === 'string'));
+    } finally {
+      consoleSpy.restore();
+    }
   });
 
   it.each(['', 'not-valid-ciphertext'])('fails closed for unusable standing key material', async (stored) => {
@@ -150,11 +211,9 @@ describe('sandbox run POST', () => {
     const secondText = await second.text();
 
     expect(second.status).toBe(409);
-    expect(secondText).toBe(JSON.stringify({
-      error: 'sandbox run conflict',
-      code: 'sandbox_run_conflict',
-      run_id: SANDBOX_RUN_ID,
-    }));
+    expect(secondText).toBe(JSON.stringify(
+      sandboxRunErrorBody(SANDBOX_ERROR.CONFLICT, SANDBOX_RUN_ID)
+    ));
     expect(secondText).not.toContain(STANDING_GEMINI_KEY);
     await expect(rowCount('sandbox_runs')).resolves.toBe(1);
   });
@@ -184,6 +243,12 @@ describe('sandbox run POST', () => {
       expect(dump).not.toContain(body.capabilities.spp.credential);
       expect(await rowCount('service_handoffs')).toBe(0);
       expect(await rowCount('sessions')).toBe(0);
+      const createEvents = consoleSpy.calls
+        .flatMap(({ args }) => args)
+        .filter((value) => typeof value === 'string' && value.includes('sandbox_run_create'))
+        .map((value) => JSON.parse(value));
+      expect(createEvents).toHaveLength(1);
+      expect(createEvents[0].outcome).toBe('created');
       consoleSpy.assertNoSecrets([
         STANDING_GEMINI_KEY,
         body.capabilities.scout.dispatch_token,

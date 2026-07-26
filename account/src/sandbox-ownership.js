@@ -9,12 +9,13 @@ import {
   releaseSppBindingOwnership,
 } from './db.js';
 import { requireCanonicalUuids } from './sandbox-identifiers.js';
+import { SANDBOX_PROVISIONING_PHASE } from './sandbox-run-contract.js';
 
 export async function mintSandboxDispatchToken(env, {
   sandboxRunId,
   accountId,
   instanceId,
-  expectedPhase = 'dispatch_intent',
+  expectedPhase = SANDBOX_PROVISIONING_PHASE.DISPATCH_INTENT,
   nowMs = Date.now(),
 }) {
   requireCanonicalUuids(sandboxRunId, accountId, instanceId);
@@ -31,7 +32,7 @@ export async function claimSandboxSplBinding(env, {
   sandboxRunId,
   accountId,
   instanceId,
-  expectedPhase = 'spl_intent',
+  expectedPhase = SANDBOX_PROVISIONING_PHASE.SPL_INTENT,
   nowMs = Date.now(),
 }) {
   requireCanonicalUuids(sandboxRunId, accountId, instanceId);
@@ -51,7 +52,7 @@ export async function claimSandboxSppBinding(env, {
   sandboxRunId,
   accountId,
   instanceId,
-  expectedPhase = 'spp_intent',
+  expectedPhase = SANDBOX_PROVISIONING_PHASE.SPP_INTENT,
   nowMs = Date.now(),
 }) {
   requireCanonicalUuids(sandboxRunId, accountId, instanceId);

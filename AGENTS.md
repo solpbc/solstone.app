@@ -57,12 +57,12 @@ shipped migration. When you tighten a column/constraint, ship the migration
 
 **Tests:** vitest runs three explicit configs in sequence by `npm test`:
 `vitest.worker.config.js`, `vitest.passkey.config.js`, and
-`vitest.node.config.js`. The recursive partition guard runs first and requires
-every test file to be named exactly once in `test/partitions.js`. Both Worker
-projects use one isolated Miniflare runtime; do not replace the sequential
-chain with a workspace. The suite includes per-migration tests and
-`brand-canon.test.js` — keep it green and add coverage for new
-routes/migrations.
+`vitest.node.config.js`. The sandbox-run contract drift check runs first, then
+the recursive partition guard requires every test file to be named exactly
+once in `test/partitions.js`. Both Worker projects use one isolated Miniflare
+runtime; do not replace the sequential chain with a workspace. The suite
+includes per-migration tests and `brand-canon.test.js` — keep it green and add
+coverage for new routes/migrations.
 
 ## 3. Build / test / deploy
 

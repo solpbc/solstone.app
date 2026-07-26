@@ -8,6 +8,7 @@ import {
 import { emitSecurityEvent } from './hub.js';
 import { mintSandboxMaintenanceCredential } from './r2-credential.js';
 import { requireCanonicalUuids } from './sandbox-identifiers.js';
+import { SANDBOX_PROVISIONING_PHASE } from './sandbox-run-contract.js';
 import { listMultipartUploads, listObjectsV2 } from './s3.js';
 import { drainMultipartUploads, drainObjects } from './spb-drain.js';
 import { prefixFor } from './spb-broker.js';
@@ -20,7 +21,7 @@ export async function claimSpbSandboxBinding(env, {
   sandboxRunId,
   accountId,
   instanceId,
-  expectedPhase = 'spb_intent',
+  expectedPhase = SANDBOX_PROVISIONING_PHASE.SPB_INTENT,
   nowMs = Date.now(),
 }) {
   requireCanonicalUuids(sandboxRunId, accountId, instanceId);

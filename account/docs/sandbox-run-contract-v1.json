@@ -1,0 +1,739 @@
+{
+  "generated_by": "account/scripts/generate-sandbox-run-contract.mjs",
+  "source": "account/src/sandbox-run-contract.js",
+  "contract_version": 1,
+  "profile": "full",
+  "lease": {
+    "duration_ms": 3600000,
+    "live_when": "status-active-and-now-before-expiry"
+  },
+  "identifier_format": {
+    "type": "string",
+    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    "case_insensitive": true,
+    "normalization": "none"
+  },
+  "vocabularies": {
+    "run_statuses": [
+      "provisioning",
+      "active",
+      "cleanup_required",
+      "cleaning",
+      "expiry_pending",
+      "cleanup_failed",
+      "released"
+    ],
+    "provisioning_phases": [
+      "created",
+      "dispatch_intent",
+      "dispatch_acquired",
+      "spl_intent",
+      "spl_acquired",
+      "spb_intent",
+      "spb_acquired",
+      "spp_intent",
+      "spp_acquired",
+      "active"
+    ],
+    "cleanup_phases": [
+      "deny_intent",
+      "denied",
+      "relay_intent",
+      "relay_retired",
+      "spb_expiry",
+      "spb_purge",
+      "verify",
+      "released"
+    ],
+    "component_states": [
+      "active",
+      "deny_pending",
+      "purge_pending",
+      "verify_pending",
+      "released",
+      "cleanup_failed"
+    ],
+    "component_residual_codes": {
+      "dispatch": [
+        "lease_expired",
+        "account_missing",
+        "dispatch_issue_failed",
+        "dispatch_release_failed",
+        "dispatch_ownership_conflict"
+      ],
+      "spp": [
+        "lease_expired",
+        "account_missing",
+        "spp_issue_failed",
+        "spp_release_failed",
+        "spp_ownership_conflict"
+      ],
+      "spb": [
+        "lease_expired",
+        "account_missing",
+        "spb_issue_failed",
+        "spb_denial_failed",
+        "spb_denial_required",
+        "spb_credential_expiry_pending",
+        "spb_cleanup_retryable",
+        "spb_lifecycle_absent",
+        "spb_ownership_conflict"
+      ],
+      "spl_relay": [
+        "lease_expired",
+        "account_missing",
+        "spl_grant_failed",
+        "relay_retired_state",
+        "relay_instance_do_cleanup",
+        "relay_rk_do_cleanup",
+        "relay_device_revocation",
+        "relay_entitlement_clear",
+        "relay_pending_grant_clear",
+        "relay_rk_registry_clear",
+        "relay_verification",
+        "relay_failed"
+      ],
+      "spl_binding": [
+        "lease_expired",
+        "account_missing",
+        "spl_issue_failed",
+        "spl_release_failed",
+        "spl_ownership_conflict"
+      ]
+    },
+    "last_residual_codes": [
+      "lease_expired",
+      "account_missing",
+      "dispatch_issue_failed",
+      "dispatch_release_failed",
+      "dispatch_ownership_conflict",
+      "spp_issue_failed",
+      "spp_release_failed",
+      "spp_ownership_conflict",
+      "spb_issue_failed",
+      "spb_denial_failed",
+      "spb_denial_required",
+      "spb_credential_expiry_pending",
+      "spb_cleanup_retryable",
+      "spb_lifecycle_absent",
+      "spb_ownership_conflict",
+      "spl_grant_failed",
+      "relay_retired_state",
+      "relay_instance_do_cleanup",
+      "relay_rk_do_cleanup",
+      "relay_device_revocation",
+      "relay_entitlement_clear",
+      "relay_pending_grant_clear",
+      "relay_rk_registry_clear",
+      "relay_verification",
+      "relay_failed",
+      "spl_issue_failed",
+      "spl_release_failed",
+      "spl_ownership_conflict",
+      "lease_expired_before_activation",
+      "activation_cas_lost"
+    ]
+  },
+  "components": [
+    {
+      "name": "dispatch",
+      "report_fields": [
+        {
+          "name": "component",
+          "type": "component-name",
+          "required": true
+        },
+        {
+          "name": "state",
+          "type": "component-state",
+          "required": true
+        },
+        {
+          "name": "residual_code",
+          "type": "component-residual",
+          "required": true,
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "integer-epoch-milliseconds",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "spp",
+      "report_fields": [
+        {
+          "name": "component",
+          "type": "component-name",
+          "required": true
+        },
+        {
+          "name": "state",
+          "type": "component-state",
+          "required": true
+        },
+        {
+          "name": "residual_code",
+          "type": "component-residual",
+          "required": true,
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "integer-epoch-milliseconds",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "spb",
+      "report_fields": [
+        {
+          "name": "component",
+          "type": "component-name",
+          "required": true
+        },
+        {
+          "name": "state",
+          "type": "component-state",
+          "required": true
+        },
+        {
+          "name": "residual_code",
+          "type": "component-residual",
+          "required": true,
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "integer-epoch-milliseconds",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "spl_relay",
+      "report_fields": [
+        {
+          "name": "component",
+          "type": "component-name",
+          "required": true
+        },
+        {
+          "name": "state",
+          "type": "component-state",
+          "required": true
+        },
+        {
+          "name": "residual_code",
+          "type": "component-residual",
+          "required": true,
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "integer-epoch-milliseconds",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "spl_binding",
+      "report_fields": [
+        {
+          "name": "component",
+          "type": "component-name",
+          "required": true
+        },
+        {
+          "name": "state",
+          "type": "component-state",
+          "required": true
+        },
+        {
+          "name": "residual_code",
+          "type": "component-residual",
+          "required": true,
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "integer-epoch-milliseconds",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "requests": {
+    "create": {
+      "fields": [
+        {
+          "name": "contract_version",
+          "type": "integer",
+          "required": true,
+          "fixed": 1
+        },
+        {
+          "name": "instance_id",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "required": true,
+          "fixed": "full"
+        },
+        {
+          "name": "run_id",
+          "type": "uuid",
+          "required": true
+        }
+      ]
+    }
+  },
+  "responses": {
+    "create": {
+      "status": 201,
+      "fields": [
+        {
+          "name": "run_id",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "contract_version",
+          "type": "integer",
+          "required": true,
+          "fixed": 1
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "required": true,
+          "fixed": "full"
+        },
+        {
+          "name": "lease_expires_at",
+          "type": "integer-epoch-milliseconds",
+          "required": true
+        },
+        {
+          "name": "capabilities",
+          "type": "capability-object",
+          "required": true
+        }
+      ],
+      "capabilities": {
+        "scout": {
+          "fields": [
+            {
+              "name": "google_api_key",
+              "type": "string",
+              "required": true,
+              "sensitive": true
+            },
+            {
+              "name": "dispatch_token",
+              "type": "string",
+              "required": true,
+              "sensitive": true
+            },
+            {
+              "name": "account_id",
+              "type": "uuid",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "created_at",
+              "type": "rfc3339-milliseconds",
+              "required": true,
+              "sensitive": false
+            }
+          ]
+        },
+        "spl": {
+          "fields": [
+            {
+              "name": "service",
+              "type": "string",
+              "required": true,
+              "sensitive": false,
+              "fixed": "spl"
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "required": true,
+              "sensitive": false,
+              "fixed": "approved"
+            },
+            {
+              "name": "approved_at",
+              "type": "rfc3339-milliseconds",
+              "required": true,
+              "sensitive": false
+            }
+          ]
+        },
+        "spb": {
+          "fields": [
+            {
+              "name": "broker_endpoint",
+              "type": "absolute-https-url",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "account_id",
+              "type": "uuid",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "instance_id",
+              "type": "uuid",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "bucket",
+              "type": "string",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "prefix",
+              "type": "string",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "broker_token",
+              "type": "string",
+              "required": true,
+              "sensitive": true
+            }
+          ]
+        },
+        "spp": {
+          "fields": [
+            {
+              "name": "endpoint_url",
+              "type": "absolute-https-url",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "served_model_id",
+              "type": "string",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "credential",
+              "type": "string",
+              "required": true,
+              "sensitive": true
+            },
+            {
+              "name": "account_id",
+              "type": "uuid",
+              "required": true,
+              "sensitive": false
+            },
+            {
+              "name": "created_at",
+              "type": "rfc3339-milliseconds",
+              "required": true,
+              "sensitive": false
+            }
+          ]
+        }
+      }
+    },
+    "report": {
+      "statuses": [
+        200,
+        202
+      ],
+      "fields": [
+        {
+          "name": "run_id",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "contract_version",
+          "type": "integer",
+          "required": true,
+          "fixed": 1
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "required": true,
+          "fixed": "full"
+        },
+        {
+          "name": "status",
+          "type": "run-status",
+          "required": true
+        },
+        {
+          "name": "provisioning_phase",
+          "type": "provisioning-phase",
+          "required": true
+        },
+        {
+          "name": "cleanup_phase",
+          "type": "cleanup-phase",
+          "required": true,
+          "nullable": true
+        },
+        {
+          "name": "lease_expires_at",
+          "type": "integer-epoch-milliseconds",
+          "required": true
+        },
+        {
+          "name": "lease_live",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "name": "retry_after_seconds",
+          "type": "integer-seconds",
+          "required": true,
+          "nullable": true,
+          "maximum": null
+        },
+        {
+          "name": "components",
+          "type": "ordered-component-array",
+          "required": true
+        }
+      ]
+    }
+  },
+  "errors": {
+    "sandbox": {
+      "invalid_request": {
+        "status": 400,
+        "body": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "fixed": "invalid sandbox run request"
+          },
+          {
+            "name": "code",
+            "type": "string",
+            "required": true,
+            "fixed": "invalid_sandbox_run_request"
+          }
+        ]
+      },
+      "conflict": {
+        "status": 409,
+        "body": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox run conflict"
+          },
+          {
+            "name": "code",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox_run_conflict"
+          },
+          {
+            "name": "run_id",
+            "type": "uuid",
+            "required": true
+          }
+        ]
+      },
+      "unavailable": {
+        "status": 503,
+        "body": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox run unavailable"
+          },
+          {
+            "name": "code",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox_run_unavailable"
+          },
+          {
+            "name": "run_id",
+            "type": "uuid",
+            "required": true
+          }
+        ]
+      },
+      "cleanup_conflict": {
+        "status": 409,
+        "body": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox run cleanup conflict"
+          },
+          {
+            "name": "code",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox_run_cleanup_conflict"
+          },
+          {
+            "name": "run_id",
+            "type": "uuid",
+            "required": true
+          }
+        ]
+      },
+      "cleanup_unavailable": {
+        "status": 503,
+        "body": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox run cleanup unavailable"
+          },
+          {
+            "name": "code",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox_run_cleanup_unavailable"
+          },
+          {
+            "name": "run_id",
+            "type": "uuid",
+            "required": true
+          }
+        ]
+      },
+      "not_found": {
+        "status": 404,
+        "body": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox run not found"
+          },
+          {
+            "name": "code",
+            "type": "string",
+            "required": true,
+            "fixed": "sandbox_run_not_found"
+          },
+          {
+            "name": "run_id",
+            "type": "uuid",
+            "required": true
+          }
+        ]
+      }
+    },
+    "outer_admin": {
+      "access_required": {
+        "status": 403,
+        "body": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "fixed": "cloudflare access required"
+          }
+        ]
+      },
+      "not_found": {
+        "status": 404,
+        "body": [
+          {
+            "name": "error",
+            "type": "string",
+            "required": true,
+            "fixed": "account not found"
+          }
+        ]
+      }
+    }
+  },
+  "headers": {
+    "success_and_sandbox_errors": [
+      {
+        "name": "Strict-Transport-Security",
+        "value": "max-age=31536000; includeSubDomains"
+      },
+      {
+        "name": "X-Frame-Options",
+        "value": "DENY"
+      },
+      {
+        "name": "X-Content-Type-Options",
+        "value": "nosniff"
+      },
+      {
+        "name": "Referrer-Policy",
+        "value": "strict-origin-when-cross-origin"
+      },
+      {
+        "name": "Permissions-Policy",
+        "value": "camera=(), microphone=(), geolocation=()"
+      },
+      {
+        "name": "Content-Security-Policy",
+        "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none'"
+      },
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      },
+      {
+        "name": "Cache-Control",
+        "value": "no-store"
+      }
+    ],
+    "delete_accepted_addition": {
+      "name": "Retry-After",
+      "type": "decimal-integer-seconds"
+    }
+  },
+  "routes": {
+    "contract": {
+      "method": "GET",
+      "path": "/admin/sandbox-runs/contract",
+      "query": "forbidden",
+      "status": 200
+    },
+    "collection": {
+      "method": "POST",
+      "path": "/admin/sandbox-runs"
+    },
+    "member": {
+      "methods": [
+        "GET",
+        "DELETE"
+      ],
+      "path": "/admin/sandbox-runs/{run_id}"
+    },
+    "head": {
+      "behavior": "global-get-mirror-with-empty-body"
+    }
+  }
+}
