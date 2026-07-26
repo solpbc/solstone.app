@@ -33,7 +33,7 @@ describe('spp binding database helpers', () => {
       created_at: 1_000,
       last_seen_at: 1_000,
     });
-    await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-1')).resolves.toEqual({
+    await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-1', 1_000)).resolves.toEqual({
       account_id: account.accountId,
       instance_id: INSTANCE_ID,
     });
@@ -63,8 +63,8 @@ describe('spp binding database helpers', () => {
       consent_acked_at: 2_000,
       consent_disclosure_version: 'spp-consent-v2',
     });
-    await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-1')).resolves.toBeNull();
-    await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-2')).resolves.toEqual({
+    await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-1', 2_000)).resolves.toBeNull();
+    await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-2', 2_000)).resolves.toEqual({
       account_id: account.accountId,
       instance_id: INSTANCE_ID,
     });

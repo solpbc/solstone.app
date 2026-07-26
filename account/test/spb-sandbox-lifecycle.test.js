@@ -21,6 +21,7 @@ import {
   makeTestEnv,
   resetDb,
   seedAccount,
+  seedSandboxRun,
 } from './helpers.js';
 
 const RUN_A = 'aaaaaaaa-1111-1111-1111-111111111111';
@@ -49,6 +50,12 @@ describe('SPB sandbox lifecycle', () => {
       nowMs: 1_000,
     });
     const firstHash = await hashWithPepper(first.credential, testEnv);
+    await seedSandboxRun({
+      runId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      createdAt: 0,
+    });
 
     expect(first).toMatchObject({ outcome: 'claimed', credential: expect.any(String) });
     await expect(advanceSpbSandboxCredentialExpiry(testEnv.DB, {
@@ -57,6 +64,7 @@ describe('SPB sandbox lifecycle', () => {
       accountId: account.accountId,
       instanceId: INSTANCE_A,
       sandboxRunId: RUN_A,
+      nowMs: 1_000,
     })).resolves.toMatchObject({ sandbox_credential_expires_at: 91_000 });
 
     const second = await claimSpbSandboxBinding(testEnv, {
@@ -198,12 +206,19 @@ describe('SPB sandbox lifecycle', () => {
       nowMs: 1_100,
     });
     const tokenHash = await hashWithPepper(claimed.credential, testEnv);
+    await seedSandboxRun({
+      runId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      createdAt: 0,
+    });
     await advanceSpbSandboxCredentialExpiry(testEnv.DB, {
       proposedExpiryMs: 91_000,
       tokenHash,
       accountId: account.accountId,
       instanceId: INSTANCE_A,
       sandboxRunId: RUN_A,
+      nowMs: 2_000,
     });
     const before = await bindingRow(INSTANCE_A);
     const controlBefore = await bindingRow(INSTANCE_B);
@@ -235,7 +250,7 @@ describe('SPB sandbox lifecycle', () => {
     expect(after.created_at).toBe(before.created_at);
     expect(after.sandbox_credential_expires_at).toBe(before.sandbox_credential_expires_at);
     await expect(bindingRow(INSTANCE_B)).resolves.toEqual(controlBefore);
-    await expect(findSpbBindingByTokenHash(testEnv.DB, tokenHash)).resolves.toBeNull();
+    await expect(findSpbBindingByTokenHash(testEnv.DB, tokenHash, 10_000)).resolves.toBeNull();
     await expect(auditRows()).resolves.toEqual([{
       event: 'denial',
       outcome: 'released',
@@ -418,6 +433,7 @@ describe('SPB sandbox lifecycle', () => {
       accountId: account.accountId,
       instanceId: INSTANCE_B,
       sandboxRunId: RUN_A,
+      nowMs: 6_000,
     })).resolves.toBeNull();
     await expect(bindingRow(INSTANCE_B)).resolves.toEqual(tombstone);
   });
@@ -449,7 +465,8 @@ describe('SPB sandbox lifecycle', () => {
     });
     await expect(findSpbBindingByTokenHash(
       testEnv.DB,
-      await hashWithPepper(claimed.credential, testEnv)
+      await hashWithPepper(claimed.credential, testEnv),
+      3_000
     )).resolves.toBeNull();
   });
 

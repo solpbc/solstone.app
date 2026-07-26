@@ -14,12 +14,15 @@ import {
   resetDb,
   seedAccount,
   seedEntitlement,
+  seedSandboxRun,
   seedScoutApplication,
   seedSplBinding,
 } from './helpers.js';
 
 const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
 const OTHER_INSTANCE_ID = '22222222-2222-2222-2222-222222222222';
+const RUN_ID = 'aaaaaaaa-1111-1111-1111-111111111111';
+const NOW_MS = 1_700_000_000_000;
 
 describe('relay grant helpers', () => {
   beforeEach(async () => {
@@ -166,6 +169,88 @@ describe('relay grant helpers', () => {
       { instance_id: INSTANCE_ID, entitled_until: 1_900_000_000 },
       { instance_id: OTHER_INSTANCE_ID, entitled_until: 1_900_000_000 },
     ]);
+    expect(calls.map((call) => call.init.body)).toEqual([
+      JSON.stringify({ instance_id: INSTANCE_ID, entitled_until: 1_900_000_000 }),
+      JSON.stringify({ instance_id: OTHER_INSTANCE_ID, entitled_until: 1_900_000_000 }),
+    ]);
+  });
+
+  it('caps an exact active run-owned grant to the earlier lease second', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const leaseExpiresAt = NOW_MS + 1_800_000;
+    await seedEntitlement({
+      accountId: account.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_900_000_000,
+    });
+    await seedSandboxRun({
+      runId: RUN_ID,
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      createdAt: leaseExpiresAt - 3_600_000,
+      leaseExpiresAt,
+    });
+    await seedSplBinding({
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      sandboxRunId: RUN_ID,
+    });
+    const { calls } = installRelayFetchMock();
+
+    await syncAccountEntitlementToRelay(testEnv, account.accountId);
+
+    const entitledUntil = Math.min(1_900_000_000, Math.floor(leaseExpiresAt / 1000));
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: entitledUntil });
+    expect(calls[0].init.body).toBe(JSON.stringify({
+      instance_id: INSTANCE_ID,
+      entitled_until: entitledUntil,
+    }));
+  });
+
+  it.each([
+    ['missing', null],
+    ['account-mismatched', { accountId: '99999999-9999-9999-9999-999999999999' }],
+    ['instance-mismatched', { instanceId: OTHER_INSTANCE_ID }],
+    ['non-active', { status: 'provisioning', provisioningPhase: 'created' }],
+    ['boundary-expired', { createdAt: NOW_MS - 3_600_000, leaseExpiresAt: NOW_MS }],
+    ['malformed-expiry', { malformedLease: true }],
+  ])('pushes zero for a %s run-owned relay lease', async (_label, run) => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
+    const baseEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv: baseEnv });
+    await seedEntitlement({
+      accountId: account.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_900_000_000,
+    });
+    await seedSplBinding({
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      sandboxRunId: RUN_ID,
+    });
+
+    let testEnv = baseEnv;
+    if (run) {
+      const { malformedLease, ...overrides } = run;
+      await seedSandboxRun({
+        runId: RUN_ID,
+        accountId: account.accountId,
+        instanceId: INSTANCE_ID,
+        createdAt: NOW_MS - 1_000,
+        ...overrides,
+      });
+      if (malformedLease) testEnv = withSplLeaseProjection(baseEnv, 'not-an-integer');
+    }
+    const { calls } = installRelayFetchMock();
+
+    await syncAccountEntitlementToRelay(testEnv, account.accountId);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: 0 });
+    expect(calls[0].init.body).toBe(JSON.stringify({ instance_id: INSTANCE_ID, entitled_until: 0 }));
   });
 
   it('pushes zero for lapsed or missing entitlements with bindings', async () => {
@@ -312,4 +397,30 @@ async function entitlementRow(testEnv, accountId) {
     .prepare('SELECT account_id, service, status, current_period_end, source, source_ref, updated_at FROM entitlements WHERE account_id = ? AND service = ?')
     .bind(accountId, SPL_HOSTED_SERVICE)
     .first();
+}
+
+function withSplLeaseProjection(testEnv, leaseExpiresAt) {
+  return {
+    ...testEnv,
+    DB: {
+      prepare(sql) {
+        const statement = testEnv.DB.prepare(sql);
+        if (!/FROM spl_bindings AS binding/i.test(sql)) return statement;
+        return {
+          bind(...args) {
+            const bound = statement.bind(...args);
+            return {
+              async all() {
+                const result = await bound.all();
+                for (const row of result.results || []) {
+                  row.sandbox_run_lease_expires_at = leaseExpiresAt;
+                }
+                return result;
+              },
+            };
+          },
+        };
+      },
+    },
+  };
 }

@@ -14,8 +14,9 @@ export async function mintDispatchToken(env, accountId, sandboxRunId = null) {
 // Capability narrowness is enforced structurally by dispatch-token call sites.
 export async function resolveDispatchToken(env, plaintext) {
   if (typeof plaintext !== 'string' || !plaintext) return null;
+  const nowMs = Date.now();
   const tokenHash = await hashWithPepper(plaintext, env, 'DISPATCH_TOKEN_PEPPER');
-  const row = await findActiveDispatchToken(env.DB, tokenHash);
+  const row = await findActiveDispatchToken(env.DB, tokenHash, nowMs);
   return row ? { accountId: row.account_id } : null;
 }
 

@@ -12,6 +12,7 @@ import {
   rowCount,
   seedAccount,
   seedEntitlement,
+  seedSandboxRun,
   seedSession,
   seedSpbBinding,
 } from './helpers.js';
@@ -169,6 +170,70 @@ describe('spb credential broker', () => {
     } finally {
       spy.restore();
     }
+  });
+
+  it.each([
+    ['missing', null],
+    ['account-mismatched', { accountMismatch: true }],
+    ['instance-mismatched', { instanceId: '33333333-3333-3333-3333-333333333333' }],
+    ['non-active', { status: 'provisioning', provisioningPhase: 'created' }],
+    ['boundary-expired', { createdAt: NOW - 3_600_000, leaseExpiresAt: NOW }],
+  ])('rejects a %s run-owned binding lease before minting', async (_label, sandboxRun) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { testEnv } = await seedBrokerReady({
+      sandboxRunId: SANDBOX_RUN,
+      sandboxRun,
+    });
+
+    const response = await worker.fetch(
+      credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+      testEnv
+    );
+
+    await expectError(response, 401, 'invalid_token');
+    await expect(spbBindingRow()).resolves.toMatchObject({
+      sandbox_credential_expires_at: null,
+    });
+    await expect(auditRows()).resolves.toEqual([]);
+    await expect(sandboxAuditRows()).resolves.toEqual([]);
+  });
+
+  it('discards the signed credential when the lease is lost before the expiry CAS', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const baseEnv = makeTestEnv();
+    await seedBrokerReady({ testEnv: baseEnv, sandboxRunId: SANDBOX_RUN });
+    const testEnv = interceptAllOnce(
+      baseEnv,
+      /UPDATE spb_bindings\s+SET sandbox_credential_expires_at/i,
+      async (bound) => {
+        await workerEnv.DB
+          .prepare("UPDATE sandbox_runs SET status = 'cleanup_required' WHERE run_id = ?")
+          .bind(SANDBOX_RUN)
+          .run();
+        return bound.all();
+      }
+    );
+
+    const response = await worker.fetch(
+      credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+      testEnv
+    );
+    const bodyText = await response.text();
+
+    expect(response.status).toBe(401);
+    expect(JSON.parse(bodyText)).toEqual({ error: 'invalid_token' });
+    expect(bodyText).not.toContain('access_key_id');
+    expect(bodyText).not.toContain('session_token');
+    await expect(spbBindingRow()).resolves.toMatchObject({
+      sandbox_credential_expires_at: null,
+    });
+    await expect(sandboxAuditRows()).resolves.toEqual([sandboxMintAudit({
+      outcome: 'mint_cas_lost',
+      scope: 'backup',
+      ttl: 90,
+    })]);
   });
 
   it('returns a lower-expiry sandbox credential without decreasing the durable maximum', async () => {
@@ -740,6 +805,7 @@ async function seedBrokerReady({
   entitlement = { status: 'active' },
   lapsedAt = null,
   sandboxRunId = null,
+  sandboxRun = {},
   sandboxCredentialExpiresAt = null,
   sandboxDeniedAt = null,
 } = {}) {
@@ -763,6 +829,21 @@ async function seedBrokerReady({
     sandboxCredentialExpiresAt,
     sandboxDeniedAt,
   });
+  if (sandboxRunId !== null && sandboxRun !== null) {
+    let runAccountId = account.accountId;
+    if (sandboxRun.accountMismatch) {
+      const otherAccount = await seedAccount({ email: 'spb-run-other@example.com', testEnv });
+      runAccountId = otherAccount.accountId;
+    }
+    const { accountMismatch: _accountMismatch, ...runOverrides } = sandboxRun;
+    await seedSandboxRun({
+      runId: sandboxRunId,
+      accountId: runAccountId,
+      instanceId: INSTANCE_ID,
+      createdAt: NOW,
+      ...runOverrides,
+    });
+  }
   return {
     testEnv,
     account,

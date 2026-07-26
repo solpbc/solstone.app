@@ -4,6 +4,7 @@ import {
   listSplBindings,
   upsertEntitlement,
 } from './db.js';
+import { isSandboxRunLeaseLive } from './sandbox-run-lease.js';
 
 export const SPL_HOSTED_SERVICE = 'spl_hosted';
 export const COMP_ENTITLED_THROUGH = 4102444800;
@@ -196,14 +197,33 @@ export async function retireRelayInstance(env, { instanceId }) {
 }
 
 export async function syncAccountEntitlementToRelay(env, accountId) {
-  const nowSeconds = Math.floor(Date.now() / 1000);
+  const nowMs = Date.now();
+  const nowSeconds = Math.floor(nowMs / 1000);
   const entitlement = await getEntitlement(env.DB, { accountId, service: SPL_HOSTED_SERVICE });
   const bindings = await listSplBindings(env.DB, accountId);
   if (!bindings.length) return;
-  const entitledUntil = entitledUntilFor(entitlement, nowSeconds, env);
+  const base = entitledUntilFor(entitlement, nowSeconds, env);
   for (const binding of bindings) {
+    const entitledUntil = cappedEntitledUntilForBinding(binding, accountId, base, nowMs);
     await pushEntitlementGrant(env, { instanceId: binding.instance_id, entitledUntil });
   }
+}
+
+function cappedEntitledUntilForBinding(binding, accountId, base, nowMs) {
+  if (binding.sandbox_run_id === null) return base;
+  const leaseExpiresAt = binding.sandbox_run_lease_expires_at;
+  if (
+    binding.sandbox_run_account_id !== accountId
+    || binding.sandbox_run_instance_id !== binding.instance_id
+    || !Number.isSafeInteger(leaseExpiresAt)
+    || !isSandboxRunLeaseLive({
+      status: binding.sandbox_run_status,
+      lease_expires_at: leaseExpiresAt,
+    }, nowMs)
+  ) {
+    return 0;
+  }
+  return Math.min(base, Math.floor(leaseExpiresAt / 1000));
 }
 
 function hasExactKeys(value, expectedKeys) {

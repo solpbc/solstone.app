@@ -11,6 +11,7 @@ import {
   releaseSandboxSplBinding,
   releaseSandboxSppBinding,
 } from '../src/sandbox-ownership.js';
+import { isSandboxRunLeaseLive } from '../src/sandbox-run-lease.js';
 import {
   installConsoleSpy,
   makeTestEnv,
@@ -18,12 +19,14 @@ import {
   seedAccount,
   seedEntitlement,
   seedScoutApplication,
+  seedSandboxRun,
   seedSplBinding,
   seedSppBinding,
 } from './helpers.js';
 
 const RUN_A = 'aaaaaaaa-1111-1111-1111-111111111111';
 const RUN_B = 'bbbbbbbb-2222-2222-2222-222222222222';
+const RUN_C = 'cccccccc-3333-3333-3333-333333333333';
 const INSTANCE_A = '11111111-1111-1111-1111-111111111111';
 const INSTANCE_B = '22222222-2222-2222-2222-222222222222';
 const INSTANCE_C = '33333333-3333-3333-3333-333333333333';
@@ -116,6 +119,12 @@ describe('sandbox ownership boundary', () => {
       instanceId: INSTANCE_A.toUpperCase(),
       nowMs: 1_000,
     })).resolves.toEqual({ outcome: 'claimed' });
+  });
+
+  it('uses active status and a strict future expiry as the single lease authority', () => {
+    expect(isSandboxRunLeaseLive({ status: 'active', lease_expires_at: 2_001 }, 2_000)).toBe(true);
+    expect(isSandboxRunLeaseLive({ status: 'provisioning', lease_expires_at: 2_001 }, 2_000)).toBe(false);
+    expect(isSandboxRunLeaseLive({ status: 'active', lease_expires_at: 2_000 }, 2_000)).toBe(false);
   });
 });
 
@@ -318,9 +327,21 @@ describe('sandbox dispatch ownership', () => {
         sandboxRunId: RUN_B, accountId: accountA.accountId,
       });
       const otherAccount = await mintSandboxDispatchToken(testEnv, {
-        sandboxRunId: RUN_B, accountId: accountB.accountId,
+        sandboxRunId: RUN_C, accountId: accountB.accountId,
       });
       const baseline = await mintDispatchToken(testEnv, accountA.accountId);
+      await seedSandboxRun({
+        runId: RUN_B,
+        accountId: accountA.accountId,
+        instanceId: INSTANCE_B,
+        createdAt: 0,
+      });
+      await seedSandboxRun({
+        runId: RUN_C,
+        accountId: accountB.accountId,
+        instanceId: INSTANCE_C,
+        createdAt: 0,
+      });
       const before = await dispatchRows();
 
       expect(before.find((row) => row.token_hash === targetA.tokenHash)).toMatchObject({
@@ -359,7 +380,7 @@ describe('sandbox dispatch ownership', () => {
       spy.assertNoSecrets([
         targetA.token, targetA.tokenHash, targetB.token, targetB.tokenHash,
         otherRun.token, otherRun.tokenHash, otherAccount.token, otherAccount.tokenHash,
-        baseline.token, baseline.tokenHash, accountA.accountId, accountB.accountId, RUN_A, RUN_B,
+        baseline.token, baseline.tokenHash, accountA.accountId, accountB.accountId, RUN_A, RUN_B, RUN_C,
       ]);
     } finally {
       spy.restore();
@@ -384,6 +405,7 @@ describe('sandbox dispatch ownership', () => {
   });
 
   it('denies the old Scout status token without changing Scout or key state', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_000);
     const spy = installConsoleSpy();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'dispatch-status@example.com', testEnv });
@@ -398,6 +420,12 @@ describe('sandbox dispatch ownership', () => {
       const minted = await mintSandboxDispatchToken(testEnv, {
         sandboxRunId: RUN_A,
         accountId: account.accountId,
+      });
+      await seedSandboxRun({
+        runId: RUN_A,
+        accountId: account.accountId,
+        instanceId: INSTANCE_A,
+        createdAt: 0,
       });
       const applicationBefore = await accountRow('scout_applications', account.accountId);
       const keyBefore = await accountRow('provisioned_keys', account.accountId);
@@ -436,6 +464,7 @@ describe('sandbox SPP deny', () => {
   });
 
   it('stops authorization immediately without changing entitlement or engine configuration', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(2_000);
     const spy = installConsoleSpy();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'sandbox-spp@example.com', testEnv });
@@ -459,6 +488,12 @@ describe('sandbox SPP deny', () => {
         accountId: account.accountId,
         instanceId: INSTANCE_A,
         nowMs: 1_000,
+      });
+      await seedSandboxRun({
+        runId: RUN_A,
+        accountId: account.accountId,
+        instanceId: INSTANCE_A,
+        createdAt: 0,
       });
       expect(claimed).toMatchObject({ outcome: 'claimed', credential: expect.any(String) });
 

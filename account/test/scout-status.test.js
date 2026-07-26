@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
 import { mintDispatchToken } from '../src/devices.js';
-import { makeTestEnv, resetDb, seedAccount } from './helpers.js';
+import { makeTestEnv, resetDb, seedAccount, seedSandboxRun } from './helpers.js';
+
+const NOW_MS = 1_700_000_000_000;
+const RUN_ID = '22222222-2222-2222-2222-222222222222';
+const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
 
 describe('/account/scout/status', () => {
   beforeEach(async () => {
@@ -175,11 +179,58 @@ describe('/account/scout/status', () => {
     await expect(rowCount(testEnv, 'provisioned_keys')).resolves.toBe(beforeKeys);
     await expect(rowCount(testEnv, 'account_dispatch_tokens')).resolves.toBe(beforeTokens);
   });
+
+  it('returns the same status body for an exact active run-owned token', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
+    const testEnv = makeTestEnv();
+    const { account, token } = await seedStatusAccount(testEnv, RUN_ID);
+    await seedSandboxRun({
+      runId: RUN_ID,
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      createdAt: NOW_MS - 1_000,
+    });
+    await seedScoutApplication(testEnv, {
+      accountId: account.accountId,
+      status: 'pending',
+      appliedAt: 1_111,
+    });
+
+    const response = await worker.fetch(statusRequest({ token }), testEnv);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      account_id: account.accountId,
+      status: 'pending',
+      applied_at: 1_111,
+      approved_at: null,
+      revoked_at: null,
+      active_key: false,
+    });
+  });
+
+  it('rejects a run-owned token at the lease expiry boundary', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
+    const testEnv = makeTestEnv();
+    const { account, token } = await seedStatusAccount(testEnv, RUN_ID);
+    await seedSandboxRun({
+      runId: RUN_ID,
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      createdAt: NOW_MS - 3_600_000,
+      leaseExpiresAt: NOW_MS,
+    });
+
+    const response = await worker.fetch(statusRequest({ token }), testEnv);
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: 'invalid_token' });
+  });
 });
 
-async function seedStatusAccount(testEnv) {
+async function seedStatusAccount(testEnv, sandboxRunId = null) {
   const account = await seedAccount({ testEnv });
-  const minted = await mintDispatchToken(testEnv, account.accountId);
+  const minted = await mintDispatchToken(testEnv, account.accountId, sandboxRunId);
   return { account, token: minted.token };
 }
 

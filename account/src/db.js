@@ -488,10 +488,24 @@ export async function releaseDispatchTokensForSandboxRun(db, {
   };
 }
 
-export async function findActiveDispatchToken(db, tokenHash) {
+export async function findActiveDispatchToken(db, tokenHash, nowMs) {
   const row = await db
-    .prepare('SELECT account_id FROM account_dispatch_tokens WHERE token_hash = ? AND revoked_at IS NULL')
-    .bind(tokenHash)
+    .prepare(
+      `SELECT token.account_id
+       FROM account_dispatch_tokens AS token
+       LEFT JOIN sandbox_runs AS run ON run.run_id = token.sandbox_run_id
+       WHERE token.token_hash = ?
+         AND token.revoked_at IS NULL
+         AND (
+           token.sandbox_run_id IS NULL
+           OR (
+             run.account_id = token.account_id
+             AND run.status = 'active'
+             AND ? < run.lease_expires_at
+           )
+         )`
+    )
+    .bind(tokenHash, nowMs)
     .first();
   return row || null;
 }
@@ -1452,7 +1466,17 @@ export async function releaseSppBindingOwnership(db, {
 
 export async function listSplBindings(db, accountId) {
   const { results } = await db
-    .prepare('SELECT instance_id FROM spl_bindings WHERE account_id = ?')
+    .prepare(
+      `SELECT binding.instance_id,
+              binding.sandbox_run_id,
+              run.account_id AS sandbox_run_account_id,
+              run.instance_id AS sandbox_run_instance_id,
+              run.status AS sandbox_run_status,
+              run.lease_expires_at AS sandbox_run_lease_expires_at
+       FROM spl_bindings AS binding
+       LEFT JOIN sandbox_runs AS run ON run.run_id = binding.sandbox_run_id
+       WHERE binding.account_id = ?`
+    )
     .bind(accountId)
     .all();
   return results || [];
@@ -1515,14 +1539,28 @@ export async function deleteSpbSandboxTombstone(db, {
   return results?.[0] || null;
 }
 
-export async function findSpbBindingByTokenHash(db, tokenHash) {
+export async function findSpbBindingByTokenHash(db, tokenHash, nowMs) {
   const row = await db
     .prepare(
-      `SELECT account_id, instance_id, lapsed_at, sandbox_run_id
-       FROM spb_bindings
-       WHERE token_hash = ? AND token_hash IS NOT NULL`
+      `SELECT binding.account_id,
+              binding.instance_id,
+              binding.lapsed_at,
+              binding.sandbox_run_id
+       FROM spb_bindings AS binding
+       LEFT JOIN sandbox_runs AS run ON run.run_id = binding.sandbox_run_id
+       WHERE binding.token_hash = ?
+         AND binding.token_hash IS NOT NULL
+         AND (
+           binding.sandbox_run_id IS NULL
+           OR (
+             run.account_id = binding.account_id
+             AND run.instance_id = binding.instance_id
+             AND run.status = 'active'
+             AND ? < run.lease_expires_at
+           )
+         )`
     )
-    .bind(tokenHash)
+    .bind(tokenHash, nowMs)
     .first();
   return row || null;
 }
@@ -1533,6 +1571,7 @@ export async function advanceSpbSandboxCredentialExpiry(db, {
   accountId,
   instanceId,
   sandboxRunId,
+  nowMs,
 }) {
   const { results } = await db
     .prepare(
@@ -1545,12 +1584,21 @@ export async function advanceSpbSandboxCredentialExpiry(db, {
          AND sandbox_run_id IS ?
          AND sandbox_denied_at IS NULL
          AND token_hash IS NOT NULL
+         AND EXISTS (
+           SELECT 1
+           FROM sandbox_runs AS run
+           WHERE run.run_id = spb_bindings.sandbox_run_id
+             AND run.account_id = spb_bindings.account_id
+             AND run.instance_id = spb_bindings.instance_id
+             AND run.status = 'active'
+             AND ? < run.lease_expires_at
+         )
        RETURNING account_id,
                  instance_id,
                  sandbox_run_id,
                  sandbox_credential_expires_at`
     )
-    .bind(proposedExpiryMs, tokenHash, accountId, instanceId, sandboxRunId)
+    .bind(proposedExpiryMs, tokenHash, accountId, instanceId, sandboxRunId, nowMs)
     .all();
   return results?.[0] || null;
 }
@@ -1598,14 +1646,25 @@ export async function findSpbSandboxLifecycleByInstance(db, instanceId) {
   return row || null;
 }
 
-export async function findSppBindingByTokenHash(db, tokenHash) {
+export async function findSppBindingByTokenHash(db, tokenHash, nowMs) {
   const row = await db
     .prepare(
-      `SELECT account_id, instance_id
-       FROM spp_bindings
-       WHERE token_hash = ? AND token_hash IS NOT NULL`
+      `SELECT binding.account_id, binding.instance_id
+       FROM spp_bindings AS binding
+       LEFT JOIN sandbox_runs AS run ON run.run_id = binding.sandbox_run_id
+       WHERE binding.token_hash = ?
+         AND binding.token_hash IS NOT NULL
+         AND (
+           binding.sandbox_run_id IS NULL
+           OR (
+             run.account_id = binding.account_id
+             AND run.instance_id = binding.instance_id
+             AND run.status = 'active'
+             AND ? < run.lease_expires_at
+           )
+         )`
     )
-    .bind(tokenHash)
+    .bind(tokenHash, nowMs)
     .first();
   return row || null;
 }

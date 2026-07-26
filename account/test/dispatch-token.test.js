@@ -1,11 +1,19 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { hashWithPepper } from '../src/crypto.js';
 import { mintDispatchToken, resolveDispatchToken } from '../src/devices.js';
-import { makeTestEnv, resetDb, seedAccount } from './helpers.js';
+import { makeTestEnv, resetDb, seedAccount, seedSandboxRun } from './helpers.js';
+
+const NOW_MS = 1_700_000_000_000;
+const RUN_ID = '22222222-2222-2222-2222-222222222222';
+const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
 
 describe('dispatch tokens', () => {
   beforeEach(async () => {
     await resetDb();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('mints and resolves a dispatch token', async () => {
@@ -87,5 +95,50 @@ describe('dispatch tokens', () => {
     const changedEnv = { ...testEnv, DISPATCH_TOKEN_PEPPER: 'different-dispatch-token-pepper' };
 
     await expect(resolveDispatchToken(changedEnv, minted.token)).resolves.toBeNull();
+  });
+
+  it('resolves a run-owned token only while its exact lease is active', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    await seedSandboxRun({
+      runId: RUN_ID,
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      createdAt: NOW_MS - 1_000,
+    });
+    const minted = await mintDispatchToken(testEnv, account.accountId, RUN_ID);
+
+    await expect(resolveDispatchToken(testEnv, minted.token)).resolves.toEqual({ accountId: account.accountId });
+  });
+
+  it.each([
+    ['missing', null],
+    ['account-mismatched', { accountMismatch: true }],
+    ['non-active', { status: 'provisioning', provisioningPhase: 'created' }],
+    ['boundary-expired', { createdAt: NOW_MS - 3_600_000, leaseExpiresAt: NOW_MS }],
+  ])('fails closed for a %s run-owned token lease', async (_label, run) => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const minted = await mintDispatchToken(testEnv, account.accountId, RUN_ID);
+
+    if (run) {
+      let runAccountId = account.accountId;
+      if (run.accountMismatch) {
+        const otherAccount = await seedAccount({ email: 'dispatch-run-other@example.com', testEnv });
+        runAccountId = otherAccount.accountId;
+      }
+      const { accountMismatch: _accountMismatch, ...overrides } = run;
+      await seedSandboxRun({
+        runId: RUN_ID,
+        accountId: runAccountId,
+        instanceId: INSTANCE_ID,
+        createdAt: NOW_MS - 1_000,
+        ...overrides,
+      });
+    }
+
+    await expect(resolveDispatchToken(testEnv, minted.token)).resolves.toBeNull();
   });
 });

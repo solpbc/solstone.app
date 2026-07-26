@@ -7,11 +7,14 @@ import {
   makeTestEnv,
   resetDb,
   seedAccount,
+  seedSandboxRun,
   seedSplBinding,
   signStripeWebhook,
 } from './helpers.js';
 
 const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
+const RUN_ID = 'aaaaaaaa-1111-1111-1111-111111111111';
+const NOW_MS = 1_700_000_000_000;
 
 describe('billing webhook relay sync', () => {
   beforeEach(async () => {
@@ -47,6 +50,52 @@ describe('billing webhook relay sync', () => {
     await expect(response.json()).resolves.toEqual({ ok: true });
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: 1_900_000_000 });
+    expect(calls[0].init.body).toBe(JSON.stringify({
+      instance_id: INSTANCE_ID,
+      entitled_until: 1_900_000_000,
+    }));
+  });
+
+  it('caps a webhook relay grant to an exact active sandbox lease', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const leaseExpiresAt = NOW_MS + 900_000;
+    await seedStripeCustomer(account.accountId, 'cus_sandbox_relay');
+    await seedSandboxRun({
+      runId: RUN_ID,
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      createdAt: leaseExpiresAt - 3_600_000,
+      leaseExpiresAt,
+    });
+    await seedSplBinding({
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      sandboxRunId: RUN_ID,
+    });
+    const { calls } = installRelayFetchMock();
+
+    const response = await postWebhook(testEnv, {
+      type: 'customer.subscription.updated',
+      data: {
+        object: {
+          id: 'sub_sandbox_relay',
+          customer: 'cus_sandbox_relay',
+          status: 'active',
+          current_period_end: 1_900_000_000,
+        },
+      },
+    });
+
+    const entitledUntil = Math.floor(leaseExpiresAt / 1000);
+    expect(response.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: entitledUntil });
+    expect(calls[0].init.body).toBe(JSON.stringify({
+      instance_id: INSTANCE_ID,
+      entitled_until: entitledUntil,
+    }));
   });
 
   it('keeps webhook success when relay grant push fails', async () => {

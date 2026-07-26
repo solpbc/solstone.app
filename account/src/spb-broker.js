@@ -32,7 +32,7 @@ export async function handleBackupCredentials(req, env, ctx) {
     }
 
     const tokenHash = await hashWithPepper(match[1], env);
-    const binding = await findSpbBindingByTokenHash(env.DB, tokenHash);
+    const binding = await findSpbBindingByTokenHash(env.DB, tokenHash, nowMs);
     if (!binding) {
       return refusePreIdentity(env, ctx, 'refused_binding', { error: 'invalid_token' }, 401);
     }
@@ -105,6 +105,7 @@ export async function handleBackupCredentials(req, env, ctx) {
         accountId,
         instanceId,
         sandboxRunId,
+        nowMs,
       });
       if (!advanced) {
         await recordSandboxMint(env, ctx, {
