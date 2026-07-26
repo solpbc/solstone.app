@@ -213,10 +213,10 @@ layer over new functions in `account/src/db.js`.
 - `releaseSandboxDispatchTokens`
 - `releaseSandboxSplBinding`
 - `releaseSandboxSppBinding`
-- Result mapping, D1-only release orchestration, and one private canonical UUID
-  validator.
+- Result mapping and D1-only release orchestration.
 
-Canonical UUID validation now lives in `account/src/sandbox-identifiers.js`; see `account/docs/spb-sandbox-lifecycle-design.md` D8.
+Canonical UUID validation now lives in `account/src/sandbox-identifiers.js`;
+see `account/docs/spb-sandbox-lifecycle-design.md` D8.
 
 Every exported sandbox helper validates `sandboxRunId`, `accountId`, and any
 `instanceId` before its first D1 query or hash/mint operation. It uses the

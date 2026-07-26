@@ -1,6 +1,6 @@
 # SPB Sandbox Lifecycle Design
 
-Gate-approved design, ready for implementation. This design extends
+Implemented, gate-approved design. This design extends
 `account/docs/sandbox-ownership-design.md`; migration 0025's ownership
 rationale, canonical result meanings, and release caveat remain authoritative
 unless this document explicitly amends them.
@@ -236,11 +236,8 @@ The upsert result vocabulary is:
   blocked the write.
 - `exception`: an operational D1 failure, distinct from a zero-row result.
 
-The baseline caller at `account/src/enable.js:598` must inspect the return.
-Today it ignores the result and continues through entitlement reconciliation
-at `:599` to build and store a successful handoff at `:604-629`; after the
-guarded upsert, that would become a false-success response for a losing claim.
-On `null`, the SPB handler returns
+The baseline caller at `account/src/enable.js:598` inspects the return. On
+`null`, the SPB handler returns
 `spbError(500)` immediately after the upsert and before
 `reconcileSpbEntitlement`. This uses the handler's established SPB-specific
 error surface at `account/src/enable.js:989-991`, already used by this handler
@@ -396,8 +393,10 @@ unchanged; no CAS runs and no sandbox expiry column is written.
 
 ### D5: Denial Tombstone And Classification
 
-Decision: denial is one conditional update. It requires canonical,
-non-null account, instance, and run UUIDs at the lifecycle boundary and runs:
+Decision: `denySpbSandboxBinding(env, ctx, options)` requires canonical,
+non-null account, instance, and run UUIDs at the lifecycle boundary and calls
+the D1 helper `denySpbSandboxBindingOwnership`, which runs one conditional
+update:
 
 ```sql
 UPDATE spb_bindings
@@ -447,6 +446,10 @@ Denial uses the existing release vocabulary from
 - `ownership_conflict`: an incumbent exists for another account, ownership
   class, or run.
 
+An unexpected denial failure best-effort records `denial/internal_error`, then
+throws `SpbSandboxDenialError` with an empty message. Raw D1 or audit error text
+does not cross the lifecycle boundary.
+
 While a tombstone exists, denial is irreversible:
 
 - D2's upsert cannot reinstall a token because its incumbent
@@ -466,8 +469,9 @@ reveals that a tombstone exists.
 
 ### D6: Tombstone-Preserving Cleanup State Machine
 
-Decision: cleanup begins with `findSpbSandboxLifecycleByInstance`, validates
-the exact account/run owner, and requires a non-null denial timestamp.
+Decision: `cleanupSpbSandboxBinding(env, ctx, options)` begins with
+`findSpbSandboxLifecycleByInstance`, validates the exact account/run owner, and
+requires a non-null denial timestamp.
 
 Its complete literal result vocabulary is:
 
@@ -511,9 +515,10 @@ One cleanup attempt performs:
 1. fixed-point object drain;
 2. fixed-point multipart-upload drain;
 3. a newly minted maintenance credential;
-4. independent `ListObjectsV2(max-keys=1)` and
-   `ListMultipartUploads` readbacks;
-5. if either readback is non-empty, repeat both drains and both readbacks;
+4. an independent `ListMultipartUploads` readback followed by an independent
+   `ListObjectsV2(max-keys=1)` readback, in that order;
+5. if either readback is non-empty or truncated, repeat both drains and both
+   readbacks;
 6. stop as `retryable` if `MAX_JOINT_PASSES` joint passes do not reach empty.
 
 The outer loop is required because the existing drains are independently
@@ -522,25 +527,36 @@ begin (`account/src/spb-sweep.js:41-42,83-137`). An upload may complete into a
 committed object after the object drain. Repeating both domains closes that
 gap without changing the customer sweep.
 
-`listObjectsV2` at `account/src/s3.js:74-84` does not accept `max-keys` today.
-Its signature becomes additive:
+The final readback order is load-bearing. Once the multipart read at T1 reports
+empty, no remaining multipart upload can commit into an object afterward; an
+upload committed before T1 is visible to the object read at T2 > T1. Reading
+objects first would allow a commit between the two reads to escape both.
+
+`listObjectsV2` at `account/src/s3.js` accepts the additive signature:
 
 `listObjectsV2(env, credential, { prefix, continuationToken = null,
 maxKeys = null, nowMs = Date.now() })`.
 
 When `maxKeys` is non-null the helper adds `max-keys`; existing callers omit it
-and preserve today's request. The final readback uses `maxKeys: 1`.
+and preserve their request. The final readback uses `maxKeys: 1`.
 `listMultipartUploads` needs no pagination extension merely to prove that its
 first page has at least one upload.
 
-The pair proves that, at two adjacent fresh reads under the exact prefix, R2
-reports no committed objects and no in-progress multipart uploads. It does not
-prove bucket-wide emptiness, absence of a write after the reads, or absence of
-an object outside the prefix. Denial plus the recorded-expiry wait removes all
-known external writers before this proof. A `HeadObject` check is rejected:
-without a known key it can prove only one object's absence, never prefix
-emptiness. A single object-list read is weaker because it says nothing about
-multipart uploads.
+Both list helpers require a parseable HTTP-success body with their expected root
+(`ListMultipartUploadsResult` or `ListBucketResult`); a missing root throws and
+cleanup returns `retryable`. Cleanup also requires both readbacks to be
+non-truncated and have zero entries. Thus only positive, well-formed evidence
+can produce `cleaned`; an empty, malformed, or truncated 200 cannot be mistaken
+for empty state.
+
+The ordered pair proves that, at two adjacent fresh reads under the exact
+prefix, R2 reports no in-progress multipart uploads and no committed objects.
+It does not prove bucket-wide emptiness, absence of a write after the reads, or
+absence of an object outside the prefix. Denial plus the recorded-expiry wait
+removes all known external writers before this proof. A `HeadObject` check is
+rejected: without a known key it can prove only one object's absence, never
+prefix emptiness. A single object-list read is weaker because it says nothing
+about multipart uploads.
 
 #### Bounded In-Memory Credential Supply
 
@@ -576,7 +592,8 @@ a one-row guarded tombstone delete yields `cleaned`.
 
 After a fresh readback proves both domains empty, cleanup inserts D7's
 identifier-free `event = 'cleanup', outcome = 'cleaned'` audit. Only then does it
-run this dedicated delete; it never calls the customer helper at
+call the dedicated D1 helper `deleteSpbSandboxTombstone`; it never calls the
+customer helper at
 `account/src/db.js:1462-1467`:
 
 ```sql
@@ -774,11 +791,16 @@ uses the exact allowlists above.
 ### D8: Module And Shared-Drain Placement
 
 Decision: add `account/src/spb-sandbox-lifecycle.js` as the policy
-orchestrator. It owns the internal claim, deny, and cleanup entry points:
+orchestrator. It owns the internal claim, deny, and cleanup entry points with
+their shipped signatures:
 
-- `claimSpbSandboxBinding`
-- `denySpbSandboxBinding`
-- `cleanupSpbSandboxBinding`
+- `claimSpbSandboxBinding(env, options)`
+- `denySpbSandboxBinding(env, ctx, options)`
+- `cleanupSpbSandboxBinding(env, ctx, options)`
+
+The denial and cleanup D1 mutation helpers remain distinctly named
+`denySpbSandboxBindingOwnership` and `deleteSpbSandboxTombstone`; the policy
+entry points do not alias or re-export them.
 
 This is materially larger than the 0025 SPL/SPP claim/release helpers and
 should not make `account/src/sandbox-ownership.js` own SPB entitlement,
@@ -824,9 +846,9 @@ sequence, fixed-point behavior, exceptions, totals, audit, and binding delete.
 Sandbox cleanup supplies the refreshing closure and wraps both drains in D6's
 joint outer loop.
 
-`account/src/s3.js` remains the one-request wire layer. It gains only the
-additive `maxKeys` query option from D6; it does not acquire drain, credential,
-or sandbox policy.
+`account/src/s3.js` remains the one-request wire layer. It has the additive
+`maxKeys` query option and validates the two list-response roots from D6; it
+does not acquire drain, credential, or sandbox policy.
 
 All literal SQL in D1, D2, D4, D5, D6, D7, and D9 is implemented only in
 `account/src/db.js`. D1 helpers expose rows/nulls and do not classify sandbox
