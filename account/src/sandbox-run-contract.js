@@ -736,6 +736,12 @@ function capabilityFieldOptions(fieldName) {
   if (fieldName === 'broker_endpoint' || fieldName === 'endpoint_url') options.type = 'absolute-https-url';
   if (fieldName === 'service') options.fixed = SANDBOX_SPL_CAPABILITY_SERVICE;
   if (fieldName === 'state') options.fixed = SANDBOX_SPL_CAPABILITY_STATE;
+  if (['google_api_key', 'dispatch_token', 'bucket', 'broker_token', 'served_model_id', 'credential']
+    .includes(fieldName)) {
+    options.nonempty = true;
+    options.trimmed = true;
+  }
+  if (fieldName === 'prefix') options.nonempty = true;
   return options;
 }
 
@@ -777,7 +783,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
       component: { type: 'component-name' },
       state: { type: 'component-state' },
       residual_code: { type: 'component-residual', nullable: true },
-      updated_at: { type: 'integer-epoch-milliseconds' },
+      updated_at: { type: 'integer-epoch-milliseconds', safe_integer: true },
     }),
   })),
   requests: {
@@ -797,7 +803,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
         run_id: { type: 'uuid' },
         contract_version: { type: 'integer', fixed: SANDBOX_CONTRACT_VERSION },
         profile: { type: 'string', fixed: SANDBOX_PROFILE },
-        lease_expires_at: { type: 'integer-epoch-milliseconds' },
+        lease_expires_at: { type: 'integer-epoch-milliseconds', safe_integer: true },
         capabilities: { type: 'capability-object' },
       }),
       capabilities: capabilityDescriptors,
@@ -811,11 +817,53 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
         status: { type: 'run-status' },
         provisioning_phase: { type: 'provisioning-phase' },
         cleanup_phase: { type: 'cleanup-phase', nullable: true },
-        lease_expires_at: { type: 'integer-epoch-milliseconds' },
+        lease_expires_at: { type: 'integer-epoch-milliseconds', safe_integer: true },
         lease_live: { type: 'boolean' },
-        retry_after_seconds: { type: 'integer-seconds', nullable: true, maximum: null },
+        retry_after_seconds: {
+          type: 'integer-seconds',
+          nullable: true,
+          safe_integer: true,
+          minimum: 1,
+          maximum: null,
+        },
         components: { type: 'ordered-component-array' },
       }),
+    },
+  },
+  report_rules: {
+    lease_live: {
+      true_iff: {
+        status: SANDBOX_RUN_STATUS.ACTIVE,
+        now_epoch_milliseconds: { less_than_field: 'lease_expires_at' },
+      },
+    },
+    expired_active_component_projection: {
+      when: {
+        stored_run_status: SANDBOX_RUN_STATUS.ACTIVE,
+        stored_component_state: SANDBOX_COMPONENT_STATE.ACTIVE,
+        lease_live: false,
+      },
+      report: {
+        state: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+        residual_code: SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED,
+      },
+      mutates_storage: false,
+    },
+    delete_accepted_expiry_only: {
+      response_status: 202,
+      report_status: SANDBOX_RUN_STATUS.EXPIRY_PENDING,
+      retry_after_seconds: { type: 'positive-safe-integer', maximum: null },
+      retry_after_header: { name: 'Retry-After', decimal_equals_field: 'retry_after_seconds' },
+      components: {
+        dispatch: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
+        spp: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
+        spb: {
+          state: SANDBOX_COMPONENT_STATE.PURGE_PENDING,
+          residual_code: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
+        },
+        spl_relay: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
+        spl_binding: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
+      },
     },
   },
   errors: {
@@ -850,6 +898,51 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
     contract: { method: 'GET', path: '/admin/sandbox-runs/contract', query: 'must-be-empty', status: 200 },
     collection: { method: 'POST', path: '/admin/sandbox-runs' },
     member: { methods: ['GET', 'DELETE'], path: '/admin/sandbox-runs/{run_id}' },
+    head: { behavior: 'global-get-mirror-with-empty-body' },
+  },
+  operations: {
+    common_access: {
+      required_before_route_resolution: true,
+      failure: 'errors.outer_admin.access_required',
+    },
+    contract_get: {
+      method: 'GET',
+      path: '/admin/sandbox-runs/contract',
+      query: 'must-be-empty',
+      success: { status: 200, body: 'this-artifact' },
+      non_exact_route: 'errors.outer_admin.not_found',
+    },
+    create: {
+      method: 'POST',
+      path: '/admin/sandbox-runs',
+      success: { status: 201, body: 'responses.create' },
+      errors: {
+        invalid_request: 'errors.sandbox.invalid_request',
+        conflict: 'errors.sandbox.conflict',
+        unavailable: 'errors.sandbox.unavailable',
+      },
+    },
+    report_get: {
+      method: 'GET',
+      path: '/admin/sandbox-runs/{run_id}',
+      success: { status: 200, body: 'responses.report' },
+      absent: 'errors.sandbox.not_found',
+      unavailable: 'errors.sandbox.unavailable',
+    },
+    cleanup_delete: {
+      method: 'DELETE',
+      path: '/admin/sandbox-runs/{run_id}',
+      success: {
+        released: { status: 200, body: 'responses.report' },
+        expiry_only: { status: 202, body: 'responses.report' },
+      },
+      absent: 'errors.outer_admin.not_found',
+      errors: {
+        initial_unavailable: 'errors.sandbox.unavailable',
+        conflict: 'errors.sandbox.cleanup_conflict',
+        cleanup_unavailable: 'errors.sandbox.cleanup_unavailable',
+      },
+    },
     head: { behavior: 'global-get-mirror-with-empty-body' },
   },
 });

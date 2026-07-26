@@ -20,6 +20,7 @@ import {
   SANDBOX_COMPONENT_STATE,
   SANDBOX_COMPONENTS,
   SANDBOX_ERROR,
+  SANDBOX_LEASE_TTL_MS,
   SANDBOX_OUTER_ADMIN_ENVELOPE,
   SANDBOX_PROVISIONING_PHASE,
   SANDBOX_REPORT_KEYS,
@@ -46,6 +47,8 @@ import {
   seedSandboxBaseline,
   validSandboxInput,
 } from './sandbox-run-test-helpers.js';
+
+const publishedContract = JSON.parse(contractArtifact);
 
 describe('sandbox-run generated contract route', () => {
   beforeEach(async () => {
@@ -153,6 +156,57 @@ describe('sandbox-run generated contract route', () => {
     expect(headerEntries(head.headers)).toEqual(headerEntries(get.headers));
     await expect(head.text()).resolves.toBe('');
   });
+
+  it('publishes operation-specific success, absence, and error references', () => {
+    expect(publishedContract.operations).toEqual({
+      common_access: {
+        required_before_route_resolution: true,
+        failure: 'errors.outer_admin.access_required',
+      },
+      contract_get: {
+        method: 'GET',
+        path: '/admin/sandbox-runs/contract',
+        query: 'must-be-empty',
+        success: { status: 200, body: 'this-artifact' },
+        non_exact_route: 'errors.outer_admin.not_found',
+      },
+      create: {
+        method: 'POST',
+        path: '/admin/sandbox-runs',
+        success: { status: 201, body: 'responses.create' },
+        errors: {
+          invalid_request: 'errors.sandbox.invalid_request',
+          conflict: 'errors.sandbox.conflict',
+          unavailable: 'errors.sandbox.unavailable',
+        },
+      },
+      report_get: {
+        method: 'GET',
+        path: '/admin/sandbox-runs/{run_id}',
+        success: { status: 200, body: 'responses.report' },
+        absent: 'errors.sandbox.not_found',
+        unavailable: 'errors.sandbox.unavailable',
+      },
+      cleanup_delete: {
+        method: 'DELETE',
+        path: '/admin/sandbox-runs/{run_id}',
+        success: {
+          released: { status: 200, body: 'responses.report' },
+          expiry_only: { status: 202, body: 'responses.report' },
+        },
+        absent: 'errors.outer_admin.not_found',
+        errors: {
+          initial_unavailable: 'errors.sandbox.unavailable',
+          conflict: 'errors.sandbox.cleanup_conflict',
+          cleanup_unavailable: 'errors.sandbox.cleanup_unavailable',
+        },
+      },
+      head: { behavior: 'global-get-mirror-with-empty-body' },
+    });
+    for (const reference of contractReferences(publishedContract.operations)) {
+      expect(resolveContractReference(reference)).toBeDefined();
+    }
+  });
 });
 
 describe('sandbox-run contract validators', () => {
@@ -232,6 +286,21 @@ describe('sandbox-run contract validators', () => {
     const extraReportField = { ...report, extra: true };
     expect(isSandboxRunReport(extraReportField)).toBe(false);
 
+    const expiredRow = {
+      ...row,
+      created_at: SANDBOX_NOW - SANDBOX_LEASE_TTL_MS - 1,
+      lease_expires_at: SANDBOX_NOW - 1,
+    };
+    const expiredReport = renderSandboxRunReport(expiredRow, SANDBOX_NOW);
+    const expiredRule = publishedContract.report_rules.expired_active_component_projection;
+    expect(expiredRule.mutates_storage).toBe(false);
+    expect(expiredReport.lease_live).toBe(expiredRule.when.lease_live);
+    for (const component of expiredReport.components) {
+      expect(component.state).toBe(expiredRule.report.state);
+      expect(component.residual_code).toBe(expiredRule.report.residual_code);
+    }
+    expect(isSandboxRunReport(expiredReport, { row: expiredRow, nowMs: SANDBOX_NOW })).toBe(true);
+
     const farFutureSeconds = 9_000_000;
     const expiryRow = {
       ...row,
@@ -247,7 +316,17 @@ describe('sandbox-run contract validators', () => {
       spl_binding_state: SANDBOX_COMPONENT_STATE.RELEASED,
     };
     const expiryReport = renderSandboxRunReport(expiryRow, SANDBOX_NOW);
+    const expiryRule = publishedContract.report_rules.delete_accepted_expiry_only;
+    expect(expiryRule.response_status).toBe(202);
+    expect(expiryReport.status).toBe(expiryRule.report_status);
     expect(expiryReport.retry_after_seconds).toBe(farFutureSeconds);
+    expect(expiryRule.retry_after_header).toEqual({
+      name: 'Retry-After',
+      decimal_equals_field: 'retry_after_seconds',
+    });
+    for (const component of expiryReport.components) {
+      expect(component).toMatchObject(expiryRule.components[component.component]);
+    }
     expect(isSandboxRunReport(expiryReport, { row: expiryRow, nowMs: SANDBOX_NOW })).toBe(true);
   });
 
@@ -502,6 +581,17 @@ async function expectOuterEnvelope(response, descriptor) {
 
 function reverseObject(value) {
   return Object.fromEntries(Object.entries(value).reverse());
+}
+
+function contractReferences(value) {
+  if (typeof value === 'string') return value.startsWith('errors.') ? [value] : [];
+  if (Array.isArray(value)) return value.flatMap(contractReferences);
+  if (!value || typeof value !== 'object') return [];
+  return Object.values(value).flatMap(contractReferences);
+}
+
+function resolveContractReference(reference) {
+  return reference.split('.').reduce((value, key) => value?.[key], publishedContract);
 }
 
 function poisonScopedRead(baseDb, mutate) {

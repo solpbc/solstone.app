@@ -157,7 +157,8 @@
         {
           "name": "updated_at",
           "type": "integer-epoch-milliseconds",
-          "required": true
+          "required": true,
+          "safe_integer": true
         }
       ]
     },
@@ -183,7 +184,8 @@
         {
           "name": "updated_at",
           "type": "integer-epoch-milliseconds",
-          "required": true
+          "required": true,
+          "safe_integer": true
         }
       ]
     },
@@ -209,7 +211,8 @@
         {
           "name": "updated_at",
           "type": "integer-epoch-milliseconds",
-          "required": true
+          "required": true,
+          "safe_integer": true
         }
       ]
     },
@@ -235,7 +238,8 @@
         {
           "name": "updated_at",
           "type": "integer-epoch-milliseconds",
-          "required": true
+          "required": true,
+          "safe_integer": true
         }
       ]
     },
@@ -261,7 +265,8 @@
         {
           "name": "updated_at",
           "type": "integer-epoch-milliseconds",
-          "required": true
+          "required": true,
+          "safe_integer": true
         }
       ]
     }
@@ -318,7 +323,8 @@
         {
           "name": "lease_expires_at",
           "type": "integer-epoch-milliseconds",
-          "required": true
+          "required": true,
+          "safe_integer": true
         },
         {
           "name": "capabilities",
@@ -333,13 +339,17 @@
               "name": "google_api_key",
               "type": "string",
               "required": true,
-              "sensitive": true
+              "sensitive": true,
+              "nonempty": true,
+              "trimmed": true
             },
             {
               "name": "dispatch_token",
               "type": "string",
               "required": true,
-              "sensitive": true
+              "sensitive": true,
+              "nonempty": true,
+              "trimmed": true
             },
             {
               "name": "account_id",
@@ -403,19 +413,24 @@
               "name": "bucket",
               "type": "string",
               "required": true,
-              "sensitive": false
+              "sensitive": false,
+              "nonempty": true,
+              "trimmed": true
             },
             {
               "name": "prefix",
               "type": "string",
               "required": true,
-              "sensitive": false
+              "sensitive": false,
+              "nonempty": true
             },
             {
               "name": "broker_token",
               "type": "string",
               "required": true,
-              "sensitive": true
+              "sensitive": true,
+              "nonempty": true,
+              "trimmed": true
             }
           ]
         },
@@ -431,13 +446,17 @@
               "name": "served_model_id",
               "type": "string",
               "required": true,
-              "sensitive": false
+              "sensitive": false,
+              "nonempty": true,
+              "trimmed": true
             },
             {
               "name": "credential",
               "type": "string",
               "required": true,
-              "sensitive": true
+              "sensitive": true,
+              "nonempty": true,
+              "trimmed": true
             },
             {
               "name": "account_id",
@@ -497,7 +516,8 @@
         {
           "name": "lease_expires_at",
           "type": "integer-epoch-milliseconds",
-          "required": true
+          "required": true,
+          "safe_integer": true
         },
         {
           "name": "lease_live",
@@ -509,6 +529,8 @@
           "type": "integer-seconds",
           "required": true,
           "nullable": true,
+          "safe_integer": true,
+          "minimum": 1,
           "maximum": null
         },
         {
@@ -517,6 +539,62 @@
           "required": true
         }
       ]
+    }
+  },
+  "report_rules": {
+    "lease_live": {
+      "true_iff": {
+        "status": "active",
+        "now_epoch_milliseconds": {
+          "less_than_field": "lease_expires_at"
+        }
+      }
+    },
+    "expired_active_component_projection": {
+      "when": {
+        "stored_run_status": "active",
+        "stored_component_state": "active",
+        "lease_live": false
+      },
+      "report": {
+        "state": "deny_pending",
+        "residual_code": "lease_expired"
+      },
+      "mutates_storage": false
+    },
+    "delete_accepted_expiry_only": {
+      "response_status": 202,
+      "report_status": "expiry_pending",
+      "retry_after_seconds": {
+        "type": "positive-safe-integer",
+        "maximum": null
+      },
+      "retry_after_header": {
+        "name": "Retry-After",
+        "decimal_equals_field": "retry_after_seconds"
+      },
+      "components": {
+        "dispatch": {
+          "state": "released",
+          "residual_code": null
+        },
+        "spp": {
+          "state": "released",
+          "residual_code": null
+        },
+        "spb": {
+          "state": "purge_pending",
+          "residual_code": "spb_credential_expiry_pending"
+        },
+        "spl_relay": {
+          "state": "released",
+          "residual_code": null
+        },
+        "spl_binding": {
+          "state": "released",
+          "residual_code": null
+        }
+      }
     }
   },
   "errors": {
@@ -731,6 +809,68 @@
         "DELETE"
       ],
       "path": "/admin/sandbox-runs/{run_id}"
+    },
+    "head": {
+      "behavior": "global-get-mirror-with-empty-body"
+    }
+  },
+  "operations": {
+    "common_access": {
+      "required_before_route_resolution": true,
+      "failure": "errors.outer_admin.access_required"
+    },
+    "contract_get": {
+      "method": "GET",
+      "path": "/admin/sandbox-runs/contract",
+      "query": "must-be-empty",
+      "success": {
+        "status": 200,
+        "body": "this-artifact"
+      },
+      "non_exact_route": "errors.outer_admin.not_found"
+    },
+    "create": {
+      "method": "POST",
+      "path": "/admin/sandbox-runs",
+      "success": {
+        "status": 201,
+        "body": "responses.create"
+      },
+      "errors": {
+        "invalid_request": "errors.sandbox.invalid_request",
+        "conflict": "errors.sandbox.conflict",
+        "unavailable": "errors.sandbox.unavailable"
+      }
+    },
+    "report_get": {
+      "method": "GET",
+      "path": "/admin/sandbox-runs/{run_id}",
+      "success": {
+        "status": 200,
+        "body": "responses.report"
+      },
+      "absent": "errors.sandbox.not_found",
+      "unavailable": "errors.sandbox.unavailable"
+    },
+    "cleanup_delete": {
+      "method": "DELETE",
+      "path": "/admin/sandbox-runs/{run_id}",
+      "success": {
+        "released": {
+          "status": 200,
+          "body": "responses.report"
+        },
+        "expiry_only": {
+          "status": 202,
+          "body": "responses.report"
+        }
+      },
+      "absent": "errors.outer_admin.not_found",
+      "errors": {
+        "initial_unavailable": "errors.sandbox.unavailable",
+        "conflict": "errors.sandbox.cleanup_conflict",
+        "cleanup_unavailable": "errors.sandbox.cleanup_unavailable"
+      }
     },
     "head": {
       "behavior": "global-get-mirror-with-empty-body"

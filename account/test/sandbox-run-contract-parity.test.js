@@ -105,6 +105,28 @@ describe('sandbox-run generated contract parity', () => {
     expect(text).not.toMatch(/\b(?:eyJ|sk_|whsec_)[A-Za-z0-9._-]{12,}\b/);
   });
 
+  it('publishes the exact capability string constraints enforced by runtime validators', async () => {
+    const contract = JSON.parse(await readFile(artifactPath, 'utf8'));
+    const capabilities = contract.responses.create.capabilities;
+    for (const [capability, field] of [
+      ['scout', 'google_api_key'],
+      ['scout', 'dispatch_token'],
+      ['spb', 'bucket'],
+      ['spb', 'broker_token'],
+      ['spp', 'served_model_id'],
+      ['spp', 'credential'],
+    ]) {
+      expect(fieldDescriptor(capabilities[capability], field)).toMatchObject({
+        nonempty: true,
+        trimmed: true,
+      });
+    }
+    expect(fieldDescriptor(capabilities.spb, 'prefix')).toMatchObject({ nonempty: true });
+    expect(fieldDescriptor(capabilities.spb, 'prefix')).not.toHaveProperty('trimmed');
+    expect(fieldDescriptor(capabilities.spb, 'broker_endpoint').type).toBe('absolute-https-url');
+    expect(fieldDescriptor(capabilities.spp, 'endpoint_url').type).toBe('absolute-https-url');
+  });
+
   it('matches migration and consolidated-schema vocabularies bidirectionally', async () => {
     const [migration, schema] = await Promise.all([
       readFile(migrationPath, 'utf8'),
@@ -284,6 +306,12 @@ function extractConstraintValues(source, column) {
   const values = [...tail.slice(bodyStart, bodyEnd).matchAll(/'([^']+)'/g)].map((match) => match[1]);
   if (values.length === 0) throw new Error(`${column} vocabulary was empty`);
   return values;
+}
+
+function fieldDescriptor(schema, name) {
+  const descriptor = schema.fields.find((candidate) => candidate.name === name);
+  if (!descriptor) throw new Error(`missing field descriptor: ${name}`);
+  return descriptor;
 }
 
 function extractFunction(source, name) {
