@@ -182,6 +182,10 @@ describe('sandbox run concurrency', () => {
     await assertContainedCleanupRace('delete-versus-scheduled');
   });
 
+  it('linearizes concurrent DELETEs without regressing or deleting evidence', async () => {
+    await assertContainedCleanupRace('delete-versus-delete');
+  });
+
   it('contains scheduled-versus-scheduled cleanup to the exact run resources', async () => {
     await assertContainedCleanupRace('scheduled-versus-scheduled');
   });
@@ -209,14 +213,33 @@ async function assertContainedCleanupRace(kind) {
   const targetPrefix = prefixFor(baseline.account.accountId, SANDBOX_INSTANCE_ID);
   vi.setSystemTime(SANDBOX_NOW + 3_600_000);
 
-  let deleteResponse = null;
+  let terminalTransitions = 0;
+  if (kind === 'delete-versus-delete') {
+    baseline.testEnv.DB = observeTerminalTransitions(baseline.testEnv.DB, (count) => {
+      terminalTransitions += count;
+    });
+  }
+
+  let deleteResponses = [];
   if (kind === 'delete-versus-scheduled') {
-    [deleteResponse] = await Promise.all([
+    const [deleteResponse] = await Promise.all([
       worker.fetch(
         sandboxRequest(`/admin/sandbox-runs/${SANDBOX_RUN_ID}`, token, { method: 'DELETE' }),
         baseline.testEnv
       ),
       reconcileExpiredSandboxRuns(baseline.testEnv, null, { nowMs: Date.now() }),
+    ]);
+    deleteResponses = [deleteResponse];
+  } else if (kind === 'delete-versus-delete') {
+    deleteResponses = await Promise.all([
+      worker.fetch(
+        sandboxRequest(`/admin/sandbox-runs/${SANDBOX_RUN_ID}`, token, { method: 'DELETE' }),
+        baseline.testEnv
+      ),
+      worker.fetch(
+        sandboxRequest(`/admin/sandbox-runs/${SANDBOX_RUN_ID}`, token, { method: 'DELETE' }),
+        baseline.testEnv
+      ),
     ]);
   } else {
     await Promise.all([
@@ -225,7 +248,15 @@ async function assertContainedCleanupRace(kind) {
     ]);
   }
 
-  await expect(runRow()).resolves.toMatchObject({ status: 'released', cleanup_phase: 'released' });
+  await expect(runRow()).resolves.toMatchObject({
+    status: 'released',
+    cleanup_phase: 'released',
+    dispatch_state: 'released',
+    spp_state: 'released',
+    spb_state: 'released',
+    spl_relay_state: 'released',
+    spl_binding_state: 'released',
+  });
   await expect(activeResourceCounts()).resolves.toEqual({
     dispatch: 0,
     spl: 0,
@@ -245,12 +276,27 @@ async function assertContainedCleanupRace(kind) {
   }
   expect(JSON.stringify(s3Calls)).not.toContain(controls.baselinePrefix);
   expect(JSON.stringify(s3Calls)).not.toContain(controls.otherPrefix);
-  if (deleteResponse) {
-    expect([200, 503]).toContain(deleteResponse.status);
+  if (kind === 'delete-versus-delete') expect(terminalTransitions).toBe(1);
+  for (const deleteResponse of deleteResponses) {
+    expect([200, 202, 503]).toContain(deleteResponse.status);
     const text = await deleteResponse.text();
     expect(text).not.toContain(controls.baselineAccountId);
     expect(text).not.toContain(controls.otherAccountId);
     expect(text).not.toContain(controls.otherRunId);
+    const body = JSON.parse(text);
+    if (deleteResponse.status === 200) {
+      expect(body.status).toBe('released');
+      expect(body.components.every(({ state }) => state === 'released')).toBe(true);
+    } else if (deleteResponse.status === 202) {
+      expect(body.status).toBe('expiry_pending');
+      expect(deleteResponse.headers.get('Retry-After')).toBe(String(body.retry_after_seconds));
+    } else {
+      expect(body).toEqual({
+        error: 'sandbox run cleanup unavailable',
+        code: 'sandbox_run_cleanup_unavailable',
+        run_id: SANDBOX_RUN_ID,
+      });
+    }
   }
 }
 
@@ -358,6 +404,30 @@ async function controlRows({ baselineInstanceId, otherInstanceId }) {
     spl: spl.results,
     spb: spb.results,
     spp: spp.results,
+  };
+}
+
+function observeTerminalTransitions(baseDb, onTransition) {
+  return {
+    prepare(sql) {
+      const statement = baseDb.prepare(sql);
+      if (!/UPDATE sandbox_runs\s+SET status = 'released'/i.test(sql)) return statement;
+      return {
+        bind(...values) {
+          const bound = statement.bind(...values);
+          return {
+            async all(...args) {
+              const result = await bound.all(...args);
+              onTransition(result?.results?.length || 0);
+              return result;
+            },
+          };
+        },
+      };
+    },
+    batch(statements) {
+      return baseDb.batch(statements);
+    },
   };
 }
 

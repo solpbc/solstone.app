@@ -76,6 +76,113 @@ describe('sandbox run provisioning faults', () => {
     }
   });
 
+  it('keeps a fenced local-write failure discoverable until a later cleanup pass converges', async () => {
+    await installJwksStubWith(async (input) => emptyS3Response(input));
+    const token = await mintToken();
+    const baseline = await seedSandboxBaseline();
+    const fault = provisioningFaultDb(baseline.testEnv.DB, {
+      localWrite: /INSERT INTO account_dispatch_tokens/i,
+    });
+    baseline.testEnv.DB = fault.db;
+
+    const response = await worker.fetch(
+      sandboxRequest('/admin/sandbox-runs', token, {
+        method: 'POST',
+        body: validSandboxInput(),
+      }),
+      baseline.testEnv
+    );
+    const text = await response.text();
+
+    expect(fault.wasInjected()).toBe(true);
+    expect(response.status).toBe(503);
+    expect(text).toBe(JSON.stringify({
+      error: 'sandbox run unavailable',
+      code: 'sandbox_run_unavailable',
+      run_id: SANDBOX_RUN_ID,
+    }));
+    expect(text).not.toContain(STANDING_GEMINI_KEY);
+    await assertDiscoverableAndConverges({
+      token,
+      testEnv: baseline.testEnv,
+      expectedStatus: 'provisioning',
+      expectedPhase: 'dispatch_intent',
+      enableCleanup: fault.enableCleanup,
+    });
+  });
+
+  it('preserves spl_intent after a successful relay grant and converges on a later cleanup pass', async () => {
+    await installJwksStubWith(async (input) => emptyS3Response(input));
+    const token = await mintToken();
+    const baseline = await seedSandboxBaseline();
+    const fault = provisioningFaultDb(baseline.testEnv.DB, {
+      phaseAdvance: 'spl_acquired',
+    });
+    baseline.testEnv.DB = fault.db;
+
+    const response = await worker.fetch(
+      sandboxRequest('/admin/sandbox-runs', token, {
+        method: 'POST',
+        body: validSandboxInput(),
+      }),
+      baseline.testEnv
+    );
+    const text = await response.text();
+
+    expect(fault.wasInjected()).toBe(true);
+    expect(baseline.relay.calls.map(({ method }) => method)).toEqual(['POST']);
+    expect(response.status).toBe(503);
+    expect(text).toBe(JSON.stringify({
+      error: 'sandbox run unavailable',
+      code: 'sandbox_run_unavailable',
+      run_id: SANDBOX_RUN_ID,
+    }));
+    expect(text).not.toContain(STANDING_GEMINI_KEY);
+    await assertDiscoverableAndConverges({
+      token,
+      testEnv: baseline.testEnv,
+      expectedStatus: 'provisioning',
+      expectedPhase: 'spl_intent',
+      enableCleanup: fault.enableCleanup,
+    });
+  });
+
+  it('keeps a winning activation discoverable when response serialization fails', async () => {
+    await installJwksStubWith(async (input) => emptyS3Response(input));
+    const token = await mintToken();
+    const baseline = await seedSandboxBaseline();
+    const originalStringify = JSON.stringify;
+    let serializationFaults = 0;
+    const stringify = vi.spyOn(JSON, 'stringify').mockImplementation((value, ...args) => {
+      if (value?.capabilities) {
+        serializationFaults += 1;
+        throw new Error('injected response serialization failure');
+      }
+      return originalStringify(value, ...args);
+    });
+
+    const response = await worker.fetch(
+      sandboxRequest('/admin/sandbox-runs', token, {
+        method: 'POST',
+        body: validSandboxInput(),
+      }),
+      baseline.testEnv
+    );
+    const text = await response.text();
+    stringify.mockRestore();
+
+    expect(serializationFaults).toBe(1);
+    expect(response.status).toBe(404);
+    expect(text).toBe(JSON.stringify({ error: 'account not found' }));
+    expect(text).not.toContain(STANDING_GEMINI_KEY);
+    await assertDiscoverableAndConverges({
+      token,
+      testEnv: baseline.testEnv,
+      expectedStatus: 'active',
+      expectedPhase: 'active',
+    });
+  });
+
   it('discards all plaintext and cleans up when the activation CAS loses', async () => {
     await installJwksStubWith(async (input) => emptyS3Response(input));
     const token = await mintToken();
@@ -175,6 +282,92 @@ function activationLosingDb(baseDb) {
       return baseDb.batch(statements);
     },
   };
+}
+
+function provisioningFaultDb(baseDb, { localWrite = null, phaseAdvance = null }) {
+  let cleanupEnabled = false;
+  let injected = false;
+  return {
+    db: {
+      prepare(sql) {
+        if (!cleanupEnabled && /UPDATE sandbox_runs\s+SET status = 'cleanup_required'/i.test(sql)) {
+          throw new Error('injected cleanup pause');
+        }
+        if (!injected && localWrite?.test(sql)) {
+          injected = true;
+          throw new Error('injected fenced local-write failure');
+        }
+        const statement = baseDb.prepare(sql);
+        if (!phaseAdvance || !/UPDATE sandbox_runs\s+SET provisioning_phase = \?/i.test(sql)) {
+          return statement;
+        }
+        return {
+          bind(...values) {
+            if (!injected && values[0] === phaseAdvance) {
+              return {
+                async all() {
+                  injected = true;
+                  throw new Error('injected post-side-effect phase failure');
+                },
+              };
+            }
+            return statement.bind(...values);
+          },
+        };
+      },
+      batch(statements) {
+        return baseDb.batch(statements);
+      },
+    },
+    enableCleanup() {
+      cleanupEnabled = true;
+    },
+    wasInjected() {
+      return injected;
+    },
+  };
+}
+
+async function assertDiscoverableAndConverges({
+  token,
+  testEnv,
+  expectedStatus,
+  expectedPhase,
+  enableCleanup = () => {},
+}) {
+  const getResponse = await worker.fetch(
+    sandboxRequest(`/admin/sandbox-runs/${SANDBOX_RUN_ID}`, token),
+    testEnv
+  );
+  const getBody = await getResponse.json();
+  expect(getResponse.status).toBe(200);
+  expect(getBody).toMatchObject({
+    run_id: SANDBOX_RUN_ID,
+    status: expectedStatus,
+    provisioning_phase: expectedPhase,
+  });
+  expect(getBody).not.toHaveProperty('capabilities');
+  expect(JSON.stringify(getBody)).not.toContain(STANDING_GEMINI_KEY);
+
+  enableCleanup();
+  const deleteResponse = await worker.fetch(
+    sandboxRequest(`/admin/sandbox-runs/${SANDBOX_RUN_ID}`, token, { method: 'DELETE' }),
+    testEnv
+  );
+  const deleteBody = await deleteResponse.json();
+  expect(deleteResponse.status).toBe(200);
+  expect(deleteBody).toMatchObject({
+    run_id: SANDBOX_RUN_ID,
+    status: 'released',
+    provisioning_phase: expectedPhase,
+    cleanup_phase: 'released',
+  });
+  expect(deleteBody.components.every(({ state }) => state === 'released')).toBe(true);
+  await expect(runRow()).resolves.toMatchObject({
+    status: 'released',
+    provisioning_phase: expectedPhase,
+    cleanup_phase: 'released',
+  });
 }
 
 function runRow() {
