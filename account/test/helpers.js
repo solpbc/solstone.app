@@ -117,6 +117,7 @@ export function makeFakeKv() {
 
 export async function resetDb() {
   for (const table of [
+    'sandbox_runs',
     'entitlements',
     'stripe_customers',
     'spl_bindings',
@@ -651,6 +652,119 @@ export async function seedEntitlement({
     .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, updatedAt)
     .run();
   return { accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, updatedAt };
+}
+
+export async function seedSandboxRun({
+  runId = '22222222-2222-2222-2222-222222222222',
+  accountId,
+  instanceId = '11111111-1111-1111-1111-111111111111',
+  contractVersion = 1,
+  profile = 'full',
+  status = 'active',
+  provisioningPhase = 'active',
+  cleanupPhase = null,
+  createdAt = Date.now(),
+  leaseExpiresAt = createdAt + 3_600_000,
+  updatedAt = createdAt,
+  spbRetryNotBefore = null,
+  completedAt = null,
+  lastResidualCode = null,
+  dispatchState = 'active',
+  dispatchResidualCode = null,
+  dispatchUpdatedAt = updatedAt,
+  sppState = 'active',
+  sppResidualCode = null,
+  sppUpdatedAt = updatedAt,
+  spbState = 'active',
+  spbResidualCode = null,
+  spbUpdatedAt = updatedAt,
+  splRelayState = 'active',
+  splRelayResidualCode = null,
+  splRelayUpdatedAt = updatedAt,
+  splBindingState = 'active',
+  splBindingResidualCode = null,
+  splBindingUpdatedAt = updatedAt,
+} = {}) {
+  await env.DB
+    .prepare(
+      `INSERT INTO sandbox_runs (
+         run_id, account_id, instance_id, contract_version, profile,
+         status, provisioning_phase, cleanup_phase,
+         created_at, lease_expires_at, updated_at,
+         spb_retry_not_before, completed_at, last_residual_code,
+         dispatch_state, dispatch_residual_code, dispatch_updated_at,
+         spp_state, spp_residual_code, spp_updated_at,
+         spb_state, spb_residual_code, spb_updated_at,
+         spl_relay_state, spl_relay_residual_code, spl_relay_updated_at,
+         spl_binding_state, spl_binding_residual_code, spl_binding_updated_at
+       ) VALUES (
+         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+       )`
+    )
+    .bind(
+      runId,
+      accountId,
+      instanceId,
+      contractVersion,
+      profile,
+      status,
+      provisioningPhase,
+      cleanupPhase,
+      createdAt,
+      leaseExpiresAt,
+      updatedAt,
+      spbRetryNotBefore,
+      completedAt,
+      lastResidualCode,
+      dispatchState,
+      dispatchResidualCode,
+      dispatchUpdatedAt,
+      sppState,
+      sppResidualCode,
+      sppUpdatedAt,
+      spbState,
+      spbResidualCode,
+      spbUpdatedAt,
+      splRelayState,
+      splRelayResidualCode,
+      splRelayUpdatedAt,
+      splBindingState,
+      splBindingResidualCode,
+      splBindingUpdatedAt
+    )
+    .run();
+  return {
+    runId,
+    accountId,
+    instanceId,
+    contractVersion,
+    profile,
+    status,
+    provisioningPhase,
+    cleanupPhase,
+    createdAt,
+    leaseExpiresAt,
+    updatedAt,
+    spbRetryNotBefore,
+    completedAt,
+    lastResidualCode,
+    dispatchState,
+    dispatchResidualCode,
+    dispatchUpdatedAt,
+    sppState,
+    sppResidualCode,
+    sppUpdatedAt,
+    spbState,
+    spbResidualCode,
+    spbUpdatedAt,
+    splRelayState,
+    splRelayResidualCode,
+    splRelayUpdatedAt,
+    splBindingState,
+    splBindingResidualCode,
+    splBindingUpdatedAt,
+  };
 }
 
 export async function seedSplBinding({
