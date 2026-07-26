@@ -7,15 +7,15 @@ Inputs:
 
 - Relay retirement source of truth: `~/projects/spl/relay/src/retire.ts:1-364`,
   `src/index.ts:38-62`, `src/logging.ts:64-72`, and `README.md:105-151`.
-- Current binding writes: `account/src/db.js:1248-1305`; owner callers:
-  `account/src/enable.js:489` and `account/src/enable.js:738-745`.
+- Current binding writes: `account/src/db.js:1293-1365`; owner callers:
+  `account/src/enable.js:489-494` and `account/src/enable.js:743-751`.
 - Current dispatch-token path: `account/src/dispatch-tokens.js:1-20` and
-  `account/src/db.js:439-451`.
+  `account/src/db.js:439-453`.
 - Canonical UUID precedent: `account/src/admin.js:34`.
 - Migration/runbook precedents: `account/migrations/0023_spp_consent.sql:1-12`
   and `account/test/migration-0023-spp-consent.test.js:54-82`.
-- Atomic D1 result precedent: `account/src/db.js:856-909` and
-  `account/src/db.js:1087-1093`.
+- Atomic D1 result precedent: `account/src/db.js:901-954` and
+  `account/src/db.js:1132-1138`.
 
 ## Goals
 
@@ -77,7 +77,7 @@ RETURNING account_id, instance_id, sandbox_run_id, created_at, last_seen_at
 ```
 
 SPP deliberately preserves its existing same-owner credential rotation and
-consent-refresh behavior from `account/src/db.js:1289-1293`; it never changes
+consent-refresh behavior from `account/src/db.js:1345-1352`; it never changes
 `created_at` or `sandbox_run_id`. The prep probe's reduced table had only
 `last_seen_at` as mutable payload. In both production statements, a failed guard
 writes no column at all, including SPP credential and consent columns.
@@ -115,19 +115,20 @@ Both return the returned ownership row or `null`. Existing callers that omit
 Separate baseline and sandbox SQL entry points would duplicate the load-bearing
 guard and invite drift.
 
-The gate resolved the owner-path behavior. Today, cross-account duplicate
-`instance_id` writes silently succeed because the composite primary key permits
-them. After 0025, the guarded upsert converts that case into a zero-row no-op.
-The owner callers at `account/src/enable.js:489` and
-`account/src/enable.js:738-745` currently ignore the return value, so leaving
-them unchanged would return an owner success handoff while storing nothing.
-That violates the repository rule to fail fast and never report success on a
-degraded result.
+The gate resolved and implementation shipped the owner-path behavior. Before
+0025, cross-account duplicate `instance_id` writes silently succeeded because
+the composite primary key permitted them. The guarded upsert converts that case
+into a zero-row no-op. The owner callers now check that result and return the
+pre-existing generic 500 on conflict at `account/src/enable.js:494` and
+`account/src/enable.js:751`; they never return an owner success handoff while
+storing nothing. That enforces the repository rule to fail fast and never report
+success on a degraded result.
 
 Options:
 
 1. Have each owner call site check for null and return its existing SPL/SPP
-   generic 500 response. The router returns these async handler promises without
+   generic 500 response. The router branches at `account/src/index.js:431` and
+   `account/src/index.js:487` return these async handler promises without
    awaiting them, so a thrown error would escape the catch at
    `account/src/index.js:952-955` instead of reaching the portal's generic error
    page. Returning the existing `noStoreHtml(renderError(), { status: 500 })`
@@ -141,10 +142,10 @@ Options:
    loose `INSTANCE_ID_REGEX` at `account/src/enable-constants.js:11`, and the
    current schema has already allowed cross-account duplicates.
 
-Gate ruling: option 1. It is the smallest in-scope behavior
-that turns the new loser signal into a failure rather than a false success. The
-implementation must not add a bespoke owner-facing response; option 2 requires
-a separately approved scope change. Option 3 is rejected.
+Gate ruling: option 1, implemented at both owner call sites. It is the smallest
+in-scope behavior that turns the new loser signal into a failure rather than a
+false success. The implementation adds no bespoke owner-facing response; option
+2 requires a separately approved scope change. Option 3 is rejected.
 
 ### D3: Release Representation And Classification
 
@@ -153,7 +154,7 @@ Decision: hard-delete owned SPL and SPP rows. Do not add a local tombstone.
 Rationale:
 
 - Deleting SPP removes `token_hash`, so `findSppBindingByTokenHash` at
-  `account/src/db.js:1362-1371` immediately stops authorizing the credential.
+  `account/src/db.js:1481-1490` immediately stops authorizing the credential.
 - SPL has no local credential to null. The relay retains its own irreversible,
   authoritative tombstone; the account row is ownership/retry coordination.
 - One representation for SPL and SPP avoids a SPP-only `released_at` state and
@@ -247,7 +248,7 @@ is added.
 `pushEntitlementGrant`, because both own the relay URL, bearer secret,
 service-binding preference, and public-fetch fallback. It is a separate helper
 and contract parser; it cannot reuse `pushEntitlementGrant`'s boolean
-`{ ok: true }` response assumption at `account/src/relay-grant.js:82-113`.
+`{ ok: true }` response assumption at `account/src/relay-grant.js:105-137`.
 No sandbox ownership helper calls it. The future durable run controller must
 invoke relay retirement and local release as explicit, separately handled
 steps.
@@ -566,7 +567,7 @@ Update existing tests narrowly:
   `account/test/enable-spp.test.js` prove a seeded cross-account instance causes
   the existing generic failure response and never emits a success handoff or
   rotates the incumbent credential.
-- Extend `seedSplBinding` at `account/test/helpers.js:655-669` only by adding
+- Extend `seedSplBinding` at `account/test/helpers.js:655-670` only by adding
   `sandboxRunId = null`, inserting it, and returning it. Keep its existing
   arguments and default instance ID. Add any new SPP/dispatch seed helpers
   without changing existing call shapes. Do not modify `seedSpbBinding` for an
@@ -577,7 +578,7 @@ Update existing tests narrowly:
   test. Every such test must pass distinct explicit instance IDs.
 - Replace the implicit `seedSplBinding` defaults at
   `account/test/scouts-admin.test.js:224` and
-  `account/test/scouts-admin.test.js:323` with named, explicit canonical UUIDs.
+  `account/test/scouts-admin.test.js:326` with named, explicit canonical UUIDs.
   Their companion `seedSpbBinding` rows may keep the same value because the
   tables are independent. This removes hidden fixture dependence without a
   breaking helper-signature change.
