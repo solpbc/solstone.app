@@ -313,6 +313,56 @@ describe('spb credential broker', () => {
     }
   });
 
+  it('keeps a winning expiry CAS durable when response production fails afterward', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const calls = [];
+    installHubStub(calls);
+    const baseEnv = makeTestEnv({ HUB_WEBHOOK_URL: HUB_URL });
+    const seeded = await seedBrokerReady({ testEnv: baseEnv, sandboxRunId: SANDBOX_RUN });
+    const signed = await mintSandboxExternalCredential(baseEnv, {
+      prefix: seeded.prefix,
+      scope: 'backup',
+      nowSeconds: Math.floor(NOW / 1000),
+    });
+    const testEnv = interceptRunOnce(
+      baseEnv,
+      /INSERT INTO spb_sandbox_audit/i,
+      async () => {
+        throw new Error('injected post-CAS response failure');
+      }
+    );
+    const spy = installConsoleSpy();
+
+    try {
+      const { response } = await fetchWithCtx(
+        worker,
+        credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+        testEnv
+      );
+      const bodyText = await response.text();
+      const durable = await spbBindingRow();
+
+      expect(response.status).toBe(500);
+      expect(JSON.parse(bodyText)).toEqual({ error: 'internal_error' });
+      expect(durable.sandbox_credential_expires_at).toBe(NOW + 90_000);
+      await expect(sandboxAuditRows()).resolves.toEqual([sandboxMintAudit({
+        outcome: 'internal_error',
+      })]);
+      const forbidden = [
+        signed.accessKeyId,
+        signed.secretAccessKey,
+        signed.sessionToken,
+        atob(signed.sessionToken).slice(4),
+      ];
+      spy.assertNoSecrets(forbidden);
+      const surfaces = JSON.stringify({ bodyText, audits: await sandboxAuditRows(), hub: calls });
+      for (const value of forbidden) expect(surfaces).not.toContain(value);
+    } finally {
+      spy.restore();
+    }
+  });
+
   it('serializes mint-versus-denial in both orders without an untracked credential', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
@@ -866,6 +916,43 @@ function interceptAllOnce(testEnv, pattern, allHandler) {
             intercepted = true;
             return allHandler(statement, args);
           },
+        };
+      },
+      batch(statements) {
+        return testEnv.DB.batch(statements);
+      },
+    },
+  };
+}
+
+function interceptRunOnce(testEnv, pattern, runHandler) {
+  let intercepted = false;
+  return {
+    ...testEnv,
+    DB: {
+      prepare(sql) {
+        const statement = testEnv.DB.prepare(sql);
+        if (!pattern.test(sql)) return statement;
+        return {
+          bind(...args) {
+            const bound = statement.bind(...args);
+            return {
+              run(...runArgs) {
+                if (intercepted) return bound.run(...runArgs);
+                intercepted = true;
+                return runHandler(bound, runArgs);
+              },
+              first: (...firstArgs) => bound.first(...firstArgs),
+              all: (...allArgs) => bound.all(...allArgs),
+            };
+          },
+          run(...args) {
+            if (intercepted) return statement.run(...args);
+            intercepted = true;
+            return runHandler(statement, args);
+          },
+          first: (...args) => statement.first(...args),
+          all: (...args) => statement.all(...args),
         };
       },
       batch(statements) {

@@ -243,6 +243,28 @@ describe('SPB sandbox cleanup', () => {
     })]);
   });
 
+  it('returns retryable when uploads complete into objects between verifier reads', async () => {
+    const testEnv = makeTestEnv();
+    const target = await seedTombstone({ testEnv });
+    const state = installCleanupS3State(testEnv, {
+      completeUploadBetweenReadbacksCount: 3,
+    });
+
+    await expect(cleanupSpbSandboxBinding(testEnv, null, cleanupArgs(target)))
+      .resolves.toEqual({ outcome: 'retryable' });
+
+    expect(state.calls.filter((call) => call.operation === 'multipart_readback'))
+      .toHaveLength(3);
+    expect(state.calls.filter((call) => call.operation === 'object_readback'))
+      .toHaveLength(3);
+    await expect(bindingRow(INSTANCE_A)).resolves.not.toBeNull();
+    await expect(sandboxAuditRows()).resolves.toEqual([cleanupAudit({
+      outcome: 'retryable',
+      credentialsMinted: 6,
+      objectsDeleted: 2,
+    })]);
+  });
+
   it('holds at every future-expiry millisecond boundary and proceeds at equal, past, and null', async () => {
     const futureCases = [
       [NOW + 90_000, 90],
@@ -365,6 +387,66 @@ describe('SPB sandbox cleanup', () => {
     await expect(cleanupSpbSandboxBinding(testEnv, null, cleanupArgs(target)))
       .resolves.toEqual({ outcome: 'cleaned' });
     await expect(bindingRow(INSTANCE_A)).resolves.toBeNull();
+  });
+
+  it.each(['multipart_readback', 'object_readback'])(
+    'preserves the tombstone when %s returns malformed HTTP 200 XML',
+    async (operation) => {
+      const testEnv = makeTestEnv();
+      const target = await seedTombstone({ testEnv });
+      installCleanupS3State(testEnv, {
+        malformedReadbacks: new Set([operation]),
+      });
+
+      await expect(cleanupSpbSandboxBinding(testEnv, null, cleanupArgs(target)))
+        .resolves.toEqual({ outcome: 'retryable' });
+      await expect(bindingRow(INSTANCE_A)).resolves.not.toBeNull();
+      await expect(sandboxAuditRows()).resolves.toEqual([cleanupAudit({
+        outcome: 'retryable',
+        credentialsMinted: 2,
+      })]);
+    }
+  );
+
+  it.each(['multipart_readback', 'object_readback'])(
+    'requires a non-truncated %s before declaring cleanup verified',
+    async (operation) => {
+      const testEnv = makeTestEnv();
+      const target = await seedTombstone({ testEnv });
+      installCleanupS3State(testEnv, {
+        truncatedReadbacks: new Set([operation]),
+      });
+
+      await expect(cleanupSpbSandboxBinding(testEnv, null, cleanupArgs(target)))
+        .resolves.toEqual({ outcome: 'retryable' });
+      await expect(bindingRow(INSTANCE_A)).resolves.not.toBeNull();
+      await expect(sandboxAuditRows()).resolves.toEqual([cleanupAudit({
+        outcome: 'retryable',
+        credentialsMinted: 6,
+      })]);
+    }
+  );
+
+  it('audits successful object deletions before a partial delete failure', async () => {
+    const testEnv = makeTestEnv();
+    const target = await seedTombstone({ testEnv });
+    const state = installCleanupS3State(testEnv, {
+      objectsByPrefix: {
+        [target.prefix]: [`${target.prefix}deleted`, `${target.prefix}failed`],
+      },
+      partialDeleteOnce: true,
+    });
+
+    await expect(cleanupSpbSandboxBinding(testEnv, null, cleanupArgs(target)))
+      .resolves.toEqual({ outcome: 'retryable' });
+
+    expect(state.objectState.get(target.prefix)).toEqual([`${target.prefix}failed`]);
+    await expect(bindingRow(INSTANCE_A)).resolves.not.toBeNull();
+    await expect(sandboxAuditRows()).resolves.toEqual([cleanupAudit({
+      outcome: 'retryable',
+      credentialsMinted: 1,
+      objectsDeleted: 1,
+    })]);
   });
 
   it.each([
@@ -526,7 +608,11 @@ function installCleanupS3State(testEnv, {
   uploadsByPrefix = {},
   failOnce = new Set(),
   completeUploadOnFirstMultipartDrain = false,
+  completeUploadBetweenReadbacksCount = 0,
   injectObjectBeforeReadbackCount = 0,
+  malformedReadbacks = new Set(),
+  truncatedReadbacks = new Set(),
+  partialDeleteOnce = false,
   afterOperation = () => {},
   afterDelete = () => {},
 } = {}) {
@@ -543,8 +629,11 @@ function installCleanupS3State(testEnv, {
   const uploadSnapshots = new Map();
   let snapshotId = 0;
   let expectingMultipartReadback = false;
+  let multipartReadbackComplete = false;
   let uploadCompleted = false;
+  let betweenReadbackCompletions = 0;
   let readbackInjections = 0;
+  let partialDeletePending = partialDeleteOnce;
 
   const installed = installS3FetchMock(testEnv, {
     default: async ({ method, url, bodyText }) => {
@@ -586,6 +675,16 @@ function installCleanupS3State(testEnv, {
           `${prefix}late-${readbackInjections}`,
         ]);
       }
+      if (operation === 'object_readback' && multipartReadbackComplete) {
+        multipartReadbackComplete = false;
+        if (betweenReadbackCompletions < completeUploadBetweenReadbacksCount) {
+          betweenReadbackCompletions += 1;
+          objectState.set(prefix, [
+            ...(objectState.get(prefix) || []),
+            `${prefix}completed-between-${betweenReadbackCompletions}`,
+          ]);
+        }
+      }
 
       const failureKey = operation === 'object_readback' || operation === 'multipart_readback'
         ? 'readback'
@@ -598,11 +697,16 @@ function installCleanupS3State(testEnv, {
         afterOperation({ operation, url });
         return new Response('', { status: 500 });
       }
+      if (malformedReadbacks.has(operation)) {
+        installed.calls.at(-1).operation = operation;
+        afterOperation({ operation, url });
+        return xmlResponse('<UnexpectedListResult/>');
+      }
 
       let response;
       if (operation === 'object_list' || operation === 'object_readback') {
         const maxKeys = url.searchParams.get('max-keys');
-        const page = pageFromSnapshot({
+        let page = pageFromSnapshot({
           snapshots: objectSnapshots,
           snapshotId: () => ++snapshotId,
           token: url.searchParams.get('continuation-token'),
@@ -610,16 +714,30 @@ function installCleanupS3State(testEnv, {
           pageSize: maxKeys === null ? 1_000 : Number(maxKeys),
           tokenPrefix: 'objects',
         });
+        if (truncatedReadbacks.has(operation)) {
+          page = { page: [], isTruncated: true, nextToken: 'objects:truncated:1' };
+        }
         response = xmlResponse(listObjectsXml(page));
-        if (operation === 'object_readback') expectingMultipartReadback = true;
       } else if (operation === 'delete') {
         const keys = keysFromDeleteBody(bodyText);
-        removeObjectKeys(objectState, keys);
-        response = xmlResponse(
-          `<DeleteResult>${keys.map((key) => `<Deleted><Key>${xmlEscape(key)}</Key></Deleted>`).join('')}</DeleteResult>`
-        );
+        if (partialDeletePending) {
+          partialDeletePending = false;
+          const deleted = keys.slice(0, -1);
+          const failed = keys.at(-1);
+          removeObjectKeys(objectState, deleted);
+          response = xmlResponse(
+            `<DeleteResult>${deleted
+              .map((key) => `<Deleted><Key>${xmlEscape(key)}</Key></Deleted>`)
+              .join('')}<Error><Key>${xmlEscape(failed)}</Key><Code>InternalError</Code><Message>partial failure</Message></Error></DeleteResult>`
+          );
+        } else {
+          removeObjectKeys(objectState, keys);
+          response = xmlResponse(
+            `<DeleteResult>${keys.map((key) => `<Deleted><Key>${xmlEscape(key)}</Key></Deleted>`).join('')}</DeleteResult>`
+          );
+        }
       } else if (operation === 'multipart_list' || operation === 'multipart_readback') {
-        response = xmlResponse(listUploadsXml(pageFromSnapshot({
+        let page = pageFromSnapshot({
           snapshots: uploadSnapshots,
           snapshotId: () => ++snapshotId,
           token: uploadToken(
@@ -629,7 +747,15 @@ function installCleanupS3State(testEnv, {
           values: uploadState.get(prefix) || [],
           pageSize: 1,
           tokenPrefix: 'uploads',
-        })));
+        });
+        if (truncatedReadbacks.has(operation)) {
+          page = { page: [], isTruncated: true, nextToken: 'uploads:truncated:1' };
+        }
+        response = xmlResponse(listUploadsXml(page));
+        if (operation === 'multipart_list' && !page.isTruncated && page.page.length === 0) {
+          expectingMultipartReadback = true;
+        }
+        if (operation === 'multipart_readback') multipartReadbackComplete = true;
       } else {
         const key = keyFromUrlPath(testEnv, url);
         removeUpload(uploadState, key, url.searchParams.get('uploadId'));

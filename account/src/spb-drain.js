@@ -32,11 +32,11 @@ export async function drainObjects(env, {
           keys: batch,
           nowMs: deleteAuth.nowMs,
         });
+        totalDeleted += result.deleted.length;
+        onDeleted(result.deleted.length);
         if (result.errors.length > 0) {
           throw namedError('S3DeleteObjectsError', 'delete objects returned errors');
         }
-        totalDeleted += result.deleted.length;
-        onDeleted(result.deleted.length);
       }
       if (page.isTruncated && !page.nextContinuationToken) {
         throw namedError('S3ListObjectsError', 'truncated list missing continuation token');

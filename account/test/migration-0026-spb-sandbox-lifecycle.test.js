@@ -1,6 +1,7 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import migration from '../migrations/0026_spb_sandbox_lifecycle.sql?raw';
+import schema from '../schema.sql?raw';
 import { resetDb } from './helpers.js';
 
 const ACCOUNT_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -91,6 +92,18 @@ describe('migration 0026 SPB sandbox lifecycle', () => {
       .prepare('SELECT COUNT(*) AS count FROM spb_sandbox_audit')
       .first();
     expect(row.count).toBe(validAuditRows().length);
+  });
+
+  it('matches the consolidated schema columns, constraints, and indexes exactly', async () => {
+    await runMigration();
+    const migratedShape = await lifecycleStorageShape();
+
+    await resetDb();
+    const schemaShape = await lifecycleStorageShape();
+
+    expect(createTableSql(schema, 'spb_sandbox_audit'))
+      .toBe(createTableSql(migration, 'spb_sandbox_audit'));
+    expect(schemaShape).toEqual(migratedShape);
   });
 
   it('fails loudly on duplicate instance owners and preserves both rows without choosing a winner', async () => {
@@ -332,4 +345,55 @@ async function indexShape(table, name) {
   if (!index) return null;
   const { results: columns } = await workerEnv.DB.prepare(`PRAGMA index_info(${name})`).all();
   return { unique: index.unique, columns: columns.map((column) => column.name) };
+}
+
+async function lifecycleStorageShape() {
+  return {
+    bindingColumns: columnShape(await tableColumns('spb_bindings')),
+    auditColumns: columnShape(await tableColumns('spb_sandbox_audit')),
+    auditConstraints: await tableSql('spb_sandbox_audit'),
+    bindingIndexes: await indexShapes('spb_bindings'),
+    auditIndexes: await indexShapes('spb_sandbox_audit'),
+  };
+}
+
+function columnShape(columns) {
+  return columns.map((column) => ({
+    name: column.name,
+    type: column.type,
+    notnull: column.notnull,
+    defaultValue: column.dflt_value,
+    primaryKey: column.pk,
+  }));
+}
+
+async function tableSql(table) {
+  const row = await workerEnv.DB
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?")
+    .bind(table)
+    .first();
+  return row.sql.replace(/\s+/g, ' ').trim();
+}
+
+async function indexShapes(table) {
+  const { results: indexes } = await workerEnv.DB.prepare(`PRAGMA index_list(${table})`).all();
+  const shapes = [];
+  for (const index of indexes) {
+    const { results: columns } = await workerEnv.DB
+      .prepare(`PRAGMA index_info(${index.name})`)
+      .all();
+    shapes.push({
+      name: index.name,
+      unique: index.unique,
+      columns: columns.map((column) => column.name),
+    });
+  }
+  return shapes.sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function createTableSql(source, table) {
+  const match = source.match(new RegExp(
+    `CREATE TABLE IF NOT EXISTS ${table} \\([\\s\\S]*?\\n\\);`
+  ));
+  return match?.[0].replace(/\s+/g, ' ').trim() || null;
 }

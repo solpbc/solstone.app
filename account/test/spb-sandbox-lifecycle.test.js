@@ -262,6 +262,62 @@ describe('SPB sandbox lifecycle', () => {
     expect(evidence).not.toContain(INSTANCE_A);
   });
 
+  it('redacts upstream denial failures behind a stable message-free error', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    await claimSpbSandboxBinding(testEnv, {
+      sandboxRunId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      nowMs: 1_000,
+    });
+    const upstreamText = 'D1 upstream leaked internal detail';
+    const failingEnv = {
+      ...testEnv,
+      DB: {
+        prepare(sql) {
+          if (!/UPDATE spb_bindings\s+SET token_hash = NULL/i.test(sql)) {
+            return testEnv.DB.prepare(sql);
+          }
+          return {
+            bind() {
+              return {
+                all() {
+                  throw new Error(upstreamText);
+                },
+              };
+            },
+          };
+        },
+        batch(statements) {
+          return testEnv.DB.batch(statements);
+        },
+      },
+    };
+
+    const error = await denySpbSandboxBinding(failingEnv, null, {
+      sandboxRunId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      nowMs: 2_000,
+    }).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe('SpbSandboxDenialError');
+    expect(error.message).toBe('');
+    expect(String(error)).not.toContain(upstreamText);
+    await expect(auditRows()).resolves.toEqual([{
+      event: 'denial',
+      outcome: 'internal_error',
+      scope: null,
+      ttl: null,
+      credentials_minted: null,
+      objects_deleted: null,
+      multipart_aborted: null,
+      ts: 2_000,
+    }]);
+  });
+
   it('classifies re-denial as absent and another owner as ownership_conflict', async () => {
     const testEnv = makeTestEnv();
     const accountA = await seedAccount({ email: 'spb-deny-a@example.com', testEnv });

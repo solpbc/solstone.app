@@ -72,13 +72,13 @@ export async function denySpbSandboxBinding(env, ctx, {
     }
     await recordDenial(env, ctx, { outcome, nowMs });
     return { outcome };
-  } catch (error) {
+  } catch {
     try {
       await recordDenial(env, ctx, { outcome: 'internal_error', nowMs });
     } catch {
-      // Preserve the original failure; denial never reports success without durable evidence.
+      // Denial never reports success without durable evidence.
     }
-    throw error;
+    throw namedError('SpbSandboxDenialError');
   }
 }
 
@@ -163,7 +163,6 @@ export async function cleanupSpbSandboxBinding(env, ctx, {
       prefix,
       nowSeconds: Math.floor(mintNowMs / 1000),
     });
-    if (!credential) throw namedError('SpbSandboxCredentialError');
     return {
       credential,
       expiresAt: (credential.nowSeconds + credential.ttl) * 1000,
@@ -203,16 +202,23 @@ export async function cleanupSpbSandboxBinding(env, ctx, {
       });
 
       const verifier = await mintRequestCredential();
+      // Multipart must be read first: after it is empty, no remaining upload can
+      // commit an object that escapes the later object readback.
+      const multipartReadback = await listMultipartUploads(env, verifier.credential, {
+        prefix,
+        nowMs: Date.now(),
+      });
       const objectReadback = await listObjectsV2(env, verifier.credential, {
         prefix,
         maxKeys: 1,
         nowMs: Date.now(),
       });
-      const multipartReadback = await listMultipartUploads(env, verifier.credential, {
-        prefix,
-        nowMs: Date.now(),
-      });
-      if (objectReadback.keys.length === 0 && multipartReadback.uploads.length === 0) {
+      if (
+        !multipartReadback.isTruncated
+        && multipartReadback.uploads.length === 0
+        && !objectReadback.isTruncated
+        && objectReadback.keys.length === 0
+      ) {
         return finishVerifiedCleanup(env, ctx, {
           lifecycle,
           sandboxRunId,
@@ -275,7 +281,6 @@ async function finishVerifiedCleanup(env, ctx, {
       progress,
       nowMs,
       startMs,
-      attemptAudit: true,
     });
   }
 
@@ -292,7 +297,6 @@ async function finishVerifiedCleanup(env, ctx, {
       progress,
       nowMs,
       startMs,
-      attemptAudit: true,
     });
   }
   if (deleted) {
@@ -314,7 +318,6 @@ async function finishVerifiedCleanup(env, ctx, {
       progress,
       nowMs,
       startMs,
-      attemptAudit: true,
     });
   }
   const outcome = incumbent ? 'ownership_conflict' : 'absent';
@@ -325,7 +328,6 @@ async function finishVerifiedCleanup(env, ctx, {
       progress,
       nowMs,
       startMs,
-      attemptAudit: true,
     });
   }
   emitCleanupTelemetry(env, ctx, {
@@ -351,7 +353,6 @@ async function finishCleanupOutcome(env, ctx, {
       progress,
       nowMs,
       startMs,
-      attemptAudit: true,
     });
   }
   emitCleanupTelemetry(env, ctx, {
@@ -368,14 +369,11 @@ async function finishRetryable(env, ctx, {
   progress,
   nowMs,
   startMs,
-  attemptAudit = true,
 }) {
-  if (attemptAudit) {
-    try {
-      await insertCleanupAudit(env, { outcome: 'retryable', progress, nowMs });
-    } catch {
-      // The tombstone still preserves retryability when D1 audit storage is unavailable.
-    }
+  try {
+    await insertCleanupAudit(env, { outcome: 'retryable', progress, nowMs });
+  } catch {
+    // The tombstone still preserves retryability when D1 audit storage is unavailable.
   }
   emitCleanupTelemetry(env, ctx, {
     outcome: 'retryable',
@@ -429,7 +427,7 @@ function emitCleanupTelemetry(env, ctx, {
 }
 
 function namedError(name) {
-  const error = new Error(name);
+  const error = new Error();
   error.name = name;
   return error;
 }
