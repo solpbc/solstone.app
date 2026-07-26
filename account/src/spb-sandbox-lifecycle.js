@@ -1,10 +1,9 @@
-import { generateSessionToken, hashWithPepper } from './crypto.js';
+import { writeSpbBindingIssuance } from './capability-issuance.js';
 import {
   deleteSpbSandboxTombstone,
   denySpbSandboxBindingOwnership,
   findSpbSandboxLifecycleByInstance,
   insertSpbSandboxAudit,
-  upsertSpbBinding,
 } from './db.js';
 import { emitSecurityEvent } from './hub.js';
 import { mintSandboxMaintenanceCredential } from './r2-credential.js';
@@ -21,21 +20,25 @@ export async function claimSpbSandboxBinding(env, {
   sandboxRunId,
   accountId,
   instanceId,
+  expectedPhase = 'spb_intent',
   nowMs = Date.now(),
 }) {
   requireCanonicalUuids(sandboxRunId, accountId, instanceId);
-  const credential = generateSessionToken();
-  const tokenHash = await hashWithPepper(credential, env);
-  const row = await upsertSpbBinding(env.DB, {
+  const result = await writeSpbBindingIssuance({
+    env,
     accountId,
     instanceId,
-    tokenHash,
+    ownership: {
+      kind: 'sandbox_run',
+      runId: sandboxRunId,
+      instanceId,
+      expectedPhase,
+    },
     nowMs,
-    sandboxRunId,
   });
-  return row
-    ? { outcome: 'claimed', credential }
-    : { outcome: 'ownership_conflict' };
+  return result.outcome === 'issued'
+    ? { outcome: 'claimed', credential: result.brokerToken }
+    : { outcome: result.outcome };
 }
 
 export async function denySpbSandboxBinding(env, ctx, {
@@ -146,6 +149,7 @@ export async function cleanupSpbSandboxBinding(env, ctx, {
     return {
       outcome: 'credential_expiry_pending',
       retry_after_seconds: retryAfterSeconds,
+      retry_not_before_ms: lifecycle.sandbox_credential_expires_at,
     };
   }
 

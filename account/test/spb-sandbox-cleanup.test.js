@@ -284,6 +284,7 @@ describe('SPB sandbox cleanup', () => {
       await expect(cleanupSpbSandboxBinding(testEnv, null, cleanupArgs(target))).resolves.toEqual({
         outcome: 'credential_expiry_pending',
         retry_after_seconds: retryAfterSeconds,
+        retry_not_before_ms: expiry,
       });
       expect(fetchMock).not.toHaveBeenCalled();
       await expect(bindingRow(INSTANCE_A)).resolves.not.toBeNull();

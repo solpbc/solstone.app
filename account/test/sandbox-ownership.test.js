@@ -112,6 +112,19 @@ describe('sandbox ownership boundary', () => {
   it('accepts the canonical UUID shape case-insensitively', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
+    await seedSandboxRun({
+      runId: RUN_A.toUpperCase(),
+      accountId: account.accountId,
+      instanceId: INSTANCE_A.toUpperCase(),
+      status: 'provisioning',
+      provisioningPhase: 'spl_intent',
+      createdAt: 1_000,
+      dispatchState: 'deny_pending',
+      sppState: 'deny_pending',
+      spbState: 'deny_pending',
+      splRelayState: 'deny_pending',
+      splBindingState: 'deny_pending',
+    });
 
     await expect(claimSandboxSplBinding(testEnv, {
       sandboxRunId: RUN_A.toUpperCase(),
@@ -138,56 +151,12 @@ describe.each(bindingKinds)('$name sandbox binding claims', (kind) => {
     vi.useRealTimers();
   });
 
-  it('keeps the incumbent byte-identical for baseline/run, run/run, and cross-account losers', async () => {
-    const testEnv = makeTestEnv();
-    const accountA = await seedAccount({ email: `${kind.name.toLowerCase()}-a@example.com`, testEnv });
-    const accountB = await seedAccount({ email: `${kind.name.toLowerCase()}-b@example.com`, testEnv });
-
-    await kind.baseline(testEnv, { accountId: accountA.accountId, instanceId: INSTANCE_A, nowMs: 1_000 });
-    const baselineBefore = await bindingRow(kind.table, INSTANCE_A);
-    await expect(kind.claim(testEnv, {
-      sandboxRunId: RUN_A,
-      accountId: accountA.accountId,
-      instanceId: INSTANCE_A,
-      nowMs: 2_000,
-    })).resolves.toEqual({ outcome: 'ownership_conflict' });
-    await expect(bindingRow(kind.table, INSTANCE_A)).resolves.toEqual(baselineBefore);
-
-    await expect(kind.claim(testEnv, {
-      sandboxRunId: RUN_A,
-      accountId: accountA.accountId,
-      instanceId: INSTANCE_B,
-      nowMs: 3_000,
-    })).resolves.toMatchObject({ outcome: 'claimed' });
-    const runBefore = await bindingRow(kind.table, INSTANCE_B);
-    await expect(kind.claim(testEnv, {
-      sandboxRunId: RUN_B,
-      accountId: accountA.accountId,
-      instanceId: INSTANCE_B,
-      nowMs: 4_000,
-    })).resolves.toEqual({ outcome: 'ownership_conflict' });
-    await expect(bindingRow(kind.table, INSTANCE_B)).resolves.toEqual(runBefore);
-
-    await expect(kind.claim(testEnv, {
-      sandboxRunId: RUN_A,
-      accountId: accountA.accountId,
-      instanceId: INSTANCE_C,
-      nowMs: 5_000,
-    })).resolves.toMatchObject({ outcome: 'claimed' });
-    const accountBefore = await bindingRow(kind.table, INSTANCE_C);
-    await expect(kind.claim(testEnv, {
-      sandboxRunId: RUN_A,
-      accountId: accountB.accountId,
-      instanceId: INSTANCE_C,
-      nowMs: 6_000,
-    })).resolves.toEqual({ outcome: 'ownership_conflict' });
-    await expect(bindingRow(kind.table, INSTANCE_C)).resolves.toEqual(accountBefore);
-  });
-
-  it('returns claimed on an exact retry, preserves created_at, and advances last_seen_at', async () => {
-    const spy = installConsoleSpy();
+  it('claims and refreshes only while the exact run intent remains current', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: `${kind.name.toLowerCase()}-retry@example.com`, testEnv });
+    const phase = kind.name === 'SPL' ? 'spl_intent' : 'spp_intent';
+    await seedProvisioningRun({ accountId: account.accountId, instanceId: INSTANCE_A, phase });
+    const spy = installConsoleSpy();
     try {
       const first = await kind.claim(testEnv, {
         sandboxRunId: RUN_A,
@@ -218,43 +187,46 @@ describe.each(bindingKinds)('$name sandbox binding claims', (kind) => {
     }
   });
 
-  it('serializes baseline/run and cross-account races to one owner', async () => {
+  it('returns run_fence_lost without a write for missing, mismatched, or quiesced ownership', async () => {
     const testEnv = makeTestEnv();
-    const accountA = await seedAccount({ email: `${kind.name.toLowerCase()}-race-a@example.com`, testEnv });
-    const accountB = await seedAccount({ email: `${kind.name.toLowerCase()}-race-b@example.com`, testEnv });
+    const account = await seedAccount({ email: `${kind.name.toLowerCase()}-fence@example.com`, testEnv });
+    const phase = kind.name === 'SPL' ? 'spl_intent' : 'spp_intent';
+    await seedProvisioningRun({ accountId: account.accountId, instanceId: INSTANCE_A, phase });
+    await workerEnv.DB.prepare(
+      "UPDATE sandbox_runs SET status = 'cleanup_required', cleanup_phase = 'deny_intent' WHERE run_id = ?"
+    ).bind(RUN_A).run();
 
-    const [baseline, sandbox] = await Promise.all([
-      kind.baseline(testEnv, { accountId: accountA.accountId, instanceId: INSTANCE_A, nowMs: 1_000 }),
-      kind.claim(testEnv, {
-        sandboxRunId: RUN_A,
-        accountId: accountA.accountId,
-        instanceId: INSTANCE_A,
-        nowMs: 2_000,
-      }),
-    ]);
-    expect([baseline !== null, sandbox.outcome === 'claimed'].filter(Boolean)).toHaveLength(1);
-    if (baseline !== null) expect(sandbox).toEqual({ outcome: 'ownership_conflict' });
-    else expect(sandbox).toMatchObject({ outcome: 'claimed' });
-    await expect(bindingCount(kind.table, INSTANCE_A)).resolves.toBe(1);
+    await expect(kind.claim(testEnv, {
+      sandboxRunId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      nowMs: 2_000,
+    })).resolves.toEqual({ outcome: 'run_fence_lost' });
+    await expect(bindingCount(kind.table, INSTANCE_A)).resolves.toBe(0);
+    await expect(kind.claim(testEnv, {
+      sandboxRunId: RUN_B,
+      accountId: account.accountId,
+      instanceId: INSTANCE_B,
+      nowMs: 3_000,
+    })).resolves.toEqual({ outcome: 'run_fence_lost' });
+    await expect(bindingCount(kind.table, INSTANCE_B)).resolves.toBe(0);
+  });
 
-    const crossAccount = await Promise.all([
-      kind.claim(testEnv, {
-        sandboxRunId: RUN_A,
-        accountId: accountA.accountId,
-        instanceId: INSTANCE_B,
-        nowMs: 3_000,
-      }),
-      kind.claim(testEnv, {
-        sandboxRunId: RUN_A,
-        accountId: accountB.accountId,
-        instanceId: INSTANCE_B,
-        nowMs: 4_000,
-      }),
-    ]);
-    expect(crossAccount.map((result) => result.outcome).sort()).toEqual([
-      'claimed', 'ownership_conflict',
-    ]);
-    await expect(bindingCount(kind.table, INSTANCE_B)).resolves.toBe(1);
+  it('keeps a baseline incumbent byte-identical and reports ownership_conflict', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: `${kind.name.toLowerCase()}-incumbent@example.com`, testEnv });
+    const phase = kind.name === 'SPL' ? 'spl_intent' : 'spp_intent';
+    await seedProvisioningRun({ accountId: account.accountId, instanceId: INSTANCE_A, phase });
+    await kind.baseline(testEnv, { accountId: account.accountId, instanceId: INSTANCE_A, nowMs: 1_000 });
+    const before = await bindingRow(kind.table, INSTANCE_A);
+
+    await expect(kind.claim(testEnv, {
+      sandboxRunId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      nowMs: 2_000,
+    })).resolves.toEqual({ outcome: 'ownership_conflict' });
+    await expect(bindingRow(kind.table, INSTANCE_A)).resolves.toEqual(before);
   });
 });
 
@@ -317,25 +289,19 @@ describe('sandbox dispatch ownership', () => {
     const accountA = await seedAccount({ email: 'dispatch-a@example.com', testEnv });
     const accountB = await seedAccount({ email: 'dispatch-b@example.com', testEnv });
     try {
+      await seedProvisioningRun({
+        accountId: accountA.accountId,
+        instanceId: INSTANCE_A,
+        phase: 'dispatch_intent',
+      });
       const targetA = await mintSandboxDispatchToken(testEnv, {
-        sandboxRunId: RUN_A, accountId: accountA.accountId,
+        sandboxRunId: RUN_A, accountId: accountA.accountId, instanceId: INSTANCE_A,
       });
       const targetB = await mintSandboxDispatchToken(testEnv, {
-        sandboxRunId: RUN_A, accountId: accountA.accountId,
+        sandboxRunId: RUN_A, accountId: accountA.accountId, instanceId: INSTANCE_A,
       });
-      const otherRun = await mintSandboxDispatchToken(testEnv, {
-        sandboxRunId: RUN_B, accountId: accountA.accountId,
-      });
-      const otherAccount = await mintSandboxDispatchToken(testEnv, {
-        sandboxRunId: RUN_C, accountId: accountB.accountId,
-      });
+      const otherAccount = await mintDispatchToken(testEnv, accountB.accountId, RUN_C);
       const baseline = await mintDispatchToken(testEnv, accountA.accountId);
-      await seedSandboxRun({
-        runId: RUN_B,
-        accountId: accountA.accountId,
-        instanceId: INSTANCE_B,
-        createdAt: 0,
-      });
       await seedSandboxRun({
         runId: RUN_C,
         accountId: accountB.accountId,
@@ -363,7 +329,7 @@ describe('sandbox dispatch ownership', () => {
         expect(after.find((row) => row.token_hash === target.tokenHash)?.revoked_at).toBe(2_000);
         await expect(resolveDispatchToken(testEnv, target.token)).resolves.toBeNull();
       }
-      for (const untouched of [otherRun, otherAccount, baseline]) {
+      for (const untouched of [otherAccount, baseline]) {
         expect(after.find((row) => row.token_hash === untouched.tokenHash))
           .toEqual(before.find((row) => row.token_hash === untouched.tokenHash));
         await expect(resolveDispatchToken(testEnv, untouched.token)).resolves.toEqual({
@@ -379,7 +345,7 @@ describe('sandbox dispatch ownership', () => {
       await expect(dispatchRows()).resolves.toEqual(after);
       spy.assertNoSecrets([
         targetA.token, targetA.tokenHash, targetB.token, targetB.tokenHash,
-        otherRun.token, otherRun.tokenHash, otherAccount.token, otherAccount.tokenHash,
+        otherAccount.token, otherAccount.tokenHash,
         baseline.token, baseline.tokenHash, accountA.accountId, accountB.accountId, RUN_A, RUN_B, RUN_C,
       ]);
     } finally {
@@ -392,8 +358,8 @@ describe('sandbox dispatch ownership', () => {
     const testEnv = makeTestEnv();
     const accountA = await seedAccount({ email: 'dispatch-conflict-a@example.com', testEnv });
     const accountB = await seedAccount({ email: 'dispatch-conflict-b@example.com', testEnv });
-    await mintSandboxDispatchToken(testEnv, { sandboxRunId: RUN_A, accountId: accountA.accountId });
-    await mintSandboxDispatchToken(testEnv, { sandboxRunId: RUN_A, accountId: accountB.accountId });
+    await mintDispatchToken(testEnv, accountA.accountId, RUN_A);
+    await mintDispatchToken(testEnv, accountB.accountId, RUN_A);
     const before = await dispatchRows();
 
     await expect(releaseSandboxDispatchTokens(testEnv, {
@@ -417,16 +383,18 @@ describe('sandbox dispatch ownership', () => {
     });
     await insertProvisionedKey(account.accountId);
     try {
+      await seedProvisioningRun({
+        accountId: account.accountId,
+        instanceId: INSTANCE_A,
+        phase: 'dispatch_intent',
+        createdAt: 0,
+      });
       const minted = await mintSandboxDispatchToken(testEnv, {
         sandboxRunId: RUN_A,
         accountId: account.accountId,
-      });
-      await seedSandboxRun({
-        runId: RUN_A,
-        accountId: account.accountId,
         instanceId: INSTANCE_A,
-        createdAt: 0,
       });
+      await activateSeededRun(RUN_A);
       const applicationBefore = await accountRow('scout_applications', account.accountId);
       const keyBefore = await accountRow('provisioned_keys', account.accountId);
       const before = await worker.fetch(statusRequest(minted.token), testEnv);
@@ -483,18 +451,19 @@ describe('sandbox SPP deny', () => {
     };
     const entitlementBefore = await entitlementRow(account.accountId);
     try {
+      await seedProvisioningRun({
+        accountId: account.accountId,
+        instanceId: INSTANCE_A,
+        phase: 'spp_intent',
+        createdAt: 0,
+      });
       const claimed = await claimSandboxSppBinding(testEnv, {
         sandboxRunId: RUN_A,
         accountId: account.accountId,
         instanceId: INSTANCE_A,
         nowMs: 1_000,
       });
-      await seedSandboxRun({
-        runId: RUN_A,
-        accountId: account.accountId,
-        instanceId: INSTANCE_A,
-        createdAt: 0,
-      });
+      await activateSeededRun(RUN_A);
       expect(claimed).toMatchObject({ outcome: 'claimed', credential: expect.any(String) });
 
       const before = await authorizeSpp(testEnv, claimed.credential);
@@ -537,6 +506,36 @@ async function bindingCount(table, instanceId) {
     .bind(instanceId)
     .first();
   return Number(row.count);
+}
+
+async function seedProvisioningRun({ accountId, instanceId, phase, createdAt = 0 }) {
+  return seedSandboxRun({
+    runId: RUN_A,
+    accountId,
+    instanceId,
+    status: 'provisioning',
+    provisioningPhase: phase,
+    createdAt,
+    dispatchState: 'deny_pending',
+    sppState: 'deny_pending',
+    spbState: 'deny_pending',
+    splRelayState: 'deny_pending',
+    splBindingState: 'deny_pending',
+  });
+}
+
+async function activateSeededRun(runId) {
+  await workerEnv.DB.prepare(
+    `UPDATE sandbox_runs
+     SET status = 'active',
+         provisioning_phase = 'active',
+         dispatch_state = 'active',
+         spp_state = 'active',
+         spb_state = 'active',
+         spl_relay_state = 'active',
+         spl_binding_state = 'active'
+     WHERE run_id = ?`
+  ).bind(runId).run();
 }
 
 async function dispatchRows() {

@@ -95,6 +95,7 @@ export async function reconcileSplEntitlement(env, accountId, nowMs, ctx, opts =
     }
   }
 
+  if (opts.syncRelay === false) return;
   const sync = syncAccountEntitlementToRelay(env, accountId);
   if (typeof ctx?.waitUntil === 'function') {
     ctx.waitUntil(sync);

@@ -4,7 +4,7 @@ import {
   waitOnExecutionContext,
 } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { hashWithPepper } from '../src/crypto.js';
+import { generateSessionToken, hashWithPepper } from '../src/crypto.js';
 import {
   advanceSpbSandboxCredentialExpiry,
   clearSpbBindingLapsed,
@@ -13,7 +13,7 @@ import {
   upsertSpbBinding,
 } from '../src/db.js';
 import {
-  claimSpbSandboxBinding,
+  claimSpbSandboxBinding as fencedClaimSpbSandboxBinding,
   denySpbSandboxBinding,
 } from '../src/spb-sandbox-lifecycle.js';
 import {
@@ -501,7 +501,7 @@ describe('SPB sandbox lifecycle', () => {
     });
     const testEnv = { ...makeTestEnv(), DB: { prepare } };
 
-    await expect(claimSpbSandboxBinding(testEnv, {
+    await expect(fencedClaimSpbSandboxBinding(testEnv, {
       sandboxRunId: 'not-a-run',
       accountId: INSTANCE_A,
       instanceId: INSTANCE_B,
@@ -513,10 +513,68 @@ describe('SPB sandbox lifecycle', () => {
     })).rejects.toThrow('invalid sandbox ownership identifier');
     expect(prepare).not.toHaveBeenCalled();
   });
+
+  it('fences a claim to the exact provisioning run, instance, and SPB intent', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    await seedSandboxRun({
+      runId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      status: 'provisioning',
+      provisioningPhase: 'spb_intent',
+      createdAt: 1_000,
+      dispatchState: 'deny_pending',
+      sppState: 'deny_pending',
+      spbState: 'deny_pending',
+      splRelayState: 'deny_pending',
+      splBindingState: 'deny_pending',
+    });
+
+    const claimed = await fencedClaimSpbSandboxBinding(testEnv, {
+      sandboxRunId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      nowMs: 1_000,
+    });
+    expect(claimed).toMatchObject({ outcome: 'claimed', credential: expect.any(String) });
+    const before = await bindingRow(INSTANCE_A);
+    await testEnv.DB.prepare(
+      "UPDATE sandbox_runs SET status = 'cleanup_required', cleanup_phase = 'deny_intent' WHERE run_id = ?"
+    ).bind(RUN_A).run();
+
+    await expect(fencedClaimSpbSandboxBinding(testEnv, {
+      sandboxRunId: RUN_A,
+      accountId: account.accountId,
+      instanceId: INSTANCE_A,
+      nowMs: 2_000,
+    })).resolves.toEqual({ outcome: 'run_fence_lost' });
+    await expect(bindingRow(INSTANCE_A)).resolves.toEqual(before);
+  });
 });
 
 function claimResult(row) {
   return { outcome: row ? 'claimed' : 'ownership_conflict' };
+}
+
+async function claimSpbSandboxBinding(testEnv, {
+  sandboxRunId,
+  accountId,
+  instanceId,
+  nowMs = Date.now(),
+}) {
+  const credential = generateSessionToken();
+  const tokenHash = await hashWithPepper(credential, testEnv);
+  const row = await upsertSpbBinding(testEnv.DB, {
+    accountId,
+    instanceId,
+    tokenHash,
+    nowMs,
+    sandboxRunId,
+  });
+  return row
+    ? { outcome: 'claimed', credential }
+    : { outcome: 'ownership_conflict' };
 }
 
 function outcomes(results) {

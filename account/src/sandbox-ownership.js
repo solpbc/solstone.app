@@ -1,56 +1,72 @@
-import { generateSessionToken, hashWithPepper } from './crypto.js';
+import {
+  writeDispatchIssuance,
+  writeSplBindingIssuance,
+  writeSppBindingIssuance,
+} from './capability-issuance.js';
 import {
   releaseDispatchTokensForSandboxRun,
   releaseSplBindingOwnership,
   releaseSppBindingOwnership,
-  upsertSplBinding,
-  upsertSppBinding,
 } from './db.js';
-import { mintDispatchToken } from './dispatch-tokens.js';
 import { requireCanonicalUuids } from './sandbox-identifiers.js';
 
-export async function mintSandboxDispatchToken(env, { sandboxRunId, accountId }) {
-  requireCanonicalUuids(sandboxRunId, accountId);
-  return mintDispatchToken(env, accountId, sandboxRunId);
+export async function mintSandboxDispatchToken(env, {
+  sandboxRunId,
+  accountId,
+  instanceId,
+  expectedPhase = 'dispatch_intent',
+  nowMs = Date.now(),
+}) {
+  requireCanonicalUuids(sandboxRunId, accountId, instanceId);
+  const result = await writeDispatchIssuance({
+    env,
+    accountId,
+    ownership: sandboxOwnership(sandboxRunId, instanceId, expectedPhase),
+    nowMs,
+  });
+  return result.outcome === 'issued' ? result.dispatch : { outcome: result.outcome };
 }
 
 export async function claimSandboxSplBinding(env, {
   sandboxRunId,
   accountId,
   instanceId,
+  expectedPhase = 'spl_intent',
   nowMs = Date.now(),
 }) {
   requireCanonicalUuids(sandboxRunId, accountId, instanceId);
-  const row = await upsertSplBinding(env.DB, {
+  const result = await writeSplBindingIssuance({
+    env,
     accountId,
     instanceId,
+    ownership: sandboxOwnership(sandboxRunId, instanceId, expectedPhase),
     nowMs,
-    sandboxRunId,
   });
-  return row ? { outcome: 'claimed' } : { outcome: 'ownership_conflict' };
+  return result.outcome === 'issued'
+    ? { outcome: 'claimed' }
+    : { outcome: result.outcome };
 }
 
 export async function claimSandboxSppBinding(env, {
   sandboxRunId,
   accountId,
   instanceId,
+  expectedPhase = 'spp_intent',
   nowMs = Date.now(),
 }) {
   requireCanonicalUuids(sandboxRunId, accountId, instanceId);
-  const credential = generateSessionToken();
-  const tokenHash = await hashWithPepper(credential, env);
-  const row = await upsertSppBinding(env.DB, {
+  const result = await writeSppBindingIssuance({
+    env,
     accountId,
     instanceId,
-    tokenHash,
+    ownership: sandboxOwnership(sandboxRunId, instanceId, expectedPhase),
     nowMs,
     consentAckedAt: null,
     consentDisclosureVersion: null,
-    sandboxRunId,
   });
-  return row
-    ? { outcome: 'claimed', credential }
-    : { outcome: 'ownership_conflict' };
+  return result.outcome === 'issued'
+    ? { outcome: 'claimed', credential: result.credential }
+    : { outcome: result.outcome };
 }
 
 // Revoke every active token for one exact run+account so partial same-run retries
@@ -103,4 +119,8 @@ function releaseBindingResult(result) {
   if (result.deletedRows.length > 0) return { outcome: 'released' };
   if (result.incumbent) return { outcome: 'ownership_conflict' };
   return { outcome: 'absent' };
+}
+
+function sandboxOwnership(runId, instanceId, expectedPhase) {
+  return { kind: 'sandbox_run', runId, instanceId, expectedPhase };
 }

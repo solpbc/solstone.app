@@ -90,7 +90,13 @@ const RESUME_PATH_WHITELIST = new Map([
 
 export async function provisionScoutForAccount({ env, accountId, ctx }) {
   const googleApiKey = await ensureProvisionedKey({ env, accountId });
-  const issued = await issueScoutCapability({ env, accountId, googleApiKey });
+  const issued = await issueScoutCapability({
+    env,
+    accountId,
+    googleApiKey,
+    ownership: { kind: 'baseline' },
+    nowMs: Date.now(),
+  });
   return issued.capability;
 }
 
@@ -483,8 +489,10 @@ export async function handleEnableSplConfirm(req, env, ctx) {
     env,
     accountId: session.account_id,
     instanceId: instance,
+    ownership: { kind: 'baseline' },
     nowMs,
     ctx,
+    leaseExpiresAt: null,
   });
   if (issued.outcome === 'ownership_conflict') {
     return noStoreHtml(renderError(), { status: 500 });
@@ -594,6 +602,7 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
     instanceId: instance,
     nowMs,
     brokerEndpoint: origin,
+    ownership: { kind: 'baseline' },
     ctx,
   });
   if (issued.outcome === 'ownership_conflict') return spbError(500);
@@ -737,6 +746,7 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     nowMs,
     consentAckedAt: nowMs,
     consentDisclosureVersion: SPP_CONSENT_DISCLOSURE_VERSION,
+    ownership: { kind: 'baseline' },
     ctx,
   });
   if (issued.outcome === 'ownership_conflict') {

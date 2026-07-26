@@ -44,6 +44,7 @@ export function makeTestEnv(overrides = {}) {
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
     IMPERSONATE_ALLOWED: overrides.IMPERSONATE_ALLOWED,
+    SANDBOX_ACCOUNT_ID: overrides.SANDBOX_ACCOUNT_ID,
     EMAIL_PATH_DISABLED: overrides.EMAIL_PATH_DISABLED || 'false',
     SIGNUP_DISABLED: overrides.SIGNUP_DISABLED || 'false',
     SUPPORT_WORKER: overrides.SUPPORT_WORKER,
@@ -460,6 +461,24 @@ export function extractCookieToken(setCookie) {
 
 export async function dbDumpText() {
   const tables = [
+    'sandbox_runs',
+    'entitlements',
+    'stripe_customers',
+    'spl_bindings',
+    'spb_bindings',
+    'spp_bindings',
+    'spb_sandbox_audit',
+    'spb_mint_audit',
+    'spp_mint_audit',
+    'spb_sweep_audit',
+    'scout_lifecycle_events',
+    'scout_applications',
+    'gemini_reveal_acks',
+    'enable_scout_codes',
+    'service_handoffs',
+    'provisioned_keys',
+    'account_dispatch_tokens',
+    'account_devices',
     'accounts',
     'account_emails',
     'sessions',
@@ -505,6 +524,35 @@ export async function seedScoutApplication({
     )
     .bind(accountId, status, applied_at, approved_at, revoked_at, createdAt, createdAt)
     .run();
+}
+
+export async function seedActiveGeminiKey({
+  accountId,
+  keyMaterial = 'test-standing-gemini-key',
+  id = crypto.randomUUID(),
+  createdAt = 1_000,
+  lastUsedAt = null,
+  testEnv = makeTestEnv(),
+} = {}) {
+  const keyStringEncrypted = await encryptEmail(keyMaterial, testEnv);
+  await env.DB
+    .prepare(
+      `INSERT INTO provisioned_keys (
+         id, account_id, provider, display_name, key_resource_name,
+         key_string_encrypted, created_at, last_used_at, revoked_at
+       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?, ?, NULL)`
+    )
+    .bind(
+      id,
+      accountId,
+      `acct-${accountId.slice(0, 12)}`,
+      `projects/test/locations/global/keys/${id}`,
+      keyStringEncrypted,
+      createdAt,
+      lastUsedAt
+    )
+    .run();
+  return { id, accountId, keyMaterial, keyStringEncrypted, createdAt, lastUsedAt };
 }
 
 export async function seedAccountEmail({

@@ -48,6 +48,11 @@ service = "spl-relay"
 #   Provision only for a specific test run (`wrangler secret put IMPERSONATE_ALLOWED`) and remove it after
 #   (`wrangler secret delete IMPERSONATE_ALLOWED`). No default; never a [vars] entry; never hardcode account ids.
 
+# Sandbox run account (set via `wrangler secret put`):
+# SANDBOX_ACCOUNT_ID — one canonical UUID naming the designated synthetic account.
+#   Unset, empty, or malformed disables POST/GET/DELETE /admin/sandbox-runs with a redacted 503.
+#   No default; never a [vars] entry; never hardcode the account id.
+
 # APNs push dispatch secrets (set via `wrangler secret put`):
 # APNS_TEAM_ID — Apple Developer Team ID (used as JWT issuer).
 # APNS_KEY_ID — Apple APNs auth key id (scopes the KV JWT cache key).

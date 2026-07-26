@@ -2,10 +2,9 @@ import { generateSessionToken, hashWithPepper } from './crypto.js';
 import { findActiveDispatchToken, insertDispatchToken } from './db.js';
 import { json } from './index.js';
 
-export async function mintDispatchToken(env, accountId, sandboxRunId = null) {
+export async function mintDispatchToken(env, accountId, sandboxRunId = null, nowMs = Date.now()) {
   const token = generateSessionToken();
   const tokenHash = await hashWithPepper(token, env, 'DISPATCH_TOKEN_PEPPER');
-  const nowMs = Date.now();
   // No cap column: capability narrowness is enforced by resolveDispatchToken call sites.
   await insertDispatchToken(env.DB, { tokenHash, accountId, nowMs, sandboxRunId });
   return { token, tokenHash, accountId, sandboxRunId, createdAt: new Date(nowMs).toISOString() };

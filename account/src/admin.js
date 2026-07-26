@@ -27,6 +27,7 @@ import { SESSION_COOKIE } from './session.js';
 import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { emitSecurityEvent } from './hub.js';
+import { handleSandboxRunRequest } from './sandbox-run-lease.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
 const ISSUER = 'https://solpbc.cloudflareaccess.com';
@@ -153,6 +154,17 @@ export async function handleAdmin(request, env, url, ctx) {
     }
     if (parts.length === 3 && parts[2] === 'impersonate') {
       return await impersonateAccount(request, env, admin, ctx);
+    }
+    if (parts[2] === 'sandbox-runs') {
+      const response = await handleSandboxRunRequest(
+        request,
+        env,
+        url,
+        parts,
+        ctx,
+        SECURITY_HEADERS
+      );
+      if (response) return response;
     }
     if (request.method !== 'GET') {
       return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
