@@ -11,6 +11,7 @@ import {
   parseRunCount,
   summarizeProcesses,
   updatePeaks,
+  validateProcessGroupOwnership,
 } from '../scripts/measure-test-resources.mjs';
 
 describe('test resource measurement', () => {
@@ -57,6 +58,7 @@ describe('test resource measurement', () => {
     ], new Set([10, 20]));
 
     expect(sample.aggregate).toMatchObject({ rssKiB: 1100, threads: 22, workerd: 2 });
+    expect(sample.aggregate).not.toHaveProperty('workerdPids');
     expect(sample.groups[10].workerdPids).toEqual([2]);
     expect(sample.groups[20].workerdPids).toEqual([3]);
   });
@@ -72,6 +74,33 @@ describe('test resource measurement', () => {
 
     expect(peaks).toMatchObject({ rssKiB: 500, threads: 10, workerd: 1 });
     expect(peaks.groups[10]).toEqual({ rssKiB: 500, threads: 10, workerd: 1 });
+  });
+
+  it('rejects a detached child that is not its process-group leader', () => {
+    expect(() => validateProcessGroupOwnership({
+      childPid: 100,
+      pgrp: 101,
+      samplerPgrp: 50,
+      resolvedPgids: new Set(),
+    })).toThrow(/not process-group leader/);
+  });
+
+  it('rejects a child process group that matches the sampler group', () => {
+    expect(() => validateProcessGroupOwnership({
+      childPid: 100,
+      pgrp: 100,
+      samplerPgrp: 100,
+      resolvedPgids: new Set(),
+    })).toThrow(/matches sampler process group/);
+  });
+
+  it('rejects a child process group already owned by another run', () => {
+    expect(() => validateProcessGroupOwnership({
+      childPid: 101,
+      pgrp: 100,
+      samplerPgrp: 50,
+      resolvedPgids: new Set([100]),
+    })).toThrow(/duplicate child pgrp/);
   });
 
   it('marks enumeration failure and malformed in-scope records unavailable', () => {
@@ -115,6 +144,32 @@ describe('test resource measurement', () => {
     expect(unresolvedResult.unavailableReasons.join(' ')).toMatch(/unresolved pgid/);
   });
 
+  it('deduplicates repeated metrics-unavailable reasons while preserving order', () => {
+    const fixture = measurementFixture({
+      sampling: { errors: ['repeated failure', 'other failure', 'repeated failure'] },
+    });
+    const assessment = assessMeasurement(fixture);
+    const report = buildReportRecord({ ...fixture, assessment });
+
+    expect(assessment.unavailableReasons).toEqual([
+      'repeated failure',
+      'other failure',
+    ]);
+    expect(report.metricsUnavailableReasons).toEqual(['repeated failure', 'other failure']);
+    expect(JSON.stringify(report).match(/repeated failure/g)).toHaveLength(1);
+  });
+
+  it('reports the final teardown observation and per-group resource peaks', () => {
+    const fixture = measurementFixture();
+    const assessment = assessMeasurement(fixture);
+
+    expect(buildReportRecord({ ...fixture, assessment }).runs[0]).toMatchObject({
+      peakRssKiB: 100,
+      peakTaskThreadCount: 2,
+      finalTeardownObservation: { count: 0, pids: [], source: 'clean-sample' },
+    });
+  });
+
   it('distinguishes child, resource-bound, unavailable, and interrupted exits', () => {
     const child = measurementFixture();
     child.runs[0].exitCode = 1;
@@ -122,6 +177,13 @@ describe('test resource measurement', () => {
     const bound = measurementFixture();
     bound.runs[0].peakWorkerd = 2;
     expect(assessMeasurement(bound).exitCode).toBe(1);
+    const lingering = measurementFixture();
+    lingering.runs[0].finalTeardownObservation = {
+      count: 1,
+      pids: [11],
+      source: 'deadline',
+    };
+    expect(assessMeasurement(lingering).exitCode).toBe(1);
     const unavailable = measurementFixture({ sampling: { errors: ['bad sample'] } });
     unavailable.runs[0].exitCode = 1;
     expect(assessMeasurement(unavailable)).toMatchObject({ exitCode: 2 });
@@ -148,14 +210,21 @@ function measurementFixture({ sampling: samplingOverrides = {} } = {}) {
       observedWorkerd: true,
       exitCode: 0,
       exitSignal: null,
+      pid: 10,
+      pgid: 10,
       peakWorkerd: 1,
-      deadlineLingering: { count: 0, pids: [] },
+      finalTeardownObservation: { count: 0, pids: [], source: 'clean-sample' },
     }],
     sampling: {
       errors: [],
       validSampleCount: 2,
       maxObservedGapMs: 100,
-      peaks: { rssKiB: 100, threads: 2, workerd: 1, groups: {} },
+      peaks: {
+        rssKiB: 100,
+        threads: 2,
+        workerd: 1,
+        groups: { 10: { rssKiB: 100, threads: 2, workerd: 1 } },
+      },
       overlap: null,
       ...samplingOverrides,
     },

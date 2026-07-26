@@ -68,13 +68,12 @@ export function summarizeProcesses(processes, pgids) {
       group.workerdPids.push(processRecord.pid);
     }
   }
-  const aggregate = emptyGroup();
+  const aggregate = { processes: 0, rssKiB: 0, threads: 0, workerd: 0 };
   for (const group of Object.values(groups)) {
     aggregate.processes += group.processes;
     aggregate.rssKiB += group.rssKiB;
     aggregate.threads += group.threads;
     aggregate.workerd += group.workerd;
-    aggregate.workerdPids.push(...group.workerdPids);
   }
   return { groups, aggregate };
 }
@@ -129,30 +128,42 @@ export function updatePeaks(peaks, sample) {
 }
 
 export function assessMeasurement({ runCount, runs, sampling, interruptedSignal = null }) {
-  const unavailableReasons = [...sampling.errors];
+  const unavailableReasons = [];
+  for (const error of sampling.errors) addUnique(unavailableReasons, error);
   for (const run of runs) {
-    if (run.spawnError) unavailableReasons.push(`run ${run.index} spawn failure: ${run.spawnError}`);
-    if (run.pgidError) unavailableReasons.push(`run ${run.index} unresolved pgid: ${run.pgidError}`);
-    if (run.closeMs == null && !run.spawnError) unavailableReasons.push(`run ${run.index} missing child close status`);
-    if (run.validLiveSamples === 0 && !run.spawnError) unavailableReasons.push(`run ${run.index} has no valid live-child sample`);
-    if (!run.observedWorkerd && !run.spawnError) unavailableReasons.push(`run ${run.index} observed no workerd`);
+    if (run.spawnError) addUnique(unavailableReasons, `run ${run.index} spawn failure: ${run.spawnError}`);
+    if (run.pgidError) addUnique(unavailableReasons, `run ${run.index} unresolved pgid: ${run.pgidError}`);
+    if (run.closeMs == null && !run.spawnError) {
+      addUnique(unavailableReasons, `run ${run.index} missing child close status`);
+    }
+    if (run.validLiveSamples === 0 && !run.spawnError) {
+      addUnique(unavailableReasons, `run ${run.index} has no valid live-child sample`);
+    }
+    if (!run.observedWorkerd && !run.spawnError) {
+      addUnique(unavailableReasons, `run ${run.index} observed no workerd`);
+    }
   }
-  if (sampling.validSampleCount === 0) unavailableReasons.push('zero valid samples');
+  if (sampling.validSampleCount === 0) addUnique(unavailableReasons, 'zero valid samples');
   if (sampling.maxObservedGapMs > MAX_SAMPLE_GAP_MS) {
-    unavailableReasons.push(
+    addUnique(
+      unavailableReasons,
       `maximum observed gap ${formatMs(sampling.maxObservedGapMs)} exceeds ${MAX_SAMPLE_GAP_MS} ms`,
     );
   }
-  if (sampling.peaks.rssKiB === 0) unavailableReasons.push('peak aggregate RSS was not observed');
-  if (sampling.peaks.threads === 0) unavailableReasons.push('peak task/thread count was not observed');
-  if (runCount === 2 && !sampling.overlap) unavailableReasons.push('two-run overlap window was not observed');
+  if (sampling.peaks.rssKiB === 0) addUnique(unavailableReasons, 'peak aggregate RSS was not observed');
+  if (sampling.peaks.threads === 0) addUnique(unavailableReasons, 'peak task/thread count was not observed');
+  if (runCount === 2 && !sampling.overlap) {
+    addUnique(unavailableReasons, 'two-run overlap window was not observed');
+  }
 
   const childFailures = runs.filter((run) => run.exitCode !== 0 || run.exitSignal);
   const boundFailures = [];
   for (const run of runs) {
     if (run.peakWorkerd > 1) boundFailures.push(`run ${run.index} workerd peak ${run.peakWorkerd} exceeds 1`);
-    if (run.deadlineLingering?.count > 0) {
-      boundFailures.push(`run ${run.index} has ${run.deadlineLingering.count} lingering workerd after 10000 ms`);
+    if (run.finalTeardownObservation?.count > 0) {
+      boundFailures.push(
+        `run ${run.index} has ${run.finalTeardownObservation.count} lingering workerd after 10000 ms`,
+      );
     }
   }
   if (sampling.peaks.workerd > runCount) {
@@ -184,6 +195,19 @@ export function forwardSignal(signal, pgids, kill = process.kill) {
   return failures;
 }
 
+export function validateProcessGroupOwnership({ childPid, pgrp, samplerPgrp, resolvedPgids }) {
+  if (!Number.isInteger(pgrp) || pgrp <= 0) throw new Error(`invalid pgrp ${pgrp}`);
+  if (pgrp === samplerPgrp) {
+    throw new Error(`child pgrp ${pgrp} matches sampler process group`);
+  }
+  if (resolvedPgids.has(pgrp)) throw new Error(`duplicate child pgrp ${pgrp}`);
+  if (pgrp !== childPid) {
+    throw new Error(`child pid ${childPid} is not process-group leader (pgrp ${pgrp})`);
+  }
+  resolvedPgids.add(pgrp);
+  return pgrp;
+}
+
 function emptyGroup() {
   return { processes: 0, rssKiB: 0, threads: 0, workerd: 0, workerdPids: [] };
 }
@@ -198,6 +222,15 @@ function procError(context, error) {
   return wrapped;
 }
 
+function addUnique(values, value) {
+  if (!values.includes(value)) values.push(value);
+}
+
+function reportSignalFailures(signal, pgids) {
+  const failures = forwardSignal(signal, pgids);
+  for (const failure of failures) console.error(`signal forwarding failed: ${failure}`);
+}
+
 function formatMs(value) {
   return Number(value).toFixed(1);
 }
@@ -206,7 +239,7 @@ function elapsedMs(origin) {
   return Number(process.hrtime.bigint() - origin) / 1e6;
 }
 
-function startRun(index, origin, interruptedSignalRef) {
+function startRun(index, origin, interruptedSignalRef, processGroups) {
   const run = {
     index,
     pid: null,
@@ -222,7 +255,7 @@ function startRun(index, origin, interruptedSignalRef) {
     observedWorkerd: false,
     peakWorkerd: 0,
     firstPostCloseLingering: null,
-    deadlineLingering: null,
+    finalTeardownObservation: null,
     teardownTimeMs: null,
   };
   const spec = createLaunchSpec();
@@ -240,9 +273,15 @@ function startRun(index, origin, interruptedSignalRef) {
     run.spawnMs = elapsedMs(origin);
     try {
       const stat = parseProcStat(readFileSync(`/proc/${child.pid}/stat`, 'utf8'));
-      if (stat.pgrp <= 0) throw new Error(`invalid pgrp ${stat.pgrp}`);
-      run.pgid = stat.pgrp;
-      if (interruptedSignalRef.value) forwardSignal(interruptedSignalRef.value, [run.pgid]);
+      run.pgid = validateProcessGroupOwnership({
+        childPid: child.pid,
+        pgrp: stat.pgrp,
+        samplerPgrp: processGroups.samplerPgrp,
+        resolvedPgids: processGroups.resolvedPgids,
+      });
+      if (interruptedSignalRef.value) {
+        reportSignalFailures(interruptedSignalRef.value, [run.pgid]);
+      }
     } catch (error) {
       run.pgidError = error.message;
     }
@@ -260,10 +299,8 @@ function startRun(index, origin, interruptedSignalRef) {
   return run;
 }
 
-async function monitorRuns(runs, runCount, origin, interruptedSignalRef) {
+async function monitorRuns(runs, runCount, origin) {
   const sampling = {
-    intervalMs: SAMPLE_INTERVAL_MS,
-    maxAllowedGapMs: MAX_SAMPLE_GAP_MS,
     validSampleCount: 0,
     maxObservedGapMs: 0,
     errors: [],
@@ -292,7 +329,10 @@ async function monitorRuns(runs, runCount, origin, interruptedSignalRef) {
           if (run.closeMs == null) {
             run.validLiveSamples += 1;
             if (group.processes === 0 || group.rssKiB === 0 || group.threads === 0) {
-              sampling.errors.push(`run ${run.index} live process group yielded zero RSS/tasks`);
+              addUnique(
+                sampling.errors,
+                `run ${run.index} live process group yielded zero processes/RSS/tasks`,
+              );
             }
           }
           if (group.workerd > 0) run.observedWorkerd = true;
@@ -301,19 +341,23 @@ async function monitorRuns(runs, runCount, origin, interruptedSignalRef) {
           }
           if (run.closeMs != null && group.workerd === 0 && run.teardownTimeMs == null) {
             run.teardownTimeMs = Math.max(0, attemptMs - run.closeMs);
-            run.deadlineLingering = { count: 0, pids: [] };
+            run.finalTeardownObservation = { count: 0, pids: [], source: 'clean-sample' };
           }
           if (
             run.closeMs != null
             && run.teardownTimeMs == null
             && attemptMs - run.closeMs >= TEARDOWN_TIMEOUT_MS
-            && run.deadlineLingering == null
+            && run.finalTeardownObservation == null
           ) {
-            run.deadlineLingering = { count: group.workerd, pids: [...group.workerdPids] };
+            run.finalTeardownObservation = {
+              count: group.workerd,
+              pids: [...group.workerdPids],
+              source: 'deadline',
+            };
           }
         }
       } catch (error) {
-        sampling.errors.push(error.message);
+        addUnique(sampling.errors, error.message);
       }
     }
 
@@ -337,7 +381,7 @@ async function monitorRuns(runs, runCount, origin, interruptedSignalRef) {
 }
 
 function resourceValue(value, assessment, suffix = '') {
-  if (assessment.unavailableReasons.length > 0) return `UNAVAILABLE (${assessment.unavailableReasons.join('; ')})`;
+  if (assessment.unavailableReasons.length > 0) return 'UNAVAILABLE';
   return `${value}${suffix}`;
 }
 
@@ -355,20 +399,26 @@ export function buildReportRecord({ runCount, runs, sampling, assessment }) {
     validSampleCount: sampling.validSampleCount,
     maxObservedGapMs: sampling.maxObservedGapMs,
     overlap: sampling.overlap,
-    runs: runs.map((run) => ({
-      index: run.index,
-      pid: run.pid,
-      pgid: run.pgid,
-      spawnMs: run.spawnMs,
-      closeMs: run.closeMs,
-      wallMs: run.wallMs,
-      exitCode: run.exitCode,
-      exitSignal: run.exitSignal,
-      peakWorkerd: assessment.unavailableReasons.length === 0 ? run.peakWorkerd : null,
-      firstPostCloseLingering: assessment.unavailableReasons.length === 0 ? run.firstPostCloseLingering : null,
-      finalLingering: assessment.unavailableReasons.length === 0 ? run.deadlineLingering : null,
-      teardownTimeMs: assessment.unavailableReasons.length === 0 ? run.teardownTimeMs : null,
-    })),
+    runs: runs.map((run) => {
+      const groupPeaks = sampling.peaks.groups[run.pgid];
+      const available = assessment.unavailableReasons.length === 0;
+      return {
+        index: run.index,
+        pid: run.pid,
+        pgid: run.pgid,
+        spawnMs: run.spawnMs,
+        closeMs: run.closeMs,
+        wallMs: run.wallMs,
+        exitCode: run.exitCode,
+        exitSignal: run.exitSignal,
+        peakRssKiB: available ? groupPeaks?.rssKiB ?? null : null,
+        peakTaskThreadCount: available ? groupPeaks?.threads ?? null : null,
+        peakWorkerd: available ? run.peakWorkerd : null,
+        firstPostCloseLingering: available ? run.firstPostCloseLingering : null,
+        finalTeardownObservation: available ? run.finalTeardownObservation : null,
+        teardownTimeMs: available ? run.teardownTimeMs : null,
+      };
+    }),
     exitCode: assessment.exitCode,
   };
 }
@@ -404,12 +454,15 @@ function printReport({ runCount, runs, sampling, assessment }) {
     console.log('overlap window: n/a');
   }
   for (const run of runs) {
+    const groupPeaks = sampling.peaks.groups[run.pgid];
     console.log(`run ${run.index}:`);
     console.log(`  launcher pid/pgid: ${run.pid ?? 'unavailable'}/${run.pgid ?? 'unavailable'}`);
     console.log(`  spawn timestamp: ${run.spawnMs == null ? 'unavailable' : `${formatMs(run.spawnMs)} ms`}`);
     console.log(`  close timestamp: ${run.closeMs == null ? 'unavailable' : `${formatMs(run.closeMs)} ms`}`);
     console.log(`  exit status: ${run.exitSignal ? `signal ${run.exitSignal}` : `code ${run.exitCode}`}`);
     console.log(`  wall time: ${run.wallMs == null ? 'unavailable' : `${formatMs(run.wallMs)} ms`}`);
+    console.log(`  peak RSS: ${resourceValue(groupPeaks?.rssKiB ?? 0, assessment, ' KiB')}`);
+    console.log(`  peak task/thread count: ${resourceValue(groupPeaks?.threads ?? 0, assessment)}`);
     console.log(`  workerd peak: ${resourceValue(run.peakWorkerd, assessment)}`);
     console.log(
       `  first post-close lingering workerd: ${resourceValue(
@@ -417,8 +470,11 @@ function printReport({ runCount, runs, sampling, assessment }) {
         assessment,
       )}`,
     );
+    const finalObservation = run.finalTeardownObservation == null
+      ? 'not observed'
+      : `${run.finalTeardownObservation.count} workerd (${run.finalTeardownObservation.source})`;
     console.log(
-      `  final lingering workerd: ${resourceValue(run.deadlineLingering?.count ?? 0, assessment)}`,
+      `  final teardown observation: ${resourceValue(finalObservation, assessment)}`,
     );
     const teardown = run.teardownTimeMs == null
       ? 'not-observed-within-10000ms'
@@ -442,30 +498,36 @@ async function main() {
     console.error(`metrics unavailable: /proc is unavailable: ${error.message}`);
     return 2;
   }
+  let samplerPgrp;
+  try {
+    samplerPgrp = parseProcStat(readFileSync(`/proc/${process.pid}/stat`, 'utf8')).pgrp;
+    if (!Number.isInteger(samplerPgrp) || samplerPgrp <= 0) {
+      throw new Error(`invalid pgrp ${samplerPgrp}`);
+    }
+  } catch (error) {
+    console.error(`metrics unavailable: cannot resolve sampler process group: ${error.message}`);
+    return 2;
+  }
 
   const origin = process.hrtime.bigint();
   const interruptedSignalRef = { value: null };
+  const processGroups = { samplerPgrp, resolvedPgids: new Set() };
   const runs = [];
   const signalHandlers = {};
   for (const signal of Object.keys(SIGNAL_NUMBERS)) {
     signalHandlers[signal] = () => {
       interruptedSignalRef.value = signal;
-      const failures = forwardSignal(signal, runs.map((run) => run.pgid).filter(Number.isInteger));
-      for (const failure of failures) console.error(`signal forwarding failed: ${failure}`);
+      reportSignalFailures(signal, runs.map((run) => run.pgid).filter(Number.isInteger));
     };
     process.on(signal, signalHandlers[signal]);
   }
 
   for (let index = 1; index <= runCount; index += 1) {
-    runs.push(startRun(index, origin, interruptedSignalRef));
+    runs.push(startRun(index, origin, interruptedSignalRef, processGroups));
   }
-  const sampling = await monitorRuns(runs, runCount, origin, interruptedSignalRef);
+  const sampling = await monitorRuns(runs, runCount, origin);
   for (const [signal, handler] of Object.entries(signalHandlers)) process.off(signal, handler);
 
-  const resolvedPgids = runs.map((run) => run.pgid).filter(Number.isInteger);
-  if (new Set(resolvedPgids).size !== resolvedPgids.length) {
-    sampling.errors.push('launched runs resolved to duplicate pgids');
-  }
   const assessment = assessMeasurement({
     runCount,
     runs,

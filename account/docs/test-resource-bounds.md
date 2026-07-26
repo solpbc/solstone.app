@@ -7,7 +7,7 @@ Inputs:
 
 - Canonical partition membership and exact-set guard:
   `account/test/partitions.js:1-121` and
-  `account/scripts/check-test-partitions.mjs:1-117`.
+  `account/scripts/check-test-partitions.mjs:1-118`.
 - Shared Worker/Miniflare definition and the three project configs:
   `account/vitest.worker.shared.js:1-51`,
   `account/vitest.worker.config.js:1-4`,
@@ -23,7 +23,7 @@ Inputs:
   `account/test/passkey-origin.test.js:1-20`, and
   `account/test/passkey-rate.test.js:1-22`.
 - Linux process sampler, metric assessment, and reporting contract:
-  `account/scripts/measure-test-resources.mjs:1-486`.
+  `account/scripts/measure-test-resources.mjs:1-548`.
 - Pre-change representative D1/router test:
   `account/test/session.test.js:1-55`.
 - Concrete pre-change leaked doubles:
@@ -78,9 +78,19 @@ Run `npm run test:resources` for one canonical `npm test`, or
 `npm run test:resources -- --runs 2` for two children launched immediately and
 concurrently. There is no retry, lock, queue, scheduler, daemon, or
 cross-invocation coordination. Each child is launched detached; the sampler
-resolves its actual process-group id from `/proc/<pid>/stat`. Signals are
-forwarded to each owned group with `process.kill(-pgid, signal)`. A `workerd`
-is never targeted or killed to improve teardown evidence.
+resolves its actual process-group id from `/proc/<pid>/stat` before monitoring
+or signaling it. The child must be its group leader, its group must differ from
+the sampler's own group, and simultaneous children must resolve to distinct
+groups. Signals are forwarded to each verified group with
+`process.kill(-pgid, signal)`. A `workerd` is never targeted or killed to
+improve teardown evidence.
+
+This command is Linux-only because its process and resource evidence comes from
+`/proc`. Child `npm test` stdout and stderr are inherited and passed through
+unmodified: the child bytes are the same as when `npm test` is run directly.
+The measurement code itself never reads or prints environment values, bindings,
+or `/proc/<pid>/cmdline`. The test suite operates on synthetic fixtures, so its
+pass-through log lines contain test data, not production PII.
 
 The sampler runs every 100 ms. The maximum valid observed gap is 1,000 ms:
 ten nominal intervals allow scheduler and GC jitter during two simultaneous
@@ -94,22 +104,26 @@ is 10,000 ms after each npm child closes.
 
 `/proc/<pid>/stat` is parsed from the final closing parenthesis around `comm`,
 so spaces and parentheses in the command name cannot shift `pgrp`. RSS and
-thread values are label-parsed from `/proc/<pid>/status`. Optional command-line
-diagnostics are NUL-delimited. PID disappearance with `ENOENT` is a normal
-race; any other enumeration, parse, or in-scope read error invalidates the
-measurement.
+thread values are label-parsed from `/proc/<pid>/status`. PID disappearance
+with `ENOENT` is a normal race; any other enumeration or stat read/parse error,
+and any other in-scope status read/parse error, invalidates the measurement.
 
 Reported metrics have these exact meanings:
 
 - **Peak aggregate RSS:** maximum valid-sample sum of `VmRSS`, in KiB, for all
-  non-zombie processes in launched groups. Shared pages may be counted per
-  process.
+  non-zombie processes in launched groups; the same maximum is also reported
+  per run. Shared pages may be counted once per process, so this is a scoped
+  aggregate rather than a unique-physical-memory measurement.
 - **Concurrent workerd peak:** maximum exact-`comm` `workerd` process count,
   per group and in aggregate.
 - **Peak task/thread count:** maximum valid-sample sum of `Threads` for all
-  non-zombie processes in launched groups.
-- **Lingering workerd:** PID/count on the first valid post-close sample and at
-  the 10,000 ms deadline. The final required count is zero.
+  non-zombie processes in launched groups, reported per run and in aggregate.
+- **First post-close lingering workerd:** PID/count in the first valid sample
+  after each child closes.
+- **Final teardown observation:** workerd PID/count in the first post-close
+  sample showing zero, or the count at the 10,000 ms deadline when no clean
+  sample was observed. Its source is reported as `clean-sample` or `deadline`;
+  the required final count is zero.
 - **Teardown time:** monotonic time from child close to the first subsequent
   valid zero-workerd sample; otherwise `not-observed-within-10000ms`.
 - **Valid sample count:** complete samples whose in-scope records all parsed.
@@ -121,18 +135,20 @@ Reported metrics have these exact meanings:
   measurement start; two-run overlap is the intersection of the two child
   lifetimes.
 
-Exit 0 requires all children to exit 0, valid measurements, at least one
-observed `workerd` per run, no more than one concurrent `workerd` per run, no
-more aggregate `workerd` than requested runs, real overlap in two-run mode, and
-no lingering `workerd`. Exit 1 reports a validly observed child or resource
-bound failure. Exit 2 means metrics are unavailable: invalid arguments,
-unavailable `/proc`, spawn/PGID failure, duplicate PGIDs, no valid/live sample,
-no observed `workerd`, zero RSS/tasks, malformed or unreadable process data,
-an over-threshold gap, missing close status, or an internal sampler failure.
-Resource fields are reported as unavailable, never threshold-passing zeroes.
-Any child test failure is printed prominently even when metrics-unavailable
-precedence makes the final status 2. SIGINT, SIGTERM, and SIGHUP forward to all
-active groups and exit as 128 plus the signal number.
+Exit behavior is fail-closed:
+
+| Exit | Conditions |
+|---|---|
+| 0 | Every child exits 0; metrics are available; each run observes one or fewer concurrent `workerd` processes and at least one during its lifetime; the aggregate peak does not exceed the requested run count; the final teardown observation is zero; and two-run mode has a positive-duration overlap. |
+| 1 | A child exits nonzero or by signal; a per-run `workerd` peak exceeds one; the aggregate peak exceeds the requested run count; a final teardown observation is nonzero at 10,000 ms; or a present two-run overlap has zero duration. |
+| 2 | Arguments are invalid; `/proc` or the sampler's own PGID cannot be read; a child cannot spawn; a child PGID cannot be read or is invalid, is not led by the detached child, matches the sampler's group, or duplicates another run; child close status is missing; a run has no valid live-child sample or observes no `workerd`; there are zero valid samples; aggregate RSS or task/thread peak is zero; a sampling gap exceeds 1,000 ms; process enumeration fails; a stat or in-scope status record is malformed or unreadable; a live group sample has zero processes, RSS, or tasks; the two-run overlap window is missing; or the sampler fails internally. |
+| 128 + signal | SIGINT, SIGTERM, or SIGHUP was received; it is forwarded to every verified active group. |
+
+When the sampler can emit its report, unavailable resource fields are labeled
+unavailable rather than shown as threshold-passing zeroes. The
+metrics-unavailable reason list deduplicates repeated failures in
+first-observed order. Any child test failure is printed prominently even when
+metrics-unavailable precedence makes the final status 2.
 
 ## Baseline
 

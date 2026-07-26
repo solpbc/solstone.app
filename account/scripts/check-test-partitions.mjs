@@ -2,10 +2,11 @@
 
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { testPartitions } from '../test/partitions.js';
 
 const REQUIRED_PARTITIONS = Object.freeze(['worker', 'passkey', 'node']);
+const DEFAULT_TEST_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../test');
 
 export function validateTestPartitions({ discovered, partitions }) {
   const discoveredFiles = [...discovered].sort();
@@ -57,7 +58,7 @@ export function validateTestPartitions({ discovered, partitions }) {
   };
 }
 
-export async function discoverTestFiles(root = path.resolve('test')) {
+export async function discoverTestFiles(root = DEFAULT_TEST_ROOT) {
   const files = [];
   await walk(root, root, files);
   return files.sort();
