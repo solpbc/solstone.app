@@ -1,9 +1,12 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import { prefixFor } from '../src/spb-broker.js';
+import { reconcileSandboxRun } from '../src/sandbox-run-lease.js';
 import {
   dbDumpText,
   installConsoleSpy,
+  installS3FetchMock,
   makeTestEnv,
   resetDb,
   seedAccount,
@@ -231,40 +234,227 @@ describe('sandbox run DELETE cleanup', () => {
       consoleSpy.restore();
     }
   });
+
+  it('converges after a relay retryable residual without regressing released components', async () => {
+    let retirementAttempts = 0;
+    const relay = makeRelayBinding({
+      onCall(call) {
+        if (call.method !== 'DELETE') return null;
+        retirementAttempts += 1;
+        if (retirementAttempts !== 1) return null;
+        return jsonResponse({
+          entry_denial_verified: true,
+          sockets_closed: false,
+          devices_revoked: true,
+          entitlement_cleared: true,
+          pending_grants_cleared: true,
+          tombstone_verified: true,
+          failed_component: 'instance_do_cleanup',
+        }, 503);
+      },
+    });
+    const seeded = await seedActiveRunResources({
+      relay,
+      createdAt: SANDBOX_NOW - 3_600_001,
+    });
+    installEmptyS3(seeded.testEnv);
+
+    const first = await reconcileSandboxRun(seeded.testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'scheduled',
+    });
+    const afterFirst = await runRow();
+
+    expect(first.outcome).toBe('failed');
+    expect(afterFirst).toMatchObject({
+      status: 'cleanup_failed',
+      cleanup_phase: 'relay_intent',
+      dispatch_state: 'released',
+      spp_state: 'released',
+      spb_state: 'released',
+      spl_relay_state: 'cleanup_failed',
+      spl_relay_residual_code: 'relay_instance_do_cleanup',
+      spl_binding_state: 'deny_pending',
+    });
+
+    const second = await reconcileSandboxRun(seeded.testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'scheduled',
+    });
+
+    expect(second.outcome).toBe('released');
+    await expect(runRow()).resolves.toMatchObject({
+      status: 'released',
+      cleanup_phase: 'released',
+      dispatch_state: 'released',
+      spp_state: 'released',
+      spb_state: 'released',
+      spl_relay_state: 'released',
+      spl_binding_state: 'released',
+    });
+    expect(retirementAttempts).toBe(2);
+  });
+
+  it('converges after a partial R2 deletion without regressing other released components', async () => {
+    const relay = makeRelayBinding();
+    const seeded = await seedActiveRunResources({
+      relay,
+      createdAt: SANDBOX_NOW - 3_600_001,
+    });
+    const prefix = prefixFor(seeded.account.accountId, SANDBOX_INSTANCE_ID);
+    const state = installPartialDeleteS3(seeded.testEnv, prefix);
+
+    const first = await reconcileSandboxRun(seeded.testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'scheduled',
+    });
+
+    expect(first.outcome).toBe('failed');
+    await expect(runRow()).resolves.toMatchObject({
+      status: 'cleanup_failed',
+      dispatch_state: 'released',
+      spp_state: 'released',
+      spb_state: 'cleanup_failed',
+      spb_residual_code: 'spb_cleanup_retryable',
+      spl_relay_state: 'released',
+      spl_binding_state: 'released',
+    });
+    expect(state.objects).toEqual([`${prefix}second`]);
+
+    const second = await reconcileSandboxRun(seeded.testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'scheduled',
+    });
+
+    expect(second.outcome).toBe('released');
+    expect(state.objects).toEqual([]);
+    await expect(runRow()).resolves.toMatchObject({ status: 'released', cleanup_phase: 'released' });
+  });
+
+  it('isolates a D1 failure mid-cleanup and converges on the next pass', async () => {
+    const relay = makeRelayBinding();
+    const seeded = await seedActiveRunResources({
+      relay,
+      createdAt: SANDBOX_NOW - 3_600_001,
+    });
+    installEmptyS3(seeded.testEnv);
+    const firstEnv = failOnceOnSql(seeded.testEnv, /UPDATE spb_bindings\s+SET token_hash = NULL/i);
+
+    const first = await reconcileSandboxRun(firstEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'scheduled',
+    });
+
+    expect(first.outcome).toBe('failed');
+    await expect(runRow()).resolves.toMatchObject({
+      status: 'cleanup_failed',
+      dispatch_state: 'released',
+      spp_state: 'released',
+      spb_state: 'cleanup_failed',
+      spb_residual_code: 'spb_denial_failed',
+      spl_relay_state: 'released',
+      spl_binding_state: 'released',
+    });
+
+    const second = await reconcileSandboxRun(seeded.testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'scheduled',
+    });
+
+    expect(second.outcome).toBe('released');
+    await expect(runRow()).resolves.toMatchObject({ status: 'released', cleanup_phase: 'released' });
+  });
+
+  it('retries idempotently after relay success precedes durable component acknowledgement', async () => {
+    const relay = makeRelayBinding();
+    const seeded = await seedActiveRunResources({
+      relay,
+      createdAt: SANDBOX_NOW - 3_600_001,
+    });
+    installEmptyS3(seeded.testEnv);
+    const firstEnv = failOnceOnSql(
+      seeded.testEnv,
+      /UPDATE sandbox_runs\s+SET spl_relay_state = \?/i
+    );
+
+    const first = await reconcileSandboxRun(firstEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'scheduled',
+    });
+
+    expect(first.outcome).toBe('failed');
+    await expect(runRow()).resolves.toMatchObject({
+      status: 'cleanup_failed',
+      cleanup_phase: 'relay_intent',
+      dispatch_state: 'released',
+      spp_state: 'released',
+      spl_relay_state: 'deny_pending',
+    });
+    expect(relay.calls.filter(({ method }) => method === 'DELETE')).toHaveLength(1);
+
+    const second = await reconcileSandboxRun(seeded.testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'scheduled',
+    });
+
+    expect(second.outcome).toBe('released');
+    expect(relay.calls.filter(({ method }) => method === 'DELETE')).toHaveLength(2);
+    await expect(runRow()).resolves.toMatchObject({
+      status: 'released',
+      cleanup_phase: 'released',
+      dispatch_state: 'released',
+      spp_state: 'released',
+      spb_state: 'released',
+      spl_relay_state: 'released',
+      spl_binding_state: 'released',
+    });
+  });
 });
 
-async function seedActiveRunResources({ relay, spbCredentialExpiresAt = null }) {
+async function seedActiveRunResources({
+  relay,
+  spbCredentialExpiresAt = null,
+  createdAt = SANDBOX_NOW - 1_000,
+}) {
   const baseEnv = makeTestEnv();
-  const account = await seedAccount({ testEnv: baseEnv, nowMs: SANDBOX_NOW - 1_000 });
+  const account = await seedAccount({ testEnv: baseEnv, nowMs: createdAt });
   await seedSandboxRun({
     runId: SANDBOX_RUN_ID,
     accountId: account.accountId,
     instanceId: SANDBOX_INSTANCE_ID,
-    createdAt: SANDBOX_NOW - 1_000,
+    createdAt,
   });
   await workerEnv.DB.prepare(
     `INSERT INTO account_dispatch_tokens (
        token_hash, account_id, created_at, revoked_at, sandbox_run_id
      ) VALUES ('sandbox-dispatch-hash', ?, ?, NULL, ?)`
-  ).bind(account.accountId, SANDBOX_NOW - 1_000, SANDBOX_RUN_ID).run();
+  ).bind(account.accountId, createdAt, SANDBOX_RUN_ID).run();
   await seedSplBinding({
     accountId: account.accountId,
     instanceId: SANDBOX_INSTANCE_ID,
-    createdAt: SANDBOX_NOW - 1_000,
+    createdAt,
     sandboxRunId: SANDBOX_RUN_ID,
   });
   await seedSppBinding({
     accountId: account.accountId,
     instanceId: SANDBOX_INSTANCE_ID,
     tokenHash: 'sandbox-spp-hash',
-    createdAt: SANDBOX_NOW - 1_000,
+    createdAt,
     sandboxRunId: SANDBOX_RUN_ID,
   });
   await seedSpbBinding({
     accountId: account.accountId,
     instanceId: SANDBOX_INSTANCE_ID,
     tokenHash: 'sandbox-spb-hash',
-    createdAt: SANDBOX_NOW - 1_000,
+    createdAt,
     sandboxRunId: SANDBOX_RUN_ID,
     sandboxCredentialExpiresAt: spbCredentialExpiresAt,
   });
@@ -276,6 +466,100 @@ async function seedActiveRunResources({ relay, spbCredentialExpiresAt = null }) 
       RELAY: relay.binding,
     },
   };
+}
+
+function installEmptyS3(testEnv) {
+  return installS3FetchMock(testEnv, {
+    default: ({ method, url }) => {
+      if (method === 'GET' && url.searchParams.get('list-type') === '2') {
+        return xmlResponse('<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>');
+      }
+      if (method === 'GET' && url.searchParams.has('uploads')) {
+        return xmlResponse('<ListMultipartUploadsResult><IsTruncated>false</IsTruncated></ListMultipartUploadsResult>');
+      }
+      throw new Error(`unexpected R2 request: ${method}`);
+    },
+  });
+}
+
+function installPartialDeleteS3(testEnv, prefix) {
+  const state = {
+    objects: [`${prefix}first`, `${prefix}second`],
+    partialPending: true,
+  };
+  installS3FetchMock(testEnv, {
+    default: ({ method, url, bodyText }) => {
+      if (method === 'GET' && url.searchParams.get('list-type') === '2') {
+        return xmlResponse(
+          `<ListBucketResult><IsTruncated>false</IsTruncated>${state.objects
+            .map((key) => `<Contents><Key>${key}</Key></Contents>`)
+            .join('')}</ListBucketResult>`
+        );
+      }
+      if (method === 'GET' && url.searchParams.has('uploads')) {
+        return xmlResponse('<ListMultipartUploadsResult><IsTruncated>false</IsTruncated></ListMultipartUploadsResult>');
+      }
+      if (method === 'POST' && url.searchParams.has('delete')) {
+        const keys = Array.from(bodyText.matchAll(/<Key>([^<]+)<\/Key>/g), (match) => match[1]);
+        if (state.partialPending) {
+          state.partialPending = false;
+          state.objects = state.objects.filter((key) => key !== keys[0]);
+          return xmlResponse(
+            `<DeleteResult><Deleted><Key>${keys[0]}</Key></Deleted><Error><Key>${keys[1]}</Key><Code>InternalError</Code><Message>partial failure</Message></Error></DeleteResult>`
+          );
+        }
+        state.objects = state.objects.filter((key) => !keys.includes(key));
+        return xmlResponse(
+          `<DeleteResult>${keys.map((key) => `<Deleted><Key>${key}</Key></Deleted>`).join('')}</DeleteResult>`
+        );
+      }
+      throw new Error(`unexpected R2 request: ${method}`);
+    },
+  });
+  return state;
+}
+
+function failOnceOnSql(testEnv, pattern) {
+  let shouldFail = true;
+  return {
+    ...testEnv,
+    DB: {
+      prepare(sql) {
+        const statement = testEnv.DB.prepare(sql);
+        if (!pattern.test(sql)) return statement;
+        return {
+          bind(...values) {
+            const bound = statement.bind(...values);
+            return {
+              run: (...args) => bound.run(...args),
+              first: (...args) => bound.first(...args),
+              async all(...args) {
+                if (shouldFail) {
+                  shouldFail = false;
+                  throw new Error('injected db failure');
+                }
+                return bound.all(...args);
+              },
+            };
+          },
+        };
+      },
+      batch(statements) {
+        return testEnv.DB.batch(statements);
+      },
+    },
+  };
+}
+
+function xmlResponse(body) {
+  return new Response(body, { headers: { 'Content-Type': 'application/xml' } });
+}
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 function runRow() {

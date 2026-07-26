@@ -12,6 +12,7 @@ import {
   getAccountTransparencyRow,
   getScoutApplicationStatusByAccount,
   insertSandboxRun,
+  listSandboxRunsForReconciliation,
   readSandboxRunLocalPostconditions,
   releaseSandboxRun,
   requestSandboxRunCleanup,
@@ -38,6 +39,7 @@ import {
 } from './spb-sandbox-lifecycle.js';
 
 const LEASE_TTL_MS = 3_600_000;
+const SANDBOX_RECONCILE_BATCH_SIZE = 10;
 const BROKER_ENDPOINT = 'https://services.solstone.app';
 const REQUEST_KEYS = ['contract_version', 'instance_id', 'profile', 'run_id'];
 const CLEANUP_TRIGGERS = new Set(['post_failure', 'delete', 'scheduled']);
@@ -450,8 +452,63 @@ export async function reconcileSandboxRun(env, ctx, { runId, nowMs, trigger }) {
   return { outcome, row: run };
 }
 
+export async function reconcileExpiredSandboxRuns(env, ctx, { nowMs = Date.now() } = {}) {
+  const startedAt = Date.now();
+  const runs = await listSandboxRunsForReconciliation(env.DB, { nowMs });
+  if (runs.length > SANDBOX_RECONCILE_BATCH_SIZE) {
+    throw new Error('sandbox reconciliation batch exceeded its fixed bound');
+  }
+  const counts = {
+    runs_examined: runs.length,
+    runs_advanced: 0,
+    runs_released: 0,
+    runs_failed: 0,
+    runs_skipped_for_retry: 0,
+  };
+
+  for (const run of runs) {
+    if (isSandboxRunRetryDeferred(run, nowMs)) {
+      counts.runs_skipped_for_retry += 1;
+      continue;
+    }
+    try {
+      const result = await reconcileSandboxRun(env, ctx, {
+        runId: run.run_id,
+        nowMs,
+        trigger: 'scheduled',
+      });
+      counts.runs_advanced += 1;
+      if (result.outcome === 'released') counts.runs_released += 1;
+      else if (result.outcome === 'failed' || result.outcome === 'conflict') counts.runs_failed += 1;
+    } catch {
+      counts.runs_failed += 1;
+    }
+  }
+
+  const event = {
+    event: 'sandbox_run_reconcile_batch',
+    ...counts,
+    duration_ms: Math.max(0, Date.now() - startedAt),
+    ts: nowMs,
+  };
+  console.warn(JSON.stringify(event));
+  emitSecurityEvent(env, ctx, {
+    type: event.event,
+    tier: 'T4',
+    ...counts,
+  });
+  return counts;
+}
+
 function configuredSandboxAccountId(env) {
   return isCanonicalUuid(env.SANDBOX_ACCOUNT_ID) ? env.SANDBOX_ACCOUNT_ID : null;
+}
+
+function isSandboxRunRetryDeferred(run, nowMs) {
+  return run?.spb_state === 'purge_pending'
+    && run?.spb_residual_code === 'spb_credential_expiry_pending'
+    && Number.isSafeInteger(run.spb_retry_not_before)
+    && nowMs < run.spb_retry_not_before;
 }
 
 async function readCreateInput(request) {

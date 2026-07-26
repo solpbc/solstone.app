@@ -1943,6 +1943,24 @@ export async function findSandboxRunForAccount(db, { runId, accountId }) {
   return row || null;
 }
 
+export async function listSandboxRunsForReconciliation(db, { nowMs }) {
+  const { results } = await db
+    .prepare(
+      `SELECT *
+       FROM sandbox_runs
+       WHERE status IN ('cleanup_required','cleaning','expiry_pending','cleanup_failed')
+          OR (
+            status IN ('provisioning','active')
+            AND lease_expires_at <= ?
+          )
+       ORDER BY lease_expires_at ASC, created_at ASC, run_id ASC
+       LIMIT 10`
+    )
+    .bind(nowMs)
+    .all();
+  return results || [];
+}
+
 export async function findSandboxRunProvisioningOwnership(db, {
   runId,
   accountId,

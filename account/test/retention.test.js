@@ -8,6 +8,7 @@ import {
   resetDb,
   rowCount,
   seedAccount,
+  seedSandboxRun,
   seedSpbBinding,
 } from './helpers.js';
 
@@ -326,8 +327,65 @@ describe('retention cron', () => {
     await worker.scheduled({}, makeTestEnv(), ctx);
     await waitOnExecutionContext(ctx);
 
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(warn.mock.calls[0][0]).event).toBe('retention_sweep');
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls.map((call) => JSON.parse(call[0]))).toEqual([
+      expect.objectContaining({ event: 'retention_sweep' }),
+      expect.objectContaining({
+        event: 'sandbox_run_reconcile_batch',
+        runs_examined: 0,
+        runs_advanced: 0,
+        runs_released: 0,
+        runs_failed: 0,
+        runs_skipped_for_retry: 0,
+      }),
+    ]);
+  });
+
+  it('completes retention before swallowing a sandbox reconciler selector failure', async () => {
+    await insertRateBucket('retention-before-sandbox', 0);
+    const baseEnv = makeTestEnv();
+    let retentionComplete = false;
+    const testEnv = {
+      ...baseEnv,
+      DB: {
+        prepare(sql) {
+          if (/SELECT \*\s+FROM sandbox_runs\s+WHERE/i.test(sql)) {
+            expect(retentionComplete).toBe(true);
+            throw new Error('injected sandbox selector failure');
+          }
+          const statement = baseEnv.DB.prepare(sql);
+          if (sql !== 'DELETE FROM rate_buckets WHERE window_start < ?') return statement;
+          return {
+            bind(...values) {
+              const bound = statement.bind(...values);
+              return {
+                async run(...args) {
+                  const result = await bound.run(...args);
+                  retentionComplete = true;
+                  return result;
+                },
+              };
+            },
+          };
+        },
+        batch(statements) {
+          return baseEnv.DB.batch(statements);
+        },
+      },
+    };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(worker.scheduled({}, testEnv, createExecutionContext())).resolves.toBeUndefined();
+
+    expect(retentionComplete).toBe(true);
+    await expect(rowExists('rate_buckets', 'key', 'retention-before-sandbox')).resolves.toBe(false);
+    expect(warn.mock.calls.map((call) => JSON.parse(call[0]).event)).toEqual(['retention_sweep']);
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(error.mock.calls[0][0])).toEqual({
+      event: 'sandbox_run_reconcile_batch_failed',
+      runs_failed: 1,
+    });
   });
 
   it('dispatches the dedicated SPB sweep cron without running retention', async () => {
@@ -337,6 +395,13 @@ describe('retention cron', () => {
       accountId: account.accountId,
       instanceId: '11111111-1111-1111-1111-111111111111',
       lapsedAt: NOW - 31 * DAY_MS,
+    });
+    const sandboxRunId = 'aaaaaaaa-1111-4111-8111-111111111111';
+    await seedSandboxRun({
+      runId: sandboxRunId,
+      accountId: account.accountId,
+      instanceId: '22222222-2222-4222-8222-222222222222',
+      createdAt: NOW - HOUR_MS - 1,
     });
     installS3FetchMock(testEnv, {
       default: ({ method, url }) => {
@@ -361,6 +426,9 @@ describe('retention cron', () => {
 
     const events = warn.mock.calls.map((call) => JSON.parse(call[0]).event);
     expect(events).toEqual(['spb_lapse_sweep']);
+    await expect(workerEnv.DB.prepare(
+      'SELECT status FROM sandbox_runs WHERE run_id = ?'
+    ).bind(sandboxRunId).first()).resolves.toEqual({ status: 'active' });
   });
 });
 

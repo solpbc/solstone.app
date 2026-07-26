@@ -111,6 +111,7 @@ import {
   passkeyRegisterStart,
 } from './passkey.js';
 import { runRetention } from './retention.js';
+import { reconcileExpiredSandboxRuns } from './sandbox-run-lease.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { runSpbLapseSweep } from './spb-sweep.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
@@ -969,6 +970,14 @@ export default {
       await runSpbLapseSweep(env, ctx);
     } else {
       await runRetention(env);
+      try {
+        await reconcileExpiredSandboxRuns(env, ctx);
+      } catch {
+        console.error(JSON.stringify({
+          event: 'sandbox_run_reconcile_batch_failed',
+          runs_failed: 1,
+        }));
+      }
     }
   },
 };

@@ -1,7 +1,18 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { dbDumpText, installConsoleSpy, resetDb } from './helpers.js';
+import { prefixFor } from '../src/spb-broker.js';
+import { reconcileExpiredSandboxRuns } from '../src/sandbox-run-lease.js';
+import {
+  dbDumpText,
+  installConsoleSpy,
+  resetDb,
+  seedAccount,
+  seedSandboxRun,
+  seedSpbBinding,
+  seedSplBinding,
+  seedSppBinding,
+} from './helpers.js';
 import { installJwksStub, installJwksStubWith, mintToken } from './jwks-helper.js';
 import {
   SANDBOX_INSTANCE_ID,
@@ -166,7 +177,189 @@ describe('sandbox run concurrency', () => {
     const dump = await dbDumpText();
     expect(dump).not.toContain((await created.json()).capabilities.scout.dispatch_token);
   });
+
+  it('contains DELETE-versus-scheduled cleanup to the exact run resources', async () => {
+    await assertContainedCleanupRace('delete-versus-scheduled');
+  });
+
+  it('contains scheduled-versus-scheduled cleanup to the exact run resources', async () => {
+    await assertContainedCleanupRace('scheduled-versus-scheduled');
+  });
 });
+
+async function assertContainedCleanupRace(kind) {
+  const s3Calls = [];
+  await installJwksStubWith(async (input) => {
+    const response = emptyS3Response(input);
+    if (response) s3Calls.push(new URL(typeof input === 'string' ? input : input.url));
+    return response;
+  });
+  const token = await mintToken();
+  const baseline = await seedSandboxBaseline();
+  const created = await worker.fetch(
+    sandboxRequest('/admin/sandbox-runs', token, {
+      method: 'POST',
+      body: validSandboxInput(),
+    }),
+    baseline.testEnv
+  );
+  expect(created.status).toBe(201);
+  const controls = await seedControlResources(baseline.testEnv);
+  const controlsBefore = await controlRows(controls);
+  const targetPrefix = prefixFor(baseline.account.accountId, SANDBOX_INSTANCE_ID);
+  vi.setSystemTime(SANDBOX_NOW + 3_600_000);
+
+  let deleteResponse = null;
+  if (kind === 'delete-versus-scheduled') {
+    [deleteResponse] = await Promise.all([
+      worker.fetch(
+        sandboxRequest(`/admin/sandbox-runs/${SANDBOX_RUN_ID}`, token, { method: 'DELETE' }),
+        baseline.testEnv
+      ),
+      reconcileExpiredSandboxRuns(baseline.testEnv, null, { nowMs: Date.now() }),
+    ]);
+  } else {
+    await Promise.all([
+      reconcileExpiredSandboxRuns(baseline.testEnv, null, { nowMs: Date.now() }),
+      reconcileExpiredSandboxRuns(baseline.testEnv, null, { nowMs: Date.now() }),
+    ]);
+  }
+
+  await expect(runRow()).resolves.toMatchObject({ status: 'released', cleanup_phase: 'released' });
+  await expect(activeResourceCounts()).resolves.toEqual({
+    dispatch: 0,
+    spl: 0,
+    spb: 0,
+    spp: 0,
+  });
+  await expect(runCount()).resolves.toBe(2);
+  await expect(controlRows(controls)).resolves.toEqual(controlsBefore);
+  expect(baseline.relay.calls.filter(({ method }) => method === 'DELETE').every(
+    ({ url }) => url.pathname.endsWith(`/${SANDBOX_INSTANCE_ID}`)
+  )).toBe(true);
+  expect(JSON.stringify(baseline.relay.calls)).not.toContain(controls.baselineInstanceId);
+  expect(JSON.stringify(baseline.relay.calls)).not.toContain(controls.otherInstanceId);
+  expect(s3Calls.length).toBeGreaterThan(0);
+  for (const url of s3Calls) {
+    expect(url.searchParams.get('prefix')).toBe(targetPrefix);
+  }
+  expect(JSON.stringify(s3Calls)).not.toContain(controls.baselinePrefix);
+  expect(JSON.stringify(s3Calls)).not.toContain(controls.otherPrefix);
+  if (deleteResponse) {
+    expect([200, 503]).toContain(deleteResponse.status);
+    const text = await deleteResponse.text();
+    expect(text).not.toContain(controls.baselineAccountId);
+    expect(text).not.toContain(controls.otherAccountId);
+    expect(text).not.toContain(controls.otherRunId);
+  }
+}
+
+async function seedControlResources(testEnv) {
+  const baselineAccount = await seedAccount({
+    email: 'sandbox-race-baseline@example.com',
+    nowMs: SANDBOX_NOW,
+    testEnv,
+  });
+  const otherAccount = await seedAccount({
+    email: 'sandbox-race-other@example.com',
+    nowMs: SANDBOX_NOW,
+    testEnv,
+  });
+  const baselineInstanceId = '33333333-3333-4333-8333-333333333333';
+  const otherInstanceId = '44444444-4444-4444-8444-444444444444';
+  const otherRunId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  await seedSandboxRun({
+    runId: otherRunId,
+    accountId: otherAccount.accountId,
+    instanceId: otherInstanceId,
+    createdAt: SANDBOX_NOW + 1,
+  });
+  await workerEnv.DB.prepare(
+    `INSERT INTO account_dispatch_tokens (
+       token_hash, account_id, created_at, revoked_at, sandbox_run_id
+     ) VALUES
+       ('sandbox-race-baseline-token', ?, ?, NULL, NULL),
+       ('sandbox-race-other-token', ?, ?, NULL, ?)`
+  ).bind(
+    baselineAccount.accountId,
+    SANDBOX_NOW,
+    otherAccount.accountId,
+    SANDBOX_NOW,
+    otherRunId
+  ).run();
+  await seedSplBinding({
+    accountId: baselineAccount.accountId,
+    instanceId: baselineInstanceId,
+    createdAt: SANDBOX_NOW,
+  });
+  await seedSppBinding({
+    accountId: baselineAccount.accountId,
+    instanceId: baselineInstanceId,
+    tokenHash: 'sandbox-race-baseline-spp',
+    createdAt: SANDBOX_NOW,
+  });
+  await seedSpbBinding({
+    accountId: baselineAccount.accountId,
+    instanceId: baselineInstanceId,
+    tokenHash: 'sandbox-race-baseline-spb',
+    createdAt: SANDBOX_NOW,
+  });
+  await seedSplBinding({
+    accountId: otherAccount.accountId,
+    instanceId: otherInstanceId,
+    createdAt: SANDBOX_NOW,
+    sandboxRunId: otherRunId,
+  });
+  await seedSppBinding({
+    accountId: otherAccount.accountId,
+    instanceId: otherInstanceId,
+    tokenHash: 'sandbox-race-other-spp',
+    createdAt: SANDBOX_NOW,
+    sandboxRunId: otherRunId,
+  });
+  await seedSpbBinding({
+    accountId: otherAccount.accountId,
+    instanceId: otherInstanceId,
+    tokenHash: 'sandbox-race-other-spb',
+    createdAt: SANDBOX_NOW,
+    sandboxRunId: otherRunId,
+  });
+  return {
+    baselineAccountId: baselineAccount.accountId,
+    otherAccountId: otherAccount.accountId,
+    baselineInstanceId,
+    otherInstanceId,
+    otherRunId,
+    baselinePrefix: prefixFor(baselineAccount.accountId, baselineInstanceId),
+    otherPrefix: prefixFor(otherAccount.accountId, otherInstanceId),
+  };
+}
+
+async function controlRows({ baselineInstanceId, otherInstanceId }) {
+  const [dispatch, spl, spb, spp] = await Promise.all([
+    workerEnv.DB.prepare(
+      `SELECT token_hash, account_id, revoked_at, sandbox_run_id
+       FROM account_dispatch_tokens
+       WHERE token_hash IN ('sandbox-race-baseline-token','sandbox-race-other-token')
+       ORDER BY token_hash`
+    ).all(),
+    workerEnv.DB.prepare(
+      'SELECT * FROM spl_bindings WHERE instance_id IN (?, ?) ORDER BY instance_id'
+    ).bind(baselineInstanceId, otherInstanceId).all(),
+    workerEnv.DB.prepare(
+      'SELECT * FROM spb_bindings WHERE instance_id IN (?, ?) ORDER BY instance_id'
+    ).bind(baselineInstanceId, otherInstanceId).all(),
+    workerEnv.DB.prepare(
+      'SELECT * FROM spp_bindings WHERE instance_id IN (?, ?) ORDER BY instance_id'
+    ).bind(baselineInstanceId, otherInstanceId).all(),
+  ]);
+  return {
+    dispatch: dispatch.results,
+    spl: spl.results,
+    spb: spb.results,
+    spp: spp.results,
+  };
+}
 
 async function runCount() {
   const row = await workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM sandbox_runs').first();
