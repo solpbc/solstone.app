@@ -122,6 +122,7 @@ export async function resetDb() {
     'spl_bindings',
     'spb_bindings',
     'spp_bindings',
+    'spb_sandbox_audit',
     'spb_mint_audit',
     'spp_mint_audit',
     'spb_sweep_audit',
@@ -717,16 +718,40 @@ export async function seedSpbBinding({
   lastSeenAt = createdAt,
   tokenHash = null,
   lapsedAt = null,
+  sandboxRunId = null,
+  sandboxCredentialExpiresAt = null,
+  sandboxDeniedAt = null,
 } = {}) {
   await env.DB
     .prepare(
       `INSERT INTO spb_bindings (
-         account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at
-       ) VALUES (?, ?, ?, ?, ?, ?)`
+         account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at,
+         sandbox_run_id, sandbox_credential_expires_at, sandbox_denied_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(accountId, instanceId, createdAt, lastSeenAt, tokenHash, lapsedAt)
+    .bind(
+      accountId,
+      instanceId,
+      createdAt,
+      lastSeenAt,
+      tokenHash,
+      lapsedAt,
+      sandboxRunId,
+      sandboxCredentialExpiresAt,
+      sandboxDeniedAt
+    )
     .run();
-  return { accountId, instanceId, createdAt, lastSeenAt, tokenHash, lapsedAt };
+  return {
+    accountId,
+    instanceId,
+    createdAt,
+    lastSeenAt,
+    tokenHash,
+    lapsedAt,
+    sandboxRunId,
+    sandboxCredentialExpiresAt,
+    sandboxDeniedAt,
+  };
 }
 
 export async function seedCredential({

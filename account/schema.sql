@@ -319,8 +319,7 @@ CREATE INDEX IF NOT EXISTS idx_spl_bindings_sandbox_run_id
 CREATE UNIQUE INDEX IF NOT EXISTS idx_spl_bindings_instance_id
   ON spl_bindings(instance_id);
 
--- spb_bindings: schema hook for SPB hosted access. P1 records only binding
--- identity plus the lapsed clock used by later retention/sweep work.
+-- spb_bindings: SPB hosted-access bindings and sandbox lifecycle state.
 CREATE TABLE IF NOT EXISTS spb_bindings (
   account_id TEXT NOT NULL,
   instance_id TEXT NOT NULL,
@@ -328,11 +327,20 @@ CREATE TABLE IF NOT EXISTS spb_bindings (
   last_seen_at INTEGER NOT NULL,
   token_hash TEXT,
   lapsed_at INTEGER,
+  sandbox_run_id TEXT,
+  sandbox_credential_expires_at INTEGER,
+  sandbox_denied_at INTEGER,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_spb_bindings_account_id ON spb_bindings(account_id);
+
+CREATE INDEX IF NOT EXISTS idx_spb_bindings_sandbox_run_id
+  ON spb_bindings(sandbox_run_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spb_bindings_instance_id
+  ON spb_bindings(instance_id);
 
 -- spp_bindings: schema hook for SPP confidential-processing access.
 -- Records binding identity plus broker-token lookup; SPP has no lapse clock or retention lifecycle.
@@ -389,3 +397,19 @@ CREATE TABLE IF NOT EXISTS spb_sweep_audit (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spb_sweep_audit_account_id ON spb_sweep_audit(account_id);
+
+CREATE TABLE IF NOT EXISTS spb_sandbox_audit (
+  event TEXT NOT NULL CHECK (event IN ('mint','denial','cleanup')),
+  outcome TEXT NOT NULL,
+  scope TEXT CHECK (scope IS NULL OR scope IN ('backup','operated')),
+  ttl INTEGER CHECK (ttl IS NULL OR ttl >= 0),
+  credentials_minted INTEGER CHECK (credentials_minted IS NULL OR credentials_minted >= 0),
+  objects_deleted INTEGER CHECK (objects_deleted IS NULL OR objects_deleted >= 0),
+  multipart_aborted INTEGER CHECK (multipart_aborted IS NULL OR multipart_aborted >= 0),
+  ts INTEGER NOT NULL,
+  CHECK (
+    (event = 'mint' AND outcome IN ('minted','refused_entitlement','refused_scope','mint_cas_lost','internal_error'))
+    OR (event = 'denial' AND outcome IN ('released','absent','ownership_conflict','internal_error'))
+    OR (event = 'cleanup' AND outcome IN ('cleaned','retryable','denial_required','absent','ownership_conflict'))
+  )
+);

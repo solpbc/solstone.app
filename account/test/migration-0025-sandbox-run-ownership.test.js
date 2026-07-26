@@ -120,7 +120,7 @@ describe('migration 0025 sandbox-run ownership', () => {
 });
 
 async function installPre0025Tables() {
-  for (const table of ['account_dispatch_tokens', 'spl_bindings', 'spp_bindings']) {
+  for (const table of ['account_dispatch_tokens', 'spl_bindings', 'spb_bindings', 'spp_bindings']) {
     await workerEnv.DB.prepare(`DROP TABLE IF EXISTS ${table}`).run();
   }
   await workerEnv.DB
@@ -150,6 +150,21 @@ async function installPre0025Tables() {
     )
     .run();
   await workerEnv.DB.prepare('CREATE INDEX idx_spl_bindings_account_id ON spl_bindings(account_id)').run();
+  await workerEnv.DB
+    .prepare(
+      `CREATE TABLE spb_bindings (
+         account_id TEXT NOT NULL,
+         instance_id TEXT NOT NULL,
+         created_at INTEGER NOT NULL,
+         last_seen_at INTEGER NOT NULL,
+         token_hash TEXT,
+         lapsed_at INTEGER,
+         PRIMARY KEY (account_id, instance_id),
+         FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+       )`
+    )
+    .run();
+  await workerEnv.DB.prepare('CREATE INDEX idx_spb_bindings_account_id ON spb_bindings(account_id)').run();
   await workerEnv.DB
     .prepare(
       `CREATE TABLE spp_bindings (
