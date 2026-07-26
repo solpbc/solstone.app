@@ -1,5 +1,9 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import {
+  sandboxRunErrorBody,
+  SANDBOX_ERROR,
+} from '../src/sandbox-run-contract.js';
 import { makeTestEnv, resetDb, seedAccount, seedSandboxRun } from './helpers.js';
 import { installJwksStub, mintToken } from './jwks-helper.js';
 import {
@@ -60,7 +64,11 @@ describe('sandbox run admin boundary', () => {
 
     for (const [runId, expectedStatus, expectedCode] of [
       [SANDBOX_RUN_ID, 200, null],
-      [SANDBOX_RUN_ID_B, 404, 'sandbox_run_not_found'],
+      [
+        SANDBOX_RUN_ID_B,
+        SANDBOX_ERROR.NOT_FOUND.status,
+        SANDBOX_ERROR.NOT_FOUND.code,
+      ],
     ]) {
       const path = `/admin/sandbox-runs/${runId}`;
       const getResponse = await worker.fetch(sandboxRequest(path, token), env);
@@ -86,13 +94,11 @@ describe('sandbox run admin boundary', () => {
         makeTestEnv({ SANDBOX_ACCOUNT_ID: configured })
       );
 
-      expect(response.status).toBe(503);
+      expect(response.status).toBe(SANDBOX_ERROR.UNAVAILABLE.status);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
-      await expect(response.json()).resolves.toEqual({
-        error: 'sandbox run unavailable',
-        code: 'sandbox_run_unavailable',
-        run_id: SANDBOX_RUN_ID,
-      });
+      await expect(response.json()).resolves.toEqual(
+        sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+      );
     }
   });
 });

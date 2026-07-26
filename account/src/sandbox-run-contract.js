@@ -40,14 +40,6 @@ export const SANDBOX_RUN_STATUS = deepFreeze({
   RELEASED: 'released',
 });
 export const SANDBOX_RUN_STATUSES = valuesOf(SANDBOX_RUN_STATUS);
-export const SANDBOX_NONTERMINAL_STATUSES = Object.freeze([
-  SANDBOX_RUN_STATUS.PROVISIONING,
-  SANDBOX_RUN_STATUS.ACTIVE,
-  SANDBOX_RUN_STATUS.CLEANUP_REQUIRED,
-  SANDBOX_RUN_STATUS.CLEANING,
-  SANDBOX_RUN_STATUS.EXPIRY_PENDING,
-  SANDBOX_RUN_STATUS.CLEANUP_FAILED,
-]);
 export const SANDBOX_RECONCILIATION_STATUSES = Object.freeze([
   SANDBOX_RUN_STATUS.CLEANUP_REQUIRED,
   SANDBOX_RUN_STATUS.CLEANING,
@@ -577,9 +569,13 @@ export function isSandboxRunComponentReport(component, descriptor) {
   if (!hasExactKeys(component, SANDBOX_COMPONENT_REPORT_KEYS)) return false;
   if (component.component !== descriptor.name || !componentStateSet.has(component.state)) return false;
   if (!Number.isSafeInteger(component.updated_at)) return false;
-  if (component.state === SANDBOX_COMPONENT_STATE.DENY_PENDING
-    && component.residual_code === SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED) return true;
+  if (isExpiredActiveComponentReport(component)) return true;
   return componentRelationshipValid(descriptor.name, component.state, component.residual_code);
+}
+
+function isExpiredActiveComponentReport(component) {
+  return component.state === SANDBOX_COMPONENT_STATE.DENY_PENDING
+    && component.residual_code === SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED;
 }
 
 export function isSandboxRunReport(report, { row, nowMs } = {}) {
@@ -603,6 +599,8 @@ export function isSandboxRunReport(report, { row, nowMs } = {}) {
   ))) {
     return false;
   }
+  if (report.components.some(isExpiredActiveComponentReport)
+    && (report.status !== SANDBOX_RUN_STATUS.ACTIVE || report.lease_live)) return false;
   if (report.lease_live && report.status !== SANDBOX_RUN_STATUS.ACTIVE) return false;
   if (report.status === SANDBOX_RUN_STATUS.ACTIVE
     && report.provisioning_phase !== SANDBOX_PROVISIONING_PHASE.ACTIVE) return false;
@@ -849,7 +847,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
     delete_accepted_addition: { name: 'Retry-After', type: 'decimal-integer-seconds' },
   },
   routes: {
-    contract: { method: 'GET', path: '/admin/sandbox-runs/contract', query: 'forbidden', status: 200 },
+    contract: { method: 'GET', path: '/admin/sandbox-runs/contract', query: 'must-be-empty', status: 200 },
     collection: { method: 'POST', path: '/admin/sandbox-runs' },
     member: { methods: ['GET', 'DELETE'], path: '/admin/sandbox-runs/{run_id}' },
     head: { behavior: 'global-get-mirror-with-empty-body' },

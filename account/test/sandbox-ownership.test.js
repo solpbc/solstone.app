@@ -142,7 +142,7 @@ describe('sandbox ownership boundary', () => {
 
   it('uses active status and a strict future expiry as the single lease authority', () => {
     expect(isSandboxRunLeaseLive({
-      status: 'active',
+      status: SANDBOX_RUN_STATUS.ACTIVE,
       lease_expires_at: 2_001,
     }, 2_000)).toBe(true);
     expect(isSandboxRunLeaseLive({
@@ -548,15 +548,24 @@ async function seedProvisioningRun({ accountId, instanceId, phase, createdAt = 0
 async function activateSeededRun(runId) {
   await workerEnv.DB.prepare(
     `UPDATE sandbox_runs
-     SET status = 'active',
-         provisioning_phase = 'active',
-         dispatch_state = 'active',
-         spp_state = 'active',
-         spb_state = 'active',
-         spl_relay_state = 'active',
-         spl_binding_state = 'active'
+     SET status = ?,
+         provisioning_phase = ?,
+         dispatch_state = ?,
+         spp_state = ?,
+         spb_state = ?,
+         spl_relay_state = ?,
+         spl_binding_state = ?
      WHERE run_id = ?`
-  ).bind(runId).run();
+  ).bind(
+    SANDBOX_RUN_STATUS.ACTIVE,
+    SANDBOX_PROVISIONING_PHASE.ACTIVE,
+    SANDBOX_COMPONENT_STATE.ACTIVE,
+    SANDBOX_COMPONENT_STATE.ACTIVE,
+    SANDBOX_COMPONENT_STATE.ACTIVE,
+    SANDBOX_COMPONENT_STATE.ACTIVE,
+    SANDBOX_COMPONENT_STATE.ACTIVE,
+    runId
+  ).run();
 }
 
 async function dispatchRows() {

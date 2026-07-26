@@ -11,6 +11,7 @@ import {
   SANDBOX_COMPONENT_STATE,
   SANDBOX_COMPONENT_STATES,
   SANDBOX_CREATION_ONLY_RESIDUAL_CODES,
+  SANDBOX_ERROR,
   SANDBOX_LAST_RESIDUAL_CODES,
   SANDBOX_LEASE_TTL_MS,
   SANDBOX_PROVISIONING_PHASE,
@@ -250,8 +251,8 @@ describe('sandbox-run generated contract parity', () => {
       'const COMPONENTS',
       'const RELAY_RESIDUALS',
       'function renderSandboxRun(',
-      'invalid sandbox run request',
-      'sandbox run cleanup unavailable',
+      SANDBOX_ERROR.INVALID_REQUEST.error,
+      SANDBOX_ERROR.CLEANUP_UNAVAILABLE.error,
     ]) {
       expect(lease).not.toContain(duplicate);
     }

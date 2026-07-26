@@ -178,12 +178,10 @@ describe('sandbox run DELETE cleanup', () => {
     );
     const text = await response.text();
 
-    expect(response.status).toBe(409);
-    expect(text).toBe(JSON.stringify({
-      error: 'sandbox run cleanup conflict',
-      code: 'sandbox_run_cleanup_conflict',
-      run_id: SANDBOX_RUN_ID,
-    }));
+    expect(response.status).toBe(SANDBOX_ERROR.CLEANUP_CONFLICT.status);
+    expect(text).toBe(JSON.stringify(
+      sandboxRunErrorBody(SANDBOX_ERROR.CLEANUP_CONFLICT, SANDBOX_RUN_ID)
+    ));
     expect(text).not.toContain(account.accountId);
     expect(text).not.toContain(incumbent.accountId);
     expect(text).not.toContain(SANDBOX_INSTANCE_ID);

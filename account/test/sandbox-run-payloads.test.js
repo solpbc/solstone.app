@@ -88,7 +88,7 @@ describe('sandbox run capability payload contract', () => {
     expect(baseline.relay.calls).toHaveLength(1);
     expect(baseline.relay.calls[0].bodyText).toBe(JSON.stringify({
       instance_id: SANDBOX_INSTANCE_ID,
-      entitled_until: Math.floor((SANDBOX_NOW + 3_600_000) / 1000),
+      entitled_until: Math.floor((SANDBOX_NOW + SANDBOX_LEASE_TTL_MS) / 1000),
     }));
   });
 });

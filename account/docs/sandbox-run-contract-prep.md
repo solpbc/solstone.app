@@ -14,6 +14,8 @@ those groups and cites their definitions without copying their members.
 ran the documented setup command, `npm install`, successfully, then ran the
 canonical gate through Hopper. The gate order is the partition guard followed
 by the worker, passkey, and node Vitest configurations (`package.json:5-9`).
+(This records the pre-change order; the completed lode puts the contract drift
+check first.)
 
 Command:
 

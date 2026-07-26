@@ -21,6 +21,7 @@ import {
   SANDBOX_COMPONENTS,
   SANDBOX_ERROR,
   SANDBOX_OUTER_ADMIN_ENVELOPE,
+  SANDBOX_PROVISIONING_PHASE,
   SANDBOX_REPORT_KEYS,
   SANDBOX_RESPONSE_HEADER_DESCRIPTORS,
   SANDBOX_RESIDUAL_CODE,
@@ -133,6 +134,16 @@ describe('sandbox-run generated contract route', () => {
       await expectOuterEnvelope(response, SANDBOX_OUTER_ADMIN_ENVELOPE.NOT_FOUND);
     }
 
+    const canonical = await worker.fetch(
+      sandboxRequest('/admin/sandbox-runs/contract', token),
+      testEnv
+    );
+    const emptyQuery = await worker.fetch(
+      sandboxRequest('/admin/sandbox-runs/contract?', token),
+      testEnv
+    );
+    expect(await responseSnapshot(emptyQuery)).toEqual(await responseSnapshot(canonical));
+
     const get = await worker.fetch(sandboxRequest('/admin/sandbox-runs/contract', token), testEnv);
     const head = await worker.fetch(
       sandboxRequest('/admin/sandbox-runs/contract', token, { method: 'HEAD' }),
@@ -206,6 +217,15 @@ describe('sandbox-run contract validators', () => {
     const impossibleRetry = structuredClone(report);
     impossibleRetry.retry_after_seconds = 1;
     expect(isSandboxRunReport(impossibleRetry)).toBe(false);
+    const impossibleExpiredProjection = structuredClone(report);
+    impossibleExpiredProjection.status = SANDBOX_RUN_STATUS.PROVISIONING;
+    impossibleExpiredProjection.provisioning_phase = SANDBOX_PROVISIONING_PHASE.CREATED;
+    impossibleExpiredProjection.lease_live = false;
+    for (const component of impossibleExpiredProjection.components) {
+      component.state = SANDBOX_COMPONENT_STATE.DENY_PENDING;
+      component.residual_code = SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED;
+    }
+    expect(isSandboxRunReport(impossibleExpiredProjection)).toBe(false);
     const missingReportField = structuredClone(report);
     delete missingReportField.cleanup_phase;
     expect(isSandboxRunReport(missingReportField)).toBe(false);

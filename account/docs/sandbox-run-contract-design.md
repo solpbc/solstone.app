@@ -155,12 +155,14 @@ Decision: the source module constructs and deeply freezes its descriptor, calls
 its deterministic serializer once at module initialization, and exports that
 immutable string as `SANDBOX_RUN_CONTRACT_JSON`; the generator and tests enforce
 the exported cap, avoiding a module-initialization throw that could disable
-unrelated Worker routes. The route returns that string directly. It does
-not invoke the serializer per request and does not inspect `env`, request
-headers/body/query, D1, service bindings, KV, `fetch`, or a clock. This follows
-the existing module-level CSS/font serving pattern
-(`src/assets.js:1-3`, `src/assets.js:362-370`, `src/index.js:305-327`) and the
-prep's tested recommendation (`docs/sandbox-run-contract-prep.md:524-545`).
+unrelated Worker routes. The branch inspects only method, path, and parsed query
+to decide whether it matches. Once matched, no request or environment value can
+influence the response bytes: the route returns that string directly without
+invoking the serializer per request or consulting headers/body, D1, service
+bindings, KV, `fetch`, or a clock. This follows the existing module-level CSS/font
+serving pattern (`src/assets.js:1-3`, `src/assets.js:362-370`,
+`src/index.js:310-330`) and the prep's tested recommendation
+(`docs/sandbox-run-contract-prep.md:524-545`).
 
 The committed JSON and the module-level string represent the same bytes in two
 places. That duplication is explicit and accepted. It is safe only because the
@@ -178,7 +180,7 @@ retained as research, not selected architecture
 The route receives `securityHeaders` through the existing authenticated admin
 dispatch and builds its response from that argument
 (`src/admin.js:141-166`). It adds the same JSON content type and no-store cache
-control used by sandbox responses (`src/sandbox-run-lease.js:964-970`). It does
+control used by sandbox responses (`src/sandbox-run-lease.js:1220-1229`). It does
 not introduce, import, or move a security-header constant. The artifact's header
 section is descriptive; the runtime header values keep their sole owner at
 `src/admin.js:54-62`.
@@ -364,14 +366,14 @@ neither malformed data nor an unexpected render exception can escape to
 
 For GET, after the account-scoped D1 read succeeds and absence is handled, the
 handler validates the row against the expected request run ID and configured
-account ID before rendering (`src/sandbox-run-lease.js:107-123`,
-`src/db.js:1938-1944`). It then renders once with one captured `nowMs` and
+account ID before rendering (`src/sandbox-run-lease.js:113-139`,
+`src/db.js:1943-1949`). It then renders once with one captured `nowMs` and
 validates the report, including exact key/component order and clock-derived
-invariants (`src/sandbox-run-lease.js:868-906`). An invalid row or report returns
-503 `sandbox_run_unavailable` with the caller's `run_id`, performs no write, and
-does not reveal the malformed value. The existing scoped-absence 404 remains
-unchanged (`src/sandbox-run-lease.js:116-123`,
-`src/sandbox-run-lease.js:987-993`, `src/sandbox-run-lease.js:1011-1017`).
+invariants (`src/sandbox-run-contract.js:539-638`). An invalid row or report
+returns 503 `sandbox_run_unavailable` with the caller's `run_id`, performs no
+write, and does not reveal the malformed value. The existing scoped-absence 404
+remains unchanged (`src/sandbox-run-lease.js:116-139`,
+`src/sandbox-run-lease.js:1248-1278`).
 
 POST runtime validation is limited to configuration at D7; create-response and
 capability validators remain source exports exercised by tests against real 201
@@ -463,8 +465,8 @@ outcome.
 Decision: add exactly `GET /admin/sandbox-runs/contract` inside
 `handleSandboxRunRequest`. Its branch is the first branch in that handler,
 before collection POST, canonical UUID-member matching, and every call to
-`configuredSandboxAccountId` (`src/sandbox-run-lease.js:80-109`,
-`src/sandbox-run-lease.js:498-500`). Access validation still happens first in
+`configuredSandboxAccountId` (`src/sandbox-run-lease.js:77-115`,
+`src/sandbox-run-lease.js:603-605`). Access validation still happens first in
 `handleAdmin` (`src/admin.js:141-166`).
 
 The branch matches only the exact pathname, GET method, expected path segment

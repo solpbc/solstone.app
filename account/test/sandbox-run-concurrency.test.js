@@ -4,6 +4,15 @@ import worker from '../src/index.js';
 import { prefixFor } from '../src/spb-broker.js';
 import { reconcileExpiredSandboxRuns } from '../src/sandbox-run-lease.js';
 import {
+  sandboxRunErrorBody,
+  SANDBOX_CLEANUP_PHASE,
+  SANDBOX_COMPONENT_STATE,
+  SANDBOX_ERROR,
+  SANDBOX_LEASE_TTL_MS,
+  SANDBOX_PROVISIONING_PHASE,
+  SANDBOX_RUN_STATUS,
+} from '../src/sandbox-run-contract.js';
+import {
   dbDumpText,
   installConsoleSpy,
   resetDb,
@@ -133,18 +142,16 @@ describe('sandbox run concurrency', () => {
     const createText = await created.text();
 
     expect(deleted.status).toBe(200);
-    expect((await deleted.json()).status).toBe('released');
-    expect(created.status).toBe(503);
-    expect(createText).toBe(JSON.stringify({
-      error: 'sandbox run unavailable',
-      code: 'sandbox_run_unavailable',
-      run_id: SANDBOX_RUN_ID,
-    }));
+    expect((await deleted.json()).status).toBe(SANDBOX_RUN_STATUS.RELEASED);
+    expect(created.status).toBe(SANDBOX_ERROR.UNAVAILABLE.status);
+    expect(createText).toBe(JSON.stringify(
+      sandboxRunErrorBody(SANDBOX_ERROR.UNAVAILABLE, SANDBOX_RUN_ID)
+    ));
     expect(createText).not.toContain(STANDING_GEMINI_KEY);
     await expect(runRow()).resolves.toMatchObject({
-      status: 'released',
-      provisioning_phase: 'spl_intent',
-      cleanup_phase: 'released',
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      provisioning_phase: SANDBOX_PROVISIONING_PHASE.SPL_INTENT,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
     });
     await expect(activeResourceCounts()).resolves.toEqual({
       dispatch: 0,
@@ -172,7 +179,10 @@ describe('sandbox run concurrency', () => {
       baseline.testEnv
     );
     expect(deleted.status).toBe(200);
-    await expect(runRow()).resolves.toMatchObject({ status: 'released', cleanup_phase: 'released' });
+    await expect(runRow()).resolves.toMatchObject({
+      status: SANDBOX_RUN_STATUS.RELEASED,
+      cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
+    });
 
     const dump = await dbDumpText();
     expect(dump).not.toContain((await created.json()).capabilities.scout.dispatch_token);
@@ -211,7 +221,7 @@ async function assertContainedCleanupRace(kind) {
   const controls = await seedControlResources(baseline.testEnv);
   const controlsBefore = await controlRows(controls);
   const targetPrefix = prefixFor(baseline.account.accountId, SANDBOX_INSTANCE_ID);
-  vi.setSystemTime(SANDBOX_NOW + 3_600_000);
+  vi.setSystemTime(SANDBOX_NOW + SANDBOX_LEASE_TTL_MS);
 
   let terminalTransitions = 0;
   if (kind === 'delete-versus-delete') {
@@ -249,13 +259,13 @@ async function assertContainedCleanupRace(kind) {
   }
 
   await expect(runRow()).resolves.toMatchObject({
-    status: 'released',
-    cleanup_phase: 'released',
-    dispatch_state: 'released',
-    spp_state: 'released',
-    spb_state: 'released',
-    spl_relay_state: 'released',
-    spl_binding_state: 'released',
+    status: SANDBOX_RUN_STATUS.RELEASED,
+    cleanup_phase: SANDBOX_CLEANUP_PHASE.RELEASED,
+    dispatch_state: SANDBOX_COMPONENT_STATE.RELEASED,
+    spp_state: SANDBOX_COMPONENT_STATE.RELEASED,
+    spb_state: SANDBOX_COMPONENT_STATE.RELEASED,
+    spl_relay_state: SANDBOX_COMPONENT_STATE.RELEASED,
+    spl_binding_state: SANDBOX_COMPONENT_STATE.RELEASED,
   });
   await expect(activeResourceCounts()).resolves.toEqual({
     dispatch: 0,
@@ -285,17 +295,17 @@ async function assertContainedCleanupRace(kind) {
     expect(text).not.toContain(controls.otherRunId);
     const body = JSON.parse(text);
     if (deleteResponse.status === 200) {
-      expect(body.status).toBe('released');
-      expect(body.components.every(({ state }) => state === 'released')).toBe(true);
+      expect(body.status).toBe(SANDBOX_RUN_STATUS.RELEASED);
+      expect(body.components.every(
+        ({ state }) => state === SANDBOX_COMPONENT_STATE.RELEASED
+      )).toBe(true);
     } else if (deleteResponse.status === 202) {
-      expect(body.status).toBe('expiry_pending');
+      expect(body.status).toBe(SANDBOX_RUN_STATUS.EXPIRY_PENDING);
       expect(deleteResponse.headers.get('Retry-After')).toBe(String(body.retry_after_seconds));
     } else {
-      expect(body).toEqual({
-        error: 'sandbox run cleanup unavailable',
-        code: 'sandbox_run_cleanup_unavailable',
-        run_id: SANDBOX_RUN_ID,
-      });
+      expect(body).toEqual(
+        sandboxRunErrorBody(SANDBOX_ERROR.CLEANUP_UNAVAILABLE, SANDBOX_RUN_ID)
+      );
     }
   }
 }

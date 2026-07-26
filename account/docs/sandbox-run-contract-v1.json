@@ -718,7 +718,7 @@
     "contract": {
       "method": "GET",
       "path": "/admin/sandbox-runs/contract",
-      "query": "forbidden",
+      "query": "must-be-empty",
       "status": 200
     },
     "collection": {

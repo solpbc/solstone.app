@@ -2,6 +2,14 @@ import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reconcileExpiredSandboxRuns } from '../src/sandbox-run-lease.js';
 import {
+  SANDBOX_CLEANUP_PHASE,
+  SANDBOX_COMPONENT_STATE,
+  SANDBOX_LEASE_TTL_MS,
+  SANDBOX_PROVISIONING_PHASE,
+  SANDBOX_RESIDUAL_CODE,
+  SANDBOX_RUN_STATUS,
+} from '../src/sandbox-run-contract.js';
+import {
   installConsoleSpy,
   makeTestEnv,
   resetDb,
@@ -10,7 +18,6 @@ import {
 } from './helpers.js';
 
 const NOW = 1_700_000_000_000;
-const HOUR_MS = 60 * 60 * 1000;
 
 describe('scheduled sandbox run reconciliation', () => {
   beforeEach(async () => {
@@ -34,7 +41,7 @@ describe('scheduled sandbox run reconciliation', () => {
       await seedDormantDueRun(testEnv, {
         runId,
         instanceId: uuidFor(index + 1, '1'),
-        createdAt: NOW - HOUR_MS - (11 - index) * 1_000,
+        createdAt: NOW - SANDBOX_LEASE_TTL_MS - (11 - index) * 1_000,
       });
     }
     const consoleSpy = installConsoleSpy();
@@ -53,10 +60,12 @@ describe('scheduled sandbox run reconciliation', () => {
       runs_skipped_for_retry: 0,
     });
     const rows = await runRows();
-    expect(rows.filter(({ status }) => status === 'released').map(({ run_id }) => run_id))
+    expect(rows
+      .filter(({ status }) => status === SANDBOX_RUN_STATUS.RELEASED)
+      .map(({ run_id }) => run_id))
       .toEqual(runIds.slice(0, 10));
     expect(rows.find(({ run_id }) => run_id === runIds[10])).toMatchObject({
-      status: 'provisioning',
+      status: SANDBOX_RUN_STATUS.PROVISIONING,
       cleanup_phase: null,
     });
     expect(rows).toHaveLength(11);
@@ -75,7 +84,9 @@ describe('scheduled sandbox run reconciliation', () => {
       runs_failed: 0,
       runs_skipped_for_retry: 0,
     });
-    await expect(runRow(runIds[10])).resolves.toMatchObject({ status: 'released' });
+    await expect(runRow(runIds[10])).resolves.toMatchObject({
+      status: SANDBOX_RUN_STATUS.RELEASED,
+    });
   });
 
   it('isolates one run lookup failure and advances the next selected run', async () => {
@@ -85,12 +96,12 @@ describe('scheduled sandbox run reconciliation', () => {
     await seedDormantDueRun(baseEnv, {
       runId: failedRunId,
       instanceId: uuidFor(1, '1'),
-      createdAt: NOW - HOUR_MS - 2_000,
+      createdAt: NOW - SANDBOX_LEASE_TTL_MS - 2_000,
     });
     await seedDormantDueRun(baseEnv, {
       runId: healthyRunId,
       instanceId: uuidFor(2, '1'),
-      createdAt: NOW - HOUR_MS - 1_000,
+      createdAt: NOW - SANDBOX_LEASE_TTL_MS - 1_000,
     });
     const testEnv = {
       ...baseEnv,
@@ -111,8 +122,12 @@ describe('scheduled sandbox run reconciliation', () => {
       runs_failed: 1,
       runs_skipped_for_retry: 0,
     });
-    await expect(runRow(failedRunId)).resolves.toMatchObject({ status: 'provisioning' });
-    await expect(runRow(healthyRunId)).resolves.toMatchObject({ status: 'released' });
+    await expect(runRow(failedRunId)).resolves.toMatchObject({
+      status: SANDBOX_RUN_STATUS.PROVISIONING,
+    });
+    await expect(runRow(healthyRunId)).resolves.toMatchObject({
+      status: SANDBOX_RUN_STATUS.RELEASED,
+    });
   });
 
   it('skips a run until its stored SPB retry boundary without invoking cleanup', async () => {
@@ -123,18 +138,18 @@ describe('scheduled sandbox run reconciliation', () => {
       runId,
       accountId: account.accountId,
       instanceId: uuidFor(1, '2'),
-      status: 'expiry_pending',
-      provisioningPhase: 'active',
-      cleanupPhase: 'verify',
-      createdAt: NOW - HOUR_MS - 1,
+      status: SANDBOX_RUN_STATUS.EXPIRY_PENDING,
+      provisioningPhase: SANDBOX_PROVISIONING_PHASE.ACTIVE,
+      cleanupPhase: SANDBOX_CLEANUP_PHASE.VERIFY,
+      createdAt: NOW - SANDBOX_LEASE_TTL_MS - 1,
       spbRetryNotBefore: NOW + 1,
-      lastResidualCode: 'spb_credential_expiry_pending',
-      dispatchState: 'released',
-      sppState: 'released',
-      spbState: 'purge_pending',
-      spbResidualCode: 'spb_credential_expiry_pending',
-      splRelayState: 'released',
-      splBindingState: 'released',
+      lastResidualCode: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
+      dispatchState: SANDBOX_COMPONENT_STATE.RELEASED,
+      sppState: SANDBOX_COMPONENT_STATE.RELEASED,
+      spbState: SANDBOX_COMPONENT_STATE.PURGE_PENDING,
+      spbResidualCode: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
+      splRelayState: SANDBOX_COMPONENT_STATE.RELEASED,
+      splBindingState: SANDBOX_COMPONENT_STATE.RELEASED,
     });
     const before = await runRow(runId);
     const fetchMock = vi.fn(() => {
@@ -171,14 +186,14 @@ async function seedDormantDueRun(testEnv, { runId, instanceId, createdAt }) {
     runId,
     accountId: account.accountId,
     instanceId,
-    status: 'provisioning',
-    provisioningPhase: 'created',
+    status: SANDBOX_RUN_STATUS.PROVISIONING,
+    provisioningPhase: SANDBOX_PROVISIONING_PHASE.CREATED,
     createdAt,
-    dispatchState: 'deny_pending',
-    sppState: 'deny_pending',
-    spbState: 'deny_pending',
-    splRelayState: 'deny_pending',
-    splBindingState: 'deny_pending',
+    dispatchState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+    sppState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+    spbState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+    splRelayState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+    splBindingState: SANDBOX_COMPONENT_STATE.DENY_PENDING,
   });
 }
 
