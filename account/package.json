@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run --config vitest.config.js && vitest run --config vitest.static.config.js",
+    "test": "node scripts/check-test-partitions.mjs && vitest run --config vitest.worker.config.js && vitest run --config vitest.passkey.config.js && vitest run --config vitest.node.config.js",
+    "test:resources": "node scripts/measure-test-resources.mjs",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
