@@ -18,7 +18,7 @@ describe('spp binding database helpers', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'spp-binding@example.com', testEnv });
 
-    await upsertSppBinding(testEnv.DB, {
+    const created = await upsertSppBinding(testEnv.DB, {
       accountId: account.accountId,
       instanceId: INSTANCE_ID,
       tokenHash: 'token-hash-1',
@@ -26,18 +26,32 @@ describe('spp binding database helpers', () => {
       consentAckedAt: 1_000,
       consentDisclosureVersion: 'spp-consent-v1',
     });
+    expect(created).toEqual({
+      account_id: account.accountId,
+      instance_id: INSTANCE_ID,
+      sandbox_run_id: null,
+      created_at: 1_000,
+      last_seen_at: 1_000,
+    });
     await expect(findSppBindingByTokenHash(testEnv.DB, 'token-hash-1')).resolves.toEqual({
       account_id: account.accountId,
       instance_id: INSTANCE_ID,
     });
 
-    await upsertSppBinding(testEnv.DB, {
+    const retried = await upsertSppBinding(testEnv.DB, {
       accountId: account.accountId,
       instanceId: INSTANCE_ID,
       tokenHash: 'token-hash-2',
       nowMs: 2_000,
       consentAckedAt: 2_000,
       consentDisclosureVersion: 'spp-consent-v2',
+    });
+    expect(retried).toEqual({
+      account_id: account.accountId,
+      instance_id: INSTANCE_ID,
+      sandbox_run_id: null,
+      created_at: 1_000,
+      last_seen_at: 2_000,
     });
 
     await expect(bindingRow(account.accountId)).resolves.toEqual({

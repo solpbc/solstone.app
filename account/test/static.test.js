@@ -43,6 +43,7 @@ describe('static source checks', () => {
       'relay-grant.js',
       'retention.js',
       's3.js',
+      'sandbox-ownership.js',
       'scout-migrate.js',
       'session.js',
       'settings.js',

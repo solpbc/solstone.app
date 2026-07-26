@@ -657,15 +657,57 @@ export async function seedSplBinding({
   instanceId = '11111111-1111-1111-1111-111111111111',
   createdAt = Date.now(),
   lastSeenAt = createdAt,
+  sandboxRunId = null,
 } = {}) {
   await env.DB
     .prepare(
-      `INSERT INTO spl_bindings (account_id, instance_id, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?)`
+      `INSERT INTO spl_bindings (
+         account_id, instance_id, created_at, last_seen_at, sandbox_run_id
+       ) VALUES (?, ?, ?, ?, ?)`
     )
-    .bind(accountId, instanceId, createdAt, lastSeenAt)
+    .bind(accountId, instanceId, createdAt, lastSeenAt, sandboxRunId)
     .run();
-  return { accountId, instanceId, createdAt, lastSeenAt };
+  return { accountId, instanceId, createdAt, lastSeenAt, sandboxRunId };
+}
+
+export async function seedSppBinding({
+  accountId,
+  instanceId = '11111111-1111-1111-1111-111111111111',
+  tokenHash = null,
+  createdAt = Date.now(),
+  lastSeenAt = createdAt,
+  consentAckedAt = null,
+  consentDisclosureVersion = null,
+  sandboxRunId = null,
+} = {}) {
+  await env.DB
+    .prepare(
+      `INSERT INTO spp_bindings (
+         account_id, instance_id, token_hash, created_at, last_seen_at,
+         consent_acked_at, consent_disclosure_version, sandbox_run_id
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      accountId,
+      instanceId,
+      tokenHash,
+      createdAt,
+      lastSeenAt,
+      consentAckedAt,
+      consentDisclosureVersion,
+      sandboxRunId
+    )
+    .run();
+  return {
+    accountId,
+    instanceId,
+    tokenHash,
+    createdAt,
+    lastSeenAt,
+    consentAckedAt,
+    consentDisclosureVersion,
+    sandboxRunId,
+  };
 }
 
 export async function seedSpbBinding({

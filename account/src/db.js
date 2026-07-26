@@ -436,11 +436,56 @@ export async function getDeviceById(db, deviceId) {
   return row || null;
 }
 
-export async function insertDispatchToken(db, { tokenHash, accountId, nowMs }) {
+export async function insertDispatchToken(db, {
+  tokenHash,
+  accountId,
+  nowMs,
+  sandboxRunId = null,
+}) {
   await db
-    .prepare('INSERT INTO account_dispatch_tokens (token_hash, account_id, created_at) VALUES (?, ?, ?)')
-    .bind(tokenHash, accountId, nowMs)
+    .prepare(
+      `INSERT INTO account_dispatch_tokens (
+         token_hash, account_id, created_at, sandbox_run_id
+       ) VALUES (?, ?, ?, ?)`
+    )
+    .bind(tokenHash, accountId, nowMs, sandboxRunId)
     .run();
+}
+
+export async function releaseDispatchTokensForSandboxRun(db, {
+  accountId,
+  sandboxRunId,
+  nowMs,
+}) {
+  const results = await db.batch([
+    db
+      .prepare(
+        `UPDATE account_dispatch_tokens
+         SET revoked_at = ?1
+         WHERE account_id = ?2
+           AND sandbox_run_id = ?3
+           AND revoked_at IS NULL
+           AND NOT EXISTS (
+             SELECT 1
+             FROM account_dispatch_tokens
+             WHERE sandbox_run_id = ?3
+               AND account_id != ?2
+           )
+         RETURNING token_hash`
+      )
+      .bind(nowMs, accountId, sandboxRunId),
+    db
+      .prepare(
+        `SELECT account_id, revoked_at
+         FROM account_dispatch_tokens
+         WHERE sandbox_run_id = ?`
+      )
+      .bind(sandboxRunId),
+  ]);
+  return {
+    revokedRows: results?.[0]?.results || [],
+    runRows: results?.[1]?.results || [],
+  };
 }
 
 export async function findActiveDispatchToken(db, tokenHash) {
@@ -1245,16 +1290,26 @@ export async function upsertStripeCustomer(db, { accountId, stripeCustomerId, no
     .run();
 }
 
-export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
-  await db
+export async function upsertSplBinding(db, {
+  accountId,
+  instanceId,
+  nowMs,
+  sandboxRunId = null,
+}) {
+  const { results } = await db
     .prepare(
-      `INSERT INTO spl_bindings (account_id, instance_id, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?)
-       ON CONFLICT(account_id, instance_id) DO UPDATE SET
-         last_seen_at = excluded.last_seen_at`
+      `INSERT INTO spl_bindings (
+         account_id, instance_id, sandbox_run_id, created_at, last_seen_at
+       ) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(instance_id) DO UPDATE SET
+         last_seen_at = excluded.last_seen_at
+       WHERE account_id = excluded.account_id
+         AND sandbox_run_id IS excluded.sandbox_run_id
+       RETURNING account_id, instance_id, sandbox_run_id, created_at, last_seen_at`
     )
-    .bind(accountId, instanceId, nowMs, nowMs)
-    .run();
+    .bind(accountId, instanceId, sandboxRunId, nowMs, nowMs)
+    .all();
+  return results?.[0] || null;
 }
 
 export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
@@ -1279,18 +1334,22 @@ export async function upsertSppBinding(db, {
   nowMs,
   consentAckedAt,
   consentDisclosureVersion,
+  sandboxRunId = null,
 }) {
-  await db
+  const { results } = await db
     .prepare(
       `INSERT INTO spp_bindings (
          account_id, instance_id, token_hash, created_at, last_seen_at,
-         consent_acked_at, consent_disclosure_version
-       ) VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(account_id, instance_id) DO UPDATE SET
+         consent_acked_at, consent_disclosure_version, sandbox_run_id
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(instance_id) DO UPDATE SET
          token_hash = excluded.token_hash,
          last_seen_at = excluded.last_seen_at,
          consent_acked_at = excluded.consent_acked_at,
-         consent_disclosure_version = excluded.consent_disclosure_version`
+         consent_disclosure_version = excluded.consent_disclosure_version
+       WHERE account_id = excluded.account_id
+         AND sandbox_run_id IS excluded.sandbox_run_id
+       RETURNING account_id, instance_id, sandbox_run_id, created_at, last_seen_at`
     )
     .bind(
       accountId,
@@ -1299,9 +1358,69 @@ export async function upsertSppBinding(db, {
       nowMs,
       nowMs,
       consentAckedAt,
-      consentDisclosureVersion
+      consentDisclosureVersion,
+      sandboxRunId
     )
-    .run();
+    .all();
+  return results?.[0] || null;
+}
+
+export async function releaseSplBindingOwnership(db, {
+  accountId,
+  instanceId,
+  sandboxRunId,
+}) {
+  const results = await db.batch([
+    db
+      .prepare(
+        `DELETE FROM spl_bindings
+         WHERE instance_id = ?
+           AND account_id = ?
+           AND sandbox_run_id IS ?
+         RETURNING instance_id`
+      )
+      .bind(instanceId, accountId, sandboxRunId),
+    db
+      .prepare(
+        `SELECT account_id, sandbox_run_id
+         FROM spl_bindings
+         WHERE instance_id = ?`
+      )
+      .bind(instanceId),
+  ]);
+  return {
+    deletedRows: results?.[0]?.results || [],
+    incumbent: results?.[1]?.results?.[0] || null,
+  };
+}
+
+export async function releaseSppBindingOwnership(db, {
+  accountId,
+  instanceId,
+  sandboxRunId,
+}) {
+  const results = await db.batch([
+    db
+      .prepare(
+        `DELETE FROM spp_bindings
+         WHERE instance_id = ?
+           AND account_id = ?
+           AND sandbox_run_id IS ?
+         RETURNING instance_id`
+      )
+      .bind(instanceId, accountId, sandboxRunId),
+    db
+      .prepare(
+        `SELECT account_id, sandbox_run_id
+         FROM spp_bindings
+         WHERE instance_id = ?`
+      )
+      .bind(instanceId),
+  ]);
+  return {
+    deletedRows: results?.[0]?.results || [],
+    incumbent: results?.[1]?.results?.[0] || null,
+  };
 }
 
 export async function listSplBindings(db, accountId) {

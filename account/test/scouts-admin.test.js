@@ -221,7 +221,10 @@ describe('admin scout endpoints', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'approve-comp@example.com', nowMs: 1_000, testEnv });
     await seedScoutApplication({ accountId: account.accountId, status: 'pending', applied_at: 2_000 });
-    await seedSplBinding({ accountId: account.accountId });
+    await seedSplBinding({
+      accountId: account.accountId,
+      instanceId: '33333333-3333-3333-3333-333333333333',
+    });
     await seedSpbBinding({ accountId: account.accountId, lapsedAt: 999 });
     const { calls } = await installJwksRelayRecorder();
     const ctx = createExecutionContext();
@@ -248,7 +251,7 @@ describe('admin scout endpoints', () => {
     });
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({
-      instance_id: '11111111-1111-1111-1111-111111111111',
+      instance_id: '33333333-3333-3333-3333-333333333333',
       entitled_until: COMP_ENTITLED_THROUGH,
     });
   });
@@ -320,7 +323,10 @@ describe('admin scout endpoints', () => {
       source: 'comp',
       sourceRef: null,
     });
-    await seedSplBinding({ accountId: account.accountId });
+    await seedSplBinding({
+      accountId: account.accountId,
+      instanceId: '44444444-4444-4444-4444-444444444444',
+    });
     await seedSpbBinding({ accountId: account.accountId });
     const { calls } = await installJwksRelayRecorder();
     const ctx = createExecutionContext();
@@ -347,7 +353,7 @@ describe('admin scout endpoints', () => {
     expect(spbBinding.lapsed_at).toBeGreaterThan(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({
-      instance_id: '11111111-1111-1111-1111-111111111111',
+      instance_id: '44444444-4444-4444-4444-444444444444',
       entitled_until: 0,
     });
   });

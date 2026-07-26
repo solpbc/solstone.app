@@ -14,8 +14,19 @@ describe('dispatch tokens', () => {
 
     const minted = await mintDispatchToken(testEnv, account.accountId);
     const resolved = await resolveDispatchToken(testEnv, minted.token);
+    const row = await testEnv.DB
+      .prepare('SELECT token_hash, account_id, sandbox_run_id FROM account_dispatch_tokens WHERE token_hash = ?')
+      .bind(minted.tokenHash)
+      .first();
 
     expect(minted.accountId).toBe(account.accountId);
+    expect(minted.sandboxRunId).toBeNull();
+    expect(row).toEqual({
+      token_hash: minted.tokenHash,
+      account_id: account.accountId,
+      sandbox_run_id: null,
+    });
+    expect(JSON.stringify(row)).not.toContain(minted.token);
     expect(resolved).toEqual({ accountId: account.accountId });
   });
 

@@ -486,7 +486,12 @@ export async function handleEnableSplConfirm(req, env, ctx) {
 
   const nowMs = Date.now();
   if (instance) {
-    await upsertSplBinding(env.DB, { accountId: session.account_id, instanceId: instance, nowMs });
+    const binding = await upsertSplBinding(env.DB, {
+      accountId: session.account_id,
+      instanceId: instance,
+      nowMs,
+    });
+    if (!binding) return noStoreHtml(renderError(), { status: 500 });
   }
   await reconcileSplEntitlement(env, session.account_id, nowMs, ctx);
   const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE });
@@ -735,7 +740,7 @@ export async function handleEnableSppConfirm(req, env, ctx) {
 
   const token = generateSessionToken();
   const tokenHash = await hashWithPepper(token, env);
-  await upsertSppBinding(env.DB, {
+  const binding = await upsertSppBinding(env.DB, {
     accountId,
     instanceId: instance,
     tokenHash,
@@ -743,6 +748,7 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     consentAckedAt: nowMs,
     consentDisclosureVersion: SPP_CONSENT_DISCLOSURE_VERSION,
   });
+  if (!binding) return noStoreHtml(renderError(), { status: 500 });
   await reconcileSppEntitlement(env, accountId, nowMs, ctx);
   const payload = {
     state: 'approved',
