@@ -1312,19 +1312,46 @@ export async function upsertSplBinding(db, {
   return results?.[0] || null;
 }
 
-export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
-  await db
+export async function upsertSpbBinding(db, {
+  accountId,
+  instanceId,
+  tokenHash,
+  nowMs,
+  sandboxRunId = null,
+}) {
+  const { results } = await db
     .prepare(
       `INSERT INTO spb_bindings (
-         account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at
-       ) VALUES (?, ?, ?, ?, ?, NULL)
-       ON CONFLICT(account_id, instance_id) DO UPDATE SET
+         account_id,
+         instance_id,
+         created_at,
+         last_seen_at,
+         token_hash,
+         lapsed_at,
+         sandbox_run_id,
+         sandbox_credential_expires_at,
+         sandbox_denied_at
+       ) VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL)
+       ON CONFLICT(instance_id) DO UPDATE SET
          token_hash = excluded.token_hash,
          last_seen_at = excluded.last_seen_at,
-         lapsed_at = NULL`
+         lapsed_at = NULL
+       WHERE account_id = excluded.account_id
+         AND sandbox_run_id IS excluded.sandbox_run_id
+         AND sandbox_denied_at IS NULL
+       RETURNING account_id,
+                 instance_id,
+                 sandbox_run_id,
+                 created_at,
+                 last_seen_at,
+                 token_hash,
+                 lapsed_at,
+                 sandbox_credential_expires_at,
+                 sandbox_denied_at`
     )
-    .bind(accountId, instanceId, nowMs, nowMs, tokenHash)
-    .run();
+    .bind(accountId, instanceId, nowMs, nowMs, tokenHash, sandboxRunId)
+    .all();
+  return results?.[0] || null;
 }
 
 export async function upsertSppBinding(db, {
@@ -1452,6 +1479,7 @@ export async function selectDueLapsedBindings(db, cutoffMs) {
        FROM spb_bindings
        WHERE lapsed_at IS NOT NULL
          AND lapsed_at <= ?
+         AND sandbox_run_id IS NULL
        ORDER BY lapsed_at ASC, rowid ASC`
     )
     .bind(cutoffMs)
@@ -1466,14 +1494,106 @@ export async function deleteSpbBinding(db, { accountId, instanceId }) {
     .run();
 }
 
+export async function deleteSpbSandboxTombstone(db, {
+  accountId,
+  instanceId,
+  sandboxRunId,
+  sandboxDeniedAt,
+}) {
+  const { results } = await db
+    .prepare(
+      `DELETE FROM spb_bindings
+       WHERE account_id = ?
+         AND instance_id = ?
+         AND sandbox_run_id IS ?
+         AND sandbox_denied_at IS ?
+         AND token_hash IS NULL
+       RETURNING account_id, instance_id, sandbox_run_id`
+    )
+    .bind(accountId, instanceId, sandboxRunId, sandboxDeniedAt)
+    .all();
+  return results?.[0] || null;
+}
+
 export async function findSpbBindingByTokenHash(db, tokenHash) {
   const row = await db
     .prepare(
-      `SELECT account_id, instance_id, lapsed_at
+      `SELECT account_id, instance_id, lapsed_at, sandbox_run_id
        FROM spb_bindings
        WHERE token_hash = ? AND token_hash IS NOT NULL`
     )
     .bind(tokenHash)
+    .first();
+  return row || null;
+}
+
+export async function advanceSpbSandboxCredentialExpiry(db, {
+  proposedExpiryMs,
+  tokenHash,
+  accountId,
+  instanceId,
+  sandboxRunId,
+}) {
+  const { results } = await db
+    .prepare(
+      `UPDATE spb_bindings
+       SET sandbox_credential_expires_at =
+             MAX(COALESCE(sandbox_credential_expires_at, 0), ?)
+       WHERE token_hash = ?
+         AND account_id = ?
+         AND instance_id = ?
+         AND sandbox_run_id IS ?
+         AND sandbox_denied_at IS NULL
+         AND token_hash IS NOT NULL
+       RETURNING account_id,
+                 instance_id,
+                 sandbox_run_id,
+                 sandbox_credential_expires_at`
+    )
+    .bind(proposedExpiryMs, tokenHash, accountId, instanceId, sandboxRunId)
+    .all();
+  return results?.[0] || null;
+}
+
+export async function denySpbSandboxBindingOwnership(db, {
+  accountId,
+  instanceId,
+  sandboxRunId,
+  sandboxDeniedAt,
+}) {
+  const { results } = await db
+    .prepare(
+      `UPDATE spb_bindings
+       SET token_hash = NULL,
+           sandbox_denied_at = ?
+       WHERE account_id = ?
+         AND instance_id = ?
+         AND sandbox_run_id IS ?
+         AND sandbox_denied_at IS NULL
+       RETURNING account_id,
+                 instance_id,
+                 sandbox_run_id,
+                 sandbox_credential_expires_at,
+                 sandbox_denied_at`
+    )
+    .bind(sandboxDeniedAt, accountId, instanceId, sandboxRunId)
+    .all();
+  return results?.[0] || null;
+}
+
+export async function findSpbSandboxLifecycleByInstance(db, instanceId) {
+  const row = await db
+    .prepare(
+      `SELECT account_id,
+              instance_id,
+              sandbox_run_id,
+              sandbox_credential_expires_at,
+              sandbox_denied_at
+       FROM spb_bindings
+       WHERE instance_id = ?
+       LIMIT 1`
+    )
+    .bind(instanceId)
     .first();
   return row || null;
 }
@@ -1497,6 +1617,42 @@ export async function insertSpbMintAudit(db, { accountId, instanceId, prefix, sc
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(accountId, instanceId, prefix, scope, ttl, outcome, ts)
+    .run();
+}
+
+export async function insertSpbSandboxAudit(db, {
+  event,
+  outcome,
+  scope,
+  ttl,
+  credentialsMinted,
+  objectsDeleted,
+  multipartAborted,
+  ts,
+}) {
+  await db
+    .prepare(
+      `INSERT INTO spb_sandbox_audit (
+         event,
+         outcome,
+         scope,
+         ttl,
+         credentials_minted,
+         objects_deleted,
+         multipart_aborted,
+         ts
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      event,
+      outcome,
+      scope,
+      ttl,
+      credentialsMinted,
+      objectsDeleted,
+      multipartAborted,
+      ts
+    )
     .run();
 }
 

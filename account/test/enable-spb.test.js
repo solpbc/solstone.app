@@ -12,12 +12,14 @@ import {
   seedEntitlement,
   seedScoutApplication,
   seedSession,
+  seedSpbBinding,
 } from './helpers.js';
 
 const VALID_NONCE = '2'.repeat(52);
 const OTHER_NONCE = '3'.repeat(52);
 const VALID_INSTANCE = '11111111-1111-1111-1111-111111111111';
 const OTHER_INSTANCE = '22222222-2222-2222-2222-222222222222';
+const SANDBOX_RUN = 'aaaaaaaa-1111-1111-1111-111111111111';
 const SPB_SERVICE = 'spb_hosted';
 
 describe('/enable/backup', () => {
@@ -165,6 +167,43 @@ describe('/enable/backup', () => {
       token_hash: await hashWithPepper(payload.broker_token, testEnv),
     });
     expect(binding.lapsed_at).toBeGreaterThan(0);
+  });
+
+  it('returns the SPB error before reconciliation or handoff when the baseline claim loses', async () => {
+    const testEnv = makeTestEnv();
+    const incumbent = await seedAccount({ email: 'spb-run-owner@example.com', testEnv });
+    const account = await seedAccount({ email: 'spb-enable-loser@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedSpbBinding({
+      accountId: incumbent.accountId,
+      instanceId: VALID_INSTANCE,
+      createdAt: 1_000,
+      lastSeenAt: 1_000,
+      tokenHash: 'incumbent-token-hash',
+      sandboxRunId: SANDBOX_RUN,
+    });
+    await seedScoutApplication({
+      accountId: account.accountId,
+      status: 'approved',
+      approved_at: 1_000,
+    });
+    const before = await spbBindingByInstance(VALID_INSTANCE);
+
+    const response = await worker.fetch(confirmRequest({
+      cookie: session.cookie,
+      extraForm: { instance: VALID_INSTANCE },
+    }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(body).toContain('could not enable encrypted backup');
+    expect(body).not.toContain('broker_token');
+    expect(body).not.toContain('encrypted backup is approved');
+    expect(body).not.toContain(VALID_INSTANCE);
+    await expect(entitlementRow(account.accountId)).resolves.toBeNull();
+    await expect(rowCount('service_handoffs')).resolves.toBe(0);
+    await expect(spbBindingByInstance(VALID_INSTANCE)).resolves.toEqual(before);
   });
 
   it('writes an approved handoff and token binding when entitled', async () => {
@@ -351,6 +390,13 @@ async function spbBindingRow(accountId, instanceId) {
        WHERE account_id = ? AND instance_id = ?`
     )
     .bind(accountId, instanceId)
+    .first();
+}
+
+async function spbBindingByInstance(instanceId) {
+  return workerEnv.DB
+    .prepare('SELECT * FROM spb_bindings WHERE instance_id = ?')
+    .bind(instanceId)
     .first();
 }
 

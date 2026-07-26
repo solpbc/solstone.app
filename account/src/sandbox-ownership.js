@@ -7,8 +7,7 @@ import {
   upsertSppBinding,
 } from './db.js';
 import { mintDispatchToken } from './dispatch-tokens.js';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { requireCanonicalUuids } from './sandbox-identifiers.js';
 
 export async function mintSandboxDispatchToken(env, { sandboxRunId, accountId }) {
   requireCanonicalUuids(sandboxRunId, accountId);
@@ -104,10 +103,4 @@ function releaseBindingResult(result) {
   if (result.deletedRows.length > 0) return { outcome: 'released' };
   if (result.incumbent) return { outcome: 'ownership_conflict' };
   return { outcome: 'absent' };
-}
-
-function requireCanonicalUuids(...values) {
-  if (values.some((value) => typeof value !== 'string' || !UUID_RE.test(value))) {
-    throw new TypeError('invalid sandbox ownership identifier');
-  }
 }

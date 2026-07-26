@@ -71,9 +71,15 @@ export async function signedR2Fetch(env, cred, {
   });
 }
 
-export async function listObjectsV2(env, cred, { prefix, continuationToken = null, nowMs = Date.now() }) {
+export async function listObjectsV2(env, cred, {
+  prefix,
+  continuationToken = null,
+  maxKeys = null,
+  nowMs = Date.now(),
+}) {
   const query = { 'list-type': '2', prefix };
   if (continuationToken) query['continuation-token'] = continuationToken;
+  if (maxKeys !== null) query['max-keys'] = maxKeys;
   const response = await signedR2Fetch(env, cred, { method: 'GET', query, nowMs });
   const xml = await response.text();
   if (!response.ok) throw s3Error('S3ListObjectsError', response.status);

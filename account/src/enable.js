@@ -595,7 +595,13 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
   const accountId = session.account_id;
   const brokerToken = generateSessionToken();
   const tokenHash = await hashWithPepper(brokerToken, env);
-  await upsertSpbBinding(env.DB, { accountId, instanceId: instance, tokenHash, nowMs });
+  const binding = await upsertSpbBinding(env.DB, {
+    accountId,
+    instanceId: instance,
+    tokenHash,
+    nowMs,
+  });
+  if (!binding) return spbError(500);
   await reconcileSpbEntitlement(env, accountId, nowMs, ctx);
   const entitlement = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });
   const entitled = isSpbEntitled(entitlement);

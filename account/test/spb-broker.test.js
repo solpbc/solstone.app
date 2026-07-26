@@ -2,6 +2,8 @@ import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
+import { mintSandboxExternalCredential } from '../src/r2-credential.js';
+import { denySpbSandboxBinding } from '../src/spb-sandbox-lifecycle.js';
 import {
   fetchWithCtx,
   installConsoleSpy,
@@ -15,8 +17,10 @@ import {
 } from './helpers.js';
 
 const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
+const SANDBOX_RUN = 'aaaaaaaa-1111-1111-1111-111111111111';
 const BROKER_TOKEN = 'spb-broker-token';
 const SPB_SERVICE = 'spb_hosted';
+const NOW = 1_700_000_000_000;
 const BACKUP_ACTIONS = [
   'HeadObject',
   'GetObject',
@@ -43,6 +47,7 @@ describe('spb credential broker', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('mints backup credentials with the Cloudflare R2 local-signing JWT shape', async () => {
@@ -89,6 +94,320 @@ describe('spb credential broker', () => {
       ttl: 259200,
       outcome: 'minted',
     })]);
+    await expect(spbBindingRow()).resolves.toMatchObject({
+      sandbox_run_id: null,
+      sandbox_credential_expires_at: null,
+      sandbox_denied_at: null,
+    });
+    await expect(sandboxAuditRows()).resolves.toEqual([]);
+  });
+
+  it('durably advances the exact serialized 90-second sandbox expiry before responding', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const calls = [];
+    installHubStub(calls);
+    const testEnv = makeTestEnv({
+      HUB_WEBHOOK_URL: HUB_URL,
+      HUB_WEBHOOK_SECRET: 'hub-secret',
+    });
+    const seeded = await seedBrokerReady({ testEnv, sandboxRunId: SANDBOX_RUN });
+    const spy = installConsoleSpy();
+
+    try {
+      const { response } = await fetchWithCtx(
+        worker,
+        credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+        testEnv
+      );
+      const body = await response.json();
+      const { jwt, claims } = decodeSessionToken(body.session_token);
+      const durable = await spbBindingRow();
+
+      expect(response.status).toBe(200);
+      expect(claims.exp - claims.iat).toBe(90);
+      expect(Date.parse(body.expires_at)).toBe(NOW + 90_000);
+      expect(durable.sandbox_credential_expires_at).toBe(Date.parse(body.expires_at));
+      await expect(auditRows()).resolves.toEqual([]);
+      await expect(sandboxAuditRows()).resolves.toEqual([sandboxMintAudit({
+        outcome: 'minted',
+        scope: 'backup',
+        ttl: 90,
+        credentialsMinted: 1,
+      })]);
+      expect(calls).toHaveLength(1);
+      expect(Object.keys(calls[0].body).sort()).toEqual([
+        'credentials_minted',
+        'office',
+        'outcome',
+        'tier',
+        'ts',
+        'type',
+      ]);
+      expect(calls[0].body).toMatchObject({
+        type: 'spb_sandbox_mint',
+        outcome: 'minted',
+        credentials_minted: 1,
+      });
+      const telemetry = {
+        audits: await sandboxAuditRows(),
+        console: spy.calls,
+        hub: calls,
+      };
+      for (const forbidden of [
+        seeded.account.accountId,
+        SANDBOX_RUN,
+        INSTANCE_ID,
+        seeded.prefix,
+        BROKER_TOKEN,
+        body.secret_access_key,
+        body.session_token,
+        jwt,
+      ]) {
+        expect(JSON.stringify(telemetry)).not.toContain(forbidden);
+      }
+    } finally {
+      spy.restore();
+    }
+  });
+
+  it('returns a lower-expiry sandbox credential without decreasing the durable maximum', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { testEnv } = await seedBrokerReady({
+      sandboxRunId: SANDBOX_RUN,
+      sandboxCredentialExpiresAt: NOW + 180_000,
+    });
+
+    const response = await worker.fetch(
+      credentialsRequest({ scope: 'operated' }, BROKER_TOKEN),
+      testEnv
+    );
+    const body = await response.json();
+    const row = await spbBindingRow();
+
+    expect(response.status).toBe(200);
+    expect(Date.parse(body.expires_at)).toBe(NOW + 90_000);
+    expect(row.sandbox_credential_expires_at).toBe(NOW + 180_000);
+    expect(decodeSessionToken(body.session_token).claims.exp
+      - decodeSessionToken(body.session_token).claims.iat).toBe(90);
+  });
+
+  it('uses only counts-only sandbox evidence for post-identity entitlement and scope refusals', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const cases = [
+      {
+        outcome: 'refused_entitlement',
+        entitlement: null,
+        request: () => credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+        status: 402,
+        error: 'needs_subscription',
+      },
+      {
+        outcome: 'refused_scope',
+        entitlement: { status: 'active' },
+        request: () => credentialsRequestRaw('{', BROKER_TOKEN),
+        status: 400,
+        error: 'invalid_scope',
+      },
+      {
+        outcome: 'refused_scope',
+        entitlement: { status: 'active' },
+        request: () => credentialsRequest({ scope: 'maintenance' }, BROKER_TOKEN),
+        status: 400,
+        error: 'invalid_scope',
+      },
+    ];
+
+    for (const testCase of cases) {
+      await resetDb();
+      const calls = [];
+      installHubStub(calls);
+      const testEnv = makeTestEnv({ HUB_WEBHOOK_URL: HUB_URL });
+      await seedBrokerReady({
+        testEnv,
+        sandboxRunId: SANDBOX_RUN,
+        entitlement: testCase.entitlement,
+      });
+      const spy = installConsoleSpy();
+      try {
+        const { response } = await fetchWithCtx(worker, testCase.request(), testEnv);
+        await expectError(response, testCase.status, testCase.error);
+        await expect(auditRows()).resolves.toEqual([]);
+        await expect(sandboxAuditRows()).resolves.toEqual([sandboxMintAudit({
+          outcome: testCase.outcome,
+        })]);
+        expect(calls).toHaveLength(1);
+        expect(calls[0].body).toMatchObject({
+          type: 'spb_sandbox_mint',
+          outcome: testCase.outcome,
+          credentials_minted: 0,
+        });
+        expect(JSON.stringify(calls)).not.toContain('spb_mint_refused');
+        expect(JSON.stringify(spy.calls)).not.toContain('spb_mint_refused');
+      } finally {
+        spy.restore();
+      }
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('discards every signed field when token rotation wins after signing and before the CAS', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const calls = [];
+    installHubStub(calls);
+    const baseEnv = makeTestEnv({ HUB_WEBHOOK_URL: HUB_URL });
+    const seeded = await seedBrokerReady({ testEnv: baseEnv, sandboxRunId: SANDBOX_RUN });
+    const signed = await mintSandboxExternalCredential(baseEnv, {
+      prefix: seeded.prefix,
+      scope: 'backup',
+      nowSeconds: Math.floor(NOW / 1000),
+    });
+    const rotatedHash = await hashWithPepper('rotated-broker-token', baseEnv);
+    const testEnv = interceptAllOnce(baseEnv, /UPDATE spb_bindings\s+SET sandbox_credential_expires_at/i, async (bound) => {
+      await workerEnv.DB
+        .prepare('UPDATE spb_bindings SET token_hash = ? WHERE instance_id = ?')
+        .bind(rotatedHash, INSTANCE_ID)
+        .run();
+      return bound.all();
+    });
+    const spy = installConsoleSpy();
+
+    try {
+      const { response } = await fetchWithCtx(
+        worker,
+        credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+        testEnv
+      );
+      const bodyText = await response.text();
+      const row = await spbBindingRow();
+
+      expect(response.status).toBe(401);
+      expect(JSON.parse(bodyText)).toEqual({ error: 'invalid_token' });
+      expect(row.token_hash).toBe(rotatedHash);
+      expect(row.sandbox_credential_expires_at).toBeNull();
+      await expect(auditRows()).resolves.toEqual([]);
+      await expect(sandboxAuditRows()).resolves.toEqual([sandboxMintAudit({
+        outcome: 'mint_cas_lost',
+        scope: 'backup',
+        ttl: 90,
+      })]);
+      const forbidden = [
+        signed.accessKeyId,
+        signed.secretAccessKey,
+        signed.sessionToken,
+        atob(signed.sessionToken).slice(4),
+      ];
+      spy.assertNoSecrets(forbidden.concat([BROKER_TOKEN]));
+      const surfaces = JSON.stringify({
+        bodyText,
+        binding: row,
+        audits: await sandboxAuditRows(),
+        hub: calls,
+      });
+      for (const value of forbidden) expect(surfaces).not.toContain(value);
+    } finally {
+      spy.restore();
+    }
+  });
+
+  it('serializes mint-versus-denial in both orders without an untracked credential', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const denialFirstEnv = makeTestEnv();
+    const denialFirst = await seedBrokerReady({
+      testEnv: denialFirstEnv,
+      sandboxRunId: SANDBOX_RUN,
+    });
+    const racedEnv = interceptAllOnce(
+      denialFirstEnv,
+      /UPDATE spb_bindings\s+SET sandbox_credential_expires_at/i,
+      async (bound) => {
+        await denySpbSandboxBinding(denialFirstEnv, null, {
+          sandboxRunId: SANDBOX_RUN,
+          accountId: denialFirst.account.accountId,
+          instanceId: INSTANCE_ID,
+          nowMs: NOW + 1,
+        });
+        return bound.all();
+      }
+    );
+
+    const lost = await worker.fetch(
+      credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+      racedEnv
+    );
+    await expectError(lost, 401, 'invalid_token');
+    await expect(spbBindingRow()).resolves.toMatchObject({
+      token_hash: null,
+      sandbox_credential_expires_at: null,
+      sandbox_denied_at: NOW + 1,
+    });
+
+    await resetDb();
+    const casFirstEnv = makeTestEnv();
+    const casFirst = await seedBrokerReady({
+      testEnv: casFirstEnv,
+      sandboxRunId: SANDBOX_RUN,
+    });
+    const won = await worker.fetch(
+      credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+      casFirstEnv
+    );
+    const wonBody = await won.json();
+    await expect(denySpbSandboxBinding(casFirstEnv, null, {
+      sandboxRunId: SANDBOX_RUN,
+      accountId: casFirst.account.accountId,
+      instanceId: INSTANCE_ID,
+      nowMs: NOW + 1,
+    })).resolves.toEqual({ outcome: 'released' });
+    await expect(spbBindingRow()).resolves.toMatchObject({
+      token_hash: null,
+      sandbox_credential_expires_at: Date.parse(wonBody.expires_at),
+      sandbox_denied_at: NOW + 1,
+    });
+  });
+
+  it('records only sandbox internal-error evidence after resolving run ownership', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const calls = [];
+    installHubStub(calls);
+    const baseEnv = makeTestEnv({ HUB_WEBHOOK_URL: HUB_URL });
+    await seedBrokerReady({ testEnv: baseEnv, sandboxRunId: SANDBOX_RUN });
+    const testEnv = interceptAllOnce(
+      baseEnv,
+      /UPDATE spb_bindings\s+SET sandbox_credential_expires_at/i,
+      async () => {
+        throw new Error('injected CAS failure');
+      }
+    );
+    const spy = installConsoleSpy();
+
+    try {
+      const { response } = await fetchWithCtx(
+        worker,
+        credentialsRequest({ scope: 'backup' }, BROKER_TOKEN),
+        testEnv
+      );
+
+      await expectError(response, 500, 'internal_error');
+      await expect(auditRows()).resolves.toEqual([]);
+      await expect(sandboxAuditRows()).resolves.toEqual([sandboxMintAudit({
+        outcome: 'internal_error',
+      })]);
+      expect(calls).toHaveLength(1);
+      expect(calls[0].body).toMatchObject({
+        type: 'spb_sandbox_mint',
+        outcome: 'internal_error',
+        credentials_minted: 0,
+      });
+      expect(JSON.stringify(spy.calls)).not.toContain('spb_mint_failed');
+    } finally {
+      spy.restore();
+    }
   });
 
   it('mints operated credentials for bounded backup and restore runs', async () => {
@@ -370,6 +689,9 @@ async function seedBrokerReady({
   tokenPepper = 'default',
   entitlement = { status: 'active' },
   lapsedAt = null,
+  sandboxRunId = null,
+  sandboxCredentialExpiresAt = null,
+  sandboxDeniedAt = null,
 } = {}) {
   const account = await seedAccount({ email: 'spb@example.com', testEnv });
   if (entitlement) {
@@ -387,11 +709,15 @@ async function seedBrokerReady({
     instanceId: INSTANCE_ID,
     tokenHash,
     lapsedAt,
+    sandboxRunId,
+    sandboxCredentialExpiresAt,
+    sandboxDeniedAt,
   });
   return {
     testEnv,
     account,
     token,
+    tokenHash,
     prefix: `users/${account.accountId}/${INSTANCE_ID}/`,
   };
 }
@@ -478,6 +804,75 @@ async function auditRows() {
     .prepare('SELECT account_id, instance_id, prefix, scope, ttl, outcome, ts FROM spb_mint_audit ORDER BY ts, rowid')
     .all();
   return results || [];
+}
+
+async function sandboxAuditRows() {
+  const { results } = await workerEnv.DB
+    .prepare('SELECT * FROM spb_sandbox_audit ORDER BY rowid')
+    .all();
+  return results || [];
+}
+
+async function spbBindingRow() {
+  return workerEnv.DB
+    .prepare('SELECT * FROM spb_bindings WHERE instance_id = ?')
+    .bind(INSTANCE_ID)
+    .first();
+}
+
+function sandboxMintAudit({
+  outcome,
+  scope = null,
+  ttl = null,
+  credentialsMinted = 0,
+}) {
+  return {
+    event: 'mint',
+    outcome,
+    scope,
+    ttl,
+    credentials_minted: credentialsMinted,
+    objects_deleted: null,
+    multipart_aborted: null,
+    ts: NOW,
+  };
+}
+
+function interceptAllOnce(testEnv, pattern, allHandler) {
+  let intercepted = false;
+  return {
+    ...testEnv,
+    DB: {
+      prepare(sql) {
+        const statement = testEnv.DB.prepare(sql);
+        if (!pattern.test(sql)) return statement;
+        return {
+          bind(...args) {
+            const bound = statement.bind(...args);
+            return {
+              run: (...runArgs) => bound.run(...runArgs),
+              first: (...firstArgs) => bound.first(...firstArgs),
+              all(...allArgs) {
+                if (intercepted) return bound.all(...allArgs);
+                intercepted = true;
+                return allHandler(bound, allArgs);
+              },
+            };
+          },
+          run: (...args) => statement.run(...args),
+          first: (...args) => statement.first(...args),
+          all(...args) {
+            if (intercepted) return statement.all(...args);
+            intercepted = true;
+            return allHandler(statement, args);
+          },
+        };
+      },
+      batch(statements) {
+        return testEnv.DB.batch(statements);
+      },
+    },
+  };
 }
 
 function installHubStub(calls) {

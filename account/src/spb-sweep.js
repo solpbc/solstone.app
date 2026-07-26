@@ -5,16 +5,10 @@ import {
 } from './db.js';
 import { emitSecurityEvent } from './hub.js';
 import { mintScopedCredential } from './r2-credential.js';
-import {
-  abortMultipartUpload,
-  deleteObjects,
-  listMultipartUploads,
-  listObjectsV2,
-} from './s3.js';
+import { drainMultipartUploads, drainObjects } from './spb-drain.js';
 import { prefixFor } from './spb-broker.js';
 
 export const LAPSE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-const DELETE_BATCH_SIZE = 1000;
 
 export async function runSpbLapseSweep(env, ctx, nowMs = Date.now()) {
   if (env.SPB_SWEEP_ENABLED !== 'true') return;
@@ -38,8 +32,9 @@ export async function runSpbLapseSweep(env, ctx, nowMs = Date.now()) {
       });
       if (!cred) throw namedError('SpbSweepCredentialError', 'maintenance credential mint failed');
 
-      const bindingObjectsDeleted = await drainObjects(env, cred, prefix, nowMs);
-      const bindingMultipartAborted = await drainMultipartUploads(env, cred, prefix, nowMs);
+      const getRequestAuth = () => ({ credential: cred, nowMs });
+      const bindingObjectsDeleted = await drainObjects(env, { prefix, getRequestAuth });
+      const bindingMultipartAborted = await drainMultipartUploads(env, { prefix, getRequestAuth });
 
       await insertSpbSweepAudit(env.DB, {
         accountId,
@@ -78,68 +73,6 @@ export async function runSpbLapseSweep(env, ctx, nowMs = Date.now()) {
     objects_deleted: objectsDeleted,
     multipart_aborted: multipartAborted,
   });
-}
-
-async function drainObjects(env, cred, prefix, nowMs) {
-  let totalDeleted = 0;
-
-  for (;;) {
-    let continuationToken = null;
-    let listedCount = 0;
-
-    do {
-      const page = await listObjectsV2(env, cred, { prefix, continuationToken, nowMs });
-      listedCount += page.keys.length;
-      for (const batch of chunks(page.keys, DELETE_BATCH_SIZE)) {
-        const result = await deleteObjects(env, cred, { keys: batch, nowMs });
-        if (result.errors.length > 0) throw namedError('S3DeleteObjectsError', 'delete objects returned errors');
-        totalDeleted += result.deleted.length;
-      }
-      if (page.isTruncated && !page.nextContinuationToken) {
-        throw namedError('S3ListObjectsError', 'truncated list missing continuation token');
-      }
-      continuationToken = page.isTruncated ? page.nextContinuationToken : null;
-    } while (continuationToken);
-
-    if (listedCount === 0) return totalDeleted;
-  }
-}
-
-async function drainMultipartUploads(env, cred, prefix, nowMs) {
-  let totalAborted = 0;
-
-  for (;;) {
-    let keyMarker = null;
-    let uploadIdMarker = null;
-    let listedCount = 0;
-
-    do {
-      const page = await listMultipartUploads(env, cred, {
-        prefix,
-        keyMarker,
-        uploadIdMarker,
-        nowMs,
-      });
-      listedCount += page.uploads.length;
-      for (const upload of page.uploads) {
-        await abortMultipartUpload(env, cred, { key: upload.key, uploadId: upload.uploadId, nowMs });
-        totalAborted += 1;
-      }
-      if (page.isTruncated && (!page.nextKeyMarker || !page.nextUploadIdMarker)) {
-        throw namedError('S3ListMultipartUploadsError', 'truncated multipart list missing markers');
-      }
-      keyMarker = page.isTruncated ? page.nextKeyMarker : null;
-      uploadIdMarker = page.isTruncated ? page.nextUploadIdMarker : null;
-    } while (keyMarker && uploadIdMarker);
-
-    if (listedCount === 0) return totalAborted;
-  }
-}
-
-function chunks(values, size) {
-  const out = [];
-  for (let i = 0; i < values.length; i += size) out.push(values.slice(i, i + size));
-  return out;
 }
 
 function namedError(name, message) {
