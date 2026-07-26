@@ -165,6 +165,7 @@ export async function createSandboxRun(env, ctx, {
   const startedAt = Date.now();
   let componentsCompleted = 0;
   let inserted = null;
+  let insertAttempted = false;
   let createdAt = nowMs;
   try {
     const googleApiKey = await readStandingGoogleApiKey(env, accountId);
@@ -182,6 +183,7 @@ export async function createSandboxRun(env, ctx, {
 
     createdAt ??= Date.now();
     const leaseExpiresAt = createdAt + LEASE_TTL_MS;
+    insertAttempted = true;
     inserted = await insertSandboxRun(env.DB, {
       runId,
       accountId,
@@ -285,7 +287,7 @@ export async function createSandboxRun(env, ctx, {
       emitCreateTelemetry(
         env,
         ctx,
-        'baseline_unavailable',
+        insertAttempted ? 'run_insert_failed' : 'baseline_unavailable',
         componentsCompleted,
         createdAt ?? Date.now(),
         startedAt
@@ -310,13 +312,6 @@ export async function createSandboxRun(env, ctx, {
     emitCreateTelemetry(env, ctx, 'failed', componentsCompleted, createdAt, startedAt);
     return { outcome: 'unavailable' };
   }
-}
-
-export async function readSandboxRun(env, { runId, accountId, nowMs }) {
-  const row = accountId
-    ? await findSandboxRunForAccount(env.DB, { runId, accountId })
-    : await findSandboxRunById(env.DB, runId);
-  return row ? renderSandboxRun(row, nowMs) : null;
 }
 
 export async function reconcileSandboxRun(env, ctx, { runId, nowMs, trigger }) {
@@ -708,6 +703,17 @@ async function cleanupSpbComponent(env, ctx, run, denial, nowMs) {
       );
     }
     if (result.outcome === 'cleaned') {
+      return persistComponent(env, run, 'spb', 'verify_pending', null, nowMs);
+    }
+    if (
+      result.outcome === 'absent'
+      && local?.account_present === 1
+      && !phaseAtLeast(run.provisioning_phase, 'spb_acquired')
+    ) {
+      // No binding means no broker credential or R2 object was visible while the
+      // account still existed. Activation is later than spb_acquired, so this run
+      // never returned credentials. Keep the result reversible until the fresh
+      // local postcondition below proves the account and instance are still safe.
       return persistComponent(env, run, 'spb', 'verify_pending', null, nowMs);
     }
     const residual = {

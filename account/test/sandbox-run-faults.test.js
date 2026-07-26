@@ -5,8 +5,10 @@ import { dbDumpText, installConsoleSpy, resetDb } from './helpers.js';
 import { installJwksStubWith, mintToken } from './jwks-helper.js';
 import {
   SANDBOX_INSTANCE_ID,
+  SANDBOX_INSTANCE_ID_B,
   SANDBOX_NOW,
   SANDBOX_RUN_ID,
+  SANDBOX_RUN_ID_B,
   STANDING_GEMINI_KEY,
   emptyS3Response,
   sandboxRequest,
@@ -109,6 +111,57 @@ describe('sandbox run provisioning faults', () => {
       expectedPhase: 'dispatch_intent',
       enableCleanup: fault.enableCleanup,
     });
+  });
+
+  it('releases a durable spb_intent whose fenced SPB write never committed', async () => {
+    await installJwksStubWith(async (input) => emptyS3Response(input));
+    const token = await mintToken();
+    const baseline = await seedSandboxBaseline();
+    const fault = provisioningFaultDb(baseline.testEnv.DB, {
+      localWrite: /INSERT INTO spb_bindings/i,
+    });
+    baseline.testEnv.DB = fault.db;
+
+    const response = await worker.fetch(
+      sandboxRequest('/admin/sandbox-runs', token, {
+        method: 'POST',
+        body: validSandboxInput(),
+      }),
+      baseline.testEnv
+    );
+    const text = await response.text();
+
+    expect(fault.wasInjected()).toBe(true);
+    expect(response.status).toBe(503);
+    expect(text).toBe(JSON.stringify({
+      error: 'sandbox run unavailable',
+      code: 'sandbox_run_unavailable',
+      run_id: SANDBOX_RUN_ID,
+    }));
+    expect(text).not.toContain(STANDING_GEMINI_KEY);
+    await expect(workerEnv.DB.prepare(
+      'SELECT COUNT(*) AS count FROM spb_bindings WHERE sandbox_run_id = ?'
+    ).bind(SANDBOX_RUN_ID).first()).resolves.toEqual({ count: 0 });
+    await assertDiscoverableAndConverges({
+      token,
+      testEnv: baseline.testEnv,
+      expectedStatus: 'provisioning',
+      expectedPhase: 'spb_intent',
+      enableCleanup: fault.enableCleanup,
+    });
+
+    const next = await worker.fetch(
+      sandboxRequest('/admin/sandbox-runs', token, {
+        method: 'POST',
+        body: validSandboxInput({
+          runId: SANDBOX_RUN_ID_B,
+          instanceId: SANDBOX_INSTANCE_ID_B,
+        }),
+      }),
+      baseline.testEnv
+    );
+    expect(next.status).toBe(201);
+    await expect(next.json()).resolves.toMatchObject({ run_id: SANDBOX_RUN_ID_B });
   });
 
   it('preserves spl_intent after a successful relay grant and converges on a later cleanup pass', async () => {
@@ -226,23 +279,35 @@ describe('sandbox run provisioning faults', () => {
       },
     };
 
-    const response = await worker.fetch(
-      sandboxRequest('/admin/sandbox-runs', token, {
-        method: 'POST',
-        body: validSandboxInput(),
-      }),
-      baseline.testEnv
-    );
-    const text = await response.text();
+    const consoleSpy = installConsoleSpy();
+    try {
+      const response = await worker.fetch(
+        sandboxRequest('/admin/sandbox-runs', token, {
+          method: 'POST',
+          body: validSandboxInput(),
+        }),
+        baseline.testEnv
+      );
+      const text = await response.text();
+      const createEvents = consoleSpy.calls
+        .filter(({ level, args }) => level === 'warn' && typeof args[0] === 'string')
+        .map(({ args }) => JSON.parse(args[0]))
+        .filter(({ event }) => event === 'sandbox_run_create');
 
-    expect(response.status).toBe(503);
-    expect(text).toBe(JSON.stringify({
-      error: 'sandbox run unavailable',
-      code: 'sandbox_run_unavailable',
-      run_id: SANDBOX_RUN_ID,
-    }));
-    expect(text).not.toContain('private D1 failure detail');
-    await expect(runRow()).resolves.toBeNull();
+      expect(response.status).toBe(503);
+      expect(text).toBe(JSON.stringify({
+        error: 'sandbox run unavailable',
+        code: 'sandbox_run_unavailable',
+        run_id: SANDBOX_RUN_ID,
+      }));
+      expect(text).not.toContain('private D1 failure detail');
+      expect(createEvents).toEqual([
+        expect.objectContaining({ outcome: 'run_insert_failed', components_completed: 0 }),
+      ]);
+      await expect(runRow()).resolves.toBeNull();
+    } finally {
+      consoleSpy.restore();
+    }
   });
 });
 

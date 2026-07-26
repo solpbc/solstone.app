@@ -229,6 +229,14 @@ domain preserve the independent edge layer (`wrangler.toml:7-13`).
 extra segment, collection GET/DELETE, or member POST falls through to the
 existing admin not-found response (`src/admin.js:147-170`).
 
+The Worker-wide, pre-existing HEAD rewrite deliberately mirrors GET for a
+canonical member path (`src/index.js:959-966`). HEAD therefore returns the
+matching GET status and headers for either an existing or absent run, with the
+body stripped. This is conventional HTTP behavior and exposes no response
+field; carving out only this route family would add a special case without a
+safety benefit. Other unsupported methods retain the uniform admin not-found
+response.
+
 `wrangler.toml` receives comments only:
 
 - `SANDBOX_ACCOUNT_ID` is set with `wrangler secret put`;
@@ -378,12 +386,20 @@ pepper hashing, guarded binding helpers, entitlement reconcilers, endpoint,
 bucket, and deterministic prefix rules already exercised in the four owner
 flows (`src/enable.js:91-100`, `:488-507`, `:599-614`, `:742-763`).
 
-The existing foundation claim helpers delegate their mint/hash/binding portion
-to this seam and preserve their established outcome strings. The run
-orchestrator consumes those helpers; owner handlers consume the same neutral
-issuance functions with baseline ownership. This avoids duplicate token or
-binding logic without making an owner handler create a session, HTML response,
-or service handoff for the sandbox caller.
+The run orchestrator and owner handlers both call these neutral issuance
+functions directly, with sandbox and baseline ownership respectively
+(`src/sandbox-run-lease.js:22-27`, `:201-253`; `src/enable.js:9-14`, `:91-102`,
+`:487-506`, `:598-616`, `:741-764`). The existing foundation claim helpers in
+`src/sandbox-ownership.js` and `src/spb-sandbox-lifecycle.js` are thin wrappers
+that delegate their mint/hash/binding portion to the same seam and preserve
+their established outcome strings; their current callers are foundation tests.
+The mechanics therefore still have one implementation without routing the
+sandbox caller through an owner session, HTML response, or service handoff.
+
+Adopting that redundant claim-helper facade in production or removing it is an
+explicit out-of-scope follow-up. Those helpers are prior-lode exported API with
+their own designs and tests, so this lode neither deletes them nor adds an
+indirect call solely to make the facade appear used.
 
 The factoring landed in two dependency-ordered changes. The first extracted
 only the exercised owner/baseline issuance seam. The `ownership` descriptor,
@@ -537,7 +553,8 @@ prior designs and are not redefined here.
 | SPB deny | `ownership_conflict` / throw | `cleanup_failed` with `spb_ownership_conflict` / `spb_denial_failed` |
 | SPB cleanup | `credential_expiry_pending` | `purge_pending`, `spb_credential_expiry_pending`, and absolute retry CAS from D7 |
 | SPB cleanup | `cleaned` | `verify_pending`, then `released` only with the same pass's positive cleanup result and exact D1 absence |
-| SPB cleanup | `retryable`, `denial_required`, `absent`, `ownership_conflict` | `cleanup_failed` with `spb_cleanup_retryable`, `spb_denial_required`, `spb_lifecycle_absent`, or `spb_ownership_conflict` |
+| SPB cleanup | account-present `absent` before `spb_acquired` | `verify_pending`; only the later fresh account/instance postcondition may advance it to `released` |
+| SPB cleanup | `retryable`, `denial_required`, ambiguous `absent`, `ownership_conflict` | `cleanup_failed` with `spb_cleanup_retryable`, `spb_denial_required`, `spb_lifecycle_absent`, or `spb_ownership_conflict` |
 | SPL relay | `retired` | `released`; the strict result already contains all required relay checks |
 | SPL relay | `retryable_residual` | `cleanup_failed` with the exact allow-listed `relay_<failedComponent>` translation |
 | SPL relay | `failed` / throw | `cleanup_failed` with `relay_failed` |
@@ -552,6 +569,18 @@ IDs, but records `account_missing`; a missing SPB tombstone records
 `spb_lifecycle_absent`. It never reports release from cascade absence, matching
 the risk established at
 `docs/spb-sandbox-lifecycle-design.md:1184-1191`.
+
+The one narrow SPB absence proof requires both account presence and a durable
+provisioning phase before `spb_acquired` (`src/sandbox-run-lease.js:708-725`).
+With no binding, no broker credential or R2 object can exist under the run
+prefix, and activation could not have returned credentials because it follows
+`spb_acquired`. If a binding committed but its acquired-phase CAS failed, the
+lifecycle read finds that row and follows normal denial and purge. The absence
+result remains `verify_pending` until the later fresh local postcondition proves
+the account still exists and the instance is still empty; account deletion or
+a conflicting binding between those reads fails closed. Absence at or after
+`spb_acquired`, or after account loss, remains ambiguous and records
+`spb_lifecycle_absent`.
 
 The final `released` CAS requires all five stored component states to be
 `released`, the exact local D1 verification result from the current pass, and
@@ -582,8 +611,9 @@ fresh pending result is bounded from 1 through 90
 (`docs/spb-sandbox-lifecycle-design.md:493-509`). A crash after reading the
 tombstone but before the run CAS is recovered by re-reading the retained
 tombstone on the next pass. A missing tombstone is never converted to zero or
-success, even if the run row retains an old retry timestamp; it becomes
-`spb_lifecycle_absent`.
+success merely from an old retry timestamp. It becomes
+`spb_lifecycle_absent`, except for D6's independently proven account-present,
+pre-`spb_acquired` no-resource case.
 
 #### Successful POST
 
@@ -631,17 +661,23 @@ headers, and exactly `error`, `code`, and `run_id`:
 
 `{"error":"sandbox run not found","code":"sandbox_run_not_found","run_id":"<caller-supplied run_id>"}`.
 
-This is distinct from the uniform admin 404 for an unknown method, malformed
-member ID, collection GET/DELETE, member POST, or extra path segment. The
-distinction lets an ambiguous POST outcome converge by reading its known ID;
+This is distinct from the uniform admin 404 for an unsupported method other
+than HEAD, malformed member ID, collection GET/DELETE, member POST, or extra
+path segment. The distinction lets an ambiguous POST outcome converge by
+reading its known ID;
 POST is never retried for credential replay. It creates no cross-account
 inference channel because the route is hard-scoped to the one configured
 `SANDBOX_ACCOUNT_ID`: from this route, a canonical ID either identifies that
 account's run or is absent. The response never reveals whether the same ID is
 present outside that scope and echoes only the caller-supplied value.
 The implementation and exact serialized assertion are at
-`src/sandbox-run-lease.js:958-963`, `:1005-1010`, and
+`src/sandbox-run-lease.js:964-969`, `:1011-1017`, and
 `test/sandbox-run-get.test.js:131-168`.
+
+HEAD for either an existing or absent canonical member path mirrors the
+corresponding GET status and headers through the global rewrite, then strips
+the body. It therefore cannot expose the GET report or the absent envelope's
+fields (`src/index.js:959-966`; `test/sandbox-run-admin.test.js`).
 
 #### DELETE status rules
 
@@ -662,8 +698,9 @@ Authenticated POST/DELETE `409` and `503` envelopes may include only their own
 caller-supplied `run_id`, never the stored account/instance or another run ID.
 An unknown well-formed DELETE member is `404` with no echoed ID; the preceding
 GET-specific absence contract is the only exception. Malformed member IDs,
-unknown methods, and extra path segments use the existing uniform admin
-not-found response. No route returns `500` or a raw exception.
+unsupported methods other than the deliberate HEAD mirror, and extra path
+segments use the existing uniform admin not-found response. No route returns
+`500` or a raw exception.
 
 ### D8: Module Placement And D1 Surface
 
@@ -673,7 +710,7 @@ It exports:
 - `handleSandboxRunRequest(request, env, url, parts, ctx, securityHeaders)`
 - `createSandboxRun(env, ctx, { accountId, runId, instanceId,
   contractVersion = 1, profile = 'full', nowMs })`
-- `readSandboxRun(env, { runId, accountId, nowMs })`
+- `isSandboxRunLeaseLive(run, nowMs)`
 - `reconcileSandboxRun(env, ctx, { runId, nowMs, trigger })`
 - `reconcileExpiredSandboxRuns(env, ctx, { nowMs = Date.now() })`
 
@@ -827,15 +864,15 @@ cleanup isolation.
 | Verification | Named tests and decisive assertions |
 |---|---|
 | S1 — migration/schema | `test/migration-0027-sandbox-run-lease.test.js` applies 0027 after local 0025+0026 shapes and asserts the exact ordered columns, types/nullability, seven statuses, ten provisioning phases, eight cleanup phases, six component states on all five components, closed residual sets, one-hour check, PK, three indexes, legacy-row preservation, duplicate-apply failure, every documented partial-apply recovery state, and `schema.sql` parity. Its legal-value loops and illegal inserts exercise each vocabulary directly. |
-| S2 — two-layer admin boundary | `test/sandbox-run-admin.test.js` proves all three exact routes require Access, malformed/extra paths and methods retain `{error:'account not found'}`, and unset/malformed `SANDBOX_ACCOUNT_ID` fails closed. Existing `test/admin.test.js` supplies wrong-key/issuer/audience/expiry, accepted email/service-principal, and exact admin security-header coverage; `test/static.test.js` continues to pin `workers_dev = false` and the custom route. |
+| S2 — two-layer admin boundary | `test/sandbox-run-admin.test.js` proves all three exact routes require Access, malformed/extra paths and unsupported methods retain `{error:'account not found'}`, unset/malformed `SANDBOX_ACCOUNT_ID` fails closed, and the pre-existing global HEAD rewrite mirrors member GET status/headers with an empty body for both existing and absent runs. Existing `test/admin.test.js` supplies wrong-key/issuer/audience/expiry, accepted email/service-principal, and exact admin security-header coverage; `test/static.test.js` continues to pin `workers_dev = false` and the custom route. |
 | S3 — exact POST rejection | `test/sandbox-run-post.test.js` table-drives unreadable and non-object JSON, an empty/missing-key object, representative forbidden extras (`ttl`, `account_id`, `endpoint_url`), wrong version/type/profile, noncanonical IDs, absent account/Scout/key, non-approved Scout, and empty/undecryptable standing material. The malformed-input case asserts zero run/token/binding rows; baseline failures assert no run insertion. |
 | S4 — no owner/session/handoff mutation | The successful `sandbox-run-post.test.js` case proves the standing key is read into the response but no plaintext capability is persisted or logged, and that neither a session nor `service_handoffs` row is created. Existing owner and foundation tests continue to pin their Scout/key, entitlement, handoff, and lifecycle behavior; the sandbox route does not call `ensureProvisionedKey`. |
 | S5 — one nonterminal/exactly-once create | `test/sandbox-run-concurrency.test.js` races the same ID and different IDs for one account; each yields one `201`, one `409`, one row, and no credential in the losing response. `test/sandbox-run-post.test.js` separately pins sequential duplicate-ID `409` without replay, while the migration test proves multiple released rows are legal but a second nonterminal row is not. |
-| S6 — durable intents/fault recovery | `test/sandbox-run-faults.test.js` makes each of the eight provisioning-phase CASes lose, injects a fenced dispatch local-write throw, makes a successful SPL relay grant precede a throw before `spl_acquired`, makes response serialization throw after a winning activation, makes the activation CAS lose, and makes the winning insert throw. The local-write and post-grant cases pause automatic cleanup so authenticated GET proves the exact durable non-reversing `dispatch_intent`/`spl_intent` phase before a later DELETE converges; the serialization case proves the run remains `active/active`, no credential escapes the closed fallback response, and DELETE converges. Other post-insert CAS losses release without returning credentials; insert failure leaves no row. |
+| S6 — durable intents/fault recovery | `test/sandbox-run-faults.test.js` makes each of the eight provisioning-phase CASes lose, injects fenced dispatch and SPB local-write throws, makes a successful SPL relay grant precede a throw before `spl_acquired`, makes response serialization throw after a winning activation, makes the activation CAS lose, and makes the winning insert throw. The local-write and post-grant cases pause automatic cleanup so authenticated GET proves the exact durable non-reversing intent phase before a later DELETE converges; the durable-`spb_intent` case additionally proves terminal release permits a fresh run for the account. The serialization case proves the run remains `active/active`, no credential escapes the closed fallback response, and DELETE converges. Other post-insert CAS losses release without returning credentials; insert failure leaves no row and emits the distinct stable `run_insert_failed` telemetry outcome. |
 | S7 — journal payload/no persistence | `test/sandbox-run-payloads.test.js` asserts the literal exact sets `['account_id','created_at','dispatch_token','google_api_key']`, `['approved_at','service','state']`, `['account_id','broker_endpoint','broker_token','bucket','instance_id','prefix']`, and `['account_id','created_at','credential','endpoint_url','served_model_id']` against the real POST response. It also pins the exact top-level keys, no-store header, fixed endpoint/service values, SPB instance/prefix, absence of owner discriminators, and exact lease-capped relay body. The test does not invoke the external journal CLI. |
 | S8 — owner factoring regression | The unchanged owner assertions in `test/enable-scout.test.js`, `test/enable-spl.test.js`, `test/enable-spb.test.js`, `test/enable-spp.test.js`, `test/handoff-scout.test.js`, `test/handoff-spl.test.js`, `test/handoff-spb.test.js`, `test/handoff-spp.test.js`, `test/provision-scout.test.js`, and `test/spp-boundary.test.js` pass with their existing object/byte and order contracts. `test/static.test.js` registers `capability-issuance.js` in its source inventory so the new seam is included in every static scan; no owner assertion was changed. |
 | S9 — redacted fixed-order GET | `test/sandbox-run-get.test.js` pins the exact active report top-level fields, fixed component order and exact component fields; proves a boundary-expired stored-active row renders `lease_live: false` plus effective `deny_pending/lease_expired` without changing D1; and distinguishes a scoped canonical absent ID from an extra-segment admin 404 without account/instance leakage. A before/after `dbDumpText()` assertion proves GET does not mutate D1. |
-| S10 — DELETE order/status | `test/sandbox-run-cleanup.test.js` pins independent denial, relay-before-SPL deletion, SPB purge, permanent evidence, and byte-stable repeated released `200`; expiry-only `202` with identical bounded JSON/header retry; redacted ownership-conflict `409` without incumbent mutation; and account-cascade `503` without interpreting absence as release. |
+| S10 — DELETE order/status | `test/sandbox-run-cleanup.test.js` pins independent denial, relay-before-SPL deletion, SPB purge, permanent evidence, and byte-stable repeated released `200`; expiry-only `202` with identical bounded JSON/header retry; redacted ownership-conflict `409` without incumbent mutation; account-present pre-acquisition SPB absence as verified release; interleaved account deletion/baseline binding insertion before fresh verification; and fail-closed `spb_lifecycle_absent` for account loss or absence at/after `spb_acquired`. |
 | S11 — retry convergence | Four `test/sandbox-run-cleanup.test.js` cases landed with the scheduled-reconciliation commit and cover an allow-listed relay `retryable_residual`, partial R2 deletion, a D1 failure mid-cleanup, and process death after relay success before component acknowledgement. Each invokes the scheduled trigger and converges on a later pass without phase reversal or released-component regression. The inherited SPB drain/retry boundary remains covered by `test/spb-sandbox-cleanup.test.js`. |
 | S12 — baseline/evidence preservation | The cleanup account-cascade case proves the no-FK evidence row survives with `account_missing` and never returns success. The two containment cases in `test/sandbox-run-concurrency.test.js` seed baseline, other-account, and other-run controls and prove DELETE/scheduled and scheduled/scheduled cleanup leave their D1 rows, relay instances, and R2 prefixes untouched while never deleting either evidence row. |
 | S13 — immediate lease authorization and SPL cap | `test/dispatch-token.test.js`, `test/scout-status.test.js`, `test/spp-bindings-db.test.js`, `test/spp-authorize.test.js`, `test/spb-broker.test.js`, `test/sandbox-ownership.test.js`, and `test/spb-sandbox-lifecycle.test.js` cover the shared strict-future liveness contract, exact account/instance joins, baseline behavior and projections, denial cases, and SPB lookup-to-CAS lease loss. `test/relay-grant.test.js` and `test/billing-relay.test.js` pin the byte-identical null-run body, active min(base, lease-seconds) cap, and zero pushes for non-live/malformed joins; `test/sandbox-run-payloads.test.js` pins the create-owned positive grant. The provisioning-window ordinary-reconciliation race in Risks is deliberately accepted and has no test that would pin an unwanted regrant path. |
@@ -843,7 +880,7 @@ cleanup isolation.
 | S15 — mint/create/delete races | `test/spb-broker.test.js` pins lookup-to-publication lease loss and both mint-versus-denial orderings. `test/sandbox-run-concurrency.test.js` proves cleanup can win the SPL grant window without a late activation or credential response, and that activation-before-DELETE reaches release without reactivation. |
 | S16 — concurrent containment | `test/sandbox-run-concurrency.test.js` covers concurrent same/different-ID POSTs, create-versus-DELETE at the SPL grant boundary, activation-before-DELETE, DELETE-versus-DELETE, DELETE-versus-scheduled, and scheduled-versus-scheduled. The concurrent DELETE case observes exactly one successful terminal CAS while allowing either request's legal `200`/`202`/`503` result and proves the final row and all five components remain `released`. All cleanup races assert no baseline, other-account, or other-run token/binding/prefix/relay instance is adopted, revoked, listed, retired, or deleted, and both evidence rows remain. |
 | S17 — complete leakage boundary | `test/sandbox-run-post.test.js`, `test/sandbox-run-faults.test.js`, and `test/sandbox-run-concurrency.test.js` use `dbDumpText()` and/or `installConsoleSpy()` against real capability plaintext and ownership IDs; cleanup's account-loss case captures D1/log output as well. They pin exact redacted `409`/`503` bodies, absence of capability material from D1 and telemetry, counts-only events, and no incumbent or cross-account details. |
-| S18 — canonical account gate | The final shipped gate passed at 119 Worker files / 994 tests plus static 1 file / 10 tests, covering migration, brand canon, owner/handoff, billing, retention, SPB sweep, and all sandbox-run tests. The corrected pre-change baseline remains green at 110 Worker files / 904 tests plus static 1/10 (`docs/sandbox-run-lease-prep.md:1-111`). |
+| S18 — canonical account gate | The final shipped gate passed at 119 Worker files / 1004 tests plus static 1 file / 10 tests, covering migration, brand canon, owner/handoff, billing, retention, SPB sweep, and all sandbox-run tests. The corrected pre-change baseline remains green at 110 Worker files / 904 tests plus static 1/10 (`docs/sandbox-run-lease-prep.md:1-111`). |
 
 ## Risks
 

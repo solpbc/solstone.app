@@ -1,9 +1,10 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { makeTestEnv, resetDb } from './helpers.js';
+import { makeTestEnv, resetDb, seedAccount, seedSandboxRun } from './helpers.js';
 import { installJwksStub, mintToken } from './jwks-helper.js';
 import {
   SANDBOX_RUN_ID,
+  SANDBOX_RUN_ID_B,
   sandboxRequest,
   validSandboxInput,
 } from './sandbox-run-test-helpers.js';
@@ -47,6 +48,33 @@ describe('sandbox run admin boundary', () => {
       const response = await worker.fetch(sandboxRequest(path, token, { method }), env);
       expect(response.status).toBe(404);
       await expect(response.json()).resolves.toEqual({ error: 'account not found' });
+    }
+  });
+
+  it('mirrors member GET status and headers for HEAD while returning no body', async () => {
+    const token = await mintToken();
+    const baseEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv: baseEnv });
+    await seedSandboxRun({ runId: SANDBOX_RUN_ID, accountId: account.accountId });
+    const env = { ...baseEnv, SANDBOX_ACCOUNT_ID: account.accountId };
+
+    for (const [runId, expectedStatus, expectedCode] of [
+      [SANDBOX_RUN_ID, 200, null],
+      [SANDBOX_RUN_ID_B, 404, 'sandbox_run_not_found'],
+    ]) {
+      const path = `/admin/sandbox-runs/${runId}`;
+      const getResponse = await worker.fetch(sandboxRequest(path, token), env);
+      const getBody = await getResponse.json();
+      const headResponse = await worker.fetch(
+        sandboxRequest(path, token, { method: 'HEAD' }),
+        env
+      );
+
+      expect(getResponse.status).toBe(expectedStatus);
+      if (expectedCode) expect(getBody.code).toBe(expectedCode);
+      expect(headResponse.status).toBe(getResponse.status);
+      expect(Object.fromEntries(headResponse.headers)).toEqual(Object.fromEntries(getResponse.headers));
+      await expect(headResponse.text()).resolves.toBe('');
     }
   });
 

@@ -235,6 +235,140 @@ describe('sandbox run DELETE cleanup', () => {
     }
   });
 
+  it.each([
+    ['account loss before SPB acquisition', 'spb_intent', false],
+    ['an acquired SPB binding that is now absent', 'spb_acquired', true],
+  ])('keeps SPB lifecycle absence fail-closed for %s', async (_name, provisioningPhase, keepAccount) => {
+    const relay = makeRelayBinding();
+    const baseEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv: baseEnv });
+    await seedSandboxRun({
+      runId: SANDBOX_RUN_ID,
+      accountId: account.accountId,
+      instanceId: SANDBOX_INSTANCE_ID,
+      status: 'provisioning',
+      provisioningPhase,
+      dispatchState: 'deny_pending',
+      sppState: 'deny_pending',
+      spbState: 'deny_pending',
+      splRelayState: 'deny_pending',
+      splBindingState: 'deny_pending',
+    });
+    if (!keepAccount) {
+      await workerEnv.DB.prepare('DELETE FROM account_emails WHERE account_id = ?')
+        .bind(account.accountId)
+        .run();
+      await workerEnv.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(account.accountId).run();
+    }
+    const testEnv = { ...baseEnv, RELAY: relay.binding };
+
+    const result = await reconcileSandboxRun(testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'delete',
+    });
+
+    expect(result.outcome).toBe('failed');
+    await expect(runRow()).resolves.toMatchObject({
+      status: 'cleanup_failed',
+      provisioning_phase: provisioningPhase,
+      spb_state: 'cleanup_failed',
+      spb_residual_code: 'spb_lifecycle_absent',
+    });
+  });
+
+  it('fails closed when the account disappears after the initial SPB postcondition read', async () => {
+    const relay = makeRelayBinding();
+    const baseEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv: baseEnv });
+    await seedSandboxRun({
+      runId: SANDBOX_RUN_ID,
+      accountId: account.accountId,
+      instanceId: SANDBOX_INSTANCE_ID,
+      status: 'provisioning',
+      provisioningPhase: 'spb_intent',
+      dispatchState: 'deny_pending',
+      sppState: 'deny_pending',
+      spbState: 'deny_pending',
+      splRelayState: 'deny_pending',
+      splBindingState: 'deny_pending',
+    });
+    const testEnv = interleaveLocalPostconditionRead(
+      { ...baseEnv, RELAY: relay.binding },
+      2,
+      'after',
+      async (db) => {
+        await db.prepare('DELETE FROM account_emails WHERE account_id = ?')
+          .bind(account.accountId)
+          .run();
+        await db.prepare('DELETE FROM accounts WHERE id = ?').bind(account.accountId).run();
+      }
+    );
+
+    const result = await reconcileSandboxRun(testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'delete',
+    });
+
+    expect(result.outcome).toBe('failed');
+    await expect(runRow()).resolves.toMatchObject({
+      status: 'cleanup_failed',
+      provisioning_phase: 'spb_intent',
+      spb_state: 'cleanup_failed',
+      spb_residual_code: 'spb_lifecycle_absent',
+    });
+  });
+
+  it('fails closed when a baseline SPB binding appears before fresh verification', async () => {
+    const relay = makeRelayBinding();
+    const baseEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv: baseEnv });
+    await seedSandboxRun({
+      runId: SANDBOX_RUN_ID,
+      accountId: account.accountId,
+      instanceId: SANDBOX_INSTANCE_ID,
+      status: 'provisioning',
+      provisioningPhase: 'spb_intent',
+      dispatchState: 'deny_pending',
+      sppState: 'deny_pending',
+      spbState: 'deny_pending',
+      splRelayState: 'deny_pending',
+      splBindingState: 'deny_pending',
+    });
+    const testEnv = interleaveLocalPostconditionRead(
+      { ...baseEnv, RELAY: relay.binding },
+      3,
+      'before',
+      () => seedSpbBinding({
+        accountId: account.accountId,
+        instanceId: SANDBOX_INSTANCE_ID,
+        createdAt: SANDBOX_NOW,
+        tokenHash: 'baseline-race-token',
+      })
+    );
+
+    const result = await reconcileSandboxRun(testEnv, null, {
+      runId: SANDBOX_RUN_ID,
+      nowMs: SANDBOX_NOW,
+      trigger: 'delete',
+    });
+
+    expect(result.outcome).toBe('conflict');
+    await expect(runRow()).resolves.toMatchObject({
+      status: 'cleanup_failed',
+      provisioning_phase: 'spb_intent',
+      spb_state: 'cleanup_failed',
+      spb_residual_code: 'spb_ownership_conflict',
+    });
+    await expect(workerEnv.DB.prepare(
+      'SELECT token_hash, sandbox_run_id FROM spb_bindings WHERE instance_id = ?'
+    ).bind(SANDBOX_INSTANCE_ID).first()).resolves.toEqual({
+      token_hash: 'baseline-race-token',
+      sandbox_run_id: null,
+    });
+  });
+
   it('converges after a relay retryable residual without regressing released components', async () => {
     let retirementAttempts = 0;
     const relay = makeRelayBinding({
@@ -546,6 +680,41 @@ function failOnceOnSql(testEnv, pattern) {
       },
       batch(statements) {
         return testEnv.DB.batch(statements);
+      },
+    },
+  };
+}
+
+function interleaveLocalPostconditionRead(testEnv, targetRead, timing, callback) {
+  const baseDb = testEnv.DB;
+  let reads = 0;
+  return {
+    ...testEnv,
+    DB: {
+      prepare(sql) {
+        const statement = baseDb.prepare(sql);
+        if (!/EXISTS\(SELECT 1 FROM accounts WHERE id = \?\) AS account_present/i.test(sql)) {
+          return statement;
+        }
+        return {
+          bind(...values) {
+            const bound = statement.bind(...values);
+            return {
+              run: (...args) => bound.run(...args),
+              all: (...args) => bound.all(...args),
+              async first(...args) {
+                reads += 1;
+                if (reads === targetRead && timing === 'before') await callback(baseDb);
+                const row = await bound.first(...args);
+                if (reads === targetRead && timing === 'after') await callback(baseDb);
+                return row;
+              },
+            };
+          },
+        };
+      },
+      batch(statements) {
+        return baseDb.batch(statements);
       },
     },
   };
