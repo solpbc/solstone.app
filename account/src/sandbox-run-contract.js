@@ -286,6 +286,35 @@ export const SANDBOX_CAPABILITY_KEYS = deepFreeze({
   spb: ['broker_endpoint', 'account_id', 'instance_id', 'bucket', 'prefix', 'broker_token'],
   spp: ['endpoint_url', 'served_model_id', 'credential', 'account_id', 'created_at'],
 });
+export const SANDBOX_CREATE_RESPONSE_RELATIONSHIPS = deepFreeze({
+  equal_fields: [
+    [
+      'capabilities.scout.account_id',
+      'capabilities.spb.account_id',
+      'capabilities.spp.account_id',
+    ],
+    [
+      'capabilities.scout.created_at',
+      'capabilities.spl.approved_at',
+      'capabilities.spp.created_at',
+    ],
+  ],
+  epoch_offset: {
+    field: 'lease_expires_at',
+    rfc3339_milliseconds_field: 'capabilities.scout.created_at',
+    offset_ms: SANDBOX_LEASE_TTL_MS,
+  },
+  fixed_fields: {
+    'capabilities.spb.broker_endpoint': SANDBOX_BROKER_ENDPOINT,
+  },
+  templates: {
+    'capabilities.spb.prefix': 'users/{capabilities.spb.account_id}/{capabilities.spb.instance_id}/',
+  },
+});
+export const SANDBOX_CREATE_OPERATION_IDENTITY = deepFreeze([
+  { request_field: 'run_id', response_field: 'run_id' },
+  { request_field: 'instance_id', response_field: 'capabilities.spb.instance_id' },
+]);
 export const SANDBOX_REPORT_KEYS = Object.freeze([
   'run_id',
   'contract_version',
@@ -429,6 +458,32 @@ function isAbsoluteHttpsUrl(value) {
   } catch {
     return false;
   }
+}
+
+function valueAtPath(value, path) {
+  return path.split('.').reduce((current, key) => current?.[key], value);
+}
+
+function matchesSandboxRunCreateRelationships(value) {
+  const rules = SANDBOX_CREATE_RESPONSE_RELATIONSHIPS;
+  if (!rules.equal_fields.every((paths) => {
+    const [expected, ...others] = paths.map((path) => valueAtPath(value, path));
+    return others.every((candidate) => candidate === expected);
+  })) return false;
+
+  const epochRule = rules.epoch_offset;
+  if (valueAtPath(value, epochRule.field)
+    !== Date.parse(valueAtPath(value, epochRule.rfc3339_milliseconds_field)) + epochRule.offset_ms) {
+    return false;
+  }
+  if (!Object.entries(rules.fixed_fields)
+    .every(([path, expected]) => valueAtPath(value, path) === expected)) return false;
+  return Object.entries(rules.templates).every(([path, template]) => {
+    const expected = template.replace(/\{([^}]+)\}/g, (_match, sourcePath) => (
+      String(valueAtPath(value, sourcePath))
+    ));
+    return valueAtPath(value, path) === expected;
+  });
 }
 
 function isRfc3339Milliseconds(value) {
@@ -699,14 +754,7 @@ export function isSandboxRunCreateResponse(value) {
   if (!SANDBOX_CAPABILITIES_KEYS.every((name) => isSandboxRunCapability(value.capabilities[name], name))) {
     return false;
   }
-  const { scout, spl, spb, spp } = value.capabilities;
-  return scout.account_id === spb.account_id
-    && scout.account_id === spp.account_id
-    && scout.created_at === spl.approved_at
-    && scout.created_at === spp.created_at
-    && value.lease_expires_at === Date.parse(scout.created_at) + SANDBOX_LEASE_TTL_MS
-    && spb.broker_endpoint === SANDBOX_BROKER_ENDPOINT
-    && spb.prefix === `users/${spb.account_id}/${spb.instance_id}/`;
+  return matchesSandboxRunCreateRelationships(value);
 }
 
 export function isSandboxRunErrorBody(value, descriptor, runId) {
@@ -807,6 +855,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
         capabilities: { type: 'capability-object' },
       }),
       capabilities: capabilityDescriptors,
+      relationships: SANDBOX_CREATE_RESPONSE_RELATIONSHIPS,
     },
     report: {
       statuses: [200, 202],
@@ -916,6 +965,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
       method: 'POST',
       path: '/admin/sandbox-runs',
       success: { status: 201, body: 'responses.create' },
+      response_identity: SANDBOX_CREATE_OPERATION_IDENTITY,
       errors: {
         invalid_request: 'errors.sandbox.invalid_request',
         conflict: 'errors.sandbox.conflict',

@@ -174,6 +174,10 @@ describe('sandbox-run generated contract route', () => {
         method: 'POST',
         path: '/admin/sandbox-runs',
         success: { status: 201, body: 'responses.create' },
+        response_identity: [
+          { request_field: 'run_id', response_field: 'run_id' },
+          { request_field: 'instance_id', response_field: 'capabilities.spb.instance_id' },
+        ],
         errors: {
           invalid_request: 'errors.sandbox.invalid_request',
           conflict: 'errors.sandbox.conflict',
@@ -242,6 +246,22 @@ describe('sandbox-run contract validators', () => {
     for (const name of SANDBOX_CAPABILITIES_KEYS) {
       const malformed = structuredClone(createBody);
       malformed.capabilities[name] = reverseObject(malformed.capabilities[name]);
+      expect(isSandboxRunCreateResponse(malformed)).toBe(false);
+    }
+    const relationshipMutations = [
+      (body) => { body.capabilities.spb.account_id = SANDBOX_RUN_ID; },
+      (body) => {
+        body.capabilities.spl.approved_at = new Date(
+          Date.parse(body.capabilities.spl.approved_at) + 1
+        ).toISOString();
+      },
+      (body) => { body.lease_expires_at += 1; },
+      (body) => { body.capabilities.spb.broker_endpoint += '/'; },
+      (body) => { body.capabilities.spb.prefix += 'extra/'; },
+    ];
+    for (const mutate of relationshipMutations) {
+      const malformed = structuredClone(createBody);
+      mutate(malformed);
       expect(isSandboxRunCreateResponse(malformed)).toBe(false);
     }
 

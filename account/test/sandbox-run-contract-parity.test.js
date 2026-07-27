@@ -10,6 +10,8 @@ import {
   SANDBOX_COMPONENT_RESIDUAL_CODES,
   SANDBOX_COMPONENT_STATE,
   SANDBOX_COMPONENT_STATES,
+  SANDBOX_CREATE_OPERATION_IDENTITY,
+  SANDBOX_CREATE_RESPONSE_RELATIONSHIPS,
   SANDBOX_CREATION_ONLY_RESIDUAL_CODES,
   SANDBOX_ERROR,
   SANDBOX_LAST_RESIDUAL_CODES,
@@ -125,6 +127,37 @@ describe('sandbox-run generated contract parity', () => {
     expect(fieldDescriptor(capabilities.spb, 'prefix')).not.toHaveProperty('trimmed');
     expect(fieldDescriptor(capabilities.spb, 'broker_endpoint').type).toBe('absolute-https-url');
     expect(fieldDescriptor(capabilities.spp, 'endpoint_url').type).toBe('absolute-https-url');
+  });
+
+  it('publishes every cross-field creation invariant and request/response identity seam', async () => {
+    const contract = JSON.parse(await readFile(artifactPath, 'utf8'));
+    expect(contract.responses.create.relationships).toEqual(SANDBOX_CREATE_RESPONSE_RELATIONSHIPS);
+    expect(contract.operations.create.response_identity).toEqual(SANDBOX_CREATE_OPERATION_IDENTITY);
+    expect(contract.responses.create.relationships).toEqual({
+      equal_fields: [
+        [
+          'capabilities.scout.account_id',
+          'capabilities.spb.account_id',
+          'capabilities.spp.account_id',
+        ],
+        [
+          'capabilities.scout.created_at',
+          'capabilities.spl.approved_at',
+          'capabilities.spp.created_at',
+        ],
+      ],
+      epoch_offset: {
+        field: 'lease_expires_at',
+        rfc3339_milliseconds_field: 'capabilities.scout.created_at',
+        offset_ms: SANDBOX_LEASE_TTL_MS,
+      },
+      fixed_fields: {
+        'capabilities.spb.broker_endpoint': 'https://services.solstone.app',
+      },
+      templates: {
+        'capabilities.spb.prefix': 'users/{capabilities.spb.account_id}/{capabilities.spb.instance_id}/',
+      },
+    });
   });
 
   it('matches migration and consolidated-schema vocabularies bidirectionally', async () => {

@@ -472,6 +472,31 @@
             }
           ]
         }
+      },
+      "relationships": {
+        "equal_fields": [
+          [
+            "capabilities.scout.account_id",
+            "capabilities.spb.account_id",
+            "capabilities.spp.account_id"
+          ],
+          [
+            "capabilities.scout.created_at",
+            "capabilities.spl.approved_at",
+            "capabilities.spp.created_at"
+          ]
+        ],
+        "epoch_offset": {
+          "field": "lease_expires_at",
+          "rfc3339_milliseconds_field": "capabilities.scout.created_at",
+          "offset_ms": 3600000
+        },
+        "fixed_fields": {
+          "capabilities.spb.broker_endpoint": "https://services.solstone.app"
+        },
+        "templates": {
+          "capabilities.spb.prefix": "users/{capabilities.spb.account_id}/{capabilities.spb.instance_id}/"
+        }
       }
     },
     "report": {
@@ -836,6 +861,16 @@
         "status": 201,
         "body": "responses.create"
       },
+      "response_identity": [
+        {
+          "request_field": "run_id",
+          "response_field": "run_id"
+        },
+        {
+          "request_field": "instance_id",
+          "response_field": "capabilities.spb.instance_id"
+        }
+      ],
       "errors": {
         "invalid_request": "errors.sandbox.invalid_request",
         "conflict": "errors.sandbox.conflict",
