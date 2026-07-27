@@ -121,8 +121,8 @@ These are not optional. A change that weakens one is wrong regardless of size.
 
 ## 5. Coding principles (sol pbc engineering standards, inlined)
 
-Hopper lodes can't read the org's private engineering standards, so the
-load-bearing ones live here:
+These are the load-bearing sol pbc engineering standards for this repo, stated
+here so they stand on their own:
 
 - **Fail fast, fail clearly; no silent failures.** Validate at the request
   boundary; raise/return clear errors. The download/release routes already model
