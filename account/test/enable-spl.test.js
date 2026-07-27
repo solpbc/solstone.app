@@ -12,7 +12,6 @@ import {
   seedAccount,
   seedEntitlement,
   seedSession,
-  seedSplBinding,
 } from './helpers.js';
 
 const VALID_NONCE = '2'.repeat(52);
@@ -204,7 +203,6 @@ describe('/enable/spl', () => {
       subscribe_url: 'https://services.solstone.app/private-network',
     });
     expect(binding).toMatchObject({ account_id: account.accountId, instance_id: VALID_INSTANCE });
-    expect(binding.sandbox_run_id).toBeNull();
     // Reconcile creates the lapsed comp row and pushes a benign revoke for the new binding.
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({ instance_id: VALID_INSTANCE, entitled_until: 0 });
@@ -236,42 +234,6 @@ describe('/enable/spl', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({ instance_id: VALID_INSTANCE, entitled_until: 1_900_000_000 });
     expect(calls[0].init.headers.Authorization).toBe('Bearer test-relay-grant-secret');
-  });
-
-  it('fails through the existing generic 500 path when another account owns the instance', async () => {
-    const spy = installConsoleSpy();
-    const testEnv = makeTestEnv();
-    const incumbent = await seedAccount({ email: 'spl-incumbent@example.com', testEnv });
-    const claimant = await seedAccount({ email: 'spl-claimant@example.com', testEnv });
-    const session = await seedSession(claimant.accountId, { testEnv });
-    await seedSplBinding({
-      accountId: incumbent.accountId,
-      instanceId: VALID_INSTANCE,
-      createdAt: 1_000,
-      lastSeenAt: 1_000,
-    });
-    const before = await splBindingRow(incumbent.accountId, VALID_INSTANCE);
-    try {
-      const response = await worker.fetch(confirmRequest({
-        cookie: session.cookie,
-        extraForm: { instance: VALID_INSTANCE },
-      }), testEnv);
-      const body = await response.text();
-
-      expect(response.status).toBe(500);
-      expect(body).toContain("that link didn't work");
-      await expect(splBindingRow(incumbent.accountId, VALID_INSTANCE)).resolves.toEqual(before);
-      await expect(rowCount('service_handoffs')).resolves.toBe(0);
-      spy.assertNoSecrets([
-        incumbent.accountId,
-        claimant.accountId,
-        VALID_INSTANCE,
-        'spl-incumbent@example.com',
-        'spl-claimant@example.com',
-      ]);
-    } finally {
-      spy.restore();
-    }
   });
 
   it('ignores smuggled fields and derives the payload server-side', async () => {
@@ -379,7 +341,7 @@ async function serviceHandoffRow(nonce, testEnv) {
 
 async function splBindingRow(accountId, instanceId) {
   return workerEnv.DB
-    .prepare('SELECT account_id, instance_id, created_at, last_seen_at, sandbox_run_id FROM spl_bindings WHERE account_id = ? AND instance_id = ?')
+    .prepare('SELECT account_id, instance_id, created_at, last_seen_at FROM spl_bindings WHERE account_id = ? AND instance_id = ?')
     .bind(accountId, instanceId)
     .first();
 }

@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@simplewebauthn/server', async () => (
-  await import('./simplewebauthn-server.mock.js')
-).simpleWebAuthnServerMock);
+vi.mock('@simplewebauthn/server', () => ({
+  generateRegistrationOptions: vi.fn(),
+  verifyRegistrationResponse: vi.fn(),
+  generateAuthenticationOptions: vi.fn(),
+  verifyAuthenticationResponse: vi.fn(),
+}));
 
 import {
   generateAuthenticationOptions,

@@ -9,8 +9,6 @@ const NO_STORE_HEADERS = {
 
 export async function handleSppAuthorize(req, env) {
   try {
-    const nowMs = Date.now();
-    const nowSeconds = Math.floor(nowMs / 1000);
     const expected = env.SPP_ENGINE_AUTH_SECRET || '';
     const serviceCredential = bearer(req.headers.get('Authorization'));
     if (!expected || !(await fixedLengthSecretEqual(serviceCredential, expected))) {
@@ -25,7 +23,7 @@ export async function handleSppAuthorize(req, env) {
     }
 
     const tokenHash = await hashWithPepper(entitlementCredential, env);
-    const binding = await findSppBindingByTokenHash(env.DB, tokenHash, nowMs);
+    const binding = await findSppBindingByTokenHash(env.DB, tokenHash);
     if (!binding) {
       console.warn('spp_authorize_refused_entitlement');
       return empty(401);
@@ -35,7 +33,7 @@ export async function handleSppAuthorize(req, env) {
       accountId: binding.account_id,
       service: SPP_HOSTED_SERVICE,
     });
-    if (!isSppEntitledToServe(entitlement, nowSeconds, env)) {
+    if (!isSppEntitledToServe(entitlement, Math.floor(Date.now() / 1000), env)) {
       console.warn('spp_authorize_refused_entitlement');
       return empty(401);
     }

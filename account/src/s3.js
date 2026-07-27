@@ -71,21 +71,12 @@ export async function signedR2Fetch(env, cred, {
   });
 }
 
-export async function listObjectsV2(env, cred, {
-  prefix,
-  continuationToken = null,
-  maxKeys = null,
-  nowMs = Date.now(),
-}) {
+export async function listObjectsV2(env, cred, { prefix, continuationToken = null, nowMs = Date.now() }) {
   const query = { 'list-type': '2', prefix };
   if (continuationToken) query['continuation-token'] = continuationToken;
-  if (maxKeys !== null) query['max-keys'] = maxKeys;
   const response = await signedR2Fetch(env, cred, { method: 'GET', query, nowMs });
   const xml = await response.text();
   if (!response.ok) throw s3Error('S3ListObjectsError', response.status);
-  if (!hasRoot(xml, 'ListBucketResult')) {
-    throw s3Error('S3ListObjectsError', response.status);
-  }
   return {
     keys: blockTexts(xml, 'Contents', 'Key'),
     isTruncated: tagText(xml, 'IsTruncated') === 'true',
@@ -128,9 +119,6 @@ export async function listMultipartUploads(env, cred, {
   const response = await signedR2Fetch(env, cred, { method: 'GET', query, nowMs });
   const xml = await response.text();
   if (!response.ok) throw s3Error('S3ListMultipartUploadsError', response.status);
-  if (!hasRoot(xml, 'ListMultipartUploadsResult')) {
-    throw s3Error('S3ListMultipartUploadsError', response.status);
-  }
   return {
     uploads: blocks(xml, 'Upload').map((block) => ({
       key: tagText(block, 'Key'),
@@ -232,12 +220,6 @@ function hex(bytes) {
 
 function blocks(xml, tag) {
   return Array.from(xml.matchAll(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`, 'g')), (match) => match[1]);
-}
-
-function hasRoot(xml, tag) {
-  return new RegExp(
-    `^\\s*(?:<\\?xml\\b[^>]*>\\s*)?<${tag}\\b[^>]*>[\\s\\S]*</${tag}>\\s*$`
-  ).test(xml);
 }
 
 function blockTexts(xml, blockTag, tag) {

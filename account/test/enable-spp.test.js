@@ -12,7 +12,6 @@ import {
   seedAccount,
   seedScoutApplication,
   seedSession,
-  seedSppBinding,
 } from './helpers.js';
 
 const VALID_NONCE = '7'.repeat(52);
@@ -341,7 +340,6 @@ describe('/enable/spp', () => {
       token_hash: await hashWithPepper(payload.credential, testEnv),
       consent_acked_at: expect.any(Number),
       consent_disclosure_version: 'spp-consent-v2-audio',
-      sandbox_run_id: null,
     });
     expect(binding.consent_acked_at).toBe(binding.last_seen_at);
     expect(JSON.stringify(binding)).not.toContain(payload.credential);
@@ -354,47 +352,6 @@ describe('/enable/spp', () => {
       status: 'active',
       source: 'comp',
     });
-  });
-
-  it('fails through the existing generic 500 path when another account owns the instance', async () => {
-    const spy = installConsoleSpy();
-    const testEnv = makeTestEnv();
-    const incumbent = await seedAccount({ email: 'spp-incumbent@example.com', testEnv });
-    const claimant = await seedAccount({ email: 'spp-claimant@example.com', testEnv });
-    const session = await seedSession(claimant.accountId, { testEnv });
-    await seedScoutApplication({
-      accountId: claimant.accountId,
-      status: 'approved',
-      approved_at: 1_000,
-    });
-    await seedSppBinding({
-      accountId: incumbent.accountId,
-      instanceId: VALID_INSTANCE,
-      tokenHash: 'incumbent-token-hash',
-      createdAt: 1_000,
-      lastSeenAt: 1_000,
-    });
-    const before = await sppBindingRow(incumbent.accountId, VALID_INSTANCE);
-    try {
-      const response = await worker.fetch(confirmRequest({ cookie: session.cookie }), testEnv);
-      const body = await response.text();
-
-      expect(response.status).toBe(500);
-      expect(body).toContain("that link didn't work");
-      await expect(sppBindingRow(incumbent.accountId, VALID_INSTANCE)).resolves.toEqual(before);
-      await expect(rowCount('service_handoffs')).resolves.toBe(0);
-      await expect(rowCount('spp_mint_audit')).resolves.toBe(0);
-      spy.assertNoSecrets([
-        incumbent.accountId,
-        claimant.accountId,
-        VALID_INSTANCE,
-        'incumbent-token-hash',
-        'spp-incumbent@example.com',
-        'spp-claimant@example.com',
-      ]);
-    } finally {
-      spy.restore();
-    }
   });
 
   it('rejects an approved scout without data acknowledgment before any write', async () => {
@@ -586,7 +543,7 @@ async function sppBindingRow(accountId, instanceId) {
   return workerEnv.DB
     .prepare(
       `SELECT account_id, instance_id, token_hash, created_at, last_seen_at,
-              consent_acked_at, consent_disclosure_version, sandbox_run_id
+              consent_acked_at, consent_disclosure_version
        FROM spp_bindings
        WHERE account_id = ? AND instance_id = ?`
     )

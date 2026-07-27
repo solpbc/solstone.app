@@ -24,7 +24,6 @@ const INSTANCE_A = '11111111-1111-1111-1111-111111111111';
 const INSTANCE_B = '22222222-2222-2222-2222-222222222222';
 const INSTANCE_C = '33333333-3333-3333-3333-333333333333';
 const INSTANCE_D = '44444444-4444-4444-4444-444444444444';
-const SANDBOX_RUN = 'aaaaaaaa-1111-1111-1111-111111111111';
 const SPB_SERVICE = 'spb_hosted';
 
 describe('spb lapse sweep', () => {
@@ -174,71 +173,6 @@ describe('spb lapse sweep', () => {
       objects_deleted: 0,
       multipart_aborted: 0,
     })]);
-  });
-
-  it('sweeps only baseline rows from mixed lapsed and sandbox lifecycle state', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'spb-mixed-lifecycle@example.com', testEnv });
-    const baseline = await seedSpbBinding({
-      accountId: account.accountId,
-      instanceId: INSTANCE_A,
-      lapsedAt: OLD_LAPSE,
-    });
-    const runOwned = await seedSpbBinding({
-      accountId: account.accountId,
-      instanceId: INSTANCE_B,
-      tokenHash: 'run-owned-token-hash',
-      lapsedAt: OLD_LAPSE,
-      sandboxRunId: SANDBOX_RUN,
-    });
-    const tombstone = await seedSpbBinding({
-      accountId: account.accountId,
-      instanceId: INSTANCE_C,
-      tokenHash: null,
-      lapsedAt: OLD_LAPSE,
-      sandboxRunId: SANDBOX_RUN,
-      sandboxCredentialExpiresAt: NOW - 1_000,
-      sandboxDeniedAt: NOW - 500,
-    });
-    const baselinePrefix = prefixFor(baseline.accountId, baseline.instanceId);
-    const runPrefix = prefixFor(runOwned.accountId, runOwned.instanceId);
-    const tombstonePrefix = prefixFor(tombstone.accountId, tombstone.instanceId);
-    const runBefore = await fullBindingRow(INSTANCE_B);
-    const tombstoneBefore = await fullBindingRow(INSTANCE_C);
-    const { calls } = installSweepS3State(testEnv, {
-      objectsByPrefix: {
-        [baselinePrefix]: [`${baselinePrefix}baseline-object`],
-        [runPrefix]: [`${runPrefix}run-object`],
-        [tombstonePrefix]: [`${tombstonePrefix}tombstone-object`],
-      },
-      uploadsByPrefix: {
-        [baselinePrefix]: [{ key: `${baselinePrefix}baseline-upload`, uploadId: 'baseline-upload' }],
-        [runPrefix]: [{ key: `${runPrefix}run-upload`, uploadId: 'run-upload' }],
-        [tombstonePrefix]: [{ key: `${tombstonePrefix}tombstone-upload`, uploadId: 'tombstone-upload' }],
-      },
-    });
-    const spy = installConsoleSpy();
-
-    try {
-      await runSpbLapseSweep(testEnv, createExecutionContext(), NOW);
-    } finally {
-      spy.restore();
-    }
-
-    await expect(fullBindingRow(INSTANCE_A)).resolves.toBeNull();
-    await expect(fullBindingRow(INSTANCE_B)).resolves.toEqual(runBefore);
-    await expect(fullBindingRow(INSTANCE_C)).resolves.toEqual(tombstoneBefore);
-    await expect(auditRows()).resolves.toEqual([expect.objectContaining({
-      account_id: account.accountId,
-      instance_id: INSTANCE_A,
-      prefix: baselinePrefix,
-      objects_deleted: 1,
-      multipart_aborted: 1,
-      ts: NOW,
-    })]);
-    expectCallsContained(calls, testEnv, [baselinePrefix]);
-    expect(JSON.stringify(calls)).not.toContain(runPrefix);
-    expect(JSON.stringify(calls)).not.toContain(tombstonePrefix);
   });
 
   it('isolates delete failures and retries the failed binding idempotently', async () => {
@@ -588,14 +522,6 @@ async function bindingRow(accountId, instanceId) {
   const row = await workerEnv.DB
     .prepare('SELECT account_id, instance_id, lapsed_at FROM spb_bindings WHERE account_id = ? AND instance_id = ?')
     .bind(accountId, instanceId)
-    .first();
-  return row || null;
-}
-
-async function fullBindingRow(instanceId) {
-  const row = await workerEnv.DB
-    .prepare('SELECT * FROM spb_bindings WHERE instance_id = ?')
-    .bind(instanceId)
     .first();
   return row || null;
 }

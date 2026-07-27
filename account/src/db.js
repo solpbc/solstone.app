@@ -1,9 +1,4 @@
 import { hashWithPepper } from './crypto.js';
-import {
-  SANDBOX_CLEANUP_DISPOSITION_STATUSES,
-  SANDBOX_CLEANUP_PHASE_PREDECESSOR,
-  SANDBOX_COMPONENT_COLUMNS,
-} from './sandbox-run-contract.js';
 
 const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -441,116 +436,17 @@ export async function getDeviceById(db, deviceId) {
   return row || null;
 }
 
-export async function insertDispatchToken(db, {
-  tokenHash,
-  accountId,
-  nowMs,
-  sandboxRunId = null,
-}) {
+export async function insertDispatchToken(db, { tokenHash, accountId, nowMs }) {
   await db
-    .prepare(
-      `INSERT INTO account_dispatch_tokens (
-         token_hash, account_id, created_at, sandbox_run_id
-       ) VALUES (?, ?, ?, ?)`
-    )
-    .bind(tokenHash, accountId, nowMs, sandboxRunId)
+    .prepare('INSERT INTO account_dispatch_tokens (token_hash, account_id, created_at) VALUES (?, ?, ?)')
+    .bind(tokenHash, accountId, nowMs)
     .run();
 }
 
-export async function insertDispatchTokenForSandboxRun(db, {
-  tokenHash,
-  accountId,
-  sandboxRunId,
-  instanceId,
-  expectedPhase,
-  nowMs,
-}) {
-  const { results } = await db
-    .prepare(
-      `INSERT INTO account_dispatch_tokens (
-         token_hash, account_id, created_at, sandbox_run_id
-       )
-       SELECT ?, ?, ?, ?
-       WHERE EXISTS (
-         SELECT 1
-         FROM sandbox_runs
-         WHERE run_id = ?
-           AND account_id = ?
-           AND instance_id = ?
-           AND status = 'provisioning'
-           AND provisioning_phase = ?
-       )
-       ON CONFLICT(token_hash) DO NOTHING
-       RETURNING token_hash, account_id, created_at, sandbox_run_id`
-    )
-    .bind(
-      tokenHash,
-      accountId,
-      nowMs,
-      sandboxRunId,
-      sandboxRunId,
-      accountId,
-      instanceId,
-      expectedPhase
-    )
-    .all();
-  return results?.[0] || null;
-}
-
-export async function releaseDispatchTokensForSandboxRun(db, {
-  accountId,
-  sandboxRunId,
-  nowMs,
-}) {
-  const results = await db.batch([
-    db
-      .prepare(
-        `UPDATE account_dispatch_tokens
-         SET revoked_at = ?1
-         WHERE account_id = ?2
-           AND sandbox_run_id = ?3
-           AND revoked_at IS NULL
-           AND NOT EXISTS (
-             SELECT 1
-             FROM account_dispatch_tokens
-             WHERE sandbox_run_id = ?3
-               AND account_id != ?2
-           )
-         RETURNING token_hash`
-      )
-      .bind(nowMs, accountId, sandboxRunId),
-    db
-      .prepare(
-        `SELECT account_id, revoked_at
-         FROM account_dispatch_tokens
-         WHERE sandbox_run_id = ?`
-      )
-      .bind(sandboxRunId),
-  ]);
-  return {
-    revokedRows: results?.[0]?.results || [],
-    runRows: results?.[1]?.results || [],
-  };
-}
-
-export async function findActiveDispatchToken(db, tokenHash, nowMs) {
+export async function findActiveDispatchToken(db, tokenHash) {
   const row = await db
-    .prepare(
-      `SELECT token.account_id
-       FROM account_dispatch_tokens AS token
-       LEFT JOIN sandbox_runs AS run ON run.run_id = token.sandbox_run_id
-       WHERE token.token_hash = ?
-         AND token.revoked_at IS NULL
-         AND (
-           token.sandbox_run_id IS NULL
-           OR (
-             run.account_id = token.account_id
-             AND run.status = 'active'
-             AND ? < run.lease_expires_at
-           )
-         )`
-    )
-    .bind(tokenHash, nowMs)
+    .prepare('SELECT account_id FROM account_dispatch_tokens WHERE token_hash = ? AND revoked_at IS NULL')
+    .bind(tokenHash)
     .first();
   return row || null;
 }
@@ -1349,175 +1245,31 @@ export async function upsertStripeCustomer(db, { accountId, stripeCustomerId, no
     .run();
 }
 
-export async function upsertSplBinding(db, {
-  accountId,
-  instanceId,
-  nowMs,
-  sandboxRunId = null,
-}) {
-  const { results } = await db
+export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
+  await db
     .prepare(
-      `INSERT INTO spl_bindings (
-         account_id, instance_id, sandbox_run_id, created_at, last_seen_at
-       ) VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(instance_id) DO UPDATE SET
-         last_seen_at = excluded.last_seen_at
-       WHERE account_id = excluded.account_id
-         AND sandbox_run_id IS excluded.sandbox_run_id
-       RETURNING account_id, instance_id, sandbox_run_id, created_at, last_seen_at`
+      `INSERT INTO spl_bindings (account_id, instance_id, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(account_id, instance_id) DO UPDATE SET
+         last_seen_at = excluded.last_seen_at`
     )
-    .bind(accountId, instanceId, sandboxRunId, nowMs, nowMs)
-    .all();
-  return results?.[0] || null;
+    .bind(accountId, instanceId, nowMs, nowMs)
+    .run();
 }
 
-export async function upsertSplBindingForSandboxRun(db, {
-  accountId,
-  instanceId,
-  nowMs,
-  sandboxRunId,
-  expectedPhase,
-}) {
-  const { results } = await db
-    .prepare(
-      `INSERT INTO spl_bindings (
-         account_id, instance_id, sandbox_run_id, created_at, last_seen_at
-       )
-       SELECT ?, ?, ?, ?, ?
-       WHERE EXISTS (
-         SELECT 1
-         FROM sandbox_runs
-         WHERE run_id = ?
-           AND account_id = ?
-           AND instance_id = ?
-           AND status = 'provisioning'
-           AND provisioning_phase = ?
-       )
-       ON CONFLICT(instance_id) DO UPDATE SET
-         last_seen_at = excluded.last_seen_at
-       WHERE account_id = excluded.account_id
-         AND sandbox_run_id IS excluded.sandbox_run_id
-       RETURNING account_id, instance_id, sandbox_run_id, created_at, last_seen_at`
-    )
-    .bind(
-      accountId,
-      instanceId,
-      sandboxRunId,
-      nowMs,
-      nowMs,
-      sandboxRunId,
-      accountId,
-      instanceId,
-      expectedPhase
-    )
-    .all();
-  return results?.[0] || null;
-}
-
-export async function upsertSpbBinding(db, {
-  accountId,
-  instanceId,
-  tokenHash,
-  nowMs,
-  sandboxRunId = null,
-}) {
-  const { results } = await db
+export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
+  await db
     .prepare(
       `INSERT INTO spb_bindings (
-         account_id,
-         instance_id,
-         created_at,
-         last_seen_at,
-         token_hash,
-         lapsed_at,
-         sandbox_run_id,
-         sandbox_credential_expires_at,
-         sandbox_denied_at
-       ) VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL)
-       ON CONFLICT(instance_id) DO UPDATE SET
+         account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at
+       ) VALUES (?, ?, ?, ?, ?, NULL)
+       ON CONFLICT(account_id, instance_id) DO UPDATE SET
          token_hash = excluded.token_hash,
          last_seen_at = excluded.last_seen_at,
-         lapsed_at = NULL
-       WHERE account_id = excluded.account_id
-         AND sandbox_run_id IS excluded.sandbox_run_id
-         AND sandbox_denied_at IS NULL
-       RETURNING account_id,
-                 instance_id,
-                 sandbox_run_id,
-                 created_at,
-                 last_seen_at,
-                 token_hash,
-                 lapsed_at,
-                 sandbox_credential_expires_at,
-                 sandbox_denied_at`
+         lapsed_at = NULL`
     )
-    .bind(accountId, instanceId, nowMs, nowMs, tokenHash, sandboxRunId)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function upsertSpbBindingForSandboxRun(db, {
-  accountId,
-  instanceId,
-  tokenHash,
-  nowMs,
-  sandboxRunId,
-  expectedPhase,
-}) {
-  const { results } = await db
-    .prepare(
-      `INSERT INTO spb_bindings (
-         account_id,
-         instance_id,
-         created_at,
-         last_seen_at,
-         token_hash,
-         lapsed_at,
-         sandbox_run_id,
-         sandbox_credential_expires_at,
-         sandbox_denied_at
-       )
-       SELECT ?, ?, ?, ?, ?, NULL, ?, NULL, NULL
-       WHERE EXISTS (
-         SELECT 1
-         FROM sandbox_runs
-         WHERE run_id = ?
-           AND account_id = ?
-           AND instance_id = ?
-           AND status = 'provisioning'
-           AND provisioning_phase = ?
-       )
-       ON CONFLICT(instance_id) DO UPDATE SET
-         token_hash = excluded.token_hash,
-         last_seen_at = excluded.last_seen_at,
-         lapsed_at = NULL
-       WHERE account_id = excluded.account_id
-         AND sandbox_run_id IS excluded.sandbox_run_id
-         AND sandbox_denied_at IS NULL
-       RETURNING account_id,
-                 instance_id,
-                 sandbox_run_id,
-                 created_at,
-                 last_seen_at,
-                 token_hash,
-                 lapsed_at,
-                 sandbox_credential_expires_at,
-                 sandbox_denied_at`
-    )
-    .bind(
-      accountId,
-      instanceId,
-      nowMs,
-      nowMs,
-      tokenHash,
-      sandboxRunId,
-      sandboxRunId,
-      accountId,
-      instanceId,
-      expectedPhase
-    )
-    .all();
-  return results?.[0] || null;
+    .bind(accountId, instanceId, nowMs, nowMs, tokenHash)
+    .run();
 }
 
 export async function upsertSppBinding(db, {
@@ -1527,22 +1279,18 @@ export async function upsertSppBinding(db, {
   nowMs,
   consentAckedAt,
   consentDisclosureVersion,
-  sandboxRunId = null,
 }) {
-  const { results } = await db
+  await db
     .prepare(
       `INSERT INTO spp_bindings (
          account_id, instance_id, token_hash, created_at, last_seen_at,
-         consent_acked_at, consent_disclosure_version, sandbox_run_id
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(instance_id) DO UPDATE SET
+         consent_acked_at, consent_disclosure_version
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(account_id, instance_id) DO UPDATE SET
          token_hash = excluded.token_hash,
          last_seen_at = excluded.last_seen_at,
          consent_acked_at = excluded.consent_acked_at,
-         consent_disclosure_version = excluded.consent_disclosure_version
-       WHERE account_id = excluded.account_id
-         AND sandbox_run_id IS excluded.sandbox_run_id
-       RETURNING account_id, instance_id, sandbox_run_id, created_at, last_seen_at`
+         consent_disclosure_version = excluded.consent_disclosure_version`
     )
     .bind(
       accountId,
@@ -1551,137 +1299,14 @@ export async function upsertSppBinding(db, {
       nowMs,
       nowMs,
       consentAckedAt,
-      consentDisclosureVersion,
-      sandboxRunId
+      consentDisclosureVersion
     )
-    .all();
-  return results?.[0] || null;
-}
-
-export async function upsertSppBindingForSandboxRun(db, {
-  accountId,
-  instanceId,
-  tokenHash,
-  nowMs,
-  consentAckedAt,
-  consentDisclosureVersion,
-  sandboxRunId,
-  expectedPhase,
-}) {
-  const { results } = await db
-    .prepare(
-      `INSERT INTO spp_bindings (
-         account_id, instance_id, token_hash, created_at, last_seen_at,
-         consent_acked_at, consent_disclosure_version, sandbox_run_id
-       )
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?
-       WHERE EXISTS (
-         SELECT 1
-         FROM sandbox_runs
-         WHERE run_id = ?
-           AND account_id = ?
-           AND instance_id = ?
-           AND status = 'provisioning'
-           AND provisioning_phase = ?
-       )
-       ON CONFLICT(instance_id) DO UPDATE SET
-         token_hash = excluded.token_hash,
-         last_seen_at = excluded.last_seen_at,
-         consent_acked_at = excluded.consent_acked_at,
-         consent_disclosure_version = excluded.consent_disclosure_version
-       WHERE account_id = excluded.account_id
-         AND sandbox_run_id IS excluded.sandbox_run_id
-       RETURNING account_id, instance_id, sandbox_run_id, created_at, last_seen_at`
-    )
-    .bind(
-      accountId,
-      instanceId,
-      tokenHash,
-      nowMs,
-      nowMs,
-      consentAckedAt,
-      consentDisclosureVersion,
-      sandboxRunId,
-      sandboxRunId,
-      accountId,
-      instanceId,
-      expectedPhase
-    )
-    .all();
-  return results?.[0] || null;
-}
-
-export async function releaseSplBindingOwnership(db, {
-  accountId,
-  instanceId,
-  sandboxRunId,
-}) {
-  const results = await db.batch([
-    db
-      .prepare(
-        `DELETE FROM spl_bindings
-         WHERE instance_id = ?
-           AND account_id = ?
-           AND sandbox_run_id IS ?
-         RETURNING instance_id`
-      )
-      .bind(instanceId, accountId, sandboxRunId),
-    db
-      .prepare(
-        `SELECT account_id, sandbox_run_id
-         FROM spl_bindings
-         WHERE instance_id = ?`
-      )
-      .bind(instanceId),
-  ]);
-  return {
-    deletedRows: results?.[0]?.results || [],
-    incumbent: results?.[1]?.results?.[0] || null,
-  };
-}
-
-export async function releaseSppBindingOwnership(db, {
-  accountId,
-  instanceId,
-  sandboxRunId,
-}) {
-  const results = await db.batch([
-    db
-      .prepare(
-        `DELETE FROM spp_bindings
-         WHERE instance_id = ?
-           AND account_id = ?
-           AND sandbox_run_id IS ?
-         RETURNING instance_id`
-      )
-      .bind(instanceId, accountId, sandboxRunId),
-    db
-      .prepare(
-        `SELECT account_id, sandbox_run_id
-         FROM spp_bindings
-         WHERE instance_id = ?`
-      )
-      .bind(instanceId),
-  ]);
-  return {
-    deletedRows: results?.[0]?.results || [],
-    incumbent: results?.[1]?.results?.[0] || null,
-  };
+    .run();
 }
 
 export async function listSplBindings(db, accountId) {
   const { results } = await db
-    .prepare(
-      `SELECT binding.instance_id,
-              binding.sandbox_run_id,
-              run.account_id AS sandbox_run_account_id,
-              run.instance_id AS sandbox_run_instance_id,
-              run.status AS sandbox_run_status,
-              run.lease_expires_at AS sandbox_run_lease_expires_at
-       FROM spl_bindings AS binding
-       LEFT JOIN sandbox_runs AS run ON run.run_id = binding.sandbox_run_id
-       WHERE binding.account_id = ?`
-    )
+    .prepare('SELECT instance_id FROM spl_bindings WHERE account_id = ?')
     .bind(accountId)
     .all();
   return results || [];
@@ -1708,7 +1333,6 @@ export async function selectDueLapsedBindings(db, cutoffMs) {
        FROM spb_bindings
        WHERE lapsed_at IS NOT NULL
          AND lapsed_at <= ?
-         AND sandbox_run_id IS NULL
        ORDER BY lapsed_at ASC, rowid ASC`
     )
     .bind(cutoffMs)
@@ -1723,573 +1347,28 @@ export async function deleteSpbBinding(db, { accountId, instanceId }) {
     .run();
 }
 
-export async function deleteSpbSandboxTombstone(db, {
-  accountId,
-  instanceId,
-  sandboxRunId,
-  sandboxDeniedAt,
-}) {
-  const { results } = await db
-    .prepare(
-      `DELETE FROM spb_bindings
-       WHERE account_id = ?
-         AND instance_id = ?
-         AND sandbox_run_id IS ?
-         AND sandbox_denied_at IS ?
-         AND token_hash IS NULL
-       RETURNING account_id, instance_id, sandbox_run_id`
-    )
-    .bind(accountId, instanceId, sandboxRunId, sandboxDeniedAt)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function findSpbBindingByTokenHash(db, tokenHash, nowMs) {
+export async function findSpbBindingByTokenHash(db, tokenHash) {
   const row = await db
     .prepare(
-      `SELECT binding.account_id,
-              binding.instance_id,
-              binding.lapsed_at,
-              binding.sandbox_run_id
-       FROM spb_bindings AS binding
-       LEFT JOIN sandbox_runs AS run ON run.run_id = binding.sandbox_run_id
-       WHERE binding.token_hash = ?
-         AND binding.token_hash IS NOT NULL
-         AND (
-           binding.sandbox_run_id IS NULL
-           OR (
-             run.account_id = binding.account_id
-             AND run.instance_id = binding.instance_id
-             AND run.status = 'active'
-             AND ? < run.lease_expires_at
-           )
-         )`
-    )
-    .bind(tokenHash, nowMs)
-    .first();
-  return row || null;
-}
-
-export async function advanceSpbSandboxCredentialExpiry(db, {
-  proposedExpiryMs,
-  tokenHash,
-  accountId,
-  instanceId,
-  sandboxRunId,
-  nowMs,
-}) {
-  const { results } = await db
-    .prepare(
-      `UPDATE spb_bindings
-       SET sandbox_credential_expires_at =
-             MAX(COALESCE(sandbox_credential_expires_at, 0), ?)
-       WHERE token_hash = ?
-         AND account_id = ?
-         AND instance_id = ?
-         AND sandbox_run_id IS ?
-         AND sandbox_denied_at IS NULL
-         AND token_hash IS NOT NULL
-         AND EXISTS (
-           SELECT 1
-           FROM sandbox_runs AS run
-           WHERE run.run_id = spb_bindings.sandbox_run_id
-             AND run.account_id = spb_bindings.account_id
-             AND run.instance_id = spb_bindings.instance_id
-             AND run.status = 'active'
-             AND ? < run.lease_expires_at
-         )
-       RETURNING account_id,
-                 instance_id,
-                 sandbox_run_id,
-                 sandbox_credential_expires_at`
-    )
-    .bind(proposedExpiryMs, tokenHash, accountId, instanceId, sandboxRunId, nowMs)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function denySpbSandboxBindingOwnership(db, {
-  accountId,
-  instanceId,
-  sandboxRunId,
-  sandboxDeniedAt,
-}) {
-  const { results } = await db
-    .prepare(
-      `UPDATE spb_bindings
-       SET token_hash = NULL,
-           sandbox_denied_at = ?
-       WHERE account_id = ?
-         AND instance_id = ?
-         AND sandbox_run_id IS ?
-         AND sandbox_denied_at IS NULL
-       RETURNING account_id,
-                 instance_id,
-                 sandbox_run_id,
-                 sandbox_credential_expires_at,
-                 sandbox_denied_at`
-    )
-    .bind(sandboxDeniedAt, accountId, instanceId, sandboxRunId)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function findSpbSandboxLifecycleByInstance(db, instanceId) {
-  const row = await db
-    .prepare(
-      `SELECT account_id,
-              instance_id,
-              sandbox_run_id,
-              sandbox_credential_expires_at,
-              sandbox_denied_at
+      `SELECT account_id, instance_id, lapsed_at
        FROM spb_bindings
-       WHERE instance_id = ?
-       LIMIT 1`
+       WHERE token_hash = ? AND token_hash IS NOT NULL`
     )
-    .bind(instanceId)
+    .bind(tokenHash)
     .first();
   return row || null;
 }
 
-export async function findSppBindingByTokenHash(db, tokenHash, nowMs) {
+export async function findSppBindingByTokenHash(db, tokenHash) {
   const row = await db
     .prepare(
-      `SELECT binding.account_id, binding.instance_id
-       FROM spp_bindings AS binding
-       LEFT JOIN sandbox_runs AS run ON run.run_id = binding.sandbox_run_id
-       WHERE binding.token_hash = ?
-         AND binding.token_hash IS NOT NULL
-         AND (
-           binding.sandbox_run_id IS NULL
-           OR (
-             run.account_id = binding.account_id
-             AND run.instance_id = binding.instance_id
-             AND run.status = 'active'
-             AND ? < run.lease_expires_at
-           )
-         )`
+      `SELECT account_id, instance_id
+       FROM spp_bindings
+       WHERE token_hash = ? AND token_hash IS NOT NULL`
     )
-    .bind(tokenHash, nowMs)
+    .bind(tokenHash)
     .first();
   return row || null;
-}
-
-export async function insertSandboxRun(db, {
-  runId,
-  accountId,
-  instanceId,
-  contractVersion,
-  profile,
-  createdAt,
-  leaseExpiresAt,
-}) {
-  const { results } = await db
-    .prepare(
-      `INSERT INTO sandbox_runs (
-         run_id, account_id, instance_id, contract_version, profile,
-         status, provisioning_phase, cleanup_phase,
-         created_at, lease_expires_at, updated_at,
-         spb_retry_not_before, completed_at, last_residual_code,
-         dispatch_state, dispatch_residual_code, dispatch_updated_at,
-         spp_state, spp_residual_code, spp_updated_at,
-         spb_state, spb_residual_code, spb_updated_at,
-         spl_relay_state, spl_relay_residual_code, spl_relay_updated_at,
-         spl_binding_state, spl_binding_residual_code, spl_binding_updated_at
-       ) VALUES (
-         ?, ?, ?, ?, ?,
-         'provisioning', 'created', NULL,
-         ?, ?, ?,
-         NULL, NULL, NULL,
-         'deny_pending', NULL, ?,
-         'deny_pending', NULL, ?,
-         'deny_pending', NULL, ?,
-         'deny_pending', NULL, ?,
-         'deny_pending', NULL, ?
-       )
-       ON CONFLICT(run_id) DO NOTHING
-       ON CONFLICT(account_id) WHERE status IN (
-         'provisioning','active','cleanup_required','cleaning',
-         'expiry_pending','cleanup_failed'
-       ) DO NOTHING
-       RETURNING *`
-    )
-    .bind(
-      runId,
-      accountId,
-      instanceId,
-      contractVersion,
-      profile,
-      createdAt,
-      leaseExpiresAt,
-      createdAt,
-      createdAt,
-      createdAt,
-      createdAt,
-      createdAt,
-      createdAt
-    )
-    .all();
-  return results?.[0] || null;
-}
-
-export async function findSandboxRunById(db, runId) {
-  const row = await db
-    .prepare('SELECT * FROM sandbox_runs WHERE run_id = ?')
-    .bind(runId)
-    .first();
-  return row || null;
-}
-
-export async function findSandboxRunForAccount(db, { runId, accountId }) {
-  const row = await db
-    .prepare('SELECT * FROM sandbox_runs WHERE run_id = ? AND account_id = ?')
-    .bind(runId, accountId)
-    .first();
-  return row || null;
-}
-
-export async function listSandboxRunsForReconciliation(db, { nowMs }) {
-  const { results } = await db
-    .prepare(
-      `SELECT *
-       FROM sandbox_runs
-       WHERE status IN ('cleanup_required','cleaning','expiry_pending','cleanup_failed')
-          OR (
-            status IN ('provisioning','active')
-            AND lease_expires_at <= ?
-          )
-       ORDER BY lease_expires_at ASC, created_at ASC, run_id ASC
-       LIMIT 10`
-    )
-    .bind(nowMs)
-    .all();
-  return results || [];
-}
-
-export async function findSandboxRunProvisioningOwnership(db, {
-  runId,
-  accountId,
-  instanceId,
-  expectedPhase,
-}) {
-  const row = await db
-    .prepare(
-      `SELECT run_id, account_id, instance_id, status, provisioning_phase, lease_expires_at
-       FROM sandbox_runs
-       WHERE run_id = ?
-         AND account_id = ?
-         AND instance_id = ?
-         AND status = 'provisioning'
-         AND provisioning_phase = ?`
-    )
-    .bind(runId, accountId, instanceId, expectedPhase)
-    .first();
-  return row || null;
-}
-
-export async function advanceSandboxRunProvisioningPhase(db, {
-  runId,
-  accountId,
-  instanceId,
-  fromPhase,
-  toPhase,
-  nowMs,
-}) {
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET provisioning_phase = ?, updated_at = ?
-       WHERE run_id = ?
-         AND account_id = ?
-         AND instance_id = ?
-         AND status = 'provisioning'
-         AND provisioning_phase = ?
-       RETURNING *`
-    )
-    .bind(toPhase, nowMs, runId, accountId, instanceId, fromPhase)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function activateSandboxRun(db, {
-  runId,
-  accountId,
-  instanceId,
-  nowMs,
-}) {
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET status = 'active',
-           provisioning_phase = 'active',
-           updated_at = ?,
-           last_residual_code = NULL,
-           dispatch_state = 'active',
-           dispatch_residual_code = NULL,
-           dispatch_updated_at = ?,
-           spp_state = 'active',
-           spp_residual_code = NULL,
-           spp_updated_at = ?,
-           spb_state = 'active',
-           spb_residual_code = NULL,
-           spb_updated_at = ?,
-           spl_relay_state = 'active',
-           spl_relay_residual_code = NULL,
-           spl_relay_updated_at = ?,
-           spl_binding_state = 'active',
-           spl_binding_residual_code = NULL,
-           spl_binding_updated_at = ?
-       WHERE run_id = ?
-         AND account_id = ?
-         AND instance_id = ?
-         AND status = 'provisioning'
-         AND provisioning_phase = 'spp_acquired'
-         AND ? < lease_expires_at
-       RETURNING *`
-    )
-    .bind(
-      nowMs,
-      nowMs,
-      nowMs,
-      nowMs,
-      nowMs,
-      nowMs,
-      runId,
-      accountId,
-      instanceId,
-      nowMs
-    )
-    .all();
-  return results?.[0] || null;
-}
-
-export async function requestSandboxRunCleanup(db, {
-  runId,
-  accountId,
-  residualCode = null,
-  nowMs,
-}) {
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET status = 'cleanup_required',
-           cleanup_phase = COALESCE(cleanup_phase, 'deny_intent'),
-           updated_at = ?,
-           last_residual_code = COALESCE(?, last_residual_code),
-           dispatch_state = CASE WHEN dispatch_state = 'active' THEN 'deny_pending' ELSE dispatch_state END,
-           dispatch_updated_at = CASE WHEN dispatch_state = 'active' THEN ? ELSE dispatch_updated_at END,
-           spp_state = CASE WHEN spp_state = 'active' THEN 'deny_pending' ELSE spp_state END,
-           spp_updated_at = CASE WHEN spp_state = 'active' THEN ? ELSE spp_updated_at END,
-           spb_state = CASE WHEN spb_state = 'active' THEN 'deny_pending' ELSE spb_state END,
-           spb_updated_at = CASE WHEN spb_state = 'active' THEN ? ELSE spb_updated_at END,
-           spl_relay_state = CASE WHEN spl_relay_state = 'active' THEN 'deny_pending' ELSE spl_relay_state END,
-           spl_relay_updated_at = CASE WHEN spl_relay_state = 'active' THEN ? ELSE spl_relay_updated_at END,
-           spl_binding_state = CASE WHEN spl_binding_state = 'active' THEN 'deny_pending' ELSE spl_binding_state END,
-           spl_binding_updated_at = CASE WHEN spl_binding_state = 'active' THEN ? ELSE spl_binding_updated_at END
-       WHERE run_id = ?
-         AND account_id = ?
-         AND status IN ('provisioning','active')
-       RETURNING *`
-    )
-    .bind(
-      nowMs,
-      residualCode,
-      nowMs,
-      nowMs,
-      nowMs,
-      nowMs,
-      nowMs,
-      runId,
-      accountId
-    )
-    .all();
-  return results?.[0] || null;
-}
-
-export async function claimSandboxRunCleanup(db, { runId, accountId, nowMs }) {
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET status = 'cleaning',
-           cleanup_phase = COALESCE(cleanup_phase, 'deny_intent'),
-           updated_at = ?
-       WHERE run_id = ?
-         AND account_id = ?
-         AND status IN ('cleanup_required','cleaning','expiry_pending','cleanup_failed')
-       RETURNING *`
-    )
-    .bind(nowMs, runId, accountId)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function updateSandboxRunComponent(db, {
-  runId,
-  accountId,
-  component,
-  state,
-  residualCode,
-  nowMs,
-}) {
-  const columns = SANDBOX_COMPONENT_COLUMNS[component];
-  if (!columns) throw new TypeError('invalid sandbox component');
-  const [stateColumn, residualColumn, updatedColumn] = columns;
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET ${stateColumn} = ?,
-           ${residualColumn} = ?,
-           ${updatedColumn} = ?,
-           updated_at = ?,
-           last_residual_code = COALESCE(?, last_residual_code)
-       WHERE run_id = ?
-         AND account_id = ?
-         AND status != 'released'
-         AND ${stateColumn} != 'released'
-       RETURNING *`
-    )
-    .bind(state, residualCode, nowMs, nowMs, residualCode, runId, accountId)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function advanceSandboxRunCleanupPhase(db, {
-  runId,
-  accountId,
-  phase,
-  nowMs,
-}) {
-  if (!Object.prototype.hasOwnProperty.call(SANDBOX_CLEANUP_PHASE_PREDECESSOR, phase)) {
-    throw new TypeError('invalid sandbox cleanup phase');
-  }
-  const predecessor = SANDBOX_CLEANUP_PHASE_PREDECESSOR[phase];
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET cleanup_phase = ?, updated_at = ?
-       WHERE run_id = ?
-         AND account_id = ?
-         AND status = 'cleaning'
-         AND (
-           cleanup_phase = ?
-           OR cleanup_phase IS ?
-         )
-       RETURNING *`
-    )
-    .bind(phase, nowMs, runId, accountId, phase, predecessor)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function advanceSandboxRunRetryNotBefore(db, {
-  runId,
-  accountId,
-  retryNotBefore,
-  nowMs,
-}) {
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET spb_retry_not_before = MAX(COALESCE(spb_retry_not_before, 0), ?),
-           updated_at = ?
-       WHERE run_id = ?
-         AND account_id = ?
-         AND status IN ('cleanup_required','cleaning','expiry_pending','cleanup_failed')
-       RETURNING *`
-    )
-    .bind(retryNotBefore, nowMs, runId, accountId)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function setSandboxRunCleanupDisposition(db, {
-  runId,
-  accountId,
-  status,
-  residualCode,
-  nowMs,
-}) {
-  if (!SANDBOX_CLEANUP_DISPOSITION_STATUSES.includes(status)) {
-    throw new TypeError('invalid sandbox cleanup status');
-  }
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET status = ?, last_residual_code = ?, updated_at = ?
-       WHERE run_id = ?
-         AND account_id = ?
-         AND status = 'cleaning'
-       RETURNING *`
-    )
-    .bind(status, residualCode, nowMs, runId, accountId)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function releaseSandboxRun(db, {
-  runId,
-  accountId,
-  nowMs,
-}) {
-  const { results } = await db
-    .prepare(
-      `UPDATE sandbox_runs
-       SET status = 'released',
-           cleanup_phase = 'released',
-           completed_at = ?,
-           updated_at = ?
-       WHERE run_id = ?
-         AND account_id = ?
-         AND status = 'cleaning'
-         AND cleanup_phase = 'verify'
-         AND dispatch_state = 'released'
-         AND spp_state = 'released'
-         AND spb_state = 'released'
-         AND spl_relay_state = 'released'
-         AND spl_binding_state = 'released'
-       RETURNING *`
-    )
-    .bind(nowMs, nowMs, runId, accountId)
-    .all();
-  return results?.[0] || null;
-}
-
-export async function readSandboxRunLocalPostconditions(db, {
-  runId,
-  accountId,
-  instanceId,
-}) {
-  return db
-    .prepare(
-      `SELECT
-         EXISTS(SELECT 1 FROM accounts WHERE id = ?) AS account_present,
-         (SELECT COUNT(*) FROM account_dispatch_tokens
-          WHERE sandbox_run_id = ? AND account_id = ? AND revoked_at IS NULL) AS dispatch_active_count,
-         (SELECT COUNT(*) FROM account_dispatch_tokens
-          WHERE sandbox_run_id = ? AND account_id != ?) AS dispatch_conflict_count,
-         (SELECT account_id FROM spp_bindings WHERE instance_id = ?) AS spp_account_id,
-         (SELECT sandbox_run_id FROM spp_bindings WHERE instance_id = ?) AS spp_sandbox_run_id,
-         (SELECT account_id FROM spb_bindings WHERE instance_id = ?) AS spb_account_id,
-         (SELECT sandbox_run_id FROM spb_bindings WHERE instance_id = ?) AS spb_sandbox_run_id,
-         (SELECT sandbox_denied_at FROM spb_bindings WHERE instance_id = ?) AS spb_denied_at,
-         (SELECT account_id FROM spl_bindings WHERE instance_id = ?) AS spl_account_id,
-         (SELECT sandbox_run_id FROM spl_bindings WHERE instance_id = ?) AS spl_sandbox_run_id`
-    )
-    .bind(
-      accountId,
-      runId,
-      accountId,
-      runId,
-      accountId,
-      instanceId,
-      instanceId,
-      instanceId,
-      instanceId,
-      instanceId,
-      instanceId,
-      instanceId
-    )
-    .first();
 }
 
 export async function insertSpbMintAudit(db, { accountId, instanceId, prefix, scope, ttl, outcome, ts }) {
@@ -2299,42 +1378,6 @@ export async function insertSpbMintAudit(db, { accountId, instanceId, prefix, sc
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(accountId, instanceId, prefix, scope, ttl, outcome, ts)
-    .run();
-}
-
-export async function insertSpbSandboxAudit(db, {
-  event,
-  outcome,
-  scope,
-  ttl,
-  credentialsMinted,
-  objectsDeleted,
-  multipartAborted,
-  ts,
-}) {
-  await db
-    .prepare(
-      `INSERT INTO spb_sandbox_audit (
-         event,
-         outcome,
-         scope,
-         ttl,
-         credentials_minted,
-         objects_deleted,
-         multipart_aborted,
-         ts
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      event,
-      outcome,
-      scope,
-      ttl,
-      credentialsMinted,
-      objectsDeleted,
-      multipartAborted,
-      ts
-    )
     .run();
 }
 

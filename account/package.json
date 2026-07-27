@@ -3,9 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate:sandbox-run-contract": "node scripts/generate-sandbox-run-contract.mjs",
-    "test": "node scripts/generate-sandbox-run-contract.mjs --check && node scripts/check-test-partitions.mjs && vitest run --config vitest.worker.config.js && vitest run --config vitest.passkey.config.js && vitest run --config vitest.node.config.js",
-    "test:resources": "node scripts/measure-test-resources.mjs",
+    "test": "vitest run --config vitest.config.js && vitest run --config vitest.static.config.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },

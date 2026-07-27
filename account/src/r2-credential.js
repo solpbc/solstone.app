@@ -22,7 +22,6 @@ export const MAINTENANCE_ACTIONS = [...BACKUP_ACTIONS, 'DeleteObject', 'DeleteOb
 export const SPB_MINT_TTL_BACKUP = 72 * 60 * 60;
 export const SPB_MINT_TTL_OPERATED = 72 * 60 * 60;
 export const SPB_MINT_TTL_MAINTENANCE = 24 * 60 * 60;
-export const SPB_SANDBOX_TTL_SECONDS = 90;
 
 export const SCOPES = {
   backup: { actions: BACKUP_ACTIONS, ttl: SPB_MINT_TTL_BACKUP },
@@ -44,41 +43,8 @@ export async function mintScopedCredential(env, {
 }) {
   const scopeConfig = scopeConfigFor(scope);
   if (!scopeConfig) return null;
-  return mintCredential(env, {
-    prefix,
-    actions: scopeConfig.actions,
-    ttl: scopeConfig.ttl,
-    nowSeconds,
-  });
-}
 
-export async function mintSandboxExternalCredential(env, {
-  prefix,
-  scope,
-  nowSeconds = Math.floor(Date.now() / 1000),
-}) {
-  if (scope !== 'backup' && scope !== 'operated') return null;
-  return mintCredential(env, {
-    prefix,
-    actions: SCOPES[scope].actions,
-    ttl: SPB_SANDBOX_TTL_SECONDS,
-    nowSeconds,
-  });
-}
-
-export async function mintSandboxMaintenanceCredential(env, {
-  prefix,
-  nowSeconds = Math.floor(Date.now() / 1000),
-}) {
-  return mintCredential(env, {
-    prefix,
-    actions: MAINTENANCE_ACTIONS,
-    ttl: SPB_SANDBOX_TTL_SECONDS,
-    nowSeconds,
-  });
-}
-
-async function mintCredential(env, { prefix, actions, ttl, nowSeconds }) {
+  const { actions, ttl } = scopeConfig;
   const host = `${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
   const jwt = await new SignJWT({
     bucket: env.R2_BUCKET,

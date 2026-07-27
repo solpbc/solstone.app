@@ -1,17 +1,12 @@
 import {
   decryptEmail,
   encryptEmail,
+  generateSessionToken,
   hashKey,
   hashServiceHandoffNonce,
   hashWithPepper,
   timingSafeEqual,
 } from './crypto.js';
-import {
-  issueScoutCapability,
-  issueSpbCapability,
-  issueSplCapability,
-  issueSppCapability,
-} from './capability-issuance.js';
 import { mintDispatchToken, resolveBearerAccount } from './dispatch-tokens.js';
 import {
   applyScoutPendingWithEvent,
@@ -29,6 +24,9 @@ import {
   insertSppMintAudit,
   revokeDevicePriorAndInsertNew,
   setScoutApplicationDataAcked,
+  upsertSpbBinding,
+  upsertSplBinding,
+  upsertSppBinding,
 } from './db.js';
 import {
   BUNDLE_ID_REGEX,
@@ -65,10 +63,13 @@ import {
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
-import { SPL_HOSTED_SERVICE } from './relay-grant.js';
+import { SPL_HOSTED_SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
-import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
-import { SPP_CONSENT_DISCLOSURE_VERSION } from './spp-entitlement.js';
+import { SPB_HOSTED_SERVICE, reconcileSpbEntitlement } from './spb-entitlement.js';
+import {
+  SPP_CONSENT_DISCLOSURE_VERSION,
+  reconcileSppEntitlement,
+} from './spp-entitlement.js';
 
 const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
@@ -90,14 +91,13 @@ const RESUME_PATH_WHITELIST = new Map([
 
 export async function provisionScoutForAccount({ env, accountId, ctx }) {
   const googleApiKey = await ensureProvisionedKey({ env, accountId });
-  const issued = await issueScoutCapability({
-    env,
-    accountId,
-    googleApiKey,
-    ownership: { kind: 'baseline' },
-    nowMs: Date.now(),
-  });
-  return issued.capability;
+  const dispatch = await mintDispatchToken(env, accountId);
+  return {
+    google_api_key: googleApiKey,
+    dispatch_token: dispatch.token,
+    account_id: accountId,
+    created_at: dispatch.createdAt,
+  };
 }
 
 export async function registerDeviceForAccount({
@@ -485,21 +485,14 @@ export async function handleEnableSplConfirm(req, env, ctx) {
   }
 
   const nowMs = Date.now();
-  const issued = await issueSplCapability({
-    env,
-    accountId: session.account_id,
-    instanceId: instance,
-    ownership: { kind: 'baseline' },
-    nowMs,
-    ctx,
-    leaseExpiresAt: null,
-  });
-  if (issued.outcome === 'ownership_conflict') {
-    return noStoreHtml(renderError(), { status: 500 });
+  if (instance) {
+    await upsertSplBinding(env.DB, { accountId: session.account_id, instanceId: instance, nowMs });
   }
-  const entitled = issued.outcome === 'issued';
+  await reconcileSplEntitlement(env, session.account_id, nowMs, ctx);
+  const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE });
+  const entitled = isSplEntitled(entitlement);
   const payload = entitled
-    ? issued.capability
+    ? { service: 'spl', state: 'approved', approved_at: new Date(nowMs).toISOString() }
     : {
         service: 'spl',
         state: 'needs_subscription',
@@ -595,20 +588,21 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
 
   const nowMs = Date.now();
   const accountId = session.account_id;
+  const brokerToken = generateSessionToken();
+  const tokenHash = await hashWithPepper(brokerToken, env);
+  await upsertSpbBinding(env.DB, { accountId, instanceId: instance, tokenHash, nowMs });
+  await reconcileSpbEntitlement(env, accountId, nowMs, ctx);
+  const entitlement = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });
+  const entitled = isSpbEntitled(entitlement);
   const origin = new URL(req.url).origin;
-  const issued = await issueSpbCapability({
-    env,
-    accountId,
-    instanceId: instance,
-    nowMs,
-    brokerEndpoint: origin,
-    ownership: { kind: 'baseline' },
-    ctx,
-  });
-  if (issued.outcome === 'ownership_conflict') return spbError(500);
-  const entitled = issued.outcome === 'issued';
+  const prefix = `users/${accountId}/${instance}/`;
   const payload = {
-    ...issued.capability,
+    broker_endpoint: origin,
+    account_id: accountId,
+    instance_id: instance,
+    bucket: env.R2_BUCKET,
+    prefix,
+    broker_token: brokerToken,
     status: entitled ? 'approved' : 'needs_subscription',
   };
   if (!entitled) payload.subscribe_url = `${origin}/services/backup`;
@@ -739,27 +733,25 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     return refuseSppToEarlyAccess({ env, nonce, accountId, instance, nowMs });
   }
 
-  const issued = await issueSppCapability({
-    env,
+  const token = generateSessionToken();
+  const tokenHash = await hashWithPepper(token, env);
+  await upsertSppBinding(env.DB, {
     accountId,
     instanceId: instance,
+    tokenHash,
     nowMs,
     consentAckedAt: nowMs,
     consentDisclosureVersion: SPP_CONSENT_DISCLOSURE_VERSION,
-    ownership: { kind: 'baseline' },
-    ctx,
   });
-  if (issued.outcome === 'ownership_conflict') {
-    return noStoreHtml(renderError(), { status: 500 });
-  }
+  await reconcileSppEntitlement(env, accountId, nowMs, ctx);
   const payload = {
     state: 'approved',
-    endpoint_url: issued.capability.endpoint_url,
-    served_model_id: issued.capability.served_model_id,
-    credential: issued.capability.credential,
-    account_id: issued.capability.account_id,
+    endpoint_url: env.SPP_ENGINE_ENDPOINT,
+    served_model_id: env.SPP_ENGINE_MODEL,
+    credential: token,
+    account_id: accountId,
     instance_id: instance,
-    created_at: issued.capability.created_at,
+    created_at: new Date(nowMs).toISOString(),
   };
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
   let inserted;

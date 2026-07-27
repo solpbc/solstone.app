@@ -1,4 +1,4 @@
--- account-portal D1 schema after 0027 — sandbox-run lease + schema core
+-- account-portal D1 schema after 0023 — spp entitlement + schema core
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)
@@ -134,15 +134,11 @@ CREATE TABLE IF NOT EXISTS account_dispatch_tokens (
   account_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   revoked_at INTEGER,
-  sandbox_run_id TEXT,
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_account_dispatch_tokens_account_id
   ON account_dispatch_tokens(account_id);
-
-CREATE INDEX IF NOT EXISTS idx_account_dispatch_tokens_sandbox_run_id
-  ON account_dispatch_tokens(sandbox_run_id);
 
 -- Per-account Gemini API key provisioning.
 
@@ -298,28 +294,21 @@ CREATE TABLE IF NOT EXISTS stripe_customers (
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
--- spl_bindings: SPL relay instance bindings, read and written by db.js.
--- instance_id is globally unique across accounts; sandbox_run_id is NULL for
--- owner-created (baseline) rows.
+-- spl_bindings: schema hook for the sibling relay lode. This lode creates the
+-- table + index ONLY and never reads or writes it. instance_id = relay instance.
 CREATE TABLE IF NOT EXISTS spl_bindings (
   account_id TEXT NOT NULL,
   instance_id TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   last_seen_at INTEGER NOT NULL,
-  sandbox_run_id TEXT,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_spl_bindings_account_id ON spl_bindings(account_id);
 
-CREATE INDEX IF NOT EXISTS idx_spl_bindings_sandbox_run_id
-  ON spl_bindings(sandbox_run_id);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_spl_bindings_instance_id
-  ON spl_bindings(instance_id);
-
--- spb_bindings: SPB hosted-access bindings and sandbox lifecycle state.
+-- spb_bindings: schema hook for SPB hosted access. P1 records only binding
+-- identity plus the lapsed clock used by later retention/sweep work.
 CREATE TABLE IF NOT EXISTS spb_bindings (
   account_id TEXT NOT NULL,
   instance_id TEXT NOT NULL,
@@ -327,20 +316,11 @@ CREATE TABLE IF NOT EXISTS spb_bindings (
   last_seen_at INTEGER NOT NULL,
   token_hash TEXT,
   lapsed_at INTEGER,
-  sandbox_run_id TEXT,
-  sandbox_credential_expires_at INTEGER,
-  sandbox_denied_at INTEGER,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_spb_bindings_account_id ON spb_bindings(account_id);
-
-CREATE INDEX IF NOT EXISTS idx_spb_bindings_sandbox_run_id
-  ON spb_bindings(sandbox_run_id);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_spb_bindings_instance_id
-  ON spb_bindings(instance_id);
 
 -- spp_bindings: schema hook for SPP confidential-processing access.
 -- Records binding identity plus broker-token lookup; SPP has no lapse clock or retention lifecycle.
@@ -352,18 +332,11 @@ CREATE TABLE IF NOT EXISTS spp_bindings (
   last_seen_at INTEGER NOT NULL,
   consent_acked_at INTEGER,
   consent_disclosure_version TEXT,
-  sandbox_run_id TEXT,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_spp_bindings_account_id ON spp_bindings(account_id);
-
-CREATE INDEX IF NOT EXISTS idx_spp_bindings_sandbox_run_id
-  ON spp_bindings(sandbox_run_id);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_spp_bindings_instance_id
-  ON spp_bindings(instance_id);
 
 CREATE TABLE IF NOT EXISTS spb_mint_audit (
   account_id TEXT,
@@ -397,199 +370,3 @@ CREATE TABLE IF NOT EXISTS spb_sweep_audit (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spb_sweep_audit_account_id ON spb_sweep_audit(account_id);
-
-CREATE TABLE IF NOT EXISTS spb_sandbox_audit (
-  event TEXT NOT NULL CHECK (event IN ('mint','denial','cleanup')),
-  outcome TEXT NOT NULL,
-  scope TEXT CHECK (scope IS NULL OR scope IN ('backup','operated')),
-  ttl INTEGER CHECK (ttl IS NULL OR ttl >= 0),
-  credentials_minted INTEGER CHECK (credentials_minted IS NULL OR credentials_minted >= 0),
-  objects_deleted INTEGER CHECK (objects_deleted IS NULL OR objects_deleted >= 0),
-  multipart_aborted INTEGER CHECK (multipart_aborted IS NULL OR multipart_aborted >= 0),
-  ts INTEGER NOT NULL,
-  CHECK (
-    (event = 'mint' AND outcome IN ('minted','refused_entitlement','refused_scope','mint_cas_lost','internal_error'))
-    OR (event = 'denial' AND outcome IN ('released','absent','ownership_conflict','internal_error'))
-    OR (event = 'cleanup' AND outcome IN ('cleaned','retryable','denial_required','absent','ownership_conflict'))
-  )
-);
-
-CREATE TABLE IF NOT EXISTS sandbox_runs (
-  run_id TEXT NOT NULL PRIMARY KEY,
-  account_id TEXT NOT NULL,
-  instance_id TEXT NOT NULL,
-  contract_version INTEGER NOT NULL CHECK (contract_version = 1),
-  profile TEXT NOT NULL CHECK (profile = 'full'),
-  status TEXT NOT NULL CHECK (
-    status IN (
-      'provisioning','active','cleanup_required','cleaning',
-      'expiry_pending','cleanup_failed','released'
-    )
-  ),
-  provisioning_phase TEXT NOT NULL CHECK (
-    provisioning_phase IN (
-      'created','dispatch_intent','dispatch_acquired','spl_intent',
-      'spl_acquired','spb_intent','spb_acquired','spp_intent',
-      'spp_acquired','active'
-    )
-  ),
-  cleanup_phase TEXT CHECK (
-    cleanup_phase IS NULL OR cleanup_phase IN (
-      'deny_intent','denied','relay_intent','relay_retired',
-      'spb_expiry','spb_purge','verify','released'
-    )
-  ),
-  created_at INTEGER NOT NULL,
-  lease_expires_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  spb_retry_not_before INTEGER,
-  completed_at INTEGER,
-  last_residual_code TEXT CHECK (
-    last_residual_code IS NULL OR last_residual_code IN (
-      'lease_expired','account_missing',
-      'dispatch_issue_failed','dispatch_release_failed','dispatch_ownership_conflict',
-      'spp_issue_failed','spp_release_failed','spp_ownership_conflict',
-      'spb_issue_failed','spb_denial_failed','spb_denial_required',
-      'spb_credential_expiry_pending','spb_cleanup_retryable',
-      'spb_lifecycle_absent','spb_ownership_conflict',
-      'spl_grant_failed','relay_retired_state','relay_instance_do_cleanup',
-      'relay_rk_do_cleanup','relay_device_revocation','relay_entitlement_clear',
-      'relay_pending_grant_clear','relay_rk_registry_clear','relay_verification',
-      'relay_failed','spl_issue_failed','spl_release_failed',
-      'spl_ownership_conflict','lease_expired_before_activation',
-      'activation_cas_lost'
-    )
-  ),
-  dispatch_state TEXT NOT NULL CHECK (
-    dispatch_state IN (
-      'active','deny_pending','purge_pending','verify_pending',
-      'released','cleanup_failed'
-    )
-  ),
-  dispatch_residual_code TEXT CHECK (
-    dispatch_residual_code IS NULL OR dispatch_residual_code IN (
-      'lease_expired','account_missing','dispatch_issue_failed',
-      'dispatch_release_failed','dispatch_ownership_conflict'
-    )
-  ),
-  dispatch_updated_at INTEGER NOT NULL,
-  spp_state TEXT NOT NULL CHECK (
-    spp_state IN (
-      'active','deny_pending','purge_pending','verify_pending',
-      'released','cleanup_failed'
-    )
-  ),
-  spp_residual_code TEXT CHECK (
-    spp_residual_code IS NULL OR spp_residual_code IN (
-      'lease_expired','account_missing','spp_issue_failed',
-      'spp_release_failed','spp_ownership_conflict'
-    )
-  ),
-  spp_updated_at INTEGER NOT NULL,
-  spb_state TEXT NOT NULL CHECK (
-    spb_state IN (
-      'active','deny_pending','purge_pending','verify_pending',
-      'released','cleanup_failed'
-    )
-  ),
-  spb_residual_code TEXT CHECK (
-    spb_residual_code IS NULL OR spb_residual_code IN (
-      'lease_expired','account_missing','spb_issue_failed',
-      'spb_denial_failed','spb_denial_required',
-      'spb_credential_expiry_pending','spb_cleanup_retryable',
-      'spb_lifecycle_absent','spb_ownership_conflict'
-    )
-  ),
-  spb_updated_at INTEGER NOT NULL,
-  spl_relay_state TEXT NOT NULL CHECK (
-    spl_relay_state IN (
-      'active','deny_pending','purge_pending','verify_pending',
-      'released','cleanup_failed'
-    )
-  ),
-  spl_relay_residual_code TEXT CHECK (
-    spl_relay_residual_code IS NULL OR spl_relay_residual_code IN (
-      'lease_expired','account_missing','spl_grant_failed',
-      'relay_retired_state','relay_instance_do_cleanup','relay_rk_do_cleanup',
-      'relay_device_revocation','relay_entitlement_clear',
-      'relay_pending_grant_clear','relay_rk_registry_clear',
-      'relay_verification','relay_failed'
-    )
-  ),
-  spl_relay_updated_at INTEGER NOT NULL,
-  spl_binding_state TEXT NOT NULL CHECK (
-    spl_binding_state IN (
-      'active','deny_pending','purge_pending','verify_pending',
-      'released','cleanup_failed'
-    )
-  ),
-  spl_binding_residual_code TEXT CHECK (
-    spl_binding_residual_code IS NULL OR spl_binding_residual_code IN (
-      'lease_expired','account_missing','spl_issue_failed',
-      'spl_release_failed','spl_ownership_conflict'
-    )
-  ),
-  spl_binding_updated_at INTEGER NOT NULL,
-  CHECK (lease_expires_at = created_at + 3600000),
-  CHECK (
-    (status = 'released' AND cleanup_phase = 'released' AND completed_at IS NOT NULL)
-    OR (
-      status != 'released'
-      AND cleanup_phase IS NOT 'released'
-      AND completed_at IS NULL
-    )
-  ),
-  CHECK (
-    (dispatch_state = 'cleanup_failed' AND dispatch_residual_code IS NOT NULL)
-    OR (dispatch_state != 'cleanup_failed' AND dispatch_residual_code IS NULL)
-  ),
-  CHECK (
-    (spp_state = 'cleanup_failed' AND spp_residual_code IS NOT NULL)
-    OR (spp_state != 'cleanup_failed' AND spp_residual_code IS NULL)
-  ),
-  CHECK (
-    (
-      spb_state = 'purge_pending'
-      AND (
-        spb_residual_code IS NULL
-        OR spb_residual_code = 'spb_credential_expiry_pending'
-      )
-    )
-    OR (
-      spb_state = 'cleanup_failed'
-      AND spb_residual_code IS NOT NULL
-      AND spb_residual_code != 'spb_credential_expiry_pending'
-    )
-    OR (
-      spb_state NOT IN ('purge_pending','cleanup_failed')
-      AND spb_residual_code IS NULL
-    )
-  ),
-  CHECK (
-    (spl_relay_state = 'cleanup_failed' AND spl_relay_residual_code IS NOT NULL)
-    OR (
-      spl_relay_state != 'cleanup_failed'
-      AND spl_relay_residual_code IS NULL
-    )
-  ),
-  CHECK (
-    (spl_binding_state = 'cleanup_failed' AND spl_binding_residual_code IS NOT NULL)
-    OR (
-      spl_binding_state != 'cleanup_failed'
-      AND spl_binding_residual_code IS NULL
-    )
-  )
-);
-
-CREATE INDEX IF NOT EXISTS idx_sandbox_runs_account_id
-  ON sandbox_runs(account_id);
-
-CREATE INDEX IF NOT EXISTS idx_sandbox_runs_reconcile
-  ON sandbox_runs(status, lease_expires_at, created_at, run_id);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_sandbox_runs_one_nonterminal_account
-  ON sandbox_runs(account_id)
-  WHERE status IN (
-    'provisioning','active','cleanup_required','cleaning',
-    'expiry_pending','cleanup_failed'
-  );

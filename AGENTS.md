@@ -55,14 +55,11 @@ schema. Add a new numbered migration file for any schema change — never edit a
 shipped migration. When you tighten a column/constraint, ship the migration
 *with* forgiving read-side handling for legacy rows; don't strand existing data.
 
-**Tests:** vitest runs three explicit configs in sequence by `npm test`:
-`vitest.worker.config.js`, `vitest.passkey.config.js`, and
-`vitest.node.config.js`. The sandbox-run contract drift check runs first, then
-the recursive partition guard requires every test file to be named exactly
-once in `test/partitions.js`. Both Worker projects use one isolated Miniflare
-runtime; do not replace the sequential chain with a workspace. The suite
-includes per-migration tests and `brand-canon.test.js` — keep it green and add
-coverage for new routes/migrations.
+**Tests:** vitest on `@cloudflare/vitest-pool-workers`, two configs run in
+sequence by `npm test` (`vitest.config.js` for worker tests,
+`vitest.static.config.js` for the static-asset checks). The suite is large
+(~100 files) and includes per-migration tests and `brand-canon.test.js` — keep
+it green and add coverage for new routes/migrations.
 
 ## 3. Build / test / deploy
 
@@ -77,7 +74,6 @@ cd account
 npm install
 npm run dev            # wrangler dev (Miniflare; local D1)
 npm test               # vitest — the gate; green before commit
-npm run test:resources # bounded one-run /proc resource measurement
 npm run deploy         # wrangler deploy (operator-run)
 
 # Scouts redirect

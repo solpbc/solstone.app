@@ -111,7 +111,6 @@ import {
   passkeyRegisterStart,
 } from './passkey.js';
 import { runRetention } from './retention.js';
-import { reconcileExpiredSandboxRuns } from './sandbox-run-lease.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { runSpbLapseSweep } from './spb-sweep.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
@@ -296,16 +295,11 @@ async function readForm(req) {
 async function routeRequest(req, env, ctx) {
     const url = new URL(req.url);
     const parts = url.pathname.split('/');
+    const db = env.DB;
 
     try {
       const legacy = legacyRedirect(req, url);
       if (legacy) return legacy;
-
-      if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {
-        return handleAdmin(req, env, url, ctx);
-      }
-
-      const db = env.DB;
 
       if (url.pathname === '/portal.css' && req.method === 'GET') {
         return new Response(PORTAL_CSS, {
@@ -950,6 +944,10 @@ async function routeRequest(req, env, ctx) {
         return handleStripeWebhook(req, env, ctx);
       }
 
+      if (url.pathname === '/admin/accounts' || url.pathname.startsWith('/admin/')) {
+        return handleAdmin(req, env, url, ctx);
+      }
+
       return html(renderNotFound(), { status: 404 });
     } catch (error) {
       console.error('account portal request failed');
@@ -971,14 +969,6 @@ export default {
       await runSpbLapseSweep(env, ctx);
     } else {
       await runRetention(env);
-      try {
-        await reconcileExpiredSandboxRuns(env, ctx);
-      } catch {
-        console.error(JSON.stringify({
-          event: 'sandbox_run_reconcile_batch_failed',
-          runs_failed: 1,
-        }));
-      }
     }
   },
 };

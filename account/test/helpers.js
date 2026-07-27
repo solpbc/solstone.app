@@ -9,14 +9,6 @@ import {
   insertPasskeyCredential,
   upsertOtp,
 } from '../src/db.js';
-import {
-  SANDBOX_COMPONENT_STATE,
-  SANDBOX_CONTRACT_VERSION,
-  SANDBOX_LEASE_TTL_MS,
-  SANDBOX_PROFILE,
-  SANDBOX_PROVISIONING_PHASE,
-  SANDBOX_RUN_STATUS,
-} from '../src/sandbox-run-contract.js';
 import { SA_JSON_STRING } from './sa-helper.js';
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
@@ -52,7 +44,6 @@ export function makeTestEnv(overrides = {}) {
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
     IMPERSONATE_ALLOWED: overrides.IMPERSONATE_ALLOWED,
-    SANDBOX_ACCOUNT_ID: overrides.SANDBOX_ACCOUNT_ID,
     EMAIL_PATH_DISABLED: overrides.EMAIL_PATH_DISABLED || 'false',
     SIGNUP_DISABLED: overrides.SIGNUP_DISABLED || 'false',
     SUPPORT_WORKER: overrides.SUPPORT_WORKER,
@@ -126,13 +117,11 @@ export function makeFakeKv() {
 
 export async function resetDb() {
   for (const table of [
-    'sandbox_runs',
     'entitlements',
     'stripe_customers',
     'spl_bindings',
     'spb_bindings',
     'spp_bindings',
-    'spb_sandbox_audit',
     'spb_mint_audit',
     'spp_mint_audit',
     'spb_sweep_audit',
@@ -469,24 +458,6 @@ export function extractCookieToken(setCookie) {
 
 export async function dbDumpText() {
   const tables = [
-    'sandbox_runs',
-    'entitlements',
-    'stripe_customers',
-    'spl_bindings',
-    'spb_bindings',
-    'spp_bindings',
-    'spb_sandbox_audit',
-    'spb_mint_audit',
-    'spp_mint_audit',
-    'spb_sweep_audit',
-    'scout_lifecycle_events',
-    'scout_applications',
-    'gemini_reveal_acks',
-    'enable_scout_codes',
-    'service_handoffs',
-    'provisioned_keys',
-    'account_dispatch_tokens',
-    'account_devices',
     'accounts',
     'account_emails',
     'sessions',
@@ -532,35 +503,6 @@ export async function seedScoutApplication({
     )
     .bind(accountId, status, applied_at, approved_at, revoked_at, createdAt, createdAt)
     .run();
-}
-
-export async function seedActiveGeminiKey({
-  accountId,
-  keyMaterial = 'test-standing-gemini-key',
-  id = crypto.randomUUID(),
-  createdAt = 1_000,
-  lastUsedAt = null,
-  testEnv = makeTestEnv(),
-} = {}) {
-  const keyStringEncrypted = await encryptEmail(keyMaterial, testEnv);
-  await env.DB
-    .prepare(
-      `INSERT INTO provisioned_keys (
-         id, account_id, provider, display_name, key_resource_name,
-         key_string_encrypted, created_at, last_used_at, revoked_at
-       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?, ?, NULL)`
-    )
-    .bind(
-      id,
-      accountId,
-      `acct-${accountId.slice(0, 12)}`,
-      `projects/test/locations/global/keys/${id}`,
-      keyStringEncrypted,
-      createdAt,
-      lastUsedAt
-    )
-    .run();
-  return { id, accountId, keyMaterial, keyStringEncrypted, createdAt, lastUsedAt };
 }
 
 export async function seedAccountEmail({
@@ -710,175 +652,20 @@ export async function seedEntitlement({
   return { accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, updatedAt };
 }
 
-export async function seedSandboxRun({
-  runId = '22222222-2222-2222-2222-222222222222',
-  accountId,
-  instanceId = '11111111-1111-1111-1111-111111111111',
-  contractVersion = SANDBOX_CONTRACT_VERSION,
-  profile = SANDBOX_PROFILE,
-  status = SANDBOX_RUN_STATUS.ACTIVE,
-  provisioningPhase = SANDBOX_PROVISIONING_PHASE.ACTIVE,
-  cleanupPhase = null,
-  createdAt = Date.now(),
-  leaseExpiresAt = createdAt + SANDBOX_LEASE_TTL_MS,
-  updatedAt = createdAt,
-  spbRetryNotBefore = null,
-  completedAt = null,
-  lastResidualCode = null,
-  dispatchState = SANDBOX_COMPONENT_STATE.ACTIVE,
-  dispatchResidualCode = null,
-  dispatchUpdatedAt = updatedAt,
-  sppState = SANDBOX_COMPONENT_STATE.ACTIVE,
-  sppResidualCode = null,
-  sppUpdatedAt = updatedAt,
-  spbState = SANDBOX_COMPONENT_STATE.ACTIVE,
-  spbResidualCode = null,
-  spbUpdatedAt = updatedAt,
-  splRelayState = SANDBOX_COMPONENT_STATE.ACTIVE,
-  splRelayResidualCode = null,
-  splRelayUpdatedAt = updatedAt,
-  splBindingState = SANDBOX_COMPONENT_STATE.ACTIVE,
-  splBindingResidualCode = null,
-  splBindingUpdatedAt = updatedAt,
-} = {}) {
-  await env.DB
-    .prepare(
-      `INSERT INTO sandbox_runs (
-         run_id, account_id, instance_id, contract_version, profile,
-         status, provisioning_phase, cleanup_phase,
-         created_at, lease_expires_at, updated_at,
-         spb_retry_not_before, completed_at, last_residual_code,
-         dispatch_state, dispatch_residual_code, dispatch_updated_at,
-         spp_state, spp_residual_code, spp_updated_at,
-         spb_state, spb_residual_code, spb_updated_at,
-         spl_relay_state, spl_relay_residual_code, spl_relay_updated_at,
-         spl_binding_state, spl_binding_residual_code, spl_binding_updated_at
-       ) VALUES (
-         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-       )`
-    )
-    .bind(
-      runId,
-      accountId,
-      instanceId,
-      contractVersion,
-      profile,
-      status,
-      provisioningPhase,
-      cleanupPhase,
-      createdAt,
-      leaseExpiresAt,
-      updatedAt,
-      spbRetryNotBefore,
-      completedAt,
-      lastResidualCode,
-      dispatchState,
-      dispatchResidualCode,
-      dispatchUpdatedAt,
-      sppState,
-      sppResidualCode,
-      sppUpdatedAt,
-      spbState,
-      spbResidualCode,
-      spbUpdatedAt,
-      splRelayState,
-      splRelayResidualCode,
-      splRelayUpdatedAt,
-      splBindingState,
-      splBindingResidualCode,
-      splBindingUpdatedAt
-    )
-    .run();
-  return {
-    runId,
-    accountId,
-    instanceId,
-    contractVersion,
-    profile,
-    status,
-    provisioningPhase,
-    cleanupPhase,
-    createdAt,
-    leaseExpiresAt,
-    updatedAt,
-    spbRetryNotBefore,
-    completedAt,
-    lastResidualCode,
-    dispatchState,
-    dispatchResidualCode,
-    dispatchUpdatedAt,
-    sppState,
-    sppResidualCode,
-    sppUpdatedAt,
-    spbState,
-    spbResidualCode,
-    spbUpdatedAt,
-    splRelayState,
-    splRelayResidualCode,
-    splRelayUpdatedAt,
-    splBindingState,
-    splBindingResidualCode,
-    splBindingUpdatedAt,
-  };
-}
-
 export async function seedSplBinding({
   accountId,
   instanceId = '11111111-1111-1111-1111-111111111111',
   createdAt = Date.now(),
   lastSeenAt = createdAt,
-  sandboxRunId = null,
 } = {}) {
   await env.DB
     .prepare(
-      `INSERT INTO spl_bindings (
-         account_id, instance_id, created_at, last_seen_at, sandbox_run_id
-       ) VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO spl_bindings (account_id, instance_id, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?)`
     )
-    .bind(accountId, instanceId, createdAt, lastSeenAt, sandboxRunId)
+    .bind(accountId, instanceId, createdAt, lastSeenAt)
     .run();
-  return { accountId, instanceId, createdAt, lastSeenAt, sandboxRunId };
-}
-
-export async function seedSppBinding({
-  accountId,
-  instanceId = '11111111-1111-1111-1111-111111111111',
-  tokenHash = null,
-  createdAt = Date.now(),
-  lastSeenAt = createdAt,
-  consentAckedAt = null,
-  consentDisclosureVersion = null,
-  sandboxRunId = null,
-} = {}) {
-  await env.DB
-    .prepare(
-      `INSERT INTO spp_bindings (
-         account_id, instance_id, token_hash, created_at, last_seen_at,
-         consent_acked_at, consent_disclosure_version, sandbox_run_id
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      accountId,
-      instanceId,
-      tokenHash,
-      createdAt,
-      lastSeenAt,
-      consentAckedAt,
-      consentDisclosureVersion,
-      sandboxRunId
-    )
-    .run();
-  return {
-    accountId,
-    instanceId,
-    tokenHash,
-    createdAt,
-    lastSeenAt,
-    consentAckedAt,
-    consentDisclosureVersion,
-    sandboxRunId,
-  };
+  return { accountId, instanceId, createdAt, lastSeenAt };
 }
 
 export async function seedSpbBinding({
@@ -888,40 +675,16 @@ export async function seedSpbBinding({
   lastSeenAt = createdAt,
   tokenHash = null,
   lapsedAt = null,
-  sandboxRunId = null,
-  sandboxCredentialExpiresAt = null,
-  sandboxDeniedAt = null,
 } = {}) {
   await env.DB
     .prepare(
       `INSERT INTO spb_bindings (
-         account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at,
-         sandbox_run_id, sandbox_credential_expires_at, sandbox_denied_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at
+       ) VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .bind(
-      accountId,
-      instanceId,
-      createdAt,
-      lastSeenAt,
-      tokenHash,
-      lapsedAt,
-      sandboxRunId,
-      sandboxCredentialExpiresAt,
-      sandboxDeniedAt
-    )
+    .bind(accountId, instanceId, createdAt, lastSeenAt, tokenHash, lapsedAt)
     .run();
-  return {
-    accountId,
-    instanceId,
-    createdAt,
-    lastSeenAt,
-    tokenHash,
-    lapsedAt,
-    sandboxRunId,
-    sandboxCredentialExpiresAt,
-    sandboxDeniedAt,
-  };
+  return { accountId, instanceId, createdAt, lastSeenAt, tokenHash, lapsedAt };
 }
 
 export async function seedCredential({
