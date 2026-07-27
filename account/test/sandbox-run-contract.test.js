@@ -24,6 +24,7 @@ import {
   SANDBOX_OUTER_ADMIN_ENVELOPE,
   SANDBOX_PROVISIONING_PHASE,
   SANDBOX_REPORT_KEYS,
+  SANDBOX_RETRY_AFTER_MAX_SECONDS,
   SANDBOX_RESPONSE_HEADER_DESCRIPTORS,
   SANDBOX_RESIDUAL_CODE,
   SANDBOX_RUN_STATUS,
@@ -174,10 +175,21 @@ describe('sandbox-run generated contract route', () => {
         method: 'POST',
         path: '/admin/sandbox-runs',
         success: { status: 201, body: 'responses.create' },
-        response_identity: [
-          { request_field: 'run_id', response_field: 'run_id' },
-          { request_field: 'instance_id', response_field: 'capabilities.spb.instance_id' },
-        ],
+        response_identity: {
+          equal_fields: [
+            {
+              request_field: 'run_id',
+              response_field: 'run_id',
+              applies_to: ['success', 'conflict', 'unavailable'],
+            },
+            {
+              request_field: 'instance_id',
+              response_field: 'capabilities.spb.instance_id',
+              applies_to: ['success'],
+            },
+          ],
+          identity_omitted_for: ['invalid_request'],
+        },
         errors: {
           invalid_request: 'errors.sandbox.invalid_request',
           conflict: 'errors.sandbox.conflict',
@@ -188,6 +200,10 @@ describe('sandbox-run generated contract route', () => {
         method: 'GET',
         path: '/admin/sandbox-runs/{run_id}',
         success: { status: 200, body: 'responses.report' },
+        response_identity: {
+          applies_to: ['success', 'absent', 'unavailable'],
+          equal_fields: [{ request_field: 'run_id', response_field: 'run_id' }],
+        },
         absent: 'errors.sandbox.not_found',
         unavailable: 'errors.sandbox.unavailable',
       },
@@ -197,6 +213,17 @@ describe('sandbox-run generated contract route', () => {
         success: {
           released: { status: 200, body: 'responses.report' },
           expiry_only: { status: 202, body: 'responses.report' },
+        },
+        response_identity: {
+          applies_to: [
+            'success.released',
+            'success.expiry_only',
+            'initial_unavailable',
+            'conflict',
+            'cleanup_unavailable',
+          ],
+          equal_fields: [{ request_field: 'run_id', response_field: 'run_id' }],
+          omitted_for: ['absent'],
         },
         absent: 'errors.outer_admin.not_found',
         errors: {
@@ -291,6 +318,41 @@ describe('sandbox-run contract validators', () => {
     const impossibleRetry = structuredClone(report);
     impossibleRetry.retry_after_seconds = 1;
     expect(isSandboxRunReport(impossibleRetry)).toBe(false);
+    const impossibleLiveStatus = structuredClone(report);
+    impossibleLiveStatus.status = SANDBOX_RUN_STATUS.CLEANUP_REQUIRED;
+    impossibleLiveStatus.cleanup_phase = SANDBOX_CLEANUP_PHASE.DENY_INTENT;
+    expect(isSandboxRunReport(impossibleLiveStatus)).toBe(false);
+    const impossibleActiveProvisioning = structuredClone(report);
+    impossibleActiveProvisioning.provisioning_phase = SANDBOX_PROVISIONING_PHASE.CREATED;
+    expect(isSandboxRunReport(impossibleActiveProvisioning)).toBe(false);
+    const impossibleActiveCleanup = structuredClone(report);
+    impossibleActiveCleanup.cleanup_phase = SANDBOX_CLEANUP_PHASE.DENY_INTENT;
+    expect(isSandboxRunReport(impossibleActiveCleanup)).toBe(false);
+    const impossibleActiveComponent = structuredClone(report);
+    impossibleActiveComponent.components[0].residual_code = SANDBOX_RESIDUAL_CODE.DISPATCH_RELEASE_FAILED;
+    expect(isSandboxRunReport(impossibleActiveComponent)).toBe(false);
+    const impossibleReconciliationPhase = structuredClone(report);
+    impossibleReconciliationPhase.status = SANDBOX_RUN_STATUS.CLEANUP_REQUIRED;
+    impossibleReconciliationPhase.lease_live = false;
+    for (const component of impossibleReconciliationPhase.components) {
+      component.state = SANDBOX_COMPONENT_STATE.DENY_PENDING;
+      component.residual_code = null;
+    }
+    expect(isSandboxRunReport(impossibleReconciliationPhase)).toBe(false);
+    const impossibleProvisioningComponents = structuredClone(report);
+    impossibleProvisioningComponents.status = SANDBOX_RUN_STATUS.PROVISIONING;
+    impossibleProvisioningComponents.provisioning_phase = SANDBOX_PROVISIONING_PHASE.CREATED;
+    impossibleProvisioningComponents.lease_live = false;
+    expect(isSandboxRunReport(impossibleProvisioningComponents)).toBe(false);
+    const impossibleReleasedPhase = structuredClone(report);
+    impossibleReleasedPhase.status = SANDBOX_RUN_STATUS.RELEASED;
+    impossibleReleasedPhase.lease_live = false;
+    impossibleReleasedPhase.cleanup_phase = SANDBOX_CLEANUP_PHASE.VERIFY;
+    for (const component of impossibleReleasedPhase.components) {
+      component.state = SANDBOX_COMPONENT_STATE.RELEASED;
+      component.residual_code = null;
+    }
+    expect(isSandboxRunReport(impossibleReleasedPhase)).toBe(false);
     const impossibleExpiredProjection = structuredClone(report);
     impossibleExpiredProjection.status = SANDBOX_RUN_STATUS.PROVISIONING;
     impossibleExpiredProjection.provisioning_phase = SANDBOX_PROVISIONING_PHASE.CREATED;
@@ -339,7 +401,7 @@ describe('sandbox-run contract validators', () => {
     const expiryRule = publishedContract.report_rules.delete_accepted_expiry_only;
     expect(expiryRule.response_status).toBe(202);
     expect(expiryReport.status).toBe(expiryRule.report_status);
-    expect(expiryReport.retry_after_seconds).toBe(farFutureSeconds);
+    expect(expiryReport.retry_after_seconds).toBe(SANDBOX_RETRY_AFTER_MAX_SECONDS);
     expect(expiryRule.retry_after_header).toEqual({
       name: 'Retry-After',
       decimal_equals_field: 'retry_after_seconds',
@@ -348,6 +410,9 @@ describe('sandbox-run contract validators', () => {
       expect(component).toMatchObject(expiryRule.components[component.component]);
     }
     expect(isSandboxRunReport(expiryReport, { row: expiryRow, nowMs: SANDBOX_NOW })).toBe(true);
+    const retryAboveMaximum = structuredClone(expiryReport);
+    retryAboveMaximum.retry_after_seconds = SANDBOX_RETRY_AFTER_MAX_SECONDS + 1;
+    expect(isSandboxRunReport(retryAboveMaximum)).toBe(false);
   });
 
   it('validates every exact sandbox and outer-admin error envelope', () => {

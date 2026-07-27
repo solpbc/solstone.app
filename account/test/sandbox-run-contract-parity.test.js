@@ -7,6 +7,8 @@ import { describe, expect, it } from 'vitest';
 import {
   SANDBOX_CLEANUP_PHASE,
   SANDBOX_CLEANUP_PHASES,
+  SANDBOX_CLEANUP_DELETE_OPERATION_IDENTITY,
+  SANDBOX_COMPONENT_REPORT_RELATIONSHIPS,
   SANDBOX_COMPONENT_RESIDUAL_CODES,
   SANDBOX_COMPONENT_STATE,
   SANDBOX_COMPONENT_STATES,
@@ -18,6 +20,10 @@ import {
   SANDBOX_LEASE_TTL_MS,
   SANDBOX_PROVISIONING_PHASE,
   SANDBOX_PROVISIONING_PHASES,
+  SANDBOX_REPORT_GET_OPERATION_IDENTITY,
+  SANDBOX_REPORT_RELATIONSHIPS,
+  SANDBOX_RETRY_AFTER_MAX_SECONDS,
+  SANDBOX_RESPONSE_HEADER_DESCRIPTORS,
   SANDBOX_RESIDUAL_CODE,
   SANDBOX_RUN_CONTRACT,
   SANDBOX_RUN_CONTRACT_JSON,
@@ -133,6 +139,21 @@ describe('sandbox-run generated contract parity', () => {
     const contract = JSON.parse(await readFile(artifactPath, 'utf8'));
     expect(contract.responses.create.relationships).toEqual(SANDBOX_CREATE_RESPONSE_RELATIONSHIPS);
     expect(contract.operations.create.response_identity).toEqual(SANDBOX_CREATE_OPERATION_IDENTITY);
+    expect(contract.operations.create.response_identity).toEqual({
+      equal_fields: [
+        {
+          request_field: 'run_id',
+          response_field: 'run_id',
+          applies_to: ['success', 'conflict', 'unavailable'],
+        },
+        {
+          request_field: 'instance_id',
+          response_field: 'capabilities.spb.instance_id',
+          applies_to: ['success'],
+        },
+      ],
+      identity_omitted_for: ['invalid_request'],
+    });
     expect(contract.responses.create.relationships).toEqual({
       equal_fields: [
         [
@@ -157,6 +178,49 @@ describe('sandbox-run generated contract parity', () => {
       templates: {
         'capabilities.spb.prefix': 'users/{capabilities.spb.account_id}/{capabilities.spb.instance_id}/',
       },
+    });
+  });
+
+  it('publishes every report relationship, member identity seam, and outer-response header rule', async () => {
+    const contract = JSON.parse(await readFile(artifactPath, 'utf8'));
+    expect(contract.report_rules).toEqual(SANDBOX_REPORT_RELATIONSHIPS);
+    expect(Object.fromEntries(contract.components.map((component) => [
+      component.name,
+      component.state_residual_relationships,
+    ]))).toEqual(SANDBOX_COMPONENT_REPORT_RELATIONSHIPS);
+    expect(contract.operations.report_get.response_identity)
+      .toEqual(SANDBOX_REPORT_GET_OPERATION_IDENTITY);
+    expect(contract.operations.cleanup_delete.response_identity)
+      .toEqual(SANDBOX_CLEANUP_DELETE_OPERATION_IDENTITY);
+    expect(contract.headers.required_for_all_operation_responses)
+      .toEqual(SANDBOX_RESPONSE_HEADER_DESCRIPTORS);
+    expect(contract.headers).not.toHaveProperty('success_and_sandbox_errors');
+
+    expect(contract.report_rules.status_phase_and_component_rules).toMatchObject({
+      active: {
+        provisioning_phase: { fixed: SANDBOX_PROVISIONING_PHASE.ACTIVE },
+        cleanup_phase: { fixed: null },
+      },
+      provisioning: {
+        provisioning_phase: { forbidden: [SANDBOX_PROVISIONING_PHASE.ACTIVE] },
+        cleanup_phase: { fixed: null },
+        components: {
+          all: { state: SANDBOX_COMPONENT_STATE.DENY_PENDING, residual_code: null },
+        },
+      },
+      reconciliation: {
+        cleanup_phase: { non_null: true },
+      },
+      released: {
+        cleanup_phase: { fixed: SANDBOX_CLEANUP_PHASE.RELEASED },
+        components: { all: { state: SANDBOX_COMPONENT_STATE.RELEASED } },
+      },
+      released_iff_cleanup_phase_released: true,
+    });
+    expect(contract.report_rules.retry_after_seconds).toEqual({
+      non_null_iff_status: SANDBOX_RUN_STATUS.EXPIRY_PENDING,
+      type: 'positive-safe-integer',
+      maximum: SANDBOX_RETRY_AFTER_MAX_SECONDS,
     });
   });
 

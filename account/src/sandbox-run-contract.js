@@ -13,6 +13,7 @@ function valuesOf(value) {
 export const SANDBOX_CONTRACT_VERSION = 1;
 export const SANDBOX_PROFILE = 'full';
 export const SANDBOX_LEASE_TTL_MS = 3_600_000;
+export const SANDBOX_RETRY_AFTER_MAX_SECONDS = 90;
 export const SANDBOX_BROKER_ENDPOINT = 'https://services.solstone.app';
 export const SANDBOX_RUN_CONTRACT_MAX_BYTES = 65_536;
 
@@ -311,10 +312,36 @@ export const SANDBOX_CREATE_RESPONSE_RELATIONSHIPS = deepFreeze({
     'capabilities.spb.prefix': 'users/{capabilities.spb.account_id}/{capabilities.spb.instance_id}/',
   },
 });
-export const SANDBOX_CREATE_OPERATION_IDENTITY = deepFreeze([
-  { request_field: 'run_id', response_field: 'run_id' },
-  { request_field: 'instance_id', response_field: 'capabilities.spb.instance_id' },
-]);
+export const SANDBOX_CREATE_OPERATION_IDENTITY = deepFreeze({
+  equal_fields: [
+    {
+      request_field: 'run_id',
+      response_field: 'run_id',
+      applies_to: ['success', 'conflict', 'unavailable'],
+    },
+    {
+      request_field: 'instance_id',
+      response_field: 'capabilities.spb.instance_id',
+      applies_to: ['success'],
+    },
+  ],
+  identity_omitted_for: ['invalid_request'],
+});
+export const SANDBOX_REPORT_GET_OPERATION_IDENTITY = deepFreeze({
+  applies_to: ['success', 'absent', 'unavailable'],
+  equal_fields: [{ request_field: 'run_id', response_field: 'run_id' }],
+});
+export const SANDBOX_CLEANUP_DELETE_OPERATION_IDENTITY = deepFreeze({
+  applies_to: [
+    'success.released',
+    'success.expiry_only',
+    'initial_unavailable',
+    'conflict',
+    'cleanup_unavailable',
+  ],
+  equal_fields: [{ request_field: 'run_id', response_field: 'run_id' }],
+  omitted_for: ['absent'],
+});
 export const SANDBOX_REPORT_KEYS = Object.freeze([
   'run_id',
   'contract_version',
@@ -333,6 +360,115 @@ export const SANDBOX_COMPONENT_REPORT_KEYS = Object.freeze([
   'residual_code',
   'updated_at',
 ]);
+
+function componentReportResiduals(name, state) {
+  if (state === SANDBOX_COMPONENT_STATE.DENY_PENDING) {
+    return [null, SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED];
+  }
+  if (name === SANDBOX_COMPONENT.SPB && state === SANDBOX_COMPONENT_STATE.PURGE_PENDING) {
+    return [null, SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING];
+  }
+  if (state === SANDBOX_COMPONENT_STATE.CLEANUP_FAILED) {
+    const residuals = SANDBOX_COMPONENT_RESIDUAL_CODES[name];
+    return name === SANDBOX_COMPONENT.SPB
+      ? residuals.filter((value) => value !== SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING)
+      : residuals;
+  }
+  return [null];
+}
+
+export const SANDBOX_COMPONENT_REPORT_RELATIONSHIPS = deepFreeze(Object.fromEntries(
+  SANDBOX_COMPONENTS.map(({ name }) => [
+    name,
+    Object.fromEntries(SANDBOX_COMPONENT_STATES.map((state) => [
+      state,
+      { allowed_residual_codes: componentReportResiduals(name, state) },
+    ])),
+  ])
+));
+
+export const SANDBOX_REPORT_RELATIONSHIPS = deepFreeze({
+  lease_live: {
+    authority: 'server-response-generation-time',
+    true_iff: {
+      status: SANDBOX_RUN_STATUS.ACTIVE,
+      now_epoch_milliseconds: { less_than_field: 'lease_expires_at' },
+    },
+    client_validation: {
+      mode: 'structural-only',
+      receipt_time_is_not_server_time: true,
+    },
+  },
+  expired_active_component_projection: {
+    when: {
+      stored_run_status: SANDBOX_RUN_STATUS.ACTIVE,
+      stored_component_state: SANDBOX_COMPONENT_STATE.ACTIVE,
+      lease_live: false,
+    },
+    report: {
+      state: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+      residual_code: SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED,
+    },
+    report_presence_requires: {
+      status: SANDBOX_RUN_STATUS.ACTIVE,
+      lease_live: false,
+    },
+    mutates_storage: false,
+  },
+  status_phase_and_component_rules: {
+    active: {
+      provisioning_phase: { fixed: SANDBOX_PROVISIONING_PHASE.ACTIVE },
+      cleanup_phase: { fixed: null },
+      components_by_lease_live: {
+        true: { state: SANDBOX_COMPONENT_STATE.ACTIVE, residual_code: null },
+        false: {
+          state: SANDBOX_COMPONENT_STATE.DENY_PENDING,
+          residual_code: SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED,
+        },
+      },
+    },
+    provisioning: {
+      provisioning_phase: { forbidden: [SANDBOX_PROVISIONING_PHASE.ACTIVE] },
+      cleanup_phase: { fixed: null },
+      components: {
+        all: { state: SANDBOX_COMPONENT_STATE.DENY_PENDING, residual_code: null },
+      },
+    },
+    reconciliation: {
+      statuses: SANDBOX_RECONCILIATION_STATUSES,
+      cleanup_phase: { non_null: true },
+    },
+    released: {
+      cleanup_phase: { fixed: SANDBOX_CLEANUP_PHASE.RELEASED },
+      components: { all: { state: SANDBOX_COMPONENT_STATE.RELEASED } },
+    },
+    released_iff_cleanup_phase_released: true,
+  },
+  retry_after_seconds: {
+    non_null_iff_status: SANDBOX_RUN_STATUS.EXPIRY_PENDING,
+    type: 'positive-safe-integer',
+    maximum: SANDBOX_RETRY_AFTER_MAX_SECONDS,
+  },
+  delete_accepted_expiry_only: {
+    response_status: 202,
+    report_status: SANDBOX_RUN_STATUS.EXPIRY_PENDING,
+    retry_after_seconds: {
+      type: 'positive-safe-integer',
+      maximum: SANDBOX_RETRY_AFTER_MAX_SECONDS,
+    },
+    retry_after_header: { name: 'Retry-After', decimal_equals_field: 'retry_after_seconds' },
+    components: {
+      dispatch: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
+      spp: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
+      spb: {
+        state: SANDBOX_COMPONENT_STATE.PURGE_PENDING,
+        residual_code: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
+      },
+      spl_relay: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
+      spl_binding: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
+    },
+  },
+});
 
 export const SANDBOX_ERROR = deepFreeze({
   INVALID_REQUEST: {
@@ -595,7 +731,10 @@ export function renderSandboxRunReport(row, nowMs) {
   const leaseLive = isSandboxRunLeaseLive(row, nowMs);
   const retryAfter = row.status === SANDBOX_RUN_STATUS.EXPIRY_PENDING
     && Number.isSafeInteger(row.spb_retry_not_before)
-    ? Math.max(1, Math.ceil((row.spb_retry_not_before - nowMs) / 1000))
+    ? Math.min(
+        SANDBOX_RETRY_AFTER_MAX_SECONDS,
+        Math.max(1, Math.ceil((row.spb_retry_not_before - nowMs) / 1000))
+      )
     : null;
   return orderedObject(SANDBOX_REPORT_KEYS, [
     row.run_id,
@@ -624,13 +763,57 @@ export function isSandboxRunComponentReport(component, descriptor) {
   if (!hasExactKeys(component, SANDBOX_COMPONENT_REPORT_KEYS)) return false;
   if (component.component !== descriptor.name || !componentStateSet.has(component.state)) return false;
   if (!Number.isSafeInteger(component.updated_at)) return false;
-  if (isExpiredActiveComponentReport(component)) return true;
-  return componentRelationshipValid(descriptor.name, component.state, component.residual_code);
+  const allowed = SANDBOX_COMPONENT_REPORT_RELATIONSHIPS[descriptor.name]
+    ?.[component.state]?.allowed_residual_codes;
+  return Array.isArray(allowed) && allowed.includes(component.residual_code);
 }
 
 function isExpiredActiveComponentReport(component) {
   return component.state === SANDBOX_COMPONENT_STATE.DENY_PENDING
     && component.residual_code === SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED;
+}
+
+function matchesSandboxRunReportRelationships(report) {
+  const rules = SANDBOX_REPORT_RELATIONSHIPS;
+  const expired = rules.expired_active_component_projection;
+  if (report.components.some(isExpiredActiveComponentReport)
+    && (report.status !== expired.report_presence_requires.status
+      || report.lease_live !== expired.report_presence_requires.lease_live)) return false;
+
+  const phases = rules.status_phase_and_component_rules;
+  if (report.lease_live && report.status !== rules.lease_live.true_iff.status) return false;
+  if (report.status === SANDBOX_RUN_STATUS.ACTIVE) {
+    if (report.provisioning_phase !== phases.active.provisioning_phase.fixed
+      || report.cleanup_phase !== phases.active.cleanup_phase.fixed) return false;
+    const expected = phases.active.components_by_lease_live[String(report.lease_live)];
+    if (!report.components.every((component) => (
+      component.state === expected.state && component.residual_code === expected.residual_code
+    ))) return false;
+  }
+  if (report.status === SANDBOX_RUN_STATUS.PROVISIONING
+    && (phases.provisioning.provisioning_phase.forbidden.includes(report.provisioning_phase)
+      || report.cleanup_phase !== phases.provisioning.cleanup_phase.fixed
+      || !report.components.every((component) => (
+        component.state === phases.provisioning.components.all.state
+        && component.residual_code === phases.provisioning.components.all.residual_code
+      )))) return false;
+  if (phases.reconciliation.statuses.includes(report.status)
+    && phases.reconciliation.cleanup_phase.non_null
+    && report.cleanup_phase === null) return false;
+  if ((report.status === SANDBOX_RUN_STATUS.RELEASED)
+    !== (report.cleanup_phase === phases.released.cleanup_phase.fixed)) return false;
+
+  const retry = rules.retry_after_seconds;
+  if (report.status === retry.non_null_iff_status) {
+    if (!isSandboxRunExpiryOnlyReport(report)) return false;
+  } else if (report.retry_after_seconds !== null) {
+    return false;
+  }
+  if (report.status === SANDBOX_RUN_STATUS.RELEASED
+    && !report.components.every((component) => (
+      component.state === phases.released.components.all.state
+    ))) return false;
+  return true;
 }
 
 export function isSandboxRunReport(report, { row, nowMs } = {}) {
@@ -644,7 +827,9 @@ export function isSandboxRunReport(report, { row, nowMs } = {}) {
     || !Number.isSafeInteger(report.lease_expires_at)
     || typeof report.lease_live !== 'boolean'
     || (report.retry_after_seconds !== null
-      && (!Number.isSafeInteger(report.retry_after_seconds) || report.retry_after_seconds < 1))
+      && (!Number.isSafeInteger(report.retry_after_seconds)
+        || report.retry_after_seconds < 1
+        || report.retry_after_seconds > SANDBOX_RETRY_AFTER_MAX_SECONDS))
     || !Array.isArray(report.components)
     || report.components.length !== SANDBOX_COMPONENTS.length) {
     return false;
@@ -654,36 +839,7 @@ export function isSandboxRunReport(report, { row, nowMs } = {}) {
   ))) {
     return false;
   }
-  if (report.components.some(isExpiredActiveComponentReport)
-    && (report.status !== SANDBOX_RUN_STATUS.ACTIVE || report.lease_live)) return false;
-  if (report.lease_live && report.status !== SANDBOX_RUN_STATUS.ACTIVE) return false;
-  if (report.status === SANDBOX_RUN_STATUS.ACTIVE
-    && report.provisioning_phase !== SANDBOX_PROVISIONING_PHASE.ACTIVE) return false;
-  if (report.status === SANDBOX_RUN_STATUS.PROVISIONING
-    && report.provisioning_phase === SANDBOX_PROVISIONING_PHASE.ACTIVE) return false;
-  if ((report.status === SANDBOX_RUN_STATUS.PROVISIONING || report.status === SANDBOX_RUN_STATUS.ACTIVE)
-    && report.cleanup_phase !== null) return false;
-  if (SANDBOX_RECONCILIATION_STATUSES.includes(report.status) && report.cleanup_phase === null) return false;
-  if ((report.status === SANDBOX_RUN_STATUS.RELEASED)
-    !== (report.cleanup_phase === SANDBOX_CLEANUP_PHASE.RELEASED)) return false;
-  if (report.status === SANDBOX_RUN_STATUS.ACTIVE) {
-    const expectedState = report.lease_live
-      ? SANDBOX_COMPONENT_STATE.ACTIVE
-      : SANDBOX_COMPONENT_STATE.DENY_PENDING;
-    const expectedResidual = report.lease_live ? null : SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED;
-    if (!report.components.every((component) => (
-      component.state === expectedState && component.residual_code === expectedResidual
-    ))) return false;
-  }
-  if (report.status === SANDBOX_RUN_STATUS.EXPIRY_PENDING) {
-    if (!isSandboxRunExpiryOnlyReport(report)) return false;
-  } else if (report.retry_after_seconds !== null) {
-    return false;
-  }
-  if (report.status === SANDBOX_RUN_STATUS.RELEASED
-    && !report.components.every((component) => component.state === SANDBOX_COMPONENT_STATE.RELEASED)) {
-    return false;
-  }
+  if (!matchesSandboxRunReportRelationships(report)) return false;
   if (row !== undefined || nowMs !== undefined) {
     if (!isSandboxRunRow(row) || !Number.isSafeInteger(nowMs)) return false;
     return JSON.stringify(report) === JSON.stringify(renderSandboxRunReport(row, nowMs));
@@ -833,6 +989,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
       residual_code: { type: 'component-residual', nullable: true },
       updated_at: { type: 'integer-epoch-milliseconds', safe_integer: true },
     }),
+    state_residual_relationships: SANDBOX_COMPONENT_REPORT_RELATIONSHIPS[component.name],
   })),
   requests: {
     create: {
@@ -873,48 +1030,13 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
           nullable: true,
           safe_integer: true,
           minimum: 1,
-          maximum: null,
+          maximum: SANDBOX_RETRY_AFTER_MAX_SECONDS,
         },
         components: { type: 'ordered-component-array' },
       }),
     },
   },
-  report_rules: {
-    lease_live: {
-      true_iff: {
-        status: SANDBOX_RUN_STATUS.ACTIVE,
-        now_epoch_milliseconds: { less_than_field: 'lease_expires_at' },
-      },
-    },
-    expired_active_component_projection: {
-      when: {
-        stored_run_status: SANDBOX_RUN_STATUS.ACTIVE,
-        stored_component_state: SANDBOX_COMPONENT_STATE.ACTIVE,
-        lease_live: false,
-      },
-      report: {
-        state: SANDBOX_COMPONENT_STATE.DENY_PENDING,
-        residual_code: SANDBOX_RESIDUAL_CODE.LEASE_EXPIRED,
-      },
-      mutates_storage: false,
-    },
-    delete_accepted_expiry_only: {
-      response_status: 202,
-      report_status: SANDBOX_RUN_STATUS.EXPIRY_PENDING,
-      retry_after_seconds: { type: 'positive-safe-integer', maximum: null },
-      retry_after_header: { name: 'Retry-After', decimal_equals_field: 'retry_after_seconds' },
-      components: {
-        dispatch: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
-        spp: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
-        spb: {
-          state: SANDBOX_COMPONENT_STATE.PURGE_PENDING,
-          residual_code: SANDBOX_RESIDUAL_CODE.SPB_CREDENTIAL_EXPIRY_PENDING,
-        },
-        spl_relay: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
-        spl_binding: { state: SANDBOX_COMPONENT_STATE.RELEASED, residual_code: null },
-      },
-    },
-  },
+  report_rules: SANDBOX_REPORT_RELATIONSHIPS,
   errors: {
     sandbox: Object.fromEntries(Object.entries(SANDBOX_ERROR).map(([name, descriptor]) => [
       name.toLowerCase(),
@@ -940,7 +1062,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
       ])),
   },
   headers: {
-    success_and_sandbox_errors: SANDBOX_RESPONSE_HEADER_DESCRIPTORS,
+    required_for_all_operation_responses: SANDBOX_RESPONSE_HEADER_DESCRIPTORS,
     delete_accepted_addition: { name: 'Retry-After', type: 'decimal-integer-seconds' },
   },
   routes: {
@@ -976,6 +1098,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
       method: 'GET',
       path: '/admin/sandbox-runs/{run_id}',
       success: { status: 200, body: 'responses.report' },
+      response_identity: SANDBOX_REPORT_GET_OPERATION_IDENTITY,
       absent: 'errors.sandbox.not_found',
       unavailable: 'errors.sandbox.unavailable',
     },
@@ -986,6 +1109,7 @@ export const SANDBOX_RUN_CONTRACT = deepFreeze({
         released: { status: 200, body: 'responses.report' },
         expiry_only: { status: 202, body: 'responses.report' },
       },
+      response_identity: SANDBOX_CLEANUP_DELETE_OPERATION_IDENTITY,
       absent: 'errors.outer_admin.not_found',
       errors: {
         initial_unavailable: 'errors.sandbox.unavailable',

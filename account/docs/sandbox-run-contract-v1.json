@@ -160,7 +160,44 @@
           "required": true,
           "safe_integer": true
         }
-      ]
+      ],
+      "state_residual_relationships": {
+        "active": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "deny_pending": {
+          "allowed_residual_codes": [
+            null,
+            "lease_expired"
+          ]
+        },
+        "purge_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "verify_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "released": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "cleanup_failed": {
+          "allowed_residual_codes": [
+            "lease_expired",
+            "account_missing",
+            "dispatch_issue_failed",
+            "dispatch_release_failed",
+            "dispatch_ownership_conflict"
+          ]
+        }
+      }
     },
     {
       "name": "spp",
@@ -187,7 +224,44 @@
           "required": true,
           "safe_integer": true
         }
-      ]
+      ],
+      "state_residual_relationships": {
+        "active": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "deny_pending": {
+          "allowed_residual_codes": [
+            null,
+            "lease_expired"
+          ]
+        },
+        "purge_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "verify_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "released": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "cleanup_failed": {
+          "allowed_residual_codes": [
+            "lease_expired",
+            "account_missing",
+            "spp_issue_failed",
+            "spp_release_failed",
+            "spp_ownership_conflict"
+          ]
+        }
+      }
     },
     {
       "name": "spb",
@@ -214,7 +288,48 @@
           "required": true,
           "safe_integer": true
         }
-      ]
+      ],
+      "state_residual_relationships": {
+        "active": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "deny_pending": {
+          "allowed_residual_codes": [
+            null,
+            "lease_expired"
+          ]
+        },
+        "purge_pending": {
+          "allowed_residual_codes": [
+            null,
+            "spb_credential_expiry_pending"
+          ]
+        },
+        "verify_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "released": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "cleanup_failed": {
+          "allowed_residual_codes": [
+            "lease_expired",
+            "account_missing",
+            "spb_issue_failed",
+            "spb_denial_failed",
+            "spb_denial_required",
+            "spb_cleanup_retryable",
+            "spb_lifecycle_absent",
+            "spb_ownership_conflict"
+          ]
+        }
+      }
     },
     {
       "name": "spl_relay",
@@ -241,7 +356,51 @@
           "required": true,
           "safe_integer": true
         }
-      ]
+      ],
+      "state_residual_relationships": {
+        "active": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "deny_pending": {
+          "allowed_residual_codes": [
+            null,
+            "lease_expired"
+          ]
+        },
+        "purge_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "verify_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "released": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "cleanup_failed": {
+          "allowed_residual_codes": [
+            "lease_expired",
+            "account_missing",
+            "spl_grant_failed",
+            "relay_retired_state",
+            "relay_instance_do_cleanup",
+            "relay_rk_do_cleanup",
+            "relay_device_revocation",
+            "relay_entitlement_clear",
+            "relay_pending_grant_clear",
+            "relay_rk_registry_clear",
+            "relay_verification",
+            "relay_failed"
+          ]
+        }
+      }
     },
     {
       "name": "spl_binding",
@@ -268,7 +427,44 @@
           "required": true,
           "safe_integer": true
         }
-      ]
+      ],
+      "state_residual_relationships": {
+        "active": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "deny_pending": {
+          "allowed_residual_codes": [
+            null,
+            "lease_expired"
+          ]
+        },
+        "purge_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "verify_pending": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "released": {
+          "allowed_residual_codes": [
+            null
+          ]
+        },
+        "cleanup_failed": {
+          "allowed_residual_codes": [
+            "lease_expired",
+            "account_missing",
+            "spl_issue_failed",
+            "spl_release_failed",
+            "spl_ownership_conflict"
+          ]
+        }
+      }
     }
   ],
   "requests": {
@@ -556,7 +752,7 @@
           "nullable": true,
           "safe_integer": true,
           "minimum": 1,
-          "maximum": null
+          "maximum": 90
         },
         {
           "name": "components",
@@ -568,11 +764,16 @@
   },
   "report_rules": {
     "lease_live": {
+      "authority": "server-response-generation-time",
       "true_iff": {
         "status": "active",
         "now_epoch_milliseconds": {
           "less_than_field": "lease_expires_at"
         }
+      },
+      "client_validation": {
+        "mode": "structural-only",
+        "receipt_time_is_not_server_time": true
       }
     },
     "expired_active_component_projection": {
@@ -585,14 +786,81 @@
         "state": "deny_pending",
         "residual_code": "lease_expired"
       },
+      "report_presence_requires": {
+        "status": "active",
+        "lease_live": false
+      },
       "mutates_storage": false
+    },
+    "status_phase_and_component_rules": {
+      "active": {
+        "provisioning_phase": {
+          "fixed": "active"
+        },
+        "cleanup_phase": {
+          "fixed": null
+        },
+        "components_by_lease_live": {
+          "true": {
+            "state": "active",
+            "residual_code": null
+          },
+          "false": {
+            "state": "deny_pending",
+            "residual_code": "lease_expired"
+          }
+        }
+      },
+      "provisioning": {
+        "provisioning_phase": {
+          "forbidden": [
+            "active"
+          ]
+        },
+        "cleanup_phase": {
+          "fixed": null
+        },
+        "components": {
+          "all": {
+            "state": "deny_pending",
+            "residual_code": null
+          }
+        }
+      },
+      "reconciliation": {
+        "statuses": [
+          "cleanup_required",
+          "cleaning",
+          "expiry_pending",
+          "cleanup_failed"
+        ],
+        "cleanup_phase": {
+          "non_null": true
+        }
+      },
+      "released": {
+        "cleanup_phase": {
+          "fixed": "released"
+        },
+        "components": {
+          "all": {
+            "state": "released"
+          }
+        }
+      },
+      "released_iff_cleanup_phase_released": true
+    },
+    "retry_after_seconds": {
+      "non_null_iff_status": "expiry_pending",
+      "type": "positive-safe-integer",
+      "maximum": 90
     },
     "delete_accepted_expiry_only": {
       "response_status": 202,
       "report_status": "expiry_pending",
       "retry_after_seconds": {
         "type": "positive-safe-integer",
-        "maximum": null
+        "maximum": 90
       },
       "retry_after_header": {
         "name": "Retry-After",
@@ -778,7 +1046,7 @@
     }
   },
   "headers": {
-    "success_and_sandbox_errors": [
+    "required_for_all_operation_responses": [
       {
         "name": "Strict-Transport-Security",
         "value": "max-age=31536000; includeSubDomains"
@@ -861,16 +1129,29 @@
         "status": 201,
         "body": "responses.create"
       },
-      "response_identity": [
-        {
-          "request_field": "run_id",
-          "response_field": "run_id"
-        },
-        {
-          "request_field": "instance_id",
-          "response_field": "capabilities.spb.instance_id"
-        }
-      ],
+      "response_identity": {
+        "equal_fields": [
+          {
+            "request_field": "run_id",
+            "response_field": "run_id",
+            "applies_to": [
+              "success",
+              "conflict",
+              "unavailable"
+            ]
+          },
+          {
+            "request_field": "instance_id",
+            "response_field": "capabilities.spb.instance_id",
+            "applies_to": [
+              "success"
+            ]
+          }
+        ],
+        "identity_omitted_for": [
+          "invalid_request"
+        ]
+      },
       "errors": {
         "invalid_request": "errors.sandbox.invalid_request",
         "conflict": "errors.sandbox.conflict",
@@ -883,6 +1164,19 @@
       "success": {
         "status": 200,
         "body": "responses.report"
+      },
+      "response_identity": {
+        "applies_to": [
+          "success",
+          "absent",
+          "unavailable"
+        ],
+        "equal_fields": [
+          {
+            "request_field": "run_id",
+            "response_field": "run_id"
+          }
+        ]
       },
       "absent": "errors.sandbox.not_found",
       "unavailable": "errors.sandbox.unavailable"
@@ -899,6 +1193,24 @@
           "status": 202,
           "body": "responses.report"
         }
+      },
+      "response_identity": {
+        "applies_to": [
+          "success.released",
+          "success.expiry_only",
+          "initial_unavailable",
+          "conflict",
+          "cleanup_unavailable"
+        ],
+        "equal_fields": [
+          {
+            "request_field": "run_id",
+            "response_field": "run_id"
+          }
+        ],
+        "omitted_for": [
+          "absent"
+        ]
       },
       "absent": "errors.outer_admin.not_found",
       "errors": {
