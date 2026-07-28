@@ -321,7 +321,7 @@ then read INSTALL.md and follow it.</pre>
             <ul>
                 <li>takes in every monitor via PipeWire at 1 FPS</li>
                 <li>takes in microphone and system audio</li>
-                <li>detects idle, screen lock, and power save (GNOME)</li>
+                <li>notices when you step away, on GNOME, KDE, and X11 sessions</li>
             </ul>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-linux" aria-label="copy for your agent: sol on linux install prompt">copy for your agent</button>
@@ -330,15 +330,20 @@ then read INSTALL.md and follow it.</pre>
             </div>
             <pre class="blurb" id="blurb-linux">install solstone-linux — it runs sol on linux desktops using PipeWire and GStreamer: sol takes in your screen and audio along with you and keeps it in your journal.
 
-on the linux desktop:
+on the linux desktop, download the package for your distro from the latest release:
+https://github.com/solpbc/solstone-linux/releases/latest
 
-pipx install --system-site-packages solstone-linux
+debian / ubuntu:   sudo apt install ./solstone-linux_&lt;VERSION&gt;-1_amd64.deb
+fedora / rhel:     sudo dnf install ./solstone-linux-&lt;VERSION&gt;-1.x86_64.rpm
+
+then:
+
 solstone-linux install-service
 solstone-linux setup
 
-the `--system-site-packages` flag is required — it reuses your distro's system PyGObject/GStreamer bindings (install them first per the repo's INSTALL.md) instead of rebuilding PyGObject from source, which fails on most distros with a `girepository-2.0` build error.
+solstone-linux needs PipeWire, GStreamer (core, base, good, pipewire, x11), xdg-desktop-portal and xdg-utils on the desktop first. the repo's INSTALL.md lists the exact package names for debian, fedora, arch and openSUSE.
 
-`setup` registers this device with your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your journal directly instead, run `solstone-linux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
+`setup` registers this device with your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your journal directly instead, run `solstone-linux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the machine that keeps your journal with `journal observer create &lt;name&gt;` and paste it during setup.)
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
@@ -388,7 +393,7 @@ pipx install solstone-tmux
 solstone-tmux install-service
 solstone-tmux setup
 
-`setup` registers this device with your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your journal directly instead, run `solstone-tmux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the journal host with `journal observer create &lt;name&gt;` and paste it during setup.)
+`setup` registers this device with your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your journal directly instead, run `solstone-tmux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the machine that keeps your journal with `journal observer create &lt;name&gt;` and paste it during setup.)
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 

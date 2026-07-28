@@ -44,9 +44,13 @@ uvx solstone --help             # or one-shot, no install
 
 then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and choosing how sol thinks: local on this machine (the default when your hardware can), your own AI engine (bring a Claude, Gemini, or OpenAI token, or point sol at any OpenAI-compatible endpoint you run), or confidential processing (coming, scouts first). your journal stays on this machine whichever you choose. see [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
 
+### where your journal lives
+
+your journal runs on linux machines (intel/amd or arm) and on apple silicon macs running macOS 14 or later. anywhere else, sol can still read and search a journal kept on another machine, but it can't keep a journal there. you get told that plainly instead of a half-working install. if owners turn up on a machine we don't cover, we add it.
+
 ### windows
 
-get sol for windows — it runs sol on your PC (screen and system audio, mic when present) and pairs with a journal running on your mac or linux machine. the journal host runs on mac and linux today, so keep your journal on one of those and pair windows to it. two ways to install:
+get sol for windows — it runs sol on your PC (screen and system audio, mic when present) and pairs with a journal running on your mac or linux machine. the journal doesn't run on windows yet, so keep your journal on a mac or linux machine and pair windows to it. two ways to install:
 
 - **signed installer:** download from [solstone.app/download/windows](https://solstone.app/download/windows) and run it — installs per-user in the tray, no admin needed, and updates itself.
 - **scoop:** `scoop bucket add solstone https://github.com/solpbc/scoop-solstone` then `scoop install solstone` (run `scoop update solstone` to update).
