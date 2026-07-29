@@ -164,7 +164,7 @@ CREATE INDEX IF NOT EXISTS idx_provisioned_keys_account_id
   ON provisioned_keys(account_id);
 
 -- Back-channel service handoffs for /enable/scout and /handoff/scout.
--- TTL-on-read enforces expiry; periodic sweep is a future lode.
+-- TTL-on-read enforces expiry; a periodic sweep is future work.
 CREATE TABLE IF NOT EXISTS service_handoffs (
   handoff_hash TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
@@ -276,7 +276,7 @@ CREATE TABLE IF NOT EXISTS entitlements (
   service TEXT NOT NULL CHECK (service IN ('spl_hosted','spb_hosted','spp_hosted')),
   status TEXT NOT NULL CHECK (status IN ('active','past_due','canceled','lapsed')),
   -- current_period_end: Stripe Unix SECONDS, stored verbatim. Never milliseconds.
-  -- The spl relay lode compares its grant window against this value in seconds.
+  -- The spl relay compares its grant window against this value in seconds.
   current_period_end INTEGER,
   source TEXT NOT NULL CHECK (source IN ('stripe','apple','google','comp')),
   source_ref TEXT,
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS stripe_customers (
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
--- spl_bindings: schema hook for the sibling relay lode. This lode creates the
+-- spl_bindings: schema hook for the sibling relay work. This migration creates the
 -- table + index ONLY and never reads or writes it. instance_id = relay instance.
 CREATE TABLE IF NOT EXISTS spl_bindings (
   account_id TEXT NOT NULL,

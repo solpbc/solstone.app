@@ -21,7 +21,7 @@ CREATE TABLE entitlements_new (
   service TEXT NOT NULL CHECK (service IN ('spl_hosted','spb_hosted','spp_hosted')),
   status TEXT NOT NULL CHECK (status IN ('active','past_due','canceled','lapsed')),
   -- current_period_end: Stripe Unix SECONDS, stored verbatim. Never milliseconds.
-  -- The spl relay lode compares its grant window against this value in seconds.
+  -- The spl relay compares its grant window against this value in seconds.
   current_period_end INTEGER,
   source TEXT NOT NULL CHECK (source IN ('stripe','apple','google','comp')),
   source_ref TEXT,

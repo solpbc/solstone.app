@@ -1,5 +1,5 @@
 /**
- * Assumed support service API envelope for this lode. VPE verifies the real
+ * Assumed support service API envelope for this change. Engineering verifies the real
  * worker post-ship; keep all response parsing in this module so an envelope
  * mismatch is a one-spot change.
  *

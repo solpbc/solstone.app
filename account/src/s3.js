@@ -6,7 +6,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const MAX_DELETE_OBJECTS = 1000;
 
-// Unit tests validate request shape; Jer's live R2 spike validates real signature acceptance.
+// Unit tests validate request shape; the operator's live R2 spike validates real signature acceptance.
 export async function signedR2Fetch(env, cred, {
   method,
   key = '',

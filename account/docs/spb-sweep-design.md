@@ -39,7 +39,7 @@ Rationale:
 - It remains DRY because the broker and sweep share one credential minting implementation.
 - Code-level containment still matters: every prefix comes from the DB binding row via `prefixFor(accountId, instanceId)`, and tests must assert no request ever targets another bucket or prefix.
 
-Former alternative resolved by Jer: parent-direct was simpler, but it would rely entirely on code/tests for prefix containment. The approved design accepts the additional `x-amz-security-token` signing surface to get R2-enforced prefix containment.
+Former alternative resolved by the operator: parent-direct was simpler, but it would rely entirely on code/tests for prefix containment. The approved design accepts the additional `x-amz-security-token` signing surface to get R2-enforced prefix containment.
 
 ### D2: Cadence And Scheduled Wiring
 
@@ -345,7 +345,7 @@ Cases:
 - Assert no route invokes `runSpbLapseSweep` or any S3 operation.
 - Confirm only the scheduled `{ cron: SWEEP_CRON }` path can touch S3.
 
-## Open Questions For Jer
+## Open Questions For The Operator
 
 ### Q1: Credential Choice
 
@@ -361,9 +361,9 @@ Add `SPB_SWEEP_ENABLED`, default off, mirroring the broker's `SPB_MINT_ENABLED` 
 
 ### Q3: Real-R2 Verification
 
-Decision: Jer runs the manual real-R2 spike VPE-direct with vaulted credentials before enabling the production sweep.
+Decision: the operator runs the manual real-R2 spike by hand, with vaulted credentials, before enabling the production sweep.
 
-Prep found `wrangler` installed but no R2 parent creds in the shell or worktree env. The implemented script is `account/scripts/spb-sweep-spike.mjs`, with runbook `account/docs/spb-sweep-spike.md`; it must be run manually by Jer with vaulted env vars and must not be wired into CI, cron, or worker runtime paths. The script:
+Prep found `wrangler` installed but no R2 parent creds in the shell or worktree env. The implemented script is `account/scripts/spb-sweep-spike.mjs`, with runbook `account/docs/spb-sweep-spike.md`; it must be run manually by the operator with vaulted env vars and must not be wired into CI, cron, or worker runtime paths. The script:
 
 1. Generates throwaway prefixes under `users/spb-sweep-spike/` and `users/spb-sweep-spike-control/`.
 2. Mints separate maintenance-scoped credentials for the test and control prefixes.

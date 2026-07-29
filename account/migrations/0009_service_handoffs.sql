@@ -1,6 +1,6 @@
 -- migration 0009_service_handoffs
 -- Back-channel service handoffs for /enable/scout and /handoff/scout.
--- TTL-on-read enforces expiry; periodic sweep is a future lode.
+-- TTL-on-read enforces expiry; a periodic sweep is future work.
 -- If a handoff is never polled, the small dispatch-token row is acceptable
 -- garbage until account deletion or a future janitor sweep.
 

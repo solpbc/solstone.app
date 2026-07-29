@@ -302,7 +302,7 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   ]);
   assert.doesNotMatch(linuxHtml, /<a class="ss-pill ss-active"[^>]*>Linux<\/a>/);
 
-  // model line removed from every stream (req_faqjh32h) — the switcher's
+  // model line removed from every stream — the switcher's
   // always-first journal pill + primacy underline carry the cross-stream
   // navigation and the journal-is-substance signal, so the prose was redundant.
   assert.doesNotMatch(journalHtml, /class="stream-model"/);

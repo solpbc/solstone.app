@@ -29,7 +29,7 @@ function makeEnv() {
 // Regression: bot POST/PUT/DELETE probes to unknown paths must NOT throw a
 // scriptThrewException — they get a clean 405. Before the fix these reached the
 // 404 fallback, which reconstructed a Request from the already-read body and
-// threw "ReadableStream is disturbed". (req_hobc7pyy / mirrors req_4jqldsxb.)
+// threw "ReadableStream is disturbed". (Mirrors the same fix on solpbc.org.)
 for (const method of ["POST", "PUT", "DELETE", "PATCH"]) {
   test(`${method} to an unknown path returns 405, never throws`, async () => {
     const res = await worker.fetch(

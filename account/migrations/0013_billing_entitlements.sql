@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS entitlements (
   service TEXT NOT NULL CHECK (service IN ('spl_hosted')),
   status TEXT NOT NULL CHECK (status IN ('active','past_due','canceled','lapsed')),
   -- current_period_end: Stripe Unix SECONDS, stored verbatim. Never milliseconds.
-  -- The spl relay lode compares its grant window against this value in seconds.
+  -- The spl relay compares its grant window against this value in seconds.
   current_period_end INTEGER,
   source TEXT NOT NULL CHECK (source IN ('stripe','apple','google')),
   source_ref TEXT,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS stripe_customers (
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
--- spl_bindings: schema hook for the sibling relay lode. This lode creates the
+-- spl_bindings: schema hook for the sibling relay work. This migration creates the
 -- table + index ONLY and never reads or writes it. instance_id = relay instance.
 CREATE TABLE IF NOT EXISTS spl_bindings (
   account_id TEXT NOT NULL,

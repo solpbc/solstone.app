@@ -107,12 +107,12 @@ RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"
 R2_BUCKET = "solstone-backups"
-# spb operated tier LAUNCHED 2026-06-23 (founder go): broker minting + the 30-day
+# spb operated tier LAUNCHED 2026-06-23 (operator go): broker minting + the 30-day
 # lapse sweep are live. Set to anything other than "true" to dark-disable instantly.
 SPB_MINT_ENABLED = "true"
 SPB_SWEEP_ENABLED = "true"
 # spp confidential-processing (scout alpha). SPP_ENGINE_ENDPOINT points at the live
-# persistent CC-H100 engine's RA-TLS gateway (cto-23 standup 2026-07-21, req_3njhyssi):
+# persistent CC-H100 engine's RA-TLS gateway (confirmed 2026-07-21):
 # processing.solstone.app (DNS-only A -> static 68.220.169.29) :9443. The explicit port
 # is required — the journal defaults a portless https URL to 443, where nothing listens.
 # The portal hands this to the device over the local handoff; it never calls it itself.

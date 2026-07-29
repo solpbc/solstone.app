@@ -381,7 +381,7 @@ Do not run from the current environment yet.
 
 Observed locally:
 
-- `wrangler` is installed at `/home/jer/.local/bin/wrangler`.
+- `wrangler` is installed on the operator's `PATH`.
 - `npx --no-install wrangler --version` from `account/` reports `4.92.0`.
 - Shell env does not contain `R2_PARENT_ACCESS_KEY_ID`, `R2_PARENT_SECRET_ACCESS_KEY`, `R2_ACCOUNT_ID`, `R2_BUCKET`, `CLOUDFLARE_API_TOKEN`, `CF_API_TOKEN`, or `CLOUDFLARE_ACCOUNT_ID`.
 - I found no `account/.dev.vars`, `account/.env`, or `account/.env.*` file.

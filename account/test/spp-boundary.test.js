@@ -15,7 +15,7 @@ import {
   seedSession,
 } from './helpers.js';
 
-// CLO req_he4p6cvo (2026-07-13): the only admitted use of "premium" is this exact locked
+// Legal review (2026-07-13): the only admitted use of "premium" is this exact locked
 // negation from the /data model paragraph. It is stripped before the BANNED scan so bare
 // 'premium' stays fully banned; any drift in the sentence re-trips the guard, and the
 // positive lock below keeps the sentence from being removed.
@@ -57,10 +57,10 @@ const BANNED = [
   'raw audio never leaves',
   'never hears',
   'deleted after transcription',
-  // CLO req_he4p6cvo: no hosted/local output-equivalence claim for audio; the surviving
+  // Legal review: no hosted/local output-equivalence claim for audio; the surviving
   // form is "there's no premium tier: nothing is held back for the service".
   'no higher-quality hosted tier',
-  // CLO req_fvpnwloh (founder correction, 2026-07-13): the reverse claim is banned too.
+  // Legal review (operator correction, 2026-07-13): the reverse claim is banned too.
   // The hosted-beats-local fidelity line rested on a 404-vs-230 word delta that was
   // filler/noise tokens, not recovered speech. No audio quality differential is measured
   // in either direction, so none may be stated on a page whose authority is that every

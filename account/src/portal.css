@@ -1,7 +1,7 @@
 /* services.solstone.app — VPX redesign stylesheet (design-in-code, project #1)
-   Applies the services brand canon (cmo/brand/services.md) + design tokens
-   (vpx/design-system/tokens.md). This is the REFERENCE implementation of the web
-   token canon: the :root below mirrors vpx/design-system/web/tokens.css (the
+   Applies the services brand canon + the shared design tokens. This is the
+   REFERENCE implementation of the web token canon: the :root below mirrors the
+   consumable token stylesheet from the design system (the
    consumable SOT) byte-for-byte — verified 2026-06-15. Do NOT diverge a value
    here; change tokens.md → re-derive tokens.css → mirror it here. (Full
    <link>-import of the shared file is deferred to a deliberate account deploy —
@@ -72,7 +72,7 @@ main {
 /* ---- type ---- */
 /* headings are AUTHORED in the lowercase house style — never force-lowercased
    in CSS, so third-party proper nouns (Gemini) keep canonical case per
-   cmo/brand/voice-terminology.md § third-party brand casing. */
+   the brand voice canon § third-party brand casing. */
 h1 {
   font-family: var(--font-display);
   font-weight: 700;
@@ -111,8 +111,8 @@ a:hover { text-decoration: underline; }
    left, a sign-in target on the right (the owner's initial) that opens a
    dropdown holding home / manage sign-in / sign out. We deliberately avoid the
    noun "account" anywhere owner-visible OR in our own framing — this is the
-   owner's sign-in to manage their services (cmo/brand/services.md § "the
-   account relationship — internal only"; founder direction 2026-06-11). */
+   owner's sign-in to manage their services (services brand canon § "the
+   account relationship — internal only"; operator direction 2026-06-11). */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; padding-bottom: 14px; margin-bottom: 22px;
@@ -212,7 +212,7 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 .pill.on .dot  { background: var(--orange); }
 .pill.off .dot { background: #C2B89F; }
 
-/* catalog + service-page components (services-sitemap-revamp lode 1) */
+/* catalog + service-page components (services-sitemap revamp, part 1) */
 .price { font-family:var(--font-body); font-weight:600; font-size:.92rem; color:var(--ink); white-space:nowrap; }
 .price .per { color:var(--ink-faint); font-weight:400; }
 .tag { display:inline-flex; align-items:center; font-size:.74rem; font-weight:600; letter-spacing:.02em; padding:3px 9px; border-radius:999px; white-space:nowrap; }

@@ -1,6 +1,6 @@
 # SPB Sweep Real-R2 Spike
 
-Manual runbook for Jer. This script is not wired into CI, cron, or `npm test`.
+Manual runbook for the operator. This script is not wired into CI, cron, or `npm test`.
 
 ## What It Proves
 

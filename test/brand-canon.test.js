@@ -14,10 +14,10 @@ const PUBLIC_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "publi
 // "your own raw audio and screen captures" sat on install.html untouched. The
 // higher-traffic, first-impression surface was the unguarded one.
 //
-// Canon: cmo/brand/system-anatomy.md § the never-list.
+// Canon: the internal brand canon § the never-list.
 
 // PROSE ONLY. Engineering identifiers are deliberately exempt (never-list rule 7
-// carve-out, founder call 2026-07-13): `capture-executor`, the capture pipeline,
+// carve-out, operator call 2026-07-13): `capture-executor`, the capture pipeline,
 // and the on-disk `observers/` path keep their names in code and are NOT renamed
 // — but they must never reach a sentence a person reads. Stripping code blocks is
 // what encodes that distinction, so the guard enforces language without ever
@@ -38,7 +38,7 @@ const stripCode = (src, isMarkdown) => {
 // than none — so this carries only words that are unambiguously banned in prose.
 // Ambiguous ones ("monitors" can mean screens) are left to human review.
 const BANNED = [
-  // never-list rule 7 (founder call, 2026-07-13): "capture" is predatory — it is
+  // never-list rule 7 (operator call, 2026-07-13): "capture" is predatory — it is
   // what *they* do to people. Banned in every form: verb, noun ("screen captures"
   // -> "screen frames"), and compound ("capture footprint").
   { re: /\bcaptur\w*/i, why: 'surveillance register — "capture" is banned in every form; for the owner\'s files write "screen frames"' },
@@ -78,6 +78,6 @@ test("marketing site prose carries no banned brand-canon vocabulary", () => {
     violations,
     [],
     `brand-canon violations in owner-facing prose:\n  ${violations.join("\n  ")}\n\n` +
-      `canon: cmo/brand/system-anatomy.md § the never-list`,
+      `canon: the internal brand canon § the never-list`,
   );
 });

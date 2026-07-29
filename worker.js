@@ -66,7 +66,7 @@ export default {
     // bot POSTs to /wp-login.php, /.env, /xmlrpc.php) never reaches the asset
     // fallbacks below: env.ASSETS.fetch(request) disturbs the body stream, and
     // reconstructing a Request from it then throws "ReadableStream is disturbed"
-    // (scriptThrewException). Same class as the solpbc.org fix (req_4jqldsxb).
+    // (scriptThrewException). Same class as the solpbc.org fix.
     if (request.method !== "GET" && request.method !== "HEAD") {
       return methodNotAllowed("GET, HEAD");
     }
@@ -194,7 +194,7 @@ export default {
     // iOS reads GitHub releases (same path as journal/linux/android). An external
     // TestFlight beta submission is the release event on iOS — internal builds are
     // dev checkpoints and are never tagged, so they never appear here. Tag `vX.Y.Z`,
-    // notes ride in the release body. See vpe/playbooks/solstone-swift-release.md.
+    // notes ride in the release body. See the internal Swift release runbook.
     if (url.pathname === "/releases/ios") {
       const items = await githubReleaseItems(IOS_RELEASES_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.ios);
@@ -281,7 +281,7 @@ function methodNotAllowed(allow) {
 // body. Cloning the original Request (its body) after env.ASSETS.fetch() has
 // disturbed the stream throws "ReadableStream is disturbed"; copying method/
 // headers only is body-free and safe. Belt-and-suspenders behind the GET/HEAD
-// guard above. Mirrors solpbc.org's assetRequest() (req_4jqldsxb).
+// guard above. Mirrors solpbc.org's assetRequest().
 function assetRequest(url, request) {
   return new Request(url, {
     method: request.method,
