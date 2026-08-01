@@ -35,7 +35,7 @@ describe('settings gemini dashboard', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('<h1>scout</h1>');
-    expect(body).toContain('join the solstone alpha');
+    expect(body).toContain('scout is the tester program. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.');
   });
 
   it('renders revoked application as terminal even when a key row exists', async () => {
@@ -99,8 +99,11 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('scout is on');
-    expect(body).toContain('key lives in your journal on your device and is never shown here.');
+    expect(body).toContain('this sign-in has no approved scout access');
+    expect(body).toContain('this sign-in is not currently approved for scout. legacy Gemini key management remains available below.');
+    expect(body).toContain('<p class="section-label">legacy Gemini key</p>');
+    expect(body).toContain('<div class="title">active key</div>');
+    expect(body).toContain('<p class="section-label">legacy Gemini key history</p>');
     expect(body).toContain('action="/scout/rotate"');
     expect(body).toContain('action="/scout/disable"');
     expect(body).toContain('action="/scout/forget"');
@@ -110,6 +113,71 @@ describe('settings gemini dashboard', () => {
     expect(body).not.toContain('/scout/ack');
     expect(body).not.toContain('plaintext-current-key');
     expect(body).not.toContain('plaintext-revoked-key');
+  });
+
+  it('renders approved program access separately from active legacy key management', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({
+      testEnv,
+      accountId: account.accountId,
+      status: 'approved',
+      data_acked_at: 1_500,
+      approved_at: 2_000,
+    });
+    await seedProvisionedKey({
+      testEnv,
+      accountId: account.accountId,
+      id: 'approved-active-key',
+      displayName: 'acct-approved-active',
+      keyString: 'plaintext-approved-active-key',
+    });
+    installGcpListMock([{ name: 'projects/test-gcp-project/locations/global/keys/active', displayName: 'acct-approved-active' }]);
+    secrets.push('plaintext-approved-active-key');
+
+    const response = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('<span class="pill on"');
+    expect(body).toContain('approved</span> &nbsp;scout access is approved for this sign-in');
+    expect(body).toContain('confidential processing is available to enable from the journal. legacy Gemini key management remains available below.');
+    expect(body).toContain('action="/scout/rotate"');
+    expect(body).toContain('<div class="title">active key</div>');
+    expect(body).not.toContain('plaintext-approved-active-key');
+  });
+
+  it('does not turn a pending application into approved access when an active legacy key lingers', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({
+      testEnv,
+      accountId: account.accountId,
+      status: 'pending',
+      applied_at: 1_000,
+    });
+    await seedProvisionedKey({
+      testEnv,
+      accountId: account.accountId,
+      id: 'pending-active-key',
+      displayName: 'acct-pending-active',
+      keyString: 'plaintext-pending-active-key',
+    });
+    installGcpListMock([{ name: 'projects/test-gcp-project/locations/global/keys/active', displayName: 'acct-pending-active' }]);
+    secrets.push('plaintext-pending-active-key');
+
+    const response = await worker.fetch(settingsGet('/scout', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('<span class="pill off"');
+    expect(body).toContain('pending</span> &nbsp;scout request pending for this sign-in');
+    expect(body).toContain('your scout request is under review. legacy Gemini key management remains available below.');
+    expect(body).not.toContain('scout access is approved for this sign-in');
+    expect(body).not.toContain('confidential processing is available to enable from the journal.');
+    expect(body).not.toContain('plaintext-pending-active-key');
   });
 
   it('renders approved unacked application with covenant affirmation and historical audit only', async () => {
@@ -137,7 +205,9 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('approved. enable scout in your journal to receive your key.');
+    expect(body).toContain('approved</span> &nbsp;scout access is approved for this sign-in');
+    expect(body).toContain('confidential processing is available to enable from the journal.');
+    expect(body).toContain('confirm the legacy Gemini covenant');
     expect(body).toContain('action="/scout/apply"');
     expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
@@ -165,10 +235,11 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('approved. enable scout in your journal to receive your key.');
+    expect(body).toContain('approved</span> &nbsp;scout access is approved for this sign-in');
+    expect(body).toContain('confidential processing is available to enable from the journal.');
     expect(body).not.toContain('action="/scout/apply"');
     expect(body).not.toContain('name="data_ack"');
-    expect(body).not.toContain('confirm scout terms');
+    expect(body).not.toContain('confirm the legacy Gemini covenant');
   });
 
   it('renders pending application with relative applied status and no actions', async () => {
@@ -192,7 +263,7 @@ describe('settings gemini dashboard', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('pending, applied 3 minutes ago');
-    expect(body).toContain('we have your scout request. there is nothing else to do here yet.');
+    expect(body).toContain('your scout request is under review.');
     expect(body).not.toContain('action="/scout/apply"');
     expect(body).not.toContain('action="/scout/rotate"');
     expect(body).not.toContain('action="/scout/disable"');
@@ -207,7 +278,8 @@ describe('settings gemini dashboard', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('request scout for this account.');
+    expect(body).toContain('request scout access for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.');
+    expect(body).toContain('scout is optional. for the legacy Gemini path, you can always bring your own Gemini key by hand instead of asking sol pbc to set one up.');
     expect(body).toContain('action="/scout/apply"');
     expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
@@ -215,6 +287,27 @@ describe('settings gemini dashboard', () => {
     expect(body).toContain('name="use_case"');
     expect(body).not.toContain('/scout/reveal');
     expect(body).not.toContain('/scout/ack');
+  });
+
+  it('names every legacy key operation in Scout flash messages', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const cases = [
+      ['rotated=ok', 'legacy Gemini key rotated.'],
+      ['rotated=conflict', 'another legacy Gemini key rotation completed first. try again.'],
+      ['rotated=no_active_key', 'no active legacy Gemini key to rotate.'],
+      ['rotated=rotation_failed', "legacy Gemini key rotation didn't finish. try again."],
+      ['forget=ok', 'retired legacy Gemini key forgotten.'],
+      ['disable=ok', 'legacy Gemini key turned off.'],
+      ['disable=none', 'no active legacy Gemini key to turn off.'],
+    ];
+
+    for (const [query, copy] of cases) {
+      const response = await worker.fetch(settingsGet(`/scout?${query}`, { cookie: session.cookie }), testEnv);
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toContain(copy);
+    }
   });
 
   it('gives the dropped news + feedback features a home on the scout page in every state', async () => {

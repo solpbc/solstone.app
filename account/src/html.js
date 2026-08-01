@@ -37,7 +37,7 @@ const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="curren
 const IC_CHIP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/></svg>';
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
-const SCOUT_COVENANT_LINE = "your questions to sol go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
+export const LEGACY_GEMINI_COVENANT_LINE = "legacy Gemini setup: your questions to sol go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
 const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page. nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are: no analytics, no behavioral data, no third-party tracking. these aren't promises, they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
@@ -196,14 +196,14 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <div class="n">2</div>
     <div>
       <div class="gt">enable scout</div>
-      <div class="gd">sol pbc creates a Google Gemini key on your behalf and hands it to this device. the key is yours and it stays on your device. sol pbc sets it up. it never sits between you and Gemini, and never sees what you ask sol.</div>
+      <div class="gd">this request continues the scout program for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone. if this sign-in is already an approved scout, sol pbc also sets up the legacy Google Gemini key and hands it to this device through the local handoff. confidential processing is a separate journal-initiated flow; this request does not turn it on.</div>
     </div>
   </div>
   <form method="post" action="/enable/scout/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="account_id" value="${escAttr(accountId)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
-    <p class="gd" style="margin:16px 0 12px">${SCOUT_COVENANT_LINE}</p>
+    <p class="gd" style="margin:16px 0 12px">${LEGACY_GEMINI_COVENANT_LINE}</p>
     ${ackField('i understand')}
     <label for="use-case">what would you like to use it for? (optional)</label>
     <textarea id="use-case" name="use_case" maxlength="2000"></textarea>
@@ -213,7 +213,7 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     </div>
   </form>
 </div>
-<p class="disclosure">you can see exactly what you enabled, and turn either off, in your services anytime.</p>`,
+<p class="disclosure">you can review scout in your services anytime. confidential processing stays off until you enable it from the journal.</p>`,
   });
 }
 
@@ -223,7 +223,7 @@ export function renderEnableScoutDone() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} scout enabled</h2>
-  <p>sol pbc set up a Gemini key for you and put it on this device. you never had to touch it, and nothing from your journal crossed to set it up. you can close this tab.</p>
+  <p>scout is enabled for this sign-in. confidential processing is available to enable from the journal. the legacy Google Gemini key is ready for this device to receive through the local handoff. you can close this tab.</p>
   <a class="btn secondary" href="/scout">manage scout</a>
 </div>`,
   });
@@ -235,8 +235,8 @@ export function renderEnableScoutPendingDone() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} scout request received</h2>
-  <p>scout is invite-only right now, and your request is under review. nothing was set up yet, and nothing from your journal crossed.</p>
-  <p>once approved, you'll be able to enable scout from your services.</p>
+  <p>your scout request is under review. nothing was set up yet, and nothing from your journal crossed.</p>
+  <p>if this sign-in is approved, confidential processing will be available to enable from the journal.</p>
   <a class="btn secondary" href="/">open your services</a>
 </div>`,
   });
@@ -248,7 +248,7 @@ export function renderEnableScoutRevokedDone() {
     body: `${brandbar()}
 <div class="card">
   <h2>scout isn't available</h2>
-  <p>scout isn't available for this sign-in. nothing was set up.</p>
+  <p>scout isn't available for this sign-in. this request did not set anything up.</p>
 </div>`,
   });
 }
@@ -528,18 +528,18 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     </div>
   </form>
 </div>
-<p class="disclosure">confidential processing is in early access — scouts get it first. it stays off until you allow it here, and you can turn it off from the journal anytime.</p>`,
+<p class="disclosure">confidential processing is available to approved scouts. it stays off until you allow it here, and you can turn it off from the journal anytime.</p>`,
   });
 }
 
-export function renderEnableSppEarlyAccess() {
+export function renderEnableSppApprovalRequired() {
   return layout({
-    title: 'confidential processing is coming',
+    title: 'scout approval required',
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">confidential processing is coming</h2>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">scout approval required</h2>
   <p>confidential processing lets sol think through your journal's text, images, and audio on a model sol pbc runs itself — on confidential hardware sol pbc operates, which keeps nothing: it's processed and not kept, no content retained, no human review, nothing used to train. your journal must verify the service before anything is sent — if it can't verify, it doesn't send. no third-party AI provider is ever in the path.</p>
-  <p>this journal isn't in the scout alpha yet, so there's nothing to enable here. you can close this tab.</p>
+  <p>confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here. you can close this tab.</p>
 </div>`,
   });
 }
@@ -569,7 +569,7 @@ export function renderEnableSppError() {
 
 // === services surfaces ===
 
-export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, scoutActive = false, deviceCount = 0, networkActive = false, backupActive = false, sppActive = false } = {}) {
+export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, deviceCount = 0, networkActive = false, backupActive = false, sppActive = false } = {}) {
   if (!signedIn) {
     return layout({
       title: 'solstone services',
@@ -581,8 +581,8 @@ ${BRANDLOCK}
   ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'let sol reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
-  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag soon">coming</span>')}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', 'join the alpha. we set you up with a Gemini key on your device.', '<span class="tag free">free</span>')}
+  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program — approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
 <p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on. solstone itself never asks you to sign in.</p>`,
     });
@@ -594,8 +594,7 @@ ${BRANDLOCK}
   const networkPill = pill(networkActive ? 'on' : 'off', networkActive ? 'on' : 'off');
   const backupPill = pill(backupActive ? 'on' : 'off', backupActive ? 'on' : 'off');
   const notifPill = pill(deviceCount > 0 ? 'on' : 'off', deviceCount > 0 ? 'on' : 'off');
-  const sppPill = pill(sppActive ? 'on' : 'off', sppActive ? 'on' : 'off');
-  const scoutPill = pill(scoutActive ? 'on' : 'off', scoutActive ? 'on' : 'off');
+  const sppPill = pill(sppActive ? 'on' : 'off', sppActive ? 'available' : 'not available');
   const welcomePanel = welcome
     ? `<div class="card" style="margin-bottom:24px">
   <h2>set up a passkey for next time</h2>
@@ -622,7 +621,7 @@ ${welcomePanel}
   ${row('/services/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters, built in.', notifPill)}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'sol’s thinking, off your device on confidential hardware.', sppPill)}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', 'a Gemini key on your device.', scoutPill)}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program — approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
 <div class="group" style="margin-top:22px">
   ${row('/sign-in', IC_SESSION_SVG, 'your sign-in', 'sessions, passkeys, and email addresses.', '')}
@@ -718,7 +717,7 @@ ${BRANDLOCK}
   ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent — if it can't verify, it doesn't send.")}
 </div>
 <div class="card">
-  <div class="statusline"><span class="tag soon">coming soon</span><span>scouts get confidential processing first. it isn't open yet — when it is, the scout program is the way in.</span></div>
+  <div class="statusline"><span class="tag free">available to approved scouts</span><span>confidential processing is available to approved scouts. enable it from the journal after approval.</span></div>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });
@@ -762,20 +761,20 @@ export function renderScoutLanding() {
     body: brandbarSignin()
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>scout</h1>
-<p class="lead">join the solstone alpha. we set you up with a Google Gemini key on your device so sol can think, and bring you into the tester cohort.</p>
+<p class="lead">scout is the tester program. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_PASSKEY_SVG, 'a key on your device', 'sol pbc creates a Gemini key for you and puts it on your device. the key is yours and never leaves it.')}
-  ${beat(IC_SCOUT_SVG, 'never in the middle', 'sol pbc sets it up but never sits between you and Gemini, and never sees what you ask sol.')}
-  ${beat(IC_GLOBE, 'the alpha cohort', 'scout testers get early features and a direct line to tell us what they’re seeing.')}
-  ${beat(IC_CHIP, 'confidential processing, coming', 'join the alpha — get early access to confidential processing and help shape solstone.')}
+  ${beat(IC_CHIP, 'confidential processing', 'confidential processing is available to approved scouts. enable it from the journal after approval.')}
+  ${beat(IC_SCOUT_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
+  ${beat(IC_GLOBE, 'help shape solstone', "share feedback through support and follow what's changing.")}
+  ${beat(IC_PASSKEY_SVG, 'legacy Gemini setup', 'sol pbc can set up the legacy Google Gemini key, but never sits between you and Gemini.')}
 </div>
 <div class="card">
   <div class="pricecard">
-    <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">· alpha, invite-only</span></span></div></div>
+    <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">· tester program</span></span></div></div>
     <a class="btn primary" href="/?signin">request access</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">your questions to sol go straight to Google Gemini under Google’s terms. sol pbc sets up the key but never sits between you and Gemini.</p>
+  <p class="free-note" style="margin:14px 0 0">${LEGACY_GEMINI_COVENANT_LINE}</p>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });
@@ -935,9 +934,9 @@ ${content}`,
 
   if (status === 'active') {
     return page({
-      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;confidential processing is on for this journal',
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>available</span> &nbsp;confidential processing is available to this sign-in',
       content: `<div class="group">
-  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">enabled for your journal</div></div></div>
+  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">available to enable from your journal</div></div></div>
 </div>
 <p class="disclosure" style="margin-top:24px">your journal must verify the service before anything is sent — if it can't verify, it doesn't send. <a href="/terms">terms</a></p>
 <p class="disclosure">audio transcription has its own switch — "transcribe audio on the service" — in the journal's thinking app.</p>`,
@@ -945,13 +944,13 @@ ${content}`,
   }
 
   return page({
-    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>early access</span>',
-    content: `<p class="lead">scouts get confidential processing first. it isn't open yet — when it is, the scout program is the way in.</p>
+    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not available</span> &nbsp;confidential processing is not available to this sign-in',
+    content: `<p class="lead">confidential processing is available to approved scouts. this sign-in is not currently approved. visit <a href="/scout">scout</a> to request access.</p>
 <div class="card">
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device — never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.')}
 </div>
-<p class="disclosure" style="margin-top:24px"><a href="/scout">scout</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/terms">terms</a></p>`,
   });
 }
 
@@ -1311,11 +1310,12 @@ export function renderServicesScout({ active, rows = [], application, nowMs, fla
 </div>`
     : '';
   const keySection = active
-    ? `<div class="group">
+    ? `<p class="section-label">legacy Gemini key</p>
+<div class="group">
   <div class="row" style="cursor:default">
     ${IC_SCOUT_SVG}
     <div class="body">
-      <div class="title">Gemini key</div>
+      <div class="title">active key</div>
       <div class="desc">last used ${esc(geminiLastUsedText(active, nowMs))} · set up ${esc(formatRelativeTime(active.created_at, nowMs))}</div>
     </div>
   </div>
@@ -1343,9 +1343,9 @@ ${activeControls}`
 </div>`;
   }).join('');
   const historySection = rows.length > 0
-    ? `<p class="section-label">history</p>
+    ? `<p class="section-label">legacy Gemini key history</p>
 <div class="group">${auditRows}</div>
-<p class="disclosure">last-used is the one piece of metadata sol pbc keeps. it's here so you can audit the key yourself. sol pbc never sees what you ask sol.</p>`
+<p class="disclosure">last-used is the one piece of legacy key metadata sol pbc keeps. it's here so you can audit the key yourself. sol pbc is never in the path between you and Gemini.</p>`
     : '';
   // the old standalone scouts program had a news feed and a feedback form;
   // the converged portal drops both, but their destinations live on, news →
@@ -1391,9 +1391,22 @@ ${scoutLinks}`,
   }
 
   if (active) {
+    const activeProgramCopy = application?.status === 'approved'
+      ? {
+          statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span> &nbsp;scout access is approved for this sign-in',
+          lead: 'confidential processing is available to enable from the journal. legacy Gemini key management remains available below.',
+        }
+      : application?.status === 'pending'
+        ? {
+            statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>pending</span> &nbsp;scout request pending for this sign-in',
+            lead: 'your scout request is under review. legacy Gemini key management remains available below.',
+          }
+        : {
+            statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not approved</span> &nbsp;this sign-in has no approved scout access',
+            lead: 'this sign-in is not currently approved for scout. legacy Gemini key management remains available below.',
+          };
     return page({
-      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;scout is on',
-      lead: 'sol pbc set up a Google Gemini key for you. the key lives in your journal on your device and is never shown here.',
+      ...activeProgramCopy,
       content: `${keySection}
 ${historySection}`,
     });
@@ -1402,13 +1415,13 @@ ${historySection}`,
   if (application?.status === 'approved') {
     const ackForm = application.data_acked_at == null
       ? `<div class="card">
-  <h2>confirm scout terms</h2>
+  <h2>confirm the legacy Gemini covenant</h2>
   ${scoutApplyForm({ includeUseCase: false, buttonText: 'i understand' })}
 </div>`
       : '';
     return page({
-      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span>',
-      lead: 'approved. enable scout in your journal to receive your key.',
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span> &nbsp;scout access is approved for this sign-in',
+      lead: 'confidential processing is available to enable from the journal.',
       content: `${ackForm}
 ${historySection}`,
     });
@@ -1420,18 +1433,18 @@ ${historySection}`,
       : `pending, applied ${formatRelativeTime(application.applied_at, nowMs)}`;
     return page({
       statusLine: `<span class="pill off" style="vertical-align:middle"><span class="dot"></span>${esc(pendingText)}</span>`,
-      lead: 'we have your scout request. there is nothing else to do here yet.',
+      lead: 'your scout request is under review.',
     });
   }
 
   return page({
-    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>off</span>',
-    lead: 'request scout for this account.',
+    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not approved</span>',
+    lead: 'request scout access for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.',
     content: `<div class="card">
   <h2>request access</h2>
   ${scoutApplyForm({ includeUseCase: true, buttonText: 'apply' })}
 </div>
-<p class="disclosure">solstone runs without scout. you can always bring your own Gemini key by hand instead. turning on scout just means sol pbc sets one up for you.</p>`,
+<p class="disclosure">scout is optional. for the legacy Gemini path, you can always bring your own Gemini key by hand instead of asking sol pbc to set one up.</p>`,
   });
 }
 
@@ -1457,7 +1470,7 @@ function ackField(copy) {
 }
 
 function scoutCovenantFields() {
-  return `<p class="gd" style="margin:16px 0 12px">${SCOUT_COVENANT_LINE}</p>
+  return `<p class="gd" style="margin:16px 0 12px">${LEGACY_GEMINI_COVENANT_LINE}</p>
     ${ackField('i understand')}`;
 }
 
@@ -1885,16 +1898,16 @@ function spbBillingFlashMessages(flash) {
 
 function flashMessages(flash) {
   const messages = [];
-  if (flash.rotated === 'ok') messages.push('key rotated.');
-  if (flash.rotated === 'conflict') messages.push('another rotation completed first. try again.');
-  if (flash.rotated === 'no_active_key') messages.push('no active key to rotate.');
-  if (flash.rotated === 'rotation_failed') messages.push("key rotation didn't finish. try again.");
+  if (flash.rotated === 'ok') messages.push('legacy Gemini key rotated.');
+  if (flash.rotated === 'conflict') messages.push('another legacy Gemini key rotation completed first. try again.');
+  if (flash.rotated === 'no_active_key') messages.push('no active legacy Gemini key to rotate.');
+  if (flash.rotated === 'rotation_failed') messages.push("legacy Gemini key rotation didn't finish. try again.");
   if (flash.apply === 'ok') messages.push('scout request received.');
   if (flash.apply === 'acked') messages.push('scout acknowledgement saved.');
   if (flash.apply === 'no_ack') messages.push('confirm you understand before continuing.');
-  if (flash.forget === 'ok') messages.push('revoked key forgotten.');
-  if (flash.disable === 'ok') messages.push('scout turned off.');
-  if (flash.disable === 'none') messages.push('no active scout key to turn off.');
+  if (flash.forget === 'ok') messages.push('retired legacy Gemini key forgotten.');
+  if (flash.disable === 'ok') messages.push('legacy Gemini key turned off.');
+  if (flash.disable === 'none') messages.push('no active legacy Gemini key to turn off.');
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 

@@ -97,6 +97,7 @@ describe('/enable/spp', () => {
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
+    expect(body).toContain('confidential processing is available to approved scouts. it stays off until you allow it here, and you can turn it off from the journal anytime.');
   });
 
   it('creates a content-free early-access handoff and refusal audit for a non-scout with an instance', async () => {
@@ -110,7 +111,8 @@ describe('/enable/spp', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('confidential processing is coming');
+    expect(body).toContain('scout approval required');
+    expect(body).toContain('confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here. you can close this tab.');
     expect(body).toContain("your journal's text, images, and audio");
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
     await expect(rowCount('service_handoffs')).resolves.toBe(1);
@@ -157,7 +159,7 @@ describe('/enable/spp', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('confidential processing is coming');
+    expect(body).toContain('scout approval required');
     expect(body).not.toContain('action="/enable/spp/confirm"');
     expect(body).not.toContain('name="action"');
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
@@ -215,7 +217,7 @@ describe('/enable/spp', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('confidential processing is coming');
+    expect(body).toContain('scout approval required');
     expect(preparedSql.some((sql) => /INSERT INTO service_handoffs/i.test(sql))).toBe(true);
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual(sentinel);
     await expect(rowCount('service_handoffs')).resolves.toBe(1);
@@ -259,7 +261,7 @@ describe('/enable/spp', () => {
       const body = await response.text();
 
       expect(response.status).toBe(200);
-      expect(body).toContain('confidential processing is coming');
+      expect(body).toContain('scout approval required');
       expect(body).not.toContain('action="/enable/spp/confirm"');
       expect(body).not.toContain('name="action"');
       await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
@@ -399,7 +401,7 @@ describe('/enable/spp', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('confidential processing is coming');
+    expect(body).toContain('scout approval required');
     expect(body).not.toContain('credential');
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
     await expect(rowCount('spp_bindings')).resolves.toBe(0);

@@ -3,6 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { encryptEmail } from '../src/crypto.js';
 import {
+  renderEnableScoutDone,
+  renderEnableScoutError,
+  renderEnableScoutPendingDone,
+  renderEnableScoutRevokedDone,
+  renderServicesScout,
+} from '../src/html.js';
+import {
   TEST_CSRF,
   emailAddRequest,
   installGcpFetchMock,
@@ -160,9 +167,27 @@ describe('brand canon', () => {
     });
     const sppEmpty = await seedAccount({ email: 'spp-empty@example.com', testEnv });
     const sppEmptySession = await seedSession(sppEmpty.accountId, { testEnv });
+    const activeKey = {
+      id: 'canon-active-key',
+      display_name: 'canon-active',
+      created_at: 1_000,
+      revoked_at: null,
+      last_used_at: null,
+      last_used_fetched_at: null,
+    };
+    const retiredKey = {
+      id: 'canon-retired-key',
+      display_name: 'canon-retired',
+      created_at: 500,
+      revoked_at: 2_000,
+      last_used_at: null,
+      last_used_fetched_at: null,
+    };
+    const scoutArgs = { nowMs: 10_000, menu: {} };
 
     const surfaces = [
       ['signed-out landing', await get('/', testEnv)],
+      ['signed-out Scout landing', await get('/scout', testEnv)],
       ['confidential-processing landing', await get('/confidential-processing', testEnv)],
       ['confidential-processing data', await get('/confidential-processing/data', testEnv)],
       ['signed-in services dashboard', await get('/', testEnv, withPasskeySession.cookie), true],
@@ -185,6 +210,55 @@ describe('brand canon', () => {
       ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],
       ['support not found', await get('/support/bad.id', testEnv, withPasskeySession.cookie), true],
       ['enable scout consent', await get(`/enable/scout?nonce=${VALID_ENABLE_NONCE}`, testEnv, withPasskeySession.cookie), true],
+      ['enable scout done', htmlResponse(renderEnableScoutDone())],
+      ['enable scout pending', htmlResponse(renderEnableScoutPendingDone())],
+      ['enable scout revoked', htmlResponse(renderEnableScoutRevokedDone())],
+      ['enable scout error', htmlResponse(renderEnableScoutError({ message: 'that request could not be completed.' }))],
+      ['scout revoked direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        application: { status: 'revoked' },
+      }))],
+      ['scout active approved direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        application: { status: 'approved', data_acked_at: 1_000 },
+        flash: { rotated: 'ok', forget: 'ok', disable: 'ok' },
+      }))],
+      ['scout active pending direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        application: { status: 'pending' },
+        flash: { rotated: 'conflict', disable: 'none' },
+      }))],
+      ['scout active without application direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        flash: { rotated: 'no_active_key' },
+      }))],
+      ['scout approved unacknowledged direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        active: null,
+        rows: [retiredKey],
+        application: { status: 'approved', data_acked_at: null },
+        flash: { rotated: 'rotation_failed' },
+      }))],
+      ['scout approved acknowledged direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        active: null,
+        rows: [],
+        application: { status: 'approved', data_acked_at: 1_000 },
+      }))],
+      ['scout pending direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        active: null,
+        rows: [],
+        application: { status: 'pending', applied_at: 1_000 },
+      }))],
       ['enable scout no-nonce error', await get('/enable/scout', testEnv)],
       ['verify code', await get('/signin/verify', testEnv)],
       ['goodbye', await get('/goodbye', testEnv)],
@@ -268,7 +342,7 @@ describe('brand canon', () => {
       data_ack: 'yes',
       action: 'allow',
     }), sppScoutSession.cookie);
-    const sppEarlyAccess = await get(`/enable/spp?nonce=${VALID_SPP_EARLY_NONCE}`, testEnv, sppPlainSession.cookie);
+    const sppApprovalRequired = await get(`/enable/spp?nonce=${VALID_SPP_EARLY_NONCE}`, testEnv, sppPlainSession.cookie);
     const sppError = await get('/enable/spp', testEnv);
 
     expect('your sign-in').not.toMatch(enableSurfaceStrictRe);
@@ -288,7 +362,7 @@ describe('brand canon', () => {
       ['enable spb error', spbError],
       ['enable spp consent', sppConsent],
       ['enable spp done', sppDone],
-      ['enable spp early access', sppEarlyAccess],
+      ['enable spp approval required', sppApprovalRequired],
       ['enable spp error', sppError],
     ]) {
       const body = await response.text();
@@ -317,6 +391,10 @@ describe('brand canon', () => {
 async function get(path, testEnv, cookie = '') {
   const headers = cookie ? { Cookie: cookie } : {};
   return worker.fetch(new Request(`https://services.solstone.app${path}`, { headers }), testEnv);
+}
+
+function htmlResponse(body) {
+  return new Response(body, { headers: { 'Content-Type': 'text/html' } });
 }
 
 async function post(path, testEnv, body, cookie = '') {

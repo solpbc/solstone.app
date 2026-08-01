@@ -1,11 +1,22 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
 import {
+  LEGACY_GEMINI_COVENANT_LINE,
   renderConfidentialProcessingData,
   renderConfidentialProcessingLanding,
+  renderEnableScoutConsent,
+  renderEnableScoutDone,
+  renderEnableScoutError,
+  renderEnableScoutPendingDone,
+  renderEnableScoutRevokedDone,
+  renderEnableSppApprovalRequired,
   renderEnableSppConsent,
-  renderEnableSppEarlyAccess,
+  renderEnableSppDone,
+  renderEnableSppError,
+  renderScoutLanding,
   renderServicesCatalog,
+  renderServicesScout,
+  renderServicesSpp,
 } from '../src/html.js';
 import {
   makeTestEnv,
@@ -68,6 +79,27 @@ const BANNED = [
   'full precision',
   'picks up noticeably more',
   'more of the faint talk',
+  // Legal review (2026-08-01): these access-tier labels are retired now that
+  // confidential processing is live for every approved scout.
+  'invite-only',
+  'private beta',
+  'select access',
+  'early-access list',
+  // Legal review (2026-08-01): these availability claims falsely describe a
+  // live approved-scout service as unreleased or globally unavailable.
+  'coming soon',
+  'is coming',
+  'early access',
+  "isn't open yet",
+  'alpha',
+  // Legal review (2026-08-01): these concrete framings incorrectly present a
+  // legacy Gemini key as the Scout program benefit.
+  'we set you up with a gemini key',
+  'a gemini key on your device',
+  'to receive your key',
+  'get early access to',
+  'turning on scout just means sol pbc sets one up for you',
+  'sol pbc creates a gemini key for you',
 ];
 
 const stripHref = (html) => html.replace(/href="[^"]*"/gi, 'href=""');
@@ -77,7 +109,7 @@ describe('spp copy boundary', () => {
     await resetDb();
   });
 
-  it('keeps banned claims out of every spp surface while retaining allowed claims', async () => {
+  it('keeps banned claims out of every Scout and confidential-processing surface while retaining allowed claims', async () => {
     const testEnv = makeTestEnv();
     const activeAccount = await seedAccount({ email: 'spp-boundary-active@example.com', testEnv });
     await seedEntitlement({
@@ -92,29 +124,112 @@ describe('spp copy boundary', () => {
 
     const activeResponse = await get('/confidential-processing', testEnv, activeSession.cookie);
     const defaultResponse = await get('/confidential-processing', testEnv, defaultSession.cookie);
-    const catalog = renderServicesCatalog({ signedIn: false });
-    const catalogMatch = catalog.match(/<a class="row" href="\/confidential-processing"[\s\S]*?<\/a>/);
+    const publicCatalog = renderServicesCatalog({ signedIn: false });
+    const signedCatalogUnavailable = renderServicesCatalog({ signedIn: true });
+    const signedCatalogAvailable = renderServicesCatalog({ signedIn: true, sppActive: true });
+    const activeKey = {
+      id: 'active-key',
+      display_name: 'scout-active',
+      created_at: 1_000,
+      revoked_at: null,
+      last_used_at: null,
+      last_used_fetched_at: null,
+    };
+    const retiredKey = {
+      id: 'retired-key',
+      display_name: 'scout-retired',
+      created_at: 500,
+      revoked_at: 2_000,
+      last_used_at: null,
+      last_used_fetched_at: null,
+    };
+    const scoutArgs = { nowMs: 10_000, menu: {} };
 
     expect(activeResponse.status).toBe(200);
     expect(defaultResponse.status).toBe(200);
-    expect(catalogMatch).not.toBeNull();
 
     const surfaces = [
+      ['scout public landing', renderScoutLanding()],
+      ['scout enable consent', renderEnableScoutConsent({
+        csrf: 'csrf',
+        nonce: '2'.repeat(52),
+        accountId: 'account-id',
+      })],
+      ['scout enable done', renderEnableScoutDone()],
+      ['scout enable pending', renderEnableScoutPendingDone()],
+      ['scout enable revoked', renderEnableScoutRevokedDone()],
+      ['scout enable error', renderEnableScoutError({ message: 'that request could not be completed.' })],
       ['enable consent', renderEnableSppConsent({
         csrf: 'csrf',
         nonce: '7'.repeat(52),
         instance: '11111111-1111-1111-1111-111111111111',
       })],
-      ['enable early access', renderEnableSppEarlyAccess()],
-      ['public landing', renderConfidentialProcessingLanding()],
-      ['services active', await activeResponse.text()],
-      ['services default', await defaultResponse.text()],
-      ['data reference', renderConfidentialProcessingData()],
-      ['catalog row', catalogMatch?.[0] || ''],
+      ['enable approval required', renderEnableSppApprovalRequired()],
+      ['enable done', renderEnableSppDone()],
+      ['enable error', renderEnableSppError()],
+      ['confidential-processing public landing', renderConfidentialProcessingLanding()],
+      ['confidential-processing services active', await activeResponse.text()],
+      ['confidential-processing services default', await defaultResponse.text()],
+      ['confidential-processing services lapsed', renderServicesSpp({ entitlement: { status: 'lapsed' }, menu: {} })],
+      ['confidential-processing data reference', renderConfidentialProcessingData()],
+      ['public confidential-processing catalog row', extractCatalogRow(publicCatalog, '/confidential-processing')],
+      ['public Scout catalog row', extractCatalogRow(publicCatalog, '/scout')],
+      ['signed-in confidential-processing unavailable catalog row', extractCatalogRow(signedCatalogUnavailable, '/confidential-processing')],
+      ['signed-in confidential-processing available catalog row', extractCatalogRow(signedCatalogAvailable, '/confidential-processing')],
+      ['signed-in Scout catalog row', extractCatalogRow(signedCatalogUnavailable, '/scout')],
+      ['Scout revoked with lingering key', renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        application: { status: 'revoked' },
+        flash: { rotated: 'ok', apply: 'ok', forget: 'ok', disable: 'ok' },
+      })],
+      ['Scout active key with approved application', renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        application: { status: 'approved', data_acked_at: 1_000 },
+        flash: { rotated: 'conflict', apply: 'acked', disable: 'none' },
+      })],
+      ['Scout active key with pending application', renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        application: { status: 'pending' },
+        flash: { rotated: 'no_active_key', apply: 'no_ack' },
+      })],
+      ['Scout active key without application', renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        flash: { rotated: 'rotation_failed' },
+      })],
+      ['Scout approved unacknowledged without key', renderServicesScout({
+        ...scoutArgs,
+        active: null,
+        rows: [retiredKey],
+        application: { status: 'approved', data_acked_at: null },
+      })],
+      ['Scout approved acknowledged without key', renderServicesScout({
+        ...scoutArgs,
+        active: null,
+        rows: [],
+        application: { status: 'approved', data_acked_at: 1_000 },
+      })],
+      ['Scout pending without key', renderServicesScout({
+        ...scoutArgs,
+        active: null,
+        rows: [],
+        application: { status: 'pending', applied_at: 1_000 },
+      })],
+      ['Scout default', renderServicesScout({ ...scoutArgs, active: null, rows: [] })],
     ];
 
     for (const [name, body] of surfaces) {
-      const scanBody = stripHref(body).toLowerCase().replaceAll(CLO_LOCKED_PREMIUM_NEGATION, '');
+      const scanBody = stripHref(body)
+        .toLowerCase()
+        .replaceAll(CLO_LOCKED_PREMIUM_NEGATION, '')
+        .replaceAll(LEGACY_GEMINI_COVENANT_LINE.toLowerCase(), '');
       for (const phrase of BANNED) {
         expect(scanBody, `${name}: ${phrase}`).not.toContain(phrase.toLowerCase());
       }
@@ -135,8 +250,18 @@ describe('spp copy boundary', () => {
     expect(combined).toContain('transcription waits on your device');
     expect(combined).toContain('parakeet-tdt-0.6b-v3');
     expect(combined).toContain("there's no premium tier: nothing is held back for the service");
+    expect(combined).toContain(LEGACY_GEMINI_COVENANT_LINE.toLowerCase());
+    expect(combined).toContain('confidential processing is available to approved scouts.');
+    expect(combined).toContain('approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.');
   });
 });
+
+function extractCatalogRow(html, href) {
+  const escapedHref = href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = html.match(new RegExp(`<a class="row" href="${escapedHref}"[\\s\\S]*?<\\/a>`));
+  expect(match, `catalog row ${href}`).not.toBeNull();
+  return match?.[0] || '';
+}
 
 function get(path, testEnv, cookie) {
   return worker.fetch(new Request(`https://services.solstone.app${path}`, {

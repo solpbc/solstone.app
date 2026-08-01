@@ -16,7 +16,6 @@ import {
   deleteOtp,
   deleteSession,
   countActiveDevices,
-  findActiveProvisionedKey,
   findEmailByHash,
   getEntitlement,
   hasAnyActivePasskey,
@@ -141,7 +140,6 @@ const IP_HOUR_LIMIT = 10;
 const EMAIL_DAY_LIMIT = 5;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
-const GEMINI_PROVIDER = 'gemini';
 const SWEEP_CRON = '0 3 * * *';
 
 const SECURITY_HEADERS = {
@@ -976,10 +974,9 @@ export default {
 async function handleServicesCatalog(req, env, session) {
   const url = new URL(req.url);
   const now = Date.now();
-  const [menu, hasPasskey, scoutKey, deviceCount, entitlement, spbEntitlement, sppEntitlement] = await Promise.all([
+  const [menu, hasPasskey, deviceCount, entitlement, spbEntitlement, sppEntitlement] = await Promise.all([
     loadMenuContext(env, session.account_id, now),
     hasAnyActivePasskey(env.DB, session.account_id),
-    findActiveProvisionedKey(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER }),
     countActiveDevices(env.DB, session.account_id),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE }),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPB_HOSTED_SERVICE }),
@@ -991,7 +988,7 @@ async function handleServicesCatalog(req, env, session) {
   return html(renderServicesCatalog({
     signedIn: true,
     welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
-    menu, scoutActive: scoutKey != null, deviceCount, networkActive, backupActive, sppActive,
+    menu, deviceCount, networkActive, backupActive, sppActive,
   }), { headers: { 'Cache-Control': 'no-store' } });
 }
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
-import { makeTestEnv, resetDb, seedAccount, seedEntitlement, seedSession } from './helpers.js';
+import { makeTestEnv, resetDb, rowCount, seedAccount, seedEntitlement, seedSession } from './helpers.js';
 
 describe('service landing pages', () => {
   beforeEach(async () => {
@@ -54,7 +54,8 @@ describe('service landing pages', () => {
     expect(body).toContain("a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.");
     expect(body).toContain('your journal does the checking');
     expect(body).toContain("your journal must verify the service before anything is sent — if it can't verify, it doesn't send.");
-    expect(body).toContain('<span class="tag soon">coming soon</span>');
+    expect(body).toContain('<span class="tag free">available to approved scouts</span>');
+    expect(body).toContain('confidential processing is available to approved scouts. enable it from the journal after approval.');
     expect(body).not.toMatch(/class="btn/);
     expect(body).not.toContain('$');
     expect(body).not.toContain('sealed');
@@ -79,13 +80,33 @@ describe('service landing pages', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('confidential processing is on for this journal');
-    expect(body).toContain('enabled for your journal');
+    expect(body).toContain('confidential processing is available to this sign-in');
+    expect(body).toContain('available to enable from your journal');
+    expect(body).not.toContain('confidential processing is on for this journal');
+    expect(body).not.toContain('enabled for your journal');
     expect(body).toContain('audio transcription has its own switch — "transcribe audio on the service" — in the journal\'s thinking app.');
     expect(body).not.toContain('verifies the engine');
     expect(body).not.toContain('$');
     expect(body).not.toContain('never sees');
     expect(body).not.toMatch(/class="btn/);
+    await expect(rowCount('spp_bindings')).resolves.toBe(0);
+  });
+
+  it('renders confidential-processing eligibility for a sign-in without availability', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await get('/confidential-processing', testEnv, { Cookie: session.cookie });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('confidential processing is not available to this sign-in');
+    expect(body).toContain('confidential processing is available to approved scouts. this sign-in is not currently approved.');
+    expect(body).toContain('href="/scout">scout</a> to request access.');
+    expect(body).toContain('href="/scout">request scout access</a>');
+    expect(body).not.toContain("isn't open yet");
+    expect(body).not.toContain('early access');
   });
 
   it('keeps the public confidential processing catalog row free of pricing and forbidden claims', async () => {
@@ -105,9 +126,14 @@ describe('service landing pages', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('<h1>scout</h1>');
-    expect(body).toContain('join the solstone alpha');
+    expect(body).toContain('scout is the tester program. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.');
+    expect(body).toContain('confidential processing is available to approved scouts. enable it from the journal after approval.');
+    expect(body).toContain('legacy Gemini setup');
+    expect(body).toContain('free <span class="price"><span class="per">· tester program</span></span>');
     expect(body).toContain('request access');
-    expect(body).toContain('your questions to sol go straight to Google Gemini under Google’s terms.');
+    expect(body).toContain("legacy Gemini setup: your questions to sol go straight to Google Gemini under Google's terms.");
+    expect(body).not.toContain('invite-only');
+    expect(body).not.toContain('alpha');
   });
 
   it('renders the scout management page when signed in', async () => {
@@ -120,7 +146,7 @@ describe('service landing pages', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('href="https://solstone.app/releases"');
     expect(body).toContain('share feedback');
-    expect(body).not.toContain('join the solstone alpha');
+    expect(body).not.toContain('scout is the tester program.');
   });
 });
 

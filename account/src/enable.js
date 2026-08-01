@@ -55,9 +55,9 @@ import {
   renderEnableSpbDone,
   renderEnableSpbError,
   renderEnableSpbNeedsSubscription,
+  renderEnableSppApprovalRequired,
   renderEnableSppConsent,
   renderEnableSppDone,
-  renderEnableSppEarlyAccess,
   renderEnableSppError,
   renderError,
 } from './html.js';
@@ -671,7 +671,7 @@ async function refuseSppToEarlyAccess({ env, nonce, accountId, instance, nowMs }
   if (inserted.ok && instance) {
     await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'refused_entitlement', nowMs });
   }
-  return noStoreHtml(renderEnableSppEarlyAccess());
+  return noStoreHtml(renderEnableSppApprovalRequired());
 }
 
 export async function handleEnableSppGet(req, env) {
