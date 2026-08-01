@@ -14,7 +14,7 @@ paste this prompt into claude code, codex cli, gemini cli, or similar: `install 
 
 **install the native app**
 
-[download for macOS](https://solstone.app/download/macos) — signed by sol pbc, notarized by Apple. sets up sol and your journal on this Mac, opens the first-run wizard, and updates over a signed channel.
+[download for macOS](https://solstone.app/download/macos) — for Apple Silicon Macs; Intel Macs aren't supported. signed by sol pbc, notarized by Apple. sets up sol and your journal on this Mac, opens the first-run wizard, and updates over a signed channel.
 
 building from source? use the developer path in [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md).
 
