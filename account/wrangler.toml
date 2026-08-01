@@ -18,8 +18,8 @@ database_name = "account-portal"
 database_id = "5ab8e5a8-685c-4f20-9169-047d2778fa73"
 migrations_dir = "migrations"
 
-# Replace this placeholder with the real namespace id from
-# `wrangler kv namespace create GCP_TOKEN_CACHE` during deploy provisioning.
+# Deliberate misnomer: GCP_TOKEN_CACHE now caches only Apple APNs JWTs.
+# Renaming the binding would break push dispatch.
 [[kv_namespaces]]
 binding = "GCP_TOKEN_CACHE"
 id = "9707e650b35847f5aaf180ae0164e90b"
@@ -55,10 +55,6 @@ service = "spl-relay"
 # APNS_BUNDLE_ID — App bundle id used as apns-topic (e.g. app.solstone.swift).
 # APNS_ENV — APNs environment: "production" or "sandbox".
 # REACH_RELAY_TOKEN_SECRET — HS256 signing secret for minted 24h reach relay tokens (POST /reach/push/relay-token).
-#
-# Optional Scout Gemini key project override:
-# SCOUT_GCP_PROJECT — GCP project id for newly provisioned Scout API keys.
-# Leave unset to use the service account project_id.
 #
 # Stripe billing secrets (set via `wrangler secret put`):
 # STRIPE_SECRET_KEY — Stripe restricted secret key for Checkout, Portal, and subscription reads.
@@ -98,7 +94,6 @@ TURNSTILE_SITE_KEY = "0x4AAAAAADPn7-wnLZnFjshK"
 CF_ACCESS_AUD = "a48343311f9157cfb056e5aa70878dc8aab4962769a8e1743486b6a884054104"
 EMAIL_PATH_DISABLED = "false"
 SIGNUP_DISABLED = "false"
-SCOUT_GCP_PROJECT = "solstone-scouts"
 STRIPE_PRICE_ANNUAL = "price_1TjnJB3ew4P2jFrx820NPkX4"
 STRIPE_PRICE_MONTHLY = "price_1TjnJC3ew4P2jFrxANwt3ya8"
 STRIPE_PRICE_SPB_ANNUAL = "price_1TlGmO3ew4P2jFrxThHBPMB7"

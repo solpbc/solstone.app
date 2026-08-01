@@ -565,7 +565,7 @@ export async function getRateBucketCount(db, key, windowMs, nowMs) {
   return row.count;
 }
 
-// --- Service handoffs + Provisioning ---
+// --- Service handoffs ---
 
 export async function insertServiceHandoff(db, {
   handoffHash,
@@ -591,7 +591,7 @@ export async function insertServiceHandoff(db, {
   }
 }
 
-export async function consumeServiceHandoff(db, { handoffHash, nowMs, service = 'scout' }) {
+export async function consumeServiceHandoff(db, { handoffHash, nowMs, service }) {
   const row = await db
     .prepare(
       `UPDATE service_handoffs
@@ -607,7 +607,7 @@ export async function consumeServiceHandoff(db, { handoffHash, nowMs, service = 
   return row || null;
 }
 
-export async function findServiceHandoffStatus(db, { handoffHash, service = 'scout' }) {
+export async function findServiceHandoffStatus(db, { handoffHash, service }) {
   const row = await db
     .prepare(
       `SELECT account_id, expires_at, consumed_at
@@ -618,192 +618,6 @@ export async function findServiceHandoffStatus(db, { handoffHash, service = 'sco
     .bind(handoffHash, service)
     .first();
   return row || null;
-}
-
-export async function findActiveProvisionedKey(db, { accountId, provider }) {
-  const row = await db
-    .prepare(
-      `SELECT id, account_id, provider, display_name, key_resource_name,
-              key_string_encrypted, created_at, last_used_at, revoked_at
-       FROM provisioned_keys
-       WHERE account_id = ? AND provider = ? AND revoked_at IS NULL`
-    )
-    .bind(accountId, provider)
-    .first();
-  return row || null;
-}
-
-export async function hasActiveProvisionedKeyMaterial(db, { accountId, provider }) {
-  // Keep this predicate in lockstep with the active_key EXISTS predicate in listScoutApplications.
-  const row = await db
-    .prepare(
-      `SELECT EXISTS (
-         SELECT 1 FROM provisioned_keys
-         WHERE account_id = ?
-           AND provider = ?
-           AND revoked_at IS NULL
-           AND key_string_encrypted != ''
-       ) AS has_key`
-    )
-    .bind(accountId, provider)
-    .first();
-  return Boolean(row.has_key);
-}
-
-export async function listProvisionedKeysAudit(db, { accountId, provider }) {
-  const { results } = await db
-    .prepare(
-      `SELECT id, account_id, provider, display_name, key_resource_name,
-              key_string_encrypted, created_at, last_used_at,
-              last_used_fetched_at, revoked_at
-       FROM provisioned_keys
-       WHERE account_id = ? AND provider = ?
-       ORDER BY created_at DESC, id DESC`
-    )
-    .bind(accountId, provider)
-    .all();
-  return results || [];
-}
-
-export async function insertProvisioningPlaceholder(db, { id, accountId, provider, displayName, nowMs }) {
-  await db
-    .prepare(
-      `INSERT INTO provisioned_keys (
-         id, account_id, provider, display_name, key_resource_name,
-         key_string_encrypted, created_at
-       ) VALUES (?, ?, ?, ?, '', '', ?)`
-    )
-    .bind(id, accountId, provider, displayName, nowMs)
-    .run();
-}
-
-export async function claimAbandonedProvisioningPlaceholder(db, {
-  id,
-  accountId,
-  provider,
-  nowMs,
-  abandonedBeforeMs,
-}) {
-  const row = await db
-    .prepare(
-      `UPDATE provisioned_keys
-       SET created_at = ?
-       WHERE id = ?
-         AND account_id = ?
-         AND provider = ?
-         AND created_at < ?
-         AND revoked_at IS NULL
-         AND key_string_encrypted = ''
-       RETURNING id, display_name`
-    )
-    .bind(nowMs, id, accountId, provider, abandonedBeforeMs)
-    .first();
-  return row || null;
-}
-
-export async function updateProvisionedKeyMaterial(db, { id, keyResourceName, keyStringEncrypted, nowMs }) {
-  await db
-    .prepare(
-      `UPDATE provisioned_keys
-       SET key_resource_name = ?,
-           key_string_encrypted = ?,
-           last_used_at = ?
-       WHERE id = ? AND revoked_at IS NULL`
-    )
-    .bind(keyResourceName, keyStringEncrypted, nowMs, id)
-    .run();
-}
-
-export async function updateProvisionedKeyGcpLastUse(db, { id, accountId, lastUsedAt = null, fetchedAt }) {
-  await db
-    .prepare(
-      `UPDATE provisioned_keys
-       SET last_used_at = COALESCE(?, last_used_at),
-           last_used_fetched_at = ?
-       WHERE id = ? AND account_id = ? AND revoked_at IS NULL`
-    )
-    .bind(lastUsedAt, fetchedAt, id, accountId)
-    .run();
-}
-
-export async function deleteProvisioningPlaceholder(db, { id }) {
-  await db
-    .prepare("DELETE FROM provisioned_keys WHERE id = ? AND key_string_encrypted = ''")
-    .bind(id)
-    .run();
-}
-
-export async function touchProvisionedKeyLastUsed(db, { id, nowMs }) {
-  await db
-    .prepare('UPDATE provisioned_keys SET last_used_at = ? WHERE id = ? AND revoked_at IS NULL')
-    .bind(nowMs, id)
-    .run();
-}
-
-export async function rotateGeminiBatch(db, { accountId, oldKeyId, newRow, nowMs }) {
-  let results;
-  try {
-    results = await db.batch([
-      db
-        .prepare(
-          `UPDATE provisioned_keys
-           SET revoked_at = ?
-           WHERE id = ?
-             AND account_id = ?
-             AND provider = 'gemini'
-             AND revoked_at IS NULL
-           RETURNING id, account_id, provider, display_name, key_resource_name,
-                     key_string_encrypted, created_at, last_used_at,
-                     last_used_fetched_at, revoked_at`
-        )
-        .bind(nowMs, oldKeyId, accountId),
-      db
-        .prepare(
-          `INSERT INTO provisioned_keys (
-             id, account_id, provider, display_name, key_resource_name,
-             key_string_encrypted, created_at, last_used_at, last_used_fetched_at
-           )
-           SELECT ?, ?, 'gemini', ?, ?, ?, ?, ?, ?
-           WHERE changes() = 1
-           RETURNING id, account_id, provider, display_name, key_resource_name,
-                     key_string_encrypted, created_at, last_used_at,
-                     last_used_fetched_at, revoked_at`
-        )
-        .bind(
-          newRow.id,
-          accountId,
-          newRow.displayName,
-          newRow.keyResourceName,
-          newRow.keyStringEncrypted,
-          newRow.createdAt,
-          newRow.lastUsedAt ?? null,
-          newRow.lastUsedFetchedAt ?? null
-        ),
-    ]);
-  } catch (error) {
-    if (isActiveProvisionedKeyUniqueViolation(error)) return { ok: false, reason: 'conflict', oldRow: null, newRow: null };
-    throw error;
-  }
-  const oldRow = results?.[0]?.results?.[0] || null;
-  const insertedRow = results?.[1]?.results?.[0] || null;
-  if (!insertedRow) return { ok: false, reason: 'conflict', oldRow, newRow: null };
-  return { ok: true, oldRow, newRow: insertedRow };
-}
-
-export async function revokeProvisionedKey(db, { accountId, keyId, nowMs }) {
-  const result = await db
-    .prepare('UPDATE provisioned_keys SET revoked_at = ? WHERE account_id = ? AND id = ? AND revoked_at IS NULL')
-    .bind(nowMs, accountId, keyId)
-    .run();
-  return (result?.meta?.changes || 0) === 1;
-}
-
-export async function deleteRevokedProvisionedKey(db, { accountId, keyId }) {
-  const result = await db
-    .prepare('DELETE FROM provisioned_keys WHERE account_id = ? AND id = ? AND revoked_at IS NOT NULL')
-    .bind(accountId, keyId)
-    .run();
-  return (result?.meta?.changes || 0) === 1;
 }
 
 // --- Scout applications ---
@@ -835,12 +649,7 @@ export async function getScoutApplicationStatusByAccount(db, { accountId }) {
 
 export async function listScoutApplications(db, { status }) {
   const sql = `SELECT sa.account_id, sa.status, sa.applied_at, sa.approved_at, sa.revoked_at,
-                      pe.address_encrypted AS primary_address_encrypted,
-                      EXISTS (SELECT 1 FROM provisioned_keys pk
-                               WHERE pk.account_id = sa.account_id
-                                 AND pk.provider = 'gemini'
-                                 AND pk.revoked_at IS NULL
-                                 AND pk.key_string_encrypted != '') AS active_key
+                      pe.address_encrypted AS primary_address_encrypted
                FROM scout_applications sa
                LEFT JOIN accounts a ON a.id = sa.account_id
                LEFT JOIN account_emails pe ON pe.id = a.primary_email_id AND pe.account_id = a.id
@@ -1411,11 +1220,6 @@ export async function insertSpbSweepAudit(db, {
 
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
-}
-
-function isActiveProvisionedKeyUniqueViolation(error) {
-  return typeof error?.message === 'string'
-    && error.message.includes('UNIQUE constraint failed: provisioned_keys.account_id, provisioned_keys.provider');
 }
 
 // --- passkey helpers ---

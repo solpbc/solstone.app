@@ -1,18 +1,13 @@
 import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { encryptEmail } from '../src/crypto.js';
 import {
-  renderEnableScoutDone,
-  renderEnableScoutError,
-  renderEnableScoutPendingDone,
-  renderEnableScoutRevokedDone,
+  renderEnableScout,
   renderServicesScout,
 } from '../src/html.js';
 import {
   TEST_CSRF,
   emailAddRequest,
-  installGcpFetchMock,
   makeSupportWorker,
   makeTestEnv,
   resetDb,
@@ -25,8 +20,6 @@ import {
   startRequest,
   stubTurnstile,
 } from './helpers.js';
-
-const VALID_ENABLE_NONCE = '2'.repeat(52);
 
 const FORBIDDEN_PHRASES = [
   'your account',
@@ -119,28 +112,10 @@ describe('brand canon', () => {
       }),
     });
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
-    installGcpFetchMock({
-      'POST oauth2.googleapis.com/token': async () => json({ access_token: 'token', expires_in: 3600, token_type: 'Bearer' }),
-      'GET apikeys.googleapis.com/v2/projects/test-gcp-project/locations/global/keys': async () => json({
-        keys: [{
-          name: 'projects/test-gcp-project/locations/global/keys/scout-active',
-          displayName: 'scout-active',
-          lastUseTime: '2026-05-24T00:00:00Z',
-        }],
-      }),
-    });
-
     const withPasskey = await seedAccount({ email: 'canon@example.com', testEnv });
     const withPasskeySession = await seedSession(withPasskey.accountId, { testEnv });
     await seedCredential({ accountId: withPasskey.accountId, credentialId: 'canon-passkey' });
     await seedDevice({ accountId: withPasskey.accountId, deviceId: 'canon-device' });
-    await seedProvisionedKey({
-      testEnv,
-      accountId: withPasskey.accountId,
-      displayName: 'scout-active',
-      keyResourceName: 'projects/test-gcp-project/locations/global/keys/scout-active',
-      keyString: 'canon-scout-key',
-    });
 
     const noPasskey = await seedAccount({ email: 'welcome@example.com', testEnv });
     const noPasskeySession = await seedSession(noPasskey.accountId, { testEnv });
@@ -167,22 +142,6 @@ describe('brand canon', () => {
     });
     const sppEmpty = await seedAccount({ email: 'spp-empty@example.com', testEnv });
     const sppEmptySession = await seedSession(sppEmpty.accountId, { testEnv });
-    const activeKey = {
-      id: 'canon-active-key',
-      display_name: 'canon-active',
-      created_at: 1_000,
-      revoked_at: null,
-      last_used_at: null,
-      last_used_fetched_at: null,
-    };
-    const retiredKey = {
-      id: 'canon-retired-key',
-      display_name: 'canon-retired',
-      created_at: 500,
-      revoked_at: 2_000,
-      last_used_at: null,
-      last_used_fetched_at: null,
-    };
     const scoutArgs = { nowMs: 10_000, menu: {} };
 
     const surfaces = [
@@ -209,57 +168,30 @@ describe('brand canon', () => {
       ['support list', await get('/support', testEnv, withPasskeySession.cookie), true],
       ['support detail', await get('/support/REQ_CANON', testEnv, withPasskeySession.cookie), true],
       ['support not found', await get('/support/bad.id', testEnv, withPasskeySession.cookie), true],
-      ['enable scout consent', await get(`/enable/scout?nonce=${VALID_ENABLE_NONCE}`, testEnv, withPasskeySession.cookie), true],
-      ['enable scout done', htmlResponse(renderEnableScoutDone())],
-      ['enable scout pending', htmlResponse(renderEnableScoutPendingDone())],
-      ['enable scout revoked', htmlResponse(renderEnableScoutRevokedDone())],
-      ['enable scout error', htmlResponse(renderEnableScoutError({ message: 'that request could not be completed.' }))],
+      ['enable scout terminal', await get('/enable/scout', testEnv, withPasskeySession.cookie), true],
+      ['enable scout direct', htmlResponse(renderEnableScout())],
       ['scout revoked direct', htmlResponse(renderServicesScout({
         ...scoutArgs,
-        active: activeKey,
-        rows: [activeKey, retiredKey],
         application: { status: 'revoked' },
       }))],
-      ['scout active approved direct', htmlResponse(renderServicesScout({
+      ['scout approved direct', htmlResponse(renderServicesScout({
         ...scoutArgs,
-        active: activeKey,
-        rows: [activeKey, retiredKey],
         application: { status: 'approved', data_acked_at: 1_000 },
-        flash: { rotated: 'ok', forget: 'ok', disable: 'ok' },
-      }))],
-      ['scout active pending direct', htmlResponse(renderServicesScout({
-        ...scoutArgs,
-        active: activeKey,
-        rows: [activeKey, retiredKey],
-        application: { status: 'pending' },
-        flash: { rotated: 'conflict', disable: 'none' },
-      }))],
-      ['scout active without application direct', htmlResponse(renderServicesScout({
-        ...scoutArgs,
-        active: activeKey,
-        rows: [activeKey, retiredKey],
-        flash: { rotated: 'no_active_key' },
-      }))],
-      ['scout approved unacknowledged direct', htmlResponse(renderServicesScout({
-        ...scoutArgs,
-        active: null,
-        rows: [retiredKey],
-        application: { status: 'approved', data_acked_at: null },
-        flash: { rotated: 'rotation_failed' },
-      }))],
-      ['scout approved acknowledged direct', htmlResponse(renderServicesScout({
-        ...scoutArgs,
-        active: null,
-        rows: [],
-        application: { status: 'approved', data_acked_at: 1_000 },
+        flash: { apply: 'acked' },
       }))],
       ['scout pending direct', htmlResponse(renderServicesScout({
         ...scoutArgs,
-        active: null,
-        rows: [],
-        application: { status: 'pending', applied_at: 1_000 },
+        application: { status: 'pending' },
       }))],
-      ['enable scout no-nonce error', await get('/enable/scout', testEnv)],
+      ['scout approved unacknowledged direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        application: { status: 'approved', data_acked_at: null },
+      }))],
+      ['scout approved acknowledged direct', htmlResponse(renderServicesScout({
+        ...scoutArgs,
+        application: { status: 'approved', data_acked_at: 1_000 },
+      }))],
+      ['scout no-application direct', htmlResponse(renderServicesScout(scoutArgs))],
       ['verify code', await get('/signin/verify', testEnv)],
       ['goodbye', await get('/goodbye', testEnv)],
       ['not found', await get('/not-found', testEnv)],
@@ -425,26 +357,6 @@ async function errorResponse() {
   } finally {
     error.mockRestore();
   }
-}
-
-async function seedProvisionedKey({
-  testEnv,
-  accountId,
-  id = crypto.randomUUID(),
-  displayName,
-  keyResourceName,
-  keyString,
-  createdAt = Date.now(),
-}) {
-  await testEnv.DB
-    .prepare(
-      `INSERT INTO provisioned_keys (
-         id, account_id, provider, display_name, key_resource_name,
-         key_string_encrypted, created_at
-       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?)`
-    )
-    .bind(id, accountId, displayName, keyResourceName, await encryptEmail(keyString, testEnv), createdAt)
-    .run();
 }
 
 function scanEmail(name, message) {

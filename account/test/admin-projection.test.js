@@ -68,68 +68,37 @@ describe('admin owner sign-in projection', () => {
       [revoked.accountId]: 'revoked',
     });
 
-    expect((await adminJson(`/admin/accounts/${absent.accountId}`, token, testEnv)).scout).toEqual({
+    const absentDetail = await adminJson(`/admin/accounts/${absent.accountId}`, token, testEnv);
+    const pendingDetail = await adminJson(`/admin/accounts/${pending.accountId}`, token, testEnv);
+    const approvedDetail = await adminJson(`/admin/accounts/${approved.accountId}`, token, testEnv);
+    const revokedDetail = await adminJson(`/admin/accounts/${revoked.accountId}`, token, testEnv);
+    expect(absentDetail.scout).toEqual({
       status: 'absent',
       applied_at: null,
       approved_at: null,
       revoked_at: null,
-      legacy_gemini_key: 'inactive',
     });
-    expect((await adminJson(`/admin/accounts/${pending.accountId}`, token, testEnv)).scout).toEqual({
+    expect(pendingDetail.scout).toEqual({
       status: 'pending',
       applied_at: new Date(10_000).toISOString(),
       approved_at: null,
       revoked_at: null,
-      legacy_gemini_key: 'inactive',
     });
-    expect((await adminJson(`/admin/accounts/${approved.accountId}`, token, testEnv)).scout).toEqual({
+    expect(approvedDetail.scout).toEqual({
       status: 'approved',
       applied_at: new Date(20_000).toISOString(),
       approved_at: new Date(21_000).toISOString(),
       revoked_at: null,
-      legacy_gemini_key: 'inactive',
     });
-    expect((await adminJson(`/admin/accounts/${revoked.accountId}`, token, testEnv)).scout).toEqual({
+    expect(revokedDetail.scout).toEqual({
       status: 'revoked',
       applied_at: new Date(30_000).toISOString(),
       approved_at: new Date(31_000).toISOString(),
       revoked_at: new Date(32_000).toISOString(),
-      legacy_gemini_key: 'inactive',
     });
-  });
-
-  it('projects legacy key material independently from scout status', async () => {
-    const testEnv = makeTestEnv();
-    const token = await mintToken();
-    const real = await seedAccount({ email: 'key-real@example.com', testEnv });
-    const placeholder = await seedAccount({ email: 'key-placeholder@example.com', testEnv });
-    const revoked = await seedAccount({ email: 'key-revoked@example.com', testEnv });
-    const none = await seedAccount({ email: 'key-none@example.com', testEnv });
-    const replaced = await seedAccount({ email: 'key-replaced@example.com', testEnv });
-    const reprovisioning = await seedAccount({ email: 'key-reprovisioning@example.com', testEnv });
-
-    await seedProvisionedKey({ accountId: real.accountId, keyStringEncrypted: 'real-key' });
-    await seedProvisionedKey({ accountId: placeholder.accountId, keyStringEncrypted: '' });
-    await seedProvisionedKey({ accountId: revoked.accountId, keyStringEncrypted: 'revoked-key', revokedAt: 2_000 });
-    await seedProvisionedKey({ accountId: replaced.accountId, keyStringEncrypted: 'old-key', revokedAt: 3_000 });
-    await seedProvisionedKey({ accountId: replaced.accountId, keyStringEncrypted: 'new-key' });
-    await seedProvisionedKey({ accountId: reprovisioning.accountId, keyStringEncrypted: 'old-key', revokedAt: 4_000 });
-    await seedProvisionedKey({ accountId: reprovisioning.accountId, keyStringEncrypted: '' });
-
-    expect((await adminJson(`/admin/accounts/${real.accountId}`, token, testEnv)).scout).toMatchObject({
-      status: 'absent',
-      legacy_gemini_key: 'active',
-    });
-    expect((await adminJson(`/admin/accounts/${placeholder.accountId}`, token, testEnv)).scout.legacy_gemini_key)
-      .toBe('inactive');
-    expect((await adminJson(`/admin/accounts/${revoked.accountId}`, token, testEnv)).scout.legacy_gemini_key)
-      .toBe('inactive');
-    expect((await adminJson(`/admin/accounts/${none.accountId}`, token, testEnv)).scout.legacy_gemini_key)
-      .toBe('inactive');
-    expect((await adminJson(`/admin/accounts/${replaced.accountId}`, token, testEnv)).scout.legacy_gemini_key)
-      .toBe('active');
-    expect((await adminJson(`/admin/accounts/${reprovisioning.accountId}`, token, testEnv)).scout.legacy_gemini_key)
-      .toBe('inactive');
+    for (const detail of [absentDetail, pendingDetail, approvedDetail, revokedDetail]) {
+      expect(detail.scout).not.toHaveProperty('legacy_gemini_key');
+    }
   });
 
   it('returns all hosted services in exact order when no entitlements exist', async () => {
@@ -294,14 +263,6 @@ describe('admin owner sign-in projection', () => {
     );
   });
 
-  it('returns projection-unavailable when the detail legacy-key lookup fails', async () => {
-    const account = await seedAccount({ email: 'fault-key@example.com', testEnv: makeTestEnv() });
-    await expectProjectionUnavailable(
-      `/admin/accounts/${account.accountId}`,
-      (sql) => /FROM provisioned_keys/i.test(sql)
-    );
-  });
-
   it('returns projection-unavailable when the detail entitlement lookup fails', async () => {
     const account = await seedAccount({ email: 'fault-entitlement@example.com', testEnv: makeTestEnv() });
     await expectProjectionUnavailable(
@@ -407,7 +368,7 @@ describe('admin owner sign-in projection', () => {
     });
   });
 
-  it('does not expose sensitive scout, key, or entitlement fields', async () => {
+  it('does not expose sensitive scout or entitlement fields', async () => {
     const testEnv = makeTestEnv();
     const token = await mintToken();
     const account = await seedAccount({ email: 'sensitive@example.com', testEnv });
@@ -416,10 +377,6 @@ describe('admin owner sign-in projection', () => {
       .prepare('UPDATE scout_applications SET use_case = ?, data_acked_at = ? WHERE account_id = ?')
       .bind('SENSITIVE_USE_CASE', 123, account.accountId)
       .run();
-    const key = await seedProvisionedKey({
-      accountId: account.accountId,
-      keyStringEncrypted: 'SECRET_KEY_MATERIAL',
-    });
     await seedEntitlement({
       accountId: account.accountId,
       service: 'spl_hosted',
@@ -433,22 +390,19 @@ describe('admin owner sign-in projection', () => {
     expect(response.status).toBe(200);
     for (const value of [
       'SENSITIVE_USE_CASE',
-      'SECRET_KEY_MATERIAL',
-      key.keyResourceName,
       'sub_seeded',
       'use_case',
       'data_acked_at',
       'source_ref',
       'current_period_end',
       'enabled_at',
-      'key_resource_name',
-      'key_string_encrypted',
     ]) {
       expect(text).not.toContain(value);
     }
+    expect(JSON.parse(text).scout).not.toHaveProperty('legacy_gemini_key');
   });
 
-  it('leaves scout, key, and entitlement records unchanged during detail reads', async () => {
+  it('leaves scout and entitlement records unchanged during detail reads', async () => {
     const testEnv = makeTestEnv();
     const token = await mintToken();
     const account = await seedAccount({ email: 'read-only@example.com', testEnv });
@@ -459,7 +413,6 @@ describe('admin owner sign-in projection', () => {
       approved_at: 2_000,
       createdAt: 1_000,
     });
-    const key = await seedProvisionedKey({ accountId: account.accountId, keyStringEncrypted: 'read-only-key' });
     await seedEntitlement({
       accountId: account.accountId,
       service: 'spl_hosted',
@@ -467,11 +420,11 @@ describe('admin owner sign-in projection', () => {
       source: 'comp',
       updatedAt: 3_000,
     });
-    const before = await projectionDbState(account.accountId, key.id);
+    const before = await projectionDbState(account.accountId);
 
     await adminJson(`/admin/accounts/${account.accountId}`, token, testEnv);
 
-    expect(await projectionDbState(account.accountId, key.id)).toEqual(before);
+    expect(await projectionDbState(account.accountId)).toEqual(before);
   });
 });
 
@@ -525,43 +478,14 @@ async function adminJson(path, token, testEnv) {
   return response.json();
 }
 
-async function seedProvisionedKey({
-  accountId,
-  keyStringEncrypted,
-  revokedAt = null,
-}) {
-  const id = crypto.randomUUID();
-  const keyResourceName = `projects/test/locations/global/keys/${id}`;
-  await workerEnv.DB
-    .prepare(
-      `INSERT INTO provisioned_keys (
-         id, account_id, provider, display_name, key_resource_name,
-         key_string_encrypted, created_at, revoked_at
-       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      id,
-      accountId,
-      `display-${id}`,
-      keyResourceName,
-      keyStringEncrypted,
-      1_000,
-      revokedAt
-    )
-    .run();
-  return { id, keyResourceName };
-}
-
-async function projectionDbState(accountId, keyId) {
-  const [applications, keys, entitlements, application, key, entitlement] = await Promise.all([
+async function projectionDbState(accountId) {
+  const [applications, entitlements, application, entitlement] = await Promise.all([
     workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM scout_applications WHERE account_id = ?').bind(accountId).first(),
-    workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM provisioned_keys WHERE account_id = ?').bind(accountId).first(),
     workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM entitlements WHERE account_id = ?').bind(accountId).first(),
     workerEnv.DB.prepare('SELECT updated_at FROM scout_applications WHERE account_id = ?').bind(accountId).first(),
-    workerEnv.DB.prepare('SELECT created_at, last_used_at, revoked_at FROM provisioned_keys WHERE id = ?').bind(keyId).first(),
     workerEnv.DB.prepare('SELECT updated_at FROM entitlements WHERE account_id = ? AND service = ?')
       .bind(accountId, 'spl_hosted')
       .first(),
   ]);
-  return { applications, keys, entitlements, application, key, entitlement };
+  return { applications, entitlements, application, entitlement };
 }

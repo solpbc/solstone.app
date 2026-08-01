@@ -79,7 +79,7 @@ describe('admin scout endpoints', () => {
     );
   });
 
-  it('lists scout applications with status filter, primary email, timestamps, and active_key', async () => {
+  it('lists scout applications with status filter, primary email, timestamps, and no removed key field', async () => {
     const token = await mintToken();
     const testEnv = makeTestEnv();
     const active = await seedAccount({ email: 'active@example.com', nowMs: 1_000, testEnv });
@@ -104,10 +104,6 @@ describe('admin scout endpoints', () => {
       revoked_at: 6_000,
       createdAt: 30_000,
     });
-    await seedProvisionedKey({ accountId: active.accountId, keyStringEncrypted: 'non-empty-key' });
-    await seedProvisionedKey({ accountId: placeholder.accountId, keyStringEncrypted: '' });
-    await seedProvisionedKey({ accountId: revoked.accountId, keyStringEncrypted: 'revoked-key', revokedAt: 7_000 });
-
     const response = await worker.fetch(adminRequest('/admin/scouts', token), testEnv);
     const body = await response.json();
 
@@ -120,7 +116,6 @@ describe('admin scout endpoints', () => {
       applied_at: null,
       approved_at: new Date(4_000).toISOString(),
       revoked_at: null,
-      active_key: true,
     });
     expect(body.scouts.find((row) => row.account_id === placeholder.accountId)).toMatchObject({
       primary_email: 'placeholder@example.com',
@@ -128,14 +123,13 @@ describe('admin scout endpoints', () => {
       applied_at: new Date(5_000).toISOString(),
       approved_at: null,
       revoked_at: null,
-      active_key: false,
     });
     expect(body.scouts.find((row) => row.account_id === revoked.accountId)).toMatchObject({
       primary_email: 'revoked@example.com',
       status: 'revoked',
       revoked_at: new Date(6_000).toISOString(),
-      active_key: false,
     });
+    for (const scout of body.scouts) expect(scout).not.toHaveProperty('active_key');
 
     const filtered = await worker.fetch(adminRequest('/admin/scouts?status=approved', token), testEnv);
     const filteredBody = await filtered.json();
@@ -165,7 +159,7 @@ describe('admin scout endpoints', () => {
     });
   });
 
-  it('approves pending applications and preserves approved/revoked semantics without touching keys or GCP', async () => {
+  it('approves pending applications and preserves approved/revoked semantics', async () => {
     const token = await mintToken();
     const testEnv = makeTestEnv();
     const pending = await seedAccount({ email: 'pending@example.com', nowMs: 1_000, testEnv });
@@ -176,7 +170,6 @@ describe('admin scout endpoints', () => {
     await seedScoutApplication({ accountId: revoked.accountId, status: 'revoked', revoked_at: 6_000 });
     const approvedBefore = await applicationRow(approved.accountId);
     const revokedBefore = await applicationRow(revoked.accountId);
-    const keyCountBefore = await rowCount('provisioned_keys');
 
     const pendingResponse = await worker.fetch(
       adminRequest(`/admin/scouts/${pending.accountId}/approve`, token, { method: 'POST' }),
@@ -212,8 +205,6 @@ describe('admin scout endpoints', () => {
       404,
       'scout application not found'
     );
-    await expect(rowCount('provisioned_keys')).resolves.toBe(keyCountBefore);
-    expectNoGoogleFetches();
   });
 
   it('approves a scout with an spl binding, writes comp entitlement, and pushes relay grant', async () => {
@@ -253,14 +244,13 @@ describe('admin scout endpoints', () => {
     });
   });
 
-  it('revokes pending and approved applications without touching keys or GCP', async () => {
+  it('revokes pending and approved applications', async () => {
     const token = await mintToken();
     const testEnv = makeTestEnv();
     const pending = await seedAccount({ email: 'pending-revoke@example.com', nowMs: 1_000, testEnv });
     const approved = await seedAccount({ email: 'approved-revoke@example.com', nowMs: 2_000, testEnv });
     await seedScoutApplication({ accountId: pending.accountId, status: 'pending', applied_at: 3_000 });
     await seedScoutApplication({ accountId: approved.accountId, status: 'approved', approved_at: 4_000 });
-    const keyCountBefore = await rowCount('provisioned_keys');
 
     const pendingResponse = await worker.fetch(
       adminRequest(`/admin/scouts/${pending.accountId}/revoke`, token, { method: 'POST' }),
@@ -296,8 +286,6 @@ describe('admin scout endpoints', () => {
       404,
       'scout application not found'
     );
-    await expect(rowCount('provisioned_keys')).resolves.toBe(keyCountBefore);
-    expectNoGoogleFetches();
   });
 
   it('revokes a comp-only scout, lapses entitlement, and pushes zero relay grant', async () => {
@@ -350,90 +338,6 @@ describe('admin scout endpoints', () => {
       instance_id: '11111111-1111-1111-1111-111111111111',
       entitled_until: 0,
     });
-  });
-
-  it('revokes an approved scout and turns off its active Gemini key', async () => {
-    const token = await mintToken();
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'approved-active-key@example.com', nowMs: 1_000, testEnv });
-    await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 2_000 });
-    const seededKey = await seedProvisionedKey({
-      accountId: account.accountId,
-      keyStringEncrypted: 'active-key',
-      revokedAt: null,
-    });
-    const deleted = [];
-    await installJwksStubWith(async (input, init = {}) => {
-      const href = typeof input === 'string' ? input : input.url;
-      const url = new URL(href);
-      const method = (init.method || 'GET').toUpperCase();
-      if (method === 'POST' && url.host === 'oauth2.googleapis.com' && url.pathname === '/token') {
-        return jsonResponse({
-          access_token: 'gcp-access-token',
-          expires_in: 3600,
-          token_type: 'Bearer',
-        });
-      }
-      if (
-        method === 'DELETE' &&
-        url.host === 'apikeys.googleapis.com' &&
-        url.pathname === `/v2/${seededKey.keyResourceName}`
-      ) {
-        deleted.push(seededKey.keyResourceName);
-        return new Response('');
-      }
-      return null;
-    });
-    installImmediateTimeout();
-    const ctx = createExecutionContext();
-    const waitSpy = vi.spyOn(ctx, 'waitUntil');
-
-    const response = await worker.fetch(
-      adminRequest(`/admin/scouts/${account.accountId}/revoke`, token, { method: 'POST' }),
-      testEnv,
-      ctx
-    );
-    await waitOnExecutionContext(ctx);
-    const application = await applicationRow(account.accountId);
-    const keyRow = await provisionedKeyRow(seededKey.id);
-
-    expect(response.status).toBe(200);
-    await expectScoutStatusResponse(response, account.accountId, 'revoked', true);
-    expect(application.status).toBe('revoked');
-    expect(keyRow.revoked_at).toBeGreaterThan(0);
-    // Gemini delete and entitlement relay sync both schedule work.
-    expect(waitSpy).toHaveBeenCalledTimes(2);
-    expect(deleted).toEqual([seededKey.keyResourceName]);
-  });
-
-  it('revokes an approved scout whose key is already revoked without scheduling a GCP delete', async () => {
-    const token = await mintToken();
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'approved-revoked-key@example.com', nowMs: 1_000, testEnv });
-    await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 2_000 });
-    await seedProvisionedKey({
-      accountId: account.accountId,
-      keyStringEncrypted: 'already-revoked-key',
-      revokedAt: 3_000,
-    });
-    await installJwksStubWith();
-    const ctx = createExecutionContext();
-    const waitSpy = vi.spyOn(ctx, 'waitUntil');
-
-    const response = await worker.fetch(
-      adminRequest(`/admin/scouts/${account.accountId}/revoke`, token, { method: 'POST' }),
-      testEnv,
-      ctx
-    );
-    await waitOnExecutionContext(ctx);
-    const application = await applicationRow(account.accountId);
-
-    expect(response.status).toBe(200);
-    await expectScoutStatusResponse(response, account.accountId, 'revoked', true);
-    expect(application.status).toBe('revoked');
-    // Entitlement relay sync still runs; no Gemini delete is scheduled.
-    expect(waitSpy).toHaveBeenCalledTimes(1);
-    expectNoGoogleFetches();
   });
 
   it('pre-approves fresh emails with verified primary email and approved application', async () => {
@@ -601,33 +505,6 @@ async function expectScoutStatusResponse(response, accountId, status, committed)
   return body;
 }
 
-async function seedProvisionedKey({
-  accountId,
-  keyStringEncrypted,
-  revokedAt = null,
-}) {
-  const id = crypto.randomUUID();
-  const keyResourceName = `projects/test/locations/global/keys/${id}`;
-  await workerEnv.DB
-    .prepare(
-      `INSERT INTO provisioned_keys (
-         id, account_id, provider, display_name, key_resource_name,
-         key_string_encrypted, created_at, revoked_at
-       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      id,
-      accountId,
-      `display-${id}`,
-      keyResourceName,
-      keyStringEncrypted,
-      1_000,
-      revokedAt
-    )
-    .run();
-  return { id, keyResourceName };
-}
-
 async function applicationRow(accountId) {
   return workerEnv.DB
     .prepare(
@@ -654,13 +531,6 @@ async function spbBindingRow(accountId) {
     .first();
 }
 
-async function provisionedKeyRow(id) {
-  return workerEnv.DB
-    .prepare('SELECT id, key_resource_name, revoked_at FROM provisioned_keys WHERE id = ?')
-    .bind(id)
-    .first();
-}
-
 async function emailByHash(addressLowerHash) {
   return workerEnv.DB
     .prepare(
@@ -681,23 +551,6 @@ function preApprove(token, email, testEnv) {
     }),
     testEnv
   );
-}
-
-function expectNoGoogleFetches() {
-  const calls = globalThis.fetch?.mock?.calls || [];
-  const googleCall = calls.find(([input]) => {
-    const href = typeof input === 'string' ? input : input.url;
-    const host = new URL(href).host;
-    return host.includes('googleapis.com');
-  });
-  expect(googleCall).toBeUndefined();
-}
-
-function installImmediateTimeout() {
-  return vi.spyOn(globalThis, 'setTimeout').mockImplementation((callback) => {
-    callback();
-    return 1;
-  });
 }
 
 async function installJwksRelayRecorder() {

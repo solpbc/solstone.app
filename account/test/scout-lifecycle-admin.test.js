@@ -267,7 +267,7 @@ describe('admin Scout lifecycle contracts', () => {
     const response = await worker.fetch(adminRequest(`/admin/scouts/${account.accountId}/revoke`, token, {
       method: 'POST',
       body: { reason_code: 'owner_request' },
-    }), failOnPrepare(testEnv, /FROM entitlements|FROM provisioned_keys/i));
+    }), failOnPrepare(testEnv, /FROM entitlements/i));
 
     await expectStatusResponse(response, account.accountId, 'revoked', false);
     await expect(applicationRow(account.accountId)).resolves.toEqual(before);
@@ -347,17 +347,16 @@ describe('admin Scout lifecycle contracts', () => {
     await expect(applicationRow(account.accountId)).resolves.toMatchObject({ status: 'approved' });
   });
 
-  it('keeps one revoke event when key disable fails and retry performs no downstream work', async () => {
+  it('keeps one revoke event when entitlement reconciliation fails and retry performs no downstream work', async () => {
     const token = await mintToken();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 1_000 });
-    const keyId = await seedActiveProvisionedKey(account.accountId);
 
     const response = await worker.fetch(adminRequest(`/admin/scouts/${account.accountId}/revoke`, token, {
       method: 'POST',
       body: { reason_code: 'security_response' },
-    }), failOnPrepare(testEnv, /UPDATE provisioned_keys SET revoked_at/i));
+    }), failOnPrepare(testEnv, /FROM entitlements/i));
     const event = await eventRow(account.accountId, 1);
 
     expect(response.status).toBe(500);
@@ -369,17 +368,15 @@ describe('admin Scout lifecycle contracts', () => {
     }));
     expect(event.action).toBe('revoke');
     await expect(applicationRow(account.accountId)).resolves.toMatchObject({ status: 'revoked' });
-    await expect(provisionedKeyRow(keyId)).resolves.toMatchObject({ revoked_at: null });
 
     const retry = await worker.fetch(adminRequest(`/admin/scouts/${account.accountId}/revoke`, token, {
       method: 'POST',
       body: { reason_code: 'security_response' },
-    }), failOnPrepare(testEnv, /FROM entitlements|FROM provisioned_keys|UPDATE provisioned_keys/i));
+    }), failOnPrepare(testEnv, /FROM entitlements/i));
 
     await expectStatusResponse(retry, account.accountId, 'revoked', false);
     await expect(eventRows(account.accountId)).resolves.toHaveLength(1);
     await expect(applicationRow(account.accountId)).resolves.toMatchObject({ status: 'revoked' });
-    await expect(provisionedKeyRow(keyId)).resolves.toMatchObject({ revoked_at: null });
   });
 
   it('reports a synchronous downstream failure truthfully on an idempotent no-op', async () => {
@@ -498,27 +495,6 @@ async function eventRows(accountId) {
     .bind(accountId)
     .all();
   return results;
-}
-
-async function seedActiveProvisionedKey(accountId) {
-  const keyId = crypto.randomUUID();
-  await workerEnv.DB
-    .prepare(
-      `INSERT INTO provisioned_keys (
-         id, account_id, provider, display_name, key_resource_name,
-         key_string_encrypted, created_at, revoked_at
-       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?, NULL)`
-    )
-    .bind(keyId, accountId, `display-${keyId}`, `projects/test/keys/${keyId}`, 'encrypted-key', 1_000)
-    .run();
-  return keyId;
-}
-
-async function provisionedKeyRow(keyId) {
-  return workerEnv.DB
-    .prepare('SELECT id, revoked_at FROM provisioned_keys WHERE id = ?')
-    .bind(keyId)
-    .first();
 }
 
 function failOnPrepare(testEnv, pattern) {

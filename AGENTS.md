@@ -29,9 +29,9 @@ state and sits on sol pbc's money path. Treat it accordingly.
 
 **What it does:** email-OTP + passkey (WebAuthn) sign-in, sessions, multi-email
 management, device registration + dispatch tokens, APNs push, Stripe billing,
-SPL/SPB entitlement grants pushed to the relay, Gemini key provisioning for
-scouts, an R2 credential broker (SPB), a support-portal proxy, and a
-CF-Access-gated `/admin/*` surface. Cron (`0 */6 * * *`) runs retention.
+SPL/SPB entitlement grants pushed to the relay, an R2 credential broker (SPB),
+a support-portal proxy, and a CF-Access-gated `/admin/*` surface. Cron
+(`0 */6 * * *`) runs retention.
 
 **Module map (`account/src/`):**
 
@@ -44,7 +44,6 @@ CF-Access-gated `/admin/*` surface. Cron (`0 */6 * * *`) runs retention.
 | `session.js`, `passkey.js`, `email.js`, `emails.js` | Auth + identity + email lifecycle. |
 | `enable.js`, `devices.js`, `push.js`, `reach.js` | Service enablement (push/scout/SPL/SPB handoffs), device + dispatch-token + APNs flows. |
 | `billing.js`, `spb-billing.js`, `stripe.js`, `relay-grant.js`, `spb-entitlement.js`, `spb-broker.js` | The money path — Stripe checkout/portal/webhook, entitlement grants to `spl-relay`, the R2 credential broker. |
-| `provisioning.js`, `gcp.js`, `scout-migrate.js` | Gemini key provisioning + scout migration. |
 | `support.js` | Proxy to the internal support worker (service binding). |
 | `settings.js`, `html.js`, `assets.js`, `portal.css`, `inline/` | The signed-in experience layer (see `account/DESIGN.md`). |
 | `hub.js`, `retention.js` | Security-event sink to the internal operations hub; cron retention. |

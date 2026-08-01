@@ -27,7 +27,6 @@ export default defineWorkersConfig({
             ENCRYPTION_SECRET: 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=',
             HMAC_PEPPER: 'test-hmac-pepper',
             DISPATCH_TOKEN_PEPPER: 'test-dispatch-token-pepper',
-            GCP_SERVICE_ACCOUNT_JSON: '{}',
             TURNSTILE_SECRET: 'test-turnstile-secret',
             TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
             CF_ACCESS_AUD: 'test-cf-access-aud',

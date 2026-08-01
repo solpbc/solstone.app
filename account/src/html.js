@@ -178,89 +178,16 @@ export function renderError() {
   });
 }
 
-export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
+export function renderEnableScout() {
   return layout({
-    title: 'enable scout',
+    title: 'scout',
     body: `${brandbar()}
-<h1>enable scout</h1>
-<p class="lead">solstone on this device wants to enable scout for you. two things, and only these two:</p>
+<h1>scout</h1>
+<p class="lead">scout is the tester program. approved scouts can enable complimentary confidential processing from the journal and share feedback that helps shape solstone.</p>
 <div class="card">
-  <div class="grant">
-    <div class="n">1</div>
-    <div>
-      <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no entries, nothing sol has taken in alongside you. just: this is your device.</div>
-    </div>
-  </div>
-  <div class="grant">
-    <div class="n">2</div>
-    <div>
-      <div class="gt">enable scout</div>
-      <div class="gd">this request continues the scout program for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.</div>
-    </div>
-  </div>
-  <form method="post" action="/enable/scout/confirm">
-    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-    <input type="hidden" name="account_id" value="${escAttr(accountId)}">
-    <input type="hidden" name="nonce" value="${escAttr(nonce)}">
-    <p class="gd" style="margin:16px 0 12px">confidential processing is available to enable separately from your journal. if this sign-in is already approved for scout, the current setup also provides this device with the legacy Google Gemini key for this sign-in. questions using that key go directly to Google Gemini under Google's terms; sol pbc is not in the path. this does not turn on confidential processing.</p>
-    ${ackField('i understand')}
-    <label for="use-case">what would you like to use it for? (optional)</label>
-    <textarea id="use-case" name="use_case" maxlength="2000"></textarea>
-    <div class="btn-row" style="margin-top:20px">
-      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
-    </div>
-  </form>
-</div>
-<p class="disclosure">you can review scout in your services anytime. confidential processing stays off until you enable it from the journal.</p>`,
-  });
-}
-
-export function renderEnableScoutDone() {
-  return layout({
-    title: 'scout enabled',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} scout enabled</h2>
-  <p>scout is enabled for this sign-in. confidential processing is available to enable from the journal. the legacy Google Gemini key is ready for this device. nothing from your journal crossed to set it up. you can close this tab.</p>
-  <a class="btn secondary" href="/scout">manage scout</a>
-</div>`,
-  });
-}
-
-export function renderEnableScoutPendingDone() {
-  return layout({
-    title: 'scout request received',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} scout request received</h2>
-  <p>your scout request is under review. nothing was set up yet, and nothing from your journal crossed.</p>
-  <p>if this sign-in is approved, confidential processing will be available to enable from the journal.</p>
-  <a class="btn secondary" href="/">open your services</a>
-</div>`,
-  });
-}
-
-export function renderEnableScoutRevokedDone() {
-  return layout({
-    title: "scout isn't available",
-    body: `${brandbar()}
-<div class="card">
-  <h2>scout isn't available</h2>
-  <p>scout isn't available for this sign-in. this request did not set anything up.</p>
-</div>`,
-  });
-}
-
-export function renderEnableScoutError({ message }) {
-  return layout({
-    title: 'could not enable scout',
-    body: `${brandbar()}
-<div class="card">
-  <h1>could not enable scout</h1>
-  <p>${esc(message || 'that request could not be completed.')}</p>
-  <p>if you got here from solstone on your device, run the enable command again for a fresh link. otherwise, you can close this tab.</p>
+  <h2>continue with scout</h2>
+  <p>request scout access or review your scout status in your services.</p>
+  <p><a href="/scout">open scout</a></p>
 </div>`,
   });
 }
@@ -1297,56 +1224,8 @@ ${groupHtml}
   });
 }
 
-export function renderServicesScout({ active, rows = [], application, nowMs, flash = {}, menu }) {
+export function renderServicesScout({ application, nowMs, flash = {}, menu }) {
   const flashes = flashMessages(flash);
-  const activeControls = active
-    ? `<div class="btn-row" style="margin-top:16px">
-<form method="post" action="/scout/rotate">
-  <button class="btn secondary" type="submit">rotate key</button>
-</form>
-<form method="post" action="/scout/disable">
-  <button class="btn danger" type="submit">turn off</button>
-</form>
-</div>`
-    : '';
-  const keySection = active
-    ? `<p class="section-label">legacy Gemini key</p>
-<div class="group">
-  <div class="row" style="cursor:default">
-    ${IC_SCOUT_SVG}
-    <div class="body">
-      <div class="title">active key</div>
-      <div class="desc">last used ${esc(geminiLastUsedText(active, nowMs))} · set up ${esc(formatRelativeTime(active.created_at, nowMs))}</div>
-    </div>
-  </div>
-</div>
-${activeControls}`
-    : '';
-  const auditRows = rows.map((row) => {
-    const isActive = row.revoked_at == null;
-    const forget = isActive
-      ? ''
-      : `<div class="trail"><form method="post" action="/scout/forget">
-    <input type="hidden" name="key_id" value="${escAttr(row.id)}">
-    <button class="btn danger" type="submit">forget</button>
-  </form></div>`;
-    const pill = isActive
-      ? '<span class="pill on" style="margin-left:4px"><span class="dot"></span>active</span>'
-      : '<span class="pill off" style="margin-left:4px"><span class="dot"></span>rotated out</span>';
-    const retired = isActive ? '' : ` · retired ${esc(formatDate(row.revoked_at))}`;
-    return `<div class="row" style="cursor:default">
-  <div class="body">
-    <div class="title">${esc(row.display_name)} ${pill}</div>
-    <div class="desc">set up ${esc(formatDate(row.created_at))} · last used ${esc(geminiLastUsedText(row, nowMs))}${retired}</div>
-  </div>
-  ${forget}
-</div>`;
-  }).join('');
-  const historySection = rows.length > 0
-    ? `<p class="section-label">legacy Gemini key history</p>
-<div class="group">${auditRows}</div>
-<p class="disclosure">last-used is the usage detail shown here so you can audit the legacy key yourself. questions using this key go directly from your device to Google Gemini under Google's terms; sol pbc is not in the path.</p>`
-    : '';
   // the old standalone scouts program had a news feed and a feedback form;
   // the converged portal drops both, but their destinations live on, news →
   // the public release notes, feedback → support. give them a permanent home
@@ -1386,29 +1265,7 @@ ${scoutLinks}`,
   if (application?.status === 'revoked') {
     return page({
       statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>access has ended</span>',
-      lead: 'access to scout has ended.',
-    });
-  }
-
-  if (active) {
-    const activeProgramCopy = application?.status === 'approved'
-      ? {
-          statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span> &nbsp;scout access is approved for this sign-in',
-          lead: 'confidential processing is available to enable from the journal. legacy Gemini key management remains available below.',
-        }
-      : application?.status === 'pending'
-        ? {
-            statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>pending</span> &nbsp;scout request pending for this sign-in',
-            lead: 'your scout request is under review. legacy Gemini key management remains available below.',
-          }
-        : {
-            statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not approved</span> &nbsp;this sign-in has no approved scout access',
-            lead: 'this sign-in is not currently approved for scout. legacy Gemini key management remains available below.',
-          };
-    return page({
-      ...activeProgramCopy,
-      content: `${keySection}
-${historySection}`,
+      lead: 'scout access for this sign-in has ended.',
     });
   }
 
@@ -1421,9 +1278,8 @@ ${historySection}`,
       : '';
     return page({
       statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span> &nbsp;scout access is approved for this sign-in',
-      lead: 'confidential processing is available to enable from the journal.',
-      content: `${ackForm}
-${historySection}`,
+      lead: 'confidential processing is available to approved scouts. enable it from the journal.',
+      content: ackForm,
     });
   }
 
@@ -1443,8 +1299,7 @@ ${historySection}`,
     content: `<div class="card">
   <h2>request access</h2>
   ${scoutApplyForm({ includeUseCase: true, buttonText: 'apply' })}
-</div>
-<p class="disclosure">scout is optional. for the legacy Gemini path, you can always bring your own Gemini key by hand instead of asking sol pbc to set one up.</p>`,
+</div>`,
   });
 }
 
@@ -1777,14 +1632,6 @@ export function formatRelativeTime(tsMs, nowMs) {
   return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
-function geminiLastUsedText(row, nowMs) {
-  if (row.last_used_at != null && row.last_used_fetched_at != null) {
-    return formatRelativeTime(row.last_used_at, nowMs);
-  }
-  if (row.last_used_fetched_at != null) return 'not available (checked just now)';
-  return 'not available';
-}
-
 function supportStatusLabel(status) {
   return SUPPORT_STATUS_LABELS[status] || 'in progress';
 }
@@ -1898,16 +1745,9 @@ function spbBillingFlashMessages(flash) {
 
 function flashMessages(flash) {
   const messages = [];
-  if (flash.rotated === 'ok') messages.push('legacy Gemini key rotated.');
-  if (flash.rotated === 'conflict') messages.push('another legacy Gemini key rotation completed first. try again.');
-  if (flash.rotated === 'no_active_key') messages.push('no active legacy Gemini key to rotate.');
-  if (flash.rotated === 'rotation_failed') messages.push("legacy Gemini key rotation didn't finish. try again.");
   if (flash.apply === 'ok') messages.push('scout request received.');
   if (flash.apply === 'acked') messages.push('scout acknowledgement saved.');
   if (flash.apply === 'no_ack') messages.push('confirm you understand before continuing.');
-  if (flash.forget === 'ok') messages.push('retired legacy Gemini key forgotten.');
-  if (flash.disable === 'ok') messages.push('legacy Gemini key turned off.');
-  if (flash.disable === 'none') messages.push('no active legacy Gemini key to turn off.');
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 

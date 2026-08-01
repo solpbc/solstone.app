@@ -233,7 +233,7 @@ XML:
 
 ### Test Helper
 
-Add `installS3FetchMock(testEnv, handlers)` following `installGcpFetchMock` at `account/test/helpers.js:157-180`.
+Add `installS3FetchMock(testEnv, handlers)` following the fetch-mock pattern in `account/test/helpers.js`.
 
 Requirements:
 

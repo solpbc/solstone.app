@@ -8,7 +8,7 @@ import {
 import { mintReachRelayToken } from '../src/reach.js';
 import {
   installConsoleSpy,
-  installGcpFetchMock,
+  installApnsFetchMock,
   makeFakeKv,
   makeTestEnv,
   TEST_APNS_P8_PEM,
@@ -47,7 +47,7 @@ describe('push dispatch endpoint', () => {
   });
 
   it('rejects missing bearer without APNs fetch', async () => {
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dispatchRequest({ token: null }), apnsEnv());
 
@@ -57,7 +57,7 @@ describe('push dispatch endpoint', () => {
   });
 
   it('rejects malformed bearer without APNs fetch', async () => {
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
     const testEnv = apnsEnv();
     const token = await relayToken(testEnv);
 
@@ -69,7 +69,7 @@ describe('push dispatch endpoint', () => {
   });
 
   it('rejects wrong bearer without APNs fetch', async () => {
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dispatchRequest({ token: 'wrong-secret' }), apnsEnv());
 
@@ -79,7 +79,7 @@ describe('push dispatch endpoint', () => {
   });
 
   it('rejects the retired shared-secret bearer without APNs fetch', async () => {
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dispatchRequest({ token: OLD_PUSH_RELAY_SECRET }), apnsEnv());
 
@@ -118,7 +118,7 @@ describe('push dispatch endpoint', () => {
       instanceId: '11111111-1111-1111-1111-111111111111',
       iat,
     });
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dispatchRequest({ token }), testEnv);
 
@@ -134,7 +134,7 @@ describe('push dispatch endpoint', () => {
       { ...testEnv, REACH_RELAY_TOKEN_SECRET: 'other-secret' },
       { instanceId: '11111111-1111-1111-1111-111111111111', iat }
     );
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dispatchRequest({ token }), testEnv);
 
@@ -145,7 +145,7 @@ describe('push dispatch endpoint', () => {
 
   it('routes inline devices to their requested APNs environments in one request', async () => {
     const testEnv = apnsEnv();
-    const { calls } = installGcpFetchMock({
+    const { calls } = installApnsFetchMock({
       'POST api.push.apple.com': async () => new Response('{}', { status: 200 }),
       'POST api.sandbox.push.apple.com': async () => new Response('{}', { status: 200 }),
     });
@@ -176,7 +176,7 @@ describe('push dispatch endpoint', () => {
 
   it('reports revocable APNs responses by token without D1 access', async () => {
     const testEnv = apnsEnv({ DB: throwingDb() });
-    installGcpFetchMock({
+    installApnsFetchMock({
       'POST api.push.apple.com': async () => new Response(JSON.stringify({ reason: 'Unregistered' }), { status: 410 }),
     });
 
@@ -200,7 +200,7 @@ describe('push dispatch endpoint', () => {
   it('retains the token on 400 BadDeviceToken instead of revoking it', async () => {
     const spy = installConsoleSpy();
     const testEnv = apnsEnv({ DB: throwingDb() });
-    installGcpFetchMock({
+    installApnsFetchMock({
       'POST api.push.apple.com': async () => new Response(JSON.stringify({ reason: 'BadDeviceToken' }), { status: 400 }),
     });
 
@@ -229,7 +229,7 @@ describe('push dispatch endpoint', () => {
 
   it('revokes on 410 BadDeviceToken (keys on status, not reason)', async () => {
     const testEnv = apnsEnv({ DB: throwingDb() });
-    installGcpFetchMock({
+    installApnsFetchMock({
       'POST api.push.apple.com': async () => new Response(JSON.stringify({ reason: 'BadDeviceToken' }), { status: 410 }),
     });
 
@@ -254,7 +254,7 @@ describe('push dispatch endpoint', () => {
     const kv = makeFakeKv();
     const testEnv = apnsEnv({ GCP_TOKEN_CACHE: kv });
     let apnsCalls = 0;
-    const { calls } = installGcpFetchMock({
+    const { calls } = installApnsFetchMock({
       'POST api.push.apple.com': async () => {
         apnsCalls += 1;
         if (apnsCalls <= 3) {
@@ -285,7 +285,7 @@ describe('push dispatch endpoint', () => {
   });
 
   it('rejects summary over 80 UTF-8 bytes', async () => {
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
     const testEnv = apnsEnv();
 
     const response = await worker.fetch(dispatchRequest({
@@ -320,7 +320,7 @@ describe('push dispatch endpoint', () => {
   it('accepts an empty devices array without minting a JWT or fetching APNs', async () => {
     const kv = makeFakeKv();
     const testEnv = apnsEnv({ GCP_TOKEN_CACHE: kv });
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dispatchRequest({
       token: await relayToken(testEnv),
@@ -368,7 +368,7 @@ describe('push dispatch endpoint', () => {
   it('sets APNs alert headers', async () => {
     const testEnv = apnsEnv();
     let capturedHeaders;
-    installGcpFetchMock({
+    installApnsFetchMock({
       'POST api.push.apple.com': async ({ init }) => {
         capturedHeaders = new Headers(init.headers);
         return new Response('{}', { status: 200 });
@@ -392,7 +392,7 @@ describe('push dispatch endpoint', () => {
     const spy = installConsoleSpy();
     const testEnv = apnsEnv();
     let jwt = '';
-    installGcpFetchMock({
+    installApnsFetchMock({
       'POST api.push.apple.com': async ({ init }) => {
         jwt = new Headers(init.headers).get('authorization').replace(/^bearer /, '');
         return new Response(JSON.stringify({ reason: 'InternalServerError' }), { status: 500 });
@@ -408,11 +408,11 @@ describe('push dispatch endpoint', () => {
     spy.restore();
   });
 
-  it('keeps inference hosts blocked in the widened fetch mock', async () => {
-    installGcpFetchMock({});
+  it('keeps non-APNs hosts blocked in the fetch mock', async () => {
+    installApnsFetchMock({});
 
-    await expect(fetch('https://generativelanguage.googleapis.com/v1/models')).rejects
-      .toThrow(/disallowed host reached fetch: generativelanguage.googleapis.com/);
+    await expect(fetch('https://example.com')).rejects
+      .toThrow(/disallowed host reached fetch: example.com/);
   });
 });
 
@@ -432,7 +432,7 @@ function throwingDb() {
 }
 
 function installApnsOk() {
-  return installGcpFetchMock({
+  return installApnsFetchMock({
     'POST api.push.apple.com': async () => new Response('{}', { status: 200 }),
   });
 }

@@ -190,7 +190,7 @@ describe('passkey authentication', () => {
 
   it('refuses unsafe resume redirects while still signing in', async () => {
     const testEnv = makeTestEnv();
-    const signed = await signEnableResume('/enable/scout', `?nonce=${VALID_NONCE}`, testEnv);
+    const signed = await signEnableResume('/enable/spl', `?nonce=${VALID_NONCE}`, testEnv);
     const wrongSigAccount = await seedAccount({ testEnv, email: 'wrong-sig@example.com' });
     await seedCredential({
       accountId: wrongSigAccount.accountId,

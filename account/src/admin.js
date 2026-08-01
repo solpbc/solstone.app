@@ -13,7 +13,6 @@ import {
   getAccountTransparencyRow,
   getScoutApplicationByAccount,
   getScoutLifecycleMaxSequence,
-  hasActiveProvisionedKeyMaterial,
   listEntitlementsForAccount,
   listScoutApplications,
   listScoutLifecycleEvents,
@@ -22,9 +21,8 @@ import {
 import { json } from './index.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { SPB_HOSTED_SERVICE, reconcileAllServices } from './spb-entitlement.js';
-import { importScoutRecords } from './scout-migrate.js';
 import { SESSION_COOKIE } from './session.js';
-import { aaguidLabel, disableActiveGeminiKey, uaLabel, truncateIp } from './settings.js';
+import { aaguidLabel, uaLabel, truncateIp } from './settings.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { emitSecurityEvent } from './hub.js';
 
@@ -148,9 +146,6 @@ export async function handleAdmin(request, env, url, ctx) {
     if (parts[2] === 'scouts') {
       return await handleScoutAdmin(request, env, url, parts, admin, ctx);
     }
-    if (parts[2] === 'migrate') {
-      return await handleScoutMigrate(request, env, parts);
-    }
     if (parts.length === 3 && parts[2] === 'impersonate') {
       return await impersonateAccount(request, env, admin, ctx);
     }
@@ -176,27 +171,6 @@ export async function handleAdmin(request, env, url, ctx) {
   } catch {
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
-}
-
-async function handleScoutMigrate(request, env, parts) {
-  if (!(request.method === 'POST' && parts.length === 4 && parts[3] === 'scout')) {
-    return json({ error: 'migrate route not found' }, { status: 404, headers: SECURITY_HEADERS });
-  }
-
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: 'records array required' }, { status: 400, headers: SECURITY_HEADERS });
-  }
-
-  if (!Array.isArray(body?.records)) {
-    return json({ error: 'records array required' }, { status: 400, headers: SECURITY_HEADERS });
-  }
-
-  const dryRun = body?.dry_run !== false;
-  const result = await importScoutRecords({ env, records: body.records, dryRun });
-  return json(result, { headers: SECURITY_HEADERS });
 }
 
 async function handleScoutAdmin(request, env, url, parts, admin, ctx) {
@@ -232,7 +206,6 @@ async function listScouts(env, status) {
     applied_at: isoOrNull(row.applied_at),
     approved_at: isoOrNull(row.approved_at),
     revoked_at: isoOrNull(row.revoked_at),
-    active_key: row.active_key === 1,
   })));
   return json({ scouts }, { headers: SECURITY_HEADERS });
 }
@@ -331,10 +304,10 @@ async function revokeScout(request, env, accountId, actor, ctx) {
     }
     if (!transition.transitioned) continue;
 
-    const downstreamError = await runScoutDownstream(async () => {
-      await disableActiveGeminiKey({ env, accountId, nowMs, ctx });
-      await reconcileAllServices(env, accountId, nowMs, ctx);
-    }, { transitionCommitted: true, correlationId: transition.correlationId });
+    const downstreamError = await runScoutDownstream(
+      () => reconcileAllServices(env, accountId, nowMs, ctx),
+      { transitionCommitted: true, correlationId: transition.correlationId }
+    );
     if (downstreamError) return downstreamError;
     return scoutStatusResponse(accountId, 'revoked', transition.correlationId);
   }
@@ -687,12 +660,11 @@ async function showAccount(env, seg) {
     listPasskeys(env, account.id),
     listSessions(env, account.id),
     getScoutApplicationByAccount(env.DB, { accountId: account.id }),
-    hasActiveProvisionedKeyMaterial(env.DB, { accountId: account.id, provider: 'gemini' }),
     listEntitlementsForAccount(env.DB, { accountId: account.id }),
   ]);
   const failed = detailResults.find((result) => result.status === 'rejected');
   if (failed) throw failed.reason;
-  const [primaryEmail, emails, passkeys, sessions, application, hasLegacyGeminiKey, entitlementRows] =
+  const [primaryEmail, emails, passkeys, sessions, application, entitlementRows] =
     detailResults.map((result) => result.value);
   const scoutStatus = application?.status ?? 'absent';
   const scout = {
@@ -700,7 +672,6 @@ async function showAccount(env, seg) {
     applied_at: isoOrNull(application?.applied_at),
     approved_at: isoOrNull(application?.approved_at),
     revoked_at: isoOrNull(application?.revoked_at),
-    legacy_gemini_key: hasLegacyGeminiKey ? 'active' : 'inactive',
   };
   const rowsByService = Object.fromEntries(entitlementRows.map((row) => [row.service, row]));
   const serviceEntitlements = HOSTED_SERVICES.map((service) => {

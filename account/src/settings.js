@@ -1,33 +1,20 @@
-import { decryptEmail, encryptEmail } from './crypto.js';
+import { decryptEmail } from './crypto.js';
 import {
   applyScoutPendingWithEvent,
   countAccountEmails,
   countActivePasskeys,
   countActiveSessions,
-  deleteRevokedProvisionedKey,
-  findActiveProvisionedKey,
   getDashboardData,
   getScoutApplicationByAccount,
   listPasskeyCredentialsForAccount,
-  listProvisionedKeysAudit,
   listSessionsForAccount,
   removePasskey,
   renamePasskey,
-  rotateGeminiBatch,
-  revokeProvisionedKey,
   revokeOtherSessions,
   revokeSession,
   setScoutApplicationDataAcked,
-  updateProvisionedKeyGcpLastUse,
 } from './db.js';
 import { MAX_USE_CASE_LEN } from './enable-constants.js';
-import {
-  gcpCreateApiKey,
-  gcpDeleteKey,
-  gcpFetchKeyString,
-  gcpFindKeyByDisplayName,
-  gcpPollOperation,
-} from './gcp.js';
 import {
   formatDate,
   formatRelativeTime,
@@ -39,14 +26,10 @@ import {
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { normalizeFriendlyName } from './passkey.js';
-import { computeDisplayName } from './provisioning.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const ZERO_AAGUID = '00000000-0000-0000-0000-000000000000';
-const GEMINI_PROVIDER = 'gemini';
-const ROTATION_DELETE_GRACE_MS = 30_000;
-const ROTATION_SUFFIX_ALPHABET = 'abcdefghijklmnopqrstuvwxyz234567';
 const AAGUID_LABELS = {
   'fbfc3007-154e-4ecc-8c0b-6e020557d7bd': 'icloud keychain',
   'dd4ec289-e01d-41c9-bb89-70fa845d4bf2': 'icloud keychain',
@@ -119,82 +102,15 @@ export async function handleServicesScout(req, env) {
   const { session, nowMs } = guard;
   const menu = await loadMenuContext(env, session.account_id, nowMs);
   const url = new URL(req.url);
-  const rows = await listProvisionedKeysAudit(env.DB, { accountId: session.account_id, provider: GEMINI_PROVIDER });
-  const active = rows.find((row) => row.revoked_at == null) || null;
-  if (active) await refreshGcpLastUse(env, active, nowMs);
   const application = await getScoutApplicationByAccount(env.DB, { accountId: session.account_id });
   return signedInHtml(renderServicesScout({
-    active,
-    rows,
     application,
     nowMs,
     flash: {
-      rotated: url.searchParams.get('rotated') || '',
       apply: url.searchParams.get('apply') || '',
-      forget: url.searchParams.get('forget') || '',
-      disable: url.searchParams.get('disable') || '',
     },
     menu,
   }));
-}
-
-export async function handleGeminiRotate(req, env, ctx) {
-  const nowMs = Date.now();
-  const auth = await rotationAuth(req, env, nowMs);
-  if (auth instanceof Response) return auth;
-
-  const oldKey = await findActiveProvisionedKey(env.DB, { accountId: auth.accountId, provider: GEMINI_PROVIDER });
-  if (!oldKey) return rotationError('no_active_key');
-
-  const newDisplayName = computeRotationDisplayName(auth.accountId, nowMs);
-  let newKeyResourceName = null;
-  let newKeyString = null;
-  let rotationCommitted = false;
-  try {
-    const operationName = await gcpCreateApiKey({
-      env,
-      displayName: newDisplayName,
-      requestId: crypto.randomUUID(),
-    });
-    newKeyResourceName = await gcpPollOperation({ env, opName: operationName });
-    newKeyString = await gcpFetchKeyString({ env, keyName: newKeyResourceName });
-    const keyStringEncrypted = await encryptEmail(newKeyString, env);
-    const newRow = {
-      id: crypto.randomUUID(),
-      displayName: newDisplayName,
-      keyResourceName: newKeyResourceName,
-      keyStringEncrypted,
-      createdAt: nowMs,
-      lastUsedAt: null,
-      lastUsedFetchedAt: null,
-    };
-    const rotated = await rotateGeminiBatch(env.DB, {
-      accountId: auth.accountId,
-      oldKeyId: oldKey.id,
-      newRow,
-      nowMs,
-    });
-    if (!rotated.ok) {
-      await cleanupOrphanKey(env, newKeyResourceName);
-      if (rotated.reason === 'conflict') return rotationConflict();
-      throw new Error('gemini rotation batch failed');
-    }
-    rotationCommitted = true;
-
-    ctx.waitUntil(new Promise((resolve) => {
-      setTimeout(resolve, ROTATION_DELETE_GRACE_MS);
-    }).then(() => gcpDeleteKey({ env, keyName: oldKey.key_resource_name })
-      .catch(() => console.error('gemini_rotate_old_key_delete_failed', { key_resource_name: oldKey.key_resource_name }))));
-
-    return signedInRedirect('/scout?rotated=ok');
-  } catch (error) {
-    if (newKeyResourceName && !rotationCommitted) await cleanupOrphanKey(env, newKeyResourceName);
-    return rotationError('rotation_failed');
-  }
-}
-
-export async function handleServicesScoutRotate(req, env, ctx) {
-  return handleGeminiRotate(req, env, ctx);
 }
 
 export async function handleServicesScoutApply(req, env) {
@@ -209,9 +125,6 @@ export async function handleServicesScoutApply(req, env) {
   const trimmedUseCase = rawUseCase.trim();
   const useCase = trimmedUseCase ? trimmedUseCase.slice(0, MAX_USE_CASE_LEN) : null;
   const accountId = guard.session.account_id;
-  const active = await findActiveProvisionedKey(env.DB, { accountId, provider: GEMINI_PROVIDER });
-  if (active) return signedInRedirect('/scout');
-
   const app = await getScoutApplicationByAccount(env.DB, { accountId });
   if (!app || app.status === 'pending') {
     try {
@@ -226,51 +139,6 @@ export async function handleServicesScoutApply(req, env) {
     return signedInRedirect('/scout?apply=acked');
   }
   return signedInRedirect('/scout');
-}
-
-export async function handleServicesScoutForget(req, env) {
-  if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSignedInSession(req, env);
-  if (guard instanceof Response) return guard;
-  const form = await safeForm(req);
-  const keyId = form?.get('key_id')?.toString() || '';
-  const deleted = keyId
-    ? await deleteRevokedProvisionedKey(env.DB, { accountId: guard.session.account_id, keyId })
-    : false;
-  if (!deleted) return signedInHtml('<h1>could not forget key</h1><p>rotate before removing an active key.</p>', { status: 400 });
-  return signedInRedirect('/scout?forget=ok');
-}
-
-export async function handleScoutDisable(req, env, ctx) {
-  if (!originAllowed(req)) return noStore(forbidden());
-  const guard = await requireSignedInSession(req, env);
-  if (guard instanceof Response) return guard;
-  const turnedOff = await disableActiveGeminiKey({
-    env,
-    accountId: guard.session.account_id,
-    nowMs: guard.nowMs,
-    ctx,
-  });
-  return signedInRedirect(turnedOff ? '/scout?disable=ok' : '/scout?disable=none');
-}
-
-export async function disableActiveGeminiKey({ env, accountId, nowMs, ctx }) {
-  const active = await findActiveProvisionedKey(env.DB, {
-    accountId,
-    provider: GEMINI_PROVIDER,
-  });
-  if (!active) return false;
-  const revoked = await revokeProvisionedKey(env.DB, {
-    accountId,
-    keyId: active.id,
-    nowMs,
-  });
-  if (!revoked) return false;
-  ctx.waitUntil(new Promise((resolve) => {
-    setTimeout(resolve, ROTATION_DELETE_GRACE_MS);
-  }).then(() => gcpDeleteKey({ env, keyName: active.key_resource_name })
-    .catch(() => console.error('scout_disable_old_key_delete_failed', { key_resource_name: active.key_resource_name }))));
-  return true;
 }
 
 export async function handleRevokeSession(req, env, idHash) {
@@ -362,77 +230,6 @@ export function signedInRedirect(to, headers = {}) {
 export function noStore(response) {
   response.headers.set('Cache-Control', 'no-store');
   return response;
-}
-
-async function rotationAuth(req, env, nowMs) {
-  if (!originAllowed(req)) {
-    return noStore(forbidden());
-  }
-  const session = await getValidSession(req, env, nowMs);
-  if (!session) return rotationError('unauthorized');
-  return { accountId: session.account_id, mode: 'session' };
-}
-
-function rotationError(error) {
-  const value = error === 'rotation_conflict' ? 'conflict' : error;
-  return signedInRedirect(`/scout?rotated=${encodeURIComponent(value)}`);
-}
-
-function rotationConflict() {
-  return rotationError('rotation_conflict');
-}
-
-async function cleanupOrphanKey(env, keyResourceName) {
-  await gcpDeleteKey({ env, keyName: keyResourceName })
-    .catch(() => console.error('gcp_orphan_key', { key_resource_name: keyResourceName }));
-}
-
-async function refreshGcpLastUse(env, active, nowMs) {
-  try {
-    const key = await gcpFindKeyByDisplayName({ env, displayName: active.display_name });
-    const lastUse = parseGcpLastUse(key);
-    await updateProvisionedKeyGcpLastUse(env.DB, {
-      id: active.id,
-      accountId: active.account_id,
-      lastUsedAt: lastUse,
-      fetchedAt: nowMs,
-    });
-    active.last_used_fetched_at = nowMs;
-    if (lastUse != null) active.last_used_at = lastUse;
-    if (lastUse == null) {
-      active.last_used_at = null;
-      console.error('gcp_lastused_unavailable');
-    }
-  } catch {
-    await updateProvisionedKeyGcpLastUse(env.DB, {
-      id: active.id,
-      accountId: active.account_id,
-      lastUsedAt: null,
-      fetchedAt: nowMs,
-    }).catch(() => {});
-    active.last_used_fetched_at = nowMs;
-    active.last_used_at = null;
-    console.error('gcp_lastused_unavailable');
-  }
-}
-
-function parseGcpLastUse(key) {
-  const raw = key?.last_use_time || key?.lastUseTime || null;
-  if (!raw) return null;
-  const ms = Date.parse(raw);
-  return Number.isFinite(ms) ? ms : null;
-}
-
-export function computeRotationDisplayName(accountId, nowMs = Date.now()) {
-  const date = new Date(nowMs).toISOString().slice(0, 10).replace(/-/g, '');
-  return `${computeDisplayName(accountId)}-r-${date}-${randomRotationSuffix()}`;
-}
-
-function randomRotationSuffix() {
-  const bytes = crypto.getRandomValues(new Uint8Array(6));
-  let value = '';
-  for (const byte of bytes) value += ROTATION_SUFFIX_ALPHABET[byte % ROTATION_SUFFIX_ALPHABET.length];
-  return value;
 }
 
 async function safeForm(req) {

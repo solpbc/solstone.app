@@ -342,7 +342,7 @@ Prefix:
 Existing patterns:
 
 - `installHubStub` in `account/test/spb-broker.test.js:465-477` stubs global `fetch`, records URL, headers, parsed JSON body, and returns JSON OK.
-- `installGcpFetchMock` in `account/test/helpers.js:157-180` records `{ method, url, init }`, denies unexpected hosts, looks up handlers by `METHOD host/path?query`, then returns the handler response.
+- `installApnsFetchMock` in `account/test/helpers.js` records `{ method, url, init }`, denies unexpected hosts, looks up handlers by `METHOD host/path?query`, then returns the handler response.
 - `installConsoleSpy` in `account/test/helpers.js:249-263` captures console calls and exposes `assertNoSecrets`; SPB broker tests use it at `account/test/spb-broker.test.js:237-254`.
 
 Recommended S3 stub shape for sweep tests:

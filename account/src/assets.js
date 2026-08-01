@@ -73,8 +73,7 @@ main {
 
 /* ---- type ---- */
 /* headings are AUTHORED in the lowercase house style — never force-lowercased
-   in CSS, so third-party proper nouns (Gemini) keep canonical case per
-   the brand voice canon § third-party brand casing. */
+   in CSS, so authored casing stays intact across every owner-facing surface. */
 h1 {
   font-family: var(--font-display);
   font-weight: 700;

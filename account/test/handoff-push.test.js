@@ -130,7 +130,7 @@ describe('/handoff/push', () => {
       nonce: VALID_NONCE,
       service: 'scout',
       payload: {
-        google_api_key: 'scout-key',
+        state: 'ready',
         dispatch_token: 'scout-dispatch',
         account_id: account.accountId,
         created_at: 1,

@@ -41,7 +41,7 @@ describe('/handoff/scout', () => {
       accountId: account.accountId,
       nonce: VALID_NONCE,
       payload: {
-        google_api_key: 'handoff-google-key',
+        state: 'ready',
         dispatch_token: 'handoff-dispatch-token',
         account_id: account.accountId,
         created_at: 1234,
@@ -62,10 +62,10 @@ describe('/handoff/scout', () => {
       expect(first.headers.get('Cache-Control')).toBe('no-store');
       expect(first.headers.has('Set-Cookie')).toBe(false);
       expect(first.headers.has('Vary')).toBe(false);
-      expect(payload.google_api_key).toBe('handoff-google-key');
+      expect(payload.state).toBe('ready');
       expect(payload.dispatch_token).toBe('handoff-dispatch-token');
       expect(second.status).toBe(410);
-      spy.assertNoSecrets([VALID_NONCE, 'handoff-google-key', 'handoff-dispatch-token']);
+      spy.assertNoSecrets([VALID_NONCE, 'handoff-dispatch-token']);
     } finally {
       spy.restore();
     }
@@ -80,7 +80,7 @@ describe('/handoff/scout', () => {
       accountId: account.accountId,
       nonce: VALID_NONCE,
       payload: {
-        google_api_key: 'race-google-key',
+        state: 'ready',
         dispatch_token: 'race-dispatch-token',
         account_id: account.accountId,
         created_at: 5678,
@@ -98,27 +98,26 @@ describe('/handoff/scout', () => {
       expect(ok).toHaveLength(1);
       expect(gone).toHaveLength(1);
       await expect(ok[0].json()).resolves.toMatchObject({
-        google_api_key: 'race-google-key',
+        state: 'ready',
         dispatch_token: 'race-dispatch-token',
       });
       await expect(gone[0].json()).resolves.toEqual({ error: 'gone' });
-      spy.assertNoSecrets([VALID_NONCE, 'race-google-key', 'race-dispatch-token']);
+      spy.assertNoSecrets([VALID_NONCE, 'race-dispatch-token']);
     } finally {
       spy.restore();
     }
   });
 
-  it('returns 204 after the long-poll budget when no handoff exists', async () => {
-    vi.useFakeTimers();
-    const pending = worker.fetch(
+  it('returns gone immediately when no handoff exists', async () => {
+    const startedAt = performance.now();
+    const response = await worker.fetch(
       new Request(`https://services.solstone.app/handoff/scout?nonce=${VALID_NONCE}`),
       makeTestEnv()
     );
-    await Promise.resolve();
-    await vi.advanceTimersByTimeAsync(31_500);
-    const response = await pending;
-
-    expect(response.status).toBe(204);
+    const elapsedMs = performance.now() - startedAt;
+    expect(response.status).toBe(410);
+    await expect(response.json()).resolves.toEqual({ error: 'gone' });
+    expect(elapsedMs).toBeLessThan(1_000);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.has('Set-Cookie')).toBe(false);
     expect(response.headers.has('Vary')).toBe(false);

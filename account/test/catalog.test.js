@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
-import { encryptEmail } from '../src/crypto.js';
 import {
   makeTestEnv,
   resetDb,
@@ -78,22 +77,6 @@ describe('services catalog', () => {
     expect(body).not.toContain('last seen');
   });
 
-  it('keeps the Scout program label independent of a lingering active legacy key', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedAccount({ testEnv });
-    await seedProvisionedKey({ testEnv, accountId: account.accountId });
-    const session = await seedSession(account.accountId, { testEnv });
-
-    const response = await worker.fetch(catalogRequest(session.cookie), testEnv);
-    const scoutRow = extractCatalogRow(await response.text(), '/scout');
-
-    expect(response.status).toBe(200);
-    expect(scoutRow).toContain('the tester program. approved scouts can enable confidential processing.');
-    expect(scoutRow).toContain('<span class="tag free">program</span>');
-    expect(scoutRow).not.toContain('approved</span>');
-    expect(scoutRow).not.toContain('class="pill');
-  });
-
   it('renders a lapsed confidential-processing entitlement as not available', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
@@ -132,23 +115,4 @@ function extractCatalogRow(html, href) {
   const match = html.match(new RegExp(`<a class="row" href="${escapedHref}"[\\s\\S]*?<\\/a>`));
   expect(match, `catalog row ${href}`).not.toBeNull();
   return match?.[0] || '';
-}
-
-async function seedProvisionedKey({ testEnv, accountId }) {
-  await testEnv.DB
-    .prepare(
-      `INSERT INTO provisioned_keys (
-         id, account_id, provider, display_name, key_resource_name,
-         key_string_encrypted, created_at
-       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?)`
-    )
-    .bind(
-      'catalog-active-key',
-      accountId,
-      'catalog-active',
-      'projects/test-gcp-project/locations/global/keys/catalog-active',
-      await encryptEmail('catalog-plaintext-key', testEnv),
-      1_000
-    )
-    .run();
 }

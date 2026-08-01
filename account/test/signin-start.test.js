@@ -154,7 +154,7 @@ describe('/signin/start', () => {
 
   it('preserves valid resume fields on the verify redirect', async () => {
     const testEnv = makeTestEnv();
-    const resume = await signEnableResume('/enable/scout', `?nonce=${VALID_ENABLE_NONCE}`, testEnv);
+    const resume = await signEnableResume('/enable/spl', `?nonce=${VALID_ENABLE_NONCE}`, testEnv);
     const response = await worker.fetch(
       startRequest('resume@example.com', {}, {
         next: resume.next,

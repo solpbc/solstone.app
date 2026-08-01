@@ -199,10 +199,10 @@ describe('/signin/verify', () => {
     expect(await rowCount('sessions')).toBe(2);
   });
 
-  it('redirects to /enable/scout after OTP success when resume fields validate', async () => {
+  it('redirects to /enable/spl after OTP success when resume fields validate', async () => {
     const testEnv = makeTestEnv();
     const queryString = `?nonce=${VALID_ENABLE_NONCE}`;
-    const resume = await signEnableResume('/enable/scout', queryString, testEnv);
+    const resume = await signEnableResume('/enable/spl', queryString, testEnv);
     const seeded = await seedOtp({ email: 'resume@example.com', options: { code: '123456' } });
     const response = await worker.fetch(
       verifyRequest({
@@ -215,13 +215,13 @@ describe('/signin/verify', () => {
     );
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe(`/enable/scout${queryString}`);
+    expect(response.headers.get('Location')).toBe(`/enable/spl${queryString}`);
   });
 
   it('falls back to dashboard after OTP success when resume signature is invalid', async () => {
     const testEnv = makeTestEnv();
     const queryString = `?nonce=${VALID_ENABLE_NONCE}`;
-    const resume = await signEnableResume('/enable/scout', queryString, testEnv);
+    const resume = await signEnableResume('/enable/spl', queryString, testEnv);
     const seeded = await seedOtp({ email: 'bad-resume@example.com', options: { code: '123456' } });
     const response = await worker.fetch(
       verifyRequest({

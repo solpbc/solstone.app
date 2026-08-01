@@ -122,7 +122,6 @@ describe('/handoff/backup', () => {
       service: 'scout',
       payload: {
         state: 'approved',
-        google_api_key: 'scout-key',
         dispatch_token: 'scout-dispatch',
         account_id: account.accountId,
         created_at: '2026-01-01T00:00:00.000Z',

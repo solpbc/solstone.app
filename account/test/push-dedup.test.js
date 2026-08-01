@@ -7,7 +7,7 @@ import {
 import { mintReachRelayToken } from '../src/reach.js';
 import {
   installConsoleSpy,
-  installGcpFetchMock,
+  installApnsFetchMock,
   makeTestEnv,
   TEST_APNS_P8_PEM,
 } from './helpers.js';
@@ -21,7 +21,7 @@ describe('push dedup endpoint', () => {
   });
 
   it('rejects missing bearer without APNs fetch', async () => {
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dedupRequest({ token: null }), apnsEnv());
 
@@ -31,7 +31,7 @@ describe('push dedup endpoint', () => {
   });
 
   it('rejects wrong bearer without APNs fetch', async () => {
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dedupRequest({ token: 'wrong-secret' }), apnsEnv());
 
@@ -41,7 +41,7 @@ describe('push dedup endpoint', () => {
   });
 
   it('rejects the retired shared-secret bearer without APNs fetch', async () => {
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dedupRequest({ token: OLD_PUSH_RELAY_SECRET }), apnsEnv());
 
@@ -80,7 +80,7 @@ describe('push dedup endpoint', () => {
       instanceId: '11111111-1111-1111-1111-111111111111',
       iat,
     });
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dedupRequest({ token }), testEnv);
 
@@ -96,7 +96,7 @@ describe('push dedup endpoint', () => {
       { ...testEnv, REACH_RELAY_TOKEN_SECRET: 'other-secret' },
       { instanceId: '11111111-1111-1111-1111-111111111111', iat }
     );
-    const { calls } = installGcpFetchMock({});
+    const { calls } = installApnsFetchMock({});
 
     const response = await worker.fetch(dedupRequest({ token }), testEnv);
 
@@ -144,7 +144,7 @@ describe('push dedup endpoint', () => {
   it('sets APNs background headers and collapse id', async () => {
     const testEnv = apnsEnv();
     let capturedHeaders;
-    installGcpFetchMock({
+    installApnsFetchMock({
       'POST api.push.apple.com': async ({ init }) => {
         capturedHeaders = new Headers(init.headers);
         return new Response('{}', { status: 200 });
@@ -184,7 +184,7 @@ describe('push dedup endpoint', () => {
     const spy = installConsoleSpy();
     const testEnv = apnsEnv();
     let jwt = '';
-    installGcpFetchMock({
+    installApnsFetchMock({
       'POST api.push.apple.com': async ({ init }) => {
         jwt = new Headers(init.headers).get('authorization').replace(/^bearer /, '');
         return new Response(JSON.stringify({ reason: 'InternalServerError' }), { status: 500 });
@@ -203,7 +203,7 @@ describe('push dedup endpoint', () => {
 
 async function expectValidationError(body) {
   const testEnv = apnsEnv();
-  const { calls } = installGcpFetchMock({});
+  const { calls } = installApnsFetchMock({});
 
   const response = await worker.fetch(dedupRequest({ token: await relayToken(testEnv), body }), testEnv);
 
@@ -224,7 +224,7 @@ function apnsEnv(overrides = {}) {
 }
 
 function installApnsOk() {
-  return installGcpFetchMock({
+  return installApnsFetchMock({
     'POST api.push.apple.com': async () => new Response('{}', { status: 200 }),
   });
 }

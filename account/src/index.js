@@ -27,7 +27,6 @@ import { sendOtpEmail } from './email.js';
 import {
   handleEnablePushConfirm,
   handleEnablePushGet,
-  handleEnableScoutConfirm,
   handleEnableScoutGet,
   handleEnableSpbConfirm,
   handleEnableSpbGet,
@@ -121,11 +120,8 @@ import {
   handleRenamePasskey,
   handleRevokeOtherSessions,
   handleRevokeSession,
-  handleScoutDisable,
   handleServicesScout,
   handleServicesScoutApply,
-  handleServicesScoutForget,
-  handleServicesScoutRotate,
   handleSignInPasskeys,
   handleSignInSessions,
   handleSignInShell,
@@ -172,8 +168,6 @@ const LEGACY_REDIRECTS = [
   { method: 'POST', from: '/settings/emails/add', to: '/sign-in/emails/add' },
   { method: 'POST', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
   { method: 'POST', from: '/settings/devices/revoke-all', to: '/devices/revoke-all' },
-  { method: 'POST', from: '/settings/gemini/rotate', to: '/scout/rotate' },
-  { method: 'POST', from: '/settings/gemini/forget', to: '/scout/forget' },
 ];
 
 const LEGACY_PREFIX_REDIRECTS = [
@@ -361,16 +355,6 @@ async function routeRequest(req, env, ctx) {
         req.method === 'GET'
       ) {
         return handleEnableScoutGet(req, env);
-      }
-
-      if (
-        parts.length === 4 &&
-        parts[1] === 'enable' &&
-        parts[2] === 'scout' &&
-        parts[3] === 'confirm' &&
-        req.method === 'POST'
-      ) {
-        return handleEnableScoutConfirm(req, env, ctx);
       }
 
       if (
@@ -708,37 +692,10 @@ async function routeRequest(req, env, ctx) {
       if (
         parts.length === 3 &&
         parts[1] === 'scout' &&
-        parts[2] === 'rotate' &&
-        req.method === 'POST'
-      ) {
-        return handleServicesScoutRotate(req, env, ctx);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'scout' &&
         parts[2] === 'apply' &&
         req.method === 'POST'
       ) {
         return handleServicesScoutApply(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'scout' &&
-        parts[2] === 'forget' &&
-        req.method === 'POST'
-      ) {
-        return handleServicesScoutForget(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'scout' &&
-        parts[2] === 'disable' &&
-        req.method === 'POST'
-      ) {
-        return handleScoutDisable(req, env, ctx);
       }
 
       if (

@@ -23,7 +23,6 @@ describe('legacy customer-facing redirects', () => {
     ['GET', '/services/spl?checkout=success', '/private-network?checkout=success', 302],
     ['GET', '/sealed-container', '/', 302],
     ['POST', '/settings/sessions/abc/revoke', '/sign-in/sessions/abc/revoke', 308],
-    ['POST', '/settings/gemini/rotate', '/scout/rotate', 308],
   ])('%s %s redirects to %s', async (method, path, location, status) => {
     const response = await worker.fetch(legacyRequest(method, path), makeTestEnv());
 
@@ -36,6 +35,8 @@ describe('legacy customer-facing redirects', () => {
   it.each([
     '/settings/gemini/reveal',
     '/settings/gemini/ack',
+    '/settings/gemini/rotate',
+    '/settings/gemini/forget',
   ])('POST %s is not a legacy redirect', async (path) => {
     const response = await worker.fetch(legacyRequest('POST', path), makeTestEnv());
     const body = await response.text();

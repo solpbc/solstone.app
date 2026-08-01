@@ -140,29 +140,6 @@ CREATE TABLE IF NOT EXISTS account_dispatch_tokens (
 CREATE INDEX IF NOT EXISTS idx_account_dispatch_tokens_account_id
   ON account_dispatch_tokens(account_id);
 
--- Per-account Gemini API key provisioning.
-
-CREATE TABLE IF NOT EXISTS provisioned_keys (
-  id TEXT PRIMARY KEY,
-  account_id TEXT NOT NULL,
-  provider TEXT NOT NULL CHECK (provider IN ('gemini')),
-  display_name TEXT NOT NULL,
-  key_resource_name TEXT NOT NULL,
-  key_string_encrypted TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  last_used_at INTEGER,
-  last_used_fetched_at INTEGER,
-  revoked_at INTEGER,
-  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_provisioned_keys_active_account_provider
-  ON provisioned_keys(account_id, provider)
-  WHERE revoked_at IS NULL;
-
-CREATE INDEX IF NOT EXISTS idx_provisioned_keys_account_id
-  ON provisioned_keys(account_id);
-
 -- Back-channel service handoffs for /enable/scout and /handoff/scout.
 -- TTL-on-read enforces expiry; a periodic sweep is future work.
 CREATE TABLE IF NOT EXISTS service_handoffs (
@@ -260,16 +237,6 @@ CREATE INDEX IF NOT EXISTS idx_enable_scout_codes_expires_at
 CREATE INDEX IF NOT EXISTS idx_enable_scout_codes_account_id
   ON enable_scout_codes(account_id)
   WHERE account_id IS NOT NULL;
-
--- Append-only reveal acknowledgements. The PK order supports:
--- WHERE account_id = ? AND acked_at > ?
--- via equality on the first key and range on the second key.
-CREATE TABLE IF NOT EXISTS gemini_reveal_acks (
-  account_id TEXT NOT NULL,
-  acked_at INTEGER NOT NULL,
-  PRIMARY KEY (account_id, acked_at),
-  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
 
 CREATE TABLE IF NOT EXISTS entitlements (
   account_id TEXT NOT NULL,

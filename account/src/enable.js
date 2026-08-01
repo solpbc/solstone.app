@@ -9,10 +9,8 @@ import {
 } from './crypto.js';
 import { mintDispatchToken, resolveBearerAccount } from './dispatch-tokens.js';
 import {
-  applyScoutPendingWithEvent,
   bumpDeviceLastSeen,
   consumeServiceHandoff,
-  findActiveProvisionedKey,
   findDeviceByPushKey,
   findServiceHandoffStatus,
   getAccountTransparencyRow,
@@ -23,7 +21,6 @@ import {
   insertServiceHandoff,
   insertSppMintAudit,
   revokeDevicePriorAndInsertNew,
-  setScoutApplicationDataAcked,
   upsertSpbBinding,
   upsertSplBinding,
   upsertSppBinding,
@@ -33,7 +30,6 @@ import {
   DEVICE_TOKEN_REGEX,
   HANDOFF_TTL_MS,
   INSTANCE_ID_REGEX,
-  MAX_USE_CASE_LEN,
   NONCE_REGEX,
   PUSH_PLATFORM_ALLOWLIST,
 } from './enable-constants.js';
@@ -42,11 +38,7 @@ import {
   renderEnablePushConsent,
   renderEnablePushDone,
   renderEnablePushError,
-  renderEnableScoutConsent,
-  renderEnableScoutDone,
-  renderEnableScoutError,
-  renderEnableScoutPendingDone,
-  renderEnableScoutRevokedDone,
+  renderEnableScout,
   renderEnableSplConsent,
   renderEnableSplDone,
   renderEnableSplError,
@@ -59,10 +51,8 @@ import {
   renderEnableSppConsent,
   renderEnableSppDone,
   renderEnableSppError,
-  renderError,
 } from './html.js';
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
-import { ensureProvisionedKey, ProvisioningBusyError } from './provisioning.js';
 import { SPL_HOSTED_SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 import { SPB_HOSTED_SERVICE, reconcileSpbEntitlement } from './spb-entitlement.js';
@@ -73,32 +63,18 @@ import {
 
 const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
-const ENABLE_PATH = '/enable/scout';
 const ENABLE_PUSH_PATH = '/enable/push';
 const ENABLE_SPL_PATH = '/enable/spl';
 const ENABLE_SPB_PATH = '/enable/backup';
 const ENABLE_SPP_PATH = '/enable/spp';
-const GEMINI_PROVIDER = 'gemini';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const RESUME_PATH_WHITELIST = new Map([
-  [ENABLE_PATH, validateScoutResumeParams],
   [ENABLE_PUSH_PATH, validatePushResumeParams],
   [ENABLE_SPL_PATH, validateSplResumeParams],
   [ENABLE_SPB_PATH, validateSpbResumeParams],
   [ENABLE_SPP_PATH, validateSppResumeParams],
 ]);
-
-export async function provisionScoutForAccount({ env, accountId, ctx }) {
-  const googleApiKey = await ensureProvisionedKey({ env, accountId });
-  const dispatch = await mintDispatchToken(env, accountId);
-  return {
-    google_api_key: googleApiKey,
-    dispatch_token: dispatch.token,
-    account_id: accountId,
-    created_at: dispatch.createdAt,
-  };
-}
 
 export async function registerDeviceForAccount({
   env,
@@ -172,125 +148,8 @@ export function decodeEnableResume(next) {
   return resume;
 }
 
-export async function handleEnableScoutGet(req, env) {
-  const url = new URL(req.url);
-  const parsed = parseEnableRequest(url);
-  if (parsed.error) return enableError(parsed.error, parsed.status || 400);
-  const csrf = await csrfToken(env);
-
-  const session = await getValidSession(req, env, Date.now());
-  if (!session) return signInRedirect(env, parsed.resumePath, parsed.resumeQuery);
-
-  return noStoreHtml(renderEnableScoutConsent({
-    csrf,
-    nonce: parsed.nonce,
-    accountId: session.account_id,
-  }));
-}
-
-export async function handleEnableScoutConfirm(req, env, ctx) {
-  if (!originAllowed(req)) return noStoreResponse(forbidden());
-  const form = await readForm(req);
-  if (!form) return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 400 });
-
-  const nonce = (form.get('nonce')?.toString() || '').trim().toUpperCase();
-  const source = parsePostedSource({ nonce });
-  if (!source) return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 400 });
-
-  if ((form.get('action')?.toString() || '') === 'cancel') {
-    return redirect('/', 303, { 'Cache-Control': 'no-store' });
-  }
-
-  const session = await getValidSession(req, env, Date.now());
-  if (!session) {
-    return signInRedirect(env, ENABLE_PATH, `?nonce=${source.nonce}`);
-  }
-  const account = await getAccountTransparencyRow(env.DB, session.account_id);
-  if (!account) {
-    return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
-  }
-
-  const csrf = await csrfToken(env);
-  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
-    return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 403 });
-  }
-
-  const originalAccountId = form.get('account_id')?.toString() || '';
-  if (originalAccountId !== session.account_id) {
-    return redirect(`${ENABLE_PATH}?nonce=${source.nonce}`, 303, { 'Cache-Control': 'no-store' });
-  }
-
-  if (form.get('data_ack')?.toString() !== 'yes') {
-    return noStoreHtml(renderEnableScoutError({ message: 'that request could not be completed.' }), { status: 400 });
-  }
-
-  const rawUseCase = form.get('use_case')?.toString() || '';
-  const trimmedUseCase = rawUseCase.trim();
-  const useCase = trimmedUseCase ? trimmedUseCase.slice(0, MAX_USE_CASE_LEN) : null;
-  const accountId = session.account_id;
-  const nowMs = Date.now();
-  const handoffHash = await hashServiceHandoffNonce(source.nonce, env);
-  const app = await getScoutApplicationByAccount(env.DB, { accountId });
-
-  // Handoff payload contract:
-  // { state: 'pending', account_id, since: <applied_at_ms>, dispatch_token }
-  // { state: 'approved', google_api_key, dispatch_token, account_id, created_at }
-  // { state: 'revoked', account_id }
-  // Approved retains today's google_api_key field and dispatch-token created_at ISO string.
-  let state;
-  let payload;
-  if (!app || app.status === 'pending') {
-    try {
-      await applyScoutPendingWithEvent(env.DB, { accountId, useCase, dataAckedAt: nowMs, nowMs });
-    } catch {
-      return noStoreHtml(renderError(), { status: 500 });
-    }
-    const row = await getScoutApplicationByAccount(env.DB, { accountId });
-    const dispatch = await mintDispatchToken(env, accountId);
-    state = 'pending';
-    payload = { state, account_id: accountId, since: row.applied_at, dispatch_token: dispatch.token };
-  } else if (app.status === 'approved') {
-    await setScoutApplicationDataAcked(env.DB, { accountId, nowMs });
-    let provisioned;
-    try {
-      provisioned = await provisionScoutForAccount({ env, accountId, ctx });
-    } catch (error) {
-      if (error instanceof ProvisioningBusyError) {
-        return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), {
-          status: 503,
-          headers: { 'Retry-After': '2' },
-        });
-      }
-      return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), { status: 503 });
-    }
-
-    state = 'approved';
-    payload = { state, ...provisioned };
-  } else {
-    state = 'revoked';
-    payload = { state, account_id: accountId };
-  }
-
-  const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
-  try {
-    await insertServiceHandoff(env.DB, {
-      handoffHash,
-      accountId,
-      service: 'scout',
-      payloadEncrypted,
-      createdAt: nowMs,
-      expiresAt: nowMs + HANDOFF_TTL_MS,
-    });
-  } catch {
-    return noStoreHtml(renderEnableScoutError({ message: "something didn't finish. try again in a moment." }), { status: 503 });
-  }
-
-  const done = {
-    pending: renderEnableScoutPendingDone,
-    approved: renderEnableScoutDone,
-    revoked: renderEnableScoutRevokedDone,
-  }[state];
-  return noStoreHtml(done());
+export function handleEnableScoutGet() {
+  return noStoreHtml(renderEnableScout());
 }
 
 export async function handleScoutStatus(req, env) {
@@ -298,14 +157,12 @@ export async function handleScoutStatus(req, env) {
   if (auth instanceof Response) return auth;
   const row = await getScoutApplicationByAccount(env.DB, { accountId: auth.accountId });
   if (!row) return json({ error: 'not_found' }, { status: 404 });
-  const activeKey = await findActiveProvisionedKey(env.DB, { accountId: auth.accountId, provider: GEMINI_PROVIDER });
   return json({
     account_id: auth.accountId,
     status: row.status,
     applied_at: row.applied_at,
     approved_at: row.approved_at,
     revoked_at: row.revoked_at,
-    active_key: activeKey != null,
   });
 }
 
@@ -394,25 +251,14 @@ export async function handleHandoffScout(req, env) {
   if (!NONCE_REGEX.test(nonce)) return handoffJson({ error: 'invalid_request' }, { status: 400 });
 
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
-  const started = Date.now();
-  while (Date.now() - started <= HANDOFF_POLL_BUDGET_MS) {
-    const nowMs = Date.now();
-    const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs });
-    if (consumed) {
-      const plaintext = await decryptEmail(consumed.payload_encrypted, env);
-      return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
-    }
-
-    const status = await findServiceHandoffStatus(env.DB, { handoffHash });
-    if (status && (status.consumed_at != null || status.expires_at <= nowMs)) {
-      return handoffJson({ error: 'gone' }, { status: 410 });
-    }
-
-    const elapsed = Date.now() - started;
-    if (elapsed >= HANDOFF_POLL_BUDGET_MS) break;
-    await sleep(Math.min(HANDOFF_POLL_MS, HANDOFF_POLL_BUDGET_MS - elapsed));
+  const nowMs = Date.now();
+  const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'scout' });
+  if (consumed) {
+    const plaintext = await decryptEmail(consumed.payload_encrypted, env);
+    return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
   }
-  return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+
+  return handoffJson({ error: 'gone' }, { status: 410 });
 }
 
 export async function handleHandoffPush(req, env) {
@@ -803,13 +649,6 @@ export async function handleHandoffSpp(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
-function parseEnableRequest(url) {
-  const nonceParam = url.searchParams.get('nonce');
-  const nonce = (nonceParam || '').trim().toUpperCase();
-  if (!nonce || !NONCE_REGEX.test(nonce)) return { error: 'invalid request', status: 400 };
-  return { mode: 'nonce', nonce, resumePath: ENABLE_PATH, resumeQuery: `?nonce=${nonce}` };
-}
-
 function parsePushParams(params) {
   const nonce = singleParam(params, 'nonce');
   const deviceToken = singleParam(params, 'device_token');
@@ -879,11 +718,6 @@ function isSpbEntitled(entitlement) {
   return entitlement?.status === 'active' || entitlement?.status === 'past_due';
 }
 
-function parsePostedSource({ nonce }) {
-  if (nonce) return NONCE_REGEX.test(nonce) ? { mode: 'nonce', nonce } : null;
-  return null;
-}
-
 export async function signInRedirect(env, path, queryString) {
   const resume = await signEnableResume(path, queryString, env);
   return redirect(`/?next=${encodeURIComponent(resume.next)}&next_sig=${encodeURIComponent(resume.nextSig)}`, 303, {
@@ -918,11 +752,6 @@ function isSupportResumePath(path) {
   if (path === '/support') return true;
   const parts = path.split('/');
   return parts.length === 3 && parts[1] === 'support' && SUPPORT_ID_REGEX.test(parts[2]);
-}
-
-function validateScoutResumeParams(params) {
-  const nonceValues = params.getAll('nonce');
-  return nonceValues.length === 1 && NONCE_REGEX.test(nonceValues[0]);
 }
 
 function validatePushResumeParams(params) {
@@ -966,10 +795,6 @@ function validateSppResumeParams(params) {
   if (nonceValues.length !== 1 || !NONCE_REGEX.test(nonceValues[0])) return false;
   if (instanceValues.length === 0) return true;
   return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
-}
-
-function enableError(message, status) {
-  return noStoreHtml(renderEnableScoutError({ message }), { status });
 }
 
 function pushError(status) {

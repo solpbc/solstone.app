@@ -9,7 +9,6 @@ import {
   insertPasskeyCredential,
   upsertOtp,
 } from '../src/db.js';
-import { SA_JSON_STRING } from './sa-helper.js';
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
 const TEST_PEPPER = 'test-hmac-pepper';
@@ -37,9 +36,7 @@ export function makeTestEnv(overrides = {}) {
     ENCRYPTION_SECRET: overrides.ENCRYPTION_SECRET || TEST_SECRET,
     HMAC_PEPPER: TEST_PEPPER,
     DISPATCH_TOKEN_PEPPER: 'test-dispatch-token-pepper',
-    GCP_SERVICE_ACCOUNT_JSON: overrides.GCP_SERVICE_ACCOUNT_JSON || SA_JSON_STRING,
     GCP_TOKEN_CACHE: overrides.GCP_TOKEN_CACHE || makeFakeKv(),
-    SCOUT_GCP_PROJECT: overrides.SCOUT_GCP_PROJECT,
     TURNSTILE_SECRET: 'test-turnstile-secret',
     TURNSTILE_SITE_KEY: 'test-turnstile-site-key',
     CF_ACCESS_AUD: overrides.CF_ACCESS_AUD || TEST_CF_ACCESS_AUD,
@@ -127,10 +124,8 @@ export async function resetDb() {
     'spb_sweep_audit',
     'scout_lifecycle_events',
     'scout_applications',
-    'gemini_reveal_acks',
     'enable_scout_codes',
     'service_handoffs',
-    'provisioned_keys',
     'account_dispatch_tokens',
     'account_devices',
     'passkey_challenges',
@@ -162,14 +157,14 @@ export function stubTurnstile(success = true) {
   );
 }
 
-export function installGcpFetchMock(handlers = {}) {
+export function installApnsFetchMock(handlers = {}) {
   const calls = [];
   const fetchMock = vi.fn(async (input, init = {}) => {
     const href = typeof input === 'string' ? input : input.url;
     const url = new URL(href);
     const method = (init.method || 'GET').toUpperCase();
     calls.push({ method, url, init });
-    if (!['oauth2.googleapis.com', 'apikeys.googleapis.com', 'api.push.apple.com', 'api.sandbox.push.apple.com'].includes(url.host)) {
+    if (!['api.push.apple.com', 'api.sandbox.push.apple.com'].includes(url.host)) {
       throw new Error(`disallowed host reached fetch: ${url.host}`);
     }
     const keys = [
@@ -180,7 +175,7 @@ export function installGcpFetchMock(handlers = {}) {
       'default',
     ];
     const handler = keys.map((key) => handlers[key]).find(Boolean);
-    if (!handler) throw new Error(`unhandled gcp fetch: ${method} ${url.href}`);
+    if (!handler) throw new Error(`unhandled APNs fetch: ${method} ${url.href}`);
     return handler({ method, url, init, calls });
   });
   vi.stubGlobal('fetch', fetchMock);

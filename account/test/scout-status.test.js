@@ -14,7 +14,7 @@ describe('/account/scout/status', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns pending application status with inactive key', async () => {
+  it('returns pending application status without a removed key field', async () => {
     const testEnv = makeTestEnv();
     const { account, token } = await seedStatusAccount(testEnv);
     await seedScoutApplication(testEnv, {
@@ -32,11 +32,11 @@ describe('/account/scout/status', () => {
       applied_at: 1_111,
       approved_at: null,
       revoked_at: null,
-      active_key: false,
     });
+    expect(body).not.toHaveProperty('active_key');
   });
 
-  it('returns approved application status with active key', async () => {
+  it('returns approved application status without a removed key field', async () => {
     const testEnv = makeTestEnv();
     const { account, token } = await seedStatusAccount(testEnv);
     await seedScoutApplication(testEnv, {
@@ -44,7 +44,6 @@ describe('/account/scout/status', () => {
       status: 'approved',
       approvedAt: 2_222,
     });
-    await seedProvisionedKey(testEnv, { accountId: account.accountId });
 
     const response = await worker.fetch(statusRequest({ token }), testEnv);
     const body = await expectStatusBody(response);
@@ -55,31 +54,8 @@ describe('/account/scout/status', () => {
       applied_at: null,
       approved_at: 2_222,
       revoked_at: null,
-      active_key: true,
     });
-  });
-
-  it('returns approved application status with inactive key when only key is revoked', async () => {
-    const testEnv = makeTestEnv();
-    const { account, token } = await seedStatusAccount(testEnv);
-    await seedScoutApplication(testEnv, {
-      accountId: account.accountId,
-      status: 'approved',
-      approvedAt: 2_222,
-    });
-    await seedProvisionedKey(testEnv, { accountId: account.accountId, revokedAt: 3_333 });
-
-    const response = await worker.fetch(statusRequest({ token }), testEnv);
-    const body = await expectStatusBody(response);
-
-    expect(body).toEqual({
-      account_id: account.accountId,
-      status: 'approved',
-      applied_at: null,
-      approved_at: 2_222,
-      revoked_at: null,
-      active_key: false,
-    });
+    expect(body).not.toHaveProperty('active_key');
   });
 
   it('returns revoked APPLICATION status for a valid token', async () => {
@@ -101,8 +77,8 @@ describe('/account/scout/status', () => {
       applied_at: 1_111,
       approved_at: null,
       revoked_at: 4_444,
-      active_key: false,
     });
+    expect(body).not.toHaveProperty('active_key');
   });
 
   it('rejects missing Authorization header', async () => {
@@ -156,7 +132,7 @@ describe('/account/scout/status', () => {
     await expect(response.json()).resolves.toEqual({ error: 'not_found' });
   });
 
-  it('does not mutate keys or dispatch tokens during a successful status read', async () => {
+  it('does not mutate dispatch tokens during a successful status read', async () => {
     const testEnv = makeTestEnv();
     const { account, token } = await seedStatusAccount(testEnv);
     await seedScoutApplication(testEnv, {
@@ -164,15 +140,13 @@ describe('/account/scout/status', () => {
       status: 'approved',
       approvedAt: 2_222,
     });
-    await seedProvisionedKey(testEnv, { accountId: account.accountId });
-    const beforeKeys = await rowCount(testEnv, 'provisioned_keys');
     const beforeTokens = await rowCount(testEnv, 'account_dispatch_tokens');
 
     const response = await worker.fetch(statusRequest({ token }), testEnv);
     const body = await expectStatusBody(response);
 
-    expect(body).toMatchObject({ status: 'approved', active_key: true });
-    await expect(rowCount(testEnv, 'provisioned_keys')).resolves.toBe(beforeKeys);
+    expect(body).toMatchObject({ status: 'approved' });
+    expect(body).not.toHaveProperty('active_key');
     await expect(rowCount(testEnv, 'account_dispatch_tokens')).resolves.toBe(beforeTokens);
   });
 });
@@ -203,32 +177,6 @@ async function seedScoutApplication(testEnv, {
     .run();
 }
 
-async function seedProvisionedKey(testEnv, {
-  accountId,
-  id = crypto.randomUUID(),
-  keyStringEncrypted = 'encrypted-key',
-  revokedAt = null,
-  createdAt = 1_000,
-} = {}) {
-  await testEnv.DB
-    .prepare(
-      `INSERT INTO provisioned_keys (
-         id, account_id, provider, display_name, key_resource_name,
-         key_string_encrypted, created_at, revoked_at
-       ) VALUES (?, ?, 'gemini', ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      id,
-      accountId,
-      `acct-${accountId.slice(0, 12)}`,
-      `projects/test-gcp-project/locations/global/keys/${id}`,
-      keyStringEncrypted,
-      createdAt,
-      revokedAt
-    )
-    .run();
-}
-
 function statusRequest({ token, rawAuth = false } = {}) {
   const headers = {};
   if (token != null) headers.Authorization = rawAuth ? token : `Bearer ${token}`;
@@ -239,7 +187,7 @@ async function expectStatusBody(response) {
   expect(response.status).toBe(200);
   expect(response.headers.get('Content-Type')).toContain('application/json');
   const body = await response.json();
-  expect(body).not.toHaveProperty('google_api_key');
+  expect(body).not.toHaveProperty('active_key');
   return body;
 }
 
