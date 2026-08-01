@@ -84,6 +84,7 @@ const BANNED = [
   'private beta',
   'select access',
   'early-access list',
+  '—',
   // Legal review (2026-08-01): these availability claims falsely describe a
   // live approved-scout service as unreleased or globally unavailable. Bare
   // 'coming' is intentional because that was the retired catalog trail.

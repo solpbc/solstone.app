@@ -487,7 +487,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     title: 'enable confidential processing',
     body: `${brandbar()}
 <h1>enable confidential processing</h1>
-<p class="lead">this journal is asking to turn on confidential processing. here's exactly what that means — and it stays off until you allow it.</p>
+<p class="lead">this journal is asking to turn on confidential processing. here's exactly what that means. it stays off until you allow it.</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
@@ -500,7 +500,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <div class="n">2</div>
     <div>
       <div class="gt">what leaves your device</div>
-      <div class="gd">when sol uses confidential processing, the thinking leaves your device: <a href="/confidential-processing/data">the text and images sol needs a model to work through, and your audio recordings for transcription</a>. your journal itself never leaves — it stays on your computer. voiceprints and speaker profiles are never created on the service; that work happens on your device and never leaves. what leaves goes to a model sol pbc runs itself: no third-party AI provider is in the path. it's processed and not kept — no content retained, no human review, nothing used to train.</div>
+      <div class="gd">when sol uses confidential processing, the thinking leaves your device: <a href="/confidential-processing/data">the text and images sol needs a model to work through, and your audio recordings for transcription</a>. your journal itself never leaves. it stays on your computer. voiceprints and speaker profiles are never created on the service; that work happens on your device and never leaves. what leaves goes to a model sol pbc runs itself: no third-party AI provider is in the path. it's processed and not kept. no content retained, no human review, nothing used to train.</div>
     </div>
   </div>
   <div class="grant">
@@ -514,7 +514,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <div class="n">3</div>
     <div>
       <div class="gt">your journal must verify before it sends</div>
-      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes — if it can't verify, it doesn't send, and sol tells you why. the engine runs on confidential hardware sol pbc operates: a model sol pbc runs itself, with no third-party AI provider in the path. sol pbc hands this device a credential through this local handoff so only this journal can reach the engine; the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device — they're never sent anywhere else, and sol never quietly does it a different way.</div>
+      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes. if it can't verify, it doesn't send, and sol tells you why. the engine runs on confidential hardware sol pbc operates: a model sol pbc runs itself, with no third-party AI provider in the path. sol pbc gives this device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and sol never quietly does it a different way.</div>
     </div>
   </div>
   <form method="post" action="/enable/spp/confirm">
@@ -538,7 +538,7 @@ export function renderEnableSppApprovalRequired() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">scout approval required</h2>
-  <p>confidential processing lets sol think through your journal's text, images, and audio on a model sol pbc runs itself — on confidential hardware sol pbc operates, which keeps nothing: it's processed and not kept, no content retained, no human review, nothing used to train. your journal must verify the service before anything is sent — if it can't verify, it doesn't send. no third-party AI provider is ever in the path.</p>
+  <p>confidential processing lets sol think through your journal's text, images, and audio on a model sol pbc runs itself on confidential hardware sol pbc operates, which keeps nothing: it's processed and not kept, no content retained, no human review, nothing used to train. your journal must verify the service before anything is sent. if it can't verify, it doesn't send. no third-party AI provider is ever in the path.</p>
   <p>confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here. you can close this tab.</p>
 </div>`,
   });
@@ -581,8 +581,8 @@ ${BRANDLOCK}
   ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'let sol reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
-  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program — approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
+  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. let sol think off your device on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
 <p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on. solstone itself never asks you to sign in.</p>`,
     });
@@ -621,7 +621,7 @@ ${welcomePanel}
   ${row('/services/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters, built in.', notifPill)}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'sol’s thinking, off your device on confidential hardware.', sppPill)}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program — approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
 <div class="group" style="margin-top:22px">
   ${row('/sign-in', IC_SESSION_SVG, 'your sign-in', 'sessions, passkeys, and email addresses.', '')}
@@ -708,13 +708,13 @@ export function renderConfidentialProcessingLanding() {
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>confidential processing</h1>
 <p class="hero-tag">let sol think off your device</p>
-<p class="lead">sol sends <a href="/confidential-processing/data">only the thinking off your device</a> — never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.</p>
+<p class="lead">sol sends <a href="/confidential-processing/data">only the thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_CHIP, 'the thinking, off your device', 'let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.')}
+  ${beat(IC_CHIP, 'the thinking, off your device', 'let sol think off your device on confidential hardware sol pbc runs that keeps nothing.')}
   ${beat(IC_VAULT, "sol pbc's own engine", "a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.")}
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent — if it can't verify, it doesn't send.")}
+  ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
 </div>
 <div class="card">
   <div class="statusline"><span class="tag free">available to approved scouts</span><span>confidential processing is available to approved scouts. enable it from the journal after approval.</span></div>
@@ -730,20 +730,20 @@ export function renderConfidentialProcessingData() {
     body: `${brandbar()}
 <h1>${esc(title)}</h1>
 <h2>what leaves your device</h2>
-<p>the text and images sol needs a model to work through — and, when the audio switch is on (its default), your audio recordings for transcription.</p>
+<p>the text and images sol needs a model to work through. when the audio switch is on (its default), your audio recordings for transcription go too.</p>
 <h2>what doesn't</h2>
-<p>your journal (stays on your computer), and voiceprints or speaker profiles — those are computed on your device and never leave. nothing goes to any third-party AI provider.</p>
+<p>your journal stays on your computer. voiceprints and speaker profiles are computed on your device and never leave. nothing goes to any third-party AI provider.</p>
 <h2>audio</h2>
-<p>when confidential processing is on and the audio switch is on, your journal sends speech for transcription: segments up to five minutes each, prepared by your journal into one standard audio format — the service accepts exactly that format and rejects anything else. it travels only over the channel your journal has verified.</p>
+<p>when confidential processing is on and the audio switch is on, your journal sends speech for transcription: segments up to five minutes each, prepared by your journal into one standard audio format. the service accepts exactly that format and rejects anything else. it travels only over the channel your journal has verified.</p>
 <p>the service turns speech to text in memory on confidential hardware sol pbc operates and returns the transcript to your journal. nothing is written, nothing is kept, no human review, nothing used to train.</p>
-<p>if your journal can't verify the service, transcription waits on your device — it never goes anywhere else and never silently falls back.</p>
-<p>the switch — "transcribe audio on the service" — lives in the journal's thinking app, in the confidential lane: on while confidential processing is in use, off any time, effective immediately.</p>
-<p>the model is the same either way — parakeet-tdt-0.6b-v3, the same parakeet generation sol uses on your device — and your journal checks the served model's identity. there's no premium tier: nothing is held back for the service.</p>
+<p>if your journal can't verify the service, transcription waits on your device. it never goes anywhere else and never silently falls back.</p>
+<p>the "transcribe audio on the service" switch lives in the journal's thinking app, in the confidential lane: on while confidential processing is in use, off any time, effective immediately.</p>
+<p>the model is the same either way: parakeet-tdt-0.6b-v3, the same parakeet generation sol uses on your device. your journal checks the served model's identity. there's no premium tier: nothing is held back for the service.</p>
 <p>speech-to-text is served with parakeet-tdt-0.6b-v3, created by NVIDIA, used under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
 <h2>where it goes</h2>
 <p>a model sol pbc runs itself. no third-party AI provider is in the path.</p>
 <h2>the hardware</h2>
-<p>confidential GPUs in Microsoft Azure that sol pbc operates. the hardware boundary keeps the cloud host excluded from what's processed, and the model that runs on it is sol pbc's own — no third-party AI provider is in the path.</p>
+<p>confidential GPUs in Microsoft Azure that sol pbc operates. the hardware boundary keeps the cloud host excluded from what's processed, and the model that runs on it is sol pbc's own. no third-party AI provider is in the path.</p>
 <h2>what's kept</h2>
 <p>no content is retained · no human reviews it · nothing is used to train.</p>
 <h2>the check</h2>
@@ -765,7 +765,7 @@ export function renderScoutLanding() {
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_CHIP, 'confidential processing', 'confidential processing is available to approved scouts. enable it from the journal after approval.')}
-  ${beat(IC_NET, 'your journal does the checking', "your journal must verify the service before anything is sent — if it can't verify, it doesn't send.")}
+  ${beat(IC_NET, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
   ${beat(IC_SCOUT_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_GLOBE, 'help shape solstone', "share feedback through support and follow what's changing.")}
 </div>
@@ -938,8 +938,8 @@ ${content}`,
       content: `<div class="group">
   <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">available to enable from your journal</div></div></div>
 </div>
-<p class="disclosure" style="margin-top:24px">your journal must verify the service before anything is sent — if it can't verify, it doesn't send. <a href="/terms">terms</a></p>
-<p class="disclosure">audio transcription has its own switch — "transcribe audio on the service" — in the journal's thinking app.</p>`,
+<p class="disclosure" style="margin-top:24px">your journal must verify the service before anything is sent. if it can't verify, it doesn't send. <a href="/terms">terms</a></p>
+<p class="disclosure">the "transcribe audio on the service" switch lives in the journal's thinking app.</p>`,
     });
   }
 
@@ -948,7 +948,7 @@ ${content}`,
     content: `<p class="lead">confidential processing is available to approved scouts. this sign-in is not currently approved. visit <a href="/scout">scout</a> to request access.</p>
 <div class="card">
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device — never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.')}
+  ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
 </div>
 <p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/terms">terms</a></p>`,
   });

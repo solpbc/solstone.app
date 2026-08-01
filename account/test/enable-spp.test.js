@@ -83,13 +83,15 @@ describe('/enable/spp', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain("this journal is asking to turn on confidential processing. here's exactly what that means — and it stays off until you allow it.");
+    expect(body).toContain("this journal is asking to turn on confidential processing. here's exactly what that means. it stays off until you allow it.");
     expect(body).toContain('href="/confidential-processing/data"');
     expect(body).toContain('<a href="/confidential-processing/data">the text and images sol needs a model to work through, and your audio recordings for transcription</a>');
     expect(body).toContain('voiceprints and speaker profiles are never created on the service; that work happens on your device and never leaves.');
     expect(body).toContain('audio has its own switch');
     expect(body).toContain('"transcribe audio on the service" lives in the journal\'s thinking app, in the confidential lane. it\'s on while confidential processing is in use. turn it off any time and it takes effect right away: speech becomes text on your device instead, and text and images continue under this choice.');
-    expect(body).toContain("transcription included: if the check can't pass, your recordings wait on your device — they're never sent anywhere else, and sol never quietly does it a different way.");
+    expect(body).toContain("transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and sol never quietly does it a different way.");
+    expect(body).toContain('sol pbc gives this device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it.');
+    expect(body).not.toContain('local handoff');
     expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
     expect(body).toContain('<span>i understand what turning this on sends, and that my journal must verify the service before anything is sent.</span>');

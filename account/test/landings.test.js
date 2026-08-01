@@ -47,13 +47,13 @@ describe('service landing pages', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('<h1>confidential processing</h1>');
     expect(body).toContain('no content is retained · no human reviews it · nothing is used to train');
-    expect(body).toContain('let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.');
-    expect(body).toContain('sol sends <a href="/confidential-processing/data">only the thinking off your device</a> — never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates — a model sol pbc runs itself, with no third-party AI provider in the path.');
+    expect(body).toContain('let sol think off your device on confidential hardware sol pbc runs that keeps nothing.');
+    expect(body).toContain('sol sends <a href="/confidential-processing/data">only the thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.');
     expect(body).toContain('href="/confidential-processing/data"');
     expect(body).toContain("sol pbc's own engine");
     expect(body).toContain("a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.");
     expect(body).toContain('your journal does the checking');
-    expect(body).toContain("your journal must verify the service before anything is sent — if it can't verify, it doesn't send.");
+    expect(body).toContain("your journal must verify the service before anything is sent. if it can't verify, it doesn't send.");
     expect(body).toContain('<span class="tag free">available to approved scouts</span>');
     expect(body).toContain('confidential processing is available to approved scouts. enable it from the journal after approval.');
     expect(body).not.toMatch(/class="btn/);
@@ -84,7 +84,7 @@ describe('service landing pages', () => {
     expect(body).toContain('available to enable from your journal');
     expect(body).not.toContain('confidential processing is on for this journal');
     expect(body).not.toContain('enabled for your journal');
-    expect(body).toContain('audio transcription has its own switch — "transcribe audio on the service" — in the journal\'s thinking app.');
+    expect(body).toContain('the "transcribe audio on the service" switch lives in the journal\'s thinking app.');
     expect(body).not.toContain('verifies the engine');
     expect(body).not.toContain('$');
     expect(body).not.toContain('never sees');
@@ -129,7 +129,7 @@ describe('service landing pages', () => {
     expect(body).toContain('scout is the tester program. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.');
     expect(body).toContain('confidential processing is available to approved scouts. enable it from the journal after approval.');
     expect(body).toContain('your journal does the checking');
-    expect(body).toContain("your journal must verify the service before anything is sent — if it can't verify, it doesn't send.");
+    expect(body).toContain("your journal must verify the service before anything is sent. if it can't verify, it doesn't send.");
     expect(body).toContain('free <span class="price"><span class="per">· tester program</span></span>');
     expect(body).toContain('<a class="btn primary" href="/?signin">request scout</a>');
     expect(body).toContain('confidential processing: no content is retained · no human reviews it · nothing is used to train. your journal must verify the service before anything is sent.');

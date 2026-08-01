@@ -29,9 +29,9 @@ describe('services catalog', () => {
     expect(body).toContain('$48');
     expect(body).toContain('built in');
     expect(body).toContain('<span class="tag free">scouts</span>');
-    expect(body).toContain('available to approved scouts. let sol think off your device — on confidential hardware sol pbc runs that keeps nothing.');
+    expect(body).toContain('available to approved scouts. let sol think off your device on confidential hardware sol pbc runs that keeps nothing.');
     expect(body).toContain('<span class="tag free">program</span>');
-    expect(body).toContain('the tester program — approved scouts can enable confidential processing.');
+    expect(body).toContain('the tester program. approved scouts can enable confidential processing.');
     expect(body).toContain('your journal is always private, only yours.');
     expect(body).toContain('href="/?signin"');
     expect(body).toContain('no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on');
@@ -88,7 +88,7 @@ describe('services catalog', () => {
     const scoutRow = extractCatalogRow(await response.text(), '/scout');
 
     expect(response.status).toBe(200);
-    expect(scoutRow).toContain('the tester program — approved scouts can enable confidential processing.');
+    expect(scoutRow).toContain('the tester program. approved scouts can enable confidential processing.');
     expect(scoutRow).toContain('<span class="tag free">program</span>');
     expect(scoutRow).not.toContain('approved</span>');
     expect(scoutRow).not.toContain('class="pill');
