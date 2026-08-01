@@ -308,7 +308,7 @@ input.code {
 .empty h2 { color: var(--ink-soft); }
 .empty p { color: var(--ink-faint); margin: 0 auto 16px; max-width: 36ch; }
 
-/* card (single panel, e.g. consent, reveal) */
+/* card (single panel, e.g. consent) */
 .card {
   background: var(--paper); border: 1px solid var(--hairline);
   border-radius: var(--radius); padding: 22px; box-shadow: 0 1px 2px rgba(90,70,40,.04);

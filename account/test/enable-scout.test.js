@@ -29,7 +29,7 @@ describe('/enable/scout', () => {
     expect(body).toContain('<a href="/scout">open scout</a>');
     expect(body).not.toContain('<form');
     expect(body).not.toContain('<button');
-    expect(body).not.toMatch(/provision|provider|google|\bkey\b/i);
+    expect(body).not.toMatch(/provision|provider|google|\bkeys?\b/i);
   });
 
   it('returns the same page to a signed-in visitor', async () => {

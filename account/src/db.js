@@ -930,27 +930,6 @@ export async function listScoutLifecycleEvents(db, accountId, { maxSequence, lim
   return results || [];
 }
 
-export async function upsertScoutApplicationMigrated(db, {
-  accountId, status, useCase, dataAckedAt, appliedAt, approvedAt, revokedAt, nowMs,
-}) {
-  await db
-    .prepare(
-      `INSERT INTO scout_applications
-         (account_id, status, use_case, data_acked_at, applied_at, approved_at, revoked_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(account_id) DO UPDATE SET
-         status = excluded.status,
-         use_case = excluded.use_case,
-         data_acked_at = excluded.data_acked_at,
-         applied_at = excluded.applied_at,
-         approved_at = excluded.approved_at,
-         revoked_at = excluded.revoked_at,
-         updated_at = excluded.updated_at`
-    )
-    .bind(accountId, status, useCase, dataAckedAt, appliedAt, approvedAt, revokedAt, nowMs, nowMs)
-    .run();
-}
-
 export async function setScoutApplicationDataAcked(db, { accountId, nowMs }) {
   await db
     .prepare(
