@@ -207,7 +207,7 @@ describe('settings gemini dashboard', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('approved</span> &nbsp;scout access is approved for this sign-in');
     expect(body).toContain('confidential processing is available to enable from the journal.');
-    expect(body).toContain('confirm the legacy Gemini covenant');
+    expect(body).toContain('confirm the scout covenant');
     expect(body).toContain('action="/scout/apply"');
     expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
@@ -239,7 +239,7 @@ describe('settings gemini dashboard', () => {
     expect(body).toContain('confidential processing is available to enable from the journal.');
     expect(body).not.toContain('action="/scout/apply"');
     expect(body).not.toContain('name="data_ack"');
-    expect(body).not.toContain('confirm the legacy Gemini covenant');
+    expect(body).not.toContain('confirm the scout covenant');
   });
 
   it('renders pending application with relative applied status and no actions', async () => {

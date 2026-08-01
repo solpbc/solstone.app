@@ -37,7 +37,7 @@ const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="curren
 const IC_CHIP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/></svg>';
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
-export const LEGACY_GEMINI_COVENANT_LINE = "legacy Gemini setup: your questions to sol go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.";
+const SCOUT_PROGRAM_COVENANT = "confidential processing: no content is retained · no human reviews it · nothing is used to train. your journal must verify the service before anything is sent.";
 const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page. nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are: no analytics, no behavioral data, no third-party tracking. these aren't promises, they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
@@ -196,14 +196,14 @@ export function renderEnableScoutConsent({ csrf, nonce = '', accountId = '' }) {
     <div class="n">2</div>
     <div>
       <div class="gt">enable scout</div>
-      <div class="gd">this request continues the scout program for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone. if this sign-in is already an approved scout, sol pbc also sets up the legacy Google Gemini key and hands it to this device through the local handoff. confidential processing is a separate journal-initiated flow; this request does not turn it on.</div>
+      <div class="gd">this request continues the scout program for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.</div>
     </div>
   </div>
   <form method="post" action="/enable/scout/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="account_id" value="${escAttr(accountId)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
-    <p class="gd" style="margin:16px 0 12px">${LEGACY_GEMINI_COVENANT_LINE}</p>
+    <p class="gd" style="margin:16px 0 12px">confidential processing is available to enable separately from your journal. if this sign-in is already approved for scout, the current setup also provides this device with the legacy Google Gemini key for this sign-in. questions using that key go directly to Google Gemini under Google's terms; sol pbc is not in the path. this does not turn on confidential processing.</p>
     ${ackField('i understand')}
     <label for="use-case">what would you like to use it for? (optional)</label>
     <textarea id="use-case" name="use_case" maxlength="2000"></textarea>
@@ -223,7 +223,7 @@ export function renderEnableScoutDone() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} scout enabled</h2>
-  <p>scout is enabled for this sign-in. confidential processing is available to enable from the journal. the legacy Google Gemini key is ready for this device to receive through the local handoff. you can close this tab.</p>
+  <p>scout is enabled for this sign-in. confidential processing is available to enable from the journal. the legacy Google Gemini key is ready for this device. nothing from your journal crossed to set it up. you can close this tab.</p>
   <a class="btn secondary" href="/scout">manage scout</a>
 </div>`,
   });
@@ -765,16 +765,16 @@ export function renderScoutLanding() {
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_CHIP, 'confidential processing', 'confidential processing is available to approved scouts. enable it from the journal after approval.')}
+  ${beat(IC_NET, 'your journal does the checking', "your journal must verify the service before anything is sent — if it can't verify, it doesn't send.")}
   ${beat(IC_SCOUT_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_GLOBE, 'help shape solstone', "share feedback through support and follow what's changing.")}
-  ${beat(IC_PASSKEY_SVG, 'legacy Gemini setup', 'sol pbc can set up the legacy Google Gemini key, but never sits between you and Gemini.')}
 </div>
 <div class="card">
   <div class="pricecard">
     <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">· tester program</span></span></div></div>
-    <a class="btn primary" href="/?signin">request access</a>
+    <a class="btn primary" href="/?signin">request scout</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">${LEGACY_GEMINI_COVENANT_LINE}</p>
+  <p class="free-note" style="margin:14px 0 0">${SCOUT_PROGRAM_COVENANT}</p>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });
@@ -1345,7 +1345,7 @@ ${activeControls}`
   const historySection = rows.length > 0
     ? `<p class="section-label">legacy Gemini key history</p>
 <div class="group">${auditRows}</div>
-<p class="disclosure">last-used is the one piece of legacy key metadata sol pbc keeps. it's here so you can audit the key yourself. sol pbc is never in the path between you and Gemini.</p>`
+<p class="disclosure">last-used is the usage detail shown here so you can audit the legacy key yourself. questions using this key go directly from your device to Google Gemini under Google's terms; sol pbc is not in the path.</p>`
     : '';
   // the old standalone scouts program had a news feed and a feedback form;
   // the converged portal drops both, but their destinations live on, news →
@@ -1415,7 +1415,7 @@ ${historySection}`,
   if (application?.status === 'approved') {
     const ackForm = application.data_acked_at == null
       ? `<div class="card">
-  <h2>confirm the legacy Gemini covenant</h2>
+  <h2>confirm the scout covenant</h2>
   ${scoutApplyForm({ includeUseCase: false, buttonText: 'i understand' })}
 </div>`
       : '';
@@ -1470,7 +1470,7 @@ function ackField(copy) {
 }
 
 function scoutCovenantFields() {
-  return `<p class="gd" style="margin:16px 0 12px">${LEGACY_GEMINI_COVENANT_LINE}</p>
+  return `<p class="gd" style="margin:16px 0 12px">${SCOUT_PROGRAM_COVENANT}</p>
     ${ackField('i understand')}`;
 }
 

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
 import {
-  LEGACY_GEMINI_COVENANT_LINE,
   renderConfidentialProcessingData,
   renderConfidentialProcessingLanding,
   renderEnableScoutConsent,
@@ -101,6 +100,17 @@ const BANNED = [
   'turning on scout just means sol pbc sets one up for you',
   'sol pbc creates a gemini key for you',
 ];
+
+const GEMINI_ALLOWED_SURFACES = new Set([
+  'scout enable consent',
+  'scout enable done',
+  'Scout revoked with lingering key',
+  'Scout active key with approved application',
+  'Scout active key with pending application',
+  'Scout active key without application',
+  'Scout approved unacknowledged without key',
+  'Scout default',
+]);
 
 const stripHref = (html) => html.replace(/href="[^"]*"/gi, 'href=""');
 
@@ -223,15 +233,36 @@ describe('spp copy boundary', () => {
         application: { status: 'pending', applied_at: 1_000 },
       })],
       ['Scout default', renderServicesScout({ ...scoutArgs, active: null, rows: [] })],
+      ['Scout revoked without flashes', renderServicesScout({
+        ...scoutArgs,
+        active: activeKey,
+        rows: [activeKey, retiredKey],
+        application: { status: 'revoked' },
+      })],
+      ['Scout approved unacknowledged application form', extractScoutApplyForm(renderServicesScout({
+        ...scoutArgs,
+        active: null,
+        rows: [retiredKey],
+        application: { status: 'approved', data_acked_at: null },
+      }))],
+      ['Scout default application form', extractScoutApplyForm(renderServicesScout({
+        ...scoutArgs,
+        active: null,
+        rows: [],
+      }))],
     ];
 
     for (const [name, body] of surfaces) {
       const scanBody = stripHref(body)
         .toLowerCase()
-        .replaceAll(CLO_LOCKED_PREMIUM_NEGATION, '')
-        .replaceAll(LEGACY_GEMINI_COVENANT_LINE.toLowerCase(), '');
+        .replaceAll(CLO_LOCKED_PREMIUM_NEGATION, '');
       for (const phrase of BANNED) {
         expect(scanBody, `${name}: ${phrase}`).not.toContain(phrase.toLowerCase());
+      }
+      if (GEMINI_ALLOWED_SURFACES.has(name)) {
+        expect(body, `${name}: Gemini`).toContain('Gemini');
+      } else {
+        expect(body, `${name}: Gemini`).not.toContain('Gemini');
       }
     }
 
@@ -250,7 +281,10 @@ describe('spp copy boundary', () => {
     expect(combined).toContain('transcription waits on your device');
     expect(combined).toContain('parakeet-tdt-0.6b-v3');
     expect(combined).toContain("there's no premium tier: nothing is held back for the service");
-    expect(combined).toContain(LEGACY_GEMINI_COVENANT_LINE.toLowerCase());
+    expect(combined).toContain('confidential processing: no content is retained · no human reviews it · nothing is used to train. your journal must verify the service before anything is sent.');
+    expect(combined).toContain("confidential processing is available to enable separately from your journal. if this sign-in is already approved for scout, the current setup also provides this device with the legacy google gemini key for this sign-in. questions using that key go directly to google gemini under google's terms; sol pbc is not in the path. this does not turn on confidential processing.");
+    expect(combined).toContain('scout is enabled for this sign-in. confidential processing is available to enable from the journal. the legacy google gemini key is ready for this device. nothing from your journal crossed to set it up. you can close this tab.');
+    expect(combined).toContain("last-used is the usage detail shown here so you can audit the legacy key yourself. questions using this key go directly from your device to google gemini under google's terms; sol pbc is not in the path.");
     expect(combined).toContain('confidential processing is available to approved scouts.');
     expect(combined).toContain('approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.');
   });
@@ -260,6 +294,12 @@ function extractCatalogRow(html, href) {
   const escapedHref = href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = html.match(new RegExp(`<a class="row" href="${escapedHref}"[\\s\\S]*?<\\/a>`));
   expect(match, `catalog row ${href}`).not.toBeNull();
+  return match?.[0] || '';
+}
+
+function extractScoutApplyForm(html) {
+  const match = html.match(/<form method="post" action="\/scout\/apply">[\s\S]*?<\/form>/);
+  expect(match, 'Scout application form').not.toBeNull();
   return match?.[0] || '';
 }
 

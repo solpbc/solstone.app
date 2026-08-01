@@ -128,10 +128,24 @@ describe('service landing pages', () => {
     expect(body).toContain('<h1>scout</h1>');
     expect(body).toContain('scout is the tester program. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.');
     expect(body).toContain('confidential processing is available to approved scouts. enable it from the journal after approval.');
-    expect(body).toContain('legacy Gemini setup');
+    expect(body).toContain('your journal does the checking');
+    expect(body).toContain("your journal must verify the service before anything is sent — if it can't verify, it doesn't send.");
     expect(body).toContain('free <span class="price"><span class="per">· tester program</span></span>');
-    expect(body).toContain('request access');
-    expect(body).toContain("legacy Gemini setup: your questions to sol go straight to Google Gemini under Google's terms.");
+    expect(body).toContain('<a class="btn primary" href="/?signin">request scout</a>');
+    expect(body).toContain('confidential processing: no content is retained · no human reviews it · nothing is used to train. your journal must verify the service before anything is sent.');
+    expect(body.match(/class="beat"/g) || []).toHaveLength(4);
+    const beatTitles = [
+      'confidential processing',
+      'your journal does the checking',
+      'kept for nothing',
+      'help shape solstone',
+    ];
+    const beatTitlePositions = beatTitles.map((title) => body.indexOf(`<p class="bt">${title}</p>`));
+    expect(beatTitlePositions.every((position) => position >= 0)).toBe(true);
+    expect(beatTitlePositions).toEqual([...beatTitlePositions].sort((a, b) => a - b));
+    for (const phrase of ['Gemini', 'key', 'never sees', 'never hears']) {
+      expect(body).not.toContain(phrase);
+    }
     expect(body).not.toContain('invite-only');
     expect(body).not.toContain('alpha');
   });

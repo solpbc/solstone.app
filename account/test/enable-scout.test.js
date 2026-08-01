@@ -63,8 +63,9 @@ describe('/enable/scout', () => {
     expect(body).toContain('<h1>enable scout</h1>');
     expect(body).toContain('solstone on this device wants to enable scout for you. two things, and only these two:');
     expect(body).toContain('<div class="gt">enable scout</div>');
-    expect(body).toContain('this request continues the scout program for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone. if this sign-in is already an approved scout, sol pbc also sets up the legacy Google Gemini key and hands it to this device through the local handoff. confidential processing is a separate journal-initiated flow; this request does not turn it on.');
-    expect(body).toContain("legacy Gemini setup: your questions to sol go straight to Google Gemini under Google's terms. sol pbc sets up the key but never sits between you and Gemini, and never sees what you ask.");
+    expect(body).toContain('this request continues the scout program for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.');
+    expect(body).toContain("confidential processing is available to enable separately from your journal. if this sign-in is already approved for scout, the current setup also provides this device with the legacy Google Gemini key for this sign-in. questions using that key go directly to Google Gemini under Google's terms; sol pbc is not in the path. this does not turn on confidential processing.");
+    expect(body).not.toContain('local handoff');
     expect(body).toContain('you can review scout in your services anytime. confidential processing stays off until you enable it from the journal.');
     expect(body).not.toContain('continue with scout');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
@@ -101,7 +102,8 @@ describe('/enable/scout', () => {
       expect(confirm.status).toBe(200);
       expect(confirm.headers.get('Cache-Control')).toBe('no-store');
       expect(confirmBody).toContain('scout enabled');
-      expect(confirmBody).toContain('scout is enabled for this sign-in. confidential processing is available to enable from the journal. the legacy Google Gemini key is ready for this device to receive through the local handoff. you can close this tab.');
+      expect(confirmBody).toContain('scout is enabled for this sign-in. confidential processing is available to enable from the journal. the legacy Google Gemini key is ready for this device. nothing from your journal crossed to set it up. you can close this tab.');
+      expect(confirmBody).not.toContain('local handoff');
       expect(confirmBody).not.toContain('confidential processing is enabled');
       expect(confirmBody).not.toContain('put it on this device');
       await expect(rowCount('service_handoffs')).resolves.toBe(1);
