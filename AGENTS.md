@@ -57,8 +57,8 @@ shipped migration. When you tighten a column/constraint, ship the migration
 **Tests:** vitest on `@cloudflare/vitest-pool-workers`, two configs run in
 sequence by `npm test` (`vitest.config.js` for worker tests,
 `vitest.static.config.js` for the static-asset checks). The suite is large
-(~100 files) and includes per-migration tests and `brand-canon.test.js` — keep
-it green and add coverage for new routes/migrations.
+(~100 files) and includes per-migration tests — keep it green and add coverage
+for new routes/migrations.
 
 ## 3. Build / test / deploy
 
@@ -161,15 +161,6 @@ here so they stand on their own:
   from third-party CDNs — the portal serves its own CSS + `.woff2` fonts
   same-origin (`account/src/assets.js`). A compromised CDN can read everything on
   an authenticated page.
-- **Brand canon (owner-facing copy).** Lowercase-first; no surveillance verbs
-  (watch/capture/record/monitor/track/collect); avoid the forbidden phrasings
-  enforced by `account/test/brand-canon.test.js`. solstone copy follows the
-  sol platform canon (2026-07-03): solstone = the platform, **sol** = the app on
-  every device, **the journal** = the memory sol keeps. "observers" and the
-  "keeper" title are retired from customer-facing copy ("observer" stays
-  engineering-internal); any statement of sol's presence lands the journal in
-  the same breath. When you touch owner-visible strings, run the brand-canon
-  test.
 - **`scouts/` is retired** — a redirect-only Worker. Note the `wrangler.toml`
   cron gotcha documented there: an empty `crons = []` is required to *clear* a
   server-side schedule; omitting `[triggers]` does not delete it.
