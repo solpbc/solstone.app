@@ -646,7 +646,7 @@ ${BRANDLOCK}
 <div class="card">
   <div class="statusline"><span class="tag free">available to approved scouts</span><span>confidential processing is available to approved scouts. enable it from the journal after approval.</span></div>
 </div>
-<p class="disclosure"><a href="/terms">terms</a></p>`,
+<p class="disclosure"><a href="/services/processing/terms">terms</a></p>`,
   });
 }
 
@@ -678,7 +678,7 @@ export function renderConfidentialProcessingData() {
 <h2>your choice</h2>
 <p>off until you turn it on; turn it off from the journal anytime; nothing is stranded (nothing was kept to strand).</p>
 <h2>the covenants</h2>
-<p>the covenants: <a href="/terms">terms</a> · <a href="https://solpbc.org/privacy">privacy</a></p>`,
+<p>the covenants: <a href="/services/processing/terms">terms</a> · <a href="https://solpbc.org/privacy">privacy</a></p>`,
   });
 }
 
@@ -865,7 +865,7 @@ ${content}`,
       content: `<div class="group">
   <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">available to enable from your journal</div></div></div>
 </div>
-<p class="disclosure" style="margin-top:24px">your journal must verify the service before anything is sent. if it can't verify, it doesn't send. <a href="/terms">terms</a></p>
+<p class="disclosure" style="margin-top:24px">your journal must verify the service before anything is sent. if it can't verify, it doesn't send. <a href="/services/processing/terms">terms</a></p>
 <p class="disclosure">the "transcribe audio on the service" switch lives in the journal's thinking app.</p>`,
     });
   }
@@ -877,7 +877,7 @@ ${content}`,
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
 </div>
-<p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/services/processing/terms">terms</a></p>`,
   });
 }
 
