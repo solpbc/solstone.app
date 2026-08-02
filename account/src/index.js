@@ -82,6 +82,7 @@ import {
   renderError,
   renderBackupLanding,
   renderBackupTerms,
+  renderProcessingTerms,
   renderForbidden,
   renderGoodbye,
   renderLanding,
@@ -544,6 +545,10 @@ async function routeRequest(req, env, ctx) {
 
       if (url.pathname === '/services/backup/terms' && req.method === 'GET') {
         return html(renderBackupTerms());
+      }
+
+      if (url.pathname === '/services/processing/terms' && req.method === 'GET') {
+        return html(renderProcessingTerms());
       }
 
       if (url.pathname === '/backup' && req.method === 'GET') {
