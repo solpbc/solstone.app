@@ -1593,7 +1593,7 @@ export function renderProcessingTerms() {
     title,
     body: `${brandbar()}
 <h1>${esc(title)}</h1>
-<p class="meta"><em>${esc(`last updated: August 1, 2026 · operated by sol pbc, a colorado public benefit corporation`)}</em></p>
+<p class="meta"><em>${esc(`last updated: August 2, 2026 · operated by sol pbc, a colorado public benefit corporation`)}</em></p>
 <p>${esc(`these terms cover `)}<strong>${esc(`confidential processing`)}</strong>${esc(`: the AI model sol pbc runs on confidential GPU hardware, so your journal can think with more capacity than the machine it lives on. they're between you and sol pbc. we show you these terms when you turn confidential processing on, and turning it on is how you agree to them.`)}</p>
 <h2>${esc(`1. you never have to pay us`)}</h2>
 <p>${esc(`this is capacity, not a gate. sol can always think without us:`)}</p>
