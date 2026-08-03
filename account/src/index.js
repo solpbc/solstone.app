@@ -93,6 +93,7 @@ import {
   renderServicesCatalog,
   renderServicesSpp,
   renderTerms,
+  renderTermsIndex,
   renderVerify,
   VERIFY_ERROR,
 } from './html.js';
@@ -517,6 +518,10 @@ async function routeRequest(req, env, ctx) {
 
       if (url.pathname === '/goodbye' && req.method === 'GET') {
         return html(renderGoodbye());
+      }
+
+      if (url.pathname === '/legal' && req.method === 'GET') {
+        return html(renderTermsIndex());
       }
 
       if (url.pathname === '/terms' && req.method === 'GET') {

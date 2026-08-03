@@ -44,7 +44,10 @@ describe('terms page', () => {
     expect(body).toContain('operated tier of encrypted backup');
   });
 
-  it('links to terms from private network subscribe and active surfaces', async () => {
+  // These must keep pointing at /terms, the private network contract — not the index.
+  // The subscribe surface previously carried no contract link of its own and reached
+  // /terms only through the shared footer, so repointing that footer stranded it.
+  it('links to the private network terms from its own subscribe and active surfaces', async () => {
     const testEnv = makeTestEnv();
     const subscribeAccount = await seedAccount({ email: 'terms-subscribe@example.com', testEnv });
     const subscribeSession = await seedSession(subscribeAccount.accountId, { testEnv });
@@ -62,12 +65,54 @@ describe('terms page', () => {
     expect(activeBody).toContain('href="/terms"');
   });
 
-  it('links to terms from the shared footer', async () => {
+  it('serves the public processing terms page without a session', async () => {
+    const testEnv = makeTestEnv();
+    const response = await get('/services/processing/terms', testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(body).toContain('these terms cover');
+    expect(body).toContain('confidential processing');
+  });
+
+  it('serves the terms index listing all three service terms', async () => {
+    const testEnv = makeTestEnv();
+    const response = await get('/legal', testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(body).toContain('href="/terms"');
+    expect(body).toContain('href="/services/backup/terms"');
+    expect(body).toContain('href="/services/processing/terms"');
+    expect(body).toContain('private network');
+    expect(body).toContain('encrypted backup');
+    expect(body).toContain('confidential processing');
+    // The index is navigation, not content: it names each service and links its
+    // terms, and says nothing about what any service does, promises, or protects.
+    expect(body).not.toMatch(/encrypt(ed|s) (your|the) journal/i);
+    expect(body).not.toMatch(/cannot (read|see|hear)/i);
+    expect(body).not.toContain('your journal is always private');
+  });
+
+  it('points the shared footer at the terms index, not one service contract', async () => {
     const testEnv = makeTestEnv();
     const response = await get('/', testEnv);
     const body = await response.text();
 
-    expect(body).toContain('href="/terms"');
+    expect(body).toContain('<a href="/legal">terms</a>');
+    expect(body).not.toContain('<a href="/terms">terms</a>');
+  });
+
+  it('points the generic scout and notifications links at the terms index', async () => {
+    const testEnv = makeTestEnv();
+
+    const scoutBody = await (await get('/scout', testEnv)).text();
+    expect(scoutBody).toContain('<a href="/legal">terms</a>');
+
+    const notificationsBody = await (await get('/notifications', testEnv)).text();
+    expect(notificationsBody).toContain('<a href="/legal">terms</a>');
   });
 });
 

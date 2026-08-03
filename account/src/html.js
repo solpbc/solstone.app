@@ -45,7 +45,7 @@ function brandbar() {
 }
 
 function footer() {
-  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
+  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/legal">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
 }
 
 function topbar({ email = null, lastSignInAt = null, now = null } = {}) {
@@ -77,7 +77,8 @@ function brandbarSignin() {
 }
 
 function row(href, ic, title, desc, trail) {
-  return `<a class="row" href="${href}">${ic}<div class="body"><div class="title">${title}</div><div class="desc">${desc}</div></div><div class="trail">${trail}${CHEVRON_SVG}</div></a>`;
+  const body = desc ? `<div class="title">${title}</div><div class="desc">${desc}</div>` : `<div class="title">${title}</div>`;
+  return `<a class="row" href="${href}">${ic}<div class="body">${body}</div><div class="trail">${trail}${CHEVRON_SVG}</div></a>`;
 }
 
 function pill(kind, label) {
@@ -624,7 +625,7 @@ ${BRANDLOCK}
 <div class="card">
   <div class="statusline"><span class="tag builtin">built in</span> <span>turn on notifications on each device you want to hear from.</span></div>
 </div>
-<p class="disclosure"><a href="/terms">terms</a></p>`,
+<p class="disclosure"><a href="/legal">terms</a></p>`,
   });
 }
 
@@ -703,7 +704,7 @@ ${BRANDLOCK}
   </div>
   <p class="free-note" style="margin:14px 0 0">${SCOUT_PROGRAM_COVENANT}</p>
 </div>
-<p class="disclosure"><a href="/terms">terms</a></p>`,
+<p class="disclosure"><a href="/legal">terms</a></p>`,
   });
 }
 
@@ -772,7 +773,7 @@ ${content}`,
     ${billingCheckoutRow({ csrf, plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true })}
     ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false })}
   </div>
-  <p class="disclosure">billed securely through stripe.</p>
+  <p class="disclosure">billed securely through stripe. <a href="/terms">terms</a></p>
 </div>`,
   });
 }
@@ -1437,6 +1438,21 @@ export function renderGoodbye() {
 <h1>signed out.</h1>
 <p class="lead">see you next time.</p>
 <a class="btn secondary" href="/">start over</a>`,
+  });
+}
+
+export function renderTermsIndex() {
+  const title = 'terms of service';
+  return layout({
+    title,
+    body: `${brandbar()}
+<h1>${esc(title)}</h1>
+<p class="intro">each of these covers the single service it names as operated by sol pbc.</p>
+<div class="group">
+  ${row('/terms', IC_NET, 'private network', '', '')}
+  ${row('/services/backup/terms', IC_BACKUP, 'encrypted backup', '', '')}
+  ${row('/services/processing/terms', IC_CHIP, 'confidential processing', '', '')}
+</div>`,
   });
 }
 
