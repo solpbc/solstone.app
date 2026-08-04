@@ -42,7 +42,7 @@ uv tool install solstone        # the sol client, on PATH
 uvx solstone --help             # or one-shot, no install
 ```
 
-then open http://localhost:5015 in a browser — the first-run wizard walks you through setting your identity and choosing how sol thinks: local on this machine (the default when your hardware can), your own AI engine (bring a Claude, Gemini, or OpenAI token, or point sol at any OpenAI-compatible endpoint you run), or confidential processing (coming, scouts first). your journal stays on this machine whichever you choose. see [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
+then open http://localhost:5015 in a browser. the first-run wizard walks you through setting your identity and choosing how sol thinks: local on your device (the default on capable hardware), your own AI engine (bring a Claude, Gemini, or OpenAI token, or point sol at any OpenAI-compatible endpoint you run), or confidential processing operated by sol pbc (available to approved scouts). your journal stays on your device whichever you choose. see [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
 
 ### where your journal lives
 
