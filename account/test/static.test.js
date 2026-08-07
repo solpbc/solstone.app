@@ -34,6 +34,7 @@ describe('static source checks', () => {
       'index.js',
       'inline/passkey-enroll.js',
       'inline/passkey-landing.js',
+      'inline/support-forms.js',
       'passkey.js',
       'push.js',
       'r2-credential.js',
@@ -51,6 +52,8 @@ describe('static source checks', () => {
       'spp-entitlement.js',
       'stripe.js',
       'support-constants.js',
+      'support-html.js',
+      'support-wire.js',
       'support.js',
     ]);
   });
@@ -99,7 +102,7 @@ describe('static source checks', () => {
 
     expect(checkboxInputs.length).toBeGreaterThan(0);
     for (const input of checkboxInputs) {
-      expect(input).toContain('name="data_ack" value="yes" required');
+      expect(input).toMatch(/name="(?:data_ack|confirmation)" value="(?:yes|remove_details)" required/);
       expect(input).not.toMatch(/\bstyle\s*=/);
     }
     expect(ackInputs).toEqual(checkboxInputs);

@@ -1,145 +1,95 @@
-/**
- * Assumed support service API envelope for this change. Engineering verifies the real
- * worker post-ship; keep all response parsing in this module so an envelope
- * mismatch is a one-spot change.
- *
- * GET /api/services/tickets -> { tickets: [{ id, subject, status, updated_at }] }
- *   or a bare top-level array.
- * POST /api/services/tickets -> { id } or { ticket: { id } }.
- * GET /api/services/tickets/{id} -> {
- *   ticket: { id, subject, status, updated_at },
- *   messages: [{
- *     author_kind, content, created_at,
- *     attachments: [{ filename, status, triage_summary }]
- *   }],
- *   attachments: [{ filename, status, triage_summary }] // compatibility-only
- * }
- *   or a flat ticket shape with messages/attachments at top level.
- * POST /api/services/tickets/{id}/messages -> success/failure only.
- * POST /api/services/tickets/{id}/attachments -> success/failure only.
- */
-
-import { decryptEmail, hashKey, timingSafeEqual } from './crypto.js';
+import { decryptEmail, hashKey, randomBase64Url, timingSafeEqual } from './crypto.js';
 import { listAccountEmails } from './db.js';
 import { signInRedirect } from './enable.js';
 import {
   renderSupportDetail,
+  renderSupportConfirmationRequired,
   renderSupportList,
   renderSupportNotFound,
-} from './html.js';
-import { forbidden, html, originAllowed, redirect } from './index.js';
+  renderSupportRemoving,
+  renderSupportTombstone,
+} from './support-html.js';
+import { forbidden, html, supportOriginAllowed } from './index.js';
 import { getValidSession } from './session.js';
 import { loadMenuContext } from './settings.js';
 import { SUPPORT_ID_REGEX } from './support-constants.js';
+import { acknowledgeSupport, callSupport, decodeCursor, mergeTickets } from './support-wire.js';
 
-const SUPPORT_ORIGIN = 'https://support.internal';
 const SUPPORT_LOAD_FAILURE = "we couldn't load your support right now. try again soon.";
 const SUPPORT_PARTIAL_NOTICE = 'some support history could not be loaded.';
-const SUPPORT_CREATE_FAILURE = "we couldn't open that request. try again.";
-const SUPPORT_FORM_FAILURE = "we couldn't open that request. check the form and try again.";
-const SUPPORT_REPLY_FAILURE = "we couldn't add that reply. try again.";
-const SUPPORT_UPLOAD_FAILURE = 'your attachments could not be uploaded.';
+const SUPPORT_EMAIL_LIMITATION = 'we need a verified email before you can open a request.';
+const ACTIVE_FAILURE = "we couldn't load active requests. try again.";
+const CLOSED_FAILURE = "we couldn't load closed requests. try again.";
 const NO_STORE = { 'Cache-Control': 'no-store' };
+const OPERATION_KEY = /^[A-Za-z0-9_-]{43}$/;
 
 export function supportSignInPrompt(path) {
-  if (path === '/support') {
-    return "sign in with your email to see your support. we'll send a 6-digit code, no password, no account to create.";
-  }
+  if (path === '/support') return "sign in with your email to see your support. we'll email you a code.";
   const id = supportIdFromPath(path);
-  if (!id) return null;
-  return `sign in with your email to see request #${id}. we'll send a 6-digit code.`;
+  return id ? `sign in with your email to see request #${id}. we'll email you a code.` : null;
 }
 
 export async function handleSupportList(req, env) {
-  const nowMs = Date.now();
-  const session = await getValidSession(req, env, nowMs);
-  if (!session) {
-    return redirect('https://support.solstone.app', 302, NO_STORE);
-  }
-  const menu = await loadMenuContext(env, session.account_id, nowMs);
-  return renderSupportListForSession(env, session, nowMs, menu);
-}
-
-export async function handleSupportCreate(req, env) {
-  if (!originAllowed(req)) return noStore(forbidden());
   const guard = await signedSupportSessionOrRedirect(req, env, '/support');
   if (guard instanceof Response) return guard;
   const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
-  const form = await readForm(req);
-  if (!form) {
-    return renderSupportListForSession(env, guard.session, guard.nowMs, menu, {
-      failure: SUPPORT_FORM_FAILURE,
-    });
-  }
-  const csrf = await csrfToken(env);
-  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) return noStore(forbidden());
+  return renderSupportListForSession(env, guard.session, guard.nowMs, menu, { section: new URL(req.url).searchParams.get('section') });
+}
 
-  const product = form.get('product')?.toString() || '';
-  const subject = (form.get('subject')?.toString() || '').trim();
-  const description = (form.get('description')?.toString() || '').trim();
-  if (!['solstone', 'vit'].includes(product) || !subject || !description) {
-    return renderSupportListForSession(env, guard.session, guard.nowMs, menu, {
-      failure: SUPPORT_FORM_FAILURE,
-    });
-  }
+export async function handleSupportClosed(req, env) {
+  const guard = await signedSupportSessionOrRedirect(req, env, '/support/closed');
+  if (guard instanceof Response) return guard;
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+  const url = new URL(req.url);
+  const values = url.searchParams.getAll('cursor');
+  const cursor = values.length === 1 ? values[0] : values.length === 0 ? null : undefined;
+  const closed = await loadClosedHistory(env, guard.session.account_id, cursor, `/support/closed${url.search}`);
+  return supportHtml(renderSupportList({ csrf: await csrfToken(env), nowMs: guard.nowMs, sections: {
+    active: hiddenSection(), closed, create: hiddenSection(),
+  }}));
+}
 
+export async function handleSupportCreate(req, env) {
+  if (!supportOriginAllowed(req)) return noStore(forbidden());
+  const guard = await signedSupportSessionOrRedirect(req, env, '/support');
+  if (guard instanceof Response) return guard;
+  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+  const form = await checkedForm(req, env);
+  if (form === false) return noStore(forbidden());
+  if (!form) return renderCreateState(env, guard, menu, { outcome: errorOutcome('we could not read that form. review it and try again.') });
+  const values = createValues(form);
+  const keys = submittedKeys(form);
+  if (!validCreate(values) || !keys) return renderCreateState(env, guard, menu, { values, outcome: errorOutcome('review the request before sending it.') });
   const usable = await usableVerifiedEmails(env, guard.session.account_id);
-  if (usable.emails.length === 0) {
-    return supportHtml(renderSupportList({
-      csrf,
-      failure: SUPPORT_LOAD_FAILURE,
-      nowMs: guard.nowMs,
-      menu,
-    }));
-  }
-
-  const createEmail = usable.emails.find((row) => row.isPrimary) || usable.emails[0];
-  const create = await callSupport(env, {
-    method: 'POST',
+  if (!usable.emails.length) return renderCreateState(env, guard, menu, { values, keys, message: SUPPORT_EMAIL_LIMITATION });
+  const email = (usable.emails.find((row) => row.isPrimary) || usable.emails[0]).address;
+  const parent = await runMutation(env, {
+    ownerId: guard.session.account_id,
+    idempotencyKey: keys.operationKey,
+    mutation: 'ticket.create',
     path: '/api/services/tickets',
-    verifiedEmail: createEmail.address,
-    json: { product, subject, description },
+    verifiedEmail: email,
+    json: values,
   });
-  if (create.kind !== 'ok') {
-    return renderSupportListForSession(env, guard.session, guard.nowMs, menu, {
-      failure: SUPPORT_CREATE_FAILURE,
-      usable,
-    });
+  if (parent.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: parent.data }));
+  if (parent.classification === 'invalidState') return renderSupportListForSession(env, guard.session, guard.nowMs, menu);
+  if (parent.classification !== 'success') {
+    return renderCreateState(env, guard, menu, { values, keys: preserveKey(parent) ? keys : null, outcome: outcomeFor(parent, 'the request could not be confirmed. the files were not sent.') });
   }
-
-  const id = parseCreatedId(create.data);
-  if (!id) {
-    return renderSupportListForSession(env, guard.session, guard.nowMs, menu, {
-      failure: SUPPORT_CREATE_FAILURE,
-      usable,
-    });
-  }
-
-  let uploadFailed = false;
   const files = selectedFiles(form);
-  if (files.length > 0) {
-    const upload = await uploadAttachments(env, {
-      id,
-      verifiedEmail: createEmail.address,
-      files,
-    });
-    uploadFailed = upload.kind !== 'ok';
+  if (!files.length) return renderCreateState(env, guard, menu, { createConfirmation: { id: parent.data.id } });
+  const attachment = await sendAttachmentBatch(env, guard.session.account_id, parent.data.id, keys.attachmentOperationKey, files);
+  if (attachment.classification === 'success') return renderCreateState(env, guard, menu, { createConfirmation: { id: parent.data.id } });
+  if (attachment.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: attachment.data }));
+  if (attachment.classification === 'idempotencyConflict') {
+    return renderCreateState(env, guard, menu, { outcome: reviewOutcome(attachmentRetryMessage(attachment)) });
   }
-
-  return supportHtml(renderSupportList({
-    requests: [{ id, subject, status: 'open', updatedAtMs: guard.nowMs }],
-    csrf,
-    nowMs: guard.nowMs,
-    notices: usable.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [],
-    createConfirmation: { id, email: createEmail.address, uploadFailed },
-    menu,
-  }));
+  return renderCreateState(env, guard, menu, { attachmentRetry: { id: parent.data.id, operationKey: keys.attachmentOperationKey, message: attachmentRetryMessage(attachment) } });
 }
 
 export async function handleSupportDetail(req, env, id) {
   if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
-  const path = `/support/${id}`;
-  const guard = await signedSupportSessionOrRedirect(req, env, path);
+  const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
   if (guard instanceof Response) return guard;
   const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
   return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
@@ -147,187 +97,228 @@ export async function handleSupportDetail(req, env, id) {
 
 export async function handleSupportReply(req, env, id) {
   if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
-  if (!originAllowed(req)) return noStore(forbidden());
+  if (!supportOriginAllowed(req)) return noStore(forbidden());
   const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
   if (guard instanceof Response) return guard;
   const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
-  const form = await readForm(req);
-  if (!form) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, { failure: SUPPORT_REPLY_FAILURE });
-  const csrf = await csrfToken(env);
-  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) return noStore(forbidden());
-
-  const content = (form.get('content')?.toString() || '').trim();
-  if (!content) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, { failure: SUPPORT_REPLY_FAILURE });
-
-  const usable = await usableVerifiedEmails(env, guard.session.account_id);
-  if (usable.emails.length === 0) {
-    return supportHtml(renderSupportList({
-      csrf,
-      failure: SUPPORT_LOAD_FAILURE,
-      nowMs: guard.nowMs,
-      menu,
-    }));
-  }
-
-  let replyEmail = null;
-  for (const row of usable.emails) {
-    const reply = await callSupport(env, {
-      method: 'POST',
-      path: `/api/services/tickets/${encodeURIComponent(id)}/messages`,
-      verifiedEmail: row.address,
-      json: { content },
-    });
-    if (reply.kind === 'notFound') continue;
-    if (reply.kind === 'failure') {
-      return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, {
-        failure: SUPPORT_REPLY_FAILURE,
-        usable,
-      });
-    }
-    replyEmail = row.address;
-    break;
-  }
-
-  if (!replyEmail) return supportNotFoundResponse(menu);
-
-  const notices = usable.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [];
+  const form = await checkedForm(req, env);
+  if (form === false) return noStore(forbidden());
+  if (!form) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  const content = String(form.get('content') || '').trim();
+  const keys = submittedKeys(form);
+  if (!content || !keys) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  const detail = await ownedActiveDetail(env, guard.session.account_id, id);
+  if (detail instanceof Response) return detail;
+  const parent = await runMutation(env, {
+    ownerId: guard.session.account_id, idempotencyKey: keys.operationKey, mutation: 'ticket.message',
+    path: `/api/services/tickets/${encodeURIComponent(id)}/messages`, json: { content },
+  });
+  if (parent.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: parent.data }));
+  if (parent.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (parent.classification !== 'success') return renderActiveDetail(env, guard, detail, {
+    reply: { ...(preserveKey(parent) ? keys : {}), value: content, outcome: outcomeFor(parent, 'the reply could not be confirmed. the files were not sent.') },
+  });
   const files = selectedFiles(form);
-  if (files.length > 0) {
-    const upload = await uploadAttachments(env, { id, verifiedEmail: replyEmail, files });
-    if (upload.kind !== 'ok') notices.push(SUPPORT_UPLOAD_FAILURE);
-  }
-
-  const detail = await loadDetailForEmail(env, id, replyEmail);
-  if (detail.kind === 'notFound') return supportNotFoundResponse(menu);
-  if (detail.kind !== 'ok') {
-    return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, {
-      failure: SUPPORT_LOAD_FAILURE,
-      usable,
-    });
-  }
-  return supportHtml(renderSupportDetail({
-    ...detail.data,
-    csrf,
-    nowMs: guard.nowMs,
-    notices,
-    menu,
-  }));
+  if (!files.length) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  const attachment = await sendAttachmentBatch(env, guard.session.account_id, id, keys.attachmentOperationKey, files);
+  if (attachment.classification === 'success') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (attachment.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: attachment.data }));
+  if (attachment.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (attachment.classification === 'idempotencyConflict') return renderActiveDetail(env, guard, detail, {
+    reply: { outcome: reviewOutcome(attachmentRetryMessage(attachment)) },
+  });
+  return renderActiveDetail(env, guard, detail, { reply: { ...keys, value: content, outcome: errorOutcome(attachmentRetryMessage(attachment)) }, attachmentRetry: {
+    id, operationKey: keys.attachmentOperationKey, message: attachmentRetryMessage(attachment),
+  }});
 }
 
-async function renderSupportListForSession(env, session, nowMs, menu, {
-  failure = '',
-  usable = null,
-} = {}) {
-  const csrf = await csrfToken(env);
-  const verified = usable || await usableVerifiedEmails(env, session.account_id);
-  if (verified.emails.length === 0) {
-    return supportHtml(renderSupportList({
-      csrf,
-      failure: SUPPORT_LOAD_FAILURE,
-      nowMs,
-      menu,
-    }));
-  }
-  if (failure) {
-    return supportHtml(renderSupportList({
-      csrf,
-      failure,
-      nowMs,
-      notices: verified.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [],
-      menu,
-    }));
-  }
+export async function handleSupportAttachments(req, env, id) {
+  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
+  if (!supportOriginAllowed(req)) return noStore(forbidden());
+  const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
+  if (guard instanceof Response) return guard;
+  const form = await checkedForm(req, env);
+  if (form === false) return noStore(forbidden());
+  const key = form && String(form.get('operation_key') || '');
+  if (!form || !validOperationKey(key) || !selectedFiles(form).length) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  const detail = await ownedActiveDetail(env, guard.session.account_id, id);
+  if (detail instanceof Response) return detail;
+  const attachment = await sendAttachmentBatch(env, guard.session.account_id, id, key, selectedFiles(form));
+  if (attachment.classification === 'success') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (attachment.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: attachment.data }));
+  if (attachment.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (attachment.classification === 'idempotencyConflict') return renderActiveDetail(env, guard, detail, {
+    reply: { outcome: reviewOutcome(attachmentRetryMessage(attachment)) },
+  });
+  return renderActiveDetail(env, guard, detail, { attachmentRetry: { id, operationKey: key, message: attachmentRetryMessage(attachment) } });
+}
 
-  let okCount = 0;
-  let failureCount = 0;
+export async function handleSupportResolution(req, env, id) {
+  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
+  if (!supportOriginAllowed(req)) return noStore(forbidden());
+  const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
+  if (guard instanceof Response) return guard;
+  const form = await checkedForm(req, env);
+  if (form === false) return noStore(forbidden());
+  const outcome = form && String(form.get('outcome') || '');
+  const key = form && String(form.get('operation_key') || '');
+  if (!form || !validOperationKey(key) || !['solved', 'still_need_help'].includes(outcome)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (outcome === 'solved' && !hasRemovalConfirmation(form)) {
+    return supportHtml(renderSupportConfirmationRequired({ id, csrf: await csrfToken(env), operationKey: key, solved: true }));
+  }
+  const detail = await ownedActiveDetail(env, guard.session.account_id, id);
+  if (detail instanceof Response) return detail;
+  const result = await runMutation(env, {
+    ownerId: guard.session.account_id, idempotencyKey: key, mutation: 'ticket.resolution',
+    path: `/api/services/tickets/${encodeURIComponent(id)}/resolution`, json: { outcome },
+  });
+  if (result.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: result.data }));
+  if (result.classification === 'success' || result.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  return renderActiveDetail(env, guard, detail, { resolution: {
+    ...(preserveKey(result) ? { operationKey: key, solvedOperationKey: key } : {}), outcome: outcomeFor(result),
+  } });
+}
+
+export async function handleSupportClose(req, env, id) {
+  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
+  if (!supportOriginAllowed(req)) return noStore(forbidden());
+  const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
+  if (guard instanceof Response) return guard;
+  const form = await checkedForm(req, env);
+  if (form === false) return noStore(forbidden());
+  const key = form && String(form.get('operation_key') || '');
+  if (!form || !validOperationKey(key)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (form.get('close_retry') === 'refresh') return renderCloseRefresh(env, guard, id, key);
+  if (!hasRemovalConfirmation(form)) {
+    return supportHtml(renderSupportConfirmationRequired({ id, csrf: await csrfToken(env), operationKey: key }));
+  }
+  const detail = await ownedActiveDetail(env, guard.session.account_id, id);
+  if (detail instanceof Response) return detail;
+  const result = await runMutation(env, {
+    ownerId: guard.session.account_id, idempotencyKey: key, mutation: 'ticket.close',
+    path: `/api/services/tickets/${encodeURIComponent(id)}/close`, json: {},
+  });
+  if (result.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: result.data }));
+  if (result.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: result.retryAfter, closeKey: key, csrf: await csrfToken(env) }));
+  if (result.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  return renderActiveDetail(env, guard, detail, { close: { ...(preserveKey(result) ? { operationKey: key } : {}), outcome: outcomeFor(result) } });
+}
+
+async function renderSupportListForSession(env, session, nowMs, menu, { section = null } = {}) {
+  const csrf = await csrfToken(env);
+  const usable = await usableVerifiedEmails(env, session.account_id);
+  const create = createSection(usable.emails.length ? '' : SUPPORT_EMAIL_LIMITATION);
+  if (section === 'active') {
+    return supportHtml(renderSupportList({ csrf, nowMs, sections: {
+      active: await loadActiveRequests(env, session.account_id, usable), closed: hiddenSection(), create,
+    }}));
+  }
+  const [active, closed] = await Promise.all([loadActiveRequests(env, session.account_id, usable), loadClosedHistory(env, session.account_id, null)]);
+  return supportHtml(renderSupportList({ csrf, nowMs, sections: { active, closed, create } }));
+}
+
+async function renderSupportDetailForSession(env, session, id, nowMs, menu, { forms = null } = {}) {
+  const usable = await usableVerifiedEmails(env, session.account_id);
+  const detail = await loadDetailOwnerFirst(env, session.account_id, id, usable);
+  if (detail.classification === 'notFound') return supportNotFoundResponse();
+  if (detail.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: detail.retryAfter }));
+  if (detail.classification !== 'success') return renderCreateState(env, { session, nowMs }, menu, { outcome: errorOutcome(SUPPORT_LOAD_FAILURE) });
+  if (detail.data.type === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: detail.data.tombstone }));
+  return renderActiveDetail(env, { session, nowMs }, detail.data, forms || freshForms(), usable.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : []);
+}
+
+async function renderActiveDetail(env, guard, detail, overrides = {}, notices = []) {
+  if (overrides.attachmentRetry) {
+    // The reply form remains visible only as a new owner action; retry uses its own batch key.
+    overrides.reply = { ...(overrides.reply || {}), outcome: overrides.reply?.outcome };
+  }
+  const fresh = freshForms();
+  const forms = {
+    ...fresh,
+    ...overrides,
+    reply: { ...fresh.reply, ...(overrides.reply || {}) },
+    resolution: { ...fresh.resolution, ...(overrides.resolution || {}) },
+    close: { ...fresh.close, ...(overrides.close || {}) },
+  };
+  return supportHtml(renderSupportDetail({ ...detail, csrf: await csrfToken(env), nowMs: guard.nowMs, notices, forms }));
+}
+
+async function renderCloseRefresh(env, guard, id, key) {
+  const detail = await loadDetail(env, id, guard.session.account_id);
+  if (detail.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: detail.retryAfter, closeKey: key, csrf: await csrfToken(env) }));
+  if (detail.classification === 'success' && detail.data.type === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: detail.data.tombstone }));
+  return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null, { forms: { close: { operationKey: key } } });
+}
+
+async function ownedActiveDetail(env, ownerId, id) {
+  const usable = await usableVerifiedEmails(env, ownerId);
+  const result = await loadDetailOwnerFirst(env, ownerId, id, usable);
+  if (result.classification === 'notFound') return supportNotFoundResponse();
+  if (result.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: result.retryAfter }));
+  if (result.classification !== 'success') return supportHtml(renderSupportNotFound());
+  if (result.data.type === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: result.data.tombstone }));
+  return result.data;
+}
+
+async function sendAttachmentBatch(env, ownerId, id, key, files) {
+  const formData = new FormData();
+  for (const file of files) formData.append('file', file, file.name);
+  return runMutation(env, {
+    ownerId, idempotencyKey: key, mutation: 'ticket.attachments',
+    path: `/api/services/tickets/${encodeURIComponent(id)}/attachments`, formData,
+  });
+}
+
+async function runMutation(env, options) {
+  const result = await callSupport(env, { method: 'POST', ...options });
+  if (!result.acknowledgeable) return result;
+  const acknowledgement = await acknowledgeSupport(env, options);
+  return acknowledgement.confirmed ? result : { classification: 'ambiguous', acknowledgeable: false, retryAfter: null };
+}
+
+async function loadActiveRequests(env, ownerId, usable) {
   const loaded = [];
-  for (const row of verified.emails) {
-    const outcome = await callSupport(env, {
-      method: 'GET',
-      path: '/api/services/tickets',
-      verifiedEmail: row.address,
-    });
-    if (outcome.kind === 'ok') {
-      okCount += 1;
-      loaded.push(...parseTickets(outcome.data));
-    } else {
-      failureCount += 1;
-    }
+  let failures = 0;
+  const owner = await callSupport(env, { method: 'GET', path: '/api/services/tickets', ownerId });
+  if (owner.classification === 'success') loaded.push(...owner.data); else failures += 1;
+  for (const row of usable.emails) {
+    const discovery = await callSupport(env, { method: 'GET', path: '/api/services/tickets', ownerId, verifiedEmail: row.address });
+    if (discovery.classification === 'success') loaded.push(...discovery.data); else failures += 1;
   }
-
-  if (okCount === 0) {
-    return supportHtml(renderSupportList({
-      csrf,
-      failure: SUPPORT_LOAD_FAILURE,
-      nowMs,
-      menu,
-    }));
-  }
-
-  const notices = [];
-  if (failureCount > 0 || verified.decryptSkipped) notices.push(SUPPORT_PARTIAL_NOTICE);
-  return supportHtml(renderSupportList({
-    requests: mergeTickets(loaded),
-    csrf,
-    nowMs,
-    notices,
-    menu,
-  }));
+  if (!loaded.length && failures) return errorActive(ACTIVE_FAILURE);
+  const active = readyActive(mergeTickets(loaded));
+  if (failures || usable.decryptSkipped) Object.assign(active, { error: SUPPORT_PARTIAL_NOTICE, retryHref: '/support?section=active' });
+  return active;
 }
 
-async function renderSupportDetailForSession(env, session, id, nowMs, menu, {
-  failure = '',
-  usable = null,
-} = {}) {
-  const csrf = await csrfToken(env);
-  const verified = usable || await usableVerifiedEmails(env, session.account_id);
-  if (verified.emails.length === 0) {
-    return supportHtml(renderSupportList({
-      csrf,
-      failure: SUPPORT_LOAD_FAILURE,
-      nowMs,
-      menu,
-    }));
-  }
-  if (failure) {
-    return supportHtml(renderSupportList({
-      csrf,
-      failure,
-      nowMs,
-      notices: verified.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [],
-      menu,
-    }));
-  }
+async function loadClosedHistory(env, ownerId, cursor, suppliedRetryHref = null) {
+  if (cursor === undefined || (cursor !== null && !decodeCursor(cursor).ok)) return errorClosed(CLOSED_FAILURE, suppliedRetryHref || '/support/closed');
+  const path = cursor === null ? '/api/services/tickets/closed' : `/api/services/tickets/closed?cursor=${encodeURIComponent(cursor)}`;
+  const result = await callSupport(env, { method: 'GET', path, ownerId });
+  const retryHref = cursor === null ? '/support/closed' : `/support/closed?cursor=${encodeURIComponent(cursor)}`;
+  return result.classification === 'success' && result.data.tickets.length <= 25
+    ? { state: 'ready', requests: result.data.tickets, nextCursor: result.data.nextCursor }
+    : errorClosed(CLOSED_FAILURE, retryHref);
+}
 
-  for (const row of verified.emails) {
-    const detail = await loadDetailForEmail(env, id, row.address);
-    if (detail.kind === 'notFound') continue;
-    if (detail.kind === 'failure') {
-      return supportHtml(renderSupportList({
-        csrf,
-        failure: SUPPORT_LOAD_FAILURE,
-        nowMs,
-        notices: verified.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [],
-        menu,
-      }));
-    }
-    const notices = verified.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [];
-    return supportHtml(renderSupportDetail({
-      ...detail.data,
-      csrf,
-      nowMs,
-      notices,
-      menu,
-    }));
+async function loadDetailOwnerFirst(env, ownerId, id, usable) {
+  const owner = await loadDetail(env, id, ownerId);
+  if (owner.classification !== 'notFound') return owner;
+  for (const row of usable.emails) {
+    const found = await loadDetail(env, id, ownerId, row.address);
+    if (found.classification !== 'notFound') return found;
   }
-  return supportNotFoundResponse(menu);
+  return owner;
+}
+
+function loadDetail(env, id, ownerId, verifiedEmail) {
+  return callSupport(env, { method: 'GET', path: `/api/services/tickets/${encodeURIComponent(id)}`, ownerId, verifiedEmail });
 }
 
 async function signedSupportSessionOrRedirect(req, env, path) {
   const nowMs = Date.now();
   const session = await getValidSession(req, env, nowMs);
-  if (session) return { session, nowMs };
-  return signInRedirect(env, path, '');
+  return session ? { session, nowMs } : signInRedirect(env, path, '');
 }
 
 async function usableVerifiedEmails(env, accountId) {
@@ -336,181 +327,94 @@ async function usableVerifiedEmails(env, accountId) {
   let decryptSkipped = false;
   for (const row of rows) {
     if (row.verified_at == null) continue;
-    try {
-      emails.push({
-        id: row.id,
-        address: await decryptEmail(row.address_encrypted, env),
-        isPrimary: row.is_primary === 1,
-      });
-    } catch {
-      decryptSkipped = true;
-      console.warn(JSON.stringify({ event: 'support_email_decrypt_failed', row_id: row.id }));
-    }
+    try { emails.push({ address: await decryptEmail(row.address_encrypted, env), isPrimary: row.is_primary === 1 }); } catch { decryptSkipped = true; }
   }
   return { emails, decryptSkipped };
 }
 
-async function callSupport(env, { method, path, verifiedEmail, json = null, formData = null }) {
-  if (!env.SUPPORT_WORKER || !env.SERVICES_AUTH_TOKEN) return { kind: 'failure' };
-  const headers = new Headers({
-    'X-Services-Auth': env.SERVICES_AUTH_TOKEN,
-    'X-Verified-Email': verifiedEmail,
-  });
-  let body;
-  if (json != null) {
-    headers.set('Content-Type', 'application/json');
-    body = JSON.stringify(json);
-  } else if (formData != null) {
-    body = formData;
-  }
-  try {
-    const response = await env.SUPPORT_WORKER.fetch(new Request(`${SUPPORT_ORIGIN}${path}`, {
-      method,
-      headers,
-      body,
-    }));
-    if (response.status === 404) return { kind: 'notFound' };
-    if (!response.ok) return { kind: 'failure' };
-    return { kind: 'ok', data: await response.json() };
-  } catch {
-    return { kind: 'failure' };
-  }
-}
-
-async function loadDetailForEmail(env, id, verifiedEmail) {
-  const detail = await callSupport(env, {
-    method: 'GET',
-    path: `/api/services/tickets/${encodeURIComponent(id)}`,
-    verifiedEmail,
-  });
-  if (detail.kind !== 'ok') return detail;
-  const parsed = parseDetail(detail.data);
-  return parsed ? { kind: 'ok', data: parsed } : { kind: 'failure' };
-}
-
-async function uploadAttachments(env, { id, verifiedEmail, files }) {
-  const formData = new FormData();
-  for (const file of files) formData.append('file', file, file.name);
-  return callSupport(env, {
-    method: 'POST',
-    path: `/api/services/tickets/${encodeURIComponent(id)}/attachments`,
-    verifiedEmail,
-    formData,
-  });
-}
-
-function parseTickets(data) {
-  const rows = Array.isArray(data) ? data : Array.isArray(data?.tickets) ? data.tickets : [];
-  return rows.map(parseTicket).filter(Boolean);
-}
-
-function parseTicket(row) {
-  const id = stringValue(row?.id);
-  if (!id || !SUPPORT_ID_REGEX.test(id)) return null;
+function freshForms() {
   return {
-    id,
-    subject: stringValue(row?.subject) || 'request',
-    status: stringValue(row?.status) || 'open',
-    updatedAtMs: normalizeTimestamp(row?.updated_at),
+    reply: { operationKey: mintKey(), attachmentOperationKey: mintKey() },
+    resolution: { operationKey: mintKey(), solvedOperationKey: mintKey() },
+    close: { operationKey: mintKey() },
   };
 }
 
-function parseCreatedId(data) {
-  const id = stringValue(data?.id) || stringValue(data?.ticket?.id);
-  return id && SUPPORT_ID_REGEX.test(id) ? id : null;
+function createSection(message = '') {
+  return { state: 'ready', message, operationKey: mintKey(), attachmentOperationKey: mintKey() };
 }
 
-function parseDetail(data) {
-  const ticket = parseTicket(data?.ticket || data);
-  if (!ticket) return null;
-  const messages = Array.isArray(data?.messages) ? data.messages : [];
-  const topLevel = Array.isArray(data?.attachments) ? data.attachments : [];
-  const nested = messages.flatMap((message) => (
-    Array.isArray(message?.attachments) ? message.attachments : []
-  ));
-  return {
-    request: ticket,
-    messages: messages.map(parseMessage),
-    attachments: [...topLevel, ...nested].map(parseAttachment),
+async function renderCreateState(env, guard, menu, { values = {}, keys = null, message = '', outcome = null, createConfirmation = null, attachmentRetry = null } = {}) {
+  const create = { ...createSection(message), values, outcome, createConfirmation, attachmentRetry };
+  if (keys) Object.assign(create, keys);
+  return supportHtml(renderSupportList({ csrf: await csrfToken(env), nowMs: guard.nowMs, sections: {
+    active: hiddenSection(), closed: hiddenSection(), create,
+  }}));
+}
+
+function submittedKeys(form) {
+  const operationKey = String(form.get('operation_key') || '');
+  const attachmentOperationKey = String(form.get('attachment_operation_key') || '');
+  return validOperationKey(operationKey) && validOperationKey(attachmentOperationKey) && operationKey !== attachmentOperationKey
+    ? { operationKey, attachmentOperationKey } : null;
+}
+
+function createValues(form) {
+  return { product: String(form.get('product') || ''), subject: String(form.get('subject') || '').trim(), description: String(form.get('description') || '').trim() };
+}
+
+function validCreate(values) {
+  return ['solstone', 'vit', 'general'].includes(values.product) && values.subject.length > 0 && values.description.length > 0;
+}
+
+function validOperationKey(value) { return OPERATION_KEY.test(value); }
+function mintKey() { return randomBase64Url(32); }
+function selectedFiles(form) { return form.getAll('file').filter((value) => value && typeof value === 'object' && typeof value.arrayBuffer === 'function' && value.size > 0); }
+function readyActive(requests) { return { state: 'ready', requests, notices: [] }; }
+function errorActive(error) { return { state: 'error', requests: [], notices: [], error, retryHref: '/support?section=active' }; }
+function errorClosed(error, retryHref) { return { state: 'error', requests: [], nextCursor: null, error, retryHref }; }
+function hiddenSection() { return { state: 'hidden' }; }
+function errorOutcome(message) { return { kind: 'error', message }; }
+function reviewOutcome(message) { return { ...errorOutcome(message), requiresReview: true }; }
+
+function outcomeFor(result, fallback = 'this action could not be confirmed. try again with the same action.') {
+  const messages = {
+    operationInProgress: `this action is still in progress.${result.retryAfter ? ` try again in ${result.retryAfter}.` : ' try again with the same action.'}`,
+    idempotencyConflict: 'this action does not match the earlier action. review it before starting a new one.',
+    invalidIdempotencyKey: 'this action key is not valid. review the action before starting a new one.',
+    invalidState: 'this request changed before this action could be completed.',
+    notFound: 'we could not find that request.',
+    operationErased: 'this earlier action can no longer be repeated.',
+    operationRetired: 'this earlier action is permanently suppressed. review a new action to continue.',
+    ambiguous: fallback,
   };
+  const outcome = errorOutcome(messages[result.classification] || fallback);
+  if (!preserveKey(result) && result.classification !== 'invalidState') outcome.requiresReview = true;
+  return outcome;
 }
 
-function parseMessage(row) {
-  return {
-    author_kind: stringValue(row?.author_kind) || '',
-    content: stringValue(row?.content) || '',
-    createdAtMs: normalizeTimestamp(row?.created_at),
-  };
+function attachmentRetryMessage(result) {
+  return result.classification === 'idempotencyConflict'
+    ? 'those files do not match the earlier batch. review a new attachment action.'
+    : 'the files were not confirmed. reselect the same files in the same order to try again.';
 }
 
-function parseAttachment(row) {
-  return {
-    filename: stringValue(row?.filename) || 'attachment',
-    status: stringValue(row?.status) || 'pending',
-    triage_summary: stringValue(row?.triage_summary) || '',
-  };
+function preserveKey(result) {
+  return result.classification === 'ambiguous' || result.classification === 'operationInProgress';
 }
 
-function mergeTickets(rows) {
-  const byId = new Map();
-  for (const row of rows) {
-    if (!byId.has(row.id)) byId.set(row.id, row);
-  }
-  return Array.from(byId.values()).sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0));
+function hasRemovalConfirmation(form) {
+  return form.get('confirmation') === 'remove_details' && form.get('confirmation_control') === 'checkbox';
 }
 
-function normalizeTimestamp(value) {
-  const ms = typeof value === 'number' ? value : Date.parse(value);
-  return Number.isFinite(ms) ? ms : null;
+async function checkedForm(req, env) {
+  const form = await readForm(req);
+  if (!form) return null;
+  return timingSafeEqual(String(form.get('csrf') || ''), await csrfToken(env)) ? form : false;
 }
-
-function stringValue(value) {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  return '';
-}
-
-function supportIdFromPath(path) {
-  if (typeof path !== 'string') return null;
-  const parts = path.split('/');
-  if (parts.length !== 3 || parts[1] !== 'support') return null;
-  return SUPPORT_ID_REGEX.test(parts[2]) ? parts[2] : null;
-}
-
-function selectedFiles(form) {
-  return form.getAll('file').filter((value) => (
-    value &&
-    typeof value === 'object' &&
-    typeof value.name === 'string' &&
-    typeof value.arrayBuffer === 'function' &&
-    value.size > 0
-  ));
-}
-
-async function csrfToken(env) {
-  return hashKey('csrf', 'account', env);
-}
-
-async function readForm(req) {
-  try {
-    return await req.formData();
-  } catch {
-    return null;
-  }
-}
-
-function supportHtml(body, init = {}) {
-  return html(body, {
-    ...init,
-    headers: { ...NO_STORE, ...(init.headers || {}) },
-  });
-}
-
-function supportNotFoundResponse(menu) {
-  return supportHtml(renderSupportNotFound({ menu }), { status: 404 });
-}
-
-function noStore(response) {
-  response.headers.set('Cache-Control', 'no-store');
-  return response;
-}
+async function csrfToken(env) { return hashKey('csrf', 'account', env); }
+async function readForm(req) { try { return await req.formData(); } catch { return null; } }
+function supportIdFromPath(path) { const parts = typeof path === 'string' ? path.split('/') : []; return parts.length === 3 && parts[1] === 'support' && SUPPORT_ID_REGEX.test(parts[2]) ? parts[2] : null; }
+function supportHtml(body, init = {}) { return html(body, { ...init, headers: { ...NO_STORE, ...(init.headers || {}) } }); }
+function supportNotFoundResponse() { return supportHtml(renderSupportNotFound(), { status: 404 }); }
+function noStore(response) { response.headers.set('Cache-Control', 'no-store'); return response; }

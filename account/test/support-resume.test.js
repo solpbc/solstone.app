@@ -15,9 +15,10 @@ describe('support resume and sign-in prompts', () => {
     vi.restoreAllMocks();
   });
 
-  it('round-trips /support and /support/{id} through the signed resume gate', async () => {
+  it('round-trips /support, /support/closed, and /support/{id} through the signed resume gate', async () => {
     const testEnv = makeTestEnv();
     const list = await signEnableResume('/support', '', testEnv);
+    const closed = await signEnableResume('/support/closed', '', testEnv);
     const detail = await signEnableResume('/support/REQ_123-abc', '', testEnv);
 
     await expect(verifyEnableResume(list.next, list.nextSig, testEnv)).resolves.toEqual({
@@ -28,12 +29,17 @@ describe('support resume and sign-in prompts', () => {
       path: '/support/REQ_123-abc',
       queryString: '',
     });
+    await expect(verifyEnableResume(closed.next, closed.nextSig, testEnv)).resolves.toEqual({
+      path: '/support/closed',
+      queryString: '',
+    });
   });
 
   it('rejects support resume paths with queries, bad ids, or external paths', async () => {
     const testEnv = makeTestEnv();
 
     await expect(signEnableResume('/support', '?next=/support', testEnv)).resolves.toBeNull();
+    await expect(signEnableResume('/support/closed', '?cursor=bad', testEnv)).resolves.toBeNull();
     await expect(signEnableResume('/support/bad.id', '', testEnv)).resolves.toBeNull();
     await expect(signEnableResume('/support/extra/seg', '', testEnv)).resolves.toBeNull();
     await expect(signEnableResume('/support/../x', '', testEnv)).resolves.toBeNull();
@@ -49,12 +55,29 @@ describe('support resume and sign-in prompts', () => {
     await expect(verifyEnableResume(extraSegment.next, extraSegment.nextSig, testEnv)).resolves.toBeNull();
   });
 
-  it('redirects signed-out /support to the public support site', async () => {
+  it('sends signed-out /support through the signed local OTP resume gate', async () => {
     const testEnv = makeTestEnv();
     const response = await worker.fetch(new Request('https://services.solstone.app/support'), testEnv);
 
-    expect(response.status).toBe(302);
-    expect(response.headers.get('Location')).toBe('https://support.solstone.app');
+    // §9 makes /support the authenticated continuation rather than a public-site bounce.
+    expect(response.status).toBe(303);
+    const location = new URL(response.headers.get('Location'), 'https://services.solstone.app');
+    await expect(verifyEnableResume(location.searchParams.get('next'), location.searchParams.get('next_sig'), testEnv)).resolves.toEqual({
+      path: '/support',
+      queryString: '',
+    });
+  });
+
+  it('sends signed-out /support/closed through its signed local OTP resume gate', async () => {
+    const testEnv = makeTestEnv();
+    const response = await worker.fetch(new Request('https://services.solstone.app/support/closed'), testEnv);
+
+    expect(response.status).toBe(303);
+    const location = new URL(response.headers.get('Location'), 'https://services.solstone.app');
+    await expect(verifyEnableResume(location.searchParams.get('next'), location.searchParams.get('next_sig'), testEnv)).resolves.toEqual({
+      path: '/support/closed',
+      queryString: '',
+    });
   });
 
   it('shows the request-specific OTP prompt for signed-out /support/{id}', async () => {
@@ -62,7 +85,7 @@ describe('support resume and sign-in prompts', () => {
     const landing = await followSupportRedirect('/support/REQ_77', testEnv);
     const body = await landing.text();
 
-    expect(body).toContain("sign in with your email to see request #REQ_77. we'll send a 6-digit code.");
+    expect(body).toContain("sign in with your email to see request #REQ_77. we'll email you a code.");
     expect(body).not.toMatch(/support[_-]?(nonce|token)|magic/i);
   });
 

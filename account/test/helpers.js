@@ -735,10 +735,15 @@ export function makeSupportWorker(handlers = {}) {
       requests.push({
         method,
         pathname: url.pathname,
+        search: url.search,
+        searchParams: Array.from(url.searchParams.entries()),
         headers: {
           servicesAuth: request.headers.get('X-Services-Auth'),
+          ownerId: request.headers.get('X-Services-Owner-ID'),
           verifiedEmail: request.headers.get('X-Verified-Email'),
+          hasVerifiedEmail: request.headers.has('X-Verified-Email'),
           verifiedEmailCount: headerEntries.filter(([name]) => name.toLowerCase() === 'x-verified-email').length,
+          idempotencyKey: request.headers.get('Idempotency-Key'),
         },
         body,
       });
@@ -761,11 +766,20 @@ async function readSupportRequestBody(request) {
   }
   if (contentType.includes('multipart/form-data')) {
     const form = await request.formData();
+    const files = form.getAll('file');
     return {
-      files: form.getAll('file').map((file) => ({
+      files: files.map((file) => ({
         name: file?.name || '',
         size: file?.size || 0,
       })),
+      fileEntries: await Promise.all(files.map(async (file) => ({
+        name: file?.name || '',
+        type: file?.type || '',
+        size: file?.size || 0,
+        bytes: file && typeof file.arrayBuffer === 'function'
+          ? new Uint8Array(await file.arrayBuffer())
+          : new Uint8Array(),
+      }))),
     };
   }
   try {

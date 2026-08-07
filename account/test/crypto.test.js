@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  base64UrlDecode,
+  base64UrlEncode,
   decryptEmail,
   encryptEmail,
   generateOtp,
@@ -80,5 +82,13 @@ describe('crypto helpers', () => {
   it('timingSafeEqual returns false for length mismatch or non-strings', () => {
     expect(timingSafeEqual('123456', '12345')).toBe(false);
     expect(timingSafeEqual('123456', null)).toBe(false);
+  });
+
+  it('base64url decodes unpadded URL-safe values and rejects invalid padding lengths', () => {
+    const bytes = new Uint8Array([0, 251, 255, 42]);
+
+    expect(base64UrlEncode(bytes)).toBe('APv_Kg');
+    expect(base64UrlDecode(base64UrlEncode(bytes))).toEqual(bytes);
+    expect(() => base64UrlDecode('A')).toThrow('invalid base64url');
   });
 });

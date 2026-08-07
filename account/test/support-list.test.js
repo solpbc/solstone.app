@@ -16,10 +16,19 @@ describe('support list', () => {
     vi.restoreAllMocks();
   });
 
-  it('fans out across usable verified emails, merges by id, sorts by updated_at, and sends required headers', async () => {
+  it('reads the stable owner first, then discovers legacy rows sequentially and merges by newest update', async () => {
+    let activeReads = 0;
+    let activeReadsAtOnce = 0;
+    let maximumActiveReadsAtOnce = 0;
     const support = makeSupportWorker({
-      'GET /api/services/tickets': ({ request }) => {
+      'GET /api/services/tickets': async ({ request }) => {
+        activeReadsAtOnce += 1;
+        maximumActiveReadsAtOnce = Math.max(maximumActiveReadsAtOnce, activeReadsAtOnce);
+        activeReads += 1;
+        await Promise.resolve();
+        activeReadsAtOnce -= 1;
         const email = request.headers.get('X-Verified-Email');
+        if (!email) return json({ tickets: [{ id: 'REQ_OWNER', subject: 'owner request', status: 'open', updated_at: 1_700_000_005_000 }] });
         if (email === 'primary@example.com') {
           return json({ tickets: [
             { id: 'REQ_A', subject: 'primary newer', status: 'waiting', updated_at: 1_700_000_010_000 },
@@ -31,6 +40,7 @@ describe('support list', () => {
           { id: 'REQ_DUP', subject: 'secondary duplicate', status: 'resolved', updated_at: 1_700_000_050_000 },
         ] });
       },
+      'GET /api/services/tickets/closed': () => json({ tickets: [], next_cursor: null }),
     });
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { session } = await signedInAccount(testEnv);
@@ -54,27 +64,32 @@ describe('support list', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('<h1>your support</h1>');
     expect(body.indexOf('secondary newest')).toBeLessThan(body.indexOf('primary newer'));
-    expect(body).toContain('primary wins');
-    expect(body).not.toContain('secondary duplicate');
+    // §9 replaced first-seen merge with newest valid updated_at wins.
+    expect(body).toContain('secondary duplicate');
+    expect(body).not.toContain('primary wins');
     expect(body).toContain('waiting on you');
     expect(body).toContain('in progress');
     expect(body).toContain('updated ');
-    expect(support.requests.map((request) => request.pathname)).toEqual([
-      '/api/services/tickets',
-      '/api/services/tickets',
-    ]);
-    expect(support.requests.map((request) => request.headers.verifiedEmail)).toEqual([
+    const active = support.requests.filter((request) => request.pathname === '/api/services/tickets');
+    // §9 replaces email-only fanout with a stable-owner read before legacy discovery.
+    expect(active.map((request) => request.headers.verifiedEmail)).toEqual([
+      null,
       'primary@example.com',
       'secondary@example.com',
     ]);
-    expect(support.requests.every((request) => request.headers.servicesAuth === 'test-services-auth-token')).toBe(true);
-    expect(support.requests.every((request) => request.headers.verifiedEmailCount === 1)).toBe(true);
-    expect(support.requests.map((request) => request.headers.verifiedEmail)).not.toContain('unverified@example.com');
+    expect(active[0].headers.hasVerifiedEmail).toBe(false);
+    expect(active.slice(1).every((request) => request.headers.hasVerifiedEmail)).toBe(true);
+    expect(active.every((request) => request.headers.ownerId === session.accountId)).toBe(true);
+    expect(maximumActiveReadsAtOnce).toBe(1);
+    expect(activeReads).toBe(3);
+    expect(support.requests.some((request) => request.pathname === '/api/services/tickets/closed')).toBe(true);
+    expect(active.map((request) => request.headers.verifiedEmail)).not.toContain('unverified@example.com');
   });
 
   it('renders the exact empty state and open-request form when no requests load', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets': () => json({ tickets: [] }),
+      'GET /api/services/tickets/closed': () => json({ tickets: [], next_cursor: null }),
     });
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { session } = await signedInAccount(testEnv);
@@ -99,6 +114,7 @@ describe('support list', () => {
         }
         return json({ tickets: [{ id: 'REQ_OK', subject: 'loaded request', status: 'open', updated_at: Date.now() }] });
       },
+      'GET /api/services/tickets/closed': () => json({ tickets: [], next_cursor: null }),
     });
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { session } = await signedInAccount(testEnv);
@@ -125,12 +141,13 @@ describe('support list', () => {
 
     expect(body).toContain('loaded request');
     expect(body).toContain('some support history could not be loaded.');
-    expect(support.requests).toHaveLength(2);
+    expect(support.requests.filter((request) => request.pathname === '/api/services/tickets')).toHaveLength(3);
   });
 
   it('shows a total load failure when all list calls fail', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets': () => new Response(JSON.stringify({ error: 'down' }), { status: 500 }),
+      'GET /api/services/tickets/closed': () => json({ tickets: [], next_cursor: null }),
     });
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { session } = await signedInAccount(testEnv);
@@ -138,13 +155,17 @@ describe('support list', () => {
     const response = await worker.fetch(get('/support', session.cookie), testEnv);
     const body = await response.text();
 
-    expect(body).toContain("we couldn't load your support right now. try again soon.");
+    expect(body).toContain("we couldn't load active requests. try again.");
     expect(body).not.toContain('no open requests.');
   });
 
-  it('fails closed without calling support when there are no usable verified emails or no binding', async () => {
+  it('keeps the owner-scoped read available without a usable verified email', async () => {
     const support = makeSupportWorker({
-      'GET /api/services/tickets': () => json({ tickets: [] }),
+      'GET /api/services/tickets': ({ request }) => {
+        expect(request.headers.has('X-Verified-Email')).toBe(false);
+        return json({ tickets: [{ id: 'REQ_OWNER', subject: 'owner request', status: 'open', updated_at: Date.now() }] });
+      },
+      'GET /api/services/tickets/closed': () => json({ tickets: [], next_cursor: null }),
     });
     const noEmailEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { session } = await signedInAccount(noEmailEnv);
@@ -154,14 +175,43 @@ describe('support list', () => {
       .run();
 
     const noEmail = await worker.fetch(get('/support', session.cookie), noEmailEnv);
-    expect(await noEmail.text()).toContain("we couldn't load your support right now. try again soon.");
-    expect(support.requests).toHaveLength(0);
+    const noEmailBody = await noEmail.text();
+    // §9 keeps stable-owner reads available; only opening and legacy discovery need an email.
+    expect(noEmailBody).toContain('owner request');
+    expect(noEmailBody).toContain('we need a verified email before you can open a request.');
+    expect(support.requests.filter((request) => request.pathname === '/api/services/tickets')).toHaveLength(1);
 
     const missingBindingEnv = makeTestEnv();
     const withBindingMissing = await seedAccount({ email: 'missing-binding@example.com', testEnv: missingBindingEnv });
     const missingSession = await seedSession(withBindingMissing.accountId, { testEnv: missingBindingEnv });
     const missing = await worker.fetch(get('/support', missingSession.cookie), missingBindingEnv);
-    expect(await missing.text()).toContain("we couldn't load your support right now. try again soon.");
+    expect(await missing.text()).toContain("we couldn't load active requests. try again.");
+  });
+
+  it('renders active and closed failures independently while keeping the create form', async () => {
+    const activeFailure = makeSupportWorker({
+      'GET /api/services/tickets': () => new Response('down', { status: 500 }),
+      'GET /api/services/tickets/closed': () => json({ tickets: [tombstone('REQ_CLOSED')], next_cursor: null }),
+    });
+    const activeEnv = makeTestEnv({ SUPPORT_WORKER: activeFailure });
+    const { session: activeSession } = await signedInAccount(activeEnv);
+    const activeResponse = await worker.fetch(get('/support', activeSession.cookie), activeEnv);
+    const activeBody = await activeResponse.text();
+    expect(activeBody).toContain("we couldn't load active requests. try again.");
+    expect(activeBody).toContain('request #REQ_CLOSED');
+    expect(activeBody).toContain('open a request');
+
+    const closedFailure = makeSupportWorker({
+      'GET /api/services/tickets': () => json({ tickets: [{ id: 'REQ_ACTIVE', subject: 'still open', status: 'open', updated_at: Date.now() }] }),
+      'GET /api/services/tickets/closed': () => new Response('down', { status: 500 }),
+    });
+    const closedEnv = makeTestEnv({ SUPPORT_WORKER: closedFailure });
+    const { session: closedSession } = await signedInAccount(closedEnv);
+    const closedResponse = await worker.fetch(get('/support', closedSession.cookie), closedEnv);
+    const closedBody = await closedResponse.text();
+    expect(closedBody).toContain('still open');
+    expect(closedBody).toContain("we couldn't load closed requests. try again.");
+    expect(closedBody).toContain('open a request');
   });
 });
 
@@ -182,4 +232,14 @@ function json(body, status = 200) {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function tombstone(id) {
+  return {
+    id,
+    created_at: '2026-08-01T00:00:00.000Z',
+    closed_at: '2026-08-02T00:00:00.000Z',
+    status: 'closed',
+    content_removed: true,
+  };
 }

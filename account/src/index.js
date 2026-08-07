@@ -99,9 +99,13 @@ import {
 } from './html.js';
 import {
   handleSupportCreate,
+  handleSupportClosed,
+  handleSupportAttachments,
+  handleSupportClose,
   handleSupportDetail,
   handleSupportList,
   handleSupportReply,
+  handleSupportResolution,
   supportSignInPrompt,
 } from './support.js';
 import {
@@ -186,6 +190,16 @@ export function originAllowed(req) {
     (typeof origin === 'string' && origin.startsWith(ORIGIN)) ||
     (typeof referer === 'string' && referer.startsWith(ORIGIN))
   );
+}
+
+export function supportOriginAllowed(req) {
+  const origin = req.headers.get('Origin');
+  if (typeof origin !== 'string') return false;
+  try {
+    return new URL(origin).origin === ORIGIN;
+  } catch {
+    return false;
+  }
 }
 
 export function getClientIp(req) {
@@ -755,6 +769,15 @@ async function routeRequest(req, env, ctx) {
         return handleSupportCreate(req, env);
       }
 
+      if (
+        parts.length === 3 &&
+        parts[1] === 'support' &&
+        parts[2] === 'closed' &&
+        req.method === 'GET'
+      ) {
+        return handleSupportClosed(req, env);
+      }
+
       if (parts.length === 3 && parts[1] === 'support' && req.method === 'GET') {
         return handleSupportDetail(req, env, parts[2]);
       }
@@ -766,6 +789,33 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handleSupportReply(req, env, parts[2]);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'support' &&
+        parts[3] === 'attachments' &&
+        req.method === 'POST'
+      ) {
+        return handleSupportAttachments(req, env, parts[2]);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'support' &&
+        parts[3] === 'resolution' &&
+        req.method === 'POST'
+      ) {
+        return handleSupportResolution(req, env, parts[2]);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'support' &&
+        parts[3] === 'close' &&
+        req.method === 'POST'
+      ) {
+        return handleSupportClose(req, env, parts[2]);
       }
 
       if (

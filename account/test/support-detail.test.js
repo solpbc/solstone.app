@@ -15,10 +15,10 @@ describe('support detail', () => {
     vi.restoreAllMocks();
   });
 
-  it('advances on 404 across verified emails and renders thread labels plus write-only attachments', async () => {
+  it('tries the stable owner first, then advances on 404 across verified emails', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets/REQ_1': ({ request }) => {
-        if (request.headers.get('X-Verified-Email') === 'primary@example.com') {
+        if (!request.headers.get('X-Verified-Email') || request.headers.get('X-Verified-Email') === 'primary@example.com') {
           return json({ error: 'not found' }, 404);
         }
         return json(detailPayload());
@@ -38,7 +38,7 @@ describe('support detail', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('need help');
-    expect(body).toContain('waiting on you');
+    expect(body).toContain('proposal ready');
     expect(body).toContain('you');
     expect(body).toContain('solstone support');
     expect(body).toContain('<div class="title">sol</div>');
@@ -51,10 +51,15 @@ describe('support detail', () => {
     expect(body).not.toContain('/api/services/tickets/REQ_1/attachments/download');
     expect(body).not.toContain('r2_key');
     expect(body).not.toContain('download_url');
+    // §9 requires an owner-only detail read before legacy email discovery.
     expect(support.requests.map((request) => request.headers.verifiedEmail)).toEqual([
+      null,
       'primary@example.com',
       'secondary@example.com',
     ]);
+    expect(support.requests[0].headers.hasVerifiedEmail).toBe(false);
+    expect(support.requests.slice(1).every((request) => request.headers.hasVerifiedEmail)).toBe(true);
+    expect(support.requests.every((request) => request.headers.ownerId === account.accountId)).toBe(true);
   });
 
   it('renders nested message attachments and scrubs storage fields', async () => {
@@ -91,7 +96,7 @@ describe('support detail', () => {
     expect(body).not.toContain('download_url');
   });
 
-  it('uses safe fallbacks for unknown status and author kind', async () => {
+  it('fails visibly for an unknown active status', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets/REQ_UNKNOWN': () => json({
         ticket: { id: 'REQ_UNKNOWN', subject: 'unknowns', status: 'internal-only', updated_at: Date.now() },
@@ -105,8 +110,9 @@ describe('support detail', () => {
     const response = await worker.fetch(get('/support/REQ_UNKNOWN', session.cookie), testEnv);
     const body = await response.text();
 
-    expect(body).toContain('in progress');
-    expect(body).toContain('solstone support');
+    expect(body).toContain("we couldn't load your support right now. try again soon.");
+    expect(body).not.toContain('in progress');
+    expect(body).not.toContain('solstone support');
     expect(body).not.toContain('internal-only');
     expect(body).not.toContain('robot');
   });
@@ -114,7 +120,7 @@ describe('support detail', () => {
   it('stops fanout on a non-404 detail failure', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets/REQ_FAIL': ({ request }) => {
-        if (request.headers.get('X-Verified-Email') === 'primary@example.com') {
+        if (!request.headers.get('X-Verified-Email')) {
           return json({ error: 'down' }, 500);
         }
         return json(detailPayload({ subject: 'should not load' }));
@@ -149,7 +155,7 @@ describe('support detail', () => {
     expect(invalidBody).toContain('<h1>request not found</h1>');
     expect(missingBody).toContain('<h1>request not found</h1>');
     expect(invalidBody).not.toContain('primary@example.com');
-    expect(missingBody).toContain('<div class="who">primary@example.com</div>');
+    expect(missingBody).not.toContain('primary@example.com');
     expect(missingBody).not.toContain('REQ_MISSING');
     expect(missingBody).not.toContain('bad.id');
   });

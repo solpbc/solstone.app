@@ -1,4 +1,6 @@
 import {
+  base64UrlDecode,
+  base64UrlEncode,
   decryptEmail,
   encryptEmail,
   generateSessionToken,
@@ -124,7 +126,7 @@ export async function registerDeviceForAccount({
 export async function signEnableResume(path, queryString, env) {
   const resume = normalizeResume(path, queryString);
   if (!resume) return null;
-  const next = base64Url(encoder.encode(JSON.stringify(resume)));
+  const next = base64UrlEncode(encoder.encode(JSON.stringify(resume)));
   const nextSig = await hashWithPepper(next, env, 'HMAC_PEPPER');
   return { next, nextSig };
 }
@@ -749,7 +751,7 @@ function normalizeResume(path, queryString) {
 }
 
 function isSupportResumePath(path) {
-  if (path === '/support') return true;
+  if (path === '/support' || path === '/support/closed') return true;
   const parts = path.split('/');
   return parts.length === 3 && parts[1] === 'support' && SUPPORT_ID_REGEX.test(parts[2]);
 }
@@ -834,19 +836,4 @@ function handoffJson(body, init = {}) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function base64Url(bytes) {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-}
-
-function base64UrlDecode(value) {
-  const pad = value.length % 4 === 2 ? '==' : value.length % 4 === 3 ? '=' : value.length % 4 === 0 ? '' : null;
-  if (pad == null) throw new Error('invalid base64url');
-  const binary = atob(value.replace(/-/g, '+').replace(/_/g, '/') + pad);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
 }

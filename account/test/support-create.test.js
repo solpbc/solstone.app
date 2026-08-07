@@ -17,10 +17,10 @@ describe('support create', () => {
   });
 
   it('opens a request with the primary verified email and omits category', async () => {
-    const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ id: 'REQ_NEW' }),
-      'POST /api/services/tickets/REQ_NEW/attachments': () => json({ ok: true }),
-    });
+    const support = makeSupportWorker(withAck({
+      'POST /api/services/tickets': () => json(created('REQ_NEW')),
+      'POST /api/services/tickets/REQ_NEW/attachments': () => json(attachmentsAccepted('REQ_NEW')),
+    }));
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { account, session } = await signedInAccount(testEnv);
     await seedAccountEmail({
@@ -43,7 +43,8 @@ describe('support create', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain("got it, this is request #REQ_NEW. we'll email you at primary@example.com and you can follow it right here.");
+    // §9 prevents verified-email disclosure in support HTML.
+    expect(body).toContain("got it, this is request #REQ_NEW. you can follow it right here.");
     expect(body).toContain('href="/support/REQ_NEW"');
     expect(support.requests[0]).toMatchObject({
       method: 'POST',
@@ -62,11 +63,18 @@ describe('support create', () => {
     expect(support.requests[0].body).not.toHaveProperty('category');
     expect(support.requests[1]).toMatchObject({
       method: 'POST',
+      pathname: '/api/services/idempotency/ack',
+      headers: { idempotencyKey: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
+      body: { mutation: 'ticket.create' },
+    });
+    // §9 sends a verified email only for creation, never for the attachment batch.
+    expect(support.requests[2]).toMatchObject({
+      method: 'POST',
       pathname: '/api/services/tickets/REQ_NEW/attachments',
       headers: {
         servicesAuth: 'test-services-auth-token',
-        verifiedEmail: 'primary@example.com',
-        verifiedEmailCount: 1,
+        hasVerifiedEmail: false,
+        idempotencyKey: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
       },
       body: { files: [{ name: 'log.txt', size: 5 }] },
     });
@@ -75,9 +83,9 @@ describe('support create', () => {
   });
 
   it('uses first verified email when the primary row is not verified', async () => {
-    const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ ticket: { id: 'REQ_SECONDARY' } }),
-    });
+    const support = makeSupportWorker(withAck({
+      'POST /api/services/tickets': () => json(created('REQ_SECONDARY')),
+    }));
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { account, session } = await signedInAccount(testEnv);
     await testEnv.DB
@@ -99,10 +107,10 @@ describe('support create', () => {
   });
 
   it('preserves the created request when attachment upload fails', async () => {
-    const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ id: 'REQ_UPLOAD_FAIL' }),
+    const support = makeSupportWorker(withAck({
+      'POST /api/services/tickets': () => json(created('REQ_UPLOAD_FAIL')),
       'POST /api/services/tickets/REQ_UPLOAD_FAIL/attachments': () => new Response(JSON.stringify({ error: 'down' }), { status: 500 }),
-    });
+    }));
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { session } = await signedInAccount(testEnv);
 
@@ -111,22 +119,23 @@ describe('support create', () => {
     }), testEnv);
     const body = await response.text();
 
-    expect(body).toContain('request #REQ_UPLOAD_FAIL');
-    expect(body).toContain('your request was opened, but the attachments could not be uploaded.');
-    expect(body).toContain('href="/support/REQ_UPLOAD_FAIL"');
+    // §9 preserves only the unresolved attachment batch after a confirmed parent.
+    expect(body).toContain('attachments need another try');
+    expect(body).toContain('action="/support/REQ_UPLOAD_FAIL/attachments"');
+    expect(body).toContain('name="operation_key" value="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"');
   });
 
   it('does not claim creation when the create call fails', async () => {
-    const support = makeSupportWorker({
+    const support = makeSupportWorker(withAck({
       'POST /api/services/tickets': () => new Response(JSON.stringify({ error: 'down' }), { status: 500 }),
-    });
+    }));
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { session } = await signedInAccount(testEnv);
 
     const response = await worker.fetch(createRequest(session.cookie), testEnv);
     const body = await response.text();
 
-    expect(body).toContain("we couldn't open that request. try again.");
+    expect(body).toContain('the request could not be confirmed. the files were not sent.');
     expect(body).not.toContain('got it, this is request');
   });
 
@@ -160,6 +169,8 @@ function createRequest(cookie, {
   body.set('product', 'solstone');
   body.set('subject', 'help me');
   body.set('description', 'details here');
+  body.set('operation_key', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  body.set('attachment_operation_key', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
   if (email) body.set('email', email);
   if (file) body.append('file', file);
   return new Request('https://services.solstone.app/support', {
@@ -177,4 +188,19 @@ function json(body, status = 200) {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function created(id) {
+  return { id, created_at: Date.now(), status: 'open' };
+}
+
+function attachmentsAccepted(ticketId) {
+  return { ticket_id: ticketId, attachment_ids: ['ATT_1'], status: 'accepted' };
+}
+
+function withAck(handlers) {
+  return {
+    ...handlers,
+    'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
+  };
 }

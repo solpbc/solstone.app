@@ -5,24 +5,11 @@ import { ENROLL_JS } from './inline/passkey-enroll.js';
 import { LANDING_JS } from './inline/passkey-landing.js';
 
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
-const SUPPORT_STATUS_LABELS = {
-  open: 'open',
-  'in-progress': 'in progress',
-  waiting: 'waiting on you',
-  proposed: 'waiting on you',
-  resolved: 'resolved',
-};
-const SUPPORT_AUTHOR_LABELS = {
-  human: 'you',
-  operator: 'solstone support',
-  agent: 'sol',
-  anonymous: 'you (via the form)',
-};
 const MARK_SVG = '<svg class="mark" viewBox="2.5 2.5 27 27" role="img" aria-label="solstone"><path fill="#FFCF33" d="M16.0 2.5 L18.6 7.3 A9.1 9.1 0 0 0 13.4 7.3 Z M23.9 5.1 L23.2 10.5 A9.1 9.1 0 0 0 19.0 7.4 Z M28.8 11.8 L25.1 15.8 A9.1 9.1 0 0 0 23.5 10.9 Z M28.8 20.2 L23.5 21.1 A9.1 9.1 0 0 0 25.1 16.2 Z M23.9 26.9 L19.0 24.6 A9.1 9.1 0 0 0 23.2 21.5 Z M16.0 29.5 L13.4 24.7 A9.1 9.1 0 0 0 18.6 24.7 Z M8.1 26.9 L8.8 21.5 A9.1 9.1 0 0 0 13.0 24.6 Z M3.2 20.2 L6.9 16.2 A9.1 9.1 0 0 0 8.5 21.1 Z M3.2 11.8 L8.5 10.9 A9.1 9.1 0 0 0 6.9 15.8 Z M8.1 5.1 L13.0 7.4 A9.1 9.1 0 0 0 8.8 10.5 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8923A" stroke-width="1.7"/></svg>';
 const CHEVRON_SVG = '<svg class="chevron" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"/></svg>';
 const CARET_SVG = '<svg class="caret" viewBox="0 0 11 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4.5 4.5L10 1"/></svg>';
 const EXT_SVG = '<svg class="ext" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l6-6M5 3h4v4"/></svg>';
-const BACK_SVG = '<svg viewBox="0 0 8 14" width="7" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1L1 7l6 6"/></svg>';
+export const BACK_SVG = '<svg viewBox="0 0 8 14" width="7" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1L1 7l6 6"/></svg>';
 const IC_SCOUT_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8.5" r="4"/><path d="M10.8 11.2 19 19.4M16.4 16.8l1.8-1.8M18.6 19l1.8-1.8"/></svg>';
 const IC_PUSH_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5a6 6 0 1 1 12 0c0 4.5 2 5.5 2 5.5H4s2-1 2-5.5Z"/><path d="M10 18.5a2 2 0 0 0 4 0"/></svg>';
 const IC_SUPPORT_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10H8.5L4 19z"/><path d="M8 9.5h8M8 12.5h5"/></svg>';
@@ -48,7 +35,7 @@ function footer() {
   return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/legal">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
 }
 
-function topbar({ email = null, lastSignInAt = null, now = null } = {}) {
+export function topbar({ email = null, lastSignInAt = null, now = null } = {}) {
   const trimmedEmail = typeof email === 'string' ? email.trim() : '';
   const hasEmail = trimmedEmail.length > 0;
   const avatar = hasEmail ? esc(trimmedEmail[0] || '·') : '·';
@@ -1318,7 +1305,7 @@ function scoutApplyForm({ includeUseCase, buttonText }) {
   </form>`;
 }
 
-function ackField(copy) {
+export function ackField(copy) {
   return `<label class="ack">
       <input type="checkbox" name="data_ack" value="yes" required>
       <span>${esc(copy)}</span>
@@ -1328,107 +1315,6 @@ function ackField(copy) {
 function scoutCovenantFields() {
   return `<p class="gd" style="margin:16px 0 12px">${SCOUT_PROGRAM_COVENANT}</p>
     ${ackField('i understand')}`;
-}
-
-// === support surfaces ===
-
-export function renderSupportList({
-  requests = [],
-  nowMs = Date.now(),
-  csrf = '',
-  notices = [],
-  failure = '',
-  createConfirmation = null,
-  menu,
-}) {
-  const noticeHtml = supportNotices(notices);
-  const failureHtml = failure ? `<p class="error">${esc(failure)}</p>` : '';
-  const confirmationHtml = createConfirmation ? supportCreateConfirmation(createConfirmation) : '';
-  const rowsHtml = requests.map((row) => `<div class="row" style="cursor:default">
-  <div class="body">
-    <div class="title"><a href="/support/${escAttr(row.id)}">${esc(row.subject || 'request')}</a></div>
-    <div class="desc">${esc(supportStatusLabel(row.status))} · updated ${esc(formatRelativeTime(row.updatedAtMs, nowMs))}</div>
-  </div>
-</div>`).join('');
-  const emptyState = requests.length === 0 && !failure
-    ? '<p>no open requests. need help? open one below, or sol can file one for you.</p>'
-    : '';
-  const groupHtml = rowsHtml ? `<div class="group">${rowsHtml}</div>` : '';
-  return layout({
-    title: 'your support',
-    body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
-<h1>your support</h1>
-${noticeHtml}
-${failureHtml}
-${confirmationHtml}
-${emptyState}
-${groupHtml}
-${renderSupportOpenForm(csrf)}`,
-  });
-}
-
-export function renderSupportDetail({
-  request,
-  messages = [],
-  attachments = [],
-  csrf = '',
-  nowMs = Date.now(),
-  notices = [],
-  failure = '',
-  menu,
-}) {
-  const noticeHtml = supportNotices(notices);
-  const failureHtml = failure ? `<p class="error">${esc(failure)}</p>` : '';
-  const messageRows = messages.map((message) => `<div class="row" style="cursor:default">
-  <div class="body">
-  <div class="title">${esc(supportAuthorLabel(message.author_kind))}</div>
-  <p>${esc(message.content || '')}</p>
-  <div class="meta">${esc(formatRelativeTime(message.createdAtMs, nowMs))}</div>
-  </div>
-</div>`).join('');
-  const attachmentRows = attachments.length
-    ? attachments.map(renderSupportAttachment).join('')
-    : '<p>no attachments.</p>';
-  const id = request?.id || '';
-  return layout({
-    title: request?.subject || 'your support',
-    body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
-<h1>${esc(request?.subject || 'your support')}</h1>
-${noticeHtml}
-${failureHtml}
-<p class="meta">${esc(supportStatusLabel(request?.status))}</p>
-<h2>messages</h2>
-${messageRows ? `<div class="group">${messageRows}</div>` : '<p>no messages.</p>'}
-<h2>attachments</h2>
-${attachments.length ? `<div class="group">${attachmentRows}</div>` : attachmentRows}
-<div class="card">
-  <h2>reply</h2>
-  <p>add a reply, or attach a screenshot or log.</p>
-  <p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage, never the files themselves.</p>
-  <form method="post" action="/support/${escAttr(id)}/reply" enctype="multipart/form-data">
-    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-    <label for="reply-content">reply</label>
-    <textarea id="reply-content" name="content" required maxlength="5000"></textarea>
-    <label for="reply-file">attachments</label>
-    <p>optional screenshots/logs</p>
-    <input id="reply-file" type="file" name="file" multiple>
-    <button class="btn primary" type="submit">reply</button>
-  </form>
-</div>`,
-  });
-}
-
-export function renderSupportNotFound({ menu } = {}) {
-  return layout({
-    title: 'request not found',
-    body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
-<h1>request not found</h1>
-<p>we couldn't find that request.</p>
-<a class="btn secondary" href="/support">back to your support</a>`,
-  });
 }
 
 export function renderGoodbye() {
@@ -1739,71 +1625,6 @@ export function formatRelativeTime(tsMs, nowMs) {
   return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
-function supportStatusLabel(status) {
-  return SUPPORT_STATUS_LABELS[status] || 'in progress';
-}
-
-function supportAuthorLabel(authorKind) {
-  return SUPPORT_AUTHOR_LABELS[authorKind] || 'solstone support';
-}
-
-function supportNotices(notices) {
-  return notices.map((notice) => `<p class="notice">${esc(notice)}</p>`).join('');
-}
-
-function supportCreateConfirmation({ id, email, uploadFailed = false }) {
-  const uploadNotice = uploadFailed
-    ? '<p class="error">your request was opened, but the attachments could not be uploaded.</p>'
-    : '';
-  return `<p class="notice">got it, this is request #${esc(id)}. we'll email you at ${esc(email)} and you can follow it right here.</p>
-<p><a href="/support/${escAttr(id)}">view request</a></p>
-${uploadNotice}`;
-}
-
-function renderSupportOpenForm(csrf) {
-  return `<div class="card">
-  <h2>open a request</h2>
-  <p>tell us what's going on. you can attach screenshots or logs here. it's easier than email.</p>
-  <form method="post" action="/support" enctype="multipart/form-data">
-    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-    <label for="support-subject">what's going on?</label>
-    <input id="support-subject" name="subject" required maxlength="200">
-    <label for="support-description">the details</label>
-    <textarea id="support-description" name="description" required maxlength="5000"></textarea>
-    <label for="support-product">which product?</label>
-    <select id="support-product" name="product" required>
-      <option value="solstone">solstone</option>
-      <option value="vit">vit</option>
-    </select>
-    <label for="support-file">attachments</label>
-    <p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage, never the files themselves.</p>
-    <p>optional screenshots/logs</p>
-    <input id="support-file" type="file" name="file" multiple>
-    <button class="btn primary" type="submit">open a request</button>
-  </form>
-</div>`;
-}
-
-function renderSupportAttachment(attachment) {
-  const filename = esc(attachment.filename || 'attachment');
-  if (attachment.status === 'removed') {
-    const summary = attachment.triage_summary ? ` ${esc(attachment.triage_summary)}` : '';
-    return `<div class="row" style="cursor:default">
-  <div class="body">
-    <div class="title">${filename}</div>
-    <div class="desc">attachment removed after triage${summary}</div>
-  </div>
-</div>`;
-  }
-  const status = attachment.status === 'pending' ? '<div class="desc">pending</div>' : '';
-  return `<div class="row" style="cursor:default">
-  <div class="body">
-    <div class="title">${filename}</div>
-    ${status}
-  </div>
-</div>`;
-}
-
 function billingCheckoutRow({ csrf, plan, title, buttonText, primary, action = '/billing/checkout' }) {
   // Display copy must match the configured Stripe price IDs; env stores opaque price IDs only.
   const buttonClass = primary ? 'btn primary' : 'btn secondary';
@@ -1858,14 +1679,14 @@ function flashMessages(flash) {
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
-function esc(value) {
+export function esc(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
 
-function escAttr(value) {
+export function escAttr(value) {
   return esc(value).replace(/"/g, '&quot;');
 }
 

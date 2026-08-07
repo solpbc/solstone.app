@@ -117,7 +117,7 @@ async function importEncryptionKey(env) {
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
-function randomBase64Url(size) {
+export function randomBase64Url(size) {
   const bytes = crypto.getRandomValues(new Uint8Array(size));
   return base64UrlEncode(bytes);
 }
@@ -135,8 +135,17 @@ function base64Decode(str) {
   return bytes;
 }
 
-function base64UrlEncode(bytes) {
+export function base64UrlEncode(bytes) {
   return base64Encode(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+export function base64UrlDecode(value) {
+  const pad = value.length % 4 === 2 ? '==' : value.length % 4 === 3 ? '=' : value.length % 4 === 0 ? '' : null;
+  if (pad == null) throw new Error('invalid base64url');
+  const binary = atob(value.replace(/-/g, '+').replace(/_/g, '/') + pad);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
 function hexEncode(bytes) {
