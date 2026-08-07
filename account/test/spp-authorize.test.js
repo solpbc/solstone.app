@@ -55,6 +55,33 @@ describe('POST /internal/spp/authorize', () => {
     expect(response.status).toBe(401);
     expect(await response.text()).toBe('');
   });
+
+  it('fails closed with 503 and a bounded reason code when the entitlement lookup throws', async () => {
+    const testEnv = makeTestEnv({
+      DB: {
+        prepare() {
+          throw Object.assign(new Error('D1_ERROR: network'), { name: 'Error' });
+        },
+      },
+    });
+    const logged = [];
+    const realError = console.error;
+    console.error = (...args) => logged.push(args);
+
+    let response;
+    try {
+      response = await authorize(testEnv);
+    } finally {
+      console.error = realError;
+    }
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe('');
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(logged).toEqual([['spp_authorize_failed', 'Error', 'd1']]);
+    // the entitlement credential must never reach the log
+    expect(JSON.stringify(logged)).not.toContain(TOKEN);
+  });
 });
 
 async function seedActiveBinding(testEnv) {

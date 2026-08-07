@@ -39,8 +39,13 @@ export async function handleSppAuthorize(req, env) {
     }
 
     return empty(204);
-  } catch {
-    console.error('spp_authorize_failed');
+  } catch (err) {
+    // Bounded reason code only — never the raw message. The two D1 reads above are the
+    // only calls here that can fail transiently, and a D1 fault surfaces as a generic
+    // Error, so the name alone cannot distinguish it.
+    const name = typeof err?.name === 'string' && err.name ? err.name : 'unknown';
+    const kind = String(err?.message || '').includes('D1_ERROR') ? 'd1' : 'other';
+    console.error('spp_authorize_failed', name, kind);
     return empty(503);
   }
 }
