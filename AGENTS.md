@@ -44,7 +44,7 @@ a support-portal proxy, and a CF-Access-gated `/admin/*` surface. Cron
 | `session.js`, `passkey.js`, `email.js`, `emails.js` | Auth + identity + email lifecycle. |
 | `enable.js`, `devices.js`, `push.js`, `reach.js` | Service enablement (push/scout/SPL/SPB handoffs), device + dispatch-token + APNs flows. |
 | `billing.js`, `spb-billing.js`, `stripe.js`, `relay-grant.js`, `spb-entitlement.js`, `spb-broker.js` | The money path — Stripe checkout/portal/webhook, entitlement grants to `spl-relay`, the R2 credential broker. |
-| `support.js` | Proxy to the internal support worker (service binding). |
+| `support.js`, `support-wire.js`, `support-html.js` | Support handlers/orchestration, binding/parsers/classifier/cursor codec, and renderers. |
 | `settings.js`, `html.js`, `assets.js`, `portal.css`, `inline/` | The signed-in experience layer (see `account/DESIGN.md`). |
 | `hub.js`, `retention.js` | Security-event sink to the internal operations hub; cron retention. |
 

@@ -11,7 +11,6 @@ import {
 } from './support-html.js';
 import { forbidden, html, supportOriginAllowed } from './index.js';
 import { getValidSession } from './session.js';
-import { loadMenuContext } from './settings.js';
 import { SUPPORT_ID_REGEX } from './support-constants.js';
 import { acknowledgeSupport, callSupport, decodeCursor, mergeTickets } from './support-wire.js';
 
@@ -32,14 +31,12 @@ export function supportSignInPrompt(path) {
 export async function handleSupportList(req, env) {
   const guard = await signedSupportSessionOrRedirect(req, env, '/support');
   if (guard instanceof Response) return guard;
-  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
-  return renderSupportListForSession(env, guard.session, guard.nowMs, menu, { section: new URL(req.url).searchParams.get('section') });
+  return renderSupportListForSession(env, guard.session, guard.nowMs, { section: new URL(req.url).searchParams.get('section') });
 }
 
 export async function handleSupportClosed(req, env) {
   const guard = await signedSupportSessionOrRedirect(req, env, '/support/closed');
   if (guard instanceof Response) return guard;
-  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
   const url = new URL(req.url);
   const values = url.searchParams.getAll('cursor');
   const cursor = values.length === 1 ? values[0] : values.length === 0 ? null : undefined;
@@ -53,15 +50,14 @@ export async function handleSupportCreate(req, env) {
   if (!supportOriginAllowed(req)) return noStore(forbidden());
   const guard = await signedSupportSessionOrRedirect(req, env, '/support');
   if (guard instanceof Response) return guard;
-  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
   const form = await checkedForm(req, env);
   if (form === false) return noStore(forbidden());
-  if (!form) return renderCreateState(env, guard, menu, { outcome: errorOutcome('we could not read that form. review it and try again.') });
+  if (!form) return renderCreateState(env, guard, { outcome: errorOutcome('we could not read that form. review it and try again.') });
   const values = createValues(form);
   const keys = submittedKeys(form);
-  if (!validCreate(values) || !keys) return renderCreateState(env, guard, menu, { values, outcome: errorOutcome('review the request before sending it.') });
+  if (!validCreate(values) || !keys) return renderCreateState(env, guard, { values, outcome: errorOutcome('review the request before sending it.') });
   const usable = await usableVerifiedEmails(env, guard.session.account_id);
-  if (!usable.emails.length) return renderCreateState(env, guard, menu, { values, keys, message: SUPPORT_EMAIL_LIMITATION });
+  if (!usable.emails.length) return renderCreateState(env, guard, { values, keys, message: SUPPORT_EMAIL_LIMITATION });
   const email = (usable.emails.find((row) => row.isPrimary) || usable.emails[0]).address;
   const parent = await runMutation(env, {
     ownerId: guard.session.account_id,
@@ -72,41 +68,39 @@ export async function handleSupportCreate(req, env) {
     json: values,
   });
   if (parent.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: parent.data }));
-  if (parent.classification === 'invalidState') return renderSupportListForSession(env, guard.session, guard.nowMs, menu);
+  if (parent.classification === 'invalidState') return renderSupportListForSession(env, guard.session, guard.nowMs);
   if (parent.classification !== 'success') {
-    return renderCreateState(env, guard, menu, { values, keys: preserveKey(parent) ? keys : null, outcome: outcomeFor(parent, 'the request could not be confirmed. the files were not sent.') });
+    return renderCreateState(env, guard, { values, keys: preserveKey(parent) ? keys : null, outcome: outcomeFor(parent, 'the request could not be confirmed. the files were not sent.') });
   }
   const files = selectedFiles(form);
-  if (!files.length) return renderCreateState(env, guard, menu, { createConfirmation: { id: parent.data.id } });
+  if (!files.length) return renderCreateState(env, guard, { createConfirmation: { id: parent.data.id } });
   const attachment = await sendAttachmentBatch(env, guard.session.account_id, parent.data.id, keys.attachmentOperationKey, files);
-  if (attachment.classification === 'success') return renderCreateState(env, guard, menu, { createConfirmation: { id: parent.data.id } });
+  if (attachment.classification === 'success') return renderCreateState(env, guard, { createConfirmation: { id: parent.data.id } });
   if (attachment.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: attachment.data }));
   if (attachment.classification === 'idempotencyConflict') {
-    return renderCreateState(env, guard, menu, { outcome: reviewOutcome(attachmentRetryMessage(attachment)) });
+    return renderCreateState(env, guard, { outcome: reviewOutcome(attachmentRetryMessage(attachment)) });
   }
-  return renderCreateState(env, guard, menu, { attachmentRetry: { id: parent.data.id, operationKey: keys.attachmentOperationKey, message: attachmentRetryMessage(attachment) } });
+  return renderCreateState(env, guard, { attachmentRetry: { id: parent.data.id, operationKey: keys.attachmentOperationKey, message: attachmentRetryMessage(attachment) } });
 }
 
 export async function handleSupportDetail(req, env, id) {
   if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
   if (guard instanceof Response) return guard;
-  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
-  return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
 }
 
 export async function handleSupportReply(req, env, id) {
-  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   if (!supportOriginAllowed(req)) return noStore(forbidden());
+  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
   if (guard instanceof Response) return guard;
-  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
   const form = await checkedForm(req, env);
   if (form === false) return noStore(forbidden());
-  if (!form) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (!form) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   const content = String(form.get('content') || '').trim();
   const keys = submittedKeys(form);
-  if (!content || !keys) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (!content || !keys) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   const detail = await ownedActiveDetail(env, guard.session.account_id, id);
   if (detail instanceof Response) return detail;
   const parent = await runMutation(env, {
@@ -114,16 +108,16 @@ export async function handleSupportReply(req, env, id) {
     path: `/api/services/tickets/${encodeURIComponent(id)}/messages`, json: { content },
   });
   if (parent.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: parent.data }));
-  if (parent.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (parent.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (parent.classification !== 'success') return renderActiveDetail(env, guard, detail, {
     reply: { ...(preserveKey(parent) ? keys : {}), value: content, outcome: outcomeFor(parent, 'the reply could not be confirmed. the files were not sent.') },
   });
   const files = selectedFiles(form);
-  if (!files.length) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (!files.length) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   const attachment = await sendAttachmentBatch(env, guard.session.account_id, id, keys.attachmentOperationKey, files);
-  if (attachment.classification === 'success') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (attachment.classification === 'success') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (attachment.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: attachment.data }));
-  if (attachment.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu);
+  if (attachment.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (attachment.classification === 'idempotencyConflict') return renderActiveDetail(env, guard, detail, {
     reply: { outcome: reviewOutcome(attachmentRetryMessage(attachment)) },
   });
@@ -133,20 +127,20 @@ export async function handleSupportReply(req, env, id) {
 }
 
 export async function handleSupportAttachments(req, env, id) {
-  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   if (!supportOriginAllowed(req)) return noStore(forbidden());
+  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
   if (guard instanceof Response) return guard;
   const form = await checkedForm(req, env);
   if (form === false) return noStore(forbidden());
   const key = form && String(form.get('operation_key') || '');
-  if (!form || !validOperationKey(key) || !selectedFiles(form).length) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (!form || !validOperationKey(key) || !selectedFiles(form).length) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   const detail = await ownedActiveDetail(env, guard.session.account_id, id);
   if (detail instanceof Response) return detail;
   const attachment = await sendAttachmentBatch(env, guard.session.account_id, id, key, selectedFiles(form));
-  if (attachment.classification === 'success') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (attachment.classification === 'success') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (attachment.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: attachment.data }));
-  if (attachment.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (attachment.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (attachment.classification === 'idempotencyConflict') return renderActiveDetail(env, guard, detail, {
     reply: { outcome: reviewOutcome(attachmentRetryMessage(attachment)) },
   });
@@ -154,15 +148,15 @@ export async function handleSupportAttachments(req, env, id) {
 }
 
 export async function handleSupportResolution(req, env, id) {
-  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   if (!supportOriginAllowed(req)) return noStore(forbidden());
+  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
   if (guard instanceof Response) return guard;
   const form = await checkedForm(req, env);
   if (form === false) return noStore(forbidden());
   const outcome = form && String(form.get('outcome') || '');
   const key = form && String(form.get('operation_key') || '');
-  if (!form || !validOperationKey(key) || !['solved', 'still_need_help'].includes(outcome)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (!form || !validOperationKey(key) || !['solved', 'still_need_help'].includes(outcome)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (outcome === 'solved' && !hasRemovalConfirmation(form)) {
     return supportHtml(renderSupportConfirmationRequired({ id, csrf: await csrfToken(env), operationKey: key, solved: true }));
   }
@@ -173,21 +167,21 @@ export async function handleSupportResolution(req, env, id) {
     path: `/api/services/tickets/${encodeURIComponent(id)}/resolution`, json: { outcome },
   });
   if (result.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: result.data }));
-  if (result.classification === 'success' || result.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (result.classification === 'success' || result.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   return renderActiveDetail(env, guard, detail, { resolution: {
     ...(preserveKey(result) ? { operationKey: key, solvedOperationKey: key } : {}), outcome: outcomeFor(result),
   } });
 }
 
 export async function handleSupportClose(req, env, id) {
-  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   if (!supportOriginAllowed(req)) return noStore(forbidden());
+  if (!SUPPORT_ID_REGEX.test(id || '')) return supportNotFoundResponse();
   const guard = await signedSupportSessionOrRedirect(req, env, `/support/${id}`);
   if (guard instanceof Response) return guard;
   const form = await checkedForm(req, env);
   if (form === false) return noStore(forbidden());
   const key = form && String(form.get('operation_key') || '');
-  if (!form || !validOperationKey(key)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (!form || !validOperationKey(key)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (form.get('close_retry') === 'refresh') return renderCloseRefresh(env, guard, id, key);
   if (!hasRemovalConfirmation(form)) {
     return supportHtml(renderSupportConfirmationRequired({ id, csrf: await csrfToken(env), operationKey: key }));
@@ -200,11 +194,11 @@ export async function handleSupportClose(req, env, id) {
   });
   if (result.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: result.data }));
   if (result.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: result.retryAfter, closeKey: key, csrf: await csrfToken(env) }));
-  if (result.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null);
+  if (result.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   return renderActiveDetail(env, guard, detail, { close: { ...(preserveKey(result) ? { operationKey: key } : {}), outcome: outcomeFor(result) } });
 }
 
-async function renderSupportListForSession(env, session, nowMs, menu, { section = null } = {}) {
+async function renderSupportListForSession(env, session, nowMs, { section = null } = {}) {
   const csrf = await csrfToken(env);
   const usable = await usableVerifiedEmails(env, session.account_id);
   const create = createSection(usable.emails.length ? '' : SUPPORT_EMAIL_LIMITATION);
@@ -217,12 +211,12 @@ async function renderSupportListForSession(env, session, nowMs, menu, { section 
   return supportHtml(renderSupportList({ csrf, nowMs, sections: { active, closed, create } }));
 }
 
-async function renderSupportDetailForSession(env, session, id, nowMs, menu, { forms = null } = {}) {
+async function renderSupportDetailForSession(env, session, id, nowMs, { forms = null } = {}) {
   const usable = await usableVerifiedEmails(env, session.account_id);
   const detail = await loadDetailOwnerFirst(env, session.account_id, id, usable);
   if (detail.classification === 'notFound') return supportNotFoundResponse();
   if (detail.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: detail.retryAfter }));
-  if (detail.classification !== 'success') return renderCreateState(env, { session, nowMs }, menu, { outcome: errorOutcome(SUPPORT_LOAD_FAILURE) });
+  if (detail.classification !== 'success') return renderCreateState(env, { session, nowMs }, { outcome: errorOutcome(SUPPORT_LOAD_FAILURE) });
   if (detail.data.type === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: detail.data.tombstone }));
   return renderActiveDetail(env, { session, nowMs }, detail.data, forms || freshForms(), usable.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : []);
 }
@@ -247,7 +241,7 @@ async function renderCloseRefresh(env, guard, id, key) {
   const detail = await loadDetail(env, id, guard.session.account_id);
   if (detail.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: detail.retryAfter, closeKey: key, csrf: await csrfToken(env) }));
   if (detail.classification === 'success' && detail.data.type === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: detail.data.tombstone }));
-  return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, null, { forms: { close: { operationKey: key } } });
+  return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, { forms: { close: { operationKey: key } } });
 }
 
 async function ownedActiveDetail(env, ownerId, id) {
@@ -344,7 +338,7 @@ function createSection(message = '') {
   return { state: 'ready', message, operationKey: mintKey(), attachmentOperationKey: mintKey() };
 }
 
-async function renderCreateState(env, guard, menu, { values = {}, keys = null, message = '', outcome = null, createConfirmation = null, attachmentRetry = null } = {}) {
+async function renderCreateState(env, guard, { values = {}, keys = null, message = '', outcome = null, createConfirmation = null, attachmentRetry = null } = {}) {
   const create = { ...createSection(message), values, outcome, createConfirmation, attachmentRetry };
   if (keys) Object.assign(create, keys);
   return supportHtml(renderSupportList({ csrf: await csrfToken(env), nowMs: guard.nowMs, sections: {

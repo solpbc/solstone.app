@@ -43,16 +43,27 @@ describe('support origin enforcement', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-store');
       expect(support.requests).toHaveLength(0);
     });
+
+    if (route.invalidPath) {
+      it(`rejects a foreign origin before invalid-id validation for ${route.name}`, async () => {
+        const { testEnv, session, support } = await signedInSupportEnv();
+        const request = supportRequest(route.invalidPath, session.cookie, route.fields, { origin: 'https://evil.example' }, route.file);
+        const response = await worker.fetch(request, testEnv);
+        expect(response.status).toBe(403);
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+        expect(support.requests).toHaveLength(0);
+      });
+    }
   }
 });
 
 function supportPostRoutes() {
   return [
     { name: 'create', path: '/support', fields: { product: 'solstone', subject: 'help me', description: 'details here', attachment_operation_key: KEY_B } },
-    { name: 'reply', path: '/support/REQ_1/reply', fields: { content: 'reply body', attachment_operation_key: KEY_B } },
-    { name: 'attachments', path: '/support/REQ_1/attachments', fields: {}, file: new File(['bytes'], 'proof.log', { type: 'text/plain' }) },
-    { name: 'resolution', path: '/support/REQ_1/resolution', fields: { outcome: 'still_need_help' } },
-    { name: 'close', path: '/support/REQ_1/close', fields: { confirmation: 'remove_details', confirmation_control: 'checkbox' } },
+    { name: 'reply', path: '/support/REQ_1/reply', invalidPath: '/support/bad.id/reply', fields: { content: 'reply body', attachment_operation_key: KEY_B } },
+    { name: 'attachments', path: '/support/REQ_1/attachments', invalidPath: '/support/bad.id/attachments', fields: {}, file: new File(['bytes'], 'proof.log', { type: 'text/plain' }) },
+    { name: 'resolution', path: '/support/REQ_1/resolution', invalidPath: '/support/bad.id/resolution', fields: { outcome: 'still_need_help' } },
+    { name: 'close', path: '/support/REQ_1/close', invalidPath: '/support/bad.id/close', fields: { confirmation: 'remove_details', confirmation_control: 'checkbox' } },
   ].map((route) => ({ ...route, request: (cookie, options) => supportRequest(route.path, cookie, route.fields, options, route.file) }));
 }
 

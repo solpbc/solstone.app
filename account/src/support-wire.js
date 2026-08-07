@@ -17,6 +17,10 @@
  * An exact tombstone has id, created_at, closed_at, status: "closed", and
  * content_removed: true.
  *
+ * Cursor ids are canonical decimal without a leading zero. Active and tombstone row
+ * ids instead follow the permissive route regex because they address /support/{id};
+ * the portal forwards server-supplied cursors opaquely and never builds one from a row.
+ *
  * Outcome classifications are confirmed success (200/201), operation_in_progress,
  * idempotency_conflict, invalid_idempotency_key, invalid_state, not-owned/not-found,
  * operation_erased, operation_retired, close_in_progress, tombstone, and ambiguous
@@ -83,7 +87,7 @@ export async function callSupport(env, {
   }
 }
 
-export async function classifySupportResponse(response, { method, path }) {
+async function classifySupportResponse(response, { method, path }) {
   const mutation = method === 'POST' && path !== '/api/services/idempotency/ack';
   const retryAfter = response.headers.get('Retry-After');
   if (response.status === 404) return result('notFound');
@@ -172,7 +176,7 @@ export function parseClosedHistory(data) {
   return success({ tickets, nextCursor: data.next_cursor });
 }
 
-export function parseTicket(row) {
+function parseTicket(row) {
   if (!isObject(row)) return failure();
   const id = validId(row.id);
   const subject = nonEmptyString(row.subject);
@@ -183,11 +187,6 @@ export function parseTicket(row) {
     : parseTimestamp(row.close_scheduled_at);
   if (!id || !subject || !status || updatedAtMs == null || closeScheduledAtMs === null && row.close_scheduled_at != null) return failure();
   return success({ id, subject, status, updatedAtMs, closeScheduledAtMs });
-}
-
-export function parseCreatedId(data) {
-  const descriptor = parseCreateDescriptor(data);
-  return descriptor.ok ? success(descriptor.value.id) : failure();
 }
 
 export function parseDetail(data) {
@@ -236,7 +235,7 @@ export function parseDetail(data) {
   });
 }
 
-export function parseMessage(row) {
+function parseMessage(row) {
   if (!isObject(row) || typeof row.content !== 'string') return failure();
   const createdAtMs = parseTimestamp(row.created_at);
   if (createdAtMs == null) return failure();
@@ -264,7 +263,7 @@ export function parseAuthorKind(value) {
   return { label: 'unknown sender', warning: true };
 }
 
-export function parseAttachment(row) {
+function parseAttachment(row) {
   if (!isObject(row)) return failure();
   const filename = nonEmptyString(row.filename);
   const status = typeof row.status === 'string' && ATTACHMENT_STATUSES.has(row.status) ? row.status : null;
@@ -272,7 +271,7 @@ export function parseAttachment(row) {
   return success({ filename, status, triage_summary: row.triage_summary || '' });
 }
 
-export function parseTombstone(data) {
+function parseTombstone(data) {
   if (!isObject(data) || !exactKeys(data, ['id', 'created_at', 'closed_at', 'status', 'content_removed'])) return failure();
   const id = validId(data.id);
   const createdAtMs = parseTimestamp(data.created_at);
