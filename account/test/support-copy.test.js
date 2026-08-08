@@ -39,7 +39,7 @@ describe('support copy and leak checks', () => {
     expect(body).toContain('vit');
     expect(body).toContain('attachments');
     expect(body).toContain('optional screenshots/logs');
-    expect(body).toContain("screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage, never the files themselves.");
+    expect(body).toContain("screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here. until the request closes, we keep only a short triage summary, never the files; closing removes that summary with the rest of the request details.");
   });
 
   it('renders exact reply helper and removed attachment phrase without poisoned attachment values', async () => {

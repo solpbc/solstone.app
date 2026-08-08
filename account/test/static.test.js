@@ -121,6 +121,15 @@ describe('static source checks', () => {
     expect(focusRule).toContain('outline: 2px solid var(--focus)');
   });
 
+  it('describes the close boundary without claiming every support record disappears', () => {
+    expect(source).toContain('the support service permanently removes submitted request details');
+    expect(source).toContain('working classification');
+    expect(source).toContain('limited delivery and retry records remain');
+    expect(source).not.toContain('support-side metadata');
+    expect(source).toContain('closing removes that summary with the rest of the request details');
+    expect(source).toContain('the narrow ownership and closure records needed to show it to me');
+  });
+
   it('keeps embedded font blobs in sync with source files', () => {
     for (const name of ['comfortaa-latin.woff2', 'inter-latin.woff2']) {
       expect(Buffer.from(FONT_FILES[name], 'base64')).toEqual(readFileSync(join(srcDir, 'fonts', name)));

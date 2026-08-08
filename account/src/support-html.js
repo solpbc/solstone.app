@@ -103,7 +103,7 @@ function renderDetailActions({ request, id, csrf, forms }) {
   const reviewOutcomes = [reply.outcome, resolution.outcome, close.outcome].filter((outcome) => outcome?.requiresReview);
   if (reviewOutcomes.length) return `<div class="card">${reviewOutcomes.map(renderOutcome).join('')}<p><a class="btn secondary" href="/support/${escAttr(id)}">review request again</a></p></div>`;
   const replyForm = forms.attachmentRetry ? '' : `<div class="card"><h2>reply</h2><p>add a reply, or attach a screenshot or log.</p>
-  <p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage, never the files themselves.</p>
+  <p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here. until the request closes, we keep only a short triage summary, never the files; closing removes that summary with the rest of the request details.</p>
   ${renderOutcome(reply.outcome)}
   ${supportForm({ action: `/support/${id}/reply`, csrf, operationKey: reply.operationKey, attachmentOperationKey: reply.attachmentOperationKey, body: `${textArea('reply-content', 'content', 'reply', reply.value || '')}
   ${fileField('reply-file')}`, button: 'reply', enctype: true })}</div>`;
@@ -147,7 +147,7 @@ function renderCreateSection(section, csrf) {
   return `${section.message ? `<p class="notice">${esc(section.message)}</p>` : ''}${renderOutcome(section.outcome)}
 ${section.createConfirmation ? `<p class="notice">got it, this is request #${esc(section.createConfirmation.id)}. you can follow it right here.</p><p><a href="/support/${escAttr(section.createConfirmation.id)}">view request</a></p>` : ''}
 <div class="card"><h2>open a request</h2><p>tell us what's going on. you can attach screenshots or logs here. it's easier than email.</p>
-<p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here, and we keep only a short summary from triage, never the files themselves.</p>
+<p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here. until the request closes, we keep only a short triage summary, never the files; closing removes that summary with the rest of the request details.</p>
 ${supportForm({ action: '/support', csrf, operationKey: section.operationKey, attachmentOperationKey: section.attachmentOperationKey, enctype: true, body: `${textInput('support-subject', 'subject', "what's going on?", values.subject || '')}
 ${textArea('support-description', 'description', 'the details', values.description || '')}
 <label for="support-product">which product?</label><select id="support-product" name="product" required>
@@ -179,7 +179,7 @@ function fileField(id) {
 }
 
 function confirmationField() {
-  return `${hidden('confirmation_control', 'checkbox')}<label class="ack"><input type="checkbox" name="confirmation" value="remove_details" required><span>i understand that submitted request details—including subject, messages, files, and support-side metadata—are permanently removed. only a minimal closed marker remains to protect privacy.</span></label>`;
+  return `${hidden('confirmation_control', 'checkbox')}<label class="ack"><input type="checkbox" name="confirmation" value="remove_details" required><span>i understand that the support service permanently removes submitted request details—including subject, messages, files, and working classification. a minimal closed marker, the narrow ownership and closure records needed to show it to me, and limited delivery and retry records remain.</span></label>`;
 }
 
 function renderSupportAttachment(attachment) {
