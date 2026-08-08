@@ -154,9 +154,11 @@ export async function handleSupportResolution(req, env, id) {
   if (guard instanceof Response) return guard;
   const form = await checkedForm(req, env);
   if (form === false) return noStore(forbidden());
-  const outcome = form && String(form.get('outcome') || '');
   const key = form && String(form.get('operation_key') || '');
-  if (!form || !validOperationKey(key) || !['solved', 'still_need_help'].includes(outcome)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
+  if (!form || !validOperationKey(key)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
+  if (form.get('resolution_retry') === 'refresh') return renderResolutionRefresh(env, guard, id, key);
+  const outcome = String(form.get('outcome') || '');
+  if (!['solved', 'still_need_help'].includes(outcome)) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (outcome === 'solved' && !hasRemovalConfirmation(form)) {
     return supportHtml(renderSupportConfirmationRequired({ id, csrf: await csrfToken(env), operationKey: key, solved: true }));
   }
@@ -168,6 +170,15 @@ export async function handleSupportResolution(req, env, id) {
   });
   if (result.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: result.data }));
   if (result.classification === 'success' || result.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
+  if (outcome === 'solved' && privacyMutationPending(result)) {
+    return supportHtml(renderSupportRemoving({
+      id,
+      retryAfter: result.retryAfter,
+      operationKey: preservePrivacyKey(result) ? key : null,
+      retryAction: 'resolution',
+      csrf: await csrfToken(env),
+    }));
+  }
   return renderActiveDetail(env, guard, detail, { resolution: {
     ...(preserveKey(result) ? { operationKey: key, solvedOperationKey: key } : {}), outcome: outcomeFor(result),
   } });
@@ -193,7 +204,12 @@ export async function handleSupportClose(req, env, id) {
     path: `/api/services/tickets/${encodeURIComponent(id)}/close`, json: {},
   });
   if (result.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: result.data }));
-  if (result.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: result.retryAfter, closeKey: key, csrf: await csrfToken(env) }));
+  if (privacyMutationPending(result)) return supportHtml(renderSupportRemoving({
+    id,
+    retryAfter: result.retryAfter,
+    operationKey: preservePrivacyKey(result) ? key : null,
+    csrf: await csrfToken(env),
+  }));
   if (result.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   return renderActiveDetail(env, guard, detail, { close: { ...(preserveKey(result) ? { operationKey: key } : {}), outcome: outcomeFor(result) } });
 }
@@ -239,9 +255,39 @@ async function renderActiveDetail(env, guard, detail, overrides = {}, notices = 
 
 async function renderCloseRefresh(env, guard, id, key) {
   const detail = await loadDetail(env, id, guard.session.account_id);
-  if (detail.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: detail.retryAfter, closeKey: key, csrf: await csrfToken(env) }));
+  if (detail.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({ id, retryAfter: detail.retryAfter, operationKey: key, csrf: await csrfToken(env) }));
   if (detail.classification === 'success' && detail.data.type === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: detail.data.tombstone }));
-  return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, { forms: { close: { operationKey: key } } });
+  if (detail.classification === 'success') {
+    return renderActiveDetail(env, guard, detail.data, { close: { operationKey: key } });
+  }
+  if (detail.classification === 'notFound') return supportNotFoundResponse();
+  return supportHtml(renderSupportRemoving({ id, operationKey: key, csrf: await csrfToken(env) }));
+}
+
+async function renderResolutionRefresh(env, guard, id, key) {
+  const detail = await loadDetail(env, id, guard.session.account_id);
+  if (detail.classification === 'closeInProgress') return supportHtml(renderSupportRemoving({
+    id,
+    retryAfter: detail.retryAfter,
+    operationKey: key,
+    retryAction: 'resolution',
+    csrf: await csrfToken(env),
+  }));
+  if (detail.classification === 'success' && detail.data.type === 'tombstone') {
+    return supportHtml(renderSupportTombstone({ tombstone: detail.data.tombstone }));
+  }
+  if (detail.classification === 'success') {
+    return renderActiveDetail(env, guard, detail.data, {
+      resolution: { solvedOperationKey: key },
+    });
+  }
+  if (detail.classification === 'notFound') return supportNotFoundResponse();
+  return supportHtml(renderSupportRemoving({
+    id,
+    operationKey: key,
+    retryAction: 'resolution',
+    csrf: await csrfToken(env),
+  }));
 }
 
 async function ownedActiveDetail(env, ownerId, id) {
@@ -395,6 +441,25 @@ function attachmentRetryMessage(result) {
 
 function preserveKey(result) {
   return result.classification === 'ambiguous' || result.classification === 'operationInProgress';
+}
+
+function privacyMutationPending(result) {
+  return [
+    'ambiguous',
+    'operationInProgress',
+    'closeInProgress',
+    'operationErased',
+    'operationRetired',
+    'notFound',
+  ].includes(result.classification);
+}
+
+function preservePrivacyKey(result) {
+  return [
+    'ambiguous',
+    'operationInProgress',
+    'closeInProgress',
+  ].includes(result.classification);
 }
 
 function hasRemovalConfirmation(form) {

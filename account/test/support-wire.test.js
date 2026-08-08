@@ -19,12 +19,13 @@ const NOW = '2026-08-12T15:17:47.154Z';
 
 describe('support wire', () => {
   it.each([
-    ['success replay', 200, messageDescriptor(), {}, 'success', false, true],
-    ['success', 201, messageDescriptor(), {}, 'success', false, true],
+    ['success replay', 200, messageDescriptor(), { 'Idempotency-Replay': 'true' }, 'success', false, true],
+    ['success', 201, messageDescriptor(), { 'Idempotency-Replay': 'false' }, 'success', false, true],
     ['operation in progress', 409, { error: 'operation_in_progress' }, { 'Retry-After': '12' }, 'operationInProgress', '12', false],
     ['idempotency conflict', 409, { error: 'idempotency_conflict' }, {}, 'idempotencyConflict', false, false],
     ['invalid key', 400, { error: 'invalid_idempotency_key' }, {}, 'invalidIdempotencyKey', false, false],
-    ['invalid state', 409, { error: 'invalid_state' }, {}, 'invalidState', false, true],
+    ['witnessed invalid state', 409, { error: 'invalid_state' }, { 'Idempotency-Replay': 'false' }, 'invalidState', false, true],
+    ['pre-claim invalid state', 409, { error: 'invalid_state' }, {}, 'invalidState', false, false],
     ['not found', 404, { error: 'not_found' }, {}, 'notFound', false, false],
     ['operation erased', 410, { error: 'operation_erased' }, {}, 'operationErased', false, false],
     ['operation retired', 410, { error: 'operation_retired' }, {}, 'operationRetired', false, false],
@@ -82,7 +83,9 @@ describe('support wire', () => {
 
   it('classifies a mutation tombstone instead of successful message acceptance', async () => {
     const support = makeSupportWorker({
-      'POST /api/services/tickets/REQ_1/messages': () => json(tombstone()),
+      'POST /api/services/tickets/REQ_1/messages': () => json(
+        tombstone(), 200, { 'Idempotency-Replay': 'false' }
+      ),
     });
     const result = await callSupport(makeTestEnv({ SUPPORT_WORKER: support }), {
       method: 'POST',
@@ -101,7 +104,9 @@ describe('support wire', () => {
     ['/api/services/tickets/REQ_1/resolution', { id: 'REQ_1', status: 'open', close_scheduled_at: null }],
     ['/api/services/tickets/REQ_1/close', tombstone()],
   ])('accepts the exact mutation descriptor for %s', async (path, body) => {
-    const support = makeSupportWorker({ [`POST ${path}`]: () => json(body) });
+    const support = makeSupportWorker({
+      [`POST ${path}`]: () => json(body, 200, { 'Idempotency-Replay': 'false' }),
+    });
     const result = await callSupport(makeTestEnv({ SUPPORT_WORKER: support }), {
       method: 'POST', path, ownerId: OWNER_ID, idempotencyKey: KEY, json: { value: 'x' },
     });
@@ -171,6 +176,25 @@ describe('support wire', () => {
       ok: true, value: { type: 'active' },
     });
     expect(parseDetail(tombstone())).toMatchObject({ ok: true, value: { type: 'tombstone' } });
+  });
+
+  it('normalizes real D1 numeric ids and accepts null pending triage summaries', () => {
+    expect(parseTickets([ticket(33)])).toMatchObject({ ok: true, value: [{ id: '33' }] });
+    expect(parseDetail({
+      ticket: ticket(33),
+      messages: [{ ...message(), attachments: [{ ...attachment(), triage_summary: null }] }],
+      attachments: [],
+    })).toMatchObject({
+      ok: true,
+      value: {
+        type: 'active',
+        request: { id: '33' },
+        attachments: [{ filename: 'log.txt', status: 'pending', triage_summary: '' }],
+      },
+    });
+    for (const id of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(parseTickets([ticket(id)]).ok).toBe(false);
+    }
   });
 
   it('rejects malformed rows and envelopes instead of defaulting or dropping them', () => {

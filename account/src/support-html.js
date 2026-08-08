@@ -57,10 +57,17 @@ export function renderSupportTombstone({ tombstone } = {}) {
 <p>details removed to protect your privacy.</p>`);
 }
 
-export function renderSupportRemoving({ id, retryAfter = null, closeKey = null, csrf = '' }) {
-  const retry = closeKey
-    ? `<form method="post" action="/support/${escAttr(id)}/close" data-support-form>
-  ${hidden('csrf', csrf)}${hidden('operation_key', closeKey)}${hidden('close_retry', 'refresh')}
+export function renderSupportRemoving({
+  id,
+  retryAfter = null,
+  operationKey = null,
+  retryAction = 'close',
+  csrf = '',
+}) {
+  const retryField = retryAction === 'resolution' ? 'resolution_retry' : 'close_retry';
+  const retry = operationKey
+    ? `<form method="post" action="/support/${escAttr(id)}/${retryAction}" data-support-form>
+  ${hidden('csrf', csrf)}${hidden('operation_key', operationKey)}${hidden(retryField, 'refresh')}
   <p data-support-progress role="status" aria-live="polite" hidden></p>
   <button class="btn secondary" type="submit">check again</button>
 </form>`

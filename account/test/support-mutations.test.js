@@ -10,8 +10,8 @@ describe('support mutations', () => {
 
   it('sends a general create, acknowledges it, then sends its distinct attachment batch', async () => {
     const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ id: 'REQ_NEW', created_at: Date.now(), status: 'open' }),
-      'POST /api/services/tickets/REQ_NEW/attachments': () => json({ ticket_id: 'REQ_NEW', attachment_ids: ['ATT_1'], status: 'accepted' }),
+      'POST /api/services/tickets': () => mutationJson({ id: 'REQ_NEW', created_at: Date.now(), status: 'open' }),
+      'POST /api/services/tickets/REQ_NEW/attachments': () => mutationJson({ ticket_id: 'REQ_NEW', attachment_ids: ['ATT_1'], status: 'accepted' }),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
     });
     const { testEnv, session, account } = await signedIn(support);
@@ -89,7 +89,7 @@ describe('support mutations', () => {
 
   it('acknowledges invalid state before refreshing the authorized support view', async () => {
     const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ error: 'invalid_state' }, 409),
+      'POST /api/services/tickets': () => mutationJson({ error: 'invalid_state' }, 409),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
       'GET /api/services/tickets': () => json({ tickets: [] }),
       'GET /api/services/tickets/closed': () => json({ tickets: [], next_cursor: null }),
@@ -109,9 +109,9 @@ describe('support mutations', () => {
       const isCreate = path === '/support';
       const support = makeSupportWorker({
         'GET /api/services/tickets/REQ_1': () => json(detail()),
-        'POST /api/services/tickets': () => json({ id: 'REQ_NEW', created_at: Date.now(), status: 'open' }),
-        'POST /api/services/tickets/REQ_1/messages': () => json(tombstone('REQ_1')),
-        'POST /api/services/tickets/REQ_NEW/attachments': () => json(tombstone('REQ_NEW')),
+        'POST /api/services/tickets': () => mutationJson({ id: 'REQ_NEW', created_at: Date.now(), status: 'open' }),
+        'POST /api/services/tickets/REQ_1/messages': () => mutationJson(tombstone('REQ_1')),
+        'POST /api/services/tickets/REQ_NEW/attachments': () => mutationJson(tombstone('REQ_NEW')),
         'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
       });
       const { testEnv, session } = await signedIn(support);
@@ -128,10 +128,10 @@ describe('support mutations', () => {
   it('retries only an unresolved attachment batch with the same ordered bytes', async () => {
     let uploads = 0;
     const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ id: 'REQ_NEW', created_at: Date.now(), status: 'open' }),
+      'POST /api/services/tickets': () => mutationJson({ id: 'REQ_NEW', created_at: Date.now(), status: 'open' }),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
       'GET /api/services/tickets/REQ_NEW': () => json(detail('REQ_NEW')),
-      'POST /api/services/tickets/REQ_NEW/attachments': () => uploads++ === 0 ? new Response('down', { status: 500 }) : json({ ticket_id: 'REQ_NEW', attachment_ids: ['A'], status: 'accepted' }),
+      'POST /api/services/tickets/REQ_NEW/attachments': () => uploads++ === 0 ? new Response('down', { status: 500 }) : mutationJson({ ticket_id: 'REQ_NEW', attachment_ids: ['A'], status: 'accepted' }),
     });
     const { testEnv, session } = await signedIn(support);
     const files = [new File(['first'], 'first.log', { type: 'text/plain' }), new File(['second'], 'second.log', { type: 'text/plain' })];
@@ -152,7 +152,7 @@ describe('support mutations', () => {
   it('requires a newly reviewed batch after a changed retry conflicts under the preserved key', async () => {
     let uploads = 0;
     const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ id: 'REQ_NEW', created_at: Date.now(), status: 'open' }),
+      'POST /api/services/tickets': () => mutationJson({ id: 'REQ_NEW', created_at: Date.now(), status: 'open' }),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
       'GET /api/services/tickets/REQ_NEW': () => json(detail('REQ_NEW')),
       'POST /api/services/tickets/REQ_NEW/attachments': () => uploads++ === 0
@@ -214,3 +214,4 @@ function createFields() { return { product: 'solstone', subject: 'subject', desc
 function detail(id = 'REQ_1') { return { ticket: { id, subject: 'private subject', status: 'open', updated_at: Date.now() }, messages: [], attachments: [] }; }
 function tombstone(id) { return { id, created_at: '2026-08-01T00:00:00.000Z', closed_at: '2026-08-02T00:00:00.000Z', status: 'closed', content_removed: true }; }
 function json(body, status = 200, headers = {}) { return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } }); }
+function mutationJson(body, status = 200) { return json(body, status, { 'Idempotency-Replay': 'false' }); }

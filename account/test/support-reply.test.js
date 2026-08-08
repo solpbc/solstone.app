@@ -20,11 +20,11 @@ describe('support reply', () => {
     const support = makeSupportWorker(withAck({
       'POST /api/services/tickets/REQ_1/messages': ({ request }) => {
         if (request.headers.get('X-Verified-Email') === 'primary@example.com') return json({ error: 'not found' }, 404);
-        return json(messageAccepted());
+        return mutationJson(messageAccepted());
       },
       'POST /api/services/tickets/REQ_1/attachments': ({ request }) => {
         expect(request.headers.has('X-Verified-Email')).toBe(false);
-        return json(attachmentsAccepted());
+        return mutationJson(attachmentsAccepted());
       },
       'GET /api/services/tickets/REQ_1': ({ request }) => {
         // §9 makes the refreshed detail owner-scoped, without a verified-email header.
@@ -57,7 +57,7 @@ describe('support reply', () => {
 
   it('preserves the reply and shows a notice when reply attachment upload fails', async () => {
     const support = makeSupportWorker(withAck({
-      'POST /api/services/tickets/REQ_1/messages': () => json(messageAccepted()),
+      'POST /api/services/tickets/REQ_1/messages': () => mutationJson(messageAccepted()),
       'POST /api/services/tickets/REQ_1/attachments': () => json({ error: 'down' }, 500),
       'GET /api/services/tickets/REQ_1': () => json(detailPayload('reply was saved')),
     }));
@@ -146,6 +146,13 @@ function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function mutationJson(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Replay': 'false' },
   });
 }
 

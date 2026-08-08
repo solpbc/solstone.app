@@ -23,7 +23,7 @@ describe('support close', () => {
   it('renders a tombstone only after close acknowledgement', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets/REQ_1': () => json(detail()),
-      'POST /api/services/tickets/REQ_1/close': () => json(tombstone()),
+      'POST /api/services/tickets/REQ_1/close': () => mutationJson(tombstone()),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
     });
     const { testEnv, session, account } = await signedIn(support);
@@ -34,6 +34,63 @@ describe('support close', () => {
     expect(body).not.toContain('action="/support/REQ_1/close"');
     expect(support.requests[1]).toMatchObject({ headers: { ownerId: account.accountId, idempotencyKey: KEY, hasVerifiedEmail: false } });
     expect(support.requests[2].body).toEqual({ mutation: 'ticket.close' });
+  });
+
+  it('never re-renders cached details when close succeeded but acknowledgement is lost', async () => {
+    const support = makeSupportWorker({
+      'GET /api/services/tickets/REQ_1': () => json(detail()),
+      'POST /api/services/tickets/REQ_1/close': () => mutationJson(tombstone()),
+      'POST /api/services/idempotency/ack': () => new Response(null, { status: 503 }),
+    });
+    const { testEnv, session } = await signedIn(support);
+    const response = await worker.fetch(closeRequest(session.cookie, {
+      confirmation: 'remove_details', confirmationControl: 'checkbox',
+    }), testEnv);
+    const body = await response.text();
+
+    expect(body).toContain('removing details');
+    expect(body).toContain(`name="operation_key" value="${KEY}"`);
+    expect(body).not.toContain('private subject');
+    expect(body).not.toContain('messages');
+    expect(body).not.toContain('attachments');
+  });
+
+  it('never re-renders cached details when privacy deletion wins the close race', async () => {
+    const support = makeSupportWorker({
+      'GET /api/services/tickets/REQ_1': () => json(detail()),
+      'POST /api/services/tickets/REQ_1/close': () => new Response(null, { status: 404 }),
+    });
+    const { testEnv, session } = await signedIn(support);
+    const response = await worker.fetch(closeRequest(session.cookie, {
+      confirmation: 'remove_details', confirmationControl: 'checkbox',
+    }), testEnv);
+    const body = await response.text();
+
+    expect(body).toContain('removing details');
+    expect(body).toContain('href="/support/REQ_1"');
+    expect(body).not.toContain(`name="operation_key" value="${KEY}"`);
+    expect(body).not.toContain('private subject');
+    expect(body).not.toContain('messages');
+    expect(body).not.toContain('attachments');
+  });
+
+  it.each([
+    ['retired', 'operation_retired'],
+    ['erased', 'operation_erased'],
+  ])('drops a terminal %s close key from the content-free state', async (_name, error) => {
+    const support = makeSupportWorker({
+      'GET /api/services/tickets/REQ_1': () => json(detail()),
+      'POST /api/services/tickets/REQ_1/close': () => json({ error }, 410),
+    });
+    const { testEnv, session } = await signedIn(support);
+    const body = await (await worker.fetch(closeRequest(session.cookie, {
+      confirmation: 'remove_details', confirmationControl: 'checkbox',
+    }), testEnv)).text();
+
+    expect(body).toContain('removing details');
+    expect(body).toContain('href="/support/REQ_1"');
+    expect(body).not.toContain(`name="operation_key" value="${KEY}"`);
+    expect(body).not.toContain('private subject');
   });
 
   it('keeps the close key in a content-free close-in-progress retry state', async () => {
@@ -109,3 +166,4 @@ function get(path, cookie) { return new Request(`https://services.solstone.app${
 function detail() { return { ticket: { id: 'REQ_1', subject: 'private subject', status: 'open', updated_at: Date.now() }, messages: [], attachments: [] }; }
 function tombstone() { return { id: 'REQ_1', created_at: '2026-08-01T00:00:00.000Z', closed_at: '2026-08-02T00:00:00.000Z', status: 'closed', content_removed: true }; }
 function json(body, status = 200, headers = {}) { return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } }); }
+function mutationJson(body) { return json(body, 200, { 'Idempotency-Replay': 'false' }); }

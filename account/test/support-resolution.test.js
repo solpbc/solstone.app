@@ -21,7 +21,7 @@ describe('support resolution', () => {
     let reads = 0;
     const support = makeSupportWorker({
       'GET /api/services/tickets/REQ_1': () => json(detail(reads++ ? 'open' : 'proposed')),
-      'POST /api/services/tickets/REQ_1/resolution': () => json({ id: 'REQ_1', status: 'open', close_scheduled_at: null }),
+      'POST /api/services/tickets/REQ_1/resolution': () => mutationJson({ id: 'REQ_1', status: 'open', close_scheduled_at: null }),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
     });
     const { testEnv, session } = await signedIn(support);
@@ -37,7 +37,7 @@ describe('support resolution', () => {
   it('requires removal confirmation for solved and sends the exact solved JSON', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets/REQ_1': () => json(detail('proposed')),
-      'POST /api/services/tickets/REQ_1/resolution': () => json(tombstone()),
+      'POST /api/services/tickets/REQ_1/resolution': () => mutationJson(tombstone()),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
     });
     const { testEnv, session } = await signedIn(support);
@@ -68,13 +68,62 @@ describe('support resolution', () => {
       'GET /api/services/tickets/REQ_1': () => json(reads++ === 0
         ? detail('waiting', '2026-09-01T00:00:00.000Z')
         : detail('waiting', '2026-09-03T00:00:00.000Z')),
-      'POST /api/services/tickets/REQ_1/resolution': () => json({ id: 'REQ_1', status: 'waiting', close_scheduled_at: null }),
+      'POST /api/services/tickets/REQ_1/resolution': () => mutationJson({ id: 'REQ_1', status: 'waiting', close_scheduled_at: null }),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
     });
     const { testEnv, session } = await signedIn(support);
     const body = await (await worker.fetch(resolutionRequest(session.cookie, 'still_need_help'), testEnv)).text();
 
     expect(body).toContain('scheduled to be removed on 2026-09-03');
+  });
+
+  it('keeps solved acknowledgement loss content-free and refreshes without resubmitting', async () => {
+    let reads = 0;
+    const privateDetail = detail('proposed');
+    privateDetail.ticket.subject = 'PRIVATE_RESOLUTION_SUBJECT';
+    privateDetail.messages = [{ author_kind: 'human', content: 'PRIVATE_MESSAGE', created_at: Date.now() }];
+    const support = makeSupportWorker({
+      'GET /api/services/tickets/REQ_1': () => reads++ === 0
+        ? json(privateDetail)
+        : json(tombstone()),
+      'POST /api/services/tickets/REQ_1/resolution': () => mutationJson(tombstone()),
+      'POST /api/services/idempotency/ack': () => new Response(null, { status: 503 }),
+    });
+    const { testEnv, session } = await signedIn(support);
+    const first = await worker.fetch(
+      resolutionRequest(session.cookie, 'solved', 'remove_details'), testEnv
+    );
+    const firstBody = await first.text();
+    expect(firstBody).toContain('removing details');
+    expect(firstBody).toContain(`name="operation_key" value="${KEY}"`);
+    expect(firstBody).toContain('action="/support/REQ_1/resolution"');
+    expect(firstBody).not.toContain('PRIVATE_RESOLUTION_SUBJECT');
+    expect(firstBody).not.toContain('PRIVATE_MESSAGE');
+
+    const retry = await worker.fetch(resolutionRefreshRequest(session.cookie), testEnv);
+    expect(await retry.text()).toContain('closed request');
+    expect(support.requests.filter((request) => request.pathname.endsWith('/resolution'))).toHaveLength(1);
+  });
+
+  it('keeps a solved privacy-delete race content-free', async () => {
+    const privateDetail = detail('proposed');
+    privateDetail.ticket.subject = 'PRIVATE_RESOLUTION_SUBJECT';
+    privateDetail.messages = [{ author_kind: 'human', content: 'PRIVATE_MESSAGE', created_at: Date.now() }];
+    const support = makeSupportWorker({
+      'GET /api/services/tickets/REQ_1': () => json(privateDetail),
+      'POST /api/services/tickets/REQ_1/resolution': () => new Response(null, { status: 404 }),
+    });
+    const { testEnv, session } = await signedIn(support);
+    const response = await worker.fetch(
+      resolutionRequest(session.cookie, 'solved', 'remove_details'), testEnv
+    );
+    const body = await response.text();
+
+    expect(body).toContain('removing details');
+    expect(body).toContain('href="/support/REQ_1"');
+    expect(body).not.toContain(`name="operation_key" value="${KEY}"`);
+    expect(body).not.toContain('PRIVATE_RESOLUTION_SUBJECT');
+    expect(body).not.toContain('PRIVATE_MESSAGE');
   });
 });
 
@@ -92,7 +141,15 @@ function resolutionRequest(cookie, outcome, confirmation) {
   if (confirmation === 'remove_details') body.set('confirmation_control', 'checkbox');
   return new Request('https://services.solstone.app/support/REQ_1/resolution', { method: 'POST', headers: { Origin: 'https://services.solstone.app', Cookie: cookie }, body });
 }
+function resolutionRefreshRequest(cookie) {
+  const body = new FormData();
+  body.set('csrf', TEST_CSRF);
+  body.set('operation_key', KEY);
+  body.set('resolution_retry', 'refresh');
+  return new Request('https://services.solstone.app/support/REQ_1/resolution', { method: 'POST', headers: { Origin: 'https://services.solstone.app', Cookie: cookie }, body });
+}
 function get(path, cookie) { return new Request(`https://services.solstone.app${path}`, { headers: { Cookie: cookie } }); }
 function detail(status, closeScheduledAt = null) { return { ticket: { id: 'REQ_1', subject: 'subject', status, updated_at: Date.now(), close_scheduled_at: closeScheduledAt }, messages: [], attachments: [] }; }
 function tombstone() { return { id: 'REQ_1', created_at: '2026-08-01T00:00:00.000Z', closed_at: '2026-08-02T00:00:00.000Z', status: 'closed', content_removed: true }; }
 function json(body) { return new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } }); }
+function mutationJson(body) { return new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json', 'Idempotency-Replay': 'false' } }); }

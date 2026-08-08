@@ -95,7 +95,7 @@ describe('support copy and leak checks', () => {
     const support = makeSupportWorker({
       'POST /api/services/tickets': () => json({
         id: 'REQ_COPY_NEW', created_at: Date.now(), status: 'open',
-      }),
+      }, 200, { 'Idempotency-Replay': 'false' }),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
     });
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
@@ -265,9 +265,9 @@ async function supportLandingBody(path, testEnv) {
   return landing.text();
 }
 
-function json(body, status = 200) {
+function json(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   });
 }

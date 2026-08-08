@@ -93,6 +93,7 @@ async function classifySupportResponse(response, { method, path }) {
   if (response.status === 404) return result('notFound');
 
   if (response.status === 200 || response.status === 201) {
+    if (mutation && !hasReplaySignal(response)) return ambiguous('malformed_success');
     const body = await readJson(response);
     if (!body.ok) return ambiguous('malformed_success');
     if (!mutation) {
@@ -116,7 +117,7 @@ async function classifySupportResponse(response, { method, path }) {
   if (response.status === 409 && error === 'idempotency_conflict') return result('idempotencyConflict');
   if (response.status === 400 && error === 'invalid_idempotency_key') return result('invalidIdempotencyKey');
   if (response.status === 409 && error === 'invalid_state') {
-    return result('invalidState', { acknowledgeable: mutation });
+    return result('invalidState', { acknowledgeable: mutation && hasReplaySignal(response) });
   }
   if (response.status === 410 && error === 'operation_erased') return result('operationErased');
   if (response.status === 410 && error === 'operation_retired') return result('operationRetired');
@@ -267,8 +268,14 @@ function parseAttachment(row) {
   if (!isObject(row)) return failure();
   const filename = nonEmptyString(row.filename);
   const status = typeof row.status === 'string' && ATTACHMENT_STATUSES.has(row.status) ? row.status : null;
-  if (!filename || !status || (row.triage_summary !== undefined && typeof row.triage_summary !== 'string')) return failure();
-  return success({ filename, status, triage_summary: row.triage_summary || '' });
+  if (
+    !filename
+    || !status
+    || (row.triage_summary !== undefined
+      && row.triage_summary !== null
+      && typeof row.triage_summary !== 'string')
+  ) return failure();
+  return success({ filename, status, triage_summary: row.triage_summary ?? '' });
 }
 
 function parseTombstone(data) {
@@ -388,7 +395,15 @@ function parseTimestamp(value) {
 }
 
 function validId(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
+  }
   return typeof value === 'string' && SUPPORT_ID_REGEX.test(value) ? value : null;
+}
+
+function hasReplaySignal(response) {
+  const value = response.headers.get('Idempotency-Replay');
+  return value === 'false' || value === 'true';
 }
 
 function nonEmptyString(value) {

@@ -18,8 +18,8 @@ describe('support create', () => {
 
   it('opens a request with the primary verified email and omits category', async () => {
     const support = makeSupportWorker(withAck({
-      'POST /api/services/tickets': () => json(created('REQ_NEW')),
-      'POST /api/services/tickets/REQ_NEW/attachments': () => json(attachmentsAccepted('REQ_NEW')),
+      'POST /api/services/tickets': () => mutationJson(created('REQ_NEW')),
+      'POST /api/services/tickets/REQ_NEW/attachments': () => mutationJson(attachmentsAccepted('REQ_NEW')),
     }));
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { account, session } = await signedInAccount(testEnv);
@@ -84,7 +84,7 @@ describe('support create', () => {
 
   it('uses first verified email when the primary row is not verified', async () => {
     const support = makeSupportWorker(withAck({
-      'POST /api/services/tickets': () => json(created('REQ_SECONDARY')),
+      'POST /api/services/tickets': () => mutationJson(created('REQ_SECONDARY')),
     }));
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
     const { account, session } = await signedInAccount(testEnv);
@@ -108,7 +108,7 @@ describe('support create', () => {
 
   it('preserves the created request when attachment upload fails', async () => {
     const support = makeSupportWorker(withAck({
-      'POST /api/services/tickets': () => json(created('REQ_UPLOAD_FAIL')),
+      'POST /api/services/tickets': () => mutationJson(created('REQ_UPLOAD_FAIL')),
       'POST /api/services/tickets/REQ_UPLOAD_FAIL/attachments': () => new Response(JSON.stringify({ error: 'down' }), { status: 500 }),
     }));
     const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
@@ -187,6 +187,13 @@ function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function mutationJson(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Replay': 'false' },
   });
 }
 

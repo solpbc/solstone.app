@@ -10,7 +10,7 @@ describe('support acknowledgement', () => {
 
   it('keeps a success ambiguous when acknowledgement is absent', async () => {
     const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ id: 'REQ_1', created_at: Date.now(), status: 'open' }),
+      'POST /api/services/tickets': () => mutationJson({ id: 'REQ_1', created_at: Date.now(), status: 'open' }),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 404 }),
     });
     const { testEnv, session } = await signedIn(support);
@@ -24,7 +24,7 @@ describe('support acknowledgement', () => {
 
   it('keeps a parsed success ambiguous with the same key when acknowledgement transport throws', async () => {
     const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ id: 'REQ_1', created_at: Date.now(), status: 'open' }),
+      'POST /api/services/tickets': () => mutationJson({ id: 'REQ_1', created_at: Date.now(), status: 'open' }),
       'POST /api/services/idempotency/ack': () => { throw new Error('ack unavailable'); },
     });
     const { testEnv, session } = await signedIn(support);
@@ -38,7 +38,7 @@ describe('support acknowledgement', () => {
 
   it('treats repeated acknowledgement as harmless terminal confirmation', async () => {
     const support = makeSupportWorker({
-      'POST /api/services/tickets': () => json({ id: 'REQ_1', created_at: Date.now(), status: 'open' }),
+      'POST /api/services/tickets': () => mutationJson({ id: 'REQ_1', created_at: Date.now(), status: 'open' }),
       'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
     });
     const { testEnv, session } = await signedIn(support);
@@ -82,3 +82,4 @@ function createRequest(cookie) {
   return new Request('https://services.solstone.app/support', { method: 'POST', headers: { Origin: 'https://services.solstone.app', Cookie: cookie }, body });
 }
 function json(body, status = 200, headers = {}) { return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } }); }
+function mutationJson(body, status = 200) { return json(body, status, { 'Idempotency-Replay': 'false' }); }
