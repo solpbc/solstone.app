@@ -737,6 +737,7 @@ export function makeSupportWorker(handlers = {}) {
         pathname: url.pathname,
         headers: {
           servicesAuth: request.headers.get('X-Services-Auth'),
+          servicesOwnerId: request.headers.get('X-Services-Owner-ID'),
           verifiedEmail: request.headers.get('X-Verified-Email'),
           verifiedEmailCount: headerEntries.filter(([name]) => name.toLowerCase() === 'x-verified-email').length,
         },

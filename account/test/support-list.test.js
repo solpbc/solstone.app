@@ -68,6 +68,7 @@ describe('support list', () => {
       'secondary@example.com',
     ]);
     expect(support.requests.every((request) => request.headers.servicesAuth === 'test-services-auth-token')).toBe(true);
+    expect(support.requests.every((request) => request.headers.servicesOwnerId === session.accountId)).toBe(true);
     expect(support.requests.every((request) => request.headers.verifiedEmailCount === 1)).toBe(true);
     expect(support.requests.map((request) => request.headers.verifiedEmail)).not.toContain('unverified@example.com');
   });

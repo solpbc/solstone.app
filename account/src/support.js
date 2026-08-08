@@ -97,6 +97,7 @@ export async function handleSupportCreate(req, env) {
   const create = await callSupport(env, {
     method: 'POST',
     path: '/api/services/tickets',
+    ownerId: guard.session.account_id,
     verifiedEmail: createEmail.address,
     json: { product, subject, description },
   });
@@ -120,6 +121,7 @@ export async function handleSupportCreate(req, env) {
   if (files.length > 0) {
     const upload = await uploadAttachments(env, {
       id,
+      ownerId: guard.session.account_id,
       verifiedEmail: createEmail.address,
       files,
     });
@@ -174,6 +176,7 @@ export async function handleSupportReply(req, env, id) {
     const reply = await callSupport(env, {
       method: 'POST',
       path: `/api/services/tickets/${encodeURIComponent(id)}/messages`,
+      ownerId: guard.session.account_id,
       verifiedEmail: row.address,
       json: { content },
     });
@@ -193,11 +196,16 @@ export async function handleSupportReply(req, env, id) {
   const notices = usable.decryptSkipped ? [SUPPORT_PARTIAL_NOTICE] : [];
   const files = selectedFiles(form);
   if (files.length > 0) {
-    const upload = await uploadAttachments(env, { id, verifiedEmail: replyEmail, files });
+    const upload = await uploadAttachments(env, {
+      id,
+      ownerId: guard.session.account_id,
+      verifiedEmail: replyEmail,
+      files,
+    });
     if (upload.kind !== 'ok') notices.push(SUPPORT_UPLOAD_FAILURE);
   }
 
-  const detail = await loadDetailForEmail(env, id, replyEmail);
+  const detail = await loadDetailForEmail(env, id, guard.session.account_id, replyEmail);
   if (detail.kind === 'notFound') return supportNotFoundResponse(menu);
   if (detail.kind !== 'ok') {
     return renderSupportDetailForSession(env, guard.session, id, guard.nowMs, menu, {
@@ -245,6 +253,7 @@ async function renderSupportListForSession(env, session, nowMs, menu, {
     const outcome = await callSupport(env, {
       method: 'GET',
       path: '/api/services/tickets',
+      ownerId: session.account_id,
       verifiedEmail: row.address,
     });
     if (outcome.kind === 'ok') {
@@ -300,7 +309,7 @@ async function renderSupportDetailForSession(env, session, id, nowMs, menu, {
   }
 
   for (const row of verified.emails) {
-    const detail = await loadDetailForEmail(env, id, row.address);
+    const detail = await loadDetailForEmail(env, id, session.account_id, row.address);
     if (detail.kind === 'notFound') continue;
     if (detail.kind === 'failure') {
       return supportHtml(renderSupportList({
@@ -350,10 +359,18 @@ async function usableVerifiedEmails(env, accountId) {
   return { emails, decryptSkipped };
 }
 
-async function callSupport(env, { method, path, verifiedEmail, json = null, formData = null }) {
+async function callSupport(env, {
+  method,
+  path,
+  ownerId,
+  verifiedEmail,
+  json = null,
+  formData = null,
+}) {
   if (!env.SUPPORT_WORKER || !env.SERVICES_AUTH_TOKEN) return { kind: 'failure' };
   const headers = new Headers({
     'X-Services-Auth': env.SERVICES_AUTH_TOKEN,
+    'X-Services-Owner-ID': ownerId,
     'X-Verified-Email': verifiedEmail,
   });
   let body;
@@ -377,10 +394,11 @@ async function callSupport(env, { method, path, verifiedEmail, json = null, form
   }
 }
 
-async function loadDetailForEmail(env, id, verifiedEmail) {
+async function loadDetailForEmail(env, id, ownerId, verifiedEmail) {
   const detail = await callSupport(env, {
     method: 'GET',
     path: `/api/services/tickets/${encodeURIComponent(id)}`,
+    ownerId,
     verifiedEmail,
   });
   if (detail.kind !== 'ok') return detail;
@@ -388,12 +406,13 @@ async function loadDetailForEmail(env, id, verifiedEmail) {
   return parsed ? { kind: 'ok', data: parsed } : { kind: 'failure' };
 }
 
-async function uploadAttachments(env, { id, verifiedEmail, files }) {
+async function uploadAttachments(env, { id, ownerId, verifiedEmail, files }) {
   const formData = new FormData();
   for (const file of files) formData.append('file', file, file.name);
   return callSupport(env, {
     method: 'POST',
     path: `/api/services/tickets/${encodeURIComponent(id)}/attachments`,
+    ownerId,
     verifiedEmail,
     formData,
   });
