@@ -39,7 +39,7 @@ describe('support copy and leak checks', () => {
     expect(body).toContain('vit');
     expect(body).toContain('attachments');
     expect(body).toContain('optional screenshots/logs');
-    expect(body).toContain("screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here. until the request closes, we keep only a short triage summary, never the files; closing removes that summary with the rest of the request details.");
+    expect(body).toContain("an operator may review a short-lived copy in an isolated environment; the portal file and that working copy are deleted promptly after review.");
   });
 
   it('renders exact reply helper and removed attachment phrase without poisoned attachment values', async () => {
@@ -246,6 +246,7 @@ function create(path, cookie) {
   body.set('product', 'solstone');
   body.set('subject', 'copy subject');
   body.set('description', 'copy details');
+  body.set('safe_content', 'confirmed');
   body.set('operation_key', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   body.set('attachment_operation_key', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
   return new Request(`https://services.solstone.app${path}`, {

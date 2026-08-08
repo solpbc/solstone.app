@@ -79,6 +79,7 @@ async function signedIn(support) {
 function createRequest(cookie) {
   const body = new FormData();
   body.set('csrf', TEST_CSRF); body.set('product', 'solstone'); body.set('subject', 'subject'); body.set('description', 'details'); body.set('operation_key', KEY); body.set('attachment_operation_key', BATCH);
+  body.set('safe_content', 'confirmed');
   return new Request('https://services.solstone.app/support', { method: 'POST', headers: { Origin: 'https://services.solstone.app', Cookie: cookie }, body });
 }
 function json(body, status = 200, headers = {}) { return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } }); }
