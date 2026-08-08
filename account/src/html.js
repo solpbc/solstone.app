@@ -32,7 +32,7 @@ function brandbar() {
 }
 
 function footer() {
-  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/legal">terms</a><a href="https://solpbc.org/privacy">privacy policy ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
+  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/legal">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
 }
 
 export function topbar({ email = null, lastSignInAt = null, now = null } = {}) {

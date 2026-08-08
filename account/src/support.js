@@ -55,12 +55,7 @@ export async function handleSupportCreate(req, env) {
   if (!form) return renderCreateState(env, guard, { outcome: errorOutcome('we could not read that form. review it and try again.') });
   const values = createValues(form);
   const keys = submittedKeys(form);
-  if (!validCreate(values) || !keys || !hasSafeContentConfirmation(form)) {
-    return renderCreateState(env, guard, {
-      values,
-      outcome: errorOutcome('review the request and confirm that sensitive information was removed before sending it.'),
-    });
-  }
+  if (!validCreate(values) || !keys) return renderCreateState(env, guard, { values, outcome: errorOutcome('review the request before sending it.') });
   const usable = await usableVerifiedEmails(env, guard.session.account_id);
   if (!usable.emails.length) return renderCreateState(env, guard, { values, keys, message: SUPPORT_EMAIL_LIMITATION });
   const email = (usable.emails.find((row) => row.isPrimary) || usable.emails[0]).address;
@@ -105,13 +100,7 @@ export async function handleSupportReply(req, env, id) {
   if (!form) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   const content = String(form.get('content') || '').trim();
   const keys = submittedKeys(form);
-  if (!content || !keys) {
-    return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
-  }
-  if (!hasSafeContentConfirmation(form)) return renderSupportDetailForSession(
-    env, guard.session, id, guard.nowMs,
-    { forms: { reply: { ...keys, value: content, outcome: errorOutcome('confirm that sensitive information was removed before sending the reply.') } } },
-  );
+  if (!content || !keys) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   const detail = await ownedActiveDetail(env, guard.session.account_id, id);
   if (detail instanceof Response) return detail;
   const parent = await runMutation(env, {
@@ -145,13 +134,7 @@ export async function handleSupportAttachments(req, env, id) {
   const form = await checkedForm(req, env);
   if (form === false) return noStore(forbidden());
   const key = form && String(form.get('operation_key') || '');
-  if (!form || !validOperationKey(key) || !selectedFiles(form).length) {
-    return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
-  }
-  if (!hasSafeContentConfirmation(form)) return renderSupportDetailForSession(
-    env, guard.session, id, guard.nowMs,
-    { forms: { attachmentRetry: { id, operationKey: key, message: 'confirm that sensitive information was removed before sending the files.' } } },
-  );
+  if (!form || !validOperationKey(key) || !selectedFiles(form).length) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   const detail = await ownedActiveDetail(env, guard.session.account_id, id);
   if (detail instanceof Response) return detail;
   const attachment = await sendAttachmentBatch(env, guard.session.account_id, id, key, selectedFiles(form));
@@ -481,11 +464,6 @@ function preservePrivacyKey(result) {
 
 function hasRemovalConfirmation(form) {
   return form.get('confirmation') === 'remove_details' && form.get('confirmation_control') === 'checkbox';
-}
-
-function hasSafeContentConfirmation(form) {
-  const values = form.getAll('safe_content');
-  return values.length === 1 && values[0] === 'confirmed';
 }
 
 async function checkedForm(req, env) {

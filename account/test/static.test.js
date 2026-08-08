@@ -102,7 +102,7 @@ describe('static source checks', () => {
 
     expect(checkboxInputs.length).toBeGreaterThan(0);
     for (const input of checkboxInputs) {
-      expect(input).toMatch(/name="(?:data_ack|confirmation|safe_content)" value="(?:yes|remove_details|confirmed)" required/);
+      expect(input).toMatch(/name="(?:data_ack|confirmation)" value="(?:yes|remove_details)" required/);
       expect(input).not.toMatch(/\bstyle\s*=/);
     }
     expect(ackInputs).toEqual(checkboxInputs);
@@ -126,7 +126,7 @@ describe('static source checks', () => {
     expect(source).toContain('working classification');
     expect(source).toContain('limited delivery and retry records remain');
     expect(source).not.toContain('support-side metadata');
-    expect(source).toContain('closing removes it with the other live request details');
+    expect(source).toContain('closing removes that summary with the rest of the request details');
     expect(source).toContain('the narrow ownership and closure records needed to show it to me');
   });
 

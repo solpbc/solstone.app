@@ -169,7 +169,6 @@ function createRequest(cookie, {
   body.set('product', 'solstone');
   body.set('subject', 'help me');
   body.set('description', 'details here');
-  body.set('safe_content', 'confirmed');
   body.set('operation_key', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   body.set('attachment_operation_key', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
   if (email) body.set('email', email);

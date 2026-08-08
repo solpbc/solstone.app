@@ -41,7 +41,7 @@ describe('services catalog rendering', () => {
     expect(body).toContain('<span class="pill off"><span class="dot"></span>off</span>');
     expect(body).not.toContain('not set up');
     expect(body).toContain('href="https://solpbc.org/privacy"');
-    expect(body).toContain('privacy policy');
+    expect(body).toContain('how we earn your trust');
     expect(body).toContain('<a href="https://solstone.app">solstone.app →</a>');
     expect(body).toContain('<a href="/sign-in">manage sign-in</a>');
     expect(body).toContain('<form method="post" action="/signout">');

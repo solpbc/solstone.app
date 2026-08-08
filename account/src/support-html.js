@@ -103,10 +103,10 @@ function renderDetailActions({ request, id, csrf, forms }) {
   const reviewOutcomes = [reply.outcome, resolution.outcome, close.outcome].filter((outcome) => outcome?.requiresReview);
   if (reviewOutcomes.length) return `<div class="card">${reviewOutcomes.map(renderOutcome).join('')}<p><a class="btn secondary" href="/support/${escAttr(id)}">review request again</a></p></div>`;
   const replyForm = forms.attachmentRetry ? '' : `<div class="card"><h2>reply</h2><p>add a reply, or attach a screenshot or log.</p>
-  <p class="notice">screenshots and logs are used only to triage your request. after you submit, they're not viewable or downloadable here. an operator may review a short-lived copy in an isolated environment; the portal file and that working copy are deleted promptly after review. until the request closes, we keep only a short triage summary; closing removes it with the other live request details.</p>
+  <p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here. until the request closes, we keep only a short triage summary, never the files; closing removes that summary with the rest of the request details.</p>
   ${renderOutcome(reply.outcome)}
   ${supportForm({ action: `/support/${id}/reply`, csrf, operationKey: reply.operationKey, attachmentOperationKey: reply.attachmentOperationKey, body: `${textArea('reply-content', 'content', 'reply', reply.value || '')}
-  ${fileField('reply-file')}${safeContentField('reply-safe-content')}`, button: 'reply', enctype: true })}</div>`;
+  ${fileField('reply-file')}`, button: 'reply', enctype: true })}</div>`;
   const cancellation = (request.status === 'proposed' || (request.status === 'waiting' && request.closeScheduledAtMs != null))
     ? supportForm({ action: `/support/${id}/resolution`, csrf, operationKey: resolution.operationKey, body: hidden('outcome', 'still_need_help'), button: 'I still need help' })
     : '';
@@ -147,16 +147,16 @@ function renderCreateSection(section, csrf) {
   return `${section.message ? `<p class="notice">${esc(section.message)}</p>` : ''}${renderOutcome(section.outcome)}
 ${section.createConfirmation ? `<p class="notice">got it, this is request #${esc(section.createConfirmation.id)}. you can follow it right here.</p><p><a href="/support/${escAttr(section.createConfirmation.id)}">view request</a></p>` : ''}
 <div class="card"><h2>open a request</h2><p>tell us what's going on. you can attach screenshots or logs here. it's easier than email.</p>
-<p class="notice">screenshots and logs are used only to triage your request. after you submit, they're not viewable or downloadable here. an operator may review a short-lived copy in an isolated environment; the portal file and that working copy are deleted promptly after review. until the request closes, we keep only a short triage summary; closing removes it with the other live request details.</p>
+<p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here. until the request closes, we keep only a short triage summary, never the files; closing removes that summary with the rest of the request details.</p>
 ${supportForm({ action: '/support', csrf, operationKey: section.operationKey, attachmentOperationKey: section.attachmentOperationKey, enctype: true, body: `${textInput('support-subject', 'subject', "what's going on?", values.subject || '')}
 ${textArea('support-description', 'description', 'the details', values.description || '')}
 <label for="support-product">which product?</label><select id="support-product" name="product" required>
-<option value="solstone"${values.product === 'solstone' ? ' selected' : ''}>solstone</option><option value="vit"${values.product === 'vit' ? ' selected' : ''}>vit</option><option value="general"${values.product === 'general' ? ' selected' : ''}>something else</option></select>${fileField('support-file')}${safeContentField('create-safe-content')}`, button: 'open a request' })}</div>`;
+<option value="solstone"${values.product === 'solstone' ? ' selected' : ''}>solstone</option><option value="vit"${values.product === 'vit' ? ' selected' : ''}>vit</option><option value="general"${values.product === 'general' ? ' selected' : ''}>something else</option></select>${fileField('support-file')}`, button: 'open a request' })}</div>`;
 }
 
 function renderAttachmentRetry({ id, operationKey, message = '' }, csrf) {
   return `<div class="card"><h2>attachments need another try</h2><p>${esc(message || 'the files were not confirmed. reselect the same files in the same order to try again.')}</p>
-${supportForm({ action: `/support/${id}/attachments`, csrf, operationKey, enctype: true, body: `${fileField('retry-file')}${safeContentField('retry-safe-content')}`, button: 'send attachments again' })}</div>`;
+${supportForm({ action: `/support/${id}/attachments`, csrf, operationKey, enctype: true, body: fileField('retry-file'), button: 'send attachments again' })}</div>`;
 }
 
 function supportForm({ action, csrf, operationKey, attachmentOperationKey = null, body, button, enctype = false }) {
@@ -176,10 +176,6 @@ function textArea(id, name, label, value) {
 
 function fileField(id) {
   return `<label for="${escAttr(id)}">attachments</label><p>optional screenshots/logs</p><input id="${escAttr(id)}" type="file" name="file" multiple>`;
-}
-
-function safeContentField(id) {
-  return `<p class="notice" id="${escAttr(id)}-note">redact passwords, private keys, authentication tokens, payment-card or government IDs, precise location, sensitive personal data, and anything about a child. if you cannot explain the problem safely, email support@solstone.app first.</p><label class="ack"><input id="${escAttr(id)}" type="checkbox" name="safe_content" value="confirmed" required aria-describedby="${escAttr(id)}-note"><span>i reviewed this request and removed that information.</span></label>`;
 }
 
 function confirmationField() {

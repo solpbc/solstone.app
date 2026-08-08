@@ -121,7 +121,6 @@ function replyRequest(cookie, {
   const body = new FormData();
   body.set('csrf', csrf);
   body.set('content', 'reply body');
-  body.set('safe_content', 'confirmed');
   body.set('operation_key', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   body.set('attachment_operation_key', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
   if (file) body.append('file', file);

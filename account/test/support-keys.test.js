@@ -51,7 +51,6 @@ function get(path, cookie) { return new Request(`https://services.solstone.app${
 function createRequest(cookie) {
   const body = new FormData();
   body.set('csrf', TEST_CSRF); body.set('product', 'solstone'); body.set('subject', 'subject'); body.set('description', 'details');
-  body.set('safe_content', 'confirmed');
   body.set('operation_key', KEY); body.set('attachment_operation_key', BATCH);
   return new Request('https://services.solstone.app/support', { method: 'POST', headers: { Origin: 'https://services.solstone.app', Cookie: cookie }, body });
 }

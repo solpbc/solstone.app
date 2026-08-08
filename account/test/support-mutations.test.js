@@ -191,31 +191,6 @@ describe('support mutations', () => {
       expect(support.requests.filter((request) => request.pathname.endsWith('/attachments'))).toHaveLength(0);
     }
   });
-
-  it('requires an explicit sensitive-data review before every content mutation', async () => {
-    const cases = [
-      ['/support', { ...createFields(), safe_content: null }],
-      ['/support/REQ_1/reply', {
-        content: 'reply body', operation_key: PARENT_KEY,
-        attachment_operation_key: BATCH_KEY, safe_content: null,
-      }],
-      ['/support/REQ_1/attachments', {
-        operation_key: BATCH_KEY, file: new File(['one'], 'one.log'), safe_content: null,
-      }],
-    ];
-    for (const [path, fields] of cases) {
-      await resetDb();
-      const support = makeSupportWorker({
-        'GET /api/services/tickets/REQ_1': () => json(detail()),
-      });
-      const { testEnv, session } = await signedIn(support);
-      const body = await (await worker.fetch(post(path, session.cookie, fields), testEnv)).text();
-
-      expect(support.requests.filter((request) => request.method === 'POST')).toHaveLength(0);
-      expect(body).toContain('name="safe_content" value="confirmed" required');
-      expect(body).toContain('sensitive information was removed');
-    }
-  });
 });
 
 async function signedIn(support) {
@@ -228,14 +203,7 @@ async function signedIn(support) {
 function post(path, cookie, fields) {
   const body = new FormData();
   body.set('csrf', TEST_CSRF);
-  if (path === '/support' || path.endsWith('/reply') || path.endsWith('/attachments')) {
-    body.set('safe_content', 'confirmed');
-  }
   for (const [name, value] of Object.entries(fields)) {
-    if (value === null) {
-      body.delete(name);
-      continue;
-    }
     if (Array.isArray(value)) for (const item of value) body.append(name, item);
     else body.append(name, value);
   }
