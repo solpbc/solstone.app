@@ -724,6 +724,7 @@ export async function signInRedirect(env, path, queryString) {
   const resume = await signEnableResume(path, queryString, env);
   return redirect(`/?next=${encodeURIComponent(resume.next)}&next_sig=${encodeURIComponent(resume.nextSig)}`, 303, {
     'Cache-Control': 'no-store',
+    'X-Robots-Tag': 'noindex',
   });
 }
 

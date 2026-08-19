@@ -25,3 +25,42 @@ describe('landing page', () => {
     expect(body).toContain('passkey sign-in failed. use your email instead.');
   });
 });
+
+describe('robots.txt and noindex', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('serves a sol-pbc-authored robots.txt that leaves /support crawlable', async () => {
+    const response = await worker.fetch(new Request('https://services.solstone.app/robots.txt'), makeTestEnv());
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/plain');
+    expect(body).toContain('User-agent: *');
+    expect(body).toContain('Disallow: /sign-in');
+    expect(body).not.toContain('Disallow: /support');
+    expect(body).not.toContain('As a condition of accessing this website');
+  });
+
+  it('does not noindex the public catalog', async () => {
+    const response = await worker.fetch(new Request('https://services.solstone.app/'), makeTestEnv());
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-Robots-Tag')).toBeNull();
+  });
+
+  it('sends X-Robots-Tag noindex on the sign-in landing', async () => {
+    const response = await worker.fetch(new Request('https://services.solstone.app/?signin'), makeTestEnv());
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
+  });
+
+  it('sends X-Robots-Tag noindex on the support sign-in redirect', async () => {
+    const response = await worker.fetch(
+      new Request('https://services.solstone.app/support', { redirect: 'manual' }),
+      makeTestEnv(),
+    );
+    expect(response.status).toBe(303);
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
+  });
+});

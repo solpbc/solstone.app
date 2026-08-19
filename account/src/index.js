@@ -154,6 +154,30 @@ const SECURITY_HEADERS = {
     "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; frame-ancestors 'none'",
 };
 
+const NOINDEX = { 'X-Robots-Tag': 'noindex' };
+
+const ROBOTS_TXT = `# Owner application surface. The landing page is public and should be
+# found. Authenticated and owner-scoped routes are not indexable.
+
+User-agent: *
+Allow: /
+Disallow: /signin
+Disallow: /sign-in
+Disallow: /passkey
+Disallow: /enable
+Disallow: /handoff
+Disallow: /admin
+Disallow: /account
+Disallow: /devices
+Disallow: /billing
+Disallow: /stripe
+Disallow: /push
+Disallow: /reach
+Disallow: /internal
+Disallow: /settings
+Disallow: /dashboard
+`;
+
 const LEGACY_REDIRECTS = [
   { method: 'GET', from: '/dashboard', to: '/' },
   { method: 'GET', from: '/settings', to: '/sign-in' },
@@ -309,6 +333,16 @@ async function routeRequest(req, env, ctx) {
       const legacy = legacyRedirect(req, url);
       if (legacy) return legacy;
 
+      if (url.pathname === '/robots.txt' && req.method === 'GET') {
+        return new Response(ROBOTS_TXT, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600',
+            ...SECURITY_HEADERS,
+          },
+        });
+      }
+
       if (url.pathname === '/portal.css' && req.method === 'GET') {
         return new Response(PORTAL_CSS, {
           headers: {
@@ -347,7 +381,9 @@ async function routeRequest(req, env, ctx) {
         if (resume || url.searchParams.has('signin')) {
           const csrf = await csrfToken(env);
           const subhead = supportSignInPrompt(resume?.path);
-          return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}, subhead || undefined));
+          return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}, subhead || undefined), {
+            headers: NOINDEX,
+          });
         }
         return html(renderServicesCatalog({ signedIn: false }));
       }

@@ -474,6 +474,6 @@ async function checkedForm(req, env) {
 async function csrfToken(env) { return hashKey('csrf', 'account', env); }
 async function readForm(req) { try { return await req.formData(); } catch { return null; } }
 function supportIdFromPath(path) { const parts = typeof path === 'string' ? path.split('/') : []; return parts.length === 3 && parts[1] === 'support' && SUPPORT_ID_REGEX.test(parts[2]) ? parts[2] : null; }
-function supportHtml(body, init = {}) { return html(body, { ...init, headers: { ...NO_STORE, ...(init.headers || {}) } }); }
+function supportHtml(body, init = {}) { return html(body, { ...init, headers: { ...NO_STORE, 'X-Robots-Tag': 'noindex', ...(init.headers || {}) } }); }
 function supportNotFoundResponse() { return supportHtml(renderSupportNotFound(), { status: 404 }); }
 function noStore(response) { response.headers.set('Cache-Control', 'no-store'); return response; }

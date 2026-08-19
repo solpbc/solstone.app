@@ -5,6 +5,7 @@ import { makeTestEnv, resetDb } from './helpers.js';
 describe('HEAD requests', () => {
   it.each([
     ['/', 200],
+    ['/robots.txt', 200],
     ['/private-network', 200],
     ['/notifications', 200],
     ['/legal', 200],
