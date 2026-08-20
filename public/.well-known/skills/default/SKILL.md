@@ -1,37 +1,39 @@
 ---
 name: solstone-install
-description: Install and configure solstone, the platform in two parts — sol, the app that experiences your day with you, and the journal, the memory sol keeps. Use when the user asks to install solstone, set up solstone, or mentions solstone.app. Supports linux and macOS.
+description: install and configure solstone, a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. when asked to install solstone, set up solstone, or when someone mentions solstone.app. linux (x86_64 and aarch64) and macos on apple silicon.
 license: AGPL-3.0-only
 metadata:
   author: sol-pbc
-  version: "1.0"
+  version: "1.1"
   website: https://solstone.app
   repository: https://github.com/solpbc/solstone-journal
 ---
 
 # solstone installation
 
-these instructions are for a coding agent and human working together. solstone is the platform, in two parts: sol — the app that lives on your devices, experiences your day with you, and keeps it all in your journal — the memory, on a computer you choose. open source, made by sol pbc.
+these instructions are for a coding agent and human working together. solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours. open source, made by sol pbc.
 
-your journal always lives on your device; how sol thinks is your choice — local by default. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, and any acquisition is conditional on the successor being legally bound to preserve the benefit purpose.
+sol pbc is a public benefit corporation. the data covenants in its articles of incorporation can't be amended without the founder's personal signature, and after the founder the language can only get stronger, never weaker. any acquisition is conditional: the successor must be legally bound to preserve a substantially equivalent benefit purpose and assume covenants no less protective than article 8.
 
 ## instructions
 
 fetch the install guide and follow it step by step:
 
 ```
-https://solstone.app/install
+https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md
 ```
 
-the guide covers platform detection, prerequisites, installation, setup, service verification, getting sol onto devices, and human handoff.
+the guide covers platforms, prerequisites, installation, setup, service verification, installing the solstone app on other devices, and human handoff.
 
 ## quick reference
 
 - **repo:** https://github.com/solpbc/solstone-journal
-- **macOS app (sol on your Mac):** https://github.com/solpbc/solstone-macos
-- **requires:** the signed macOS app, or `uv` on linux; no cloud key is required for the local-default path
-- **install (run a journal here):** `uv tool install solstone-journal && uv tool install solstone && journal setup` — two tools so both `journal` and `sol` land on your PATH (`pip install solstone-journal` exposes both natively in one step; NVIDIA GPU owners install `solstone-journal-cuda` instead of `solstone-journal`, never both)
-- **install (thin `sol` client only, talk to a journal elsewhere):** `uv tool install solstone` — or `uvx solstone` for a one-shot
-- **migrate from a pre-split install:** `pip uninstall solstone-journal-host && pip install solstone-journal` (pip) · `pipx uninstall solstone && pipx install solstone-journal && pipx install solstone` (pipx) · `uv tool uninstall solstone && uv tool install solstone-journal && uv tool install solstone` (uv) — `journal setup` unchanged
-- **configure:** open http://localhost:5015 after setup; the first-run wizard handles password and identity, then asks how sol should think: local on your device (the default on capable hardware), your own AI engine, or confidential processing operated by sol pbc (available to approved scouts)
+- **solstone app (mac):** https://github.com/solpbc/solstone-macos
+- **platforms:** linux (x86_64 and aarch64) and macos on apple silicon. the journal does not live on windows. a windows owner needs a mac or linux machine where the journal lives.
+- **requires:** no interpreter and no package manager of its own. on linux, the system OpenMP runtime (`libgomp`) for the default local transcription helper. the signed solstone app is a separate install from the journal.
+- **the two CLIs:** `solstone` and `journal`. one tree puts both on PATH. there is no thin-client package, no `sol` command, and no alias. the solstone app on each device is a separate install.
+- **install the journal:** the tree is not published yet. its release channel is `updates.solstone.app`. until the first release lands there, start from a local build or a copy someone handed you, and follow INSTALL.md. once it is published, one command does the whole thing: `sh install.sh` (or `sh core/distribution/install.sh` from a checkout). that follows the `release` lane, verifies the digest, and installs. debian and fedora can install the `.deb` or `.rpm` instead. then run `journal setup`.
+- **install from archives already on disk:** `sh core/distribution/install.sh --archive solstone-journal-<version>-linux-x86_64.tar.gz --sha256 solstone-journal-<version>-linux-x86_64.sha256 --release solstone-journal-<version>-linux-x86_64.release` (use `macos-arm64` on apple silicon). then `journal setup`.
+- **moving from a pip, uv, or pipx install:** stop the old service (`journal service stop`), uninstall the old Python packages, then install the tree. INSTALL.md has the exact uninstall commands. the two must not both be on PATH.
+- **configure:** open http://localhost:5015 after setup. the first-run wizard handles identity.
 - **docs:** https://solstone.app/llms.txt

@@ -1,24 +1,24 @@
 # solstone
 
-> solstone is an open source, local-first platform in two parts: sol — the app that lives on your devices, experiences your day with you, and keeps it all in your journal — and the journal, the memory the agents you use can work from. your journal is always private, only yours. made by sol pbc, a public benefit corporation with irrevocable data covenants — customer data can never be sold, and any acquisition must preserve the same protections. the journal always lives on your device; how sol thinks is yours to choose: local on your device (the default on capable hardware), your own AI engine, or confidential processing operated by sol pbc (available to approved scouts). with confidential processing in use, a setting you control (on by default) lets sol transcribe audio over the same attested, verified channel — transcribed, never kept; turned off, transcription returns to your device. macOS installs through the signed app; on linux, install the journal with `uv tool install solstone-journal && uv tool install solstone` (or `pip install solstone-journal`, which puts both on PATH in one step). the bare `solstone` package (`uv tool install solstone`, or `uvx solstone`) is the thin `sol` client for talking to a journal running elsewhere.
+> solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours. open source, made by sol pbc. the journal lives on linux, and on macos on apple silicon. the journal does not live on windows. a windows owner needs a mac or linux machine where the journal lives. the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are `solstone` and `journal`. one tree covers the journal on this machine and talking to a journal that already lives elsewhere. the solstone app on each device is a separate install. the tree is not published yet. its release channel is `updates.solstone.app`. until the first release lands there, start from a local build or a copy someone handed you and follow [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md). once it is published: `sh install.sh` then `journal setup`. on macos, install the solstone app from the signed bundle at https://solstone.app/download.
 
-sol runs quietly in the background, taking in your screen and audio along with you and keeping it all in your journal. AI transcribes conversations, surfaces entities (people, companies, projects), detects meetings, builds knowledge graphs, and surfaces daily insights. everything is stored in daily journal directories on your filesystem. the web interface provides full-text search, transcript browsing, entity browsing, AI chat, and calendar views.
+your journal holds transcripts, people and projects, meetings, a knowledge graph, and daily insights. it is a folder of dated directories. your journal has full-text search, transcript browsing, and calendar views.
 
-the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the company's founding documents contain irrevocable covenants: customer data can never be sold, licensed, sublicensed, or leased, and any acquisition is conditional on the successor preserving the benefit purpose and assuming covenants no less protective than Article 8. the code is open source — every claim is verifiable.
+the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the data covenants in its articles of incorporation can't be amended without the founder's personal signature, and after the founder the language can only get stronger, never weaker. any acquisition is conditional: the successor must be legally bound to preserve a substantially equivalent benefit purpose and assume covenants no less protective than article 8. the code is open source.
 
 ## Docs
 
-- [Get started](https://solstone.app/install): Human-friendly install page with copy-for-your-agent instructions. For raw agent-only instructions, use [install.md](https://solstone.app/install.md).
+- [Get started](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md): install guide for a coding agent and human working together
 - [README](https://github.com/solpbc/solstone-journal/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
-- [Get sol on your devices](https://solstone.app/download): sol for macOS, Linux, Windows (beta), and tmux — pick your platform and copy the prompt for your agent
+- [Install the solstone app on your devices](https://solstone.app/download): the solstone app for macos, linux, and windows. tmux is a separate install. pick your platform and copy the prompt for your agent. a windows owner needs a mac or linux machine where the journal lives.
 - [Journal structure](https://github.com/solpbc/solstone-journal/blob/main/docs/JOURNAL.md): Data model and daily directory layout
-- [AI providers](https://github.com/solpbc/solstone-journal/blob/main/docs/PROVIDERS.md): Thinking setup: local by default, bring-your-own engine or endpoint, confidential processing
-- [Web interface](https://github.com/solpbc/solstone-journal/blob/main/docs/CONVEY.md): The 17-app web UI for browsing journal data
+- [AI providers](https://github.com/solpbc/solstone-journal/blob/main/docs/PROVIDERS.md): provider setup
+- [Web interface](https://github.com/solpbc/solstone-journal/blob/main/docs/CONVEY.md): the web UI for browsing the journal
 - [Troubleshooting](https://github.com/solpbc/solstone-journal/blob/main/docs/DOCTOR.md): Diagnostics and common issues
 
 ## Optional
 
-- [Agent runtime](https://github.com/solpbc/solstone-journal/blob/main/docs/CORTEX.md): How the 30 AI agent templates work
+- [Agent runtime](https://github.com/solpbc/solstone-journal/blob/main/docs/CORTEX.md): how the journal's agent templates work
 - [Message bus](https://github.com/solpbc/solstone-journal/blob/main/docs/CALLOSUM.md): Inter-service communication architecture
 - [App development](https://github.com/solpbc/solstone-journal/blob/main/docs/APPS.md): Building custom web UI apps
 - [Roadmap](https://github.com/solpbc/solstone-journal/blob/main/docs/ROADMAP.md): What is planned next
