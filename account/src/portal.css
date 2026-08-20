@@ -9,7 +9,7 @@
    no-op refactor.)
    Warm, trust-first, the macOS System Settings →
    iCloud register: each service is a row with an honest line + an on/off state.
-   a11y: sol orange #E8923A is DECORATION-ONLY (carries no text); all orange text
+   a11y: sol orange #E8913A is DECORATION-ONLY (carries no text); all orange text
    uses the accessible #B06A1A token; primary buttons are dark-ink-on-orange (7.13:1). */
 
 @font-face {
@@ -24,7 +24,7 @@
 }
 
 :root {
-  --cream:        #FAF3E4;  /* page bg (surface.cream) */
+  --cream:        #FCF3E4;  /* page bg (surface.cream) */
   --cream-bright: #FEFCF8;  /* elevated card / input bg (surface.cream.bright) */
   --paper:        #FFFFFF;  /* grouped-list rows */
   --ink:          #1A1A1A;  /* primary text (surface.dark as text color) */
@@ -32,7 +32,7 @@
   --ink-faint:    #6E6453;  /* meta — darkened to clear WCAG AA 4.5:1 on cream/paper */
   --hairline:     #ECE3D0;  /* warm divider/border */
   --hairline-2:   #E2D7BF;  /* stronger warm border */
-  --orange:       #E8923A;  /* sol.orange — DECORATION ONLY (no text on it unless dark-ink) */
+  --orange:       #E8913A;  /* sol.orange — DECORATION ONLY (no text on it unless dark-ink) */
   --orange-ink:   #B06A1A;  /* sol.orange.accessible — links + orange text on light */
   --orange-wash:  #FBEFDD;  /* soft orange tint for on-pills / accents */
   --danger:       #9F2D2D;  /* destructive text (5.9:1 on light) */
