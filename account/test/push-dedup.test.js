@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import {
-  buildSilentChatLifecycleCollapseId,
-  buildSilentChatLifecyclePayload,
+  buildSilentCollapseId,
+  buildSilentPayload,
 } from '../src/push.js';
 import { mintReachRelayToken } from '../src/reach.js';
 import {
   installConsoleSpy,
   installApnsFetchMock,
+  makeFakeKv,
   makeTestEnv,
   TEST_APNS_P8_PEM,
 } from './helpers.js';
@@ -129,7 +130,8 @@ describe('push dedup endpoint', () => {
 
   it('rejects missing request_id', async () => {
     await expectValidationError({
-      action: 'owner_chat_open',
+      action: 'open_journal',
+      kind: 'journal_state',
       devices: [inlineDevice('push-1')],
     });
   });
@@ -137,6 +139,7 @@ describe('push dedup endpoint', () => {
   it('rejects missing action', async () => {
     await expectValidationError({
       request_id: 'req-1',
+      kind: 'journal_state',
       devices: [inlineDevice('push-1')],
     });
   });
@@ -160,16 +163,16 @@ describe('push dedup endpoint', () => {
     expect(capturedHeaders.get('apns-push-type')).toBe('background');
     expect(capturedHeaders.get('apns-priority')).toBe('5');
     expect(capturedHeaders.get('apns-collapse-id')).toBe(
-      buildSilentChatLifecycleCollapseId({ request_id: 'req-1', action: 'owner_chat_open' })
+      buildSilentCollapseId({ kind: 'journal_state', request_id: 'req-1', action: 'open_journal' })
     );
     expect(capturedHeaders.get('authorization')).toMatch(/^bearer .+\..+\..+$/);
     expect(capturedHeaders.get('apns-id')).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('builds the exact silent payload shape', () => {
-    const payload = buildSilentChatLifecyclePayload({
+    const payload = buildSilentPayload({
       request_id: 'req-1',
-      action: 'owner_chat_open',
+      action: 'open_journal',
     });
 
     expect(Object.keys(payload).sort()).toEqual(['aps', 'data']);
@@ -177,7 +180,71 @@ describe('push dedup endpoint', () => {
     expect(payload.aps).not.toHaveProperty('alert');
     expect(payload.aps).not.toHaveProperty('sound');
     expect(payload.aps).not.toHaveProperty('category');
-    expect(payload.data).toEqual({ action: 'owner_chat_open', request_id: 'req-1' });
+    expect(payload.data).toEqual({ action: 'open_journal', request_id: 'req-1' });
+  });
+
+  it('rejects missing kind', async () => {
+    await expectValidationError({
+      request_id: 'req-1',
+      action: 'open_journal',
+      devices: [inlineDevice('push-1')],
+    });
+  });
+
+  it.each(['', '  '])('rejects kind %j', async (kind) => {
+    await expectValidationError(validDedupBody({ kind }));
+  });
+
+  it('equals the silent collapse id and varies kind, request_id, and action independently', async () => {
+    const testEnv = apnsEnv({ DB: throwingDb() });
+    const { calls } = installApnsOk();
+    const token = await relayToken(testEnv);
+
+    const posts = [
+      { kind: 'journal_state', request_id: 'req-1', action: 'open_journal' },
+      { kind: 'backup_event', request_id: 'req-1', action: 'open_journal' },
+      { kind: 'journal_state', request_id: 'req-2', action: 'open_journal' },
+      { kind: 'journal_state', request_id: 'req-1', action: 'open_backup' },
+      { kind: 'device_checkin', request_id: 'req-1', action: 'open_journal' },
+    ];
+    for (const fields of posts) {
+      const response = await worker.fetch(dedupRequest({
+        token,
+        body: validDedupBody({ ...fields, devices: [inlineDevice('dedup-var')] }),
+      }), testEnv);
+      expect(response.status).toBe(200);
+    }
+
+    const ids = calls.map(({ init }) => new Headers(init.headers).get('apns-collapse-id'));
+    expect(ids).toEqual([
+      'journal_state:req-1:open_journal',
+      'backup_event:req-1:open_journal',
+      'journal_state:req-2:open_journal',
+      'journal_state:req-1:open_backup',
+      'device_checkin:req-1:open_journal',
+    ]);
+  });
+
+  it('accepts an empty devices array without minting a JWT or fetching APNs', async () => {
+    const kv = makeFakeKv();
+    const testEnv = apnsEnv({ GCP_TOKEN_CACHE: kv });
+    const { calls } = installApnsFetchMock({});
+
+    const response = await worker.fetch(dedupRequest({
+      token: await relayToken(testEnv),
+      body: validDedupBody({ devices: [] }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      ok: true,
+      sent: 0,
+      failed: 0,
+      revoked: 0,
+      revoked_tokens: [],
+      failures: [],
+    });
+    expect(kv.puts).toEqual([]);
+    expect(calls).toHaveLength(0);
   });
 
   it('does not log PEM, JWT, signature, or push tokens', async () => {
@@ -250,7 +317,8 @@ function dedupRequest({ token = null, body = validDedupBody() } = {}) {
 function validDedupBody(overrides = {}) {
   return {
     request_id: 'req-1',
-    action: 'owner_chat_open',
+    action: 'open_journal',
+    kind: 'journal_state',
     devices: [inlineDevice('push-1')],
     ...overrides,
   };

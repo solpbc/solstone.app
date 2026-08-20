@@ -2,8 +2,6 @@ import { json } from './index.js';
 import { verifyReachRelayToken } from './reach.js';
 
 const APNS_JWT_TTL_SECONDS = 3300;
-const APNS_CATEGORY_SOL_CHAT_REQUEST = 'SOLSTONE_SOL_CHAT_REQUEST';
-const KIND_SOL_CHAT_REQUEST = 'sol_chat_request';
 const encoder = new TextEncoder();
 
 export async function handlePushDispatch(req, env) {
@@ -27,13 +25,13 @@ export async function handlePushDispatch(req, env) {
     return json({ error: 'server_error' }, { status: 500 });
   }
 
-  const payload = buildSolChatRequestPayload(input);
+  const payload = buildAlertPayload(input);
   const result = await fanOutSends(
     env,
     jwt,
     devices,
     payload,
-    (activeJwt) => dispatchHeadersFor(env, activeJwt, input.request_id)
+    (activeJwt) => dispatchHeadersFor(env, activeJwt, input)
   );
   return json(result);
 }
@@ -59,13 +57,13 @@ export async function handlePushDedup(req, env) {
     return json({ error: 'server_error' }, { status: 500 });
   }
 
-  const payload = buildSilentChatLifecyclePayload(input);
+  const payload = buildSilentPayload(input);
   const result = await fanOutSends(
     env,
     jwt,
     devices,
     payload,
-    (activeJwt) => dedupHeadersFor(env, activeJwt, input.request_id, input.action)
+    (activeJwt) => dedupHeadersFor(env, activeJwt, input)
   );
   return json(result);
 }
@@ -119,36 +117,32 @@ export function apnsJwtCacheKey(env) {
   return `apns_jwt:${env.APNS_KEY_ID}:v1`;
 }
 
-export function buildSolChatRequestPayload({ summary, category, request_id }) {
+export function buildAlertPayload({ title, summary, aps_category, action, request_id, category }) {
   return {
     aps: {
-      alert: { title: 'sol', body: summary },
-      category: APNS_CATEGORY_SOL_CHAT_REQUEST,
+      alert: { title, body: summary },
+      category: aps_category,
       sound: 'default',
       'mutable-content': 1,
       'content-available': 1,
     },
-    data: {
-      action: 'open_chat_request',
-      request_id,
-      category,
-    },
+    data: { action, request_id, category },
   };
 }
 
-export function buildSilentChatLifecyclePayload({ request_id, action }) {
+export function buildSilentPayload({ request_id, action }) {
   return {
     aps: { 'mutable-content': 1, 'content-available': 1 },
     data: { action, request_id },
   };
 }
 
-export function buildSolChatRequestCollapseId({ request_id }) {
-  return `${KIND_SOL_CHAT_REQUEST}:${request_id}`;
+export function buildAlertCollapseId({ kind, request_id }) {
+  return `${kind}:${request_id}`;
 }
 
-export function buildSilentChatLifecycleCollapseId({ request_id, action }) {
-  return `sol_chat_lifecycle:${request_id}:${action}`;
+export function buildSilentCollapseId({ kind, request_id, action }) {
+  return `${kind}:${request_id}:${action}`;
 }
 
 export async function fanOutSends(env, jwt, devices, payload, headersFor) {
@@ -247,34 +241,57 @@ async function readJsonObject(req) {
   return body;
 }
 
+function nonEmptyTrimmed(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function validateDispatchBody(body) {
   const summary = typeof body.summary === 'string' ? body.summary : null;
+  const title = typeof body.title === 'string' ? body.title : null;
   const category = typeof body.category === 'string' ? body.category : null;
-  const requestId = typeof body.request_id === 'string' ? body.request_id.trim() : '';
-  if (!summary || !summary.trim() || category === null || !requestId) {
+  const requestId = nonEmptyTrimmed(body.request_id);
+  const apsCategory = nonEmptyTrimmed(body.aps_category);
+  const action = nonEmptyTrimmed(body.action);
+  const kind = nonEmptyTrimmed(body.kind);
+  if (
+    !summary || !summary.trim() ||
+    !title || !title.trim() ||
+    category === null ||
+    !requestId || !apsCategory || !action || !kind
+  ) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
-  if (encoder.encode(summary).byteLength > 80) {
+  if (encoder.encode(summary).byteLength > 80 || encoder.encode(title).byteLength > 80) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
   const devices = validateDevices(body);
   if (devices === null) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
-  return { summary, category, request_id: requestId, devices };
+  return {
+    summary,
+    title,
+    category,
+    request_id: requestId,
+    aps_category: apsCategory,
+    action,
+    kind,
+    devices,
+  };
 }
 
 function validateDedupBody(body) {
-  const requestId = typeof body.request_id === 'string' ? body.request_id.trim() : '';
-  const action = typeof body.action === 'string' ? body.action.trim() : '';
-  if (!requestId || !action) {
+  const requestId = nonEmptyTrimmed(body.request_id);
+  const action = nonEmptyTrimmed(body.action);
+  const kind = nonEmptyTrimmed(body.kind);
+  if (!requestId || !action || !kind) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
   const devices = validateDevices(body);
   if (devices === null) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
-  return { request_id: requestId, action, devices };
+  return { request_id: requestId, action, kind, devices };
 }
 
 function validateDevices(body) {
@@ -350,26 +367,26 @@ function isRevocableStatus(status) {
   return status === 410;
 }
 
-function dispatchHeadersFor(env, jwt, requestId) {
+function dispatchHeadersFor(env, jwt, input) {
   requireApnsConfig(env);
   return {
     'apns-id': crypto.randomUUID(),
     'apns-topic': env.APNS_BUNDLE_ID,
     'apns-push-type': 'alert',
     'apns-priority': '10',
-    'apns-collapse-id': buildSolChatRequestCollapseId({ request_id: requestId }),
+    'apns-collapse-id': buildAlertCollapseId(input),
     authorization: `bearer ${jwt}`,
   };
 }
 
-function dedupHeadersFor(env, jwt, requestId, action) {
+function dedupHeadersFor(env, jwt, input) {
   requireApnsConfig(env);
   return {
     'apns-id': crypto.randomUUID(),
     'apns-topic': env.APNS_BUNDLE_ID,
     'apns-push-type': 'background',
     'apns-priority': '5',
-    'apns-collapse-id': buildSilentChatLifecycleCollapseId({ request_id: requestId, action }),
+    'apns-collapse-id': buildSilentCollapseId(input),
     authorization: `bearer ${jwt}`,
   };
 }
