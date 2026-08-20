@@ -1,0 +1,10 @@
+{
+  "name": "solstone",
+  "short_name": "solstone",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" }
+  ],
+  "display": "browser",
+  "start_url": "/"
+}
