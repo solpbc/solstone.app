@@ -194,7 +194,7 @@ describe('spp copy boundary', () => {
     expect(combined).toContain("the hardware boundary keeps the cloud host excluded from what's processed");
     // CLO #28(b): the honest fail-closed verify register must be present.
     expect(combined).toContain('must verify the service before anything is sent');
-    expect(combined).toContain("your journal's text, images, and audio");
+    expect(combined).toContain('the text and images that go to a model for processing');
     expect(combined).toContain('your audio recordings for transcription');
     expect(combined).toContain('on while confidential processing is in use');
     expect(combined).toContain('transcription waits on your device');

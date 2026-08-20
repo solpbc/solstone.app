@@ -17,6 +17,6 @@ test('every macOS install surface states the Apple Silicon requirement', async (
   for (const path of supportSurfaces) {
     const content = await readFile(new URL(`../${path}`, import.meta.url), 'utf8');
     assert.match(content, /Apple Silicon/, path);
-    assert.match(content, /Intel Macs aren't supported/, path);
+    assert.match(content, /Intel macs aren't supported/i, path);
   }
 });
