@@ -1,8 +1,8 @@
 # solstone installation guide
 
-solstone is the platform, in two parts: sol — the app that lives on your devices, experiences your day with you, and keeps it all in your journal — the memory, on a computer you choose. open source, made by sol pbc.
+solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal, the memory, on a device you own. open source, made by sol pbc.
 
-your journal always lives on your device; how sol thinks is your choice — local by default. sol pbc is a public benefit corporation with irrevocable legal covenants: your data can never be sold, and any acquisition is conditional on the successor being legally bound to preserve the benefit purpose.
+your journal always lives on a device you own. sol pbc is a public benefit corporation with legal covenants that can't be amended without the founder's personal signature, and after him, the language can only get stronger, never weaker: your data is never sold, and any acquisition is conditional on the successor being legally bound to preserve the benefit purpose.
 
 ## install with a coding agent
 
@@ -14,43 +14,30 @@ paste this prompt into claude code, codex cli, gemini cli, or similar: `install 
 
 **install the native app**
 
-[download for macOS](https://solstone.app/download/macos) — for Apple Silicon Macs; Intel Macs aren't supported. signed by sol pbc, notarized by Apple. sets up sol and your journal on this Mac, opens the first-run wizard, and updates over a signed channel.
+[download for macOS](https://solstone.app/download/macos), for Apple Silicon macs; Intel macs aren't supported. signed by sol pbc, notarized by Apple. sets up the solstone app and your journal on this mac, opens the first-run wizard, and updates over a signed channel.
 
 building from source? use the developer path in [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md).
 
 ### linux
 
-prereqs: `uv` from astral.sh: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are `solstone` and `journal`. one tree covers the journal on this machine and talking to a journal that already lives elsewhere.
 
-run your journal here — the full host:
+the tree is not published yet. its release channel is `updates.solstone.app`. until the first release lands there, start from a local build or a copy someone handed you and follow [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md). once it is published:
 
 ```bash
-uv tool install solstone-journal && uv tool install solstone
+sh install.sh
 journal setup
 ```
 
-(or `pipx install solstone-journal && pipx install solstone && journal setup` if you prefer pipx.)
-
-the `journal` host lives in the `solstone-journal` package; the `sol` client lives in `solstone`. `pip install solstone-journal` exposes both natively (`sol` comes along as a dependency). `uv tool` and `pipx` isolate each tool to its own package, so you install both `solstone-journal` and `solstone` to put both `journal` and `sol` on your PATH.
-
-`solstone-journal` bundles everything your journal needs to run here — the default CPU transcription runtime is included and `journal setup` downloads the model. NVIDIA GPU owners who want GPU-accelerated transcription install `solstone-journal-cuda` **instead of** `solstone-journal` (pick one — the CPU and GPU runtimes must not both install). the same GPU powers local thinking — the default brain on capable hardware.
-
-want only the thin `sol` client — to talk to a journal running elsewhere (a second device, or a journal you reach over your private network)? install bare `solstone` (no extras), or run it ephemerally with `uvx`:
-
-```bash
-uv tool install solstone        # the sol client, on PATH
-uvx solstone --help             # or one-shot, no install
-```
-
-then open http://localhost:5015 in a browser. the first-run wizard walks you through setting your identity and choosing how sol thinks: local on your device (the default on capable hardware), your own AI engine (bring a Claude, Gemini, or OpenAI token, or point sol at any OpenAI-compatible endpoint you run), or confidential processing operated by sol pbc (available to approved scouts). your journal stays on your device whichever you choose. see [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md) for full details and troubleshooting. to run sol on your linux desktop, see [solstone.app/download](https://solstone.app/download).
+then open http://localhost:5015 in a browser. the first-run wizard walks you through setting your identity and choosing among three ways to think: local on your device (the default on capable hardware), your own AI engine (bring a Claude, Gemini, or OpenAI token, or point the solstone app at any OpenAI-compatible endpoint you run), or confidential processing operated by sol pbc (available to approved scouts). your journal stays on your device whichever you choose. see [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md) for full details and troubleshooting. to run the solstone app on your linux desktop, see [solstone.app/download](https://solstone.app/download).
 
 ### where your journal lives
 
-your journal runs on linux machines (intel/amd or arm) and on apple silicon macs running macOS 14 or later. anywhere else, sol can still read and search a journal kept on another machine, but it can't keep a journal there. you get told that plainly instead of a half-working install. if owners turn up on a machine we don't cover, we add it.
+your journal lives on linux machines (Intel/AMD or ARM) and on Apple Silicon macs running macOS 14 or later. anywhere else, you can still read and search a journal kept on another machine through the solstone app, but that machine can't host one of its own. you get told that plainly instead of a half-working install. if owners turn up on a machine we don't cover, we add it.
 
 ### windows
 
-get sol for windows — it runs sol on your PC (screen and system audio, mic when present) and pairs with a journal running on your mac or linux machine. the journal doesn't run on windows yet, so keep your journal on a mac or linux machine and pair windows to it. two ways to install:
+install solstone for windows: the solstone app runs on your PC (screen and system audio, mic when present) and pairs with a journal running on your mac or linux machine. the journal doesn't run on windows yet, so keep your journal on a mac or linux machine and pair windows to it. two ways to install:
 
 - **signed installer:** download from [solstone.app/download/windows](https://solstone.app/download/windows) and run it — installs per-user in the tray, no admin needed, and updates itself.
 - **scoop:** `scoop bucket add solstone https://github.com/solpbc/scoop-solstone` then `scoop install solstone` (run `scoop update solstone` to update).
@@ -59,18 +46,10 @@ get sol for windows — it runs sol on your PC (screen and system audio, mic whe
 signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.
 
 
-## migrating from a pre-split install
+## migrating from a python install
 
-already ran `solstone[journal]`, `solstone-journal-host`, or an older bare `solstone` journal? those spellings are retired — swap to the split packages once, matching how you installed:
-
-```bash
-pip:   pip uninstall solstone-journal-host && pip install solstone-journal
-pipx:  pipx uninstall solstone && pipx install solstone-journal && pipx install solstone
-uv:    uv tool uninstall solstone && uv tool install solstone-journal && uv tool install solstone
-```
-
-your journal directory and `journal setup` are unchanged — you're only renaming the package.
+python package installs (`pip` / `pipx` / `uv tool` of `solstone-journal` / `solstone`) are retired. the journal now ships as a self-contained tree. follow [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md). your journal directory is unchanged.
 
 ## already have solstone installed?
 
-get sol on more of your devices at https://solstone.app/download.
+install solstone on more of your devices at https://solstone.app/download.

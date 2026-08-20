@@ -85,11 +85,12 @@ describe('/enable/spp', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain("this journal is asking to turn on confidential processing. here's exactly what that means. it stays off until you allow it.");
     expect(body).toContain('href="/confidential-processing/data"');
-    expect(body).toContain('<a href="/confidential-processing/data">the text and images sol needs a model to work through, and your audio recordings for transcription</a>');
+    expect(body).toContain('<a href="/confidential-processing/data">the text and images that go to a model for processing</a>');
+    expect(body).toContain('when the audio switch is on (its default), your audio recordings for transcription go too.');
     expect(body).toContain('voiceprints and speaker profiles are never created on the service; that work happens on your device and never leaves.');
     expect(body).toContain('audio has its own switch');
     expect(body).toContain('"transcribe audio on the service" lives in the journal\'s thinking app, in the confidential lane. it\'s on while confidential processing is in use. turn it off any time and it takes effect right away: speech becomes text on your device instead, and text and images continue under this choice.');
-    expect(body).toContain("transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and sol never quietly does it a different way.");
+    expect(body).toContain("transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and it never quietly does it a different way.");
     expect(body).toContain('sol pbc gives this device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it.');
     expect(body).not.toContain('local handoff');
     expect(body).toContain('<label class="ack">');
@@ -115,7 +116,7 @@ describe('/enable/spp', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('scout approval required');
     expect(body).toContain('confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here. you can close this tab.');
-    expect(body).toContain("your journal's text, images, and audio");
+    expect(body).toContain('confidential processing sends your thinking off your device, never your journal');
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
     await expect(rowCount('service_handoffs')).resolves.toBe(1);
     await expect(rowCount('spp_mint_audit')).resolves.toBe(1);

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>get sol on every device — solstone</title>
-    <meta name="description" content="sol lives on your devices, experiences your day with you, and keeps it all in your journal. get sol for macOS, linux, and tmux — download, or copy the prompt for your coding agent.">
+    <title>install on every device · solstone</title>
+    <meta name="description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone for macOS, linux, and tmux: download, or copy the prompt for your coding agent.">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
@@ -277,19 +277,19 @@
 <body class="sunrise">
     <a href="#main" class="skip-link">skip to content</a>
     <header>
-        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/sol-wordmark.svg" alt="sol — solstone home" style="height:40px;"></a>
+        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/sol-wordmark.svg" alt="solstone home" style="height:40px;"></a>
     </header>
     <main id="main" tabindex="-1">
     <div class="page-intro">
-        <h1>run sol on every device.</h1>
-        <p>sol is the app — it lives on your devices, experiences your day with you, and keeps it all in your journal. get sol for each device you use: download it, or copy the prompt below into your coding agent and it handles the rest.</p>
+        <h1>install solstone on every device.</h1>
+        <p>the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on each device you use: download it, or copy the prompt below into your coding agent and it handles the rest.</p>
     </div>
 
-    <p class="early-days"><span class="stage-label">early days.</span> sol on macOS, linux, and windows is in use today — open source and hands-on. expect rough edges, and we'll fix them together as we go.</p>
+    <p class="early-days"><span class="stage-label">early days.</span> solstone on macOS, linux, and windows is in use today, open source and hands-on. expect rough edges, and we'll fix them together as we go.</p>
 
     <div class="cards">
         <div class="card">
-            <h2>sol on macOS</h2>
+            <h2>solstone on macOS</h2>
             <p class="subtitle">native macOS app — screen and audio, kept in your journal</p>
             <ul>
                 <li>takes in every connected display at 1 FPS</li>
@@ -297,26 +297,26 @@
                 <li>runs as a menu bar app, starts at login</li>
             </ul>
             <div class="primary-action">
-                <p class="download-clarifier">setting up a new Mac? sol and the journal are separate apps — most people want both. both require Apple Silicon; Intel Macs aren't supported.</p>
-                <a href="https://solstone.app/download/macos" class="download-btn">download sol</a>
+                <p class="download-clarifier">setting up a new mac? the solstone app and the journal are two separate apps, and most people want both. both require Apple Silicon; Intel macs aren't supported.</p>
+                <a href="https://solstone.app/download/macos" class="download-btn">download the solstone app</a>
                 <a href="https://solstone.app/download/journal" class="download-btn">download the journal</a>
-                <p class="download-clarifier">sol experiences your day here; the journal is where it all gets kept. already have a journal on another machine? sol alone connects to it.</p>
+                <p class="download-clarifier">the solstone app takes in what you share with it here; the journal is where it all gets kept. already have a journal on another machine? the solstone app alone connects to it.</p>
                 <p class="trust-signal">both signed by sol pbc, notarized by Apple. each updates over its own signed channel.</p>
             </div>
             <div class="secondary-action">
-                <button class="copy-btn" data-target="blurb-macos" aria-label="copy for your agent: sol on macOS install prompt">copy for your agent</button>
+                <button class="copy-btn" data-target="blurb-macos" aria-label="copy for your agent: solstone on macOS install prompt">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-macos" class="gh-link">github →</a>
                 <a href="/releases/macos" class="gh-link">release notes →</a>
             </div>
             <pre class="blurb" id="blurb-macos">developer build (build from source). most people should download the DMG above. this path requires Xcode (full IDE, not just command line tools) and is here for developers who want to build, modify, or hand the install to a coding agent.
 
-cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos
+git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos
 
 then read INSTALL.md and follow it.</pre>
         </div>
 
         <div class="card">
-            <h2>sol on linux</h2>
+            <h2>solstone on linux</h2>
             <p class="subtitle">linux desktop app — screen and audio, kept in your journal</p>
             <ul>
                 <li>takes in every monitor via PipeWire at 1 FPS</li>
@@ -324,11 +324,11 @@ then read INSTALL.md and follow it.</pre>
                 <li>notices when you step away, on GNOME, KDE, and X11 sessions</li>
             </ul>
             <div class="card-actions">
-                <button class="copy-btn" data-target="blurb-linux" aria-label="copy for your agent: sol on linux install prompt">copy for your agent</button>
+                <button class="copy-btn" data-target="blurb-linux" aria-label="copy for your agent: solstone on linux install prompt">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-linux" class="gh-link">github →</a>
                 <a href="/releases/linux" class="gh-link">release notes →</a>
             </div>
-            <pre class="blurb" id="blurb-linux">install solstone-linux — it runs sol on linux desktops using PipeWire and GStreamer: sol takes in your screen and audio along with you and keeps it in your journal.
+            <pre class="blurb" id="blurb-linux">install solstone-linux, which sets up the solstone app on linux desktops using PipeWire and GStreamer. the solstone app takes in your screen and audio along with you, and it all goes into your journal.
 
 on the linux desktop, download the package for your distro from the latest release:
 https://github.com/solpbc/solstone-linux/releases/latest
@@ -347,11 +347,11 @@ solstone-linux needs PipeWire, GStreamer (core, base, good, pipewire, x11), xdg-
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
-cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux</pre>
+git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux</pre>
         </div>
 
         <div class="card">
-            <h2>sol on windows</h2>
+            <h2>solstone on windows</h2>
             <p class="subtitle">windows app — screen and audio, kept in your journal</p>
             <ul>
                 <li>takes in your screen and system audio, mic when present</li>
@@ -364,12 +364,12 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-linux
                 <p class="trust-signal">signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.</p>
             </div>
             <div class="secondary-action">
-                <button class="copy-btn" data-target="blurb-winget" data-default-label="copy winget install" aria-label="copy winget install command for sol on windows">copy winget install</button>
-                <button class="copy-btn" data-target="blurb-scoop" data-default-label="copy scoop install" aria-label="copy scoop install commands for sol on windows">copy scoop install</button>
+                <button class="copy-btn" data-target="blurb-winget" data-default-label="copy winget install" aria-label="copy winget install command for solstone on windows">copy winget install</button>
+                <button class="copy-btn" data-target="blurb-scoop" data-default-label="copy scoop install" aria-label="copy scoop install commands for solstone on windows">copy scoop install</button>
                 <a href="https://github.com/solpbc/solstone-windows" class="gh-link">github →</a>
                 <a href="/releases/windows" class="gh-link">release notes →</a>
             </div>
-            <p class="update-note">installed directly, sol updates itself; via winget, run <code>winget upgrade solstone</code>; via scoop, run <code>scoop update solstone</code>.</p>
+            <p class="update-note">installed directly, the solstone app updates itself; via winget, run <code>winget upgrade solstone</code>; via scoop, run <code>scoop update solstone</code>.</p>
 
             <pre class="blurb" id="blurb-winget">winget install solstone</pre>
             <pre class="blurb" id="blurb-scoop">scoop bucket add solstone https://github.com/solpbc/scoop-solstone
@@ -380,7 +380,7 @@ scoop install solstone</pre>
     <div class="supplemental">
         <div class="card">
             <h2>+ add your terminal</h2>
-            <p class="subtitle">solstone-tmux brings your tmux sessions into your journal — every active session and pane, every 5 seconds. lightweight, pure python, no system dependencies. works alongside sol on either desktop.</p>
+            <p class="subtitle">solstone-tmux brings your tmux sessions into your journal, every active session and pane, every 5 seconds. lightweight, pure Python, no system dependencies. works alongside the solstone app on either desktop.</p>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-tmux" aria-label="copy for your agent: solstone-tmux install prompt">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">github →</a>
@@ -397,7 +397,7 @@ solstone-tmux setup
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
-cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux</pre>
+git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux</pre>
         </div>
     </div>
 
@@ -406,13 +406,13 @@ cd "$(sol root)/observers" && git clone https://github.com/solpbc/solstone-tmux.
     <div class="cards placeholders">
         <div class="card placeholder">
             <h2>iPhone/iPad</h2>
-            <p class="subtitle">sol for iPhone and iPad</p>
+            <p class="subtitle">solstone for iphone and ipad</p>
             <p class="coming-soon"><em>in beta with testers</em></p>
         </div>
 
         <div class="card placeholder">
             <h2>android</h2>
-            <p class="subtitle">sol for android — beta builds reach testers through Firebase App Tester; public beta with the Play Store phase.</p>
+            <p class="subtitle">solstone for android: beta builds reach testers through Firebase App Tester; public beta with the Play Store phase.</p>
             <p class="coming-soon"><em>in beta with testers</em></p>
             <div class="card-actions">
                 <a href="/releases/android" class="gh-link">release notes →</a>

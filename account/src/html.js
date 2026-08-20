@@ -89,7 +89,7 @@ export function layout({ title, body, afterMain = '' }) {
 </html>`;
 }
 
-export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. sol and your journal run on your devices. you don't sign in to use them.") {
+export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. the solstone app runs on your devices, and your journal lives on one of them. you don't sign in to use them.") {
   const resumeHtml = resume.next && resume.nextSig
     ? `<input type="hidden" name="next" value="${escAttr(resume.next)}">
   <input type="hidden" name="next_sig" value="${escAttr(resume.nextSig)}">`
@@ -191,14 +191,14 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
     <div class="n">1</div>
     <div>
       <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no entries, nothing sol has taken in alongside you. just: this is your phone.</div>
+      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no entries, nothing the solstone app has taken in alongside you. just: this is your phone.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">2</div>
     <div>
       <div class="gt">enable notifications</div>
-      <div class="gd">sol will send a short heads-up (an 80-character summary, never the full thing) to this device when there's something worth your attention. you can turn it off in your services anytime.</div>
+      <div class="gd">you will get a short heads-up, never the full thing, to your device when there's something worth your attention. you turn them on or off on each device.</div>
     </div>
   </div>
   <form method="post" action="/enable/push/confirm">
@@ -259,7 +259,7 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing sol has taken in alongside you. just: this journal asked for private network access.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing the solstone app has taken in alongside you. just: this journal asked for private network access.</div>
     </div>
   </div>
   <div class="grant">
@@ -335,7 +335,7 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing sol has taken in alongside you. just: this journal asked for encrypted backup.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing the solstone app has taken in alongside you. just: this journal asked for encrypted backup.</div>
     </div>
   </div>
   <div class="grant">
@@ -408,14 +408,14 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing sol has taken in alongside you. just: this journal asked for confidential processing.</div>
+      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing the solstone app has taken in alongside you. just: this journal asked for confidential processing.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">2</div>
     <div>
       <div class="gt">what leaves your device</div>
-      <div class="gd">when sol uses confidential processing, the thinking leaves your device: <a href="/confidential-processing/data">the text and images sol needs a model to work through, and your audio recordings for transcription</a>. your journal itself never leaves. it stays on your computer. voiceprints and speaker profiles are never created on the service; that work happens on your device and never leaves. what leaves goes to a model sol pbc runs itself: no third-party AI provider is in the path. it's processed and not kept. no content retained, no human review, nothing used to train.</div>
+      <div class="gd">when confidential processing is on, <a href="/confidential-processing/data">the text and images that go to a model for processing</a> leave your device. when the audio switch is on (its default), your audio recordings for transcription go too. your journal itself never leaves. it stays on your computer. voiceprints and speaker profiles are never created on the service; that work happens on your device and never leaves. what leaves goes to a model sol pbc runs itself: no third-party AI provider is in the path. it's processed and not kept. no content retained, no human review, nothing used to train.</div>
     </div>
   </div>
   <div class="grant">
@@ -429,7 +429,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <div class="n">3</div>
     <div>
       <div class="gt">your journal must verify before it sends</div>
-      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes. if it can't verify, it doesn't send, and sol tells you why. the engine runs on confidential hardware sol pbc operates: a model sol pbc runs itself, with no third-party AI provider in the path. sol pbc gives this device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and sol never quietly does it a different way.</div>
+      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes. if it can't verify, it doesn't send, and the solstone app tells you why. the engine runs on confidential hardware sol pbc operates: a model sol pbc runs itself, with no third-party AI provider in the path. sol pbc gives this device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and it never quietly does it a different way.</div>
     </div>
   </div>
   <form method="post" action="/enable/spp/confirm">
@@ -453,7 +453,7 @@ export function renderEnableSppApprovalRequired() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">scout approval required</h2>
-  <p>confidential processing lets sol think through your journal's text, images, and audio on a model sol pbc runs itself on confidential hardware sol pbc operates, which keeps nothing: it's processed and not kept, no content retained, no human review, nothing used to train. your journal must verify the service before anything is sent. if it can't verify, it doesn't send. no third-party AI provider is ever in the path.</p>
+  <p>confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on a model sol pbc runs itself on confidential hardware sol pbc operates, which keeps nothing: it's processed and not kept, no content retained, no human review, nothing used to train. your journal must verify the service before anything is sent. if it can't verify, it doesn't send. no third-party AI provider is in the path.</p>
   <p>confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here. you can close this tab.</p>
 </div>`,
   });
@@ -491,12 +491,12 @@ export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, de
       body: `${brandbarSignin()}
 <h1>solstone services</h1>
 ${BRANDLOCK}
-<p class="intro"><strong>sol and your journal run on your devices.</strong> these are the optional parts sol pbc runs for you. turn one on when it helps, off whenever you want. nothing here is required to use solstone.</p>
+<p class="intro"><strong>the solstone app runs on your devices, and your journal lives on one of them.</strong> these are the optional parts sol pbc runs for you. turn one on when it helps, off whenever you want. nothing here is required to use solstone.</p>
 <div class="group">
   ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
-  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'let sol reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
-  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. let sol think off your device on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
+  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'notifications reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
+  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
 <p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on. solstone itself never asks you to sign in.</p>`,
@@ -529,13 +529,13 @@ ${BRANDLOCK}
 <h1>your services</h1>
 ${notice}
 ${BRANDLOCK}
-<p class="intro"><strong>sol and your journal run on your devices.</strong> these services are optional. turn them on when they help, off whenever you want. nothing here is required.</p>
+<p class="intro"><strong>the solstone app runs on your devices, and your journal lives on one of them.</strong> these services are optional. turn them on when they help, off whenever you want. nothing here is required.</p>
 ${welcomePanel}
 <div class="group">
   ${row('/private-network', IC_NET, 'private network', 'your private network: reach your journal from anywhere.', networkPill)}
   ${row('/services/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
-  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'sol reaches you when it matters, built in.', notifPill)}
-  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'sol’s thinking, off your device on confidential hardware.', sppPill)}
+  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'notifications reach you when it matters, built in.', notifPill)}
+  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'confidential processing, off your device on confidential hardware.', sppPill)}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
 <div class="group" style="margin-top:22px">
@@ -602,11 +602,11 @@ export function renderNotificationsLanding() {
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>notifications</h1>
 <p class="hero-tag">built in</p>
-<p class="lead">let sol reach you on your devices when there’s something worth a look: a short heads-up, never the full thing.</p>
+<p class="lead">notifications reach you on your devices when there’s something worth a look: a short heads-up, never the full thing.</p>
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_PUSH_SVG, 'built into solstone', 'notifications come with solstone, free, with no hosted service to enable. you turn them on for each device, and choose what reaches you.')}
-  ${beat(IC_GLOBE, 'on your devices', 'sol sends a short summary to your phone or laptop: an 80-character heads-up, never the content itself.')}
+  ${beat(IC_GLOBE, 'on your devices', 'you get a short heads-up on your phone or laptop, never the content itself.')}
   ${beat(IC_VAULT, 'not a tracking surface', 'no analytics, no behavioral profiling, no third parties. notifications never become a way to watch you: Article 8.')}
 </div>
 <div class="card">
@@ -622,11 +622,11 @@ export function renderConfidentialProcessingLanding() {
     body: brandbarSignin()
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>confidential processing</h1>
-<p class="hero-tag">let sol think off your device</p>
-<p class="lead">sol sends <a href="/confidential-processing/data">only the thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.</p>
+<p class="hero-tag">extend your compute off your device</p>
+<p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_CHIP, 'the thinking, off your device', 'let sol think off your device on confidential hardware sol pbc runs that keeps nothing.')}
+  ${beat(IC_CHIP, 'the thinking, off your device', 'confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.')}
   ${beat(IC_VAULT, "sol pbc's own engine", "a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.")}
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
@@ -645,7 +645,7 @@ export function renderConfidentialProcessingData() {
     body: `${brandbar()}
 <h1>${esc(title)}</h1>
 <h2>what leaves your device</h2>
-<p>the text and images sol needs a model to work through. when the audio switch is on (its default), your audio recordings for transcription go too.</p>
+<p>the text and images that go to a model for processing. when the audio switch is on (its default), your audio recordings for transcription go too.</p>
 <h2>what doesn't</h2>
 <p>your journal stays on your computer. voiceprints and speaker profiles are computed on your device and never leave. nothing goes to any third-party AI provider.</p>
 <h2>audio</h2>
@@ -653,7 +653,7 @@ export function renderConfidentialProcessingData() {
 <p>the service turns speech to text in memory on confidential hardware sol pbc operates and returns the transcript to your journal. nothing is written, nothing is kept, no human review, nothing used to train.</p>
 <p>if your journal can't verify the service, transcription waits on your device. it never goes anywhere else and never silently falls back.</p>
 <p>the "transcribe audio on the service" switch lives in the journal's thinking app, in the confidential lane: on while confidential processing is in use, off any time, effective immediately.</p>
-<p>the model is the same either way: parakeet-tdt-0.6b-v3, the same parakeet generation sol uses on your device. your journal checks the served model's identity. there's no premium tier: nothing is held back for the service.</p>
+<p>the model is the same either way: parakeet-tdt-0.6b-v3, the same parakeet generation the solstone app uses on your device. your journal checks the served model's identity. there's no premium tier: nothing is held back for the service.</p>
 <p>speech-to-text is served with parakeet-tdt-0.6b-v3, created by NVIDIA, used under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
 <h2>where it goes</h2>
 <p>a model sol pbc runs itself. no third-party AI provider is in the path.</p>
@@ -863,7 +863,7 @@ ${content}`,
     content: `<p class="lead">confidential processing is available to approved scouts. this sign-in is not currently approved. visit <a href="/scout">scout</a> to request access.</p>
 <div class="card">
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_CHIP, 'only the thinking leaves', 'sol sends only the thinking off your device, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
+  ${beat(IC_CHIP, 'the thinking leaves', 'confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
 </div>
 <p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/services/processing/terms">terms</a></p>`,
   });
@@ -1131,7 +1131,7 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '', menu 
   <div class="empty">
     ${IC_PUSH_SVG}
     <h2>notifications aren't on yet</h2>
-    <p>turn it on from solstone on your device. it opens this page so you can confirm, then sol can reach your devices.</p>
+    <p>turn it on from the solstone app on your device. it opens this page so you can confirm, then notifications can reach your devices.</p>
     <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable push</strong>, or turn it on from the solstone app.</div>
   </div>
 </div>`
