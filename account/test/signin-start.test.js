@@ -52,7 +52,7 @@ describe('/signin/start', () => {
     expect(message).not.toHaveProperty('Reply-To');
     expect(message).not.toHaveProperty('List-Unsubscribe');
     expect(message.text).toMatch(/10 minute/i);
-    expect(message.html).toContain('#E8923A');
+    expect(message.html).toContain('#E8913A');
     expect(body).not.toContain(finishPath);
     expect(body).not.toContain('http://');
     expect(body).not.toContain('https://');

@@ -46,8 +46,7 @@ const GLOBAL_LASTMOD_FILES = [
   "public/favicon.ico",
   "public/apple-touch-icon.png",
   "public/static/tokens.css",
-  "public/static/sol-ring-icon.svg",
-  "public/static/sol-wordmark.svg",
+  "public/static/mark.svg",
 ];
 
 const BASE = "https://solstone.app";

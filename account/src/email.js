@@ -17,7 +17,7 @@ if you didn't request this, you can ignore this email.`;
   const html = `<!DOCTYPE html>
 <html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
   <p>your sol pbc sign-in code is</p>
-  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8923A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
+  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
   <p>it expires in 10 minutes.</p>
   <p>if you didn't request this, you can ignore this email.</p>
 </body></html>`;
@@ -44,7 +44,7 @@ if you didn't request this, you can ignore this email.`;
   const html = `<!DOCTYPE html>
 <html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
   <p>to verify this email address for your sol pbc sign-in, enter this code:</p>
-  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8923A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
+  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
   <p>it expires in 10 minutes.</p>
   <p>if you didn't request this, you can ignore this email.</p>
 </body></html>`;

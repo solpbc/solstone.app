@@ -29,7 +29,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <meta property="og:image:height" content="720">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="{{canonicalUrl}}">
-    <link rel="icon" type="image/svg+xml" href="/static/sol-ring-icon.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/tokens.css">
     <link rel="stylesheet" href="/static/base.css">
@@ -135,7 +135,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
 <body>
     <a href="#main" class="skip-link">skip to content</a>
     <header>
-        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/sol-wordmark.svg" alt="sol — solstone home" style="height:40px;"></a>
+        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/mark.svg" alt="sol — solstone home" style="height:40px;"></a>
     </header>
     <main id="main" tabindex="-1">
         <div class="page-intro">
