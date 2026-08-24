@@ -289,6 +289,13 @@ CREATE TABLE IF NOT EXISTS spb_bindings (
 
 CREATE INDEX IF NOT EXISTS idx_spb_bindings_account_id ON spb_bindings(account_id);
 
+-- token_hash is the lookup key for findSpbBindingByTokenHash(); without this the
+-- finder scans the whole table. Partial + UNIQUE: unbound rows (NULL) stay exempt,
+-- and .first() already assumes at most one match. See migration 0026.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spb_bindings_token_hash
+  ON spb_bindings(token_hash)
+  WHERE token_hash IS NOT NULL;
+
 -- spp_bindings: schema hook for SPP confidential-processing access.
 -- Records binding identity plus broker-token lookup; SPP has no lapse clock or retention lifecycle.
 CREATE TABLE IF NOT EXISTS spp_bindings (
@@ -304,6 +311,14 @@ CREATE TABLE IF NOT EXISTS spp_bindings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spp_bindings_account_id ON spp_bindings(account_id);
+
+-- token_hash is the lookup key for findSppBindingByTokenHash() on the SPP
+-- authorization hot path; without this the finder scans the whole table on every
+-- POST /internal/spp/authorize. Partial + UNIQUE, same reasoning as spb above.
+-- See migration 0026.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spp_bindings_token_hash
+  ON spp_bindings(token_hash)
+  WHERE token_hash IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS spb_mint_audit (
   account_id TEXT,

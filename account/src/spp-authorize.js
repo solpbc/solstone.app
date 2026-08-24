@@ -7,6 +7,36 @@ const NO_STORE_HEADERS = {
   Pragma: 'no-cache',
 };
 
+// Bounded D1 failure taxonomy. `kind = 'd1'` told us D1 threw but never which D1
+// fault, which left "why does D1 throw" unanswerable from the log alone — the
+// open question after the 2026-08-24 recurrence.
+//
+// Each entry is (needle we look for, token we emit). The emitted value is always
+// one of these fixed constants or 'unclassified'; a matched needle is never
+// echoed back and no slice of the raw message is ever emitted. That is the
+// property that keeps this Article 8 clean — a D1 message can embed a bound
+// parameter, and a bound parameter here is the owner's entitlement token hash.
+// Ordered most specific first; the first match wins.
+const D1_REASONS = [
+  ['network connection lost', 'network_lost'],
+  ['storage caused object to be reset', 'storage_reset'],
+  ['too many api requests', 'subrequest_limit'],
+  ['unable to open database', 'unavailable'],
+  ['database is locked', 'locked'],
+  ['no such table', 'schema'],
+  ['internal error', 'internal'],
+  ['timed out', 'timeout'],
+  ['exceeded', 'limit'],
+];
+
+function d1Reason(message) {
+  const haystack = message.toLowerCase();
+  for (const [needle, token] of D1_REASONS) {
+    if (haystack.includes(needle)) return token;
+  }
+  return 'unclassified';
+}
+
 export async function handleSppAuthorize(req, env) {
   try {
     const expected = env.SPP_ENGINE_AUTH_SECRET || '';
@@ -44,8 +74,10 @@ export async function handleSppAuthorize(req, env) {
     // only calls here that can fail transiently, and a D1 fault surfaces as a generic
     // Error, so the name alone cannot distinguish it.
     const name = typeof err?.name === 'string' && err.name ? err.name : 'unknown';
-    const kind = String(err?.message || '').includes('D1_ERROR') ? 'd1' : 'other';
-    console.error('spp_authorize_failed', name, kind);
+    const message = String(err?.message || '');
+    const kind = message.includes('D1_ERROR') ? 'd1' : 'other';
+    const reason = kind === 'd1' ? d1Reason(message) : 'n/a';
+    console.error('spp_authorize_failed', name, kind, reason);
     return empty(503);
   }
 }
