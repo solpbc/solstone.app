@@ -77,8 +77,27 @@ export async function listObjectsV2(env, cred, { prefix, continuationToken = nul
   const response = await signedR2Fetch(env, cred, { method: 'GET', query, nowMs });
   const xml = await response.text();
   if (!response.ok) throw s3Error('S3ListObjectsError', response.status);
+  const objects = blocks(xml, 'Contents').map((block) => {
+    const key = tagText(block, 'Key');
+    const sizeText = tagText(block, 'Size');
+    const lastModifiedText = tagText(block, 'LastModified');
+    const size = Number(sizeText);
+    const lastModifiedMs = Date.parse(lastModifiedText || '');
+    if (
+      !key ||
+      !/^[0-9]+$/.test(sizeText || '') ||
+      !Number.isSafeInteger(size) ||
+      size < 0 ||
+      !lastModifiedText ||
+      !Number.isFinite(lastModifiedMs)
+    ) {
+      throw new Error('invalid ListObjectsV2 object metadata');
+    }
+    return { key, size, lastModifiedMs };
+  });
   return {
-    keys: blockTexts(xml, 'Contents', 'Key'),
+    keys: objects.map(({ key }) => key),
+    objects,
     isTruncated: tagText(xml, 'IsTruncated') === 'true',
     nextContinuationToken: tagText(xml, 'NextContinuationToken'),
   };

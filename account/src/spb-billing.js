@@ -30,6 +30,8 @@ export async function handleServicesSpb(req, env) {
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   const url = new URL(req.url);
+  const restoreIntent = url.searchParams.get('intent') === 'restore';
+  const restoreCheckout = url.searchParams.get('checkout') === 'success' && restoreIntent;
   const [menu, entitlement, csrf] = await Promise.all([
     loadMenuContext(env, session.account_id, nowMs),
     getEntitlement(env.DB, { accountId: session.account_id, service: SERVICE }),
@@ -43,6 +45,8 @@ export async function handleServicesSpb(req, env) {
       billing: url.searchParams.get('billing') || '',
     },
     menu,
+    restoreIntent,
+    restoreCheckout,
   }));
 }
 
@@ -54,6 +58,7 @@ export async function handleSpbCheckout(req, env) {
   if (!await validCsrf(form, env)) return noStore(forbidden());
 
   const plan = form.get('plan')?.toString() || '';
+  const restoreIntent = form.get('intent')?.toString() === 'restore';
   const priceId = plan === 'annual'
     ? env.STRIPE_PRICE_SPB_ANNUAL
     : plan === 'monthly'
@@ -74,7 +79,7 @@ export async function handleSpbCheckout(req, env) {
     priceId,
     customer: customerRow?.stripe_customer_id || '',
     customerEmail: customerRow ? '' : menu.email,
-    successUrl: CHECKOUT_SUCCESS_URL,
+    successUrl: restoreIntent ? `${CHECKOUT_SUCCESS_URL}&intent=restore` : CHECKOUT_SUCCESS_URL,
     cancelUrl: CHECKOUT_CANCEL_URL,
     idempotencyKey: crypto.randomUUID(),
     service: 'spb',

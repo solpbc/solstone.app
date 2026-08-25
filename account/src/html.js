@@ -331,25 +331,25 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = 
     : '';
   const disclosure = entitled
     ? '<p class="disclosure">you can review or change encrypted backup from the journal anytime.</p>'
-    : '<p class="disclosure"><a href="/services/backup">set up encrypted backup</a>. sol pbc keeps the encrypted copy for you.</p>';
+    : '<p class="disclosure"><a href="/services/backup">set up encrypted backup</a>. sol pbc runs encrypted backup for you.</p>';
   return layout({
     title: 'enable encrypted backup',
     body: `${brandbar()}
 <h1>enable encrypted backup</h1>
-<p class="lead">this journal is asking to enable encrypted backup. two things, and only these two:</p>
+<p class="lead">sol pbc received a request to enable encrypted backup for your journal. two things, and only these two:</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing the solstone app has taken in alongside you. just: this journal asked for encrypted backup.</div>
+      <div class="gd">so sol pbc can approve this request. no journal content comes with it, only what identifies the request.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">2</div>
     <div>
       <div class="gt">enable encrypted backup</div>
-      <div class="gd">sol pbc records this journal's backup prefix and hands back a broker token through this local handoff. the encrypted backup remains readable only by you.</div>
+      <div class="gd">sol pbc starts keeping a copy of your journal, encrypted on your device before it leaves, so only you can read it. restoring it later takes your recovery key, a sign-in here, and encrypted backup still on. sol pbc holds no copy of your recovery key, and cannot open your encrypted copy without that key.</div>
     </div>
   </div>
   <form method="post" action="/enable/backup/confirm">
@@ -383,8 +383,79 @@ export function renderEnableSpbNeedsSubscription() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">encrypted backup needed</h2>
-  <p>sol pbc keeps the encrypted copy for you before this journal can use encrypted backup.</p>
+  <p>sol pbc runs encrypted backup for you.</p>
   <a class="btn primary" href="/services/backup">set up encrypted backup</a>
+</div>`,
+  });
+}
+
+export function renderEnableSpbRestoreConsent({ csrf, nonce, candidates, error = false }) {
+  const several = candidates.length > 1;
+  const candidateRows = several
+    ? candidates.map((candidate) => `<label class="row" style="cursor:pointer">
+  <input type="radio" name="selected_instance" value="${escAttr(candidate.instanceId)}">
+  <span>${esc(restoreCandidateDetail(candidate))}</span>
+</label>`).join('\n')
+    : `<p>${esc(restoreCandidateDetail(candidates[0]))}</p>`;
+  const selectedInput = several
+    ? ''
+    : `<input type="hidden" name="selected_instance" value="${escAttr(candidates[0].instanceId)}">`;
+  const lead = several
+    ? 'sol pbc received a restore request for your journal. sol pbc is holding more than one encrypted copy for you. choose which one to restore.'
+    : 'sol pbc received a restore request for your journal. this is the encrypted copy sol pbc is holding for you:';
+  return layout({
+    title: 'restore from encrypted backup',
+    body: `${brandbar()}
+<h1>restore from encrypted backup</h1>
+<p class="lead">${lead}</p>
+<div class="card">
+  <form method="post" action="/enable/backup/confirm">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="nonce" value="${escAttr(nonce)}">
+    <input type="hidden" name="intent" value="restore">
+    ${selectedInput}
+    <div class="group">${candidateRows}</div>
+    ${several && error ? '<p class="notice">nothing is selected yet.</p>' : ''}
+    <p class="notice">only one journal at a time can back up to an encrypted copy. restoring reserves that spot for your journal, and any other journal still backing up to that copy stops.</p>
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn primary" name="action" value="allow" type="submit">restore</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+    </div>
+  </form>
+</div>`,
+  });
+}
+
+export function renderEnableSpbRestoreNoHostedBackup() {
+  return layout({
+    title: "sol pbc isn't holding an encrypted copy under this sign-in",
+    body: `${brandbar()}
+<div class="card">
+  <h2>sol pbc isn't holding an encrypted copy under this sign-in</h2>
+  <p>if you have more than one way to sign in, sign out and sign back in the way you did when you set up encrypted backup.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSpbRestoreExpired({ date }) {
+  return layout({
+    title: 'sol pbc deleted an encrypted copy',
+    body: `${brandbar()}
+<div class="card">
+  <h2>sol pbc deleted an encrypted copy</h2>
+  <p>on ${esc(date)}, sol pbc deleted that copy.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSpbRestoreNeedsSubscription() {
+  return layout({
+    title: 'encrypted backup is off',
+    body: `${brandbar()}
+<div class="card">
+  <h2>encrypted backup is off</h2>
+  <p>sol pbc is still holding an encrypted copy for you. the restore needs encrypted backup on. sol pbc deletes that copy unless you turn encrypted backup back on. once it's back on, return to your journal and start the restore again. you'll enter your recovery key once more.</p>
+  <a class="btn primary" href="/services/backup?intent=restore">turn encrypted backup back on</a>
 </div>`,
   });
 }
@@ -772,7 +843,7 @@ ${content}`,
   });
 }
 
-export function renderServicesSpb({ entitlement, csrf, flash = {}, menu }) {
+export function renderServicesSpb({ entitlement, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
   const flashes = spbBillingFlashMessages(flash);
   const status = entitlement?.status || '';
   const detailParts = [];
@@ -792,6 +863,7 @@ export function renderServicesSpb({ entitlement, csrf, flash = {}, menu }) {
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 ${flashes}
+${restoreCheckout ? '<p class="notice">if you\'re restoring a journal, return to it and start the restore again. you\'ll enter your recovery key once more.</p>' : ''}
 <div class="pagehead">
   <h1>encrypted backup</h1>
   <p class="meta">operated by sol pbc</p>
@@ -832,12 +904,12 @@ ${portalActions}
 <div class="card">
   <p>turn on encrypted backup</p>
   <div class="group">
-    ${billingCheckoutRow({ csrf, plan: 'annual', title: '$48 / year', buttonText: 'pay yearly', primary: true, action: '/services/backup/checkout' })}
-    ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$4.99 / month', buttonText: 'pay monthly', primary: false, action: '/services/backup/checkout' })}
+    ${billingCheckoutRow({ csrf, plan: 'annual', title: '$48 / year', buttonText: 'pay yearly', primary: true, action: '/services/backup/checkout', restoreIntent })}
+    ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$4.99 / month', buttonText: 'pay monthly', primary: false, action: '/services/backup/checkout', restoreIntent })}
   </div>
   <p class="disclosure">billed securely through Stripe.</p>
 </div>
-<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days. turn it back on within that window and it's still there. after 30 days it's deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/services/backup/terms">terms</a></p>`,
+${restoreCheckout ? '' : '<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days. turn it back on within that window and it\'s still there. after 30 days it\'s deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/services/backup/terms">terms</a></p>'}`,
   });
 }
 
@@ -1632,7 +1704,25 @@ export function formatRelativeTime(tsMs, nowMs) {
   return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
-function billingCheckoutRow({ csrf, plan, title, buttonText, primary, action = '/billing/checkout' }) {
+export function formatByteSize(bytes) {
+  const value = Number(bytes);
+  if (!Number.isFinite(value) || value < 0) return '—';
+  if (value < 1024) return `${Math.floor(value)} bytes`;
+  const units = ['KB', 'MB', 'GB'];
+  let scaled = value / 1024;
+  let unit = 0;
+  while (scaled >= 1024 && unit < units.length - 1) {
+    scaled /= 1024;
+    unit += 1;
+  }
+  return `${Number(scaled.toFixed(1))} ${units[unit]}`;
+}
+
+function restoreCandidateDetail(candidate) {
+  return `last backup ${formatRelativeTime(candidate.lastBackupMs, Date.now())} · size ${formatByteSize(candidate.sizeBytes)} · enabled ${formatDate(candidate.createdAt)}`;
+}
+
+function billingCheckoutRow({ csrf, plan, title, buttonText, primary, action = '/billing/checkout', restoreIntent = false }) {
   // Display copy must match the configured Stripe price IDs; env stores opaque price IDs only.
   const buttonClass = primary ? 'btn primary' : 'btn secondary';
   return `<div class="row" style="cursor:default">
@@ -1642,6 +1732,7 @@ function billingCheckoutRow({ csrf, plan, title, buttonText, primary, action = '
   <div class="trail"><form method="post" action="${escAttr(action)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="plan" value="${escAttr(plan)}">
+    ${restoreIntent ? '<input type="hidden" name="intent" value="restore">' : ''}
     <button class="${buttonClass}" type="submit">${esc(buttonText)}</button>
   </form></div>
 </div>`;
