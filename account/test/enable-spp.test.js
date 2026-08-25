@@ -91,7 +91,7 @@ describe('/enable/spp', () => {
     expect(body).toContain('audio has its own switch');
     expect(body).toContain('"transcribe audio on the service" lives in the journal\'s thinking app, in the confidential lane. it\'s on while confidential processing is in use. turn it off any time and it takes effect right away: speech becomes text on your device instead, and text and images continue under this choice.');
     expect(body).toContain("transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and it never quietly does it a different way.");
-    expect(body).toContain('sol pbc gives this device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it.');
+    expect(body).toContain('sol pbc gives your device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it.');
     expect(body).not.toContain('local handoff');
     expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');

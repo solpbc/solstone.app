@@ -273,7 +273,7 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">2</div>
     <div>
       <div class="gt">enable private network access</div>
-      <div class="gd">sol pbc records an approval for this journal and hands that approval back through this local handoff. nothing from the journal is sent to sol pbc to do this.</div>
+      <div class="gd">sol pbc records an approval for this journal and hands that approval back. nothing from the journal is sent to sol pbc to do this.</div>
     </div>
   </div>
   <form method="post" action="/enable/spl/confirm">
@@ -436,7 +436,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <div class="n">3</div>
     <div>
       <div class="gt">your journal must verify before it sends</div>
-      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes. if it can't verify, it doesn't send, and the solstone app tells you why. the engine runs on confidential hardware sol pbc operates: a model sol pbc runs itself, with no third-party AI provider in the path. sol pbc gives this device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and it never quietly does it a different way.</div>
+      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes. if it can't verify, it doesn't send, and the solstone app tells you why. the engine runs on confidential hardware sol pbc operates: a model sol pbc runs itself, with no third-party AI provider in the path. sol pbc gives your device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and it never quietly does it a different way.</div>
     </div>
   </div>
   <form method="post" action="/enable/spp/confirm">
