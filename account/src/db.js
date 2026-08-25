@@ -1060,6 +1060,18 @@ export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, n
     .run();
 }
 
+export async function rotateSpbBindingToken(db, { accountId, instanceId, tokenHash, nowMs }) {
+  const result = await db
+    .prepare(
+      `UPDATE spb_bindings
+       SET token_hash = ?, last_seen_at = ?, lapsed_at = NULL
+       WHERE account_id = ? AND instance_id = ?`
+    )
+    .bind(tokenHash, nowMs, accountId, instanceId)
+    .run();
+  return result.meta.changes > 0;
+}
+
 export async function upsertSppBinding(db, {
   accountId,
   instanceId,

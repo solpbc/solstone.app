@@ -25,6 +25,7 @@ import {
   insertSppMintAudit,
   listSpbBindings,
   revokeDevicePriorAndInsertNew,
+  rotateSpbBindingToken,
   upsertSpbBinding,
   upsertSplBinding,
   upsertSppBinding,
@@ -536,11 +537,18 @@ async function handleEnableSpbRestoreConfirm({ req, env, nonce, form }) {
   const nowMs = Date.now();
   const brokerToken = generateSessionToken();
   const tokenHash = await hashWithPepper(brokerToken, env);
-  await upsertSpbBinding(env.DB, {
+  const rotated = await rotateSpbBindingToken(env.DB, {
     accountId: session.account_id,
     instanceId: selected.instanceId,
     tokenHash,
     nowMs,
+  });
+  if (!rotated) return handleSpbRestoreResolution({
+    req,
+    env,
+    nonce,
+    accountId: session.account_id,
+    csrf,
   });
   const payload = approvedSpbPayload({
     env,
@@ -550,7 +558,7 @@ async function handleEnableSpbRestoreConfirm({ req, env, nonce, form }) {
     brokerToken,
   });
   try {
-    await insertSpbHandoff({ env, nonce, accountId: session.account_id, payload, nowMs });
+    await insertSpbHandoff({ env, nonce, accountId: session.account_id, payload, nowMs, requireNew: true });
   } catch {
     return spbError(503);
   }
@@ -679,10 +687,10 @@ function needsSubscriptionSpbPayload({ env, origin, accountId, candidate }) {
   };
 }
 
-async function insertSpbHandoff({ env, nonce, accountId, payload, nowMs }) {
+async function insertSpbHandoff({ env, nonce, accountId, payload, nowMs, requireNew = false }) {
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
   const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
-  await insertServiceHandoff(env.DB, {
+  const inserted = await insertServiceHandoff(env.DB, {
     handoffHash,
     accountId,
     service: 'spb',
@@ -690,6 +698,9 @@ async function insertSpbHandoff({ env, nonce, accountId, payload, nowMs }) {
     createdAt: nowMs,
     expiresAt: nowMs + HANDOFF_TTL_MS,
   });
+  if (!inserted.ok && (requireNew || inserted.reason !== 'duplicate')) {
+    throw new Error('could not create SPB handoff');
+  }
 }
 
 export async function handleHandoffSpb(req, env) {

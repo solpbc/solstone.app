@@ -2,6 +2,7 @@ import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { decryptEmail, hashServiceHandoffNonce, hashWithPepper } from '../src/crypto.js';
+import { rotateSpbBindingToken } from '../src/db.js';
 import {
   TEST_CSRF,
   installConsoleSpy,
@@ -87,6 +88,24 @@ describe('/enable/backup?intent=restore', () => {
     await expect(rowCount('entitlements')).resolves.toBe(0);
   });
 
+  it('re-renders a terminal restore outcome when its handoff nonce already exists', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'restore-terminal-reload@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const request = () => new Request(restoreUrl({ nonce: NONCE_A }), { headers: { Cookie: session.cookie } });
+
+    const first = await worker.fetch(request(), testEnv);
+    const firstBody = await first.text();
+    const second = await worker.fetch(request(), testEnv);
+    const secondBody = await second.text();
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(firstBody).toContain("sol pbc isn't holding an encrypted copy under this sign-in");
+    expect(secondBody).toBe(firstBody);
+    await expect(rowCount('service_handoffs')).resolves.toBe(1);
+  });
+
   it('requires an exact current binding and sweep audit for hosted_backup_expired', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'restore-expired@example.com', testEnv });
@@ -158,6 +177,67 @@ describe('/enable/backup?intent=restore', () => {
     expect(await bindingRow(account.accountId, INSTANCE_A)).toMatchObject({
       token_hash: await hashWithPepper(payload.broker_token, testEnv),
     });
+  });
+
+  it('uses an update-only rotation and re-resolves when the selected row vanishes', async () => {
+    const testEnv = makeTestEnv();
+    const direct = await seedAccount({ email: 'restore-rotate-direct@example.com', testEnv });
+    await seedSpbBinding({ accountId: direct.accountId, instanceId: INSTANCE_A, tokenHash: 'before-delete' });
+    await workerEnv.DB
+      .prepare('DELETE FROM spb_bindings WHERE account_id = ? AND instance_id = ?')
+      .bind(direct.accountId, INSTANCE_A)
+      .run();
+    await expect(rotateSpbBindingToken(workerEnv.DB, {
+      accountId: direct.accountId,
+      instanceId: INSTANCE_A,
+      tokenHash: 'after-delete',
+      nowMs: 2_000,
+    })).resolves.toBe(false);
+    await expect(bindingRow(direct.accountId, INSTANCE_A)).resolves.toBeNull();
+
+    const account = await seedAccount({ email: 'restore-rotate-race@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({ accountId: account.accountId, service: SERVICE, status: 'active' });
+    await seedSpbBinding({ accountId: account.accountId, instanceId: INSTANCE_A, tokenHash: 'before-race' });
+    const racingEnv = makeTestEnv({ DB: deleteBeforeSpbRotate(account.accountId, INSTANCE_A) });
+    installRestoreS3(racingEnv, { [prefix(account.accountId, INSTANCE_A)]: objects() });
+
+    const response = await worker.fetch(restoreConfirm({
+      cookie: session.cookie,
+      nonce: NONCE_A,
+      selectedInstance: INSTANCE_A,
+    }), racingEnv);
+    const payload = await handoffPayload(NONCE_A, racingEnv);
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ status: 'refused', reason_code: 'no_hosted_backup' });
+    await expect(bindingRow(account.accountId, INSTANCE_A)).resolves.toBeNull();
+  });
+
+  it('fails a duplicate restore-confirm nonce instead of reporting a second success', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'restore-duplicate-nonce@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({ accountId: account.accountId, service: SERVICE, status: 'active' });
+    await seedSpbBinding({ accountId: account.accountId, instanceId: INSTANCE_A, tokenHash: 'before-first' });
+    installRestoreS3(testEnv, { [prefix(account.accountId, INSTANCE_A)]: objects() });
+    const request = () => restoreConfirm({
+      cookie: session.cookie,
+      nonce: NONCE_A,
+      selectedInstance: INSTANCE_A,
+    });
+
+    const first = await worker.fetch(request(), testEnv);
+    const payload = await handoffPayload(NONCE_A, testEnv);
+    const firstHash = (await bindingRow(account.accountId, INSTANCE_A)).token_hash;
+    const second = await worker.fetch(request(), testEnv);
+    const secondHash = (await bindingRow(account.accountId, INSTANCE_A)).token_hash;
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(503);
+    expect(await handoffPayload(NONCE_A, testEnv)).toEqual(payload);
+    expect(secondHash).not.toBe(firstHash);
+    await expect(rowCount('service_handoffs')).resolves.toBe(1);
   });
 
   it('shows several recoverable candidates with no default and rotates only explicit selections', async () => {
@@ -235,7 +315,7 @@ describe('/enable/backup?intent=restore', () => {
     await worker.fetch(restoreConfirm({ cookie: firstSession.cookie, nonce: NONCE_C, selectedInstance: INSTANCE_A }), testEnv);
     expect((await handoffPayload(NONCE_C, testEnv)).instance_id).toBe(INSTANCE_A);
 
-    const remainsLapsed = await worker.fetch(new Request(restoreUrl({ nonce: '6'.repeat(52) }), { headers: { Cookie: secondSession.cookie } }), testEnv);
+    const remainsLapsed = await worker.fetch(new Request(restoreUrl({ nonce: '7'.repeat(52) }), { headers: { Cookie: secondSession.cookie } }), testEnv);
     expect(await remainsLapsed.text()).toContain('encrypted backup is off');
   });
 
@@ -365,6 +445,29 @@ function installRestoreS3(testEnv, byPrefix) {
         .join('')}</ListBucketResult>`, { headers: { 'Content-Type': 'application/xml' } });
     },
   });
+}
+
+function deleteBeforeSpbRotate(accountId, instanceId) {
+  return {
+    prepare(sql) {
+      const statement = workerEnv.DB.prepare(sql);
+      if (!sql.includes('UPDATE spb_bindings')) return statement;
+      return {
+        bind(...args) {
+          const bound = statement.bind(...args);
+          return {
+            async run() {
+              await workerEnv.DB
+                .prepare('DELETE FROM spb_bindings WHERE account_id = ? AND instance_id = ?')
+                .bind(accountId, instanceId)
+                .run();
+              return bound.run();
+            },
+          };
+        },
+      };
+    },
+  };
 }
 
 async function handoffRow(nonce, testEnv) {
