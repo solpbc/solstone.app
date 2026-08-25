@@ -682,6 +682,25 @@ export async function seedSpbBinding({
   return { accountId, instanceId, createdAt, lastSeenAt, tokenHash, lapsedAt };
 }
 
+export async function seedSpbSweepAudit({
+  accountId,
+  instanceId = '11111111-1111-1111-1111-111111111111',
+  prefix = `users/${accountId}/${instanceId}/`,
+  objectsDeleted = 1,
+  multipartAborted = 0,
+  ts = Date.now(),
+} = {}) {
+  await env.DB
+    .prepare(
+      `INSERT INTO spb_sweep_audit (
+         account_id, instance_id, prefix, objects_deleted, multipart_aborted, ts
+       ) VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(accountId, instanceId, prefix, objectsDeleted, multipartAborted, ts)
+    .run();
+  return { accountId, instanceId, prefix, objectsDeleted, multipartAborted, ts };
+}
+
 export async function seedCredential({
   accountId,
   credentialId = 'credential-id',

@@ -81,10 +81,25 @@ describe('/enable/backup', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('this journal is asking to enable encrypted backup.');
+    expect(body).toContain('sol pbc received a request to enable encrypted backup for your journal. two things, and only these two:');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
+  });
+
+  it('keeps intent=enable on the released enable path', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const response = await worker.fetch(new Request(`${spbUrl({ instance: VALID_INSTANCE })}&intent=enable`, {
+      headers: { Cookie: session.cookie },
+    }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('enable encrypted backup');
+    expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
+    expect(body).not.toContain('restore from encrypted backup');
   });
 
   it('ignores malformed or repeated instance params on consent', async () => {
@@ -102,7 +117,7 @@ describe('/enable/backup', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).not.toContain('name="instance"');
-      expect(body).toContain('<a href="/services/backup">set up encrypted backup</a>. sol pbc keeps the encrypted copy for you.');
+      expect(body).toContain('<a href="/services/backup">set up encrypted backup</a>. sol pbc runs encrypted backup for you.');
     }
   });
 
@@ -149,6 +164,7 @@ describe('/enable/backup', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('set up encrypted backup');
+    expect(body).toContain('sol pbc runs encrypted backup for you.');
     expect(payload).toEqual({
       broker_endpoint: 'https://services.solstone.app',
       account_id: account.accountId,

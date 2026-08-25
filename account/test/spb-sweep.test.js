@@ -440,7 +440,7 @@ function pageFromSnapshot({ snapshots, snapshotId, token, values, pageSize, toke
 
 function listObjectsXml({ page, isTruncated, nextToken }) {
   return `<ListBucketResult><IsTruncated>${isTruncated}</IsTruncated>${page
-    .map((key) => `<Contents><Key>${xmlEscape(key)}</Key></Contents>`)
+    .map((key) => `<Contents><Key>${xmlEscape(key)}</Key><LastModified>2026-01-01T00:00:00.000Z</LastModified><Size>1</Size></Contents>`)
     .join('')}${nextToken ? `<NextContinuationToken>${xmlEscape(nextToken)}</NextContinuationToken>` : ''}</ListBucketResult>`;
 }
 

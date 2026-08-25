@@ -14,6 +14,7 @@ import {
   bumpDeviceLastSeen,
   consumeServiceHandoff,
   findDeviceByPushKey,
+  findSpbSweepAudit,
   findServiceHandoffStatus,
   getAccountTransparencyRow,
   getEntitlement,
@@ -22,6 +23,7 @@ import {
   insertDevice,
   insertServiceHandoff,
   insertSppMintAudit,
+  listSpbBindings,
   revokeDevicePriorAndInsertNew,
   upsertSpbBinding,
   upsertSplBinding,
@@ -37,6 +39,7 @@ import {
 } from './enable-constants.js';
 import { SUPPORT_ID_REGEX } from './support-constants.js';
 import {
+  formatDate,
   renderEnablePushConsent,
   renderEnablePushDone,
   renderEnablePushError,
@@ -49,6 +52,10 @@ import {
   renderEnableSpbDone,
   renderEnableSpbError,
   renderEnableSpbNeedsSubscription,
+  renderEnableSpbRestoreConsent,
+  renderEnableSpbRestoreExpired,
+  renderEnableSpbRestoreNeedsSubscription,
+  renderEnableSpbRestoreNoHostedBackup,
   renderEnableSppApprovalRequired,
   renderEnableSppConsent,
   renderEnableSppDone,
@@ -58,6 +65,9 @@ import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { SPL_HOSTED_SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
 import { SPB_HOSTED_SERVICE, reconcileSpbEntitlement } from './spb-entitlement.js';
+import { prefixFor } from './spb-broker.js';
+import { mintScopedCredential } from './r2-credential.js';
+import { listObjectsV2 } from './s3.js';
 import {
   SPP_CONSENT_DISCLOSURE_VERSION,
   reconcileSppEntitlement,
@@ -395,6 +405,19 @@ export async function handleEnableSpbGet(req, env) {
   const url = new URL(req.url);
   const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
   if (!NONCE_REGEX.test(nonce)) return spbError(400);
+  const restore = isRestoreIntent(url.searchParams.get('intent'));
+  if (restore) {
+    const session = await getValidSession(req, env, Date.now());
+    if (!session) return signInRedirect(env, ENABLE_SPB_PATH, spbResumeQuery(nonce, null, true));
+    return handleSpbRestoreResolution({
+      req,
+      env,
+      nonce,
+      accountId: session.account_id,
+      csrf: await csrfToken(env),
+    });
+  }
+
   const instance = parseOptionalInstance(url.searchParams);
   const resumeQuery = spbResumeQuery(nonce, instance);
 
@@ -417,6 +440,10 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
 
   if ((form.get('action')?.toString() || '') === 'cancel') {
     return redirect('/', 303, { 'Cache-Control': 'no-store' });
+  }
+
+  if (isRestoreIntent(form.get('intent'))) {
+    return handleEnableSpbRestoreConfirm({ req, env, nonce, form });
   }
 
   const instance = parseOptionalInstance(form);
@@ -443,7 +470,7 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
   const entitlement = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });
   const entitled = isSpbEntitled(entitlement);
   const origin = new URL(req.url).origin;
-  const prefix = `users/${accountId}/${instance}/`;
+  const prefix = prefixFor(accountId, instance);
   const payload = {
     broker_endpoint: origin,
     account_id: accountId,
@@ -470,6 +497,199 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
   }
   if (!entitled) return noStoreHtml(renderEnableSpbNeedsSubscription());
   return noStoreHtml(renderEnableSpbDone());
+}
+
+async function handleEnableSpbRestoreConfirm({ req, env, nonce, form }) {
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPB_PATH, spbResumeQuery(nonce, null, true));
+  const account = await getAccountTransparencyRow(env.DB, session.account_id);
+  if (!account) {
+    return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
+  }
+
+  const csrf = await csrfToken(env);
+  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) return spbError(403);
+
+  let resolution;
+  try {
+    resolution = await resolveSpbRestore({ env, accountId: session.account_id, nowMs: Date.now() });
+  } catch {
+    return spbError(503);
+  }
+
+  const selection = restoreSelection(form);
+  const selected = resolution.kind === 'consent'
+    ? resolution.candidates.find((candidate) => candidate.instanceId === selection.value)
+    : null;
+  if (!selected) {
+    return renderSpbRestoreResolution({
+      req,
+      env,
+      nonce,
+      accountId: session.account_id,
+      csrf,
+      resolution,
+      selectionError: selection.omitted && resolution.kind === 'consent' && resolution.candidates.length > 1,
+    });
+  }
+
+  const nowMs = Date.now();
+  const brokerToken = generateSessionToken();
+  const tokenHash = await hashWithPepper(brokerToken, env);
+  await upsertSpbBinding(env.DB, {
+    accountId: session.account_id,
+    instanceId: selected.instanceId,
+    tokenHash,
+    nowMs,
+  });
+  const payload = approvedSpbPayload({
+    env,
+    origin: new URL(req.url).origin,
+    accountId: session.account_id,
+    candidate: selected,
+    brokerToken,
+  });
+  try {
+    await insertSpbHandoff({ env, nonce, accountId: session.account_id, payload, nowMs });
+  } catch {
+    return spbError(503);
+  }
+  return noStoreHtml(renderEnableSpbDone());
+}
+
+async function handleSpbRestoreResolution({ req, env, nonce, accountId, csrf }) {
+  let resolution;
+  try {
+    resolution = await resolveSpbRestore({ env, accountId, nowMs: Date.now() });
+  } catch {
+    return spbError(503);
+  }
+  return renderSpbRestoreResolution({ req, env, nonce, accountId, csrf, resolution });
+}
+
+async function renderSpbRestoreResolution({ req, env, nonce, accountId, csrf, resolution, selectionError = false }) {
+  if (resolution.kind === 'consent') {
+    return noStoreHtml(renderEnableSpbRestoreConsent({
+      csrf,
+      nonce,
+      candidates: resolution.candidates,
+      error: selectionError,
+    }));
+  }
+
+  const nowMs = Date.now();
+  const origin = new URL(req.url).origin;
+  let payload;
+  let page;
+  if (resolution.kind === 'no_hosted_backup') {
+    payload = { status: 'refused', reason_code: 'no_hosted_backup' };
+    page = renderEnableSpbRestoreNoHostedBackup();
+  } else if (resolution.kind === 'hosted_backup_expired') {
+    payload = { status: 'refused', reason_code: 'hosted_backup_expired' };
+    page = renderEnableSpbRestoreExpired({ date: formatDate(resolution.ts) });
+  } else {
+    payload = needsSubscriptionSpbPayload({ env, origin, accountId, candidate: resolution.candidate });
+    page = renderEnableSpbRestoreNeedsSubscription();
+  }
+  try {
+    await insertSpbHandoff({ env, nonce, accountId, payload, nowMs });
+  } catch {
+    return spbError(503);
+  }
+  return noStoreHtml(page);
+}
+
+async function resolveSpbRestore({ env, accountId, nowMs }) {
+  const bindings = await listSpbBindings(env.DB, accountId);
+  if (bindings.length === 0) return { kind: 'no_hosted_backup' };
+
+  const recoverable = [];
+  const expired = [];
+  let hasNoHostedBackup = false;
+  for (const binding of bindings) {
+    const instanceId = binding.instance_id;
+    const prefix = prefixFor(accountId, instanceId);
+    const credential = await mintScopedCredential(env, {
+      prefix,
+      scope: 'backup',
+      nowSeconds: Math.floor(nowMs / 1000),
+    });
+    if (!credential) throw new Error('could not mint restore proof credential');
+    const listing = await listObjectsV2(env, credential, { prefix, nowMs });
+    if (listing.keys.length > 0) {
+      const sizeBytes = listing.objects.reduce((total, object) => total + object.size, 0);
+      if (!Number.isSafeInteger(sizeBytes)) throw new Error('invalid restore object size total');
+      recoverable.push({
+        instanceId,
+        createdAt: binding.created_at,
+        prefix,
+        lastBackupMs: Math.max(...listing.objects.map((object) => object.lastModifiedMs)),
+        sizeBytes,
+      });
+      continue;
+    }
+
+    const audit = await findSpbSweepAudit(env.DB, { accountId, instanceId, prefix });
+    if (audit) expired.push(audit);
+    else hasNoHostedBackup = true;
+  }
+
+  if (recoverable.length === 0) {
+    if (expired.length > 0 && !hasNoHostedBackup) {
+      return { kind: 'hosted_backup_expired', ts: expired[0].ts };
+    }
+    return { kind: 'no_hosted_backup' };
+  }
+
+  const entitlement = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });
+  if (!isSpbEntitled(entitlement)) return { kind: 'needs_subscription', candidate: recoverable[0] };
+  return { kind: 'consent', candidates: recoverable };
+}
+
+function restoreSelection(form) {
+  const values = form.getAll('selected_instance');
+  if (values.length === 0) return { value: null, omitted: true };
+  if (values.length !== 1) return { value: null, omitted: false };
+  const value = values[0]?.toString() || '';
+  return { value: value || null, omitted: value === '' };
+}
+
+function approvedSpbPayload({ env, origin, accountId, candidate, brokerToken }) {
+  return {
+    broker_endpoint: origin,
+    account_id: accountId,
+    instance_id: candidate.instanceId,
+    bucket: env.R2_BUCKET,
+    prefix: candidate.prefix,
+    broker_token: brokerToken,
+    status: 'approved',
+  };
+}
+
+function needsSubscriptionSpbPayload({ env, origin, accountId, candidate }) {
+  return {
+    broker_endpoint: origin,
+    account_id: accountId,
+    instance_id: candidate.instanceId,
+    bucket: env.R2_BUCKET,
+    prefix: candidate.prefix,
+    broker_token: '',
+    status: 'needs_subscription',
+    subscribe_url: `${origin}/services/backup?intent=restore`,
+  };
+}
+
+async function insertSpbHandoff({ env, nonce, accountId, payload, nowMs }) {
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
+  await insertServiceHandoff(env.DB, {
+    handoffHash,
+    accountId,
+    service: 'spb',
+    payloadEncrypted,
+    createdAt: nowMs,
+    expiresAt: nowMs + HANDOFF_TTL_MS,
+  });
 }
 
 export async function handleHandoffSpb(req, env) {
@@ -693,8 +913,9 @@ function splResumeQuery(nonce, instance) {
   return `?${params.toString()}`;
 }
 
-function spbResumeQuery(nonce, instance) {
+function spbResumeQuery(nonce, instance, restore = false) {
   const params = new URLSearchParams({ nonce });
+  if (restore) params.set('intent', 'restore');
   if (instance) params.set('instance', instance);
   return `?${params.toString()}`;
 }
@@ -710,6 +931,10 @@ function parseOptionalInstance(params) {
   if (values.length !== 1) return null;
   const instance = values[0]?.toString() || '';
   return INSTANCE_ID_REGEX.test(instance) ? instance : null;
+}
+
+function isRestoreIntent(value) {
+  return (value || '').toString().trim() === 'restore';
 }
 
 function isSplEntitled(entitlement) {
@@ -787,7 +1012,11 @@ function validateSplResumeParams(params) {
 function validateSpbResumeParams(params) {
   const nonceValues = params.getAll('nonce');
   const instanceValues = params.getAll('instance');
+  const intentValues = params.getAll('intent');
   if (nonceValues.length !== 1 || !NONCE_REGEX.test(nonceValues[0])) return false;
+  if (intentValues.length > 0) {
+    return intentValues.length === 1 && intentValues[0] === 'restore' && instanceValues.length === 0;
+  }
   if (instanceValues.length === 0) return true;
   return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
 }

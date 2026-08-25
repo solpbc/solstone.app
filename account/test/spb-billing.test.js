@@ -115,6 +115,60 @@ describe('spb encrypted backup billing', () => {
     expect(calls[1].body.get('line_items[0][price]')).toBe(testEnv.STRIPE_PRICE_SPB_MONTHLY);
     expect(calls[1].body.get('customer')).toBe('cus_spb_existing');
     expect(calls[1].body.has('customer_email')).toBe(false);
+
+    const restore = await postForm('/services/backup/checkout', testEnv, new URLSearchParams({
+      csrf: TEST_CSRF,
+      plan: 'annual',
+      intent: 'restore',
+    }), session.cookie);
+    expect(restore.status).toBe(303);
+    expect(calls[2].body.get('success_url')).toBe('https://services.solstone.app/services/backup?checkout=success&intent=restore');
+    expect(calls[2].body.get('cancel_url')).toBe('https://services.solstone.app/services/backup?checkout=cancel');
+  });
+
+  it('threads the restore checkout marker and renders the success notice on every entitlement branch', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'spb-restore-return@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const notice = "if you're restoring a journal, return to it and start the restore again. you'll enter your recovery key once more.";
+
+    const defaultReturn = await get('/services/backup?checkout=success&intent=restore', testEnv, session.cookie);
+    const defaultHtml = await defaultReturn.text();
+    expect(defaultHtml).toContain(notice);
+    expect(defaultHtml.indexOf(notice)).toBeLessThan(defaultHtml.indexOf('<div class="pagehead">'));
+    expect(defaultHtml).not.toContain('your journal stays on your device either way');
+    expect(defaultHtml).toContain('name="plan" value="annual"');
+    expect(defaultHtml).toContain('name="plan" value="monthly"');
+    expect(defaultHtml.match(/name="intent" value="restore"/g)).toHaveLength(2);
+
+    const plainRestore = await get('/services/backup?intent=restore', testEnv, session.cookie);
+    const plainRestoreHtml = await plainRestore.text();
+    expect(plainRestoreHtml).not.toContain(notice);
+    expect(plainRestoreHtml).toContain('your journal stays on your device either way');
+    expect(plainRestoreHtml.match(/name="intent" value="restore"/g)).toHaveLength(2);
+
+    const noMarker = await get('/services/backup?checkout=success', testEnv, session.cookie);
+    const noMarkerHtml = await noMarker.text();
+    expect(noMarkerHtml).not.toContain(notice);
+    expect(noMarkerHtml).toContain('your journal stays on your device either way');
+
+    for (const entitlement of [
+      { status: 'active', source: 'stripe' },
+      { status: 'active', source: 'comp', sourceRef: null },
+      { status: 'past_due', source: 'stripe' },
+    ]) {
+      await seedEntitlement({
+        accountId: account.accountId,
+        service: SPB_SERVICE,
+        status: entitlement.status,
+        source: entitlement.source,
+        sourceRef: entitlement.sourceRef,
+      });
+      const response = await get('/services/backup?checkout=success&intent=restore', testEnv, session.cookie);
+      const body = await response.text();
+      expect(body).toContain(notice);
+      expect(body).not.toContain('your journal stays on your device either way');
+    }
   });
 
   it('handles checkout guard and error redirects without reaching Stripe when inappropriate', async () => {

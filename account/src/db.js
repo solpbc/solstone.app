@@ -1100,6 +1100,19 @@ export async function listSplBindings(db, accountId) {
   return results || [];
 }
 
+export async function listSpbBindings(db, accountId) {
+  const { results } = await db
+    .prepare(
+      `SELECT instance_id, created_at
+       FROM spb_bindings
+       WHERE account_id = ?
+       ORDER BY created_at ASC, instance_id ASC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
 export async function markSpbBindingLapsed(db, { accountId, nowMs }) {
   await db
     .prepare('UPDATE spb_bindings SET lapsed_at = ? WHERE account_id = ? AND lapsed_at IS NULL')
@@ -1133,6 +1146,20 @@ export async function deleteSpbBinding(db, { accountId, instanceId }) {
     .prepare('DELETE FROM spb_bindings WHERE account_id = ? AND instance_id = ?')
     .bind(accountId, instanceId)
     .run();
+}
+
+export async function findSpbSweepAudit(db, { accountId, instanceId, prefix }) {
+  const row = await db
+    .prepare(
+      `SELECT ts
+       FROM spb_sweep_audit
+       WHERE account_id = ? AND instance_id = ? AND prefix = ?
+       ORDER BY ts DESC, rowid DESC
+       LIMIT 1`
+    )
+    .bind(accountId, instanceId, prefix)
+    .first();
+  return row || null;
 }
 
 export async function findSpbBindingByTokenHash(db, tokenHash) {
