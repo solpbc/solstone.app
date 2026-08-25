@@ -1433,7 +1433,7 @@ export function renderBackupTerms() {
 <h2>${esc(`1. you never have to pay us`)}</h2>
 <p>${esc(`this is a convenience, not a gate. the same encrypted backup is always available for free, with sol pbc never in the path:`)}</p>
 <ul>
-  <li><strong>${esc(`bring your own storage`)}</strong>${esc(` — point solstone's backup at your own object-storage bucket (Backblaze B2, Amazon S3, Cloudflare R2, any S3-compatible provider). you pay your provider directly; sol pbc is never contacted and never holds your data.`)}</li>
+  <li><strong>${esc(`bring your own storage`)}</strong>${esc(` — set up encrypted backup with your own object-storage bucket (Backblaze B2, Amazon S3, Cloudflare R2, any S3-compatible provider). you pay your provider directly; sol pbc is never contacted and never holds your data.`)}</li>
 </ul>
 <p>${esc(`the bring-your-own path and the operated tier use the `)}<strong>${esc(`same engine, the same encryption, and the same recovery model`)}</strong>${esc(` — the only difference is whose bucket the encrypted blobs land in. `)}<strong>${esc(`the operated tier is convenience — never a privacy upgrade.`)}</strong>${esc(` if you stop paying, you lose the convenience, not your journal: your journal lives on your own devices, and you can switch to your own bucket at any time.`)}</p>
 <h2>${esc(`2. what you're buying`)}</h2>
@@ -1502,23 +1502,23 @@ export function renderProcessingTerms() {
     title,
     body: `${brandbar()}
 <h1>${esc(title)}</h1>
-<p class="meta"><em>${esc(`last updated: August 2, 2026 · operated by sol pbc, a colorado public benefit corporation`)}</em></p>
+<p class="meta"><em>${esc(`last updated: August 25, 2026 · operated by sol pbc, a colorado public benefit corporation`)}</em></p>
 <p>${esc(`these terms cover `)}<strong>${esc(`confidential processing`)}</strong>${esc(`: the AI model sol pbc runs on confidential GPU hardware, so your journal can think with more capacity than the machine it lives on. they're between you and sol pbc. we show you these terms when you turn confidential processing on, and turning it on is how you agree to them.`)}</p>
 <h2>${esc(`1. you never have to pay us`)}</h2>
-<p>${esc(`this is capacity, not a gate. sol can always think without us:`)}</p>
+<p>${esc(`this is capacity, not a gate. your journal can always think without us:`)}</p>
 <ul>
-  <li><strong>${esc(`a model on your own hardware.`)}</strong>${esc(` solstone runs one locally. nothing leaves your device, and sol pbc is not in the path at all.`)}</li>
-  <li><strong>${esc(`bring your own key.`)}</strong>${esc(` point sol at your own provider account. it stays in your journal, and sol pbc is not in the path.`)}</li>
-  <li><strong>${esc(`bring your own endpoint.`)}</strong>${esc(` point sol at any endpoint you run or trust.`)}</li>
+  <li><strong>${esc(`a model on your own hardware.`)}</strong>${esc(` nothing leaves your device, and sol pbc is not in the path at all.`)}</li>
+  <li><strong>${esc(`bring your own key.`)}</strong>${esc(` point your journal at your own provider account. the key stays in your journal, and sol pbc is not in the path.`)}</li>
+  <li><strong>${esc(`bring your own endpoint.`)}</strong>${esc(` point your journal at any endpoint you run or trust.`)}</li>
 </ul>
 <p>${esc(`confidential processing is a convenience for when your machine doesn't have the capacity you want. `)}<strong>${esc(`it is never a privacy upgrade over running locally.`)}</strong>${esc(` if you stop using it, you lose capacity. you do not lose your journal, and you do not lose your privacy.`)}</p>
 <h2>${esc(`2. what you're getting, and what it is not`)}</h2>
 <ul>
-  <li><strong>${esc(`an engine sol pbc runs itself.`)}</strong>${esc(` sol pbc's own model weights on sol pbc's own serving stack, on confidential GPU hardware sol pbc operates. thinking is served with `)}<code>${esc(`Qwen/Qwen3.5-4B`)}</code>${esc(`, the `)}<strong>${esc(`same model generation sol runs on your own device`)}</strong>${esc(`: the hosted service gives you more capacity, never a better model, and nothing is held back for it. `)}<strong>${esc(`no third-party AI provider is in the path`)}</strong>${esc(`, and nothing you send is handed to one.`)}</li>
+  <li><strong>${esc(`an engine sol pbc runs itself.`)}</strong>${esc(` sol pbc's own model weights on sol pbc's own serving stack, on confidential GPU hardware sol pbc operates. thinking is served with `)}<code>${esc(`Qwen/Qwen3.5-4B`)}</code>${esc(`, the `)}<strong>${esc(`same model generation that runs on your own device`)}</strong>${esc(`: the hosted service gives you more capacity, never a better model, and nothing is held back for it. `)}<strong>${esc(`no third-party AI provider is in the path`)}</strong>${esc(`, and nothing you send is handed to one.`)}</li>
   <li><strong>${esc(`it is off until you turn it on`)}</strong>${esc(`, and you can turn it off at any time from the journal.`)}</li>
   <li><strong>${esc(`it is not the sealed arrangement our other two services have.`)}</strong>${esc(` the relay can't read what passes through it and the operated backup holds blocks we have no key to. this one is different: what you send is `)}<strong>${esc(`encrypted over the network, and visible in running memory only while it is being processed`)}</strong>${esc(` by our engine. we will not tell you we never see it. what we will tell you is what becomes of it, in § 10.`)}</li>
   <li><strong>${esc(`the hardware is Microsoft Azure's, and Azure is excluded from what runs on it.`)}</strong>${esc(` the machine is a confidential GPU instance: an AMD SEV-SNP confidential virtual machine with an NVIDIA H100 in confidential-compute mode. that boundary is enforced by the hardware rather than by configuration or by promise, and it keeps the host out of what is being processed, memory included. Microsoft hosts the machine. it is not a party to your content.`)}</li>
-  <li><strong>${esc(`speech.`)}</strong>${esc(` when the audio switch is on, your journal sends speech for transcription over the same verified channel. it is served with `)}<code>${esc(`parakeet-tdt-0.6b-v3`)}</code>${esc(`, created by NVIDIA and used under `)}<a href="https://creativecommons.org/licenses/by/4.0/">${esc(`CC BY 4.0`)}</a>${esc(`: the same model generation sol uses on your own device, so nothing is held back for the service. the switch is `)}<strong>${esc(`on by default`)}</strong>${esc(` whenever confidential processing is in use. turning it off keeps speech-to-text on your own device, effective on the next thing you say.`)}</li>
+  <li><strong>${esc(`speech.`)}</strong>${esc(` when the audio switch is on, your journal sends speech for transcription over the same verified channel. it is served with `)}<code>${esc(`parakeet-tdt-0.6b-v3`)}</code>${esc(`, created by NVIDIA and used under `)}<a href="https://creativecommons.org/licenses/by/4.0/">${esc(`CC BY 4.0`)}</a>${esc(`: the same model generation that runs on your own device, so nothing is held back for the service. the switch is `)}<strong>${esc(`on by default`)}</strong>${esc(` whenever confidential processing is in use. turning it off keeps speech-to-text on your own device, effective on the next thing you say.`)}</li>
   <li><strong>${esc(`access`)}</strong>${esc(` is complimentary while you're an approved scout. if and when paid plans open, the price and the billing interval are shown to you before any charge, and nothing about the sections below changes except that §§ 4, 6, and 8 start to apply to you.`)}</li>
 </ul>
 <h2>${esc(`3. the part you don't have to take on trust`)}</h2>
@@ -1540,7 +1540,7 @@ export function renderProcessingTerms() {
 <ul>
   <li><strong>${esc(`turn it off from the journal, anytime, and it takes effect immediately.`)}</strong>${esc(` stopping the processing needs nothing from us and no billing portal.`)}</li>
   <li><strong>${esc(`turning it off stops the processing; it does not cancel a subscription.`)}</strong>${esc(` if and when you're subscribed, `)}<strong>${esc(`cancel anytime, in two clicks, from the billing portal`)}</strong>${esc(`. no phone call, no email, no retention maze. canceling stops future charges, and access keeps working through the end of the period you've already paid for, then turns off on its own.`)}</li>
-  <li><strong>${esc(`nothing is stranded, because nothing was stored.`)}</strong>${esc(` sol goes back to thinking on your own hardware, or on whatever key or endpoint you point it at.`)}</li>
+  <li><strong>${esc(`nothing is stranded, because nothing was stored.`)}</strong>${esc(` your journal goes back to thinking on your own hardware, or with whatever key or endpoint you point it at.`)}</li>
   <li><strong>${esc(`your journal is never touched.`)}</strong>${esc(` it lives on your own devices. turning this off doesn't reach it, and neither does canceling a subscription.`)}</li>
   <li>${esc(`the audio switch is separate and works the same way: turn it off and speech becomes text on your own device instead.`)}</li>
 </ul>
@@ -1567,7 +1567,7 @@ export function renderProcessingTerms() {
 <h2>${esc(`10. how your data is used`)}</h2>
 <p>${esc(`running this service involves three different things, and we keep them apart:`)}</p>
 <ul>
-  <li><strong>${esc(`what you send the model.`)}</strong>${esc(` the text and images sol needs a model to work through, plus your speech when the audio switch is on. our engine processes it and returns the result. `)}<strong>${esc(`the service runs zero data retention: no content is kept once your request is answered, not even in logs. no human reviews it. it is never sold, licensed, shared, profiled, or used for advertising.`)}</strong></li>
+  <li><strong>${esc(`what you send the model.`)}</strong>${esc(` the text and images your journal needs a model to work through, plus your speech when the audio switch is on. our engine processes it and returns the result. `)}<strong>${esc(`the service runs zero data retention: no content is kept once your request is answered, not even in logs. no human reviews it. it is never sold, licensed, shared, profiled, or used for advertising.`)}</strong></li>
   <li><strong>${esc(`nothing you send is used to train anything.`)}</strong>${esc(` not our models, not anyone else's. this is a commitment we make to you, and it is reinforced by our covenants: sol pbc's `)}<strong>${esc(`articles of incorporation (Article 8, the Customer Privacy Covenant)`)}</strong>${esc(` legally bind the company never to sell, license, or lease your data, never to use it for targeted advertising or behavioral profiling, and never to hand it outside sol pbc except in the narrow ways the covenant allows: to a provider strictly needed to run the service you asked for (Azure and stripe, above), at your own direction, or where the law compels it. those bind any successor through a sale, merger, or change of control. you can read them at `)}<a href="https://solpbc.org">${esc(`solpbc.org`)}</a>${esc(`.`)}</li>
   <li><strong>${esc(`counts, not content.`)}</strong>${esc(` to run the service and keep it healthy we keep fleet-wide totals. they are counts rather than content, they are not associated with you, your journal, or your account, and they are never used to profile you or to advertise to you.`)}</li>
   <li><strong>${esc(`your billing details, if and when you subscribe.`)}</strong>${esc(` your email, the fact of the subscription, renewal dates, and a reference linking it to your sign-in. used only to run your subscription.`)}</li>
