@@ -118,6 +118,7 @@ export async function resetDb() {
     'stripe_customers',
     'spl_bindings',
     'spb_bindings',
+    'spb_retired_tokens',
     'spp_bindings',
     'spb_mint_audit',
     'spp_mint_audit',

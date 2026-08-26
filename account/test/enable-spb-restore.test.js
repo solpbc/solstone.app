@@ -9,6 +9,7 @@ import {
   installS3FetchMock,
   makeTestEnv,
   resetDb,
+  rowCount,
   seedAccount,
   seedEntitlement,
   seedSession,
@@ -212,6 +213,7 @@ describe('/enable/backup?intent=restore', () => {
     expect(response.status).toBe(200);
     expect(payload).toEqual({ status: 'refused', reason_code: 'no_hosted_backup' });
     await expect(bindingRow(account.accountId, INSTANCE_A)).resolves.toBeNull();
+    expect(await rowCount('spb_retired_tokens')).toBe(0);
   });
 
   it('fails a duplicate restore-confirm nonce instead of reporting a second success', async () => {
@@ -483,7 +485,7 @@ function deleteBeforeSpbRotate(accountId, instanceId) {
   return {
     prepare(sql) {
       const statement = workerEnv.DB.prepare(sql);
-      if (!sql.includes('UPDATE spb_bindings')) return statement;
+      if (!sql.includes('INSERT INTO spb_retired_tokens')) return statement;
       return {
         bind(...args) {
           const bound = statement.bind(...args);
@@ -498,6 +500,13 @@ function deleteBeforeSpbRotate(accountId, instanceId) {
           };
         },
       };
+    },
+    async batch(statements) {
+      const results = [];
+      for (const statement of statements) {
+        results.push(await statement.run());
+      }
+      return results;
     },
   };
 }

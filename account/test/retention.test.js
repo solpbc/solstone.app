@@ -28,6 +28,7 @@ const COUNT_KEYS = [
   'sessions_revoked',
   'sessions_expired',
   'rate_buckets',
+  'spb_retired_tokens',
 ];
 
 describe('retention cron', () => {
@@ -173,6 +174,16 @@ describe('retention cron', () => {
       },
       gone: () => rowExists('rate_buckets', 'key', 'delete-rate-bucket'),
       kept: () => rowExists('rate_buckets', 'key', 'keep-rate-bucket'),
+    },
+    {
+      name: 'deletes old retired SPB tokens',
+      key: 'spb_retired_tokens',
+      seed: async () => {
+        await insertRetiredToken('delete-retired-token', 'retired-account', 'retired-instance', NOW - 7 * DAY_MS - 1);
+        await insertRetiredToken('keep-retired-token', 'retired-account', 'retired-instance', NOW - 7 * DAY_MS + 1);
+      },
+      gone: () => rowExists('spb_retired_tokens', 'token_hash', 'delete-retired-token'),
+      kept: () => rowExists('spb_retired_tokens', 'token_hash', 'keep-retired-token'),
     },
   ];
 
@@ -484,5 +495,12 @@ async function insertRateBucket(key, windowStart) {
   await workerEnv.DB
     .prepare('INSERT INTO rate_buckets (key, count, window_start) VALUES (?, 1, ?)')
     .bind(key, windowStart)
+    .run();
+}
+
+async function insertRetiredToken(tokenHash, accountId, instanceId, retiredAt) {
+  await workerEnv.DB
+    .prepare('INSERT INTO spb_retired_tokens (token_hash, account_id, instance_id, retired_at) VALUES (?, ?, ?, ?)')
+    .bind(tokenHash, accountId, instanceId, retiredAt)
     .run();
 }

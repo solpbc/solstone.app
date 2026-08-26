@@ -296,6 +296,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_spb_bindings_token_hash
   ON spb_bindings(token_hash)
   WHERE token_hash IS NOT NULL;
 
+-- spb_retired_tokens: captures a binding's old token_hash at rotation time so a
+-- stranded device presenting it gets a diagnosable 401 instead of a generic
+-- invalid_token. See migration 0027.
+CREATE TABLE IF NOT EXISTS spb_retired_tokens (
+  token_hash TEXT PRIMARY KEY NOT NULL,
+  account_id TEXT NOT NULL,
+  instance_id TEXT NOT NULL,
+  retired_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_spb_retired_tokens_retired_at ON spb_retired_tokens(retired_at);
+
 -- spp_bindings: schema hook for SPP confidential-processing access.
 -- Records binding identity plus broker-token lookup; SPP has no lapse clock or retention lifecycle.
 CREATE TABLE IF NOT EXISTS spp_bindings (

@@ -2,6 +2,7 @@ import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
+import { rotateSpbBindingToken } from '../src/db.js';
 import {
   fetchWithCtx,
   installConsoleSpy,
@@ -340,6 +341,70 @@ describe('spb credential broker', () => {
       account_id: null,
       instance_id: null,
     });
+  });
+
+  it('treats a retired (rotated) token as superseded rather than merely invalid', async () => {
+    const OLD_TOKEN = 'spb-broker-token-old';
+    const NEW_TOKEN = 'spb-broker-token-new';
+    const { testEnv, account } = await seedBrokerReady({ token: OLD_TOKEN });
+    const newHash = await hashWithPepper(NEW_TOKEN, testEnv);
+    await expect(rotateSpbBindingToken(testEnv.DB, {
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      tokenHash: newHash,
+      nowMs: 5_000,
+    })).resolves.toBe(true);
+
+    const response = await worker.fetch(credentialsRequest({ scope: 'backup' }, OLD_TOKEN), testEnv);
+
+    await expectError(response, 401, 'binding_superseded');
+    expect(await rowCount('spb_mint_audit')).toBe(0);
+  });
+
+  it('emits a real-identity refusal alert for a superseded token, unlike pre-identity refusals', async () => {
+    const OLD_TOKEN = 'spb-broker-token-old';
+    const NEW_TOKEN = 'spb-broker-token-new';
+    const calls = [];
+    installHubStub(calls);
+    const testEnv = makeTestEnv({ HUB_WEBHOOK_URL: HUB_URL });
+    const { account } = await seedBrokerReady({ testEnv, token: OLD_TOKEN });
+    const newHash = await hashWithPepper(NEW_TOKEN, testEnv);
+    await rotateSpbBindingToken(testEnv.DB, {
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      tokenHash: newHash,
+      nowMs: 5_000,
+    });
+
+    const { response } = await fetchWithCtx(worker, credentialsRequest({ scope: 'backup' }, OLD_TOKEN), testEnv);
+
+    await expectError(response, 401, 'binding_superseded');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toMatchObject({
+      type: 'spb_mint_refused',
+      tier: 'T4',
+      outcome: 'refused_superseded',
+      account_id: account.accountId,
+      instance_id: INSTANCE_ID,
+    });
+  });
+
+  it('lets the kill switch short-circuit before a superseded-token check', async () => {
+    const OLD_TOKEN = 'spb-broker-token-old';
+    const NEW_TOKEN = 'spb-broker-token-new';
+    const testEnv = makeTestEnv({ SPB_MINT_ENABLED: 'false' });
+    const { account } = await seedBrokerReady({ testEnv, token: OLD_TOKEN });
+    const newHash = await hashWithPepper(NEW_TOKEN, testEnv);
+    await rotateSpbBindingToken(testEnv.DB, {
+      accountId: account.accountId,
+      instanceId: INSTANCE_ID,
+      tokenHash: newHash,
+      nowMs: 5_000,
+    });
+
+    const response = await worker.fetch(credentialsRequest({ scope: 'backup' }, OLD_TOKEN), testEnv);
+
+    await expectError(response, 503, 'mint_disabled');
   });
 
   it('keeps audit rows free of secrets after mint and post-identity refusal', async () => {

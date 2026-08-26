@@ -1061,15 +1061,25 @@ export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, n
 }
 
 export async function rotateSpbBindingToken(db, { accountId, instanceId, tokenHash, nowMs }) {
-  const result = await db
-    .prepare(
-      `UPDATE spb_bindings
-       SET token_hash = ?, last_seen_at = ?, lapsed_at = NULL
-       WHERE account_id = ? AND instance_id = ?`
-    )
-    .bind(tokenHash, nowMs, accountId, instanceId)
-    .run();
-  return result.meta.changes > 0;
+  const results = await db.batch([
+    db
+      .prepare(
+        `INSERT INTO spb_retired_tokens (token_hash, account_id, instance_id, retired_at)
+         SELECT token_hash, account_id, instance_id, ?3
+         FROM spb_bindings
+         WHERE account_id = ?1 AND instance_id = ?2 AND token_hash IS NOT NULL
+         ON CONFLICT(token_hash) DO NOTHING`
+      )
+      .bind(accountId, instanceId, nowMs),
+    db
+      .prepare(
+        `UPDATE spb_bindings
+         SET token_hash = ?, last_seen_at = ?, lapsed_at = NULL
+         WHERE account_id = ? AND instance_id = ?`
+      )
+      .bind(tokenHash, nowMs, accountId, instanceId),
+  ]);
+  return results[results.length - 1].meta.changes > 0;
 }
 
 export async function upsertSppBinding(db, {
@@ -1180,6 +1190,18 @@ export async function findSpbBindingByTokenHash(db, tokenHash) {
       `SELECT account_id, instance_id, lapsed_at
        FROM spb_bindings
        WHERE token_hash = ? AND token_hash IS NOT NULL`
+    )
+    .bind(tokenHash)
+    .first();
+  return row || null;
+}
+
+export async function findRetiredSpbToken(db, tokenHash) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, instance_id
+       FROM spb_retired_tokens
+       WHERE token_hash = ?`
     )
     .bind(tokenHash)
     .first();

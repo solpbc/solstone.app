@@ -1,5 +1,6 @@
 import { hashWithPepper } from './crypto.js';
 import {
+  findRetiredSpbToken,
   findSpbBindingByTokenHash,
   getEntitlement,
   insertSpbMintAudit,
@@ -27,6 +28,11 @@ export async function handleBackupCredentials(req, env, ctx) {
     const tokenHash = await hashWithPepper(match[1], env);
     const binding = await findSpbBindingByTokenHash(env.DB, tokenHash);
     if (!binding) {
+      const retired = await findRetiredSpbToken(env.DB, tokenHash);
+      if (retired) {
+        alertRefusal(env, ctx, 'refused_superseded', retired.account_id, retired.instance_id);
+        return json({ error: 'binding_superseded' }, { status: 401 });
+      }
       return refusePreIdentity(env, ctx, 'refused_binding', { error: 'invalid_token' }, 401);
     }
 
