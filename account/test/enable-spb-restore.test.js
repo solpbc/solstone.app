@@ -277,6 +277,38 @@ describe('/enable/backup?intent=restore', () => {
     expect((await bindingRow(account.accountId, INSTANCE_B)).token_hash).toBe(await hashWithPepper(second.broker_token, testEnv));
   });
 
+  it('resolves every binding concurrently so render time does not scale with binding count', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'restore-concurrent@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({ accountId: account.accountId, service: SERVICE, status: 'active' });
+    const instances = [INSTANCE_A, INSTANCE_B, INSTANCE_C];
+    for (const instanceId of instances) {
+      await seedSpbBinding({ accountId: account.accountId, instanceId, tokenHash: `hash-${instanceId}` });
+    }
+    const perBindingDelayMs = 60;
+    installS3FetchMock(testEnv, {
+      default: async ({ url }) => {
+        await new Promise((resolve) => setTimeout(resolve, perBindingDelayMs));
+        const value = objects(url.searchParams.get('prefix'));
+        return new Response(`<ListBucketResult><IsTruncated>false</IsTruncated>${value
+          .map((object) => `<Contents><Key>${object.key}</Key><LastModified>${object.lastModified}</LastModified><Size>${object.size}</Size></Contents>`)
+          .join('')}</ListBucketResult>`, { headers: { 'Content-Type': 'application/xml' } });
+      },
+    });
+
+    const startedAt = Date.now();
+    const response = await worker.fetch(new Request(restoreUrl({ nonce: NONCE_A }), { headers: { Cookie: session.cookie } }), testEnv);
+    const elapsedMs = Date.now() - startedAt;
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('choose which one to restore.');
+    // Three bindings serially would take >= 3 * perBindingDelayMs (180ms); resolved
+    // concurrently they take roughly one delay's worth. The threshold sits well inside
+    // that gap so the assertion is decisive, not timing-fragile.
+    expect(elapsedMs).toBeLessThan(instances.length * perBindingDelayMs);
+  });
+
   it('returns a non-mutating restore needs_subscription payload and retries the same binding after entitlement recovery', async () => {
     const testEnv = makeTestEnv();
     const first = await seedAccount({ email: 'restore-lapsed-first@example.com', testEnv });
