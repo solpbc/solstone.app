@@ -607,38 +607,54 @@ async function renderSpbRestoreResolution({ req, env, nonce, accountId, csrf, re
   return noStoreHtml(page);
 }
 
-async function resolveSpbRestore({ env, accountId, nowMs }) {
-  const bindings = await listSpbBindings(env.DB, accountId);
-  if (bindings.length === 0) return { kind: 'no_hosted_backup' };
-
-  const recoverable = [];
-  const expired = [];
-  let hasNoHostedBackup = false;
-  for (const binding of bindings) {
-    const instanceId = binding.instance_id;
-    const prefix = prefixFor(accountId, instanceId);
-    const credential = await mintScopedCredential(env, {
-      prefix,
-      scope: 'backup',
-      nowSeconds: Math.floor(nowMs / 1000),
-    });
-    if (!credential) throw new Error('could not mint restore proof credential');
-    const listing = await listObjectsV2(env, credential, { prefix, nowMs });
-    if (listing.keys.length > 0) {
-      const sizeBytes = listing.objects.reduce((total, object) => total + object.size, 0);
-      if (!Number.isSafeInteger(sizeBytes)) throw new Error('invalid restore object size total');
-      recoverable.push({
+async function resolveSpbBindingRestore({ env, accountId, binding, nowMs }) {
+  const instanceId = binding.instance_id;
+  const prefix = prefixFor(accountId, instanceId);
+  const credential = await mintScopedCredential(env, {
+    prefix,
+    scope: 'backup',
+    nowSeconds: Math.floor(nowMs / 1000),
+  });
+  if (!credential) throw new Error('could not mint restore proof credential');
+  const listing = await listObjectsV2(env, credential, { prefix, nowMs });
+  if (listing.keys.length > 0) {
+    const sizeBytes = listing.objects.reduce((total, object) => total + object.size, 0);
+    if (!Number.isSafeInteger(sizeBytes)) throw new Error('invalid restore object size total');
+    return {
+      kind: 'recoverable',
+      candidate: {
         instanceId,
         createdAt: binding.created_at,
         prefix,
         lastBackupMs: Math.max(...listing.objects.map((object) => object.lastModifiedMs)),
         sizeBytes,
-      });
-      continue;
-    }
+      },
+    };
+  }
 
-    const audit = await findSpbSweepAudit(env.DB, { accountId, instanceId, prefix });
-    if (audit) expired.push(audit);
+  const audit = await findSpbSweepAudit(env.DB, { accountId, instanceId, prefix });
+  if (audit) return { kind: 'expired', audit };
+  return { kind: 'no_hosted_backup' };
+}
+
+async function resolveSpbRestore({ env, accountId, nowMs }) {
+  const bindings = await listSpbBindings(env.DB, accountId);
+  if (bindings.length === 0) return { kind: 'no_hosted_backup' };
+
+  // Each binding's R2 listing is an independent network round trip; a binding count
+  // that only ever grows (the 30-day lapse sweep never reaches every stale row) made
+  // a serial loop here the render-time bottleneck behind the fresh-restore handoff
+  // lease expiring before the consent page could even appear.
+  const results = await Promise.all(
+    bindings.map((binding) => resolveSpbBindingRestore({ env, accountId, binding, nowMs })),
+  );
+
+  const recoverable = [];
+  const expired = [];
+  let hasNoHostedBackup = false;
+  for (const result of results) {
+    if (result.kind === 'recoverable') recoverable.push(result.candidate);
+    else if (result.kind === 'expired') expired.push(result.audit);
     else hasNoHostedBackup = true;
   }
 
