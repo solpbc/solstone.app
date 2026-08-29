@@ -54,7 +54,8 @@ SELECT
   next_attempt_at,
   attempt_count,
   confirmation_receipt_digest
-FROM account_deletion_service_ops;
+FROM account_deletion_service_ops
+ORDER BY rowid ASC;
 
 DROP TABLE account_deletion_service_ops;
 

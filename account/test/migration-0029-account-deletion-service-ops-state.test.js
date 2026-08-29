@@ -29,6 +29,17 @@ describe('migration 0029 account deletion service operation state', () => {
     await expect(insertServiceOperation('rejected', 'confirmed_absent')).rejects.toThrow(/CHECK constraint failed/i);
   });
 
+  it('preserves the latest service operation row across the rebuild', async () => {
+    await applyThrough('0028_account_deletions.sql');
+    await insertServiceOperation('superseded', 'retryable', { serviceOperationId: 'relay-superseded' });
+    await insertServiceOperation('current', 'complete', { serviceOperationId: 'relay-current' });
+    await expect(latestServiceOperation()).resolves.toMatchObject({ service_operation_id: 'relay-current' });
+
+    await applyThrough('0029_account_deletion_service_ops_state.sql', '0028_account_deletions.sql');
+
+    await expect(latestServiceOperation()).resolves.toMatchObject({ service_operation_id: 'relay-current' });
+  });
+
   it('keeps the final service operation table shape byte-identical to the 0029 replacement table', () => {
     expect(normalizedServiceOpsBlock(migration)).toBe(normalizedServiceOpsBlock(schema));
   });
@@ -55,19 +66,25 @@ async function runMigration(source) {
   }
 }
 
-async function insertServiceOperation(id, state) {
+async function insertServiceOperation(id, state, { serviceOperationId = 'service-operation' } = {}) {
   return workerEnv.DB.prepare(
     `INSERT INTO account_deletion_service_ops (
        id, operation_id, service, service_operation_id, request_digest, state,
        envelope_expires_at, next_attempt_at, attempt_count
-     ) VALUES (?, 'operation', 'relay', 'service-operation', 'digest', ?, 1, 1, 0)`
-  ).bind(id, state).run();
+     ) VALUES (?, 'operation', 'relay', ?, 'digest', ?, 1, 1, 0)`
+  ).bind(id, serviceOperationId, state).run();
 }
 
 async function serviceOperation(id) {
   return workerEnv.DB.prepare(
     'SELECT id, state FROM account_deletion_service_ops WHERE id = ?'
   ).bind(id).first();
+}
+
+async function latestServiceOperation() {
+  return workerEnv.DB.prepare(
+    "SELECT service_operation_id FROM account_deletion_service_ops WHERE operation_id = 'operation' AND service = 'relay' ORDER BY rowid DESC LIMIT 1"
+  ).first();
 }
 
 function normalizedServiceOpsBlock(source) {
