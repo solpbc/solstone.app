@@ -1,5 +1,5 @@
 import { hashWithPepper } from './crypto.js';
-import { findSppBindingByTokenHash, getEntitlement } from './db.js';
+import { findSppBindingByTokenHash, getActiveDeletionForAccount, getEntitlement } from './db.js';
 import { isSppEntitledToServe, SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 
 const NO_STORE_HEADERS = {
@@ -56,6 +56,10 @@ export async function handleSppAuthorize(req, env) {
     const binding = await findSppBindingByTokenHash(env.DB, tokenHash);
     if (!binding) {
       console.warn('spp_authorize_refused_entitlement');
+      return empty(401);
+    }
+    if (await getActiveDeletionForAccount(env.DB, binding.account_id)) {
+      console.warn('spp_authorize_refused_deletion');
       return empty(401);
     }
 

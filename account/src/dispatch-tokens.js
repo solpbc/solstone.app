@@ -1,5 +1,5 @@
 import { generateSessionToken, hashWithPepper } from './crypto.js';
-import { findActiveDispatchToken, insertDispatchToken } from './db.js';
+import { findActiveDispatchToken, getActiveDeletionForAccount, insertDispatchToken } from './db.js';
 import { json } from './index.js';
 
 export async function mintDispatchToken(env, accountId) {
@@ -16,7 +16,8 @@ export async function resolveDispatchToken(env, plaintext) {
   if (typeof plaintext !== 'string' || !plaintext) return null;
   const tokenHash = await hashWithPepper(plaintext, env, 'DISPATCH_TOKEN_PEPPER');
   const row = await findActiveDispatchToken(env.DB, tokenHash);
-  return row ? { accountId: row.account_id } : null;
+  if (!row || await getActiveDeletionForAccount(env.DB, row.account_id)) return null;
+  return { accountId: row.account_id };
 }
 
 export async function resolveBearerAccount(req, env) {

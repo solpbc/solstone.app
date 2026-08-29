@@ -11,6 +11,7 @@ import {
   consumePasskeyChallenge,
   createSession,
   getDashboardData,
+  getActiveDeletionForAccount,
   getPasskeyCredential,
   getPasskeyUserHandle,
   getRateBucketCount,
@@ -230,6 +231,9 @@ export async function passkeyAuthFinish(req, env) {
     }
     const credentialRow = await getPasskeyCredential(env.DB, credentialId);
     if (!credentialRow) return fail('passkey_auth_finish_not_found', 401, 'sign-in failed');
+    if (await getActiveDeletionForAccount(env.DB, credentialRow.account_id)) {
+      return fail('passkey_auth_finish_deletion', 401, 'sign-in failed');
+    }
 
     const expectedHandle = await getPasskeyUserHandle(env.DB, credentialRow.account_id);
     const reportedHandle = response?.response?.userHandle || null;
@@ -237,25 +241,15 @@ export async function passkeyAuthFinish(req, env) {
       return fail('passkey_auth_finish_handle', 401, 'sign-in failed');
     }
 
-    let verification;
-    try {
-      verification = await verifyAuthenticationResponse({
-        response,
-        expectedChallenge: challenge,
-        expectedOrigin: EXPECTED_ORIGIN,
-        expectedRPID: RP_ID,
-        credential: {
-          id: credentialRow.credential_id,
-          publicKey: toUint8Array(credentialRow.public_key),
-          counter: credentialRow.counter || 0,
-        },
-        requireUserVerification: false,
-      });
-    } catch {
+    const verification = await verifyPasskeyAssertion({
+      response,
+      expectedChallenge: challenge,
+      credentialRow,
+      requireUserVerification: false,
+    });
+    if (!verification) {
       return fail('passkey_auth_verify_failed', 401, 'sign-in failed');
     }
-    if (!verification.verified) return fail('passkey_auth_finish_verify', 401, 'sign-in failed');
-
     const newCounter = verification.authenticationInfo?.newCounter ?? credentialRow.counter ?? 0;
     await updatePasskeyCredentialCounter(env.DB, credentialRow.credential_id, newCounter, nowMs);
     await updateAccountLastSignin(env.DB, credentialRow.account_id, nowMs);
@@ -278,6 +272,35 @@ export async function passkeyAuthFinish(req, env) {
   } catch {
     return fail('passkey_auth_finish_failed', 500, 'passkey request failed');
   }
+}
+
+export async function verifyPasskeyAssertion({
+  response,
+  expectedChallenge,
+  credentialRow,
+  requireUserVerification,
+}) {
+  try {
+    const verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: EXPECTED_ORIGIN,
+      expectedRPID: RP_ID,
+      credential: {
+        id: credentialRow.credential_id,
+        publicKey: toUint8Array(credentialRow.public_key),
+        counter: credentialRow.counter || 0,
+      },
+      requireUserVerification,
+    });
+    return verification.verified ? verification : null;
+  } catch {
+    return null;
+  }
+}
+
+export function passkeyChallengeFromClientData(clientDataJSONB64u) {
+  return extractChallengeFromClientData(clientDataJSONB64u);
 }
 
 export function passkeyOriginAllowed(req, _env) {

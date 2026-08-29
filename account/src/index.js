@@ -18,6 +18,7 @@ import {
   countActiveDevices,
   findEmailByHash,
   getEntitlement,
+  getActiveDeletionForAccount,
   hasAnyActivePasskey,
   matchOtp,
   upsertOtp,
@@ -77,6 +78,16 @@ import {
   handleVerifyEmailPost,
 } from './emails.js';
 import {
+  handleAccountDeletionPage,
+  handleDeletionCancel,
+  handleDeletionConfirm,
+  handleDeletionOtpStart,
+  handleDeletionOtpVerify,
+  handleDeletionPasskeyFinish,
+  handleDeletionPasskeyStart,
+  handleDeletionStatus,
+} from './deletion.js';
+import {
   renderConfidentialProcessingData,
   renderConfidentialProcessingLanding,
   renderError,
@@ -117,6 +128,7 @@ import {
 import { runRetention } from './retention.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { runSpbLapseSweep } from './spb-sweep.js';
+import { runAccountDeletionCoordinator } from './deletion-coordinator.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { handleSppAuthorize } from './spp-authorize.js';
@@ -143,6 +155,7 @@ const EMAIL_DAY_LIMIT = 5;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const SWEEP_CRON = '0 3 * * *';
+const DELETION_CRON = '*/15 * * * *';
 
 const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -665,6 +678,38 @@ async function routeRequest(req, env, ctx) {
         return handleTransparency(req, env);
       }
 
+      if (url.pathname === '/account/delete' && req.method === 'GET') {
+        return handleAccountDeletionPage(req, env);
+      }
+
+      if (url.pathname === '/account/delete/proof/otp' && req.method === 'POST') {
+        return handleDeletionOtpStart(req, env);
+      }
+
+      if (url.pathname === '/account/delete/proof/otp/verify' && req.method === 'POST') {
+        return handleDeletionOtpVerify(req, env);
+      }
+
+      if (url.pathname === '/account/delete/proof/passkey/start' && req.method === 'POST') {
+        return handleDeletionPasskeyStart(req, env);
+      }
+
+      if (url.pathname === '/account/delete/proof/passkey/finish' && req.method === 'POST') {
+        return handleDeletionPasskeyFinish(req, env);
+      }
+
+      if (url.pathname === '/account/delete/confirm' && req.method === 'POST') {
+        return handleDeletionConfirm(req, env);
+      }
+
+      if (url.pathname === '/account/delete/cancel' && req.method === 'POST') {
+        return handleDeletionCancel(req, env);
+      }
+
+      if (url.pathname === '/account/delete/status' && req.method === 'GET') {
+        return handleDeletionStatus(req, env);
+      }
+
       if (
         parts.length === 5 &&
         parts[1] === 'sign-in' &&
@@ -1016,7 +1061,9 @@ export default {
     return response;
   },
   async scheduled(event, env, ctx) {
-    if (event.cron === SWEEP_CRON) {
+    if (event.cron === DELETION_CRON) {
+      await runAccountDeletionCoordinator(env);
+    } else if (event.cron === SWEEP_CRON) {
       await runSpbLapseSweep(env, ctx);
     } else {
       await runRetention(env);
@@ -1196,6 +1243,9 @@ async function handleSigninVerifyPost(req, env) {
         addressLowerHash: emailLowerHash,
         nowMs,
       })).accountId;
+  if (await getActiveDeletionForAccount(env.DB, accountId)) {
+    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR, csrf, next: resume?.next || '', nextSig: resume?.nextSig || '' }));
+  }
   await updateAccountLastSignin(env.DB, accountId, nowMs);
 
   const sessionToken = generateSessionToken();

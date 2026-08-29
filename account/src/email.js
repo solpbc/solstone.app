@@ -31,6 +31,40 @@ if you didn't request this, you can ignore this email.`;
   return { sent: true, messageId: response?.messageId };
 }
 
+export async function sendDeletionProofEmail({ env, address, code, purpose }) {
+  const formatted = `${code.slice(0, 3)} ${code.slice(3)}`;
+  const action = purpose === 'cancel' ? 'cancel an account deletion request' : 'delete your sign-in and services';
+  const subject = `confirm ${action}: ${formatted}`;
+  const text = `you requested to ${action}.
+
+enter this code to continue:
+
+${formatted}
+
+it expires in 10 minutes.
+
+this confirmation starts an irreversible-account-action workflow. retention and financial details will be provided before deployment.
+
+if you did not request this, you can ignore this email.`;
+  const html = `<!DOCTYPE html>
+<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
+  <p>you requested to ${action}.</p>
+  <p>enter this code to continue:</p>
+  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #B42318; background: #FFF4F2; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
+  <p>it expires in 10 minutes.</p>
+  <p>this confirmation starts an irreversible-account-action workflow. retention and financial details will be provided before deployment.</p>
+  <p>if you did not request this, you can ignore this email.</p>
+</body></html>`;
+  const response = await env.EMAIL.send({
+    to: address,
+    from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+    subject,
+    text,
+    html,
+  });
+  return { sent: true, messageId: response?.messageId };
+}
+
 export async function sendVerifyEmail({ env, address, code }) {
   const formatted = `${code.slice(0, 3)} ${code.slice(3)}`;
   const subject = `verify your sol pbc email: ${formatted}`;

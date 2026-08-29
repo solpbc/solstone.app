@@ -1,6 +1,7 @@
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
   getAccountByStripeCustomer,
+  getActiveDeletionForAccount,
   getEntitlement,
   getRelayDeviceSignal,
   getScoutApplicationStatusByAccount,
@@ -171,6 +172,7 @@ function serviceTag(metadataHolder) {
 }
 
 async function reconcileForService(service, env, accountId, nowMs, ctx, opts) {
+  if (await getActiveDeletionForAccount(env.DB, accountId)) return;
   if (service === 'spb') return reconcileSpbEntitlement(env, accountId, nowMs, ctx, opts);
   return reconcileSplEntitlement(env, accountId, nowMs, ctx, opts);
 }
@@ -180,6 +182,7 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   const stripeCustomerId = typeof obj?.customer === 'string' ? obj.customer : '';
   const subscriptionId = typeof obj?.subscription === 'string' ? obj.subscription : '';
   if (!accountId || !stripeCustomerId || !subscriptionId) return;
+  if (await getActiveDeletionForAccount(env.DB, accountId)) return;
   await upsertStripeCustomer(env.DB, { accountId, stripeCustomerId, nowMs });
   const subscription = await getSubscription(env, subscriptionId);
   await reconcileForService(serviceTag(subscription), env, accountId, nowMs, ctx, {

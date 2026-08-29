@@ -80,7 +80,7 @@ export async function runSpbLapseSweep(env, ctx, nowMs = Date.now()) {
   });
 }
 
-async function drainObjects(env, cred, prefix, nowMs) {
+export async function drainObjects(env, cred, prefix, nowMs) {
   let totalDeleted = 0;
 
   for (;;) {
@@ -105,7 +105,7 @@ async function drainObjects(env, cred, prefix, nowMs) {
   }
 }
 
-async function drainMultipartUploads(env, cred, prefix, nowMs) {
+export async function drainMultipartUploads(env, cred, prefix, nowMs) {
   let totalAborted = 0;
 
   for (;;) {

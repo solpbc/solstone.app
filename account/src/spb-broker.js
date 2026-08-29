@@ -2,12 +2,14 @@ import { hashWithPepper } from './crypto.js';
 import {
   findRetiredSpbToken,
   findSpbBindingByTokenHash,
+  finalizeSpbMintReservation,
   getEntitlement,
   insertSpbMintAudit,
+  reserveSpbMint,
 } from './db.js';
 import { emitSecurityEvent } from './hub.js';
 import { json } from './index.js';
-import { mintScopedCredential } from './r2-credential.js';
+import { mintScopedCredential, scopeConfigFor } from './r2-credential.js';
 import { isSpbEntitledToServe, SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 
 export async function handleBackupCredentials(req, env, ctx) {
@@ -30,7 +32,7 @@ export async function handleBackupCredentials(req, env, ctx) {
     if (!binding) {
       const retired = await findRetiredSpbToken(env.DB, tokenHash);
       if (retired) {
-        alertRefusal(env, ctx, 'refused_superseded', retired.account_id, retired.instance_id);
+        await alertRefusal(env, ctx, 'refused_superseded', retired.account_id, retired.instance_id);
         return json({ error: 'binding_superseded' }, { status: 401 });
       }
       return refusePreIdentity(env, ctx, 'refused_binding', { error: 'invalid_token' }, 401);
@@ -50,12 +52,30 @@ export async function handleBackupCredentials(req, env, ctx) {
         outcome: 'refused_entitlement',
         ts: nowMs,
       });
-      alertRefusal(env, ctx, 'refused_entitlement', accountId, instanceId);
+      await alertRefusal(env, ctx, 'refused_entitlement', accountId, instanceId);
       return json({ error: 'needs_subscription' }, { status: 402 });
     }
 
     const body = await readJson(req);
     const scope = body?.scope;
+    const scopeConfig = scopeConfigFor(scope);
+    if (!scopeConfig) {
+      await audit(env, { accountId, instanceId, prefix, scope: null, ttl: null, outcome: 'refused_scope', ts: nowMs });
+      await alertRefusal(env, ctx, 'refused_scope', accountId, instanceId);
+      return json({ error: 'invalid_scope' }, { status: 400 });
+    }
+    const reservationId = crypto.randomUUID();
+    const reserved = await reserveSpbMint(env.DB, {
+      id: reservationId,
+      accountId,
+      instanceId,
+      scope,
+      reservedExpiresAt: (nowSeconds + scopeConfig.ttl) * 1000,
+      createdAt: nowMs,
+    });
+    if (!reserved) {
+      return json({ error: 'deletion_in_progress' }, { status: 409 });
+    }
     const credential = await mintScopedCredential(env, { prefix, scope, nowSeconds });
     if (!credential) {
       await audit(env, {
@@ -67,7 +87,7 @@ export async function handleBackupCredentials(req, env, ctx) {
         outcome: 'refused_scope',
         ts: nowMs,
       });
-      alertRefusal(env, ctx, 'refused_scope', accountId, instanceId);
+      await alertRefusal(env, ctx, 'refused_scope', accountId, instanceId);
       return json({ error: 'invalid_scope' }, { status: 400 });
     }
 
@@ -83,6 +103,7 @@ export async function handleBackupCredentials(req, env, ctx) {
       outcome: 'minted',
       ts: nowMs,
     });
+    await finalizeSpbMintReservation(env.DB, { id: reservationId });
 
     return json({
       access_key_id: accessKeyId,
@@ -103,18 +124,19 @@ function refusePreIdentity(env, ctx, outcome, body, status) {
   // refused_killswitch is the expected operator state while minting is disabled (dark),
   // not a security anomaly — don't page on it (scanner/health-probe noise). Real probes
   // (refused_binding, a bad bearer token) still alert.
-  if (outcome !== 'refused_killswitch') alertRefusal(env, ctx, outcome, null, null);
+  if (outcome !== 'refused_killswitch') void alertRefusal(env, ctx, outcome, null, null);
   console.warn(JSON.stringify({ event: 'spb_mint_refused', outcome }));
   return json(body, { status });
 }
 
-function alertRefusal(env, ctx, outcome, accountId, instanceId) {
+async function alertRefusal(env, ctx, outcome, accountId, instanceId) {
   emitSecurityEvent(env, ctx, {
     type: 'spb_mint_refused',
     tier: 'T4',
     outcome,
-    account_id: accountId ?? null,
-    instance_id: instanceId ?? null,
+    identified: accountId != null,
+    account_ref: accountId == null ? null : await hashWithPepper(`hub:account:${accountId}`, env),
+    instance_ref: instanceId == null ? null : await hashWithPepper(`hub:instance:${instanceId}`, env),
   });
 }
 

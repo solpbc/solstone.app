@@ -1,5 +1,6 @@
 import {
   clearSpbBindingLapsed,
+  getActiveDeletionForAccount,
   getEntitlement,
   getScoutApplicationStatusByAccount,
   markSpbBindingLapsed,
@@ -20,6 +21,7 @@ export function isSpbEntitledToServe(row, nowSeconds, env) {
 
 export async function reconcileSpbEntitlement(env, accountId, nowMs, ctx, opts = {}) {
   // ctx is intentionally unused: SPB keeps caller symmetry but has no relay/background work.
+  if (await getActiveDeletionForAccount(env.DB, accountId)) return;
   const row = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });
   const paid = opts.paid !== undefined ? opts.paid : paidSignalFromRow(row);
 

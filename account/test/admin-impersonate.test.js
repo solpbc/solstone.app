@@ -359,10 +359,13 @@ describe('admin impersonate durable security events', () => {
       type: 'impersonate',
       office: 'cso',
       tier: 'T4',
-      operator: 'jer@solpbc.org',
-      account_id: account.accountId,
     });
-    expect(hubCalls[0].body.session_id_hash).toEqual(expect.any(String));
+    expect(hubCalls[0].body.operator_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(hubCalls[0].body.account_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(hubCalls[0].body.session_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(hubCalls[0].body).not.toHaveProperty('operator');
+    expect(hubCalls[0].body).not.toHaveProperty('account_id');
+    expect(hubCalls[0].body).not.toHaveProperty('session_id_hash');
     expect(typeof hubCalls[0].body.ts).toBe('string');
     expect(JSON.stringify(hubCalls[0].body)).not.toContain(body.session_token);
   });
@@ -390,10 +393,12 @@ describe('admin impersonate durable security events', () => {
       type: 'impersonate_denied',
       office: 'cso',
       tier: 'T4',
-      operator: 'jer@solpbc.org',
-      account_id: account.accountId,
       reason: 'disabled',
     });
+    expect(hubCalls[0].body.operator_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(hubCalls[0].body.account_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(hubCalls[0].body).not.toHaveProperty('operator');
+    expect(hubCalls[0].body).not.toHaveProperty('account_id');
   });
 
   it('does not POST a hub event when the sink is unconfigured, and still mints', async () => {

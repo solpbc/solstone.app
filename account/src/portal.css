@@ -274,6 +274,7 @@ input[type=email], input[type=text], input.code, textarea, select {
   background: var(--cream-bright); font: inherit; color: var(--ink); margin-bottom: 14px;
 }
 input:focus, textarea:focus, select:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--orange-ink); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* acknowledgement row — a real, touch-sized consent target */
 .ack { display: flex; align-items: center; gap: 10px; min-height: 46px; margin-bottom: 14px; color: var(--ink); cursor: pointer; }
 .ack input[type=checkbox] { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--orange); }

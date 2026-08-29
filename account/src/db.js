@@ -565,6 +565,203 @@ export async function getRateBucketCount(db, key, windowMs, nowMs) {
   return row.count;
 }
 
+// --- Account deletion ---
+
+export async function captureDeletionSnapshot(db, {
+  operationId,
+  snapshotEncrypted,
+  snapshotDigest,
+  frozenAt,
+}) {
+  const result = await db
+    .prepare(
+      `UPDATE account_deletions
+       SET phase = 'frozen', frozen_at = ?, snapshot_encrypted = ?, snapshot_digest = ?
+       WHERE operation_id = ? AND phase = 'requested'`
+    )
+    .bind(frozenAt, snapshotEncrypted, snapshotDigest, operationId)
+    .run();
+  return result?.meta?.changes === 1;
+}
+
+export async function getActiveDeletionForAccount(db, accountId) {
+  const row = await db
+    .prepare(
+      `SELECT * FROM account_deletions
+       WHERE account_id = ? AND phase IN ('requested', 'frozen', 'purging')
+       LIMIT 1`
+    )
+    .bind(accountId)
+    .first();
+  return row || null;
+}
+
+export async function createDeletionProof(db, {
+  tokenHash,
+  accountId,
+  sessionIdHash,
+  purpose,
+  method,
+  issuedAt,
+  expiresAt,
+  otpCodeHash = null,
+  passkeyChallenge = null,
+}) {
+  await db
+    .prepare(
+      `INSERT INTO account_deletion_proofs (
+         token_hash, account_id, session_id_hash, purpose, method, issued_at, expires_at,
+         verified, consumed, attempt_count, otp_code_hash, passkey_challenge
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)`
+    )
+    .bind(
+      tokenHash,
+      accountId,
+      sessionIdHash,
+      purpose,
+      method,
+      issuedAt,
+      expiresAt,
+      otpCodeHash,
+      passkeyChallenge
+    )
+    .run();
+}
+
+export async function getLatestDeletionProof(db, {
+  accountId,
+  sessionIdHash,
+  purpose,
+  method,
+  nowMs,
+  verified,
+}) {
+  const clauses = [
+    'account_id = ?',
+    'session_id_hash = ?',
+    'purpose = ?',
+    'method = ?',
+    'consumed = 0',
+    'expires_at > ?',
+  ];
+  const values = [accountId, sessionIdHash, purpose, method, nowMs];
+  if (verified !== undefined) {
+    clauses.push('verified = ?');
+    values.push(verified ? 1 : 0);
+  }
+  const row = await db
+    .prepare(
+      `SELECT * FROM account_deletion_proofs
+       WHERE ${clauses.join(' AND ')}
+       ORDER BY issued_at DESC
+       LIMIT 1`
+    )
+    .bind(...values)
+    .first();
+  return row || null;
+}
+
+export async function markDeletionProofVerified(db, { tokenHash, nowMs }) {
+  const result = await db
+    .prepare(
+      `UPDATE account_deletion_proofs
+       SET verified = 1
+       WHERE token_hash = ? AND consumed = 0 AND expires_at > ?`
+    )
+    .bind(tokenHash, nowMs)
+    .run();
+  return result?.meta?.changes === 1;
+}
+
+export async function bumpDeletionProofAttempts(db, { tokenHash, nowMs, maxAttempts }) {
+  await db
+    .prepare(
+      `UPDATE account_deletion_proofs
+       SET attempt_count = attempt_count + 1,
+           consumed = CASE WHEN attempt_count + 1 >= ? THEN 1 ELSE consumed END
+       WHERE token_hash = ? AND consumed = 0 AND expires_at > ?`
+    )
+    .bind(maxAttempts, tokenHash, nowMs)
+    .run();
+}
+
+export async function getDeletionByStatusTokenHash(db, statusTokenHash) {
+  const row = await db
+    .prepare('SELECT * FROM account_deletions WHERE status_token_hash = ? LIMIT 1')
+    .bind(statusTokenHash)
+    .first();
+  return row || null;
+}
+
+export async function getCompletionVerifier(db, tokenHash) {
+  const row = await db
+    .prepare('SELECT token_hash, state, completed_at, expires_at FROM account_deletion_completions WHERE token_hash = ?')
+    .bind(tokenHash)
+    .first();
+  return row || null;
+}
+
+export async function consumeProofsAndCreateDeletionRequest(db, {
+  proofTokenHashes,
+  accountId,
+  sessionIdHash,
+  operationId,
+  statusTokenHash,
+  requestedAt,
+  cancellationDeadlineAt,
+}) {
+  const statements = proofTokenHashes.map((tokenHash) => db
+    .prepare(
+      `UPDATE account_deletion_proofs
+       SET consumed = 1
+       WHERE token_hash = ? AND account_id = ? AND session_id_hash = ?
+         AND purpose = 'delete' AND verified = 1 AND consumed = 0 AND expires_at > ?`
+    )
+    .bind(tokenHash, accountId, sessionIdHash, requestedAt));
+  statements.push(db
+    .prepare(
+      `INSERT INTO account_deletions (
+         operation_id, account_id, phase, requested_at, cancellation_deadline_at,
+         next_attempt_at, attempt_count, status_token_hash
+       ) VALUES (?, ?, 'requested', ?, ?, ?, 0, ?)`
+    )
+    .bind(operationId, accountId, requestedAt, cancellationDeadlineAt, requestedAt, statusTokenHash));
+  const results = await db.batch(statements);
+  const proofChanges = results.slice(0, -1).every((result) => result?.meta?.changes === 1);
+  const created = results.at(-1)?.meta?.changes === 1;
+  return { proofChanges, created };
+}
+
+export async function consumeProofsAndCancelDeletionRequest(db, {
+  proofTokenHashes,
+  accountId,
+  sessionIdHash,
+  operationId,
+  cancelledAt,
+}) {
+  const statements = proofTokenHashes.map((tokenHash) => db
+    .prepare(
+      `UPDATE account_deletion_proofs
+       SET consumed = 1
+       WHERE token_hash = ? AND account_id = ? AND session_id_hash = ?
+         AND purpose = 'cancel' AND verified = 1 AND consumed = 0 AND expires_at > ?`
+    )
+    .bind(tokenHash, accountId, sessionIdHash, cancelledAt));
+  statements.push(db
+    .prepare(
+      `UPDATE account_deletions
+       SET phase = 'cancelled', cancelled_at = ?, lease_token = NULL, lease_expires_at = NULL
+       WHERE operation_id = ? AND account_id = ?
+         AND phase IN ('requested', 'frozen') AND lease_token IS NULL`
+    )
+    .bind(cancelledAt, operationId, accountId));
+  const results = await db.batch(statements);
+  return {
+    proofChanges: results.slice(0, -1).every((result) => result?.meta?.changes === 1),
+    cancelled: results.at(-1)?.meta?.changes === 1,
+  };
+}
+
 // --- Service handoffs ---
 
 export async function insertServiceHandoff(db, {
@@ -600,6 +797,11 @@ export async function consumeServiceHandoff(db, { handoffHash, nowMs, service })
          AND service = ?
          AND consumed_at IS NULL
          AND expires_at > ?
+         AND NOT EXISTS (
+           SELECT 1 FROM account_deletions d
+           WHERE d.account_id = service_handoffs.account_id
+             AND d.phase IN ('requested', 'frozen', 'purging')
+         )
        RETURNING payload_encrypted`
     )
     .bind(nowMs, handoffHash, service, nowMs)
@@ -984,7 +1186,8 @@ export async function upsertEntitlement(db, {
     .prepare(
       `INSERT INTO entitlements (
          account_id, service, status, current_period_end, source, source_ref, enabled_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ) SELECT ?, ?, ?, ?, ?, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?)
        ON CONFLICT(account_id, service) DO UPDATE SET
          status = excluded.status,
          current_period_end = COALESCE(excluded.current_period_end, entitlements.current_period_end),
@@ -993,7 +1196,7 @@ export async function upsertEntitlement(db, {
          enabled_at = COALESCE(entitlements.enabled_at, excluded.enabled_at),
          updated_at = excluded.updated_at`
     )
-    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, nowMs)
+    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, nowMs, accountId)
     .run();
 }
 
@@ -1025,11 +1228,11 @@ export async function upsertStripeCustomer(db, { accountId, stripeCustomerId, no
   await db
     .prepare(
       `INSERT INTO stripe_customers (account_id, stripe_customer_id, created_at)
-       VALUES (?, ?, ?)
+       SELECT ?, ?, ? WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?)
        ON CONFLICT(account_id) DO UPDATE SET
          stripe_customer_id = excluded.stripe_customer_id`
     )
-    .bind(accountId, stripeCustomerId, nowMs)
+    .bind(accountId, stripeCustomerId, nowMs, accountId)
     .run();
 }
 
@@ -1135,6 +1338,14 @@ export async function listSpbBindings(db, accountId) {
   return results || [];
 }
 
+export async function listSppBindings(db, accountId) {
+  const { results } = await db
+    .prepare('SELECT instance_id FROM spp_bindings WHERE account_id = ? ORDER BY instance_id ASC')
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
 export async function markSpbBindingLapsed(db, { accountId, nowMs }) {
   await db
     .prepare('UPDATE spb_bindings SET lapsed_at = ? WHERE account_id = ? AND lapsed_at IS NULL')
@@ -1156,6 +1367,11 @@ export async function selectDueLapsedBindings(db, cutoffMs) {
        FROM spb_bindings
        WHERE lapsed_at IS NOT NULL
          AND lapsed_at <= ?
+         AND NOT EXISTS (
+           SELECT 1 FROM account_deletions d
+           WHERE d.account_id = spb_bindings.account_id
+             AND d.phase IN ('requested', 'frozen', 'purging')
+         )
        ORDER BY lapsed_at ASC, rowid ASC`
     )
     .bind(cutoffMs)
@@ -1228,6 +1444,34 @@ export async function insertSpbMintAudit(db, { accountId, instanceId, prefix, sc
     )
     .bind(accountId, instanceId, prefix, scope, ttl, outcome, ts)
     .run();
+}
+
+export async function reserveSpbMint(db, {
+  id,
+  accountId,
+  instanceId,
+  scope,
+  reservedExpiresAt,
+  createdAt,
+}) {
+  const row = await db
+    .prepare(
+      `INSERT INTO spb_mint_reservations (
+         id, account_id, instance_id, scope, reserved_expires_at, state, created_at
+       ) SELECT ?, ?, ?, ?, ?, 'reserved', ?
+       WHERE NOT EXISTS (
+         SELECT 1 FROM account_deletions
+         WHERE account_id = ? AND phase IN ('requested', 'frozen', 'purging')
+       )
+       RETURNING id`
+    )
+    .bind(id, accountId, instanceId, scope, reservedExpiresAt, createdAt, accountId)
+    .first();
+  return row != null;
+}
+
+export async function finalizeSpbMintReservation(db, { id }) {
+  await db.prepare("UPDATE spb_mint_reservations SET state = 'finalized' WHERE id = ? AND state = 'reserved'").bind(id).run();
 }
 
 export async function insertSppMintAudit(db, { accountId, instanceId, scope, outcome, nowMs }) {

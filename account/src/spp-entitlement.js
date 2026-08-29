@@ -1,4 +1,4 @@
-import { getScoutApplicationStatusByAccount, upsertEntitlement } from './db.js';
+import { getActiveDeletionForAccount, getScoutApplicationStatusByAccount, upsertEntitlement } from './db.js';
 
 export const SPP_HOSTED_SERVICE = 'spp_hosted';
 export const SPP_CONSENT_DISCLOSURE_VERSION = 'spp-consent-v2-audio';
@@ -10,6 +10,7 @@ export function isSppEntitledToServe(row, nowSeconds, env) {
 
 export async function reconcileSppEntitlement(env, accountId, nowMs, ctx) {
   // ctx unused: caller symmetry with the other reconcilers; SPP is comp-only, no billing/retention.
+  if (await getActiveDeletionForAccount(env.DB, accountId)) return;
   const application = await getScoutApplicationStatusByAccount(env.DB, { accountId });
   const status = application?.status === 'approved' ? 'active' : 'lapsed';
   await upsertEntitlement(env.DB, {

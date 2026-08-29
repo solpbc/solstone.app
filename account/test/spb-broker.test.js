@@ -302,8 +302,9 @@ describe('spb credential broker', () => {
     expect(refusalCalls).toHaveLength(1);
     expect(refusalCalls[0].headers['x-hub-secret']).toBe('hub-secret');
     expect(Object.keys(refusalCalls[0].body).sort()).toEqual([
-      'account_id',
-      'instance_id',
+      'account_ref',
+      'identified',
+      'instance_ref',
       'office',
       'outcome',
       'tier',
@@ -315,9 +316,12 @@ describe('spb credential broker', () => {
       type: 'spb_mint_refused',
       tier: 'T4',
       outcome: 'refused_scope',
-      account_id: refused.account.accountId,
-      instance_id: INSTANCE_ID,
+      identified: true,
     });
+    expect(refusalCalls[0].body.account_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(refusalCalls[0].body.instance_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(refusalCalls[0].body).not.toHaveProperty('account_id');
+    expect(refusalCalls[0].body).not.toHaveProperty('instance_id');
   });
 
   it('emits pre-identity refusal alerts without D1 audit rows', async () => {
@@ -338,8 +342,9 @@ describe('spb credential broker', () => {
       type: 'spb_mint_refused',
       tier: 'T4',
       outcome: 'refused_binding',
-      account_id: null,
-      instance_id: null,
+      identified: false,
+      account_ref: null,
+      instance_ref: null,
     });
   });
 
@@ -384,9 +389,12 @@ describe('spb credential broker', () => {
       type: 'spb_mint_refused',
       tier: 'T4',
       outcome: 'refused_superseded',
-      account_id: account.accountId,
-      instance_id: INSTANCE_ID,
+      identified: true,
     });
+    expect(calls[0].body.account_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(calls[0].body.instance_ref).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+    expect(calls[0].body).not.toHaveProperty('account_id');
+    expect(calls[0].body).not.toHaveProperty('instance_id');
   });
 
   it('lets the kill switch short-circuit before a superseded-token check', async () => {

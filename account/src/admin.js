@@ -11,6 +11,7 @@ import {
   createSession,
   findEmailByHash,
   getAccountTransparencyRow,
+  getActiveDeletionForAccount,
   getScoutApplicationByAccount,
   getScoutLifecycleMaxSequence,
   listEntitlementsForAccount,
@@ -211,6 +212,9 @@ async function listScouts(env, status) {
 }
 
 async function approveScout(request, env, accountId, actor, ctx) {
+  if (await getActiveDeletionForAccount(env.DB, accountId)) {
+    return json({ error: 'account deletion in progress' }, { status: 409, headers: SECURITY_HEADERS });
+  }
   const nowMs = Date.now();
   const reasonCode = await readScoutLifecycleReason(request, 'approve');
   if (!reasonCode) return invalidScoutLifecycleReason();
@@ -268,6 +272,9 @@ async function approveScout(request, env, accountId, actor, ctx) {
 }
 
 async function revokeScout(request, env, accountId, actor, ctx) {
+  if (await getActiveDeletionForAccount(env.DB, accountId)) {
+    return json({ error: 'account deletion in progress' }, { status: 409, headers: SECURITY_HEADERS });
+  }
   const nowMs = Date.now();
   const reasonCode = await readScoutLifecycleReason(request, 'revoke');
   if (!reasonCode) return invalidScoutLifecycleReason();
@@ -572,13 +579,20 @@ async function impersonateAccount(request, env, admin, ctx) {
   if (!account) {
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
+  if (await getActiveDeletionForAccount(env.DB, account.id)) {
+    return json({ error: 'account deletion in progress' }, { status: 409, headers: SECURITY_HEADERS });
+  }
 
   const operator = admin.email || admin.service;
   const allowlist = parseImpersonateAllowlist(env);
   if (!allowlist.has(account.id.toLowerCase())) {
     const reason = allowlist.size === 0 ? 'disabled' : 'not_allowlisted';
     console.warn(JSON.stringify({ event: 'admin_impersonate_denied', operator, account_id: account.id, reason }));
-    emitSecurityEvent(env, ctx, { type: 'impersonate_denied', tier: 'T4', operator, account_id: account.id, reason });
+    emitSecurityEvent(env, ctx, {
+      type: 'impersonate_denied', tier: 'T4',
+      operator_ref: await hashWithPepper(`hub:operator:${operator}`, env),
+      account_ref: await hashWithPepper(`hub:account:${account.id}`, env), reason,
+    });
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
 
@@ -597,9 +611,9 @@ async function impersonateAccount(request, env, admin, ctx) {
   emitSecurityEvent(env, ctx, {
     type: 'impersonate',
     tier: 'T4',
-    operator,
-    account_id: account.id,
-    session_id_hash: idHash,
+    operator_ref: await hashWithPepper(`hub:operator:${operator}`, env),
+    account_ref: await hashWithPepper(`hub:account:${account.id}`, env),
+    session_ref: await hashWithPepper(`hub:session:${idHash}`, env),
     expires_at: new Date(nowMs + IMPERSONATE_TTL_MS).toISOString(),
   });
   return json(

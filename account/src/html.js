@@ -1162,8 +1162,167 @@ ${TRANSPARENCY_INTRO}
 <p class="section-label">passkeys</p>
 ${passkeyHtml ? `<div class="group">${passkeyHtml}</div>` : '<p>no passkeys.</p>'}
 <p class="section-label">sessions</p>
-${sessionHtml ? `<div class="group">${sessionHtml}</div>` : '<p>no sessions.</p>'}`,
+${sessionHtml ? `<div class="group">${sessionHtml}</div>` : '<p>no sessions.</p>'}
+<p><a class="btn danger" href="/account/delete">delete sign-in and your services</a></p>`,
   });
+}
+
+// Shared owner-deletion form structure. Keeping validation, labelling, and live
+// status markup here prevents the request, proof, and cancellation pages from
+// drifting into different accessibility behaviour.
+export function renderDeletionForm({
+  heading,
+  action,
+  submitLabel,
+  fields = [],
+  hidden = {},
+  error = '',
+  status = '',
+  statusId = 'deletion-status',
+  intro = '',
+  extra = '',
+  method = 'post',
+}) {
+  const invalid = error && fields.length ? fields : [];
+  const errors = invalid.map((field) => ({ id: field.id, message: error }));
+  const errorSummary = errors.length
+    ? `<div class="error" role="alert" tabindex="-1" id="deletion-error-summary">
+  <h2>there is a problem</h2>
+  <ul>${errors.map((entry) => `<li><a href="#${escAttr(entry.id)}">${esc(entry.message)}</a></li>`).join('')}</ul>
+</div>`
+    : '';
+  const hiddenHtml = Object.entries(hidden)
+    .map(([name, value]) => `<input type="hidden" name="${escAttr(name)}" value="${escAttr(value)}">`)
+    .join('');
+  const fieldHtml = fields.map((field) => {
+    const fieldError = errors.find((entry) => entry.id === field.id);
+    const hintId = `${field.id}-hint`;
+    const errorId = `${field.id}-error`;
+    const describedBy = [hintId, fieldError ? errorId : ''].filter(Boolean).join(' ');
+    return `<div class="field">
+  <label for="${escAttr(field.id)}">${esc(field.label)}</label>
+  <p class="hint" id="${escAttr(hintId)}">${esc(field.hint)}</p>
+  <input id="${escAttr(field.id)}" name="${escAttr(field.name)}" type="${escAttr(field.type || 'text')}"${field.inputmode ? ` inputmode="${escAttr(field.inputmode)}"` : ''}${field.autocomplete ? ` autocomplete="${escAttr(field.autocomplete)}"` : ''}${field.pattern ? ` pattern="${escAttr(field.pattern)}"` : ''}${field.required === false ? '' : ' required'}${fieldError ? ` aria-invalid="true" aria-describedby="${escAttr(describedBy)}"` : ` aria-describedby="${escAttr(hintId)}"`}>
+  ${fieldError ? `<p class="error" id="${escAttr(errorId)}">${esc(fieldError.message)}</p>` : ''}
+</div>`;
+  }).join('');
+  return `<h1>${esc(heading)}</h1>
+${errorSummary}
+<p class="notice" aria-live="polite" id="${escAttr(statusId)}">${esc(status)}</p>
+${intro ? `<p class="lead">${esc(intro)}</p>` : ''}
+<div class="card"><form method="${escAttr(method)}" action="${escAttr(action)}">
+${hiddenHtml}
+${fieldHtml}
+${extra}
+<button class="btn danger" type="submit">${esc(submitLabel)}</button>
+</form></div>`;
+}
+
+export function renderDeletionPage({ menu, error = '', status = '' }) {
+  return layout({
+    title: 'delete sign-in and your services',
+    body: `${topbar(menu)}
+<a class="back" href="/transparency">${BACK_SVG} data transparency</a>
+${renderDeletionForm({
+  heading: 'delete sign-in and your services',
+  action: '/account/delete/proof/otp',
+  submitLabel: 'send a confirmation code',
+  hidden: { purpose: 'delete' },
+  error,
+  status,
+  statusId: 'deletion-request-status',
+  intro: 'This begins deletion of your portal sign-in and services after you confirm ownership.',
+})}
+<p>This does not delete a journal, device, or bucket you control. Those remain under their own owner-controlled arrangements.</p>
+<p class="disclosure">Retention and financial deletion details will be provided here before this feature is deployed.</p>`,
+  });
+}
+
+export function renderDeletionProofPage({ menu, purpose, error = '', status = '' }) {
+  const action = purpose === 'cancel' ? '/account/delete/cancel' : '/account/delete/confirm';
+  const actionLabel = purpose === 'cancel' ? 'cancel deletion' : 'confirm deletion request';
+  return layout({
+    title: purpose === 'cancel' ? 'prove ownership to cancel deletion' : 'prove ownership to delete',
+    body: `${topbar(menu)}
+<a class="back" href="/account/delete">${BACK_SVG} deletion request</a>
+${renderDeletionForm({
+  heading: purpose === 'cancel' ? 'prove ownership to cancel deletion' : 'prove ownership to delete',
+  action: '/account/delete/proof/otp/verify',
+  submitLabel: 'verify code',
+  hidden: { purpose },
+  error,
+  status,
+  statusId: 'deletion-otp-status',
+  intro: 'Enter the fresh code sent to your verified email address.',
+  fields: [{
+    id: 'deletion-otp-code', name: 'code', label: '6-digit code',
+    hint: 'The code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
+    autocomplete: 'one-time-code', pattern: '[0-9]*',
+  }],
+})}
+${renderDeletionForm({
+  heading: 'passkey proof',
+  action,
+  submitLabel: actionLabel,
+  hidden: { purpose },
+  status: '',
+  statusId: 'deletion-passkey-status',
+  intro: 'If you have an active passkey, you must also verify it before continuing.',
+  extra: `<button class="btn secondary" type="button" data-deletion-passkey data-purpose="${escAttr(purpose)}">verify with passkey</button>`,
+})}
+${deletionPasskeyScript()}`,
+  });
+}
+
+export function renderDeletionCancelPage({ menu, phase }) {
+  if (phase === 'purging') {
+    return layout({
+      title: 'deletion in progress',
+      body: `${topbar(menu)}<h1>deletion in progress</h1><p>The deletion safety period has ended and this request can no longer be cancelled.</p>`,
+    });
+  }
+  return layout({
+    title: 'cancel deletion request',
+    body: `${topbar(menu)}
+${renderDeletionForm({
+  heading: 'cancel deletion request',
+  action: '/account/delete/proof/otp',
+  submitLabel: 'send a cancellation code',
+  hidden: { purpose: 'cancel' },
+  intro: 'A fresh ownership proof is required before cancellation.',
+  statusId: 'deletion-cancel-status',
+})}`,
+  });
+}
+
+export function renderDeletionStatus({ state = 'deletion status unavailable' } = {}) {
+  return layout({
+    title: 'deletion status',
+    body: `${brandbar()}<h1>deletion status</h1><p aria-live="polite">${esc(state)}</p>`,
+  });
+}
+
+function deletionPasskeyScript() {
+  return `<script>
+document.querySelectorAll('[data-deletion-passkey]').forEach((button) => button.addEventListener('click', async () => {
+  const status = document.getElementById('deletion-passkey-status');
+  const purpose = button.dataset.purpose;
+  try {
+    const start = await fetch('/account/delete/proof/passkey/start', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:JSON.stringify({purpose})});
+    const startBody = await start.json();
+    if (!start.ok) throw new Error('start');
+    const options = startBody.options;
+    options.challenge = Uint8Array.from(atob(options.challenge.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+    options.allowCredentials = (options.allowCredentials || []).map((item) => ({...item,id:Uint8Array.from(atob(item.id.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))}));
+    const credential = await navigator.credentials.get({publicKey:options});
+    const b64 = (value) => btoa(String.fromCharCode(...new Uint8Array(value))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+    const response = {id:credential.id,rawId:b64(credential.rawId),type:credential.type,response:{clientDataJSON:b64(credential.response.clientDataJSON),authenticatorData:b64(credential.response.authenticatorData),signature:b64(credential.response.signature),userHandle:credential.response.userHandle ? b64(credential.response.userHandle) : null},clientExtensionResults:credential.getClientExtensionResults()};
+    const finish = await fetch('/account/delete/proof/passkey/finish', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:JSON.stringify({purpose,response})});
+    if (!finish.ok) throw new Error('finish');
+    status.textContent = 'passkey proof verified';
+  } catch (_) { window.location.reload(); }
+}));
+</script>`;
 }
 
 export function renderSignInSessions({ rows, currentIdHash, now, menu }) {

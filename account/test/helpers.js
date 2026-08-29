@@ -114,6 +114,11 @@ export function makeFakeKv() {
 
 export async function resetDb() {
   for (const table of [
+    'account_deletion_completions',
+    'account_deletion_service_ops',
+    'account_deletion_proofs',
+    'account_deletions',
+    'spb_mint_reservations',
     'entitlements',
     'stripe_customers',
     'spl_bindings',

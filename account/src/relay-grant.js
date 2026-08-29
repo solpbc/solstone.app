@@ -1,5 +1,6 @@
 import {
   getEntitlement,
+  getActiveDeletionForAccount,
   getScoutApplicationStatusByAccount,
   listSplBindings,
   upsertEntitlement,
@@ -33,6 +34,10 @@ export function paidSignalFromRow(row) {
 }
 
 export async function reconcileSplEntitlement(env, accountId, nowMs, ctx, opts = {}) {
+  if (await getActiveDeletionForAccount(env.DB, accountId)) {
+    await syncAccountEntitlementToRelay(env, accountId);
+    return;
+  }
   const row = await getEntitlement(env.DB, { accountId, service: SPL_HOSTED_SERVICE });
   const paid = opts.paid !== undefined ? opts.paid : paidSignalFromRow(row);
 
@@ -115,10 +120,13 @@ export async function pushEntitlementGrant(env, { instanceId, entitledUntil }) {
 
 export async function syncAccountEntitlementToRelay(env, accountId) {
   const nowSeconds = Math.floor(Date.now() / 1000);
-  const entitlement = await getEntitlement(env.DB, { accountId, service: SPL_HOSTED_SERVICE });
+  const [entitlement, deletion] = await Promise.all([
+    getEntitlement(env.DB, { accountId, service: SPL_HOSTED_SERVICE }),
+    getActiveDeletionForAccount(env.DB, accountId),
+  ]);
   const bindings = await listSplBindings(env.DB, accountId);
   if (!bindings.length) return;
-  const entitledUntil = entitledUntilFor(entitlement, nowSeconds, env);
+  const entitledUntil = deletion ? 0 : entitledUntilFor(entitlement, nowSeconds, env);
   for (const binding of bindings) {
     await pushEntitlementGrant(env, { instanceId: binding.instance_id, entitledUntil });
   }

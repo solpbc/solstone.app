@@ -74,6 +74,21 @@ export function subscriptionPeriodEnd(sub) {
   return sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end ?? null;
 }
 
+export async function deleteStripeCustomer(env, stripeCustomerId) {
+  try {
+    const response = await fetch(`${STRIPE_API_BASE}/customers/${encodeURIComponent(stripeCustomerId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, 'Stripe-Version': STRIPE_API_VERSION },
+    });
+    if (response.status === 404) return { state: 'absent' };
+    if (!response.ok) return { state: 'retryable' };
+    const body = await response.json().catch(() => null);
+    return body?.deleted === true ? { state: 'deleted' } : { state: 'retryable' };
+  } catch {
+    return { state: 'retryable' };
+  }
+}
+
 async function stripeRequest(env, path, { method, body = null, idempotencyKey = '' }) {
   const headers = {
     Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,

@@ -42,6 +42,14 @@ export async function hashWithPepper(value, env, pepperKey = 'HMAC_PEPPER') {
   return base64UrlEncode(new Uint8Array(digest));
 }
 
+export async function scopedHmac(value, secret, context) {
+  const key = await crypto.subtle.importKey(
+    'raw', textEncoder.encode(secret || ''), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, textEncoder.encode(`${context}:${value}`));
+  return base64UrlEncode(new Uint8Array(signature));
+}
+
 export function hashKey(scope, value, env) {
   return hashWithPepper(`${scope}:${value}`, env);
 }
