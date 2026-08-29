@@ -9,8 +9,13 @@
     "status": 200,
     "cache_control": "no-store",
     "body": {
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6Im1jcC1icmlkZ2UtZml4dHVyZS12MSJ9.eyJob3N0bmFtZSI6ImFhYXFlYXllLnNvbHN0b25lLm1lIiwiY25mIjp7Imp3ayI6eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IkFzak9PWVVNVURER1lWdmYyYTAyU0RFWGFiMUg5VzNadmM0V1h6eW1MNGMifX0sImlzcyI6InNlcnZpY2VzLnNvbHN0b25lLmFwcCIsImF1ZCI6Im1jcC1icmlkZ2UtZml4dHVyZSIsInN1YiI6ImhvbWU6ODQ4OGFlNjQtYjU5Mi04MGEzLTk3YzYtNDkwZTk5NWRhYTg1IiwiaWF0IjoxNzAwMDAwMDAwLCJleHAiOjE3MDAwMDA2MDB9.8ZcGs-Bl1L7mOvjopz_rnay4PMBBxxUSpsN6ynYAO7VVX5u53LUwSSK0-QbQQxzgkmBm4KA1-cSgb_vswNm9CQ",
+      "token_type": "Bearer",
+      "expires_in": 600,
+      "expires_at": "2023-11-14T22:23:20Z",
+      "instance_id": "8488ae64-b592-80a3-97c6-490e995daa85",
       "hostname": "aaaqeaye.solstone.me",
-      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6Im1jcC1icmlkZ2UtZml4dHVyZS12MSJ9.eyJzY29wZSI6Im1jcC5icmlkZ2UiLCJob3N0bmFtZSI6ImFhYXFlYXllLnNvbHN0b25lLm1lIiwiY25mX2p3ayI6eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IkFzak9PWVVNVURER1lWdmYyYTAyU0RFWGFiMUg5VzNadmM0V1h6eW1MNGMifSwiaXNzIjoiaHR0cHM6Ly9zZXJ2aWNlcy5zb2xzdG9uZS5hcHAiLCJhdWQiOiJtY3AtYnJpZGdlLWZpeHR1cmUiLCJzdWIiOiJob21lOjg0ODhhZTY0LWI1OTItODBhMy05N2M2LTQ5MGU5OTVkYWE4NSIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoxNzAwMDAwNjAwfQ.SDixCrR6YF6oXoe8m61o1v4Pei94QxJiewNI_jRZoPrZ3_tek--rXJophpHBAYHxCHDM4FoONotwNee_wRSvCA",
+      "bridge_id": "mcp-bridge-fixture",
       "bridge_addresses": [
         "20.186.92.169"
       ]

@@ -35,18 +35,38 @@ describe('MCP bridge token endpoint', () => {
   });
 
   it('returns the exact v1 response and an EdDSA JWT verifiable from the published JWKS', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(FIXED_NOW_MS);
+    const nowMs = FIXED_NOW_MS + 789;
+    const nowSeconds = Math.floor(nowMs / 1000);
+    vi.spyOn(Date, 'now').mockReturnValue(nowMs);
     const env = makeTestEnv();
     const input = await validInput();
+    input.bridge_id = 'request-must-not-control-bridge';
+    input.bridge_addresses = ['127.0.0.1'];
     const account = await seedBoundAccount(env, input.instance_id);
 
     const response = await fetchBridge(input, env);
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     const body = await response.json();
-    expect(Object.keys(body)).toEqual(['hostname', 'token', 'bridge_addresses']);
+    expect(Object.keys(body)).toEqual([
+      'token',
+      'token_type',
+      'expires_in',
+      'expires_at',
+      'instance_id',
+      'hostname',
+      'bridge_id',
+      'bridge_addresses',
+    ]);
+    expect(body.token_type).toBe('Bearer');
+    expect(body.expires_in).toBe(600);
+    expect(body.expires_at).toBe(new Date((nowSeconds + 600) * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'));
+    expect(body.instance_id).toBe(input.instance_id);
     expect(body.hostname).toMatch(/^[a-z2-7]{8}\.solstone\.me$/);
+    expect(body.bridge_id).toBe(env.MCP_BRIDGE_ID);
     expect(body.bridge_addresses).toEqual(['20.186.92.169']);
+    expect(body.bridge_id).not.toBe(input.bridge_id);
+    expect(body.bridge_addresses).not.toEqual(input.bridge_addresses);
     expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);
     expect(await rowCount('mcp_bridge_bindings')).toBe(1);
     await expect(workerEnv.DB.prepare(
@@ -67,25 +87,28 @@ describe('MCP bridge token endpoint', () => {
     expect(jwks.keys[0]).not.toHaveProperty('d');
     const publicKey = await importJWK(jwks.keys[0], 'EdDSA');
     const verified = await jwtVerify(body.token, publicKey, {
-      issuer: 'https://services.solstone.app',
+      issuer: 'services.solstone.app',
       audience: env.MCP_BRIDGE_ID,
       algorithms: ['EdDSA'],
       typ: 'JWT',
-      currentDate: new Date(FIXED_NOW_MS),
+      currentDate: new Date(nowMs),
     });
     expect(decodeProtectedHeader(body.token)).toEqual({
       alg: 'EdDSA', typ: 'JWT', kid: env.MCP_BRIDGE_TOKEN_KID,
     });
     expect(verified.payload).toEqual({
-      iss: 'https://services.solstone.app',
+      iss: 'services.solstone.app',
       aud: env.MCP_BRIDGE_ID,
       sub: `home:${input.instance_id}`,
-      scope: 'mcp.bridge',
       hostname: body.hostname,
-      cnf_jwk: input.cnf_jwk,
-      iat: FIXED_NOW_MS / 1000,
-      exp: FIXED_NOW_MS / 1000 + 600,
+      cnf: { jwk: input.cnf_jwk },
+      iat: nowSeconds,
+      exp: nowSeconds + 600,
     });
+    expect(verified.payload.exp - verified.payload.iat).toBe(body.expires_in);
+    expect(body.expires_at).toBe(new Date(verified.payload.exp * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'));
+    expect(verified.payload).not.toHaveProperty('scope');
+    expect(verified.payload).not.toHaveProperty('cnf_jwk');
   });
 
   it('repeats a live binding without consuming another random label', async () => {

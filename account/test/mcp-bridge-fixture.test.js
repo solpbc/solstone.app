@@ -1,4 +1,5 @@
 import { env as workerEnv } from 'cloudflare:test';
+import { decodeProtectedHeader, importJWK, jwtVerify } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fixtureText from '../test-fixtures/mcp_bridge_v1.json?raw';
 import worker from '../src/index.js';
@@ -83,6 +84,36 @@ describe('MCP bridge v1 golden fixture', () => {
         body: JSON.parse(await jwksResponse.text()),
       },
     };
+    const fixtureToken = artifact.response.body.token;
+    const fixturePublicKey = await importJWK(artifact.jwks.body.keys[0], 'EdDSA');
+    const verified = await jwtVerify(fixtureToken, fixturePublicKey, {
+      issuer: 'services.solstone.app',
+      audience: env.MCP_BRIDGE_ID,
+      algorithms: ['EdDSA'],
+      typ: 'JWT',
+      currentDate: new Date(FIXTURE_NOW_MS),
+    });
+    expect(decodeProtectedHeader(fixtureToken)).toEqual({
+      alg: 'EdDSA', typ: 'JWT', kid: env.MCP_BRIDGE_TOKEN_KID,
+    });
+    expect(Object.keys(verified.payload).sort()).toEqual([
+      'aud', 'cnf', 'exp', 'hostname', 'iat', 'iss', 'sub',
+    ]);
+    expect(Object.keys(artifact.response.body)).toEqual([
+      'token',
+      'token_type',
+      'expires_in',
+      'expires_at',
+      'instance_id',
+      'hostname',
+      'bridge_id',
+      'bridge_addresses',
+    ]);
+    expect(verified.payload.cnf).toEqual({ jwk: FIXTURE_CNF_JWK });
+    expect(verified.payload.exp - verified.payload.iat).toBe(600);
+    expect(artifact.response.body.expires_at).toBe(
+      new Date(verified.payload.exp * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    );
     const bytes = `${JSON.stringify(artifact, null, 2)}\n`;
 
     if (workerEnv.MCP_BRIDGE_FIXTURE_WRITE === '1') {

@@ -84,6 +84,7 @@ export async function handleMcpBridgeToken(req, env) {
   }
 
   const iat = Math.floor(Date.now() / 1000);
+  const exp = iat + BRIDGE_TOKEN_TTL_SECONDS;
   const hostname = `${label}${BRIDGE_HOST_SUFFIX}`;
   let token;
   try {
@@ -96,7 +97,16 @@ export async function handleMcpBridgeToken(req, env) {
   } catch {
     return json({ error: 'token_mint_unavailable' }, { status: 503 });
   }
-  return json({ hostname, token, bridge_addresses: signing.addresses });
+  return json({
+    token,
+    token_type: 'Bearer',
+    expires_in: BRIDGE_TOKEN_TTL_SECONDS,
+    expires_at: new Date(exp * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    instance_id: body.instance_id,
+    hostname,
+    bridge_id: signing.bridgeId,
+    bridge_addresses: signing.addresses,
+  });
 }
 
 export async function handleMcpBridgeJwks(_req, env) {
@@ -167,12 +177,11 @@ export async function loadMcpBridgeSigningMaterial(env) {
 
 export async function mintMcpBridgeToken(signing, { instanceId, hostname, cnfJwk, iat }) {
   return new SignJWT({
-    scope: 'mcp.bridge',
     hostname,
-    cnf_jwk: cnfJwk,
+    cnf: { jwk: cnfJwk },
   })
     .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT', kid: signing.kid })
-    .setIssuer('https://services.solstone.app')
+    .setIssuer('services.solstone.app')
     .setAudience(signing.bridgeId)
     .setSubject(`home:${instanceId}`)
     .setIssuedAt(iat)
