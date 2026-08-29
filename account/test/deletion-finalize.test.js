@@ -107,7 +107,7 @@ describe('deletion finalization', () => {
     expect(ownerPrefix).toContain(owner.accountId);
   });
 
-  it('reconciles one completed service without widening work, then preserves the literal earliest verifier expiry', async () => {
+  it('reconciles one expired confirmed service without widening work, then preserves the literal earliest verifier expiry', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(NOW));
     const env = makeTestEnv({

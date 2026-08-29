@@ -3,21 +3,31 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import fixture from '../proto/owner-purge-v1.json';
 import {
   canonicalJson,
+  decryptEmail,
   encryptEmail,
   framedHmacSha256Base64Url,
   sha256Base64Url,
 } from '../src/crypto.js';
 import { advanceDeletionServiceOperation } from '../src/deletion-contract.js';
-import { makeTestEnv, resetDb } from './helpers.js';
+import { captureDeletionSnapshotForAccount } from '../src/deletion.js';
+import { upsertSppBinding } from '../src/db.js';
+import {
+  makeTestEnv,
+  resetDb,
+  seedAccount,
+  seedAccountEmail,
+  seedSplBinding,
+} from './helpers.js';
 
 const REQUEST_MAX_LIFETIME_MS = fixture.time_bounds_ms.request_max_lifetime;
 const ATTESTATION_MAX_LIFETIME_MS = fixture.time_bounds_ms.attestation_max_lifetime;
 const SERVER_ONLY_REJECTION_VECTORS = new Set([
-  // These vectors exercise target-service validation before lookup/mutation; the
+  // These timing/format vectors exercise target-service validation before lookup/mutation; the
   // account never constructs those invalid inputs, so relay/support own them.
   'request_future_issued_is_refused_before_lookup',
   'request_overlong_is_refused_before_lookup',
   'attestation_future_or_overlong_is_refused_without_state_change',
+  // Support owns ticket identity matching; the account only sends its frozen snapshot.
   'support_collision_and_missing_association',
 ]);
 
@@ -62,6 +72,44 @@ describe('deletion purge contract v1', () => {
       'solpbc-owner-purge-v1:support:request',
       utf8.request_canonical_without_integrity,
     )).toBe(utf8.request_frame_hex);
+  });
+
+  it('captures the canonical relay and support association snapshots', async () => {
+    const env = makeTestEnv();
+    const account = await seedAccount({ email: 'middle@example.com', testEnv: env });
+    const operationId = 'snapshot-operation';
+    await seedSplBinding({ accountId: account.accountId, instanceId: 'relay-b' });
+    await seedSplBinding({ accountId: account.accountId, instanceId: 'relay-a' });
+    await upsertSppBinding(workerEnv.DB, {
+      accountId: account.accountId,
+      instanceId: 'relay-b',
+      tokenHash: 'spp-token',
+      nowMs: 1,
+      consentAckedAt: null,
+      consentDisclosureVersion: null,
+    });
+    await seedAccountEmail({ accountId: account.accountId, address: 'zzz@example.com', verifiedAt: 1, testEnv: env });
+    await seedAccountEmail({ accountId: account.accountId, address: 'aaa@example.com', verifiedAt: 1, testEnv: env });
+    await seedAccountEmail({ accountId: account.accountId, address: 'unverified@example.com', verifiedAt: null, testEnv: env });
+    await workerEnv.DB.prepare(
+      `INSERT INTO account_deletions (
+         operation_id, account_id, phase, requested_at, cancellation_deadline_at
+       ) VALUES (?, ?, 'requested', 0, 1)`
+    ).bind(operationId, account.accountId).run();
+
+    await expect(captureDeletionSnapshotForAccount(env, account.accountId, operationId)).resolves.toBe(true);
+    const row = await workerEnv.DB.prepare(
+      'SELECT snapshot_encrypted FROM account_deletions WHERE operation_id = ?'
+    ).bind(operationId).first();
+    const snapshot = JSON.parse(await decryptEmail(row.snapshot_encrypted, env));
+
+    expect(Object.keys(snapshot.relay).sort()).toEqual(['instance_ids']);
+    expect(snapshot.relay.instance_ids).toEqual(['relay-a', 'relay-b']);
+    expect(Object.keys(snapshot.support).sort()).toEqual(['portal_principal', 'verified_emails']);
+    expect(snapshot.support).toEqual({
+      portal_principal: account.accountId,
+      verified_emails: ['aaa@example.com', 'middle@example.com', 'zzz@example.com'],
+    });
   });
 
   it.each(fixture.wire_transcripts)('$name reaches confirmed with fixture-exact protocol bytes', async (transcript) => {

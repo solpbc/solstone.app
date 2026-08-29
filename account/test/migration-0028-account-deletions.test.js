@@ -27,7 +27,7 @@ describe('migration 0028 account deletions', () => {
     ]);
   });
 
-  it('keeps the immutable deletion foundation byte-identical apart from its later service-op state rewrite', () => {
+  it('keeps the immutable deletion foundation byte-identical outside the separately-owned service-ops table', () => {
     expect(normalizedDeletionSchemaBlock(schema)).toBe(normalizedDeletionSchemaBlock(migration));
   });
 

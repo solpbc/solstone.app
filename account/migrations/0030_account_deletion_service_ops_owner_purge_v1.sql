@@ -27,9 +27,12 @@
 --      ALTER TABLE account_deletion_service_ops_new RENAME TO account_deletion_service_ops;
 --      CREATE INDEX IF NOT EXISTS idx_account_deletion_service_ops_due
 --        ON account_deletion_service_ops(operation_id, state, next_attempt_at);
--- 3. If account_deletion_service_ops already has CHECK (state IN ('pending',
---    'complete', 'confirmed')) and a key_version column, rerunning this file is
---    safe: it rebuilds to the same schema and preserves all rows.
+-- 3. Unlike 0029's targeted remap, this migration unconditionally resets every row
+--    to a fresh pending v1 state. It is NOT safe to rerun once real v1 operations
+--    exist, even though the final shape would look identical. If
+--    account_deletion_service_ops already has the v1 shape above, the migration
+--    completed; do not rerun it. Use steps 1/2 only to recover a genuine
+--    partial-apply during the original migration run.
 
 DROP TABLE IF EXISTS account_deletion_service_ops_new;
 
