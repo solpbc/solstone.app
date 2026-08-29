@@ -314,6 +314,7 @@ CREATE INDEX IF NOT EXISTS idx_spb_retired_tokens_retired_at ON spb_retired_toke
 -- purging = cancellation deadline elapsed; irreversible work may run, not cancellable.
 -- complete = purge finished; only a completion verifier remains.
 -- cancelled = cancellation won before purging; access is restored.
+
 CREATE TABLE IF NOT EXISTS account_deletions (
   operation_id TEXT PRIMARY KEY NOT NULL,
   account_id TEXT,

@@ -687,7 +687,13 @@ export async function bumpDeletionProofAttempts(db, { tokenHash, nowMs, maxAttem
 
 export async function getDeletionByStatusTokenHash(db, statusTokenHash) {
   const row = await db
-    .prepare('SELECT * FROM account_deletions WHERE status_token_hash = ? LIMIT 1')
+    .prepare(
+      `SELECT operation_id, phase, lease_token, next_attempt_at,
+              backup_empty_verified_at, stripe_purge_state
+       FROM account_deletions
+       WHERE status_token_hash = ?
+       LIMIT 1`
+    )
     .bind(statusTokenHash)
     .first();
   return row || null;
@@ -710,25 +716,45 @@ export async function consumeProofsAndCreateDeletionRequest(db, {
   requestedAt,
   cancellationDeadlineAt,
 }) {
-  const statements = proofTokenHashes.map((tokenHash) => db
-    .prepare(
-      `UPDATE account_deletion_proofs
-       SET consumed = 1
-       WHERE token_hash = ? AND account_id = ? AND session_id_hash = ?
-         AND purpose = 'delete' AND verified = 1 AND consumed = 0 AND expires_at > ?`
-    )
-    .bind(tokenHash, accountId, sessionIdHash, requestedAt));
-  statements.push(db
+  const proofGuard = liveDeletionProofGuard(proofTokenHashes, {
+    accountId,
+    sessionIdHash,
+    purpose: 'delete',
+    nowMs: requestedAt,
+  });
+  const mutation = db
     .prepare(
       `INSERT INTO account_deletions (
          operation_id, account_id, phase, requested_at, cancellation_deadline_at,
          next_attempt_at, attempt_count, status_token_hash
-       ) VALUES (?, ?, 'requested', ?, ?, ?, 0, ?)`
+       )
+       SELECT ?, ?, 'requested', ?, ?, ?, 0, ?
+       WHERE ${proofGuard.sql}`
     )
-    .bind(operationId, accountId, requestedAt, cancellationDeadlineAt, requestedAt, statusTokenHash));
-  const results = await db.batch(statements);
-  const proofChanges = results.slice(0, -1).every((result) => result?.meta?.changes === 1);
-  const created = results.at(-1)?.meta?.changes === 1;
+    .bind(
+      operationId,
+      accountId,
+      requestedAt,
+      cancellationDeadlineAt,
+      requestedAt,
+      statusTokenHash,
+      ...proofGuard.bindings,
+    );
+  const proofStatements = proofTokenHashes.map((tokenHash) => db
+    .prepare(
+      `UPDATE account_deletion_proofs
+       SET consumed = 1
+       WHERE token_hash = ? AND account_id = ? AND session_id_hash = ?
+         AND purpose = 'delete' AND verified = 1 AND consumed = 0 AND expires_at > ?
+         AND EXISTS (
+           SELECT 1 FROM account_deletions
+           WHERE operation_id = ? AND account_id = ? AND phase = 'requested' AND status_token_hash = ?
+         )`
+    )
+    .bind(tokenHash, accountId, sessionIdHash, requestedAt, operationId, accountId, statusTokenHash));
+  const results = await db.batch([mutation, ...proofStatements]);
+  const created = results[0]?.meta?.changes === 1;
+  const proofChanges = created && results.slice(1).every((result) => result?.meta?.changes === 1);
   return { proofChanges, created };
 }
 
@@ -738,28 +764,55 @@ export async function consumeProofsAndCancelDeletionRequest(db, {
   sessionIdHash,
   operationId,
   cancelledAt,
+  nowMs,
 }) {
-  const statements = proofTokenHashes.map((tokenHash) => db
-    .prepare(
-      `UPDATE account_deletion_proofs
-       SET consumed = 1
-       WHERE token_hash = ? AND account_id = ? AND session_id_hash = ?
-         AND purpose = 'cancel' AND verified = 1 AND consumed = 0 AND expires_at > ?`
-    )
-    .bind(tokenHash, accountId, sessionIdHash, cancelledAt));
-  statements.push(db
+  const proofGuard = liveDeletionProofGuard(proofTokenHashes, {
+    accountId,
+    sessionIdHash,
+    purpose: 'cancel',
+    nowMs,
+  });
+  const mutation = db
     .prepare(
       `UPDATE account_deletions
        SET phase = 'cancelled', cancelled_at = ?, lease_token = NULL, lease_expires_at = NULL
        WHERE operation_id = ? AND account_id = ?
-         AND phase IN ('requested', 'frozen') AND lease_token IS NULL`
+         AND phase IN ('requested', 'frozen')
+         AND lease_token IS NULL
+         AND cancellation_deadline_at > ?
+         AND ${proofGuard.sql}`
     )
-    .bind(cancelledAt, operationId, accountId));
-  const results = await db.batch(statements);
+    .bind(cancelledAt, operationId, accountId, nowMs, ...proofGuard.bindings);
+  const proofStatements = proofTokenHashes.map((tokenHash) => db
+    .prepare(
+      `UPDATE account_deletion_proofs
+       SET consumed = 1
+       WHERE token_hash = ? AND account_id = ? AND session_id_hash = ?
+         AND purpose = 'cancel' AND verified = 1 AND consumed = 0 AND expires_at > ?
+         AND EXISTS (
+           SELECT 1 FROM account_deletions
+           WHERE operation_id = ? AND account_id = ?
+             AND phase = 'cancelled' AND cancelled_at = ?
+         )`
+    )
+    .bind(tokenHash, accountId, sessionIdHash, nowMs, operationId, accountId, cancelledAt));
+  const results = await db.batch([mutation, ...proofStatements]);
+  const cancelled = results[0]?.meta?.changes === 1;
   return {
-    proofChanges: results.slice(0, -1).every((result) => result?.meta?.changes === 1),
-    cancelled: results.at(-1)?.meta?.changes === 1,
+    proofChanges: cancelled && results.slice(1).every((result) => result?.meta?.changes === 1),
+    cancelled,
   };
+}
+
+function liveDeletionProofGuard(proofTokenHashes, { accountId, sessionIdHash, purpose, nowMs }) {
+  if (proofTokenHashes.length === 0) return { sql: '0', bindings: [] };
+  const sql = proofTokenHashes.map(() => `EXISTS (
+    SELECT 1 FROM account_deletion_proofs
+    WHERE token_hash = ? AND account_id = ? AND session_id_hash = ?
+      AND purpose = '${purpose}' AND verified = 1 AND consumed = 0 AND expires_at > ?
+  )`).join(' AND ');
+  const bindings = proofTokenHashes.flatMap((tokenHash) => [tokenHash, accountId, sessionIdHash, nowMs]);
+  return { sql, bindings };
 }
 
 // --- Service handoffs ---

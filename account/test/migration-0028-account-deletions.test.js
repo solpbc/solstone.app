@@ -4,17 +4,8 @@ import migration from '../migrations/0028_account_deletions.sql?raw';
 import schema from '../schema.sql?raw';
 import { resetDb } from './helpers.js';
 
-const deletionTableSql = `CREATE TABLE IF NOT EXISTS account_deletions (
-  operation_id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT,
-  phase TEXT NOT NULL CHECK (phase IN ('requested', 'frozen', 'purging', 'complete', 'cancelled')),`;
-
-const completionTableSql = `CREATE TABLE IF NOT EXISTS account_deletion_completions (
-  token_hash TEXT PRIMARY KEY NOT NULL,
-  state TEXT NOT NULL CHECK (state = 'complete'),
-  completed_at INTEGER NOT NULL,
-  expires_at INTEGER NOT NULL
-);`;
+const deletionBlockStart = '-- Owner-initiated account deletion foundation. Phase meanings:';
+const deletionBlockEnd = 'CREATE INDEX IF NOT EXISTS idx_account_deletion_completions_expires_at\n  ON account_deletion_completions(expires_at);';
 
 describe('migration 0028 account deletions', () => {
   beforeEach(async () => {
@@ -36,11 +27,8 @@ describe('migration 0028 account deletions', () => {
     ]);
   });
 
-  it('keeps the schema and migration table SQL byte-identical', () => {
-    expect(migration).toContain(deletionTableSql);
-    expect(schema).toContain(deletionTableSql);
-    expect(migration).toContain(completionTableSql);
-    expect(schema).toContain(completionTableSql);
+  it('keeps the schema and migration deletion block byte-identical', () => {
+    expect(deletionSchemaBlock(schema)).toBe(deletionSchemaBlock(migration));
   });
 
   it('enforces the deletion phase and identifier-free completion shape', async () => {
@@ -71,4 +59,11 @@ async function tableExists(name) {
 async function columns(name) {
   const { results } = await workerEnv.DB.prepare(`SELECT name FROM pragma_table_info('${name}')`).all();
   return results.map((row) => row.name);
+}
+
+function deletionSchemaBlock(source) {
+  const start = source.indexOf(deletionBlockStart);
+  const end = source.indexOf(deletionBlockEnd, start);
+  if (start < 0 || end < 0) throw new Error('deletion migration block is missing');
+  return source.slice(start, end + deletionBlockEnd.length);
 }

@@ -1,6 +1,7 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { runAccountDeletionCoordinator } from '../src/deletion-coordinator.js';
+import { advanceDeletionServiceOperation } from '../src/deletion-contract.js';
 import { consumeProofsAndCancelDeletionRequest, createDeletionProof, markDeletionProofVerified } from '../src/db.js';
 import { encryptEmail } from '../src/crypto.js';
 import { makeTestEnv, resetDb, seedAccount } from './helpers.js';
@@ -38,7 +39,7 @@ describe('deletion coordinator', () => {
     await markDeletionProofVerified(workerEnv.DB, { tokenHash: 'proof', nowMs: 1 });
     await runAccountDeletionCoordinator(makeTestEnv(), 1);
     await expect(consumeProofsAndCancelDeletionRequest(workerEnv.DB, {
-      proofTokenHashes: ['proof'], accountId: 'account', sessionIdHash: 'session', operationId: 'op', cancelledAt: 1,
+      proofTokenHashes: ['proof'], accountId: 'account', sessionIdHash: 'session', operationId: 'op', cancelledAt: 1, nowMs: 1,
     })).resolves.toMatchObject({ cancelled: false });
   });
 
@@ -51,6 +52,22 @@ describe('deletion coordinator', () => {
     await row('purging', 0, 0);
     await runAccountDeletionCoordinator(makeTestEnv(), 1);
     await expect(workerEnv.DB.prepare("SELECT phase, next_attempt_at, attempt_count FROM account_deletions WHERE operation_id = 'op'").first()).resolves.toMatchObject({ phase: 'purging', attempt_count: 1 });
+  });
+
+  it('makes no external service call when a stale purging lease was superseded', async () => {
+    let calls = 0;
+    const env = makeTestEnv({ RELAY: { async fetch() { calls += 1; return new Response('{}'); } } });
+    await row('purging', 0, 0);
+    const snapshot = await encryptEmail(JSON.stringify({ relay: { spl_instance_ids: [], spp_instance_ids: [] } }), env);
+    await workerEnv.DB.prepare(
+      "UPDATE account_deletions SET snapshot_encrypted = ?, lease_token = 'stale' WHERE operation_id = 'op'"
+    ).bind(snapshot).run();
+    const stale = await workerEnv.DB.prepare("SELECT * FROM account_deletions WHERE operation_id = 'op'").first();
+    await workerEnv.DB.prepare("UPDATE account_deletions SET lease_token = 'successor' WHERE operation_id = 'op'").run();
+
+    await expect(advanceDeletionServiceOperation(env, { deletion: stale, service: 'relay', nowMs: 1 })).resolves.toBe('retryable');
+    expect(calls).toBe(0);
+    await expect(workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM account_deletion_service_ops').first()).resolves.toMatchObject({ count: 0 });
   });
 });
 

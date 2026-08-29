@@ -372,9 +372,14 @@ export async function handleDeletionConfirm(req, env) {
     if (isUniqueViolation(error)) return refusal(409, 'deletion already requested');
     throw error;
   }
-  if (!result.proofChanges || !result.created) return refusal(409, 'deletion request could not be confirmed');
+  if (!result.created) return refusal(409, 'deletion request could not be confirmed');
   const captured = await captureDeletionSnapshotForAccount(env, guard.session.account_id, operationId);
-  if (!captured) return refusal(409, 'deletion request could not be prepared');
+  if (!captured) {
+    const current = await getActiveDeletionForAccount(env.DB, guard.session.account_id);
+    if (!current || current.operation_id !== operationId || current.phase !== 'frozen') {
+      return refusal(409, 'deletion request could not be prepared');
+    }
+  }
   return new Response(null, {
     status: 303,
     headers: {
@@ -408,30 +413,35 @@ export async function handleDeletionCancel(req, env) {
     accountId: guard.session.account_id,
     sessionIdHash: guard.session.id_hash,
     operationId: active.operation_id,
-    cancelledAt: Date.now(),
+    cancelledAt: guard.nowMs,
+    nowMs: guard.nowMs,
   });
-  if (!result.proofChanges || !result.cancelled) return refusal(409, 'deletion can no longer be cancelled');
+  if (!result.cancelled) return refusal(409, 'deletion can no longer be cancelled');
   return new Response(null, { status: 303, headers: { Location: '/account/delete', 'Cache-Control': 'no-store' } });
 }
 
 export async function handleDeletionStatus(req, env) {
   const token = cookieValue(req, STATUS_COOKIE);
   if (!token) return signedInHtml(renderDeletionStatus());
-  const tokenHash = await hashWithPepper(token, env);
-  const completion = await getCompletionVerifier(env.DB, tokenHash);
-  if (completion) {
-    if (completion.expires_at <= Date.now()) return signedInHtml(renderDeletionStatus({ state: 'expired link' }), { status: 410 });
-    return signedInHtml(renderDeletionStatus({ state: 'complete' }));
+  try {
+    const tokenHash = await hashWithPepper(token, env);
+    const completion = await getCompletionVerifier(env.DB, tokenHash);
+    if (completion) {
+      if (completion.expires_at <= Date.now()) return signedInHtml(renderDeletionStatus({ state: 'expired link' }), { status: 410 });
+      return signedInHtml(renderDeletionStatus({ state: 'complete' }));
+    }
+    const row = await getDeletionByStatusTokenHash(env.DB, tokenHash);
+    if (!row) return signedInHtml(renderDeletionStatus({ state: 'expired link' }), { status: 410 });
+    if (row.phase === 'requested') return signedInHtml(renderDeletionStatus({ state: 'access ended' }));
+    if (row.phase === 'frozen') return signedInHtml(renderDeletionStatus({ state: 'waiting for the safety period' }));
+    if (row.phase === 'purging') {
+      if (row.lease_token) return signedInHtml(renderDeletionStatus({ state: 'deletion in progress' }));
+      return signedInHtml(renderDeletionStatus({ state: await deletionDelayedStatus(env, row) }));
+    }
+    return signedInHtml(renderDeletionStatus());
+  } catch {
+    return signedInHtml(renderDeletionStatus());
   }
-  const row = await getDeletionByStatusTokenHash(env.DB, tokenHash);
-  if (!row) return signedInHtml(renderDeletionStatus());
-  if (row.phase === 'requested') return signedInHtml(renderDeletionStatus({ state: 'access ended' }));
-  if (row.phase === 'frozen') return signedInHtml(renderDeletionStatus({ state: 'waiting for the safety period' }));
-  if (row.phase === 'purging') {
-    if (row.lease_token) return signedInHtml(renderDeletionStatus({ state: 'deletion in progress' }));
-    return signedInHtml(renderDeletionStatus({ state: await deletionDelayedStatus(env, row) }));
-  }
-  return signedInHtml(renderDeletionStatus());
 }
 
 async function deletionDelayedStatus(env, deletion) {

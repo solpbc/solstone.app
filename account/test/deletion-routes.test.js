@@ -73,6 +73,40 @@ describe('deletion routes', () => {
     const response = await worker.fetch(request('/account/delete/confirm', { cookie: session.cookie, method: 'POST' }), testEnv);
     expect(response.status).toBe(409);
   });
+
+  it('accepts a deletion whose snapshot was captured first by the coordinator', async () => {
+    const baseDb = workerEnv.DB;
+    let capturedByCoordinator = false;
+    const testEnv = makeTestEnv({
+      DB: {
+        prepare: (...args) => baseDb.prepare(...args),
+        async batch(statements) {
+          const results = await baseDb.batch(statements);
+          if (!capturedByCoordinator) {
+            capturedByCoordinator = true;
+            const row = await baseDb.prepare("SELECT operation_id FROM account_deletions WHERE phase = 'requested'").first();
+            await baseDb.prepare(
+              "UPDATE account_deletions SET phase = 'frozen', frozen_at = 1, snapshot_encrypted = 'coordinator-snapshot', snapshot_digest = 'digest' WHERE operation_id = ?"
+            ).bind(row.operation_id).run();
+          }
+          return results;
+        },
+      },
+    });
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await createDeletionProof(baseDb, {
+      tokenHash: 'snapshot-race-proof', accountId: account.accountId, sessionIdHash: session.idHash, purpose: 'delete', method: 'otp',
+      issuedAt: Date.now(), expiresAt: Date.now() + 60_000, otpCodeHash: 'hash',
+    });
+    await markDeletionProofVerified(baseDb, { tokenHash: 'snapshot-race-proof', nowMs: Date.now() });
+
+    const response = await worker.fetch(request('/account/delete/confirm', { cookie: session.cookie, method: 'POST' }), testEnv);
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Set-Cookie')).toMatch(/^account_deletion_status=[A-Za-z0-9_-]+;/);
+    await expect(baseDb.prepare('SELECT phase FROM account_deletions').first()).resolves.toMatchObject({ phase: 'frozen' });
+  });
 });
 
 function request(path, { cookie, method = 'GET', form, origin = 'https://services.solstone.app' } = {}) {

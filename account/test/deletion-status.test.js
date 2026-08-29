@@ -52,6 +52,17 @@ describe('deletion status', () => {
 
     expect(await response.text()).toContain('deletion status unavailable');
   });
+
+  it('returns a non-identifying expired link response for a presented unknown receipt', async () => {
+    const env = makeTestEnv();
+
+    const response = await statusRequest(env);
+
+    expect(response.status).toBe(410);
+    const body = await response.text();
+    expect(body).toContain('expired link');
+    expect(body).not.toContain('deletion status unavailable');
+  });
 });
 
 async function deletion(env, {

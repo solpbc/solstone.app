@@ -151,7 +151,7 @@ function responseService(state) {
 
 async function deletion(snapshot) {
   await workerEnv.DB.prepare(
-    "INSERT INTO account_deletions (operation_id, account_id, phase, requested_at, cancellation_deadline_at, snapshot_encrypted, status_token_hash) VALUES ('delete', 'account', 'purging', 0, 0, ?, 'status')"
+    "INSERT INTO account_deletions (operation_id, account_id, phase, requested_at, cancellation_deadline_at, snapshot_encrypted, status_token_hash, lease_token) VALUES ('delete', 'account', 'purging', 0, 0, ?, 'status', 'lease')"
   ).bind(snapshot).run();
 }
 

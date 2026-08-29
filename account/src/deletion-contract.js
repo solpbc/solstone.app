@@ -3,60 +3,83 @@ import { decryptEmail, generateSessionToken, scopedHmac, timingSafeEqual } from 
 const EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function advanceDeletionServiceOperation(env, { deletion, service, nowMs = Date.now() }) {
+  if (!await leaseIsLive(env.DB, deletion)) return 'retryable';
   let op = await env.DB.prepare(
     `SELECT * FROM account_deletion_service_ops WHERE operation_id = ? AND service = ? ORDER BY rowid DESC LIMIT 1`
   ).bind(deletion.operation_id, service).first();
   const snapshot = await serviceSnapshot(env, deletion.snapshot_encrypted, service);
   const associationDigest = await digest(env, snapshot, service);
   if (!op || (op.state === 'retryable' && op.envelope_expires_at <= nowMs)) {
-    op = await createOperation(env, deletion.operation_id, service, snapshot, associationDigest, nowMs);
+    op = await createOperation(env, deletion, service, snapshot, associationDigest, nowMs);
+    if (!op) return 'retryable';
   }
   if (op.request_digest !== associationDigest) return 'non_complete_refusal';
   if (op.state === 'complete' || op.state === 'confirmed_absent' || op.state === 'non_complete_refusal') return op.state;
   if (op.envelope_expires_at <= nowMs) return 'retryable';
 
   const envelope = await envelopeFor(env, deletion.operation_id, op, snapshot, nowMs);
+  if (!await leaseIsLive(env.DB, deletion)) return 'retryable';
   const delivery = await callService(env, service, '/internal/deletion/purge', envelope);
   if (!delivery || !await validResponse(env, service, delivery, envelope, associationDigest)) {
-    await setState(env, op.id, 'retryable', nowMs);
+    await setState(env, deletion, op.id, 'retryable', nowMs);
     return 'retryable';
   }
   if (delivery.state === 'retryable') {
-    await setState(env, op.id, 'retryable', nowMs);
+    await setState(env, deletion, op.id, 'retryable', nowMs);
     return 'retryable';
   }
   if (delivery.state !== 'complete') {
-    await setState(env, op.id, 'non_complete_refusal', nowMs);
-    return 'non_complete_refusal';
+    return await setState(env, deletion, op.id, 'non_complete_refusal', nowMs)
+      ? 'non_complete_refusal'
+      : 'retryable';
   }
-  await setState(env, op.id, 'delivered', nowMs);
+  if (!await setState(env, deletion, op.id, 'delivered', nowMs)) return 'retryable';
+  if (!await leaseIsLive(env.DB, deletion)) return 'retryable';
   const confirmation = await callService(env, service, '/internal/deletion/purge/confirm', envelope);
   if (!confirmation || !await validResponse(env, service, confirmation, envelope, associationDigest)) {
-    await setState(env, op.id, 'retryable', nowMs);
+    await setState(env, deletion, op.id, 'retryable', nowMs);
     return 'retryable';
   }
   if (confirmation.state === 'complete') {
-    await setState(env, op.id, 'complete', nowMs, confirmation.receipt || null);
-    return 'complete';
+    return await setState(env, deletion, op.id, 'complete', nowMs, confirmation.receipt || null)
+      ? 'complete'
+      : 'retryable';
   }
   if (confirmation.state === 'absent' && confirmation.no_matching_association === true && nowMs < op.envelope_expires_at) {
-    await setState(env, op.id, 'confirmed_absent', nowMs, confirmation.receipt || null);
-    return 'confirmed_absent';
+    return await setState(env, deletion, op.id, 'confirmed_absent', nowMs, confirmation.receipt || null)
+      ? 'confirmed_absent'
+      : 'retryable';
   }
-  await setState(env, op.id, 'retryable', nowMs);
+  await setState(env, deletion, op.id, 'retryable', nowMs);
   return 'retryable';
 }
 
-async function createOperation(env, deletionOperationId, service, snapshot, requestDigest, nowMs) {
+async function createOperation(env, deletion, service, snapshot, requestDigest, nowMs) {
   const id = generateSessionToken();
   const serviceOperationId = generateSessionToken();
   const expiresAt = nowMs + EXPIRY_MS;
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `INSERT INTO account_deletion_service_ops (
        id, operation_id, service, service_operation_id, request_digest, state,
        envelope_expires_at, next_attempt_at, attempt_count
-     ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, 0)`
-  ).bind(id, deletionOperationId, service, serviceOperationId, requestDigest, expiresAt, nowMs).run();
+     )
+     SELECT ?, ?, ?, ?, ?, 'pending', ?, ?, 0
+     WHERE EXISTS (
+       SELECT 1 FROM account_deletions
+       WHERE operation_id = ? AND lease_token = ? AND phase = 'purging'
+     )`
+  ).bind(
+    id,
+    deletion.operation_id,
+    service,
+    serviceOperationId,
+    requestDigest,
+    expiresAt,
+    nowMs,
+    deletion.operation_id,
+    deletion.lease_token,
+  ).run();
+  if (result.meta?.changes !== 1) return null;
   return env.DB.prepare('SELECT * FROM account_deletion_service_ops WHERE id = ?').bind(id).first();
 }
 
@@ -100,12 +123,25 @@ async function callService(env, service, path, envelope) {
   }
 }
 
-async function setState(env, id, state, nowMs, receipt = null) {
-  await env.DB.prepare(
+async function setState(env, deletion, id, state, nowMs, receipt = null) {
+  const result = await env.DB.prepare(
     `UPDATE account_deletion_service_ops
      SET state = ?, attempt_count = attempt_count + 1, next_attempt_at = ?, confirmation_receipt_digest = ?
-     WHERE id = ?`
-  ).bind(state, nowMs, receipt, id).run();
+     WHERE id = ?
+       AND EXISTS (
+         SELECT 1 FROM account_deletions
+         WHERE operation_id = ? AND lease_token = ? AND phase = 'purging'
+       )`
+  ).bind(state, nowMs, receipt, id, deletion.operation_id, deletion.lease_token).run();
+  return result.meta?.changes === 1;
+}
+
+async function leaseIsLive(db, deletion) {
+  return Boolean(await db.prepare(
+    `SELECT 1
+     FROM account_deletions
+     WHERE operation_id = ? AND lease_token = ? AND phase = 'purging'`
+  ).bind(deletion.operation_id, deletion.lease_token).first());
 }
 
 async function serviceSnapshot(env, encrypted, service) {
