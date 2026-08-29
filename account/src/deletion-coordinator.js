@@ -50,9 +50,9 @@ export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
       advanceDeletionBackupPurge(env, deletion, nowMs),
       advanceDeletionStripePurge(env, deletion, nowMs),
     ]);
-    const servicesComplete = states.every((state) => state === 'complete');
-    if (servicesComplete) await clearServiceReconciliationPending(env.DB, deletion);
-    if (servicesComplete && backup === 'complete' && stripe === 'complete') {
+    const servicesConfirmed = states.every((state) => state === 'confirmed');
+    if (servicesConfirmed) await clearServiceReconciliationPending(env.DB, deletion);
+    if (servicesConfirmed && backup === 'complete' && stripe === 'complete') {
       const completed = await finalizeDeletion(env, deletion, nowMs);
       return completed
         ? { claimed: true, phase: 'complete', states, backup, stripe }
@@ -67,14 +67,13 @@ export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
 }
 
 function expiredReconciliationService(operations, nowMs) {
-  const complete = operations.filter((operation) => operation?.state === 'complete');
-  const expired = operations.filter((operation) => (
+  const expiredConfirmed = operations.filter((operation) => (
     operation
-    && operation.state !== 'complete'
+    && operation.state === 'confirmed'
     && operation.envelope_expires_at != null
     && operation.envelope_expires_at <= nowMs
   ));
-  return complete.length === 1 && expired.length === 1 ? expired[0].service : null;
+  return expiredConfirmed.length > 0 ? expiredConfirmed[0].service : null;
 }
 
 function retryBackoff(attemptCount) {
@@ -250,10 +249,12 @@ async function finalizeDeletion(env, deletion, nowMs) {
     DELETION_SERVICES.map((service) => latestServiceOperation(env.DB, deletion.operation_id, service))
   );
   if (
-    relayOp?.state !== 'complete'
-    || supportOp?.state !== 'complete'
+    relayOp?.state !== 'confirmed'
+    || supportOp?.state !== 'confirmed'
     || !Number.isFinite(Number(relayOp.envelope_expires_at))
     || !Number.isFinite(Number(supportOp.envelope_expires_at))
+    || Number(relayOp.envelope_expires_at) <= nowMs
+    || Number(supportOp.envelope_expires_at) <= nowMs
   ) return false;
   const completionExpiresAt = Math.min(Number(relayOp.envelope_expires_at), Number(supportOp.envelope_expires_at));
 

@@ -15,7 +15,7 @@ describe('deletion status', () => {
     await workerEnv.DB.prepare(
       `INSERT INTO account_deletion_service_ops (
          id, operation_id, service, state, attempt_count
-       ) VALUES ('relay-service-op', 'relay-op', 'relay', 'retryable', 1)`
+       ) VALUES ('relay-service-op', 'relay-op', 'relay', 'pending', 1)`
     ).run();
 
     const response = await statusRequest(env);

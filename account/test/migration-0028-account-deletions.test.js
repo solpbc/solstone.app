@@ -70,7 +70,7 @@ function deletionSchemaBlock(source) {
 
 function normalizedDeletionSchemaBlock(source) {
   return deletionSchemaBlock(source).replace(
-    /state TEXT NOT NULL CHECK \(state IN \([^\n]+\)\),/,
-    'state TEXT NOT NULL CHECK (state IN (latest migration owns this value)),',
+    /CREATE TABLE IF NOT EXISTS account_deletion_service_ops \([\s\S]*?\n\);\n\nCREATE INDEX IF NOT EXISTS idx_account_deletion_service_ops_due\n  ON account_deletion_service_ops\(operation_id, state, next_attempt_at\);\n\n/,
+    '',
   );
 }

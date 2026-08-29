@@ -202,22 +202,29 @@ export async function requireFreshProof(env, { accountId, sessionIdHash, purpose
 }
 
 export async function captureDeletionSnapshotForAccount(env, accountId, operationId) {
-  const [spl, spb, spp, scout, stripe] = await Promise.all([
+  const [spl, spb, spp, scout, stripe, emails] = await Promise.all([
     listSplBindings(env.DB, accountId),
     listSpbBindings(env.DB, accountId),
     listSppBindings(env.DB, accountId),
     getScoutApplicationByAccount(env.DB, { accountId }),
     getStripeCustomerByAccount(env.DB, { accountId }),
+    listAccountEmails(env.DB, accountId),
   ]);
+  const relayInstanceIds = [...new Set([
+    ...spl.map((row) => row.instance_id),
+    ...spp.map((row) => row.instance_id),
+  ])].sort();
+  const verifiedEmails = [...new Set(await Promise.all(
+    emails
+      .filter((row) => row.verified_at != null)
+      .map((row) => decryptEmail(row.address_encrypted, env))
+  ))].sort();
   const snapshot = JSON.stringify({
-    relay: {
-      spl_instance_ids: spl.map((row) => row.instance_id).sort(),
-      spp_instance_ids: spp.map((row) => row.instance_id).sort(),
-    },
+    relay: { instance_ids: relayInstanceIds },
     backup: { spb_instance_ids: spb.map((row) => row.instance_id).sort() },
     scout_application: { present: Boolean(scout) },
     stripe_customer_id: stripe?.stripe_customer_id || null,
-    support_owner_id: accountId,
+    support: { portal_principal: accountId, verified_emails: verifiedEmails },
   });
   const frozenAt = Date.now();
   return captureDeletionSnapshot(env.DB, {
@@ -451,7 +458,7 @@ async function deletionDelayedStatus(env, deletion) {
      FROM account_deletion_service_ops
      WHERE operation_id = ?
        AND service IN ('relay', 'support')
-       AND state NOT IN ('complete')
+       AND state NOT IN ('confirmed')
      ORDER BY CASE service WHEN 'relay' THEN 0 ELSE 1 END
      LIMIT 1`
   ).bind(deletion.operation_id).all();

@@ -2,7 +2,7 @@ import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { runAccountDeletionCoordinator } from '../src/deletion-coordinator.js';
-import { decryptEmail, encryptEmail, hashKey, hashWithPepper, scopedHmac } from '../src/crypto.js';
+import { canonicalJson, decryptEmail, encryptEmail, framedHmacSha256Base64Url, hashKey, hashWithPepper } from '../src/crypto.js';
 import { createDeletionProof, insertDispatchToken, insertServiceHandoff, upsertSppBinding } from '../src/db.js';
 import { prefixFor } from '../src/spb-broker.js';
 import {
@@ -39,8 +39,8 @@ describe('deletion finalization', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(NOW));
     const env = makeTestEnv({
-      RELAY: contractService('relay', 'test-relay-grant-secret'),
-      SUPPORT_WORKER: contractService('support', 'test-services-auth-token'),
+      RELAY: contractService('relay'),
+      SUPPORT_WORKER: contractService('support'),
     });
     const owner = await seedAccount({ email: 'final-owner@example.com', testEnv: env });
     const control = await seedAccount({ email: 'final-control@example.com', testEnv: env });
@@ -67,8 +67,8 @@ describe('deletion finalization', () => {
       operationId: 'op',
       service: 'relay',
       serviceOperationId: 'relay-earlier-operation',
-      requestDigest: await scopedHmac(canonical(snapshot.relay), 'test-relay-grant-secret', 'purge-contract-v1:relay:digest'),
-      state: 'complete',
+      requestDigest: 'relay-earlier-digest',
+      state: 'confirmed',
       envelopeExpiresAt: relayExpiry,
     });
     await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 1);
@@ -111,14 +111,14 @@ describe('deletion finalization', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(NOW));
     const env = makeTestEnv({
-      RELAY: contractService('relay', 'test-relay-grant-secret'),
-      SUPPORT_WORKER: contractService('support', 'test-services-auth-token'),
+      RELAY: contractService('relay'),
+      SUPPORT_WORKER: contractService('support'),
     });
     const owner = await seedAccount({ email: 'reconciliation-owner@example.com', testEnv: env });
     const snapshot = {
-      relay: { spl_instance_ids: ['relay-target'], spp_instance_ids: [] },
+      relay: { instance_ids: ['relay-target'] },
       backup: { spb_instance_ids: [] },
-      support_owner_id: owner.accountId,
+      support: { portal_principal: owner.accountId, verified_emails: [] },
       stripe_customer_id: null,
     };
     const encrypted = await encryptEmail(JSON.stringify(snapshot), env);
@@ -134,18 +134,18 @@ describe('deletion finalization', () => {
       operationId: 'reconcile',
       service: 'relay',
       serviceOperationId: 'relay-complete',
-      requestDigest: await scopedHmac(canonical(snapshot.relay), 'test-relay-grant-secret', 'purge-contract-v1:relay:digest'),
-      state: 'complete',
+      requestDigest: 'relay-expired-digest',
+      state: 'confirmed',
       envelopeExpiresAt: NOW - 1,
     });
     await insertServiceOperation({
-      id: 'reconcile-support-expired',
+      id: 'reconcile-support-confirmed',
       operationId: 'reconcile',
       service: 'support',
-      serviceOperationId: 'support-expired',
-      requestDigest: await scopedHmac(canonical({ support_owner_id: owner.accountId }), 'test-services-auth-token', 'purge-contract-v1:support:digest'),
-      state: 'retryable',
-      envelopeExpiresAt: NOW - 1,
+      serviceOperationId: 'support-confirmed',
+      requestDigest: 'support-confirmed-digest',
+      state: 'confirmed',
+      envelopeExpiresAt: NOW + 2 * 24 * 60 * 60 * 1000,
     });
 
     await expect(runAccountDeletionCoordinator(env, NOW)).resolves.toMatchObject({
@@ -163,18 +163,21 @@ describe('deletion finalization', () => {
     });
     await expect(workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM account_deletion_completions').first()).resolves.toMatchObject({ count: 0 });
     await expect(workerEnv.DB.prepare(
-      "SELECT service_operation_id, envelope_expires_at FROM account_deletion_service_ops WHERE id = 'reconcile-relay'"
-    ).first()).resolves.toEqual({ service_operation_id: 'relay-complete', envelope_expires_at: NOW - 1 });
-    const supportOps = await workerEnv.DB.prepare(
-      "SELECT service_operation_id, state, envelope_expires_at, request_digest FROM account_deletion_service_ops WHERE operation_id = 'reconcile' AND service = 'support' ORDER BY rowid"
+      "SELECT service_operation_id, state, envelope_expires_at FROM account_deletion_service_ops WHERE id = 'reconcile-support-confirmed'"
+    ).first()).resolves.toEqual({
+      service_operation_id: 'support-confirmed',
+      state: 'confirmed',
+      envelope_expires_at: NOW + 2 * 24 * 60 * 60 * 1000,
+    });
+    const relayOps = await workerEnv.DB.prepare(
+      "SELECT service_operation_id, state, envelope_expires_at FROM account_deletion_service_ops WHERE operation_id = 'reconcile' AND service = 'relay' ORDER BY rowid"
     ).all();
-    expect(supportOps.results).toHaveLength(2);
-    expect(supportOps.results[1]).toMatchObject({
+    expect(relayOps.results).toHaveLength(2);
+    expect(relayOps.results[1]).toMatchObject({
       state: 'pending',
-      request_digest: supportOps.results[0].request_digest,
       envelope_expires_at: NOW + 7 * 24 * 60 * 60 * 1000,
     });
-    expect(supportOps.results[1].service_operation_id).not.toBe('support-expired');
+    expect(relayOps.results[1].service_operation_id).not.toBe('relay-complete');
 
     await vi.advanceTimersByTimeAsync(15 * 60 * 1000);
     await expect(runAccountDeletionCoordinator(env, Date.now())).resolves.toMatchObject({ phase: 'complete' });
@@ -182,13 +185,12 @@ describe('deletion finalization', () => {
     const verifier = await workerEnv.DB.prepare(
       'SELECT expires_at FROM account_deletion_completions WHERE token_hash = ?'
     ).bind(statusTokenHash).first();
-    expect(verifier.expires_at).toBe(NOW - 1);
-    // The literal minimum may already be expired after reconciliation consumes the original window.
+    expect(verifier.expires_at).toBe(NOW + 2 * 24 * 60 * 60 * 1000);
     const response = await worker.fetch(new Request('https://services.solstone.app/account/delete/status', {
       headers: { Cookie: 'account_deletion_status=reconcile-status' },
     }), env);
-    expect(response.status).toBe(410);
-    expect(await response.text()).toContain('expired link');
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('complete');
   });
 
   it('hard-deletes expired completion verifiers even when no deletion is due', async () => {
@@ -362,22 +364,25 @@ function installFinalizationFetch(env) {
   });
 }
 
-function contractService(service, secret) {
+function contractService(service) {
   return { async fetch(_input, init) {
-    const envelope = JSON.parse(init.body);
-    const associationDigest = await scopedHmac(
-      canonical(envelope.association_snapshot), secret, `purge-contract-v1:${service}:digest`
-    );
+    const body = JSON.parse(init.body);
+    const envelope = body.envelope;
     const unsigned = {
-      deletion_operation_id: envelope.deletion_operation_id,
-      service_operation_id: envelope.service_operation_id,
+      version: 1,
+      key_version: envelope.key_version,
+      service,
+      operation_id: envelope.operation_id,
       request_digest: envelope.request_digest,
-      association_digest: associationDigest,
-      state: 'complete',
+      disposition: new URL(_input).pathname.endsWith('/confirm') ? 'confirmed' : 'complete',
     };
     return new Response(JSON.stringify({
       ...unsigned,
-      hmac: await scopedHmac(canonical(unsigned), secret, `purge-contract-v1:${service}`),
+      integrity: await framedHmacSha256Base64Url(
+        envelope.key_version === 1 ? 'owner-purge-v1-fixture-test-key' : 'owner-purge-v2-fixture-test-key',
+        `solpbc-owner-purge-v1:${service}:response`,
+        canonicalJson(unsigned),
+      ),
     }), { headers: { 'Content-Type': 'application/json' } });
   } };
 }
@@ -404,12 +409,4 @@ async function countForAccount(table, accountId) {
 async function countBy(table, column, value) {
   const row = await workerEnv.DB.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE ${column} = ?`).bind(value).first();
   return row.count;
-}
-
-function canonical(value) {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
-  if (value && typeof value === 'object') {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
 }

@@ -50,6 +50,57 @@ export async function scopedHmac(value, secret, context) {
   return base64UrlEncode(new Uint8Array(signature));
 }
 
+function compareUtf8Bytes(a, b) {
+  const ab = textEncoder.encode(a);
+  const bb = textEncoder.encode(b);
+  const len = Math.min(ab.length, bb.length);
+  for (let i = 0; i < len; i++) {
+    if (ab[i] !== bb[i]) return ab[i] - bb[i];
+  }
+  return ab.length - bb.length;
+}
+
+export function canonicalJson(value) {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new Error('canonicalJson: non-finite number');
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (typeof value === 'object') {
+    const keys = Object.keys(value).sort(compareUtf8Bytes);
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+  }
+  throw new Error('canonicalJson: unsupported value');
+}
+
+export async function sha256Base64Url(value) {
+  const digest = await crypto.subtle.digest('SHA-256', textEncoder.encode(value));
+  return base64UrlEncode(new Uint8Array(digest));
+}
+
+function uint64BeLengthPrefixed(bytes) {
+  const view = new DataView(new ArrayBuffer(8));
+  view.setBigUint64(0, BigInt(bytes.length), false);
+  const framed = new Uint8Array(8 + bytes.length);
+  framed.set(new Uint8Array(view.buffer));
+  framed.set(bytes, 8);
+  return framed;
+}
+
+export async function framedHmacSha256Base64Url(secret, domain, payload) {
+  const domainFramed = uint64BeLengthPrefixed(textEncoder.encode(domain));
+  const payloadFramed = uint64BeLengthPrefixed(textEncoder.encode(payload));
+  const input = new Uint8Array(domainFramed.length + payloadFramed.length);
+  input.set(domainFramed);
+  input.set(payloadFramed, domainFramed.length);
+  const key = await crypto.subtle.importKey(
+    'raw', textEncoder.encode(secret || ''), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, input);
+  return base64UrlEncode(new Uint8Array(signature));
+}
+
 export function hashKey(scope, value, env) {
   return hashWithPepper(`${scope}:${value}`, env);
 }

@@ -66,6 +66,18 @@ service = "spl-relay"
 # RELAY_GRANT_URL — relay grant endpoint URL, without a trailing slash.
 # RELAY_GRACE_DAYS — billing grace window for relay grants.
 #
+# Owner-purge wire contract v1 secrets (set via `wrangler secret put`):
+# ACCOUNT_RELAY_PURGE_BEARER_TOKEN — bearer credential shared with spl-relay for
+#   /internal/deletion/purge and /internal/deletion/purge/confirm. Distinct from
+#   RELAY_GRANT_SECRET.
+# ACCOUNT_RELAY_PURGE_HMAC_KEY_V1 / ACCOUNT_RELAY_PURGE_HMAC_KEY_V2 — per-key-version
+#   HMAC signing keys shared with spl-relay for owner-purge v1 request, confirmation,
+#   and response integrity. Retain a version while any pending purge uses it.
+# ACCOUNT_SUPPORT_PURGE_BEARER_TOKEN — bearer credential shared with extro-support for
+#   owner-purge v1. Distinct from SERVICES_AUTH_TOKEN.
+# ACCOUNT_SUPPORT_PURGE_HMAC_KEY_V1 / ACCOUNT_SUPPORT_PURGE_HMAC_KEY_V2 — per-key-version
+#   HMAC signing keys shared with extro-support for owner-purge v1 integrity.
+#
 # Security audit sink (set via `wrangler secret put`):
 # HUB_WEBHOOK_URL — extro-hub webhook ingress for durable T4 security events
 #   (e.g. https://extro.solpbc.org/hooks/security). T4 handlers POST typed events

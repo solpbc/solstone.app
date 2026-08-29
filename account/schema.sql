@@ -377,11 +377,12 @@ CREATE TABLE IF NOT EXISTS account_deletion_service_ops (
   service TEXT NOT NULL CHECK (service IN ('relay', 'support')),
   service_operation_id TEXT,
   request_digest TEXT,
-  state TEXT NOT NULL CHECK (state IN ('pending', 'delivered', 'complete', 'retryable', 'non_complete_refusal')),
+  key_version INTEGER,
+  envelope_issued_at INTEGER,
+  state TEXT NOT NULL CHECK (state IN ('pending', 'complete', 'confirmed')),
   envelope_expires_at INTEGER,
   next_attempt_at INTEGER,
-  attempt_count INTEGER NOT NULL DEFAULT 0,
-  confirmation_receipt_digest TEXT
+  attempt_count INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_account_deletion_service_ops_due

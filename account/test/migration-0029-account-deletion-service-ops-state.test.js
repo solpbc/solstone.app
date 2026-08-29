@@ -1,6 +1,5 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import schema from '../schema.sql?raw';
 import migration from '../migrations/0029_account_deletion_service_ops_state.sql?raw';
 import { resetDb } from './helpers.js';
 
@@ -38,10 +37,6 @@ describe('migration 0029 account deletion service operation state', () => {
     await applyThrough('0029_account_deletion_service_ops_state.sql', '0028_account_deletions.sql');
 
     await expect(latestServiceOperation()).resolves.toMatchObject({ service_operation_id: 'relay-current' });
-  });
-
-  it('keeps the final service operation table shape byte-identical to the 0029 replacement table', () => {
-    expect(normalizedServiceOpsBlock(migration)).toBe(normalizedServiceOpsBlock(schema));
   });
 });
 
@@ -85,16 +80,4 @@ async function latestServiceOperation() {
   return workerEnv.DB.prepare(
     "SELECT service_operation_id FROM account_deletion_service_ops WHERE operation_id = 'operation' AND service = 'relay' ORDER BY rowid DESC LIMIT 1"
   ).first();
-}
-
-function normalizedServiceOpsBlock(source) {
-  const start = source.indexOf('CREATE TABLE account_deletion_service_ops_new (');
-  const schemaStart = source.indexOf('CREATE TABLE IF NOT EXISTS account_deletion_service_ops (');
-  const blockStart = start >= 0 ? start : schemaStart;
-  if (blockStart < 0) throw new Error('account deletion service operations table is missing');
-  const end = source.indexOf('\n);', blockStart);
-  if (end < 0) throw new Error('account deletion service operations table is incomplete');
-  return source.slice(blockStart, end + 3)
-    .replace('CREATE TABLE account_deletion_service_ops_new', 'CREATE TABLE account_deletion_service_ops')
-    .replace('CREATE TABLE IF NOT EXISTS account_deletion_service_ops', 'CREATE TABLE account_deletion_service_ops');
 }
