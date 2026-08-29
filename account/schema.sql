@@ -377,7 +377,7 @@ CREATE TABLE IF NOT EXISTS account_deletion_service_ops (
   service TEXT NOT NULL CHECK (service IN ('relay', 'support')),
   service_operation_id TEXT,
   request_digest TEXT,
-  state TEXT NOT NULL CHECK (state IN ('pending', 'delivered', 'complete', 'retryable', 'non_complete_refusal', 'confirmed_absent')),
+  state TEXT NOT NULL CHECK (state IN ('pending', 'delivered', 'complete', 'retryable', 'non_complete_refusal')),
   envelope_expires_at INTEGER,
   next_attempt_at INTEGER,
   attempt_count INTEGER NOT NULL DEFAULT 0,

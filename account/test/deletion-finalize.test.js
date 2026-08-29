@@ -1,7 +1,8 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import worker from '../src/index.js';
 import { runAccountDeletionCoordinator } from '../src/deletion-coordinator.js';
-import { encryptEmail, hashKey, hashWithPepper, scopedHmac } from '../src/crypto.js';
+import { decryptEmail, encryptEmail, hashKey, hashWithPepper, scopedHmac } from '../src/crypto.js';
 import { createDeletionProof, insertDispatchToken, insertServiceHandoff, upsertSppBinding } from '../src/db.js';
 import { prefixFor } from '../src/spb-broker.js';
 import {
@@ -58,6 +59,18 @@ describe('deletion finalization', () => {
 
     await expect(runAccountDeletionCoordinator(env, Date.now())).resolves.toMatchObject({ phase: 'requested' });
     await expect(runAccountDeletionCoordinator(env, Date.now())).resolves.toMatchObject({ phase: 'purging' });
+    const deletion = await workerEnv.DB.prepare("SELECT snapshot_encrypted FROM account_deletions WHERE operation_id = 'op'").first();
+    const snapshot = JSON.parse(await decryptEmail(deletion.snapshot_encrypted, env));
+    const relayExpiry = NOW + 24 * 60 * 60 * 1000;
+    await insertServiceOperation({
+      id: 'relay-earlier',
+      operationId: 'op',
+      service: 'relay',
+      serviceOperationId: 'relay-earlier-operation',
+      requestDigest: await scopedHmac(canonical(snapshot.relay), 'test-relay-grant-secret', 'purge-contract-v1:relay:digest'),
+      state: 'complete',
+      envelopeExpiresAt: relayExpiry,
+    });
     await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 1);
     await expect(runAccountDeletionCoordinator(env, Date.now())).resolves.toMatchObject({ phase: 'complete' });
 
@@ -79,7 +92,7 @@ describe('deletion finalization', () => {
       token_hash: 'owner-status',
       state: 'complete',
       completed_at: NOW + 5 * 60 * 1000 + 1,
-      expires_at: NOW + 5 * 60 * 1000 + 7 * 24 * 60 * 60 * 1000 + 1,
+      expires_at: relayExpiry,
     });
     await expect(workerEnv.DB.prepare(
       "SELECT account_id, phase, snapshot_encrypted, snapshot_digest, status_token_hash, completed_at FROM account_deletions WHERE operation_id = 'op'"
@@ -92,6 +105,90 @@ describe('deletion finalization', () => {
       completed_at: NOW + 5 * 60 * 1000 + 1,
     });
     expect(ownerPrefix).toContain(owner.accountId);
+  });
+
+  it('reconciles one completed service without widening work, then preserves the literal earliest verifier expiry', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(NOW));
+    const env = makeTestEnv({
+      RELAY: contractService('relay', 'test-relay-grant-secret'),
+      SUPPORT_WORKER: contractService('support', 'test-services-auth-token'),
+    });
+    const owner = await seedAccount({ email: 'reconciliation-owner@example.com', testEnv: env });
+    const snapshot = {
+      relay: { spl_instance_ids: ['relay-target'], spp_instance_ids: [] },
+      backup: { spb_instance_ids: [] },
+      support_owner_id: owner.accountId,
+      stripe_customer_id: null,
+    };
+    const encrypted = await encryptEmail(JSON.stringify(snapshot), env);
+    const statusTokenHash = await hashWithPepper('reconcile-status', env);
+    await workerEnv.DB.prepare(
+      `INSERT INTO account_deletions (
+       operation_id, account_id, phase, requested_at, frozen_at, cancellation_deadline_at,
+       next_attempt_at, snapshot_encrypted, snapshot_digest, status_token_hash
+       ) VALUES ('reconcile', ?, 'purging', ?, ?, ?, ?, ?, 'digest', ?)`
+    ).bind(owner.accountId, NOW - 2, NOW - 1, NOW - 1, NOW, encrypted, statusTokenHash).run();
+    await insertServiceOperation({
+      id: 'reconcile-relay',
+      operationId: 'reconcile',
+      service: 'relay',
+      serviceOperationId: 'relay-complete',
+      requestDigest: await scopedHmac(canonical(snapshot.relay), 'test-relay-grant-secret', 'purge-contract-v1:relay:digest'),
+      state: 'complete',
+      envelopeExpiresAt: NOW - 1,
+    });
+    await insertServiceOperation({
+      id: 'reconcile-support-expired',
+      operationId: 'reconcile',
+      service: 'support',
+      serviceOperationId: 'support-expired',
+      requestDigest: await scopedHmac(canonical({ support_owner_id: owner.accountId }), 'test-services-auth-token', 'purge-contract-v1:support:digest'),
+      state: 'retryable',
+      envelopeExpiresAt: NOW - 1,
+    });
+
+    await expect(runAccountDeletionCoordinator(env, NOW)).resolves.toMatchObject({
+      claimed: true,
+      phase: 'purging',
+      reconciliation: 'service_reconciliation_pending',
+    });
+
+    await expect(workerEnv.DB.prepare(
+      "SELECT phase, snapshot_encrypted, last_error_code FROM account_deletions WHERE operation_id = 'reconcile'"
+    ).first()).resolves.toMatchObject({
+      phase: 'purging',
+      snapshot_encrypted: encrypted,
+      last_error_code: 'service_reconciliation_pending',
+    });
+    await expect(workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM account_deletion_completions').first()).resolves.toMatchObject({ count: 0 });
+    await expect(workerEnv.DB.prepare(
+      "SELECT service_operation_id, envelope_expires_at FROM account_deletion_service_ops WHERE id = 'reconcile-relay'"
+    ).first()).resolves.toEqual({ service_operation_id: 'relay-complete', envelope_expires_at: NOW - 1 });
+    const supportOps = await workerEnv.DB.prepare(
+      "SELECT service_operation_id, state, envelope_expires_at, request_digest FROM account_deletion_service_ops WHERE operation_id = 'reconcile' AND service = 'support' ORDER BY rowid"
+    ).all();
+    expect(supportOps.results).toHaveLength(2);
+    expect(supportOps.results[1]).toMatchObject({
+      state: 'pending',
+      request_digest: supportOps.results[0].request_digest,
+      envelope_expires_at: NOW + 7 * 24 * 60 * 60 * 1000,
+    });
+    expect(supportOps.results[1].service_operation_id).not.toBe('support-expired');
+
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000);
+    await expect(runAccountDeletionCoordinator(env, Date.now())).resolves.toMatchObject({ phase: 'complete' });
+
+    const verifier = await workerEnv.DB.prepare(
+      'SELECT expires_at FROM account_deletion_completions WHERE token_hash = ?'
+    ).bind(statusTokenHash).first();
+    expect(verifier.expires_at).toBe(NOW - 1);
+    // The literal minimum may already be expired after reconciliation consumes the original window.
+    const response = await worker.fetch(new Request('https://services.solstone.app/account/delete/status', {
+      headers: { Cookie: 'account_deletion_status=reconcile-status' },
+    }), env);
+    expect(response.status).toBe(410);
+    expect(await response.text()).toContain('expired link');
   });
 
   it('hard-deletes expired completion verifiers even when no deletion is due', async () => {
@@ -219,6 +316,23 @@ async function requestedDeletion(accountId) {
        operation_id, account_id, phase, requested_at, cancellation_deadline_at, next_attempt_at, status_token_hash
      ) VALUES ('op', ?, 'requested', ?, ?, ?, 'owner-status')`
   ).bind(accountId, NOW, NOW, NOW).run();
+}
+
+async function insertServiceOperation({
+  id,
+  operationId,
+  service,
+  serviceOperationId,
+  requestDigest,
+  state,
+  envelopeExpiresAt,
+}) {
+  await workerEnv.DB.prepare(
+    `INSERT INTO account_deletion_service_ops (
+       id, operation_id, service, service_operation_id, request_digest, state,
+       envelope_expires_at, next_attempt_at, attempt_count
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)`
+  ).bind(id, operationId, service, serviceOperationId, requestDigest, state, envelopeExpiresAt).run();
 }
 
 function installEmptyS3(env) {

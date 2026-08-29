@@ -27,8 +27,8 @@ describe('migration 0028 account deletions', () => {
     ]);
   });
 
-  it('keeps the schema and migration deletion block byte-identical', () => {
-    expect(deletionSchemaBlock(schema)).toBe(deletionSchemaBlock(migration));
+  it('keeps the immutable deletion foundation byte-identical apart from its later service-op state rewrite', () => {
+    expect(normalizedDeletionSchemaBlock(schema)).toBe(normalizedDeletionSchemaBlock(migration));
   });
 
   it('enforces the deletion phase and identifier-free completion shape', async () => {
@@ -66,4 +66,11 @@ function deletionSchemaBlock(source) {
   const end = source.indexOf(deletionBlockEnd, start);
   if (start < 0 || end < 0) throw new Error('deletion migration block is missing');
   return source.slice(start, end + deletionBlockEnd.length);
+}
+
+function normalizedDeletionSchemaBlock(source) {
+  return deletionSchemaBlock(source).replace(
+    /state TEXT NOT NULL CHECK \(state IN \([^\n]+\)\),/,
+    'state TEXT NOT NULL CHECK (state IN (latest migration owns this value)),',
+  );
 }

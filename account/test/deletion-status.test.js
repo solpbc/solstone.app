@@ -32,6 +32,18 @@ describe('deletion status', () => {
     expect(await response.text()).toContain('backup cleanup delayed; next retry 2024-12-03');
   });
 
+  it('names a pending service reconciliation and the scheduled retry date', async () => {
+    const env = makeTestEnv();
+    await deletion(env, {
+      operationId: 'reconciliation-op',
+      lastErrorCode: 'service_reconciliation_pending',
+    });
+
+    const response = await statusRequest(env);
+
+    expect(await response.text()).toContain('service reconciliation pending; next retry 2024-12-03');
+  });
+
   it('names delayed billing cleanup after backup is verified empty', async () => {
     const env = makeTestEnv();
     await deletion(env, {
@@ -69,17 +81,19 @@ async function deletion(env, {
   operationId,
   backupEmptyVerifiedAt = null,
   stripePurgeState = null,
+  lastErrorCode = null,
 } = {}) {
   await workerEnv.DB.prepare(
     `INSERT INTO account_deletions (
        operation_id, account_id, phase, requested_at, cancellation_deadline_at,
-       next_attempt_at, backup_empty_verified_at, stripe_purge_state, status_token_hash
-     ) VALUES (?, 'account', 'purging', 0, 0, ?, ?, ?, ?)`
+       next_attempt_at, backup_empty_verified_at, stripe_purge_state, last_error_code, status_token_hash
+     ) VALUES (?, 'account', 'purging', 0, 0, ?, ?, ?, ?, ?)`
   ).bind(
     operationId,
     NEXT_RETRY,
     backupEmptyVerifiedAt,
     stripePurgeState,
+    lastErrorCode,
     await hashWithPepper('status-token', env)
   ).run();
 }

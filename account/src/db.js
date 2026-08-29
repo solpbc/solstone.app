@@ -689,7 +689,7 @@ export async function getDeletionByStatusTokenHash(db, statusTokenHash) {
   const row = await db
     .prepare(
       `SELECT operation_id, phase, lease_token, next_attempt_at,
-              backup_empty_verified_at, stripe_purge_state
+              backup_empty_verified_at, stripe_purge_state, last_error_code
        FROM account_deletions
        WHERE status_token_hash = ?
        LIMIT 1`

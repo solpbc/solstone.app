@@ -45,6 +45,30 @@ describe('deletion backup purge', () => {
     });
   });
 
+  it('drains all 26 pages for an owner prefix without touching a control prefix', async () => {
+    const env = makeTestEnv();
+    const account = await seedAccount({ email: 'backup-26-pages@example.com', testEnv: env });
+    const control = await seedAccount({ email: 'backup-26-pages-control@example.com', testEnv: env });
+    const prefix = prefixFor(account.accountId, INSTANCE_ID);
+    const controlPrefix = prefixFor(control.accountId, INSTANCE_ID);
+    const s3 = installBackupS3State(env, {
+      objectsByPrefix: {
+        [prefix]: Array.from({ length: 25_476 }, (_, index) => `${prefix}object-${index}`),
+        [controlPrefix]: [`${controlPrefix}control`],
+      },
+    });
+    await purgingDeletion(env, account.accountId, { frozenAt: NOW - 1, nextAttemptAt: NOW });
+
+    const result = await runAccountDeletionCoordinator(env, NOW);
+
+    expect(result).toMatchObject({ claimed: true, phase: 'purging', backup: 'complete' });
+    expect(s3.objectState.get(prefix)).toEqual([]);
+    expect(s3.objectState.get(controlPrefix)).toEqual([`${controlPrefix}control`]);
+    expect(s3.calls.filter((call) => call.method === 'POST' && call.url.searchParams.has('delete'))).toHaveLength(26);
+    expect(s3.calls.filter((call) => call.url.searchParams.get('continuation-token'))).toHaveLength(25);
+    expect(s3.calls.some((call) => call.url.searchParams.get('prefix') === controlPrefix)).toBe(false);
+  });
+
   it('leaves backup purge retryable when final verification finds a residual object', async () => {
     const env = makeTestEnv();
     const account = await seedAccount({ email: 'backup-residual@example.com', testEnv: env });

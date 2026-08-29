@@ -1,6 +1,6 @@
 import { decryptEmail, generateSessionToken, hashKey, hashWithPepper } from './crypto.js';
 import { captureDeletionSnapshotForAccount } from './deletion.js';
-import { advanceDeletionServiceOperation } from './deletion-contract.js';
+import { advanceDeletionServiceOperation, remintExpiredDeletionServiceOperation } from './deletion-contract.js';
 import { mintScopedCredential } from './r2-credential.js';
 import { listMultipartUploads, listObjectsV2 } from './s3.js';
 import { prefixFor } from './spb-broker.js';
@@ -10,6 +10,8 @@ import { deleteStripeCustomer } from './stripe.js';
 const LEASE_MS = 5 * 60 * 1000;
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 const MAX_BACKOFF = 6 * 60 * 60 * 1000;
+const DELETION_SERVICES = ['relay', 'support'];
+const SERVICE_RECONCILIATION_PENDING = 'service_reconciliation_pending';
 
 export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
   await env.DB.prepare('DELETE FROM account_deletion_completions WHERE expires_at <= ?').bind(nowMs).run();
@@ -34,12 +36,22 @@ export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
   if (claim.phase === 'purging') {
     const deletion = await env.DB.prepare('SELECT * FROM account_deletions WHERE operation_id = ? AND lease_token = ?').bind(claim.operation_id, leaseToken).first();
     if (!deletion) return { claimed: false };
+    const serviceOps = await Promise.all(DELETION_SERVICES.map((service) => latestServiceOperation(env.DB, deletion.operation_id, service)));
+    const reconciliationService = expiredReconciliationService(serviceOps, nowMs);
+    if (reconciliationService) {
+      if (!await markServiceReconciliationPending(env.DB, deletion, nowMs)) return { claimed: false };
+      await remintExpiredDeletionServiceOperation(env, { deletion, service: reconciliationService, nowMs });
+      const backoff = retryBackoff(claim.attempt_count);
+      await reschedule(env.DB, claim.operation_id, leaseToken, nowMs + backoff, nowMs, true);
+      return { claimed: true, phase: 'purging', reconciliation: SERVICE_RECONCILIATION_PENDING };
+    }
     const [states, backup, stripe] = await Promise.all([
-      Promise.all(['relay', 'support'].map((service) => advanceDeletionServiceOperation(env, { deletion, service, nowMs }))),
+      Promise.all(DELETION_SERVICES.map((service) => advanceDeletionServiceOperation(env, { deletion, service, nowMs }))),
       advanceDeletionBackupPurge(env, deletion, nowMs),
       advanceDeletionStripePurge(env, deletion, nowMs),
     ]);
-    const servicesComplete = states.every((state) => state === 'complete' || state === 'confirmed_absent');
+    const servicesComplete = states.every((state) => state === 'complete');
+    if (servicesComplete) await clearServiceReconciliationPending(env.DB, deletion);
     if (servicesComplete && backup === 'complete' && stripe === 'complete') {
       const completed = await finalizeDeletion(env, deletion, nowMs);
       return completed
@@ -47,11 +59,26 @@ export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
         : { claimed: false };
     }
     const retryable = states.includes('retryable') || backup === 'retryable' || stripe === 'retryable';
-    const backoff = retryable ? Math.min(MAX_BACKOFF, FIFTEEN_MINUTES * (2 ** Math.min(Number(claim.attempt_count || 0), 4))) : FIFTEEN_MINUTES;
+    const backoff = retryable ? retryBackoff(claim.attempt_count) : FIFTEEN_MINUTES;
     await reschedule(env.DB, claim.operation_id, leaseToken, nowMs + backoff, nowMs, retryable);
     return { claimed: true, phase: 'purging', states, backup, stripe };
   }
   return { claimed: true, phase: claim.phase };
+}
+
+function expiredReconciliationService(operations, nowMs) {
+  const complete = operations.filter((operation) => operation?.state === 'complete');
+  const expired = operations.filter((operation) => (
+    operation
+    && operation.state !== 'complete'
+    && operation.envelope_expires_at != null
+    && operation.envelope_expires_at <= nowMs
+  ));
+  return complete.length === 1 && expired.length === 1 ? expired[0].service : null;
+}
+
+function retryBackoff(attemptCount) {
+  return Math.min(MAX_BACKOFF, FIFTEEN_MINUTES * (2 ** Math.min(Number(attemptCount || 0), 4)));
 }
 
 async function claimDueDeletion(db, leaseToken, nowMs) {
@@ -85,6 +112,31 @@ async function reschedule(db, operationId, leaseToken, nextAttemptAt, nowMs, inc
          attempt_count = attempt_count + ?
      WHERE operation_id = ? AND lease_token = ?`
   ).bind(nextAttemptAt, increment ? 1 : 0, operationId, leaseToken).run();
+}
+
+async function latestServiceOperation(db, operationId, service) {
+  return db.prepare(
+    `SELECT * FROM account_deletion_service_ops WHERE operation_id = ? AND service = ? ORDER BY rowid DESC LIMIT 1`
+  ).bind(operationId, service).first();
+}
+
+async function markServiceReconciliationPending(db, deletion, nowMs) {
+  // last_error_* is repurposed as a deletion state marker, not a literal error.
+  const result = await db.prepare(
+    `UPDATE account_deletions
+     SET last_error_code = ?, last_error_at = ?
+     WHERE operation_id = ? AND lease_token = ? AND phase = 'purging'`
+  ).bind(SERVICE_RECONCILIATION_PENDING, nowMs, deletion.operation_id, deletion.lease_token).run();
+  return result.meta?.changes === 1;
+}
+
+async function clearServiceReconciliationPending(db, deletion) {
+  await db.prepare(
+    `UPDATE account_deletions
+     SET last_error_code = NULL, last_error_at = NULL
+     WHERE operation_id = ? AND lease_token = ? AND phase = 'purging'
+       AND last_error_code = ?`
+  ).bind(deletion.operation_id, deletion.lease_token, SERVICE_RECONCILIATION_PENDING).run();
 }
 
 async function advanceDeletionBackupPurge(env, deletion, nowMs) {
@@ -194,6 +246,16 @@ async function finalizeDeletion(env, deletion, nowMs) {
      WHERE operation_id = ? AND lease_token = ? AND phase = 'purging'`
   ).bind(deletion.operation_id, deletion.lease_token).first();
   if (!current?.account_id || !current.status_token_hash) return false;
+  const [relayOp, supportOp] = await Promise.all(
+    DELETION_SERVICES.map((service) => latestServiceOperation(env.DB, deletion.operation_id, service))
+  );
+  if (
+    relayOp?.state !== 'complete'
+    || supportOp?.state !== 'complete'
+    || !Number.isFinite(Number(relayOp.envelope_expires_at))
+    || !Number.isFinite(Number(supportOp.envelope_expires_at))
+  ) return false;
+  const completionExpiresAt = Math.min(Number(relayOp.envelope_expires_at), Number(supportOp.envelope_expires_at));
 
   let emailHashes;
   let rateBucketKeys;
@@ -259,7 +321,7 @@ async function finalizeDeletion(env, deletion, nowMs) {
        SELECT status_token_hash, 'complete', ?, ?
        FROM account_deletions
        WHERE operation_id = ? AND lease_token = ? AND phase = 'purging' AND status_token_hash IS NOT NULL`
-    ).bind(nowMs, nowMs + 7 * 24 * 60 * 60 * 1000, operationId, leaseToken),
+    ).bind(nowMs, completionExpiresAt, operationId, leaseToken),
     env.DB.prepare(
       `UPDATE account_deletions
        SET account_id = NULL,

@@ -1,5 +1,3 @@
-import { generateAuthenticationOptions } from '@simplewebauthn/server';
-
 import {
   decryptEmail,
   encryptEmail,
@@ -36,6 +34,7 @@ import {
 } from './db.js';
 import { sendDeletionProofEmail } from './email.js';
 import {
+  buildPasskeyAuthenticationOptions,
   passkeyChallengeFromClientData,
   verifyPasskeyAssertion,
 } from './passkey.js';
@@ -124,10 +123,8 @@ export async function startPasskeyProof(env, { accountId, sessionIdHash, purpose
     return { ok: false, reason: 'no_passkey' };
   }
   const credentials = await listPasskeyCredentialsForAccount(env.DB, accountId);
-  const options = await generateAuthenticationOptions({
-    rpID: 'solstone.app',
+  const options = await buildPasskeyAuthenticationOptions({
     userVerification: 'required',
-    timeout: 60_000,
     allowCredentials: credentials.map((row) => ({
       id: row.credential_id,
       type: 'public-key',
@@ -445,17 +442,20 @@ export async function handleDeletionStatus(req, env) {
 }
 
 async function deletionDelayedStatus(env, deletion) {
+  const retry = formatDate(deletion.next_attempt_at);
+  if (deletion.last_error_code === 'service_reconciliation_pending') {
+    return `service reconciliation pending; next retry ${retry}`;
+  }
   const { results } = await env.DB.prepare(
     `SELECT service
      FROM account_deletion_service_ops
      WHERE operation_id = ?
        AND service IN ('relay', 'support')
-       AND state NOT IN ('complete', 'confirmed_absent')
+       AND state NOT IN ('complete')
      ORDER BY CASE service WHEN 'relay' THEN 0 ELSE 1 END
      LIMIT 1`
   ).bind(deletion.operation_id).all();
   const delayedService = results?.[0]?.service;
-  const retry = formatDate(deletion.next_attempt_at);
   if (delayedService === 'relay') return `relay cleanup delayed; next retry ${retry}`;
   if (delayedService === 'support') return `support cleanup delayed; next retry ${retry}`;
   if (deletion.backup_empty_verified_at == null) return `backup cleanup delayed; next retry ${retry}`;

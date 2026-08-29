@@ -4,9 +4,7 @@ const EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function advanceDeletionServiceOperation(env, { deletion, service, nowMs = Date.now() }) {
   if (!await leaseIsLive(env.DB, deletion)) return 'retryable';
-  let op = await env.DB.prepare(
-    `SELECT * FROM account_deletion_service_ops WHERE operation_id = ? AND service = ? ORDER BY rowid DESC LIMIT 1`
-  ).bind(deletion.operation_id, service).first();
+  let op = await latestServiceOperation(env.DB, deletion.operation_id, service);
   const snapshot = await serviceSnapshot(env, deletion.snapshot_encrypted, service);
   const associationDigest = await digest(env, snapshot, service);
   if (!op || (op.state === 'retryable' && op.envelope_expires_at <= nowMs)) {
@@ -14,7 +12,7 @@ export async function advanceDeletionServiceOperation(env, { deletion, service, 
     if (!op) return 'retryable';
   }
   if (op.request_digest !== associationDigest) return 'non_complete_refusal';
-  if (op.state === 'complete' || op.state === 'confirmed_absent' || op.state === 'non_complete_refusal') return op.state;
+  if (op.state === 'complete' || op.state === 'non_complete_refusal') return op.state;
   if (op.envelope_expires_at <= nowMs) return 'retryable';
 
   const envelope = await envelopeFor(env, deletion.operation_id, op, snapshot, nowMs);
@@ -45,13 +43,18 @@ export async function advanceDeletionServiceOperation(env, { deletion, service, 
       ? 'complete'
       : 'retryable';
   }
-  if (confirmation.state === 'absent' && confirmation.no_matching_association === true && nowMs < op.envelope_expires_at) {
-    return await setState(env, deletion, op.id, 'confirmed_absent', nowMs, confirmation.receipt || null)
-      ? 'confirmed_absent'
-      : 'retryable';
-  }
   await setState(env, deletion, op.id, 'retryable', nowMs);
   return 'retryable';
+}
+
+export async function remintExpiredDeletionServiceOperation(env, { deletion, service, nowMs = Date.now() }) {
+  if (!await leaseIsLive(env.DB, deletion)) return null;
+  const op = await latestServiceOperation(env.DB, deletion.operation_id, service);
+  if (!op || op.state === 'complete' || op.envelope_expires_at == null || op.envelope_expires_at > nowMs) return null;
+  const snapshot = await serviceSnapshot(env, deletion.snapshot_encrypted, service);
+  const associationDigest = await digest(env, snapshot, service);
+  if (op.request_digest !== associationDigest) return null;
+  return createOperation(env, deletion, service, snapshot, associationDigest, nowMs);
 }
 
 async function createOperation(env, deletion, service, snapshot, requestDigest, nowMs) {
@@ -81,6 +84,12 @@ async function createOperation(env, deletion, service, snapshot, requestDigest, 
   ).run();
   if (result.meta?.changes !== 1) return null;
   return env.DB.prepare('SELECT * FROM account_deletion_service_ops WHERE id = ?').bind(id).first();
+}
+
+async function latestServiceOperation(db, operationId, service) {
+  return db.prepare(
+    `SELECT * FROM account_deletion_service_ops WHERE operation_id = ? AND service = ? ORDER BY rowid DESC LIMIT 1`
+  ).bind(operationId, service).first();
 }
 
 async function envelopeFor(env, deletionOperationId, op, snapshot, nowMs) {

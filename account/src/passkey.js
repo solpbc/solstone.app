@@ -36,6 +36,18 @@ const AUTH_PER_IP_PER_HOUR = 60;
 const SUPPORTED_ALGORITHM_IDS = [-7, -257, -8];
 const HINTS = ['client-device', 'hybrid'];
 
+export async function buildPasskeyAuthenticationOptions({
+  userVerification = 'preferred',
+  allowCredentials = [],
+} = {}) {
+  return generateAuthenticationOptions({
+    rpID: RP_ID,
+    userVerification,
+    allowCredentials,
+    timeout: 60_000,
+  });
+}
+
 export async function passkeyRegisterStart(req, env) {
   try {
     const guard = await requirePasskeySession(req, env, 'passkey_register_start');
@@ -179,11 +191,9 @@ export async function passkeyAuthStart(req, env) {
     }
     await bumpRateBucket(env.DB, ipKey, HOUR_MS, nowMs);
 
-    const options = await generateAuthenticationOptions({
-      rpID: RP_ID,
+    const options = await buildPasskeyAuthenticationOptions({
       userVerification: 'preferred',
       allowCredentials: [],
-      timeout: 60_000,
     });
     await insertPasskeyChallenge(env.DB, {
       challenge: options.challenge,

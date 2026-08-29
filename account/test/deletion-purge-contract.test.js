@@ -1,7 +1,7 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { scopedHmac, encryptEmail } from '../src/crypto.js';
-import { advanceDeletionServiceOperation } from '../src/deletion-contract.js';
+import { advanceDeletionServiceOperation, remintExpiredDeletionServiceOperation } from '../src/deletion-contract.js';
 import { makeTestEnv, resetDb } from './helpers.js';
 
 describe('deletion purge contract', () => {
@@ -16,13 +16,13 @@ describe('deletion purge contract', () => {
     await expect(workerEnv.DB.prepare("SELECT state FROM account_deletion_service_ops WHERE operation_id = 'delete' AND service = 'relay'").first()).resolves.toMatchObject({ state: 'complete' });
   });
 
-  it('keeps malformed, lost, or expired work retryable rather than treating it as absent', async () => {
+  it('keeps malformed, lost, or expired work retryable', async () => {
     const testEnv = makeTestEnv({ RELAY: { async fetch() { return new Response('{}'); } } });
     await deletion(await encryptEmail(JSON.stringify({ relay: { spl_instance_ids: [] } }), testEnv));
     const row = await workerEnv.DB.prepare("SELECT * FROM account_deletions WHERE operation_id = 'delete'").first();
     await expect(advanceDeletionServiceOperation(testEnv, { deletion: row, service: 'relay', nowMs: 1 })).resolves.toBe('retryable');
     await workerEnv.DB.prepare("UPDATE account_deletion_service_ops SET envelope_expires_at = 0").run();
-    await expect(advanceDeletionServiceOperation(testEnv, { deletion: row, service: 'relay', nowMs: 2 })).resolves.not.toBe('confirmed_absent');
+    await expect(advanceDeletionServiceOperation(testEnv, { deletion: row, service: 'relay', nowMs: 2 })).resolves.toBe('retryable');
   });
 
   it('completes a zero-target relay snapshot', async () => {
@@ -70,20 +70,27 @@ describe('deletion purge contract', () => {
     await expect(count("state = 'complete'")).resolves.toBe(1);
   });
 
-  it('does not accept a malformed confirmation as confirmed_absent', async () => {
+  it('keeps an authenticated absence confirmation retryable', async () => {
     let calls = 0;
     const env = makeTestEnv({ RELAY: { async fetch(input, init) {
       calls += 1;
       const envelope = JSON.parse(init.body);
       const snapshot = envelope.association_snapshot;
       const digest = await scopedHmac(canonical(snapshot), 'test-relay-grant-secret', 'purge-contract-v1:relay:digest');
-      const unsigned = { deletion_operation_id: envelope.deletion_operation_id, service_operation_id: envelope.service_operation_id, request_digest: envelope.request_digest, association_digest: digest, state: calls === 1 ? 'complete' : 'absent', no_matching_association: calls === 1 ? undefined : true };
+      const unsigned = {
+        deletion_operation_id: envelope.deletion_operation_id,
+        service_operation_id: envelope.service_operation_id,
+        request_digest: envelope.request_digest,
+        association_digest: digest,
+        state: calls === 1 ? 'complete' : 'absent',
+        ...(calls === 1 ? {} : { no_matching_association: true }),
+      };
       const hmac = await scopedHmac(canonical(unsigned), 'test-relay-grant-secret', 'purge-contract-v1:relay');
       return new Response(JSON.stringify({ ...unsigned, hmac }), { headers: { 'Content-Type': 'application/json' } });
     } } });
     await deletion(await encryptEmail(JSON.stringify({ relay: {} }), env));
     await expect(advanceDeletionServiceOperation(env, { deletion: await deletionRow(), service: 'relay', nowMs: 1 })).resolves.toBe('retryable');
-    await expect(count("state = 'confirmed_absent'")).resolves.toBe(0);
+    await expect(workerEnv.DB.prepare("SELECT state FROM account_deletion_service_ops WHERE operation_id = 'delete'").first()).resolves.toMatchObject({ state: 'retryable' });
   });
 
   it('keeps an authenticated retryable service disposition retryable', async () => {
@@ -98,13 +105,12 @@ describe('deletion purge contract', () => {
     await expect(advanceDeletionServiceOperation(env, { deletion: await deletionRow(), service: 'relay', nowMs: 1 })).resolves.toBe('non_complete_refusal');
   });
 
-  it('does not permit an expired original envelope to become confirmed absent', async () => {
+  it('remints an expired retryable operation instead of treating the old envelope as terminal', async () => {
     const env = makeTestEnv({ RELAY: contractService('relay', 'test-relay-grant-secret') });
     await deletion(await encryptEmail(JSON.stringify({ relay: {} }), env));
     await advanceDeletionServiceOperation(env, { deletion: await deletionRow(), service: 'relay', nowMs: 1 });
     await workerEnv.DB.prepare("UPDATE account_deletion_service_ops SET state = 'retryable', envelope_expires_at = 1").run();
-    await expect(advanceDeletionServiceOperation(env, { deletion: await deletionRow(), service: 'relay', nowMs: 2 })).resolves.not.toBe('confirmed_absent');
-    await expect(count("state = 'confirmed_absent'")).resolves.toBe(0);
+    await expect(advanceDeletionServiceOperation(env, { deletion: await deletionRow(), service: 'relay', nowMs: 2 })).resolves.toBe('complete');
   });
 
   it('refuses an altered association snapshot without redelivering it', async () => {
@@ -120,6 +126,46 @@ describe('deletion purge contract', () => {
     const env = makeTestEnv({ SUPPORT_WORKER: contractService('support', 'test-services-auth-token') });
     await deletion(await encryptEmail(JSON.stringify({ support_owner_id: 'account' }), env));
     await expect(advanceDeletionServiceOperation(env, { deletion: await deletionRow(), service: 'support', nowMs: 1 })).resolves.toBe('complete');
+  });
+
+  it.each([
+    ['swapped service secret', { hmacSecret: 'test-services-auth-token', hmacScope: 'purge-contract-v1:support' }, 'retryable'],
+    ['wrong association digest', { associationDigest: 'different' }, 'retryable'],
+    ['legacy absence disposition', { state: ['confirmed', 'absent'].join('_') }, 'non_complete_refusal'],
+    ['wrong contract scope version', { hmacScope: 'purge-contract-v0:relay' }, 'retryable'],
+  ])('rejects a %s response under the v1 contract', async (_name, overrides, expected) => {
+    const env = makeTestEnv({ RELAY: responseService(overrides.state || 'complete', overrides) });
+    await deletion(await encryptEmail(JSON.stringify({ relay: {} }), env));
+    await expect(advanceDeletionServiceOperation(env, { deletion: await deletionRow(), service: 'relay', nowMs: 1 })).resolves.toBe(expected);
+  });
+
+  it('remints only an expired non-complete service operation', async () => {
+    const env = makeTestEnv();
+    const snapshot = { relay: { spl_instance_ids: ['relay-target'], spp_instance_ids: [] }, support_owner_id: 'account' };
+    await deletion(await encryptEmail(JSON.stringify(snapshot), env));
+    const supportDigest = await scopedHmac(canonical({ support_owner_id: 'account' }), 'test-services-auth-token', 'purge-contract-v1:support:digest');
+    await workerEnv.DB.batch([
+      workerEnv.DB.prepare(
+        `INSERT INTO account_deletion_service_ops (
+           id, operation_id, service, service_operation_id, request_digest, state, envelope_expires_at, next_attempt_at, attempt_count
+         ) VALUES ('relay-complete', 'delete', 'relay', 'relay-original', 'relay-digest', 'complete', 5, 1, 1)`
+      ),
+      workerEnv.DB.prepare(
+        `INSERT INTO account_deletion_service_ops (
+           id, operation_id, service, service_operation_id, request_digest, state, envelope_expires_at, next_attempt_at, attempt_count
+         ) VALUES ('support-expired', 'delete', 'support', 'support-original', ?, 'retryable', 5, 1, 1)`
+      ).bind(supportDigest),
+    ]);
+
+    const reminted = await remintExpiredDeletionServiceOperation(env, {
+      deletion: await deletionRow(), service: 'support', nowMs: 6,
+    });
+
+    expect(reminted).toMatchObject({ service: 'support', state: 'pending', request_digest: supportDigest, envelope_expires_at: 6 + 7 * 24 * 60 * 60 * 1000 });
+    expect(reminted.service_operation_id).not.toBe('support-original');
+    await expect(workerEnv.DB.prepare(
+      "SELECT state, service_operation_id, envelope_expires_at FROM account_deletion_service_ops WHERE id = 'relay-complete'"
+    ).first()).resolves.toEqual({ state: 'complete', service_operation_id: 'relay-original', envelope_expires_at: 5 });
   });
 });
 
@@ -140,12 +186,16 @@ function contractService(service, secret) {
   }};
 }
 
-function responseService(state) {
+function responseService(state, {
+  associationDigest: expectedDigest,
+  hmacSecret = 'test-relay-grant-secret',
+  hmacScope = 'purge-contract-v1:relay',
+} = {}) {
   return { async fetch(_input, init) {
     const envelope = JSON.parse(init.body);
-    const associationDigest = await scopedHmac(canonical(envelope.association_snapshot), 'test-relay-grant-secret', 'purge-contract-v1:relay:digest');
+    const associationDigest = expectedDigest ?? await scopedHmac(canonical(envelope.association_snapshot), 'test-relay-grant-secret', 'purge-contract-v1:relay:digest');
     const unsigned = { deletion_operation_id: envelope.deletion_operation_id, service_operation_id: envelope.service_operation_id, request_digest: envelope.request_digest, association_digest: associationDigest, state };
-    return new Response(JSON.stringify({ ...unsigned, hmac: await scopedHmac(canonical(unsigned), 'test-relay-grant-secret', 'purge-contract-v1:relay') }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ...unsigned, hmac: await scopedHmac(canonical(unsigned), hmacSecret, hmacScope) }), { headers: { 'Content-Type': 'application/json' } });
   } };
 }
 
