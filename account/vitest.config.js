@@ -1,4 +1,9 @@
 import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
+import { writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
+
+const fixtureWriterUrl = await startFixtureWriter();
 
 export default defineWorkersConfig({
   test: {
@@ -38,9 +43,32 @@ export default defineWorkersConfig({
             R2_ACCOUNT_ID: '3f2c1528c7d4d9685819ea9e9e307c92',
             R2_BUCKET: 'solstone-backups',
             SPB_MINT_ENABLED: 'true',
+            MCP_BRIDGE_FIXTURE_WRITE: process.env.MCP_BRIDGE_FIXTURE_WRITE || '',
+            MCP_BRIDGE_FIXTURE_WRITE_URL: fixtureWriterUrl,
           },
         },
       },
     },
   },
 });
+
+async function startFixtureWriter() {
+  if (process.env.MCP_BRIDGE_FIXTURE_WRITE !== '1') return '';
+  const server = createServer(async (request, response) => {
+    if (request.method !== 'POST' || request.url !== '/mcp-bridge-fixture') {
+      response.writeHead(404).end();
+      return;
+    }
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    writeFileSync(new URL('./test-fixtures/mcp_bridge_v1.json', import.meta.url), Buffer.concat(chunks));
+    response.once('finish', () => server.close());
+    response.writeHead(204).end();
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  server.unref();
+  process.on('exit', () => server.close());
+  const { port } = server.address();
+  return `http://127.0.0.1:${port}/mcp-bridge-fixture`;
+}

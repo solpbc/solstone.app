@@ -1,7 +1,9 @@
-import { timingSafeEqual } from './crypto.js';
+import { deriveJournalIdFromSpki, timingSafeEqual } from './crypto.js';
 import { json } from './index.js';
 
 const REACH_RELAY_TOKEN_TTL_SECONDS = 86400;
+export const PUSH_RELAY_ENROLL_SCOPE = 'push.relay.enroll';
+export const MCP_BRIDGE_REGISTER_SCOPE = 'mcp.bridge.register';
 const encoder = new TextEncoder();
 
 export async function handleReachRelayToken(req, env) {
@@ -29,20 +31,18 @@ export async function handleReachRelayToken(req, env) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
 
-  let key;
-  try {
-    key = await crypto.subtle.importKey(
-      'spki',
-      spkiPemToBytes(caPubkey),
-      { name: 'ECDSA', namedCurve: 'P-256' },
-      false,
-      ['verify']
-    );
-  } catch {
+  const ca = await parseHomeReachCaPubkey(caPubkey);
+  if (!ca) {
     return json({ error: 'invalid_input' }, { status: 400 });
   }
 
-  const ok = await verifyHomeReachAssertion(assertion, key, instanceId);
+  const ok = await verifyHomeReachAssertion(
+    assertion,
+    ca.key,
+    ca.spkiBytes,
+    instanceId,
+    PUSH_RELAY_ENROLL_SCOPE
+  );
   if (!ok) return json({ error: 'invalid_token' }, { status: 401 });
 
   const iat = Math.floor(Date.now() / 1000);
@@ -115,8 +115,10 @@ export async function verifyReachRelayToken(token, env) {
   }
 }
 
-async function verifyHomeReachAssertion(assertion, key, instanceId) {
+export async function verifyHomeReachAssertion(assertion, key, spkiBytes, instanceId, scope) {
   try {
+    if (await deriveJournalIdFromSpki(spkiBytes) !== instanceId) return false;
+
     const parts = assertion.split('.');
     if (parts.length !== 3) return false;
 
@@ -127,7 +129,7 @@ async function verifyHomeReachAssertion(assertion, key, instanceId) {
     const now = Math.floor(Date.now() / 1000);
     if (claims.iss !== `home:${instanceId}`) return false;
     if (claims.aud !== 'solstone-reach') return false;
-    if (claims.scope !== 'push.relay.enroll') return false;
+    if (claims.scope !== scope) return false;
     if (claims.instance_id !== instanceId) return false;
     if (typeof claims.exp !== 'number' || claims.exp <= now) return false;
     if (typeof claims.iat !== 'number' || claims.iat > now + 60 || claims.exp <= claims.iat) return false;
@@ -145,15 +147,39 @@ async function verifyHomeReachAssertion(assertion, key, instanceId) {
   }
 }
 
+export async function parseHomeReachCaPubkey(pem) {
+  try {
+    const spkiBytes = spkiPemToBytes(pem);
+    const key = await crypto.subtle.importKey(
+      'spki',
+      spkiBytes,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false,
+      ['verify']
+    );
+    return { key, spkiBytes };
+  } catch {
+    return null;
+  }
+}
+
 function spkiPemToBytes(pem) {
-  const b64 = pem
-    .replace(/-----BEGIN PUBLIC KEY-----/g, '')
-    .replace(/-----END PUBLIC KEY-----/g, '')
-    .replace(/\s+/g, '');
+  if (typeof pem !== 'string') throw new Error('invalid PEM');
+  const match = pem.match(/^-----BEGIN PUBLIC KEY-----\n([A-Za-z0-9+/=\n]+)\n-----END PUBLIC KEY-----$/);
+  if (!match) throw new Error('invalid PEM');
+  const b64 = match[1].replace(/\n/g, '');
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  if (bytesToSpkiPem(bytes) !== pem) throw new Error('noncanonical PEM');
   return bytes;
+}
+
+function bytesToSpkiPem(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const b64 = btoa(binary);
+  return `-----BEGIN PUBLIC KEY-----\n${b64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
 }
 
 function base64UrlEncode(bytes) {

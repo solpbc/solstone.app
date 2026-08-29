@@ -1301,6 +1301,41 @@ export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
     .run();
 }
 
+export async function findUniqueSplBindingAccount(db, instanceId) {
+  const { results } = await db
+    .prepare('SELECT account_id FROM spl_bindings WHERE instance_id = ?')
+    .bind(instanceId)
+    .all();
+  if (!results || results.length !== 1) return null;
+  return { accountId: results[0].account_id };
+}
+
+export async function getMcpBridgeBinding(db, { accountId, instanceId }) {
+  const row = await db
+    .prepare(
+      `SELECT label
+       FROM mcp_bridge_bindings
+       WHERE account_id = ? AND instance_id = ?`
+    )
+    .bind(accountId, instanceId)
+    .first();
+  return row || null;
+}
+
+export async function reserveMcpBridgeBinding(db, { accountId, instanceId, label, nowMs }) {
+  await db.batch([
+    db
+      .prepare('INSERT INTO mcp_bridge_hostname_ledger (label, created_at) VALUES (?, ?)')
+      .bind(label, nowMs),
+    db
+      .prepare(
+        `INSERT INTO mcp_bridge_bindings (account_id, instance_id, label, created_at)
+         VALUES (?, ?, ?, ?)`
+      )
+      .bind(accountId, instanceId, label, nowMs),
+  ]);
+}
+
 export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
   await db
     .prepare(

@@ -55,6 +55,7 @@ service = "spl-relay"
 # APNS_BUNDLE_ID — App bundle id used as apns-topic (e.g. app.solstone.swift).
 # APNS_ENV — APNs environment: "production" or "sandbox".
 # REACH_RELAY_TOKEN_SECRET — HS256 signing secret for minted 24h reach relay tokens (POST /reach/push/relay-token).
+# MCP_BRIDGE_TOKEN_PRIVATE_KEY — Ed25519 PKCS#8 PEM used to sign MCP bridge admission JWTs.
 #
 # Stripe billing secrets (set via `wrangler secret put`):
 # STRIPE_SECRET_KEY — Stripe restricted secret key for Checkout, Portal, and subscription reads.
@@ -102,6 +103,10 @@ name = "EMAIL"
 remote = true
 
 [vars]
+# MCP bridge hostname authority (provision before enabling the bridge route; no values are shipped here):
+# MCP_BRIDGE_TOKEN_KID — public signing-key identifier exposed in /.well-known/jwks.json.
+# MCP_BRIDGE_ID — bridge audience identifier for MCP admission JWTs.
+# MCP_BRIDGE_ADDRESSES — comma-separated bridge IP addresses; v1 is 20.186.92.169.
 TURNSTILE_SITE_KEY = "0x4AAAAAADPn7-wnLZnFjshK"
 CF_ACCESS_AUD = "a48343311f9157cfb056e5aa70878dc8aab4962769a8e1743486b6a884054104"
 EMAIL_PATH_DISABLED = "false"

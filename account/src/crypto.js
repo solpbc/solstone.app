@@ -7,6 +7,8 @@ const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 const SERVICE_HANDOFF_SALT = textEncoder.encode('service-handoff');
 const SERVICE_HANDOFF_INFO = textEncoder.encode('service-handoff-pepper-v1');
+const JOURNAL_ID_SALT = textEncoder.encode('solstone/journal/v1');
+const JOURNAL_ID_INFO = textEncoder.encode('solstone/jid/uuidv8/v1');
 const serviceHandoffPepperCache = new Map();
 
 export async function encryptEmail(plaintext, env) {
@@ -128,6 +130,30 @@ export async function deriveServiceHandoffPepper(env) {
   const pepper = new Uint8Array(bits);
   serviceHandoffPepperCache.set(ikm, pepper);
   return new Uint8Array(pepper);
+}
+
+export async function deriveJournalIdFromSpki(spkiBytes) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    spkiBytes,
+    'HKDF',
+    false,
+    ['deriveBits']
+  );
+  const bytes = new Uint8Array(await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: JOURNAL_ID_SALT,
+      info: JOURNAL_ID_INFO,
+    },
+    key,
+    128
+  ));
+  bytes[6] = (bytes[6] & 0x0f) | 0x80;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = hexEncode(bytes);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 export async function hashServiceHandoffNonce(nonce, env) {

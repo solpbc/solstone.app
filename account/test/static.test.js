@@ -38,6 +38,7 @@ describe('static source checks', () => {
       'inline/passkey-enroll.js',
       'inline/passkey-landing.js',
       'inline/support-forms.js',
+      'mcp-bridge.js',
       'passkey.js',
       'push.js',
       'r2-credential.js',
@@ -71,10 +72,10 @@ describe('static source checks', () => {
     expect(source).not.toContain('@simplewebauthn/browser');
   });
 
-  it('only imports jose from admin.js and r2-credential.js', () => {
+  it('only imports jose from admin.js, mcp-bridge.js, and r2-credential.js', () => {
     expect(sourceEntries
       .filter((entry) => entry.text.includes('jose'))
-      .map((entry) => entry.name)).toEqual(['admin.js', 'r2-credential.js']);
+      .map((entry) => entry.name)).toEqual(['admin.js', 'mcp-bridge.js', 'r2-credential.js']);
   });
 
   it('does not import from scouts', () => {

@@ -19,6 +19,9 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg+Zj7Bk6Dzp080/PU
 jTZnJ6kP4KtlHErFO/WuVRTQvkShRANCAARW8djY5HF7K8noSZQRfjP38mIzaufi
 /YPI38YuaWmiPIqRmwDOu5rICl4PPLem4k+qtb950rlYCGx3J+MQN9tO
 -----END PRIVATE KEY-----`;
+export const TEST_MCP_BRIDGE_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIOZeehJsGxLUU0xa0IlPfLiJ+EX148IB8mccKtbcZNCJ
+-----END PRIVATE KEY-----`;
 
 export function makeTestEnv(overrides = {}) {
   const sent = [];
@@ -51,6 +54,10 @@ export function makeTestEnv(overrides = {}) {
     APNS_BUNDLE_ID: overrides.APNS_BUNDLE_ID,
     APNS_ENV: overrides.APNS_ENV,
     REACH_RELAY_TOKEN_SECRET: overrides.REACH_RELAY_TOKEN_SECRET || 'test-reach-relay-token-secret',
+    MCP_BRIDGE_TOKEN_PRIVATE_KEY: overrides.MCP_BRIDGE_TOKEN_PRIVATE_KEY ?? TEST_MCP_BRIDGE_PRIVATE_KEY,
+    MCP_BRIDGE_TOKEN_KID: overrides.MCP_BRIDGE_TOKEN_KID ?? 'test-mcp-bridge-kid',
+    MCP_BRIDGE_ID: overrides.MCP_BRIDGE_ID ?? 'test-mcp-bridge',
+    MCP_BRIDGE_ADDRESSES: overrides.MCP_BRIDGE_ADDRESSES ?? '20.186.92.169',
     STRIPE_SECRET_KEY: overrides.STRIPE_SECRET_KEY || 'sk_test_account_portal',
     STRIPE_WEBHOOK_SECRET: overrides.STRIPE_WEBHOOK_SECRET || 'whsec_account_portal',
     STRIPE_PRICE_ANNUAL: overrides.STRIPE_PRICE_ANNUAL || 'price_annual_test',
@@ -127,6 +134,8 @@ export async function resetDb() {
     'spb_mint_reservations',
     'entitlements',
     'stripe_customers',
+    'mcp_bridge_bindings',
+    'mcp_bridge_hostname_ledger',
     'spl_bindings',
     'spb_bindings',
     'spb_retired_tokens',

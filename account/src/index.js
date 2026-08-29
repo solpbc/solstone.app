@@ -55,6 +55,7 @@ import {
 } from './devices.js';
 import { handlePushDedup, handlePushDispatch } from './push.js';
 import { handleReachRelayToken } from './reach.js';
+import { handleMcpBridgeJwks, handleMcpBridgeToken } from './mcp-bridge.js';
 import { handleBackupCredentials } from './spb-broker.js';
 import {
   handleBillingCheckout,
@@ -973,6 +974,25 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handleReachRelayToken(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'reach' &&
+        parts[2] === 'mcp' &&
+        parts[3] === 'bridge-token' &&
+        req.method === 'POST'
+      ) {
+        return handleMcpBridgeToken(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === '.well-known' &&
+        parts[2] === 'jwks.json' &&
+        req.method === 'GET'
+      ) {
+        return handleMcpBridgeJwks(req, env);
       }
 
       if (

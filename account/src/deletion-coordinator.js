@@ -308,6 +308,7 @@ async function finalizeDeletion(env, deletion, nowMs) {
     deleteForAccount('spp_mint_audit'),
     deleteForAccount('spp_bindings'),
     deleteForAccount('spl_bindings'),
+    deleteForAccount('mcp_bridge_bindings'),
     deleteForAccount('entitlements'),
     deleteForAccount('stripe_customers'),
     deleteForAccount('scout_lifecycle_events'),

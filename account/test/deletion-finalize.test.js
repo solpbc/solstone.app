@@ -78,6 +78,11 @@ describe('deletion finalization', () => {
       await expect(countForAccount(table, owner.accountId)).resolves.toBe(0);
       await expect(countForAccount(table, control.accountId)).resolves.toBeGreaterThan(0);
     }
+    await expect(workerEnv.DB.prepare(
+      'SELECT label FROM mcp_bridge_hostname_ledger ORDER BY label'
+    ).all()).resolves.toMatchObject({
+      results: [{ label: 'controla' }, { label: 'owneraaa' }],
+    });
     for (const hash of ownerData.otpHashes) await expect(countBy('otp_tokens', 'email_lower_hash', hash)).resolves.toBe(0);
     for (const hash of controlData.otpHashes) await expect(countBy('otp_tokens', 'email_lower_hash', hash)).resolves.toBe(1);
     for (const key of ownerData.rateBucketKeys) await expect(countBy('rate_buckets', 'key', key)).resolves.toBe(0);
@@ -221,6 +226,7 @@ const accountTables = [
   'spp_mint_audit',
   'spp_bindings',
   'spl_bindings',
+  'mcp_bridge_bindings',
   'entitlements',
   'stripe_customers',
   'scout_lifecycle_events',
@@ -269,6 +275,14 @@ async function seedRepresentative(env, account, tag, instanceId) {
     'INSERT INTO stripe_customers (account_id, stripe_customer_id, created_at) VALUES (?, ?, ?)'
   ).bind(account.accountId, tag === 'owner' ? 'cus_owner' : 'cus_control', NOW).run();
   await seedSplBinding({ accountId: account.accountId, instanceId, createdAt: NOW, lastSeenAt: NOW });
+  const mcpLabel = tag === 'owner' ? 'owneraaa' : 'controla';
+  await workerEnv.DB.prepare(
+    'INSERT INTO mcp_bridge_hostname_ledger (label, created_at) VALUES (?, ?)'
+  ).bind(mcpLabel, NOW).run();
+  await workerEnv.DB.prepare(
+    `INSERT INTO mcp_bridge_bindings (account_id, instance_id, label, created_at)
+     VALUES (?, ?, ?, ?)`
+  ).bind(account.accountId, instanceId, mcpLabel, NOW).run();
   await seedSpbBinding({ accountId: account.accountId, instanceId, createdAt: NOW, lastSeenAt: NOW, tokenHash: `${tag}-spb` });
   await upsertSppBinding(workerEnv.DB, {
     accountId: account.accountId, instanceId, tokenHash: `${tag}-spp`, nowMs: NOW,

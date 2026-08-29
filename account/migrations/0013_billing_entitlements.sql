@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS stripe_customers (
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
--- spl_bindings: schema hook for the sibling relay work. This migration creates the
--- table + index ONLY and never reads or writes it. instance_id = relay instance.
+-- spl_bindings: owner-to-journal bindings used for relay entitlement grants and
+-- account-deletion relay fan-out. instance_id = relay instance.
 CREATE TABLE IF NOT EXISTS spl_bindings (
   account_id TEXT NOT NULL,
   instance_id TEXT NOT NULL,

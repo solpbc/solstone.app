@@ -4,7 +4,6 @@ import worker from '../src/index.js';
 import { installConsoleSpy, makeTestEnv } from './helpers.js';
 import { generateReachKeyPair, mintHomeReachAssertion } from './reach-helper.js';
 
-const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
 const OTHER_INSTANCE_ID = '22222222-2222-2222-2222-222222222222';
 
 describe('reach relay token endpoint', () => {
@@ -24,7 +23,7 @@ describe('reach relay token endpoint', () => {
     expect(Object.keys(body)).toEqual(['token', 'token_type', 'expires_in', 'expires_at', 'instance_id']);
     expect(body.token_type).toBe('Bearer');
     expect(body.expires_in).toBe(86400);
-    expect(body.instance_id).toBe(INSTANCE_ID);
+    expect(body.instance_id).toBe(payload.instance_id);
     expect(body.expires_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
 
     const parts = body.token.split('.');
@@ -34,7 +33,7 @@ describe('reach relay token endpoint', () => {
     expect(claims.iss).toBe('solstone-reach');
     expect(claims.aud).toBe('push-relay');
     expect(claims.scope).toBe('push.relay');
-    expect(claims.instance_id).toBe(INSTANCE_ID);
+    expect(claims.instance_id).toBe(payload.instance_id);
     expect(Number.isInteger(claims.iat)).toBe(true);
     expect(claims.exp).toBe(claims.iat + 86400);
   });
@@ -127,12 +126,12 @@ describe('reach relay token endpoint', () => {
     const good = await generateReachKeyPair();
     const bad = await generateReachKeyPair();
     const assertion = await mintHomeReachAssertion({
-      instanceId: INSTANCE_ID,
+      instanceId: good.instanceId,
       privateKey: good.privateKey,
       signingKey: bad.privateKey,
     });
     const payload = {
-      instance_id: INSTANCE_ID,
+      instance_id: good.instanceId,
       assertion,
       ca_pubkey: good.publicKeyPem,
     };
@@ -200,13 +199,19 @@ describe('reach relay token endpoint', () => {
   });
 });
 
-async function validReachPayload({ instanceId = INSTANCE_ID, header = {}, claims = {} } = {}) {
-  const { publicKeyPem, privateKey } = await generateReachKeyPair();
-  const assertion = await mintHomeReachAssertion({ instanceId, privateKey, header, claims });
+async function validReachPayload({ instanceId = null, header = {}, claims = {} } = {}) {
+  const key = await generateReachKeyPair();
+  const resolvedInstanceId = instanceId || key.instanceId;
+  const assertion = await mintHomeReachAssertion({
+    instanceId: resolvedInstanceId,
+    privateKey: key.privateKey,
+    header,
+    claims,
+  });
   return {
-    instance_id: instanceId,
+    instance_id: resolvedInstanceId,
     assertion,
-    ca_pubkey: publicKeyPem,
+    ca_pubkey: key.publicKeyPem,
   };
 }
 

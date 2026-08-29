@@ -261,8 +261,8 @@ CREATE TABLE IF NOT EXISTS stripe_customers (
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
--- spl_bindings: schema hook for the sibling relay work. This migration creates the
--- table + index ONLY and never reads or writes it. instance_id = relay instance.
+-- spl_bindings: owner-to-journal bindings used for relay entitlement grants and
+-- account-deletion relay fan-out. instance_id = relay instance.
 CREATE TABLE IF NOT EXISTS spl_bindings (
   account_id TEXT NOT NULL,
   instance_id TEXT NOT NULL,
@@ -273,6 +273,26 @@ CREATE TABLE IF NOT EXISTS spl_bindings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_spl_bindings_account_id ON spl_bindings(account_id);
+
+-- MCP bridge hostname authority. The ledger permanently reserves every assigned
+-- label; live bindings are removed with their owner account during deletion.
+CREATE TABLE IF NOT EXISTS mcp_bridge_hostname_ledger (
+  label TEXT PRIMARY KEY NOT NULL
+    CHECK (length(label) = 8 AND label NOT GLOB '*[^a-z2-7]*'),
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS mcp_bridge_bindings (
+  account_id TEXT NOT NULL,
+  instance_id TEXT NOT NULL,
+  label TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (account_id, instance_id),
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+  FOREIGN KEY (label) REFERENCES mcp_bridge_hostname_ledger(label)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mcp_bridge_bindings_account_id ON mcp_bridge_bindings(account_id);
 
 -- spb_bindings: schema hook for SPB hosted access. P1 records only binding
 -- identity plus the lapsed clock used by later retention/sweep work.
