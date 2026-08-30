@@ -106,6 +106,94 @@ describe('POST /internal/spp/authorize', () => {
     expect(serialized).not.toContain(tokenHash);
     expect(serialized).not.toContain(TOKEN);
   });
+
+  // Added 2026-08-30 (cto-41): a single retry on a retry-eligible D1 fault should
+  // carry a request through rather than fail closed on one bad round trip.
+  it.each([
+    'D1_ERROR: Network connection lost.',
+    'D1_ERROR: storage caused object to be reset',
+    'D1_ERROR: Unable to open database file',
+    'D1_ERROR: database is locked',
+    'D1_ERROR: Internal error.',
+    'D1_ERROR: query timed out',
+  ])('recovers a 204 when the first D1 read throws "%s" and the retry succeeds', async (message) => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+    const flakyEnv = { ...testEnv, DB: makeFlakyDb(testEnv.DB, { failTimes: 1, message }) };
+
+    const response = await authorize(flakyEnv);
+
+    expect(response.status).toBe(204);
+  });
+
+  it('logs nothing when the retry recovers — the fault never reaches the caller', async () => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+    const flakyEnv = { ...testEnv, DB: makeFlakyDb(testEnv.DB, { failTimes: 1 }) };
+    const lines = [];
+    const realError = console.error;
+    console.error = (...args) => lines.push(args);
+
+    try {
+      await authorize(flakyEnv);
+    } finally {
+      console.error = realError;
+    }
+
+    expect(lines).toEqual([]);
+  });
+
+  it('still fails closed with one bounded log line when both the read and its retry throw', async () => {
+    const { lines, response } = await captureFailure('D1_ERROR: Network connection lost.');
+
+    expect(response.status).toBe(503);
+    expect(lines).toEqual([['spp_authorize_failed', 'Error', 'd1', 'network_lost']]);
+  });
+
+  it.each([
+    ['D1_ERROR: Too many API requests by single worker invocation.', 'subrequest_limit'],
+    ['D1_ERROR: no such table: spp_bindings', 'schema'],
+    ['D1_ERROR: D1 DB storage limit exceeded', 'limit'],
+    ['D1_ERROR: something nobody has seen yet', 'unclassified'],
+  ])('does not retry a %s fault (%s) — it fails closed on the first attempt', async (message) => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+    let calls = 0;
+    const countingEnv = {
+      ...testEnv,
+      DB: {
+        prepare() {
+          calls += 1;
+          throw Object.assign(new Error(message), { name: 'Error' });
+        },
+      },
+    };
+
+    const response = await authorize(countingEnv);
+
+    expect(response.status).toBe(503);
+    expect(calls).toBe(1);
+  });
+
+  it('retries a retry-eligible fault exactly once, not in a loop', async () => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+    let calls = 0;
+    const countingEnv = {
+      ...testEnv,
+      DB: {
+        prepare() {
+          calls += 1;
+          throw Object.assign(new Error('D1_ERROR: Network connection lost.'), { name: 'Error' });
+        },
+      },
+    };
+
+    const response = await authorize(countingEnv);
+
+    expect(response.status).toBe(503);
+    expect(calls).toBe(2);
+  });
 });
 
 // Drives one authorize call whose first D1 read throws `message`, and returns the
@@ -129,6 +217,22 @@ async function captureFailure(message) {
     console.error = realError;
   }
   return { lines, response };
+}
+
+// A DB proxy whose `prepare()` throws on the first `failTimes` calls, then
+// delegates every subsequent call to the real (already-seeded) D1 binding — for
+// proving a transient D1 fault is retried and recovered, not just retried.
+function makeFlakyDb(realDb, { failTimes, message = 'D1_ERROR: Network connection lost.' }) {
+  let failuresLeft = failTimes;
+  return {
+    prepare(...args) {
+      if (failuresLeft > 0) {
+        failuresLeft -= 1;
+        throw Object.assign(new Error(message), { name: 'Error' });
+      }
+      return realDb.prepare(...args);
+    },
+  };
 }
 
 async function seedActiveBinding(testEnv) {

@@ -37,6 +37,41 @@ function d1Reason(message) {
   return 'unclassified';
 }
 
+// Reasons worth one immediate retry: shapes that plausibly clear on a second,
+// independent attempt (a fresh connection, contention that already released, a
+// slow cross-region hop landing fast the second time). Added 2026-08-30 after
+// three `authorizer_unavailable` engine-health pages (08-07, 08-24, 08-30) traced
+// the fast-fail mode to this account-portal D1 database sitting in WNAM against a
+// Worker serving from IAD — D1's own query time stays sub-millisecond throughout
+// every incident, so this is an occasional slow/failed round trip, not an
+// overloaded service. A single retry does not weaken the fail-closed gate: both
+// attempts run the identical query, and a second failure still returns 503 exactly
+// as before. Excluded: `subrequest_limit` (retrying spends another subrequest
+// against a budget already exhausted, and can push a borderline request over
+// Workers' hard subrequest ceiling instead of helping), `schema` and `limit`
+// (structural — a second attempt hits the same wall), and `unclassified` (unknown
+// shape; do not guess it is safe to repeat). Grounding: `shared/agency/cto-41.md`.
+const RETRY_ONCE_D1_REASONS = new Set([
+  'network_lost',
+  'storage_reset',
+  'unavailable',
+  'locked',
+  'internal',
+  'timeout',
+]);
+
+async function withD1RetryOnce(read) {
+  try {
+    return await read();
+  } catch (err) {
+    const message = String(err?.message || '');
+    if (!message.includes('D1_ERROR') || !RETRY_ONCE_D1_REASONS.has(d1Reason(message))) {
+      throw err;
+    }
+    return await read();
+  }
+}
+
 export async function handleSppAuthorize(req, env) {
   try {
     const expected = env.SPP_ENGINE_AUTH_SECRET || '';
@@ -53,20 +88,22 @@ export async function handleSppAuthorize(req, env) {
     }
 
     const tokenHash = await hashWithPepper(entitlementCredential, env);
-    const binding = await findSppBindingByTokenHash(env.DB, tokenHash);
+    const binding = await withD1RetryOnce(() => findSppBindingByTokenHash(env.DB, tokenHash));
     if (!binding) {
       console.warn('spp_authorize_refused_entitlement');
       return empty(401);
     }
-    if (await getActiveDeletionForAccount(env.DB, binding.account_id)) {
+    if (await withD1RetryOnce(() => getActiveDeletionForAccount(env.DB, binding.account_id))) {
       console.warn('spp_authorize_refused_deletion');
       return empty(401);
     }
 
-    const entitlement = await getEntitlement(env.DB, {
-      accountId: binding.account_id,
-      service: SPP_HOSTED_SERVICE,
-    });
+    const entitlement = await withD1RetryOnce(() =>
+      getEntitlement(env.DB, {
+        accountId: binding.account_id,
+        service: SPP_HOSTED_SERVICE,
+      })
+    );
     if (!isSppEntitledToServe(entitlement, Math.floor(Date.now() / 1000), env)) {
       console.warn('spp_authorize_refused_entitlement');
       return empty(401);
@@ -74,9 +111,12 @@ export async function handleSppAuthorize(req, env) {
 
     return empty(204);
   } catch (err) {
-    // Bounded reason code only — never the raw message. The two D1 reads above are the
-    // only calls here that can fail transiently, and a D1 fault surfaces as a generic
-    // Error, so the name alone cannot distinguish it.
+    // Bounded reason code only — never the raw message. The three D1 reads above
+    // (binding lookup, deletion check, entitlement lookup) are the only calls here
+    // that can fail transiently, and a D1 fault surfaces as a generic Error, so the
+    // name alone cannot distinguish it. Each read already gets one retry
+    // (withD1RetryOnce) before a failure can reach here, so a 503 out of this
+    // branch means both attempts failed, or the fault wasn't retry-eligible.
     const name = typeof err?.name === 'string' && err.name ? err.name : 'unknown';
     const message = String(err?.message || '');
     const kind = message.includes('D1_ERROR') ? 'd1' : 'other';
