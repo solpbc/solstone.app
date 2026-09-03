@@ -290,14 +290,14 @@
     <div class="cards">
         <div class="card">
             <h2>solstone on macOS</h2>
-            <p class="subtitle">native macOS app — screen and audio, kept in your journal</p>
+            <p class="subtitle">native macOS app, with screen and audio kept in your journal</p>
             <ul>
-                <li>takes in every connected display at 1 FPS</li>
-                <li>takes in system audio and microphone separately</li>
+                <li>what you share from every connected display goes into your journal at 1 FPS</li>
+                <li>what you share from system audio and microphone goes into your journal separately</li>
                 <li>runs as a menu bar app, starts at login</li>
             </ul>
             <div class="primary-action">
-                <p class="download-clarifier">setting up a new mac? the solstone app and the journal are two separate apps, and most people want both. both require Apple Silicon; Intel macs aren't supported.</p>
+                <p class="download-clarifier">setting up a new mac? install the solstone app to take in this mac's screen and audio for your journal, the journal to keep what you share, or both. both require Apple Silicon; Intel macs aren't supported.</p>
                 <a href="https://solstone.app/download/macos" class="download-btn">download the solstone app</a>
                 <a href="https://solstone.app/download/journal" class="download-btn">download the journal</a>
                 <p class="download-clarifier">the solstone app takes in what you share with it here; the journal is where it all gets kept. already have a journal on another machine? the solstone app alone connects to it.</p>
@@ -305,7 +305,7 @@
             </div>
             <div class="secondary-action">
                 <button class="copy-btn" data-target="blurb-macos" aria-label="copy for your agent: solstone on macOS install prompt">copy for your agent</button>
-                <a href="https://github.com/solpbc/solstone-macos" class="gh-link">github →</a>
+                <a href="https://github.com/solpbc/solstone-macos" class="gh-link">GitHub →</a>
                 <a href="/releases/macos" class="gh-link">release notes →</a>
             </div>
             <pre class="blurb" id="blurb-macos">developer build (build from source). most people should download the DMG above. this path requires Xcode (full IDE, not just command line tools) and is here for developers who want to build, modify, or hand the install to a coding agent.
@@ -317,22 +317,29 @@ then read INSTALL.md and follow it.</pre>
 
         <div class="card">
             <h2>solstone on linux</h2>
-            <p class="subtitle">linux desktop app — screen and audio, kept in your journal</p>
+            <p class="subtitle">x86_64 linux desktop app, with screen and audio kept in your journal</p>
             <ul>
-                <li>takes in every monitor via PipeWire at 1 FPS</li>
-                <li>takes in microphone and system audio</li>
-                <li>notices when you step away, on GNOME, KDE, and X11 sessions</li>
+                <li>what you share from every monitor goes into your journal via PipeWire at 1 FPS</li>
+                <li>what you share from microphone and system audio goes into your journal</li>
+                <li>screen and audio pause when you step away, on GNOME, KDE, and X11 sessions</li>
             </ul>
+            <p class="trust-signal">verify the signed release manifest before you install. apt and dnf do not check our minisign signature.</p>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-linux" aria-label="copy for your agent: solstone on linux install prompt">copy for your agent</button>
-                <a href="https://github.com/solpbc/solstone-linux" class="gh-link">github →</a>
+                <a href="https://github.com/solpbc/solstone-linux" class="gh-link">GitHub →</a>
                 <a href="/releases/linux" class="gh-link">release notes →</a>
             </div>
-            <pre class="blurb" id="blurb-linux">install solstone-linux, which sets up the solstone app on linux desktops using PipeWire and GStreamer. the solstone app takes in your screen and audio along with you, and it all goes into your journal.
+            <pre class="blurb" id="blurb-linux">install solstone-linux, which sets up the solstone app on x86_64 linux desktops using PipeWire and GStreamer. the solstone app takes in your screen and audio along with you, and it all goes into your journal.
 
-on the linux desktop, download the package for your distro from the latest release:
+on the linux desktop, download the package for your distro, the *.rust-release-manifest.json file, and its adjacent .minisig file from the latest release:
 https://github.com/solpbc/solstone-linux/releases/latest
 
+verify first. minisign authenticates the manifest; then check the package against the authenticated digest. replace &lt;downloaded-package&gt; with its exact filename. you run both checks; apt and dnf do not:
+curl -fLo solstone-linux-release.pub https://updates.solstone.app/solstone-linux/minisign.pub
+minisign -Vm solstone-linux-&lt;VERSION&gt;-linux-x86_64.rust-release-manifest.json -p solstone-linux-release.pub
+jq -r --arg package '&lt;downloaded-package&gt;' '.artifacts[] | select(.path == $package) | "\(.sha256)  \(.path)"' solstone-linux-&lt;VERSION&gt;-linux-x86_64.rust-release-manifest.json | sha256sum -c -
+
+if either command refuses the files, stop. then install:
 debian / ubuntu:   sudo apt install ./solstone-linux_&lt;VERSION&gt;-1_amd64.deb
 fedora / rhel:     sudo dnf install ./solstone-linux-&lt;VERSION&gt;-1.x86_64.rpm
 
@@ -352,21 +359,21 @@ git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux</pre
 
         <div class="card">
             <h2>solstone on windows</h2>
-            <p class="subtitle">windows app — screen and audio, kept in your journal</p>
+            <p class="subtitle">windows app, with screen and audio kept in your journal</p>
             <ul>
-                <li>takes in your screen and system audio, mic when present</li>
-                <li>runs per-user in the tray — no admin install</li>
+                <li>what you share from your screen, system audio, and mic when present goes into your journal</li>
+                <li>runs per-user in the tray, with no admin install</li>
                 <li>pairs with the journal on your mac or linux machine</li>
             </ul>
             <div class="primary-action">
                 <a href="/download/windows" class="download-btn">download for windows</a>
                 <p class="download-clarifier">downloads the signed installer, then pairs with your journal during setup.</p>
-                <p class="trust-signal">signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.</p>
+                <p class="trust-signal">signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds.</p>
             </div>
             <div class="secondary-action">
                 <button class="copy-btn" data-target="blurb-winget" data-default-label="copy winget install" aria-label="copy winget install command for solstone on windows">copy winget install</button>
                 <button class="copy-btn" data-target="blurb-scoop" data-default-label="copy scoop install" aria-label="copy scoop install commands for solstone on windows">copy scoop install</button>
-                <a href="https://github.com/solpbc/solstone-windows" class="gh-link">github →</a>
+                <a href="https://github.com/solpbc/solstone-windows" class="gh-link">GitHub →</a>
                 <a href="/releases/windows" class="gh-link">release notes →</a>
             </div>
             <p class="update-note">installed directly, the solstone app updates itself; via winget, run <code>winget upgrade solstone</code>; via scoop, run <code>scoop update solstone</code>.</p>
@@ -380,20 +387,33 @@ scoop install solstone</pre>
     <div class="supplemental">
         <div class="card">
             <h2>+ add your terminal</h2>
-            <p class="subtitle">solstone-tmux brings your tmux sessions into your journal, every active session and pane, every 5 seconds. lightweight, pure Python, no system dependencies. works alongside the solstone app on either desktop.</p>
+            <p class="subtitle">what's on every active tmux session and pane goes into your journal every 5 seconds. solstone-tmux is a native Rust binary that requires tmux and works alongside the solstone app.</p>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-tmux" aria-label="copy for your agent: solstone-tmux install prompt">copy for your agent</button>
-                <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">github →</a>
+                <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">GitHub →</a>
             </div>
-            <pre class="blurb" id="blurb-tmux">install solstone-tmux — it takes in your tmux sessions along with you, what's on each active pane every 5 seconds, and keeps it in your journal. lightweight, pure python, no system dependencies.
+            <pre class="blurb" id="blurb-tmux">install solstone-tmux. what's on each active tmux pane goes into your journal every 5 seconds. it's a native Rust binary and requires tmux.
 
-on the device that runs tmux:
+on the device that runs tmux, download the package for your system, SHA256SUMS, and SHA256SUMS.minisig from the latest release:
+https://github.com/solpbc/solstone-tmux/releases/latest
 
-pipx install solstone-tmux
+verify first. the release has 13 files: 11 packages and target records, SHA256SUMS, and its signature. minisign authenticates SHA256SUMS; then check your package against one of its 11 entries. replace &lt;downloaded-package&gt; with its exact filename. you run both checks; apt and dnf do not:
+curl -fLo solstone-tmux-release.pub https://updates.solstone.app/solstone-tmux/minisign.pub
+minisign -Vm SHA256SUMS -p solstone-tmux-release.pub
+linux: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | sha256sum -c -
+macos: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | shasum -a 256 -c -
+
+if either command refuses the files, stop. then install the package that matches this system:
+debian / ubuntu:   sudo apt install ./solstone-tmux_&lt;VERSION&gt;_&lt;architecture&gt;.deb
+fedora / rhel:     sudo dnf install ./solstone-tmux-&lt;VERSION&gt;-1.&lt;architecture&gt;.rpm
+apple silicon mac: sudo installer -pkg solstone-tmux-&lt;VERSION&gt;-aarch64-macos.pkg -target /
+
+then pair and activate it:
+solstone-tmux setup &lt; pairing-link.txt
 solstone-tmux install-service
-solstone-tmux setup
+solstone-tmux status
 
-`setup` registers this device with your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your journal directly instead, run `solstone-tmux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the machine that keeps your journal with `journal observer create &lt;name&gt;` and paste it during setup.)
+the pairing link comes from your journal.
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
@@ -405,7 +425,7 @@ git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux</pre>
 
     <div class="cards placeholders">
         <div class="card placeholder">
-            <h2>iPhone/iPad</h2>
+            <h2>iphone/ipad</h2>
             <p class="subtitle">solstone for iphone and ipad</p>
             <p class="coming-soon"><em>in beta with testers</em></p>
         </div>
@@ -427,7 +447,7 @@ git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux</pre>
         <nav class="footer-nav" aria-label="footer">
             <a href="/install">get started</a> · <a href="/download">download</a> · <a href="/releases">releases</a> · <a href="https://services.solstone.app">services</a> · <a href="https://support.solstone.app">support</a>
         </nav>
-        <div class="footer-covenant">© 2026 <a href="https://solpbc.org">sol pbc</a> · your journal lives on your device — never sold, never shared. solstone is a trademark of sol pbc.</div>
+        <div class="footer-covenant">© 2026 <a href="https://solpbc.org">sol pbc</a> · your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
     </footer>
 
     <script>
