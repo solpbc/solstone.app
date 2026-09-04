@@ -172,6 +172,26 @@ export default {
       return env.ASSETS.fetch(assetRequest(rewritten, request));
     }
 
+    // The authoritative installer URL (req_impawibu, G20): install.sh must be
+    // served as plain text, never HTML. The live content-type override is
+    // public/_headers (Workers Assets serves this exact-matching static file
+    // directly, so this handler never runs while the asset exists -- verified
+    // live, `run_worker_first` is unset/false here). This branch is a
+    // defense-in-depth fallback for the case the asset is ever missing: if
+    // this ever fell through to the SPA shell or a styled 404 page,
+    // `curl ... | sh` would pipe markup into a shell -- the worst possible
+    // failure for a piped installer. A missing asset still 404s untouched,
+    // so a typo'd sibling path never serves the script.
+    if (url.pathname === "/install.sh") {
+      const assetResponse = await env.ASSETS.fetch(assetRequest(url, request));
+      if (assetResponse.status === 404) {
+        return assetResponse;
+      }
+      const headers = new Headers(assetResponse.headers);
+      headers.set("Content-Type", "text/plain; charset=utf-8");
+      return new Response(assetResponse.body, { status: assetResponse.status, headers });
+    }
+
     // Human-shareable release history: always returns a valid page, with
     // no-store graceful copy if the upstream source is temporarily unavailable.
     if (url.pathname === "/releases") {

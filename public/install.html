@@ -570,10 +570,10 @@
                 <details class="dev-path">
                     <summary>building from source? (developer path)</summary>
                     <div class="dev-path-body">
-                        <p class="platform-prereq">the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are <code>solstone</code> and <code>journal</code>. the tree is not published yet. until the first release lands on <code>updates.solstone.app</code>, follow <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link" style="text-decoration:underline;">INSTALL.md</a>.</p>
+                        <p class="platform-prereq">the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are <code>solstone</code> and <code>journal</code>. the tree is not published yet. <code>install.sh</code> is already live at <a href="https://solstone.app/install.sh" class="gh-link" style="text-decoration:underline;">solstone.app/install.sh</a> — until the first release lands on <code>updates.solstone.app</code>, follow <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link" style="text-decoration:underline;">INSTALL.md</a>.</p>
                         <pre class="install-steps" id="steps-macos"># until the first release lands on updates.solstone.app, follow INSTALL.md.
 # once published:
-sh install.sh
+curl -fsSL https://solstone.app/install.sh | sh
 journal setup</pre>
                         <div class="card-actions">
                             <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human" aria-label="copy for human: macOS install commands">copy for human</button>
@@ -585,10 +585,10 @@ journal setup</pre>
             </div>
 
             <div class="platform-panel platform-linux">
-                <p class="platform-prereq">the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are <code>solstone</code> and <code>journal</code>. one tree covers the journal on this machine and talking to a journal that already lives elsewhere. the tree is not published yet. until the first release lands on <code>updates.solstone.app</code>, follow <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link" style="text-decoration:underline;">INSTALL.md</a>. once it is published: <code>sh install.sh</code> then <code>journal setup</code>.</p>
+                <p class="platform-prereq">the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are <code>solstone</code> and <code>journal</code>. one tree covers the journal on this machine and talking to a journal that already lives elsewhere. the tree is not published yet. <code>install.sh</code> is already live at <a href="https://solstone.app/install.sh" class="gh-link" style="text-decoration:underline;">solstone.app/install.sh</a> — until the first release lands on <code>updates.solstone.app</code>, follow <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link" style="text-decoration:underline;">INSTALL.md</a>. once it is published: <code>curl -fsSL https://solstone.app/install.sh | sh</code> then <code>journal setup</code>.</p>
                 <pre class="install-steps" id="steps-linux"># until the first release lands on updates.solstone.app, follow INSTALL.md.
 # once published:
-sh install.sh
+curl -fsSL https://solstone.app/install.sh | sh
 journal setup</pre>
                 <div class="card-actions">
                     <button class="copy-btn" data-target="steps-linux" data-default-label="copy for human" aria-label="copy for human: linux install commands">copy for human</button>
