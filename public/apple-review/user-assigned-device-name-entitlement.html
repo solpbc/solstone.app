@@ -29,6 +29,14 @@
     display: block;
     margin-top: 12px;
   }
+  video {
+    max-width: 100%;
+    max-height: 640px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    display: block;
+    margin-top: 12px;
+  }
 </style>
 </head>
 <body>
@@ -36,13 +44,19 @@
   <p class="meta">Bundle ID: <code>app.solstone.swift</code> · Team: <code>7QCG8V4M6H</code> (sol pbc)</p>
 
   <section>
-    <h2>1. Owner-facing device identity, in-app</h2>
+    <h2>1. Demo</h2>
+    <p>Short screen recording showing the device name surfacing in-app.</p>
+    <video src="/apple-review/demo.mp4" controls playsinline></video>
+  </section>
+
+  <section>
+    <h2>2. Owner-facing device identity, in-app</h2>
     <p>The app's "about solstone" screen shows the current device's own name next to the signed-in owner's identity, so the owner can confirm which of their own paired devices they're looking at.</p>
     <img src="/apple-review/swift-about-solstone.png" alt="solstone iOS app about screen showing owner and device identity rows">
   </section>
 
   <section>
-    <h2>2. Same-owner, multiple devices</h2>
+    <h2>3. Same-owner, multiple devices</h2>
     <p>The paired journal's device-management view lists every device paired to one owner's journal by its own name, so the owner can identify and manage (e.g. unpair) a specific device among several of their own.</p>
     <img src="/apple-review/journal-devices.png" alt="solstone journal device management view showing two devices paired to one owner, each with its own readable name">
   </section>
