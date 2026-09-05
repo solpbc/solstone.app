@@ -1,5 +1,5 @@
 -- migration 0001_initial
--- account-portal D1 schema (Lode A — magic-link auth)
+-- account-portal D1 schema (magic-link auth)
 -- Insert order on new-account creation (enforced by application code):
 --   1. INSERT INTO accounts (primary_email_id = NULL)
 --   2. INSERT INTO account_emails (account_id = accounts.id)

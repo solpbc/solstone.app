@@ -1125,7 +1125,7 @@ async function handleServicesSpp(env, session) {
 }
 
 async function handleSigninStart(req, env) {
-  // Lode A.1 contract invariants for /signin/start:
+  // Sign-in contract invariants for /signin/start:
   //   1. CSRF synchronizer token verified before any other work.
   //   2. NEVER read account_emails before mint/send (no enumeration).
   //   3. Four sign-in hash calls run before every token-admitted branch return.
@@ -1192,12 +1192,12 @@ async function handleSigninVerifyGet(req, env) {
 }
 
 async function handleSigninVerifyPost(req, env) {
-  // Lode A.1 contract invariants for /signin/verify:
+  // Sign-in contract invariants for /signin/verify:
   //   1. CSRF synchronizer token verified before any other work.
   //   2. Success uses atomic UPDATE ... RETURNING; misses use a second UPDATE for attempts.
   //   3. Failure responses never reveal account presence.
   //   4. NO PII in logs.
-  //   5. Session-cookie format remains unchanged from Lode A.
+  //   5. Session-cookie format remains unchanged.
   const form = await readForm(req);
   const csrf = await csrfToken(env);
   if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
