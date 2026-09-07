@@ -404,9 +404,9 @@ linux: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | 
 macos: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | shasum -a 256 -c -
 
 if either command refuses the files, stop. then install the package that matches this system:
-debian / ubuntu:   sudo apt install ./solstone-tmux_&lt;VERSION&gt;_&lt;architecture&gt;.deb
-fedora / rhel:     sudo dnf install ./solstone-tmux-&lt;VERSION&gt;-1.&lt;architecture&gt;.rpm
-apple silicon mac: sudo installer -pkg solstone-tmux-&lt;VERSION&gt;-aarch64-macos.pkg -target /
+debian / ubuntu:   sudo apt install ./&lt;downloaded-package&gt;
+fedora / rhel:     sudo dnf install ./&lt;downloaded-package&gt;
+apple silicon mac: sudo installer -pkg &lt;downloaded-package&gt; -target /
 
 then pair and activate it:
 solstone-tmux setup &lt; pairing-link.txt
