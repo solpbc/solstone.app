@@ -331,8 +331,14 @@ then read INSTALL.md and follow it.</pre>
             </div>
             <pre class="blurb" id="blurb-linux">install solstone-linux, which sets up the solstone app on x86_64 linux desktops using PipeWire and GStreamer. the solstone app takes in your screen and audio along with you, and it all goes into your journal.
 
-on the linux desktop, download the package for your distro, the *.rust-release-manifest.json file, and its adjacent .minisig file from the latest release:
-https://github.com/solpbc/solstone-linux/releases/latest
+on the linux desktop, check the current version:
+curl -fsS https://updates.solstone.app/solstone-linux/release/latest
+
+it prints version=&lt;VERSION&gt;. there is no file listing, so fetch by name. take the deb or the rpm, plus the manifest and its signature:
+debian / ubuntu:   curl -fLO https://updates.solstone.app/solstone-linux/release/&lt;VERSION&gt;/solstone-linux_&lt;VERSION&gt;-1_amd64.deb
+fedora / rhel:     curl -fLO https://updates.solstone.app/solstone-linux/release/&lt;VERSION&gt;/solstone-linux-&lt;VERSION&gt;-1.x86_64.rpm
+curl -fLO https://updates.solstone.app/solstone-linux/release/&lt;VERSION&gt;/solstone-linux-&lt;VERSION&gt;-linux-x86_64.rust-release-manifest.json
+curl -fLO https://updates.solstone.app/solstone-linux/release/&lt;VERSION&gt;/solstone-linux-&lt;VERSION&gt;-linux-x86_64.rust-release-manifest.json.minisig
 
 verify first. minisign authenticates the manifest; then check the package against the authenticated digest. replace &lt;downloaded-package&gt; with its exact filename. you run both checks; apt and dnf do not:
 curl -fLo solstone-linux-release.pub https://updates.solstone.app/solstone-linux/minisign.pub
@@ -394,8 +400,13 @@ scoop install solstone</pre>
             </div>
             <pre class="blurb" id="blurb-tmux">install solstone-tmux. what's on each active tmux pane goes into your journal every 5 seconds. it's a native Rust binary and requires tmux.
 
-on the device that runs tmux, download the package for your system, SHA256SUMS, and SHA256SUMS.minisig from the latest release:
-https://github.com/solpbc/solstone-tmux/releases/latest
+on the device that runs tmux, check the current version:
+curl -fsS https://updates.solstone.app/solstone-tmux/release/latest
+
+it prints version=&lt;VERSION&gt;. there is no file listing. fetch SHA256SUMS and its signature, then the .deb, .rpm or .pkg for this system, under the exact name SHA256SUMS gives it:
+curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/SHA256SUMS
+curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/SHA256SUMS.minisig
+curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/&lt;downloaded-package&gt;
 
 verify first. the release has 13 files: 11 packages and target records, SHA256SUMS, and its signature. minisign authenticates SHA256SUMS; then check your package against one of its 11 entries. replace &lt;downloaded-package&gt; with its exact filename. you run both checks; apt and dnf do not:
 curl -fLo solstone-tmux-release.pub https://updates.solstone.app/solstone-tmux/minisign.pub
