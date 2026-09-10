@@ -10,7 +10,6 @@ const supportSurfaces = [
   'public/download-journal.html',
   'public/download.html',
   'public/install.html',
-  'public/install.md',
 ];
 
 test('every macOS install surface states the Apple Silicon requirement', async () => {

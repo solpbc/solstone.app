@@ -174,6 +174,19 @@ export default {
       return Response.redirect("https://solpbc.org/privacy", 301);
     }
 
+    // /install.md was a third, unlinked copy of the install page: nothing in
+    // the site, llms.txt or the .well-known skill ever referenced it, so it
+    // drifted unread and was still telling owners "the tree is not published
+    // yet" hours after 2.0.0 published. Retired rather than re-synced --
+    // llms.txt and .well-known/skills/default/SKILL.md are the agent-facing
+    // surfaces, and install.html is the one install page. 301, matching the
+    // /privacy precedent above: permanent consolidation, not an alias.
+    if (url.pathname === "/install.md") {
+      const target = new URL(request.url);
+      target.pathname = "/install";
+      return Response.redirect(target.toString(), 301);
+    }
+
     if (url.pathname === "/install") {
       const rewritten = new URL(request.url);
       rewritten.pathname = "/install.html";
