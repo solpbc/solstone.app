@@ -22,7 +22,7 @@ building from source? use the developer path in [INSTALL.md](https://github.com/
 
 the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are `solstone` and `journal`. one tree covers the journal on this machine and talking to a journal that already lives elsewhere.
 
-the tree is not published yet. its release channel is `updates.solstone.app`, and `install.sh` is already live at [solstone.app/install.sh](https://solstone.app/install.sh) — until the first release lands, start from a local build or a copy someone handed you and follow [INSTALL.md](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md). once it is published:
+2.0.0 is published. its release channel is `updates.solstone.app`, and one command checks the signature and the digest, then installs:
 
 ```bash
 curl -fsSL https://solstone.app/install.sh | sh
