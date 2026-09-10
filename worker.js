@@ -166,6 +166,14 @@ export default {
       return Response.redirect(`${url.origin}/download`, 301);
     }
 
+    // The one published privacy policy lives at solpbc.org; this app never
+    // mints its own (see PhonePaneParts.kt's "do not mint a second privacy
+    // page for this app"). Permanent consolidation, not a temporary alias --
+    // 301, matching the /observers and /downloads precedent above.
+    if (url.pathname === "/privacy") {
+      return Response.redirect("https://solpbc.org/privacy", 301);
+    }
+
     if (url.pathname === "/install") {
       const rewritten = new URL(request.url);
       rewritten.pathname = "/install.html";
