@@ -30,6 +30,7 @@ const COUNT_KEYS = [
   'rate_buckets',
   'spb_retired_tokens',
   'enable_scout_codes',
+  'dispatch_tokens_revoked',
 ];
 
 describe('retention cron', () => {
@@ -202,6 +203,21 @@ describe('retention cron', () => {
       },
       gone: () => rowExists('enable_scout_codes', 'code_hash', 'delete-null-code'),
       kept: () => rowExists('enable_scout_codes', 'code_hash', 'keep-live-code'),
+    },
+    {
+      name: 'deletes revoked dispatch tokens older than 30 days',
+      key: 'dispatch_tokens_revoked',
+      seed: async () => {
+        await insertAccount('dispatch-token-account', { createdAt: NOW });
+        await insertDispatchToken('delete-revoked-dispatch-token', 'dispatch-token-account', {
+          revokedAt: NOW - 30 * DAY_MS - 1,
+        });
+        await insertDispatchToken('keep-revoked-dispatch-token', 'dispatch-token-account', {
+          revokedAt: NOW - 30 * DAY_MS + 1,
+        });
+      },
+      gone: () => rowExists('account_dispatch_tokens', 'token_hash', 'delete-revoked-dispatch-token'),
+      kept: () => rowExists('account_dispatch_tokens', 'token_hash', 'keep-revoked-dispatch-token'),
     },
   ];
 
@@ -520,5 +536,12 @@ async function insertRetiredToken(tokenHash, accountId, instanceId, retiredAt) {
   await workerEnv.DB
     .prepare('INSERT INTO spb_retired_tokens (token_hash, account_id, instance_id, retired_at) VALUES (?, ?, ?, ?)')
     .bind(tokenHash, accountId, instanceId, retiredAt)
+    .run();
+}
+
+async function insertDispatchToken(tokenHash, accountId, { createdAt = NOW, revokedAt = null } = {}) {
+  await workerEnv.DB
+    .prepare('INSERT INTO account_dispatch_tokens (token_hash, account_id, created_at, revoked_at) VALUES (?, ?, ?, ?)')
+    .bind(tokenHash, accountId, createdAt, revokedAt)
     .run();
 }

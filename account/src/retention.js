@@ -19,6 +19,7 @@ const COUNT_KEYS = [
   'rate_buckets',
   'spb_retired_tokens',
   'enable_scout_codes',
+  'dispatch_tokens_revoked',
 ];
 
 export async function runRetention(env, nowMs = Date.now()) {
@@ -110,6 +111,12 @@ export async function runRetention(env, nowMs = Date.now()) {
       sql: 'DELETE FROM enable_scout_codes WHERE account_id IS NULL OR expires_at < ?',
       cutoff: nowMs,
       key: 'enable_scout_codes',
+    },
+    {
+      index: 15,
+      sql: 'DELETE FROM account_dispatch_tokens WHERE revoked_at IS NOT NULL AND revoked_at < ?',
+      cutoff: nowMs - 30 * DAY_MS,
+      key: 'dispatch_tokens_revoked',
     },
   ];
 
