@@ -319,6 +319,10 @@ async function finalizeDeletion(env, deletion, nowMs) {
     deleteForAccount('account_emails'),
     deleteForAccountId('accounts'),
     env.DB.prepare(
+      `DELETE FROM account_deletions
+       WHERE account_id = ? AND phase = 'cancelled' AND ${leaseGuard}`
+    ).bind(accountId, operationId, leaseToken),
+    env.DB.prepare(
       `INSERT INTO account_deletion_completions (token_hash, state, completed_at, expires_at)
        SELECT status_token_hash, 'complete', ?, ?
        FROM account_deletions

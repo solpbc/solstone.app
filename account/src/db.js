@@ -775,7 +775,8 @@ export async function consumeProofsAndCancelDeletionRequest(db, {
   const mutation = db
     .prepare(
       `UPDATE account_deletions
-       SET phase = 'cancelled', cancelled_at = ?, lease_token = NULL, lease_expires_at = NULL
+       SET phase = 'cancelled', cancelled_at = ?, lease_token = NULL, lease_expires_at = NULL,
+           snapshot_encrypted = NULL, snapshot_digest = NULL
        WHERE operation_id = ? AND account_id = ?
          AND phase IN ('requested', 'frozen')
          AND lease_token IS NULL

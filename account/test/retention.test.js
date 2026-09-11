@@ -29,6 +29,7 @@ const COUNT_KEYS = [
   'sessions_expired',
   'rate_buckets',
   'spb_retired_tokens',
+  'enable_scout_codes',
 ];
 
 describe('retention cron', () => {
@@ -184,6 +185,23 @@ describe('retention cron', () => {
       },
       gone: () => rowExists('spb_retired_tokens', 'token_hash', 'delete-retired-token'),
       kept: () => rowExists('spb_retired_tokens', 'token_hash', 'keep-retired-token'),
+    },
+    {
+      name: 'deletes orphaned or expired enable_scout_codes rows',
+      key: 'enable_scout_codes',
+      seed: async () => {
+        await insertAccount('scout-code-account', { createdAt: NOW });
+        await workerEnv.DB.prepare(
+          `INSERT INTO enable_scout_codes (code_hash, nonce_hash, account_id, created_at, expires_at, ip_hash)
+           VALUES ('delete-null-code', 'delete-null-nonce', NULL, ?, ?, 'delete-ip')`
+        ).bind(NOW, NOW + DAY_MS).run();
+        await workerEnv.DB.prepare(
+          `INSERT INTO enable_scout_codes (code_hash, nonce_hash, account_id, created_at, expires_at, ip_hash)
+           VALUES ('keep-live-code', 'keep-live-nonce', 'scout-code-account', ?, ?, 'keep-ip')`
+        ).bind(NOW, NOW + DAY_MS).run();
+      },
+      gone: () => rowExists('enable_scout_codes', 'code_hash', 'delete-null-code'),
+      kept: () => rowExists('enable_scout_codes', 'code_hash', 'keep-live-code'),
     },
   ];
 

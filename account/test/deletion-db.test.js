@@ -99,6 +99,28 @@ describe('deletion database transitions', () => {
     await expect(workerEnv.DB.prepare("SELECT phase FROM account_deletions WHERE operation_id = 'deadline-passed'").first()).resolves.toMatchObject({ phase: 'frozen' });
     await expect(workerEnv.DB.prepare("SELECT consumed FROM account_deletion_proofs WHERE token_hash = 'deadline-proof'").first()).resolves.toMatchObject({ consumed: 0 });
   });
+
+  it('nulls the encrypted snapshot when cancellation wins', async () => {
+    await request('snap-cancel');
+    await workerEnv.DB.prepare(
+      "UPDATE account_deletions SET snapshot_encrypted = 'encrypted', snapshot_digest = 'digest' WHERE operation_id = 'snap-cancel'"
+    ).run();
+    await createDeletionProof(workerEnv.DB, {
+      tokenHash: 'snap-cancel-proof', accountId: 'account', sessionIdHash: 'session', purpose: 'cancel', method: 'otp',
+      issuedAt: 1, expiresAt: 100, otpCodeHash: 'code',
+    });
+    await markDeletionProofVerified(workerEnv.DB, { tokenHash: 'snap-cancel-proof', nowMs: 2 });
+    await expect(consumeProofsAndCancelDeletionRequest(workerEnv.DB, {
+      proofTokenHashes: ['snap-cancel-proof'], accountId: 'account', sessionIdHash: 'session', operationId: 'snap-cancel', cancelledAt: 2, nowMs: 2,
+    })).resolves.toMatchObject({ cancelled: true, proofChanges: true });
+    await expect(workerEnv.DB.prepare(
+      "SELECT phase, snapshot_encrypted, snapshot_digest FROM account_deletions WHERE operation_id = 'snap-cancel'"
+    ).first()).resolves.toMatchObject({
+      phase: 'cancelled',
+      snapshot_encrypted: null,
+      snapshot_digest: null,
+    });
+  });
 });
 
 async function request(operationId) {

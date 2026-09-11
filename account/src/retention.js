@@ -18,6 +18,7 @@ const COUNT_KEYS = [
   'sessions_expired',
   'rate_buckets',
   'spb_retired_tokens',
+  'enable_scout_codes',
 ];
 
 export async function runRetention(env, nowMs = Date.now()) {
@@ -103,6 +104,12 @@ export async function runRetention(env, nowMs = Date.now()) {
       sql: 'DELETE FROM spb_retired_tokens WHERE retired_at < ?',
       cutoff: nowMs - 7 * DAY_MS,
       key: 'spb_retired_tokens',
+    },
+    {
+      index: 14,
+      sql: 'DELETE FROM enable_scout_codes WHERE account_id IS NULL OR expires_at < ?',
+      cutoff: nowMs,
+      key: 'enable_scout_codes',
     },
   ];
 

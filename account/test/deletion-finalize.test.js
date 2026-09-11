@@ -53,6 +53,18 @@ describe('deletion finalization', () => {
        VALUES ('null-code', 'null-nonce', NULL, 0, 1, 'null-ip')`
     ).run();
     await workerEnv.DB.prepare(
+      `INSERT INTO account_deletions (
+         operation_id, account_id, phase, requested_at, cancellation_deadline_at,
+         snapshot_encrypted, snapshot_digest, cancelled_at
+       ) VALUES ('owner-cancelled', ?, 'cancelled', 0, 1, 'owner-snap', 'owner-digest', 1)`
+    ).bind(owner.accountId).run();
+    await workerEnv.DB.prepare(
+      `INSERT INTO account_deletions (
+         operation_id, account_id, phase, requested_at, cancellation_deadline_at,
+         snapshot_encrypted, snapshot_digest, cancelled_at
+       ) VALUES ('control-cancelled', ?, 'cancelled', 0, 1, 'control-snap', 'control-digest', 1)`
+    ).bind(control.accountId).run();
+    await workerEnv.DB.prepare(
       `INSERT INTO rate_buckets (key, count, window_start) VALUES (?, 1, ?)`
     ).bind(await hashKey('signin_ip', '203.0.113.7', env), NOW).run();
     await requestedDeletion(owner.accountId);
@@ -89,6 +101,13 @@ describe('deletion finalization', () => {
     for (const key of controlData.rateBucketKeys) await expect(countBy('rate_buckets', 'key', key)).resolves.toBe(1);
     await expect(countBy('rate_buckets', 'key', await hashKey('signin_ip', '203.0.113.7', env))).resolves.toBe(1);
     await expect(countBy('enable_scout_codes', 'code_hash', 'null-code')).resolves.toBe(1);
+    await expect(countBy('account_deletions', 'operation_id', 'owner-cancelled')).resolves.toBe(0);
+    await expect(workerEnv.DB.prepare(
+      "SELECT account_id, snapshot_encrypted FROM account_deletions WHERE operation_id = 'control-cancelled'"
+    ).first()).resolves.toMatchObject({
+      account_id: control.accountId,
+      snapshot_encrypted: 'control-snap',
+    });
     await expect(countBy('account_deletion_service_ops', 'operation_id', 'op')).resolves.toBe(0);
 
     const completionVerifier = await workerEnv.DB.prepare('SELECT * FROM account_deletion_completions').first();
