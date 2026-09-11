@@ -273,7 +273,7 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">2</div>
     <div>
       <div class="gt">enable private network access</div>
-      <div class="gd">sol pbc records an approval for this journal and hands that approval back. nothing from the journal is sent to sol pbc to do this.</div>
+      <div class="gd">sol pbc records your journal's approval and hands it back. nothing from your journal is sent to sol pbc to do this.</div>
     </div>
   </div>
   <form method="post" action="/enable/spl/confirm">
