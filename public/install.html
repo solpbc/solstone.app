@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>get started — solstone</title>
+    <title>get started with solstone</title>
     <meta name="description" content="get started with solstone. the solstone app takes in what you share with it, and all of it goes into your journal, the memory. your journal is always private, only yours.">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
@@ -370,7 +370,7 @@
         /* The sunrise-gradient ground is shared: <body class="sunrise"> in base.css.
            No per-page copy of the recipe. */
         /* the three-ways-to-think rows — a quiet System-Settings register: no
-           tiers, no comparison table. one row per way sol can think. */
+           tiers, no comparison table. one row per way to think. */
         .think-ways {
             max-width: 820px;
             width: 90vw;
@@ -453,12 +453,12 @@
             <label for="mode-multi">multiple devices</label>
         </div>
         <div class="diagram-panel diagram-single">
-            <svg class="dg" viewBox="0 0 720 448" role="img" aria-label="solstone on a single device: the solstone app takes in your screen and audio along with you, and it all goes into your journal at ~/journal">
+            <svg class="dg" viewBox="0 0 720 448" role="img" aria-label="solstone on a single device: the solstone app takes in your screen and audio, and it all goes into your journal at ~/journal">
                 <text x="360" y="14" text-anchor="middle" font-size="11" class="dg-label">your device</text>
                 <rect x="24" y="24" width="672" height="400" rx="12" class="dg-card"/>
                 <rect x="72" y="52" width="576" height="72" rx="6" class="dg-card"/>
                 <text x="360" y="78" text-anchor="middle" font-size="15" class="dg-title">the solstone app</text>
-                <text x="360" y="98" text-anchor="middle" font-size="12" class="dg-desc">screen + audio, taken in along with you</text>
+                <text x="360" y="98" text-anchor="middle" font-size="12" class="dg-desc">screen + audio, taken in</text>
                 <text x="360" y="115" text-anchor="middle" font-size="10" class="dg-meta">macos · linux · tmux</text>
                 <line x1="360" y1="124" x2="360" y2="168" class="dg-flow"/>
                 <polygon points="360,170 356,162 364,162" class="dg-arrow"/>
@@ -509,10 +509,10 @@
         </div>
     </div>
 
-    <h2 class="install-section-title">your journal is just files</h2>
+    <h2 class="install-section-title">your journal is open and portable</h2>
     <div class="cards">
         <div class="card">
-            <p class="subtitle">open it and it's dated folders of plain markdown, json, and your own raw audio and screen frames (if you opt to preserve them after processing). you can <code>cat</code> it, <code>grep</code> it, put it in <code>git</code>, and back it up like any other folder. no proprietary format, no schema only we can read, nothing locked inside a database. the only database is a search index, and it's disposable: delete it and it rebuilds itself from the files. the files are the memory. everything else is derived. that's what "owned by you" has to mean to be real.</p>
+            <p class="subtitle">open it and it's a folder of dated directories: plain markdown, json, and your own raw audio and screen frames (if you opt to preserve them after processing). you can <code>cat</code> it, <code>grep</code> it, put it in <code>git</code>, and back it up like any other folder. no proprietary format, no schema only we can read. search rebuilds from the folder if you delete it. your journal is the memory. everything else is derived.</p>
         </div>
     </div>
 
@@ -522,28 +522,28 @@
     <div class="think-ways">
         <div class="card">
             <div class="think-way">
-                <h3>local — the default.</h3>
-                <p>on a capable machine, the solstone app bundles local models set up in the background during install. capable means roughly 6–8 GB of GPU memory, or an Apple Silicon mac with 16 GB, and setup checks for you before anything downloads.</p>
+                <h3>local, the default.</h3>
+                <p>a model runs on this computer, the default on a capable machine. setup checks for you before anything downloads.</p>
             </div>
             <div class="think-way">
                 <h3>your own model.</h3>
-                <p>bring your own provider key (Claude, Gemini, or OpenAI), or point the solstone app at any OpenAI-compatible endpoint you run. sol pbc is never in the path.</p>
+                <p>bring your own provider key (Claude, Gemini, or GPT), or point the solstone app at any OpenAI-compatible endpoint you run. sol pbc is never in the path.</p>
             </div>
             <div class="think-way">
-                <h3>confidential processing — available to approved scouts.</h3>
-                <p>available to approved scouts. confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing: no content retained, no human review, nothing used to train. transcription can run there too; one setting turns that off any time, and transcription returns to your device. your journal stays on your device. <a href="https://services.solstone.app/confidential-processing">how it works →</a></p>
+                <h3>confidential processing.</h3>
+                <p>available to approved scouts. think off your device on confidential hardware sol pbc runs that keeps nothing: no content retained, no human review, nothing used to train. while it's on, transcription runs there too, transcribed, never kept; one setting (on by default) turns that off any time and transcription returns to your device immediately. your journal stays on your device. <a href="https://services.solstone.app/confidential-processing">how it works →</a></p>
             </div>
-            <p class="think-invariant">whichever you choose: your journal always lives on your device, and nothing is chosen for you silently. if no engine is set, the solstone app tells you and waits.</p>
+            <p class="think-invariant">whichever you choose: your journal always lives on your device, and nothing is chosen for you silently. if no model is set, the solstone app tells you and waits.</p>
         </div>
     </div>
 
     <h2 class="install-section-title">install with a coding agent</h2>
     <div class="cards">
         <div class="card">
-            <p class="subtitle">paste this prompt into claude code, codex cli, gemini cli, or similar. ~15 minutes start to finish.</p>
+            <p class="subtitle">paste this prompt into Claude Code, Codex CLI, Gemini CLI, or similar.</p>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-agent" data-default-label="copy for agent" aria-label="copy for agent: install prompt for solstone">copy for agent</button>
-                <a href="https://github.com/solpbc/solstone-journal" class="gh-link">github &rarr;</a>
+                <a href="https://github.com/solpbc/solstone-journal" class="gh-link">GitHub &rarr;</a>
                 <a href="/releases" class="gh-link">what's new &rarr;</a>
             </div>
             <pre class="blurb" id="blurb-agent">install solstone from https://solstone.app/install</pre>
@@ -556,12 +556,12 @@
             <input type="radio" id="plat-macos" name="platform" checked>
             <input type="radio" id="plat-linux" name="platform">
             <div class="platform-toggle">
-                <label for="plat-macos">macOS</label>
+                <label for="plat-macos">macos</label>
                 <label for="plat-linux">linux</label>
             </div>
 
             <div class="platform-panel platform-macos">
-                <p class="install-finish">setting up a new mac? the solstone app and the journal are two separate apps, and most people want both. both require Apple Silicon; Intel macs aren't supported.</p>
+                <p class="install-finish">setting up a new mac? the solstone app and the journal are two separate apps. for a new mac, install both. both require Apple Silicon; Intel macs aren't supported.</p>
                 <a href="https://solstone.app/download/macos" class="download-btn">download the solstone app</a>
                 <a href="https://solstone.app/download/journal" class="download-btn">download the journal</a>
                 <p class="trust-signal">both signed by sol pbc, notarized by Apple, each updating over its own signed channel.</p>
@@ -574,7 +574,7 @@
                         <pre class="install-steps" id="steps-macos">curl -fsSL https://solstone.app/install.sh | sh
 journal setup</pre>
                         <div class="card-actions">
-                            <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human" aria-label="copy for human: macOS install commands">copy for human</button>
+                            <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human" aria-label="copy for human: macos install commands">copy for human</button>
                             <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
                         </div>
                         <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard walks you through setting your identity and choosing among the three ways to think, above. your journal stays on this machine whichever you choose.</p>
@@ -595,7 +595,7 @@ journal setup</pre>
         </div>
     </div>
 
-    <p class="install-finish"><strong>where your journal lives.</strong> your journal lives on linux machines (Intel/AMD or ARM) and on Apple Silicon macs running macOS 14 or later. anywhere else, you can still read and search a journal kept on another machine, but that machine can't host one of its own. you get told that plainly instead of a half-working install. if owners turn up on a machine we don't cover, we add it.</p>
+    <p class="install-finish"><strong>where your journal lives.</strong> your journal lives on linux machines (Intel/AMD or ARM) and on Apple Silicon macs running macos 14 or later. anywhere else, you can still read and search a journal kept on another machine, but that machine can't host one of its own. need another platform? tell us.</p>
 
     <p class="windows-pointer">on windows? install solstone for windows at <a href="/download">solstone.app/download</a>. it pairs with the journal on your mac or linux machine. (the journal doesn't run on windows yet.)</p>
 
@@ -611,7 +611,7 @@ journal setup</pre>
             <h2>want to help shape what comes next?</h2>
             <p class="subtitle">solstone is being built in the open. scouts get early features first and a direct line to tell us what they're seeing. confidential processing is available to approved scouts.</p>
             <div class="card-actions">
-                <a href="https://services.solstone.app/scout" class="gh-link">join the scouts &rarr;</a>
+                <a href="https://services.solstone.app/scout" class="gh-link">apply to be a scout &rarr;</a>
             </div>
         </div>
     </div>
@@ -659,7 +659,7 @@ journal setup</pre>
             });
         });
         function showFallback(blurb) {
-            announce('text selected — press ctrl+c (or cmd+c on mac) to copy');
+            announce('text selected. press ctrl+c (or cmd+c on mac) to copy');
             blurb.style.display = 'block';
             blurb.style.whiteSpace = 'pre-wrap';
             blurb.style.background = 'var(--orange-wash)';
