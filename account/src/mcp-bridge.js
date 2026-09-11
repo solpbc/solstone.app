@@ -19,6 +19,44 @@ const LABEL_BYTES = 5;
 const LABEL_MAX_ATTEMPTS = 8;
 const BASE32 = 'abcdefghijklmnopqrstuvwxyz234567';
 
+// Bounded D1 failure taxonomy, mirrored from spp-authorize.js's `d1Reason` —
+// see that file for the full rationale. Duplicated rather than imported to keep
+// this handler's failure paths independent of spp-authorize.js's module graph.
+const D1_REASONS = [
+  ['network connection lost', 'network_lost'],
+  ['storage caused object to be reset', 'storage_reset'],
+  ['too many api requests', 'subrequest_limit'],
+  ['unable to open database', 'unavailable'],
+  ['database is locked', 'locked'],
+  ['no such table', 'schema'],
+  ['internal error', 'internal'],
+  ['timed out', 'timeout'],
+  ['exceeded', 'limit'],
+];
+
+function d1Reason(message) {
+  const haystack = message.toLowerCase();
+  for (const [needle, token] of D1_REASONS) {
+    if (haystack.includes(needle)) return token;
+  }
+  return 'unclassified';
+}
+
+// Content-free failure log for a caught bridge-token error: bounded reason code
+// only, never the raw message (a D1 message can embed a bound parameter). Each
+// `catch` below returns a distinct 503 body identifying which step failed; this
+// adds the classification that lets a recurrence be diagnosed from `extro-sre
+// tail`/logs instead of only distinguishing "some step failed" (2026-09-10/11
+// solstone.app zone-5xx spike — every catch here was bare, so the live-window
+// capture could confirm requests were failing but not which branch or why).
+function logBridgeTokenFailure(step, err) {
+  const name = typeof err?.name === 'string' && err.name ? err.name : 'unknown';
+  const message = String(err?.message || '');
+  const kind = message.includes('D1_ERROR') ? 'd1' : 'other';
+  const reason = kind === 'd1' ? d1Reason(message) : 'n/a';
+  console.error('mcp_bridge_token_failed', step, name, kind, reason);
+}
+
 export async function handleMcpBridgeToken(req, env) {
   const body = await readJson(req);
   if (!isMcpBridgeRequest(body)) return json({ error: 'invalid_input' }, { status: 400 });
@@ -40,14 +78,16 @@ export async function handleMcpBridgeToken(req, env) {
   let signing;
   try {
     signing = await loadMcpBridgeSigningMaterial(env);
-  } catch {
+  } catch (err) {
+    logBridgeTokenFailure('load_signing_material', err);
     return json({ error: 'bridge_configuration_unavailable' }, { status: 503 });
   }
 
   let account;
   try {
     account = await findUniqueSplBindingAccount(env.DB, body.instance_id);
-  } catch {
+  } catch (err) {
+    logBridgeTokenFailure('find_binding_account', err);
     return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
   }
   if (!account) return json({ error: 'invalid_token' }, { status: 401 });
@@ -56,7 +96,8 @@ export async function handleMcpBridgeToken(req, env) {
     if (await getActiveDeletionForAccount(env.DB, account.accountId)) {
       return json({ error: 'deletion_in_progress' }, { status: 409 });
     }
-  } catch {
+  } catch (err) {
+    logBridgeTokenFailure('get_active_deletion', err);
     return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
   }
 
@@ -66,7 +107,8 @@ export async function handleMcpBridgeToken(req, env) {
       accountId: account.accountId,
       instanceId: body.instance_id,
     });
-  } catch {
+  } catch (err) {
+    logBridgeTokenFailure('get_bridge_binding', err);
     return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
   }
 
@@ -78,7 +120,8 @@ export async function handleMcpBridgeToken(req, env) {
         instanceId: body.instance_id,
         nowMs: Date.now(),
       });
-    } catch {
+    } catch (err) {
+      logBridgeTokenFailure('allocate_label', err);
       return json({ error: 'hostname_assignment_unavailable' }, { status: 503 });
     }
   }
@@ -94,7 +137,8 @@ export async function handleMcpBridgeToken(req, env) {
       cnfJwk,
       iat,
     });
-  } catch {
+  } catch (err) {
+    logBridgeTokenFailure('mint_token', err);
     return json({ error: 'token_mint_unavailable' }, { status: 503 });
   }
   return json({
