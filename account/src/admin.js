@@ -585,13 +585,14 @@ async function impersonateAccount(request, env, admin, ctx) {
 
   const operator = admin.email || admin.service;
   const allowlist = parseImpersonateAllowlist(env);
+  const operator_ref = await hashWithPepper(`hub:operator:${operator}`, env);
+  const account_ref = await hashWithPepper(`hub:account:${account.id}`, env);
   if (!allowlist.has(account.id.toLowerCase())) {
     const reason = allowlist.size === 0 ? 'disabled' : 'not_allowlisted';
-    console.warn(JSON.stringify({ event: 'admin_impersonate_denied', operator, account_id: account.id, reason }));
+    console.warn(JSON.stringify({ event: 'admin_impersonate_denied', operator_ref, account_ref, reason }));
     emitSecurityEvent(env, ctx, {
       type: 'impersonate_denied', tier: 'T4',
-      operator_ref: await hashWithPepper(`hub:operator:${operator}`, env),
-      account_ref: await hashWithPepper(`hub:account:${account.id}`, env), reason,
+      operator_ref, account_ref, reason,
     });
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
@@ -599,6 +600,7 @@ async function impersonateAccount(request, env, admin, ctx) {
   const nowMs = Date.now();
   const token = generateSessionToken();
   const idHash = await hashWithPepper(token, env);
+  const session_ref = await hashWithPepper(`hub:session:${idHash}`, env);
   const marker = `impersonation by ${operator}`;
   await createSession(env.DB, {
     idHash,
@@ -607,13 +609,13 @@ async function impersonateAccount(request, env, admin, ctx) {
     ttlMs: IMPERSONATE_TTL_MS,
     lastUserAgent: marker,
   });
-  console.warn(JSON.stringify({ event: 'admin_impersonate', operator, account_id: account.id, session_id_hash: idHash }));
+  console.warn(JSON.stringify({ event: 'admin_impersonate', operator_ref, account_ref, session_ref }));
   emitSecurityEvent(env, ctx, {
     type: 'impersonate',
     tier: 'T4',
-    operator_ref: await hashWithPepper(`hub:operator:${operator}`, env),
-    account_ref: await hashWithPepper(`hub:account:${account.id}`, env),
-    session_ref: await hashWithPepper(`hub:session:${idHash}`, env),
+    operator_ref,
+    account_ref,
+    session_ref,
     expires_at: new Date(nowMs + IMPERSONATE_TTL_MS).toISOString(),
   });
   return json(

@@ -1,6 +1,7 @@
 import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import { hashWithPepper } from '../src/crypto.js';
 import {
   emailAddRequest,
   fetchWithCtx,
@@ -224,7 +225,11 @@ describe('settings emails list and add flow', () => {
     expect(await emailByAddress('collision@example.com', testEnv, actor.accountId)).toBeNull();
     expect(testEnv.EMAIL.sent).toHaveLength(0);
     expect(spy).toHaveBeenCalledWith(expect.stringContaining('add_addr_collision'));
-    expect(spy.mock.calls[0][0]).toContain(actor.accountId);
+    const payload = JSON.parse(spy.mock.calls[0][0]);
+    expect(payload.event).toBe('add_addr_collision');
+    expect(payload.account_ref).toBe(await hashWithPepper(`hub:account:${actor.accountId}`, testEnv));
+    expect(payload).not.toHaveProperty('actor_account_id');
+    expect(spy.mock.calls[0][0]).not.toContain(actor.accountId);
     expect(spy.mock.calls[0][0]).not.toContain('collision@example.com');
   });
 
@@ -256,6 +261,10 @@ describe('settings emails list and add flow', () => {
     expect(testEnv.EMAIL.sent).toHaveLength(beforeSendCount);
     expect(await emailByAddress('rate-cap@example.com', testEnv, account.accountId)).toBeNull();
     expect(collisionSpy).toHaveBeenCalledWith(expect.stringContaining('add_addr_collision'));
+    const payload = JSON.parse(collisionSpy.mock.calls[0][0]);
+    expect(payload.account_ref).toBe(await hashWithPepper(`hub:account:${account.accountId}`, testEnv));
+    expect(payload).not.toHaveProperty('actor_account_id');
+    expect(collisionSpy.mock.calls[0][0]).not.toContain(account.accountId);
   });
 
   it('returns byte-identical redirects with no cookies across valid add branches and rate cap', async () => {

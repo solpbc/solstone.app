@@ -1,6 +1,7 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import { hashWithPepper } from '../src/crypto.js';
 import {
   emailAddRequest,
   fetchWithCtx,
@@ -73,8 +74,11 @@ describe('kill switches', () => {
     expect(await rowCount('account_emails')).toBe(1);
     expect(testEnv.EMAIL.sent).toHaveLength(0);
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0][0]).toContain('add_addr_collision');
-    expect(warn.mock.calls[0][0]).toContain(actor.accountId);
+    const payload = JSON.parse(warn.mock.calls[0][0]);
+    expect(payload.event).toBe('add_addr_collision');
+    expect(payload.account_ref).toBe(await hashWithPepper(`hub:account:${actor.accountId}`, testEnv));
+    expect(payload).not.toHaveProperty('actor_account_id');
+    expect(warn.mock.calls[0][0]).not.toContain(actor.accountId);
     expect(warn.mock.calls[0][0]).not.toContain('disabled-add@example.com');
   });
 

@@ -211,12 +211,22 @@ describe('admin impersonate endpoint', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const body = await impersonate(token, { account_id: account.accountId }, testEnv);
-    const logged = warn.mock.calls.flat().join('\n');
+    const payload = JSON.parse(warn.mock.calls[0][0]);
+    const idHash = await hashWithPepper(body.session_token, testEnv);
+    const serialized = JSON.stringify(payload);
 
-    expect(logged).toContain('"event":"admin_impersonate"');
-    expect(logged).toContain('"operator":"jer@solpbc.org"');
-    expect(logged).toContain(`"account_id":"${account.accountId}"`);
-    expect(logged).not.toContain(body.session_token);
+    expect(payload).toEqual({
+      event: 'admin_impersonate',
+      operator_ref: await hashWithPepper('hub:operator:jer@solpbc.org', testEnv),
+      account_ref: await hashWithPepper(`hub:account:${account.accountId}`, testEnv),
+      session_ref: await hashWithPepper(`hub:session:${idHash}`, testEnv),
+    });
+    expect(serialized).not.toContain(account.accountId);
+    expect(serialized).not.toContain('jer@solpbc.org');
+    expect(serialized).not.toContain(body.session_token);
+    expect(payload).not.toHaveProperty('operator');
+    expect(payload).not.toHaveProperty('account_id');
+    expect(payload).not.toHaveProperty('session_id_hash');
   });
 
   it('denies impersonation when the allowlist is unset (default-off)', async () => {
@@ -236,10 +246,17 @@ describe('admin impersonate endpoint', () => {
     expect(response.status).toBe(404);
     expect(body).toEqual({ error: 'account not found' });
     expect(row.count).toBe(0);
-    expect(logged).toContain('"event":"admin_impersonate_denied"');
-    expect(logged).toContain('"reason":"disabled"');
-    expect(logged).toContain('"operator":"jer@solpbc.org"');
-    expect(logged).toContain(`"account_id":"${account.accountId}"`);
+    const payload = JSON.parse(logged);
+    expect(payload).toEqual({
+      event: 'admin_impersonate_denied',
+      operator_ref: await hashWithPepper('hub:operator:jer@solpbc.org', testEnv),
+      account_ref: await hashWithPepper(`hub:account:${account.accountId}`, testEnv),
+      reason: 'disabled',
+    });
+    expect(logged).not.toContain(account.accountId);
+    expect(logged).not.toContain('jer@solpbc.org');
+    expect(payload).not.toHaveProperty('operator');
+    expect(payload).not.toHaveProperty('account_id');
   });
 
   it('denies impersonation for an account that is not on the allowlist', async () => {
@@ -256,13 +273,21 @@ describe('admin impersonate endpoint', () => {
     }), testEnv);
     const body = await response.json();
     const row = await sessionRowForAccount(accountB.accountId);
-    const logged = warn.mock.calls.flat().join('\n');
 
     expect(response.status).toBe(404);
     expect(body).toEqual({ error: 'account not found' });
     expect(row).toBeNull();
-    expect(logged).toContain('"reason":"not_allowlisted"');
-    expect(logged).toContain(`"account_id":"${accountB.accountId}"`);
+    const payload = JSON.parse(warn.mock.calls.at(-1)[0]);
+    expect(payload).toEqual({
+      event: 'admin_impersonate_denied',
+      operator_ref: await hashWithPepper('hub:operator:jer@solpbc.org', testEnv),
+      account_ref: await hashWithPepper(`hub:account:${accountB.accountId}`, testEnv),
+      reason: 'not_allowlisted',
+    });
+    expect(JSON.stringify(payload)).not.toContain(accountB.accountId);
+    expect(JSON.stringify(payload)).not.toContain(accountA.accountId);
+    expect(payload).not.toHaveProperty('operator');
+    expect(payload).not.toHaveProperty('account_id');
   });
 
   it('parses the allowlist tolerating spaces, mixed case, and empty commas', async () => {

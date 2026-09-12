@@ -80,13 +80,13 @@ export async function handleAddEmail(req, env, ctx) {
   const verifyLocation = `/sign-in/emails/verify?address=${encodeURIComponent(addressLower)}`;
 
   if (env.EMAIL_PATH_DISABLED === 'true') {
-    logAddCollision(guard.session.account_id, nowMs);
+    await logAddCollision(env, guard.session.account_id, nowMs);
     return signedInRedirect(verifyLocation);
   }
 
   const addCount = await bumpRateBucket(env.DB, rateKey, DAY_MS, nowMs);
   if (addCount > ADD_EMAIL_DAY_LIMIT) {
-    logAddCollision(guard.session.account_id, nowMs);
+    await logAddCollision(env, guard.session.account_id, nowMs);
     return signedInRedirect(verifyLocation);
   }
 
@@ -111,7 +111,7 @@ export async function handleAddEmail(req, env, ctx) {
     });
     queueVerifyEmail(ctx, { env, address: addressLower, code });
   } else if (existing.account_id !== guard.session.account_id) {
-    logAddCollision(guard.session.account_id, nowMs);
+    await logAddCollision(env, guard.session.account_id, nowMs);
   }
 
   return signedInRedirect(verifyLocation);
@@ -287,8 +287,9 @@ function queueVerifyEmail(ctx, { env, address, code }) {
   ctx.waitUntil(sendVerifyEmail({ env, address, code }).catch(() => console.error('verify_send_failed')));
 }
 
-function logAddCollision(actorAccountId, nowMs) {
-  console.warn(JSON.stringify({ event: 'add_addr_collision', actor_account_id: actorAccountId, ts: nowMs }));
+async function logAddCollision(env, actorAccountId, nowMs) {
+  const account_ref = await hashWithPepper(`hub:account:${actorAccountId}`, env);
+  console.warn(JSON.stringify({ event: 'add_addr_collision', account_ref, ts: nowMs }));
 }
 
 function logTransparencyDecryptFailed(rowId, kind) {
