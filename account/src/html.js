@@ -1286,7 +1286,7 @@ ${renderDeletionForm({
   error,
   status,
   statusId: 'export-request-status',
-  intro: "Confirm it's you before downloading your data.",
+  intro: "confirm it's you before downloading your data. if a service section can't be reached, the file will mark that section incomplete.",
 })}`,
   });
 }
@@ -1303,10 +1303,10 @@ ${renderDeletionForm({
   error,
   status,
   statusId: 'export-otp-status',
-  intro: 'Enter the code sent to your verified email address.',
+  intro: 'enter the code sent to your verified email address.',
   fields: [{
     id: 'export-otp-code', name: 'code', label: '6-digit code',
-    hint: 'The code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
+    hint: 'the code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
     autocomplete: 'one-time-code', pattern: '[0-9]*',
   }],
 })}
@@ -1316,7 +1316,7 @@ ${renderDeletionForm({
   submitLabel: 'download my data',
   status: '',
   statusId: 'export-passkey-status',
-  intro: 'If you have an active passkey, you must also verify it before continuing.',
+  intro: 'if you have an active passkey, you must also verify it before continuing.',
   extra: '<button class="btn secondary" type="button" data-export-passkey>verify with passkey</button>',
 })}
 ${exportPasskeyScript()}`,

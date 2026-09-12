@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   collectOwnerSupportExport,
+  SUPPORT_AGGREGATE_BYTE_LIMIT,
   SUPPORT_BODY_BYTE_LIMIT,
   SUPPORT_CLOSED_PAGE_LIMIT,
   SUPPORT_EXPORT_DEADLINE_MS,
@@ -770,5 +771,67 @@ describe('owner export support collector (strict schema & isolation)', () => {
     expect(serialized).not.toContain(SENSITIVE_OTHER_EMAIL);
 
     consoleSpy.assertNoSecrets([SENSITIVE_AUTH_TOKEN, SENSITIVE_R2_KEY, SENSITIVE_OTHER_EMAIL]);
+  });
+
+  it('measures peer bodies in UTF-8 bytes, not JavaScript characters', async () => {
+    const oversizedMultibyte = `"${'é'.repeat(Math.floor(SUPPORT_BODY_BYTE_LIMIT / 2) + 1)}"`;
+    expect(oversizedMultibyte.length).toBeLessThan(SUPPORT_BODY_BYTE_LIMIT);
+    expect(new TextEncoder().encode(oversizedMultibyte).byteLength).toBeGreaterThan(SUPPORT_BODY_BYTE_LIMIT);
+
+    const support = { fetch: async () => new Response(oversizedMultibyte) };
+    const result = await collectOwnerSupportExport({
+      env: makeTestEnv({ SUPPORT_WORKER: support }),
+      accountId: OWNER_ID,
+    });
+
+    expect(result.complete).toBe(false);
+    expect(result.reason).toBe('resource_limit');
+  });
+
+  it('bounds aggregate peer response bytes across verified-email fanout', async () => {
+    const padding = ' '.repeat(Math.floor(SUPPORT_BODY_BYTE_LIMIT * 0.9));
+    const support = {
+      fetch: async () => new Response(`${padding}[]`, { headers: { 'Content-Type': 'application/json' } }),
+    };
+    const emailCount = Math.ceil(SUPPORT_AGGREGATE_BYTE_LIMIT / padding.length) + 1;
+    const result = await collectOwnerSupportExport({
+      env: makeTestEnv({ SUPPORT_WORKER: support }),
+      accountId: OWNER_ID,
+      verifiedEmails: Array.from({ length: emailCount }, (_, i) => `owner-${i}@example.com`),
+    });
+
+    expect(result.complete).toBe(false);
+    expect(result.reason).toBe('resource_limit');
+  });
+
+  it('times out a peer fetch that never settles', async () => {
+    vi.useFakeTimers();
+    const support = { fetch: () => new Promise(() => {}) };
+    const pending = collectOwnerSupportExport({
+      env: makeTestEnv({ SUPPORT_WORKER: support }),
+      accountId: OWNER_ID,
+    });
+
+    await vi.advanceTimersByTimeAsync(SUPPORT_EXPORT_DEADLINE_MS + 1);
+    await expect(pending).resolves.toMatchObject({ complete: false, reason: 'deadline' });
+    vi.useRealTimers();
+  });
+
+  it('returns a resource limit even when stream cancellation never settles', async () => {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(SUPPORT_BODY_BYTE_LIMIT + 1));
+      },
+      cancel() {
+        return new Promise(() => {});
+      },
+    });
+    const result = await collectOwnerSupportExport({
+      env: makeTestEnv({ SUPPORT_WORKER: { fetch: async () => new Response(stream) } }),
+      accountId: OWNER_ID,
+    });
+
+    expect(result.complete).toBe(false);
+    expect(result.reason).toBe('resource_limit');
   });
 });

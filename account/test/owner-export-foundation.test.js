@@ -196,11 +196,11 @@ describe('owner export foundation', () => {
     expect(env.EMAIL.sent.map(({ subject }) => subject)).toEqual([
       "confirm delete your sign-in and services: 123 456",
       'confirm cancel an account deletion request: 123 456',
-      'confirm your solstone data download: 123 456',
+      'confirm your solstone services data download: 123 456',
     ]);
     expect(env.EMAIL.sent[0].text).toContain('this confirmation starts an irreversible-account-action workflow.');
     expect(env.EMAIL.sent[1].text).toContain('this confirmation starts an irreversible-account-action workflow.');
-    expect(env.EMAIL.sent[2].text).toBe(`you requested a copy of your solstone data.
+    expect(env.EMAIL.sent[2].text).toBe(`you requested a copy of the data held with your solstone services sign-in.
 
 enter this code to continue:
 

@@ -1,6 +1,11 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { collectOwnerLocalExport } from '../src/owner-export-local.js';
+import {
+  collectOwnerLocalExport,
+  OWNER_LOCAL_BYTE_LIMIT,
+  OWNER_LOCAL_DEADLINE_MS,
+  OWNER_LOCAL_RECORD_LIMIT,
+} from '../src/owner-export-local.js';
 import { OWNER_DATA_INVENTORY } from '../src/owner-data-inventory.js';
 import { encryptEmail } from '../src/crypto.js';
 import {
@@ -329,7 +334,7 @@ describe('owner local export collector (AC1–3)', () => {
           .map((c) => `"${c.name}"`)
           .join(', ');
 
-        const expectedSql = `SELECT ${cols} FROM "${entry.name}" WHERE ${idCol} = ? ORDER BY rowid ASC`;
+        const expectedSql = `SELECT ${cols} FROM "${entry.name}" WHERE ${idCol} = ? ORDER BY rowid ASC LIMIT ?`;
         expect(stmtSql).toBe(expectedSql);
       }
     });
@@ -417,6 +422,52 @@ describe('owner local export collector (AC1–3)', () => {
   });
 
   describe('Fatal vs empty handling (AC3)', () => {
+    it('fails closed when local rows exceed the record or encoded-byte ceilings', async () => {
+      const inventory = [{
+        name: 'synthetic_records',
+        association: 'account_foreign_key',
+        exportTreatment: 'exportable',
+        description: 'synthetic records',
+        columns: [{
+          name: 'value',
+          publicName: 'value',
+          treatment: 'exported',
+          transform: 'identity',
+          semantics: 'synthetic value',
+        }],
+      }];
+      const dbWithRows = (rows) => ({
+        prepare() {
+          return { bind() { return { all: async () => ({ results: rows }) }; } };
+        },
+      });
+
+      const tooMany = Array.from({ length: OWNER_LOCAL_RECORD_LIMIT + 1 }, () => ({ value: 'x' }));
+      await expect(collectOwnerLocalExport({
+        db: dbWithRows(tooMany), env: {}, accountId: 'owner', inventory,
+      })).resolves.toEqual({ ok: false, error: 'resource_limit' });
+
+      await expect(collectOwnerLocalExport({
+        db: dbWithRows([{ value: 'x'.repeat(OWNER_LOCAL_BYTE_LIMIT + 1) }]),
+        env: {},
+        accountId: 'owner',
+        inventory,
+      })).resolves.toEqual({ ok: false, error: 'resource_limit' });
+    });
+
+    it('fails closed when local collection crosses its wall-clock deadline', async () => {
+      const times = [0, OWNER_LOCAL_DEADLINE_MS + 1];
+      const result = await collectOwnerLocalExport({
+        db: { prepare() { throw new Error('deadline must fire before query'); } },
+        env: {},
+        accountId: 'owner',
+        inventory: OWNER_DATA_INVENTORY,
+        clock: () => times.shift() ?? OWNER_LOCAL_DEADLINE_MS + 1,
+      });
+
+      expect(result).toEqual({ ok: false, error: 'resource_limit' });
+    });
+
     it('returns fatal query_failed with no partial classes or leaked sentinels when any query throws', async () => {
       const consoleSpy = installConsoleSpy();
       const env = makeTestEnv();

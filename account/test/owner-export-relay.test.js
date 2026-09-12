@@ -113,6 +113,25 @@ describe('owner relay export collector (AC4–5)', () => {
   });
 
   describe('deadline (17 IDs, first 8 hang)', () => {
+    it('returns at the deadline when a peer binding ignores abort', async () => {
+      vi.useFakeTimers();
+      const pending = collectOwnerRelayExport({
+        env: {
+          RELAY: { fetch: () => new Promise(() => {}) },
+          RELAY_GRANT_SECRET: 'test-grant-secret',
+        },
+        instanceIds: [VALID_INSTANCE_1],
+      });
+
+      await vi.advanceTimersByTimeAsync(10_001);
+      await expect(pending).resolves.toEqual({
+        complete: false,
+        instances: [],
+        accounting: [{ instance_id: VALID_INSTANCE_1, reason: 'deadline' }],
+      });
+      vi.useRealTimers();
+    });
+
     it('aborts in-flight workers, does not start queued IDs, and accounts for all 17 IDs', async () => {
       const ids = Array.from({ length: 17 }, (_, i) => `11111111-1111-1111-1111-${String(i).padStart(12, '0')}`);
 
@@ -434,6 +453,28 @@ describe('owner relay export collector (AC4–5)', () => {
       expect(cancelCalled).toBe(true);
       expect(tailPulled).toBe(false);
       expect(pullCount).toBe(2);
+    });
+
+    it('returns oversize even when stream cancellation never settles', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(RELAY_BODY_BYTE_LIMIT + 1));
+        },
+        cancel() {
+          return new Promise(() => {});
+        },
+      });
+      const result = await collectOwnerRelayExport({
+        env: {
+          RELAY: { fetch: async () => new Response(stream) },
+          RELAY_GRANT_SECRET: 'test-grant-secret',
+        },
+        instanceIds: [VALID_INSTANCE_1],
+      });
+
+      expect(result.accounting).toEqual([
+        { instance_id: VALID_INSTANCE_1, reason: 'oversize' },
+      ]);
     });
   });
 

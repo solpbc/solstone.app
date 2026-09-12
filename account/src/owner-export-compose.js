@@ -2,8 +2,38 @@ import { ownerExportNotIncluded, ownerExportRetainedMechanics } from './owner-ex
 
 export const SUPPORT_CLOSED_EXPLANATION = {
   code: 'content_removed',
-  description: 'content and messages for closed requests are removed to protect your privacy',
+  description: 'after a request closes, only its identifier, dates, status, and content-removed marker remain',
 };
+
+const REASON_DESCRIPTIONS = Object.freeze({
+  deadline: 'this section could not be reached in time',
+  resource_limit: 'this section was too large to include safely in this download',
+  unconfigured: 'this section is not connected right now',
+  throw: 'this section could not be reached',
+  redirect: 'this section returned an unexpected response',
+  malformed_body: 'this section returned an unreadable response',
+  duplicate_member: 'this section returned an unreadable response',
+  invalid_envelope: 'this section returned an unreadable response',
+  invalid_shape: 'this section returned an unreadable response',
+  invalid_field: 'this section returned an unreadable response',
+  mismatch: 'the returned record did not match the requested record',
+  duplicate: 'this section returned conflicting records',
+  cursor: 'closed support requests could not be read completely',
+  over_limit: 'closed support requests could not be read completely',
+  unstable: 'a support request changed while this download was prepared',
+  decrypt: 'one or more verified email addresses could not be read',
+  incomplete: 'this section could not be included completely',
+  failed: 'this section could not be included',
+});
+
+function reasonDescription(code) {
+  if (typeof code === 'string' && code.startsWith('http_')) return 'this section could not be reached';
+  return REASON_DESCRIPTIONS[code] || 'this section could not be included completely';
+}
+
+function reason(code) {
+  return { code, description: reasonDescription(code) };
+}
 
 export function composeOwnerExportDocument({
   generatedAtMs = Date.now(),
@@ -19,15 +49,20 @@ export function composeOwnerExportDocument({
   const legs = {
     local: {
       complete: localComplete,
-      ...(localComplete ? {} : { reason: local?.error || 'failed' }),
+      ...(localComplete ? {} : { reason: reason(local?.error || 'failed') }),
     },
     relay: {
       complete: relayComplete,
-      ...(relayComplete ? {} : { reason: relay?.accounting?.[0]?.reason || 'incomplete' }),
+      ...(relayComplete ? {} : {
+        reason: {
+          codes: [...new Set((relay?.accounting || []).map((item) => item.reason).filter(Boolean))],
+          description: 'some private network or confidential processing details could not be included; see instance accounting',
+        },
+      }),
     },
     support: {
       complete: supportComplete,
-      ...(supportComplete ? {} : { reason: support?.reason || 'incomplete' }),
+      ...(supportComplete ? {} : { reason: reason(support?.reason || 'incomplete') }),
     },
   };
 
@@ -38,7 +73,10 @@ export function composeOwnerExportDocument({
 
   const relaySection = {
     instances: relay?.instances || [],
-    accounting: relay?.accounting || [],
+    accounting: (relay?.accounting || []).map((item) => ({
+      ...item,
+      description: reasonDescription(item.reason),
+    })),
   };
 
   const supportSection = {

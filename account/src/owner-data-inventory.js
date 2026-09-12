@@ -53,6 +53,7 @@ function table(name, association, deletion, exportTreatment, columns, options = 
     exportTreatment,
     description: options.description || name.replaceAll('_', ' '),
     deletionOrder: options.deletionOrder ?? null,
+    retainedMechanics: options.retainedMechanics || null,
     columns,
   };
 }
@@ -141,19 +142,19 @@ const TABLES = [
     exported('revoked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('updated_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 200, description: 'your Scout application' }),
+  ], { deletionOrder: 200, description: 'your scout application' }),
   table('scout_lifecycle_events', 'account_id', 'direct_owner_purge', 'exportable', [
     exported('correlation_id'), omitted('account_id', 'internal owner relation'), exported('sequence'),
     exported('action'), exported('from_status'), exported('to_status'), exported('actor_kind'),
     omitted('actor_principal', 'operator, service, or internal owner identifier', 'non_owner_identity'),
     exported('reason_code'), exported('occurred_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 190, description: 'Scout application history' }),
+  ], { deletionOrder: 190, description: 'scout application history' }),
   table('enable_scout_codes', 'account_id', 'direct_owner_purge', 'transient_auth_rate', [
     omitted('code_hash', 'authentication hash'), omitted('nonce_hash', 'authentication hash'),
     omitted('account_id', 'internal owner relation'), omitted('created_at', 'transient authentication state', 'transient_deletion'),
     omitted('expires_at', 'transient authentication state', 'transient_deletion'), omitted('consumed_at', 'transient authentication state', 'transient_deletion'),
     omitted('ip_hash', 'network-address hash'),
-  ], { deletionOrder: 210, description: 'retired transient Scout enable codes' }),
+  ], { deletionOrder: 210, description: 'retired transient scout enable codes' }),
   table('entitlements', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('service'), exported('status'),
     exported('current_period_end', 'epoch_s_to_iso', 'seconds since Unix epoch'), exported('source'),
@@ -168,11 +169,18 @@ const TABLES = [
     omitted('account_id', 'internal owner relation'), exported('instance_id'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 150, description: 'private-network instance bindings' }),
+  ], { deletionOrder: 150, description: 'private network instance bindings' }),
   table('mcp_bridge_hostname_ledger', 'globally_identifier_free', 'deliberately_retained', 'retained_only', [
     retained('label', 'permanent hostname reservation with no account join after deletion'),
     retained('created_at', 'reservation creation time remains with the permanent label'),
-  ], { description: 'permanent MCP hostname reservations' }),
+  ], {
+    description: 'hostname reservations kept after deletion so an old address cannot be reassigned',
+    retainedMechanics: {
+      account_join: false,
+      owner_bindings_table: 'mcp_bridge_bindings',
+      deletion_treatment: 'direct_owner_purge',
+    },
+  }),
   table('mcp_bridge_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), exported('label'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
@@ -183,7 +191,7 @@ const TABLES = [
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     omitted('token_hash', 'broker authentication hash'),
     exported('lapsed_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 130, description: 'operated-backup bindings' }),
+  ], { deletionOrder: 130, description: 'encrypted backup bindings' }),
   table('spb_retired_tokens', 'account_id', 'direct_owner_purge', 'transient_auth_rate', [
     omitted('token_hash', 'retired broker authentication hash'), omitted('account_id', 'internal owner relation'),
     omitted('instance_id', 'retired authentication coordinate'), omitted('retired_at', 'transient authentication state', 'transient_deletion'),
@@ -200,7 +208,10 @@ const TABLES = [
     retained('cancelled_at', 'retained cancellation time'), retained('last_error_code', 'retained last bounded error category'),
     retained('last_error_at', 'retained last error time'), retained('stripe_purge_state', 'retained billing deletion disposition'),
     retained('stripe_purge_attempted_at', 'retained billing deletion attempt time'),
-  ], { description: 'sanitized completed deletion record with no implemented expiry' }),
+  ], {
+    description: 'completed deletion record kept without an automatic expiry after identifying and recovery fields are cleared',
+    retainedMechanics: { has_expires_at: false, phase_on_complete: 'complete' },
+  }),
   table('account_deletion_proofs', 'account_id', 'direct_owner_purge', 'deletion_machinery', [
     omitted('token_hash', 'proof authentication hash'), omitted('account_id', 'internal owner relation'),
     omitted('session_id_hash', 'session authentication hash'), omitted('purpose', 'transient proof state', 'transient_deletion'),
@@ -226,27 +237,33 @@ const TABLES = [
   table('account_deletion_completions', 'status_token', 'deliberately_retained', 'retained_only', [
     retained('token_hash', 'identifier-free completion verifier'), retained('state', 'terminal completion state'),
     retained('completed_at', 'completion time'), retained('expires_at', 'minimum confirmed relay/support envelope expiry'),
-  ], { description: 'expiring identifier-free deletion completion verifier' }),
+  ], {
+    description: 'identifier-free deletion receipt kept only until its recorded expiry',
+    retainedMechanics: {
+      expires_at_rule: 'min_relay_support_envelope_expires_at',
+      sweep: 'delete_where_expires_at_lte_now',
+    },
+  }),
   table('spp_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), omitted('token_hash', 'broker authentication hash'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('consent_acked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'), exported('consent_disclosure_version'),
-  ], { deletionOrder: 140, description: 'confidential-processing bindings' }),
+  ], { deletionOrder: 140, description: 'confidential processing bindings' }),
   table('spb_mint_audit', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), omitted('prefix', 'broker storage coordinate'),
     exported('scope'), exported('ttl', 'identity', 'seconds'), exported('outcome'),
     exported('ts', 'epoch_ms_to_iso', 'milliseconds since Unix epoch', 'occurred_at'),
-  ], { deletionOrder: 110, description: 'operated-backup credential history' }),
+  ], { deletionOrder: 110, description: 'encrypted backup credential history' }),
   table('spp_mint_audit', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), exported('scope'), exported('outcome'),
     exported('ts', 'epoch_ms_to_iso', 'milliseconds since Unix epoch', 'occurred_at'),
-  ], { deletionOrder: 120, description: 'confidential-processing authorization history' }),
+  ], { deletionOrder: 120, description: 'confidential processing authorization history' }),
   table('spb_sweep_audit', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), omitted('prefix', 'broker storage coordinate'),
     exported('objects_deleted'), exported('multipart_aborted'),
     exported('ts', 'epoch_ms_to_iso', 'milliseconds since Unix epoch', 'occurred_at'),
-  ], { deletionOrder: 125, description: 'operated-backup cleanup history' }),
+  ], { deletionOrder: 125, description: 'encrypted backup cleanup history' }),
 ];
 
 export const RATE_BUCKET_FAMILIES = deepFreeze([

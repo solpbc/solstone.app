@@ -3,6 +3,9 @@ import { OWNER_DATA_INVENTORY } from './owner-data-inventory.js';
 import { truncateIp, uaLabel } from './settings.js';
 
 const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+export const OWNER_LOCAL_RECORD_LIMIT = 10_000;
+export const OWNER_LOCAL_BYTE_LIMIT = 4 * 1024 * 1024;
+export const OWNER_LOCAL_DEADLINE_MS = 10_000;
 
 const SUPPORTED_TRANSFORMS = new Set([
   'identity',
@@ -115,6 +118,7 @@ export async function collectOwnerLocalExport({
   env,
   accountId,
   inventory = OWNER_DATA_INVENTORY,
+  clock = Date.now,
 }) {
   if (!db || !env || typeof accountId !== 'string' || !accountId) {
     return { ok: false, error: 'invalid_identifier' };
@@ -167,26 +171,34 @@ export async function collectOwnerLocalExport({
   // 2. Query execution and transforms per exportable class
   const classes = [];
   let totalRecordCount = 0;
+  let totalBytes = 0;
+  const startedAt = clock();
+  const encoder = new TextEncoder();
 
   for (const tableEntry of exportableClasses) {
+    if (clock() - startedAt > OWNER_LOCAL_DEADLINE_MS) return { ok: false, error: 'resource_limit' };
     const exportedColumns = (tableEntry.columns || []).filter(
       (col) => col && col.treatment === 'exported'
     );
 
     const selectColumns = exportedColumns.map((col) => `"${col.name}"`).join(', ');
     const idColumn = tableEntry.association === 'account_primary_key' ? '"id"' : '"account_id"';
-    const sql = `SELECT ${selectColumns} FROM "${tableEntry.name}" WHERE ${idColumn} = ? ORDER BY rowid ASC`;
+    const remainingRecords = OWNER_LOCAL_RECORD_LIMIT - totalRecordCount;
+    if (remainingRecords <= 0) return { ok: false, error: 'resource_limit' };
+    const sql = `SELECT ${selectColumns} FROM "${tableEntry.name}" WHERE ${idColumn} = ? ORDER BY rowid ASC LIMIT ?`;
 
     let rows;
     try {
-      const queryResult = await db.prepare(sql).bind(accountId).all();
+      const queryResult = await db.prepare(sql).bind(accountId, remainingRecords + 1).all();
       rows = queryResult?.results || [];
     } catch {
       return { ok: false, error: 'query_failed' };
     }
+    if (rows.length > remainingRecords) return { ok: false, error: 'resource_limit' };
 
     const records = [];
     for (const row of rows) {
+      if (clock() - startedAt > OWNER_LOCAL_DEADLINE_MS) return { ok: false, error: 'resource_limit' };
       const record = {};
       for (const column of exportedColumns) {
         const rawValue = row[column.name];
@@ -266,6 +278,8 @@ export async function collectOwnerLocalExport({
         record[column.publicName] = transformedValue;
       }
       records.push(record);
+      totalBytes += encoder.encode(JSON.stringify(record)).byteLength;
+      if (totalBytes > OWNER_LOCAL_BYTE_LIMIT) return { ok: false, error: 'resource_limit' };
     }
 
     const fields = {};

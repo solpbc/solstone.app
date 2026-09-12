@@ -3,6 +3,8 @@ import { decodeCursor } from './support-wire.js';
 
 export const SUPPORT_EXPORT_DEADLINE_MS = 15_000;
 export const SUPPORT_BODY_BYTE_LIMIT = 262144;
+export const SUPPORT_AGGREGATE_BYTE_LIMIT = 4 * 1024 * 1024;
+export const SUPPORT_RECORD_LIMIT = 10_000;
 export const SUPPORT_CLOSED_PAGE_LIMIT = 25;
 
 const ACTIVE_STATUSES = new Set(['open', 'in-progress', 'waiting', 'proposed', 'resolved']);
@@ -37,12 +39,16 @@ export async function collectOwnerSupportExport({
 
   const collectedTickets = [];
   const collectedTombstones = [];
+  let aggregateBytes = 0;
   const ticketsById = new Map();
   const tombstonesById = new Map();
 
   function recordTicket(ticket) {
     if (tombstonesById.has(ticket.id)) {
       return { ok: false, reason: 'duplicate' };
+    }
+    if (collectedTickets.length + collectedTombstones.length >= SUPPORT_RECORD_LIMIT) {
+      return { ok: false, reason: 'resource_limit' };
     }
     if (ticketsById.has(ticket.id)) {
       const existing = ticketsById.get(ticket.id);
@@ -59,6 +65,9 @@ export async function collectOwnerSupportExport({
   function recordTombstone(tombstone) {
     if (ticketsById.has(tombstone.id)) {
       return { ok: false, reason: 'duplicate' };
+    }
+    if (collectedTickets.length + collectedTombstones.length >= SUPPORT_RECORD_LIMIT) {
+      return { ok: false, reason: 'resource_limit' };
     }
     if (tombstonesById.has(tombstone.id)) {
       const existing = tombstonesById.get(tombstone.id);
@@ -89,38 +98,84 @@ export async function collectOwnerSupportExport({
       headers['X-Verified-Email'] = verifiedEmail;
     }
 
+    const remainingMs = SUPPORT_EXPORT_DEADLINE_MS - (clock() - startMs);
+    if (remainingMs <= 0) return { ok: false, reason: 'deadline' };
+    const controller = new AbortController();
+    let timedOut = false;
+    let rejectDeadline;
+    const deadline = new Promise((_, reject) => { rejectDeadline = reject; });
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      rejectDeadline(new Error('deadline'));
+    }, remainingMs);
+
     let response;
     try {
-      response = await env.SUPPORT_WORKER.fetch(new Request(`https://support.internal${path}`, {
+      response = await Promise.race([env.SUPPORT_WORKER.fetch(new Request(`https://support.internal${path}`, {
         method: 'GET',
         headers,
         redirect: 'manual',
-      }));
+        signal: controller.signal,
+      })), deadline]);
     } catch {
-      return { ok: false, reason: 'throw' };
+      clearTimeout(timer);
+      return { ok: false, reason: timedOut ? 'deadline' : 'throw' };
     }
 
     if (response.status >= 300 && response.status < 400) {
+      clearTimeout(timer);
       return { ok: false, reason: 'redirect' };
     }
 
     if (response.status === 404) {
+      clearTimeout(timer);
       return { ok: false, status: 404 };
     }
 
     if (response.status !== 200) {
+      clearTimeout(timer);
       return { ok: false, reason: `http_${response.status}` };
     }
 
+    const reader = response.body?.getReader();
+    if (!reader) {
+      clearTimeout(timer);
+      return { ok: false, reason: 'malformed_body' };
+    }
+    const chunks = [];
+    let bodyBytes = 0;
+    try {
+      while (true) {
+        const { done, value } = await Promise.race([reader.read(), deadline]);
+        if (done) break;
+        if (!value) continue;
+        bodyBytes += value.byteLength;
+        if (bodyBytes > SUPPORT_BODY_BYTE_LIMIT || aggregateBytes + bodyBytes > SUPPORT_AGGREGATE_BYTE_LIMIT) {
+          void reader.cancel().catch(() => {});
+          clearTimeout(timer);
+          return { ok: false, reason: 'resource_limit' };
+        }
+        chunks.push(value);
+      }
+    } catch {
+      void reader.cancel().catch(() => {});
+      clearTimeout(timer);
+      return { ok: false, reason: timedOut ? 'deadline' : 'throw' };
+    }
+    clearTimeout(timer);
+    aggregateBytes += bodyBytes;
+    const combined = new Uint8Array(bodyBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
     let rawText;
     try {
-      rawText = await response.text();
+      rawText = new TextDecoder('utf-8', { fatal: true }).decode(combined);
     } catch {
-      return { ok: false, reason: 'throw' };
-    }
-
-    if (rawText.length > SUPPORT_BODY_BYTE_LIMIT) {
-      return { ok: false, reason: 'oversize' };
+      return { ok: false, reason: 'malformed_body' };
     }
 
     let parsedJson;
@@ -162,6 +217,9 @@ export async function collectOwnerSupportExport({
 
   for (const item of parsedOwnerList.items) {
     if (!discoveredIdSet.has(item.id)) {
+      if (discoveredIds.length >= SUPPORT_RECORD_LIMIT) {
+        return { complete: false, tickets: [], tombstones: [], reason: 'resource_limit' };
+      }
       discoveredIdSet.add(item.id);
       discoveredIds.push(item.id);
     }
@@ -188,6 +246,9 @@ export async function collectOwnerSupportExport({
     }
     for (const item of parsedEmailList.items) {
       if (!discoveredIdSet.has(item.id)) {
+        if (discoveredIds.length >= SUPPORT_RECORD_LIMIT) {
+          return { complete: false, tickets: collectedTickets, tombstones: collectedTombstones, reason: 'resource_limit' };
+        }
         discoveredIdSet.add(item.id);
         discoveredIds.push(item.id);
       }

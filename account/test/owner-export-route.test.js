@@ -175,6 +175,32 @@ describe('POST /account/export route integration', () => {
     expect(resSignedOut.status).toBe(303);
   });
 
+  it('refuses before protected collection when no fresh proof exists', async () => {
+    let supportCalls = 0;
+    const env = makeTestEnv({
+      OWNER_EXPORT_ENABLED: 'true',
+      SUPPORT_WORKER: { fetch: async () => { supportCalls++; throw new Error('must not collect'); } },
+    });
+    const account = await seedAccount({ testEnv: env });
+    const session = await seedSession(account.accountId, { testEnv: env });
+    const realPrepare = env.DB.prepare.bind(env.DB);
+    const guardedEnv = {
+      ...env,
+      DB: {
+        prepare(sql) {
+          if (sql.includes('ORDER BY rowid ASC LIMIT')) {
+            throw new Error('local collection must not start');
+          }
+          return realPrepare(sql);
+        },
+      },
+    };
+
+    const res = await worker.fetch(makeExportRequest(session), guardedEnv);
+    expect(res.status).toBe(403);
+    expect(supportCalls).toBe(0);
+  });
+
   it('refuses with 403 on invalid, expired, cross-purpose, or cross-account proofs', async () => {
     const env = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true', SUPPORT_WORKER: defaultSupport });
     const account = await seedAccount({ testEnv: env });
@@ -314,7 +340,10 @@ describe('POST /account/export route integration', () => {
     const body = await res.json();
     expect(body.complete).toBe(false);
     expect(body.legs.support.complete).toBe(false);
-    expect(body.legs.support.reason).toBe('http_500');
+    expect(body.legs.support.reason).toEqual({
+      code: 'http_500',
+      description: 'this section could not be reached',
+    });
 
     // Second POST without new proofs fails 403 (proof consumed)
     const secondRes = await worker.fetch(makeExportRequest(session), env);
@@ -458,5 +487,33 @@ describe('POST /account/export route integration', () => {
       .bind('race-purging-otp')
       .first();
     expect(proofRow.consumed).toBe(0);
+  });
+
+  it('rechecks proof expiry against a fresh clock after collection', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-12T12:00:00.000Z'));
+
+    const support = {
+      async fetch(request) {
+        vi.setSystemTime(new Date('2026-09-12T12:11:00.000Z'));
+        if (new URL(request.url).pathname.endsWith('/closed')) {
+          return new Response(JSON.stringify({ tickets: [], next_cursor: null }));
+        }
+        return new Response(JSON.stringify([]));
+      },
+    };
+    const env = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true', SUPPORT_WORKER: support });
+    const account = await seedAccount({ testEnv: env });
+    const session = await seedSession(account.accountId, { testEnv: env });
+    await seedVerifiedProof(account.accountId, session.idHash, 'otp', 'expires-during-collection');
+
+    const res = await worker.fetch(makeExportRequest(session), env);
+    expect(res.status).toBe(403);
+
+    const proofRow = await workerEnv.DB.prepare('SELECT consumed FROM account_deletion_proofs WHERE token_hash = ?')
+      .bind('expires-during-collection')
+      .first();
+    expect(proofRow.consumed).toBe(0);
+    vi.useRealTimers();
   });
 });

@@ -162,6 +162,15 @@ export async function collectOwnerRelayExport({
   const deadlineAt = startedAt + RELAY_EXPORT_DEADLINE_MS;
   const abortController = new AbortController();
   const timer = clock.abortAfter ? clock.abortAfter(RELAY_EXPORT_DEADLINE_MS, abortController) : null;
+  let deadlineGraceTimer = null;
+  let deadlineListener;
+  const deadlineReached = new Promise((resolve) => {
+    deadlineListener = () => {
+      // Let already-completed peer responses finish their queued continuations.
+      deadlineGraceTimer = setTimeout(resolve, 0);
+    };
+    abortController.signal.addEventListener('abort', deadlineListener, { once: true });
+  });
 
   const instancesMap = new Map();
   const accountingMap = new Map();
@@ -204,8 +213,10 @@ export async function collectOwnerRelayExport({
   const workers = Array.from({ length: workerCount }, () => worker());
 
   try {
-    await Promise.all(workers);
+    await Promise.race([Promise.all(workers), deadlineReached]);
   } finally {
+    abortController.signal.removeEventListener('abort', deadlineListener);
+    if (deadlineGraceTimer !== null) clearTimeout(deadlineGraceTimer);
     if (timer && typeof timer === 'number') {
       clearTimeout(timer);
     }
@@ -274,11 +285,7 @@ async function fetchSingleInstance({ env, id, abortSignal }) {
       if (value) {
         totalBytes += value.byteLength;
         if (totalBytes > RELAY_BODY_BYTE_LIMIT) {
-          try {
-            await reader.cancel();
-          } catch {
-            // ignore cancel errors
-          }
+          void reader.cancel().catch(() => {});
           return { ok: false, reason: 'oversize' };
         }
         chunks.push(value);

@@ -1,5 +1,5 @@
 import { decryptEmail } from './crypto.js';
-import { consumeFreshExportProofs, listAccountEmails } from './db.js';
+import { consumeFreshExportProofs, hasFreshExportProofs, listAccountEmails } from './db.js';
 import {
   finishPasskeyProof,
   startEmailProof,
@@ -19,6 +19,13 @@ const PURPOSE = 'export';
 export const EXPORT_SERVICE_UNAVAILABLE = 'service unavailable';
 export const EXPORT_PROOF_INVALID = "this download request isn't valid";
 export const EXPORT_FILENAME = 'solstone-owner-export.json';
+export const EXPORT_DOCUMENT_BYTE_LIMIT = 10 * 1024 * 1024;
+const EXPORT_SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'no-referrer',
+  'X-Frame-Options': 'DENY',
+  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
+};
 
 export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
   if (url.pathname === '/account/export' && req.method === 'GET') {
@@ -31,6 +38,13 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
   if (url.pathname === '/account/export' && req.method === 'POST') {
     const guard = await exportGuard(req, env);
     if (guard instanceof Response) return guard;
+
+    const proofReady = await hasFreshExportProofs(env.DB, {
+      accountId: guard.session.account_id,
+      sessionIdHash: guard.session.id_hash,
+      nowMs: Date.now(),
+    });
+    if (!proofReady) return refusal(403, EXPORT_PROOF_INVALID);
 
     const local = await collectOwnerLocalExport({
       db: env.DB,
@@ -79,21 +93,27 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
       support,
     });
 
+    const encodedDocument = new TextEncoder().encode(JSON.stringify(document));
+    if (encodedDocument.byteLength > EXPORT_DOCUMENT_BYTE_LIMIT) {
+      return refusal(503, EXPORT_SERVICE_UNAVAILABLE);
+    }
+
     const consumeResult = await consumeFreshExportProofs(env.DB, {
       accountId: guard.session.account_id,
       sessionIdHash: guard.session.id_hash,
-      nowMs: guard.nowMs,
+      nowMs: Date.now(),
     });
     if (!consumeResult.authorized) {
       return refusal(403, EXPORT_PROOF_INVALID);
     }
 
-    return new Response(JSON.stringify(document), {
+    return new Response(encodedDocument, {
       status: 200,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
         'Content-Disposition': `attachment; filename=${EXPORT_FILENAME}`,
         'Cache-Control': 'no-store',
+        ...EXPORT_SECURITY_HEADERS,
       },
     });
   }
@@ -204,14 +224,14 @@ async function jsonBody(req) {
 function refusal(status, message) {
   return new Response(message, {
     status,
-    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...EXPORT_SECURITY_HEADERS },
   });
 }
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...EXPORT_SECURITY_HEADERS },
   });
 }
 
