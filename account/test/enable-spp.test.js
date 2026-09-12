@@ -115,7 +115,8 @@ describe('/enable/spp', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('scout approval required');
-    expect(body).toContain('confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here. you can close this tab.');
+    expect(body).toContain('confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here.');
+    expect(body).toContain('<a class="btn primary" href="/scout">request scout access</a>');
     expect(body).toContain('confidential processing sends your thinking off your device, never your journal');
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({ state: 'early_access' });
     await expect(rowCount('service_handoffs')).resolves.toBe(1);

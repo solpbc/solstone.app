@@ -532,7 +532,8 @@ export function renderEnableSppApprovalRequired() {
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">scout approval required</h2>
   <p>confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on a model sol pbc runs itself on confidential hardware sol pbc operates, which keeps nothing: it's processed and not kept, no content retained, no human review, nothing used to train. your journal must verify the service before anything is sent. if it can't verify, it doesn't send. no third-party AI provider is in the path.</p>
-  <p>confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here. you can close this tab.</p>
+  <p>confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here.</p>
+  <a class="btn primary" href="/scout">request scout access</a>
 </div>`,
   });
 }
