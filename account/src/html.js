@@ -1274,6 +1274,55 @@ ${deletionPasskeyScript()}`,
   });
 }
 
+export function renderExportPage({ menu, error = '', status = '' }) {
+  return layout({
+    title: 'download your data',
+    body: `${topbar(menu)}
+<a class="back" href="/transparency">${BACK_SVG} data transparency</a>
+${renderDeletionForm({
+  heading: 'download your data',
+  action: '/account/export/proof/otp',
+  submitLabel: 'send a confirmation code',
+  error,
+  status,
+  statusId: 'export-request-status',
+  intro: "Confirm it's you before downloading your data.",
+})}`,
+  });
+}
+
+export function renderExportProofPage({ menu, error = '', status = '' }) {
+  return layout({
+    title: 'confirm your data download',
+    body: `${topbar(menu)}
+<a class="back" href="/account/export">${BACK_SVG} data download</a>
+${renderDeletionForm({
+  heading: 'confirm your data download',
+  action: '/account/export/proof/otp/verify',
+  submitLabel: 'verify code',
+  error,
+  status,
+  statusId: 'export-otp-status',
+  intro: 'Enter the code sent to your verified email address.',
+  fields: [{
+    id: 'export-otp-code', name: 'code', label: '6-digit code',
+    hint: 'The code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
+    autocomplete: 'one-time-code', pattern: '[0-9]*',
+  }],
+})}
+${renderDeletionForm({
+  heading: 'passkey verification',
+  action: '/account/export',
+  submitLabel: 'download my data',
+  status: '',
+  statusId: 'export-passkey-status',
+  intro: 'If you have an active passkey, you must also verify it before continuing.',
+  extra: '<button class="btn secondary" type="button" data-export-passkey>verify with passkey</button>',
+})}
+${exportPasskeyScript()}`,
+  });
+}
+
 export function renderDeletionCancelPage({ menu, phase }) {
   if (phase === 'purging') {
     return layout({
@@ -1330,6 +1379,28 @@ document.querySelectorAll('[data-deletion-passkey]').forEach((button) => button.
     const b64 = (value) => btoa(String.fromCharCode(...new Uint8Array(value))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
     const response = {id:credential.id,rawId:b64(credential.rawId),type:credential.type,response:{clientDataJSON:b64(credential.response.clientDataJSON),authenticatorData:b64(credential.response.authenticatorData),signature:b64(credential.response.signature),userHandle:credential.response.userHandle ? b64(credential.response.userHandle) : null},clientExtensionResults:credential.getClientExtensionResults()};
     const finish = await fetch('/account/delete/proof/passkey/finish', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:JSON.stringify({purpose,response})});
+    if (!finish.ok) throw new Error('finish');
+    status.textContent = 'passkey verified';
+  } catch (_) { window.location.reload(); }
+}));
+</script>`;
+}
+
+function exportPasskeyScript() {
+  return `<script>
+document.querySelectorAll('[data-export-passkey]').forEach((button) => button.addEventListener('click', async () => {
+  const status = document.getElementById('export-passkey-status');
+  try {
+    const start = await fetch('/account/export/proof/passkey/start', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:'{}'});
+    const startBody = await start.json();
+    if (!start.ok) throw new Error('start');
+    const options = startBody.options;
+    options.challenge = Uint8Array.from(atob(options.challenge.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+    options.allowCredentials = (options.allowCredentials || []).map((item) => ({...item,id:Uint8Array.from(atob(item.id.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))}));
+    const credential = await navigator.credentials.get({publicKey:options});
+    const b64 = (value) => btoa(String.fromCharCode(...new Uint8Array(value))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+    const response = {id:credential.id,rawId:b64(credential.rawId),type:credential.type,response:{clientDataJSON:b64(credential.response.clientDataJSON),authenticatorData:b64(credential.response.authenticatorData),signature:b64(credential.response.signature),userHandle:credential.response.userHandle ? b64(credential.response.userHandle) : null},clientExtensionResults:credential.getClientExtensionResults()};
+    const finish = await fetch('/account/export/proof/passkey/finish', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:JSON.stringify({response})});
     if (!finish.ok) throw new Error('finish');
     status.textContent = 'passkey proof verified';
   } catch (_) { window.location.reload(); }

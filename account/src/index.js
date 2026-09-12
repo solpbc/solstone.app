@@ -8,6 +8,7 @@ import {
   timingSafeEqual,
 } from './crypto.js';
 import { handleAdmin } from './admin.js';
+import { rateBucketFamily } from './owner-data-inventory.js';
 import {
   bumpOtpAttempts,
   bumpRateBucket,
@@ -88,6 +89,8 @@ import {
   handleDeletionPasskeyStart,
   handleDeletionStatus,
 } from './deletion.js';
+import { handleOwnerExportRoute } from './owner-export.js';
+import { isOwnerExportPath, ownerExportNotFound } from './owner-export-path.js';
 import {
   renderConfidentialProcessingData,
   renderConfidentialProcessingLanding,
@@ -341,9 +344,14 @@ async function readForm(req) {
 async function routeRequest(req, env, ctx) {
     const url = new URL(req.url);
     const parts = url.pathname.split('/');
-    const db = env.DB;
 
     try {
+      if (isOwnerExportPath(url.pathname)) {
+        if (env.OWNER_EXPORT_ENABLED !== 'true') return ownerExportNotFound();
+        return handleOwnerExportRoute(req, env, url);
+      }
+
+      const db = env.DB;
       const legacy = legacyRedirect(req, url);
       if (legacy) return legacy;
 
@@ -1146,8 +1154,8 @@ async function handleSigninStart(req, env) {
   const turnstileOk = await verifyTurnstile(env, turnstileToken, ip);
   const codeHash = await hashWithPepper(code, env);
   const emailLowerHash = await hashWithPepper(emailLower, env);
-  const ipBucketKey = await hashKey('signin_ip', ip, env);
-  const emailBucketKey = await hashKey('signin_email', emailLower, env);
+  const ipBucketKey = await hashKey(rateBucketFamily('signin_ip').scope, ip, env);
+  const emailBucketKey = await hashKey(rateBucketFamily('signin_email').scope, emailLower, env);
   const emailOk = isValidEmail(emailLower);
   const resume = await validResumeFromForm(form, env);
   const verifyLocation = withResume(

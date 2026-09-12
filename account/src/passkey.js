@@ -6,6 +6,7 @@ import {
 } from '@simplewebauthn/server';
 
 import { decryptEmail, generateSessionToken, hashKey, hashWithPepper } from './crypto.js';
+import { rateBucketFamily } from './owner-data-inventory.js';
 import {
   bumpRateBucket,
   consumePasskeyChallenge,
@@ -184,7 +185,7 @@ export async function passkeyAuthStart(req, env) {
     if (guard) return guard;
     const nowMs = Date.now();
     const ip = req.headers.get('CF-Connecting-IP') || '';
-    const ipKey = await hashKey('passkey_auth_ip', ip, env);
+    const ipKey = await hashKey(rateBucketFamily('passkey_auth_ip').scope, ip, env);
     const ipCount = await getRateBucketCount(env.DB, ipKey, HOUR_MS, nowMs);
     if (ipCount >= AUTH_PER_IP_PER_HOUR) {
       return fail('passkey_auth_start_rate', 429, 'too many attempts; try again later');
@@ -340,8 +341,8 @@ async function requirePasskeySession(req, env, tagBase) {
 
 async function checkRegisterRateLimit(req, env, accountId, nowMs) {
   const ip = req.headers.get('CF-Connecting-IP') || '';
-  const ipKey = await hashKey('passkey_register_ip', ip, env);
-  const accountKey = await hashKey('passkey_register_account', accountId, env);
+  const ipKey = await hashKey(rateBucketFamily('passkey_register_ip').scope, ip, env);
+  const accountKey = await hashKey(rateBucketFamily('passkey_register_account').scope, accountId, env);
   const ipCount = await getRateBucketCount(env.DB, ipKey, HOUR_MS, nowMs);
   const accountCount = await getRateBucketCount(env.DB, accountKey, HOUR_MS, nowMs);
   if (ipCount >= REGISTER_PER_IP_PER_HOUR || accountCount >= REGISTER_PER_ACCOUNT_PER_HOUR) {

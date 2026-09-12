@@ -7,6 +7,7 @@ import { listMultipartUploads, listObjectsV2 } from './s3.js';
 import { prefixFor } from './spb-broker.js';
 import { drainMultipartUploads, drainObjects } from './spb-sweep.js';
 import { deleteStripeCustomer } from './stripe.js';
+import { ownerDeletionPlan, RATE_BUCKET_FAMILIES } from './owner-data-inventory.js';
 
 const LEASE_MS = 5 * 60 * 1000;
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
@@ -268,10 +269,11 @@ async function finalizeDeletion(env, deletion, nowMs) {
       (await decryptEmail(encrypted, env)).trim().toLowerCase()
     )));
     emailHashes = await Promise.all(emails.map((email) => hashWithPepper(email, env)));
+    const emailFamilies = RATE_BUCKET_FAMILIES.filter((family) => family.association === 'verified_email_derived');
+    const accountFamilies = RATE_BUCKET_FAMILIES.filter((family) => family.association === 'account_id');
     rateBucketKeys = await Promise.all([
-      ...emails.map((email) => hashKey('signin_email', email, env)),
-      ...['passkey_register_account', 'add_email_per_day', 'delete_proof_otp_account', 'delete_proof_passkey_account']
-        .map((scope) => hashKey(scope, current.account_id, env)),
+      ...emails.flatMap((email) => emailFamilies.map(({ scope }) => hashKey(scope, email, env))),
+      ...accountFamilies.map(({ scope }) => hashKey(scope, current.account_id, env)),
     ]);
   } catch {
     return false;
@@ -290,57 +292,48 @@ async function finalizeDeletion(env, deletion, nowMs) {
   const deleteForKey = (table, column, value) => env.DB.prepare(
     `DELETE FROM ${table} WHERE ${column} = ? AND ${leaseGuard}`
   ).bind(value, operationId, leaseToken);
-  const statements = [
-    env.DB.prepare(`DELETE FROM account_deletion_service_ops WHERE operation_id = ? AND ${leaseGuard}`)
-      .bind(operationId, operationId, leaseToken),
-    deleteForAccount('account_deletion_proofs'),
-    deleteForAccount('spb_mint_reservations'),
-    deleteForAccount('service_handoffs'),
-    deleteForAccount('account_dispatch_tokens'),
-    deleteForAccount('sessions'),
-    deleteForAccount('passkey_challenges'),
-    deleteForAccount('passkey_credentials'),
-    deleteForAccount('account_devices'),
-    deleteForAccount('spb_retired_tokens'),
-    deleteForAccount('spb_mint_audit'),
-    deleteForAccount('spb_sweep_audit'),
-    deleteForAccount('spb_bindings'),
-    deleteForAccount('spp_mint_audit'),
-    deleteForAccount('spp_bindings'),
-    deleteForAccount('spl_bindings'),
-    deleteForAccount('mcp_bridge_bindings'),
-    deleteForAccount('entitlements'),
-    deleteForAccount('stripe_customers'),
-    deleteForAccount('scout_lifecycle_events'),
-    deleteForAccount('scout_applications'),
-    deleteForAccount('enable_scout_codes'),
-    ...emailHashes.map((hash) => deleteForKey('otp_tokens', 'email_lower_hash', hash)),
-    ...rateBucketKeys.map((key) => deleteForKey('rate_buckets', 'key', key)),
-    deleteForAccount('account_emails'),
-    deleteForAccountId('accounts'),
-    env.DB.prepare(
-      `DELETE FROM account_deletions
-       WHERE account_id = ? AND phase = 'cancelled' AND ${leaseGuard}`
-    ).bind(accountId, operationId, leaseToken),
-    env.DB.prepare(
-      `INSERT INTO account_deletion_completions (token_hash, state, completed_at, expires_at)
-       SELECT status_token_hash, 'complete', ?, ?
-       FROM account_deletions
-       WHERE operation_id = ? AND lease_token = ? AND phase = 'purging' AND status_token_hash IS NOT NULL`
-    ).bind(nowMs, completionExpiresAt, operationId, leaseToken),
-    env.DB.prepare(
-      `UPDATE account_deletions
-       SET account_id = NULL,
-           snapshot_encrypted = NULL,
-           snapshot_digest = NULL,
-           status_token_hash = NULL,
-           phase = 'complete',
-           completed_at = ?,
-           lease_token = NULL,
-           lease_expires_at = NULL
-       WHERE operation_id = ? AND lease_token = ? AND phase = 'purging'`
-    ).bind(nowMs, operationId, leaseToken),
-  ];
+  const statements = ownerDeletionPlan().flatMap(({ kind, table }) => {
+    if (kind === 'operation_id') {
+      return env.DB.prepare(`DELETE FROM ${table} WHERE operation_id = ? AND ${leaseGuard}`)
+        .bind(operationId, operationId, leaseToken);
+    }
+    if (kind === 'account_id') return deleteForAccount(table);
+    if (kind === 'account_primary_key') return deleteForAccountId(table);
+    if (kind === 'verified_email_derived') {
+      return emailHashes.map((hash) => deleteForKey(table, 'email_lower_hash', hash));
+    }
+    if (kind === 'derived_rate_key') {
+      return rateBucketKeys.map((key) => deleteForKey(table, 'key', key));
+    }
+    if (kind === 'cancelled_deletions') {
+      return env.DB.prepare(
+        `DELETE FROM ${table} WHERE account_id = ? AND phase = 'cancelled' AND ${leaseGuard}`
+      ).bind(accountId, operationId, leaseToken);
+    }
+    if (kind === 'completion_insert') {
+      return env.DB.prepare(
+        `INSERT INTO ${table} (token_hash, state, completed_at, expires_at)
+         SELECT status_token_hash, 'complete', ?, ?
+         FROM account_deletions
+         WHERE operation_id = ? AND lease_token = ? AND phase = 'purging' AND status_token_hash IS NOT NULL`
+      ).bind(nowMs, completionExpiresAt, operationId, leaseToken);
+    }
+    if (kind === 'deletion_sanitize') {
+      return env.DB.prepare(
+        `UPDATE ${table}
+         SET account_id = NULL,
+             snapshot_encrypted = NULL,
+             snapshot_digest = NULL,
+             status_token_hash = NULL,
+             phase = 'complete',
+             completed_at = ?,
+             lease_token = NULL,
+             lease_expires_at = NULL
+         WHERE operation_id = ? AND lease_token = ? AND phase = 'purging'`
+      ).bind(nowMs, operationId, leaseToken);
+    }
+    throw new Error(`unsupported owner deletion plan kind: ${kind}`);
+  });
   const results = await env.DB.batch(statements);
   return results.at(-1)?.meta?.changes === 1;
 }

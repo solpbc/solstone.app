@@ -27,7 +27,7 @@ describe('migration 0028 account deletions', () => {
     ]);
   });
 
-  it('keeps the immutable deletion foundation byte-identical outside the separately-owned service-ops table', () => {
+  it('keeps the immutable deletion foundation byte-identical outside separately migrated tables', () => {
     expect(normalizedDeletionSchemaBlock(schema)).toBe(normalizedDeletionSchemaBlock(migration));
   });
 
@@ -69,8 +69,13 @@ function deletionSchemaBlock(source) {
 }
 
 function normalizedDeletionSchemaBlock(source) {
-  return deletionSchemaBlock(source).replace(
+  return deletionSchemaBlock(source)
+    .replace(
     /CREATE TABLE IF NOT EXISTS account_deletion_service_ops \([\s\S]*?\n\);\n\nCREATE INDEX IF NOT EXISTS idx_account_deletion_service_ops_due\n  ON account_deletion_service_ops\(operation_id, state, next_attempt_at\);\n\n/,
     '',
-  );
+    )
+    .replace(
+      /CREATE TABLE IF NOT EXISTS account_deletion_proofs \([\s\S]*?\n\);\n\nCREATE INDEX IF NOT EXISTS idx_account_deletion_proofs_lookup\n  ON account_deletion_proofs\(account_id, session_id_hash, purpose, method, consumed, issued_at DESC\);\n\n/,
+      '',
+    );
 }

@@ -6,6 +6,7 @@ import {
   hashWithPepper,
   normalizeCode,
 } from './crypto.js';
+import { rateBucketFamily } from './owner-data-inventory.js';
 import {
   bumpAccountEmailVerificationAttempts,
   bumpRateBucket,
@@ -75,7 +76,7 @@ export async function handleAddEmail(req, env, ctx) {
   const code = generateOtp();
   const codeHash = await hashWithPepper(code, env);
   const addressLowerHash = await hashWithPepper(addressLower, env);
-  const rateKey = await hashKey('add_email_per_day', guard.session.account_id, env);
+  const rateKey = await hashKey(rateBucketFamily('add_email_per_day').scope, guard.session.account_id, env);
   const verifyLocation = `/sign-in/emails/verify?address=${encodeURIComponent(addressLower)}`;
 
   if (env.EMAIL_PATH_DISABLED === 'true') {

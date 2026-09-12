@@ -1,6 +1,7 @@
 import { encryptEmail, hashWithPepper } from './crypto.js';
 import { bumpSessionActivity, deleteSession, getActiveDeletionForAccount, getSessionAccount } from './db.js';
 import { getClientIp } from './index.js';
+import { isOwnerExportPath } from './owner-export-path.js';
 
 export const SESSION_COOKIE = 'account_session';
 export const SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
@@ -21,8 +22,13 @@ export async function getValidSession(req, env, nowMs) {
   if (!row) return null;
   // The owner must still be able to complete a fresh proof or cancel during the
   // safety period; every other session-backed route treats deletion as signed out.
-  const deletionRoute = new URL(req.url).pathname.startsWith('/account/delete');
-  if (!deletionRoute && await getActiveDeletionForAccount(env.DB, row.account_id)) return null;
+  const pathname = new URL(req.url).pathname;
+  const deletionRoute = pathname.startsWith('/account/delete');
+  const exportRoute = isOwnerExportPath(pathname);
+  if (!deletionRoute) {
+    const activeDeletion = await getActiveDeletionForAccount(env.DB, row.account_id);
+    if (activeDeletion && (!exportRoute || !['requested', 'frozen'].includes(activeDeletion.phase))) return null;
+  }
   if (row.expires_at < nowMs) {
     await deleteSession(env.DB, idHash);
     return null;

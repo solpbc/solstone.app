@@ -46,6 +46,7 @@ export function makeTestEnv(overrides = {}) {
     IMPERSONATE_ALLOWED: overrides.IMPERSONATE_ALLOWED,
     EMAIL_PATH_DISABLED: overrides.EMAIL_PATH_DISABLED || 'false',
     SIGNUP_DISABLED: overrides.SIGNUP_DISABLED || 'false',
+    OWNER_EXPORT_ENABLED: overrides.OWNER_EXPORT_ENABLED,
     SUPPORT_WORKER: Object.prototype.hasOwnProperty.call(overrides, 'SUPPORT_WORKER')
       ? overrides.SUPPORT_WORKER
       : makeDefaultPurgeBinding('support', overrides),

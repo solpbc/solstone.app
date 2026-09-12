@@ -48,6 +48,7 @@ import {
 } from './html.js';
 import { checkDeletionReadiness } from './deletion-readiness.js';
 import { DELETION_SERVICES } from './deletion-services.js';
+import { rateBucketFamily } from './owner-data-inventory.js';
 import { loadMenuContext, requireSignedInSession, signedInHtml } from './settings.js';
 
 const ORIGIN = 'https://services.solstone.app';
@@ -75,7 +76,7 @@ export function strictDeletionOriginAllowed(req) {
 
 export async function startEmailProof(env, { accountId, sessionIdHash, purpose, ip = '' }) {
   const nowMs = Date.now();
-  await checkProofRateLimit(env, { accountId, ip, method: 'otp', nowMs });
+  await checkProofRateLimit(env, { accountId, ip, method: 'otp', purpose, nowMs });
   const code = generateOtp();
   const tokenHash = await hashWithPepper(generateSessionToken(), env);
   await createDeletionProof(env.DB, {
@@ -96,7 +97,7 @@ export async function startEmailProof(env, { accountId, sessionIdHash, purpose, 
 
 export async function verifyEmailProof(env, { accountId, sessionIdHash, purpose, code, ip = '' }) {
   const nowMs = Date.now();
-  await checkProofRateLimit(env, { accountId, ip, method: 'otp', nowMs });
+  await checkProofRateLimit(env, { accountId, ip, method: 'otp', purpose, nowMs });
   const proof = await getLatestDeletionProof(env.DB, {
     accountId,
     sessionIdHash,
@@ -121,7 +122,7 @@ export async function verifyEmailProof(env, { accountId, sessionIdHash, purpose,
 
 export async function startPasskeyProof(env, { accountId, sessionIdHash, purpose, ip = '' }) {
   const nowMs = Date.now();
-  await checkProofRateLimit(env, { accountId, ip, method: 'passkey', nowMs });
+  await checkProofRateLimit(env, { accountId, ip, method: 'passkey', purpose, nowMs });
   if (!await hasAnyActivePasskey(env.DB, accountId)) {
     return { ok: false, reason: 'no_passkey' };
   }
@@ -149,7 +150,7 @@ export async function startPasskeyProof(env, { accountId, sessionIdHash, purpose
 
 export async function finishPasskeyProof(env, { accountId, sessionIdHash, purpose, assertionResponse, ip = '' }) {
   const nowMs = Date.now();
-  await checkProofRateLimit(env, { accountId, ip, method: 'passkey', nowMs });
+  await checkProofRateLimit(env, { accountId, ip, method: 'passkey', purpose, nowMs });
   const challenge = assertionResponse?.response?.clientDataJSON
     ? passkeyChallengeFromClientData(assertionResponse.response.clientDataJSON)
     : null;
@@ -495,9 +496,10 @@ function normalizePurpose(value) {
   return value === 'delete' || value === 'cancel' ? value : null;
 }
 
-async function checkProofRateLimit(env, { accountId, ip, method, nowMs }) {
-  const accountKey = await hashKey(`delete_proof_${method}_account`, accountId, env);
-  const ipKey = await hashKey(`delete_proof_${method}_ip`, ip || 'unknown', env);
+async function checkProofRateLimit(env, { accountId, ip, method, purpose, nowMs }) {
+  const family = purpose === 'export' ? 'export_proof' : 'delete_proof';
+  const accountKey = await hashKey(rateBucketFamily(`${family}_${method}_account`).scope, accountId, env);
+  const ipKey = await hashKey(rateBucketFamily(`${family}_${method}_ip`).scope, ip || 'unknown', env);
   const [accountCount, ipCount] = await Promise.all([
     getRateBucketCount(env.DB, accountKey, HOUR_MS, nowMs),
     getRateBucketCount(env.DB, ipKey, HOUR_MS, nowMs),

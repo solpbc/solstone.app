@@ -805,6 +805,55 @@ export async function consumeProofsAndCancelDeletionRequest(db, {
   };
 }
 
+export async function consumeFreshExportProofs(db, {
+  accountId,
+  sessionIdHash,
+  nowMs,
+}) {
+  const { results = [] } = await db.prepare(
+    `WITH eligible AS MATERIALIZED (
+       SELECT token_hash, method
+       FROM account_deletion_proofs
+       WHERE account_id = ?
+         AND session_id_hash = ?
+         AND purpose = 'export'
+         AND verified = 1
+         AND consumed = 0
+         AND expires_at > ?
+     ),
+     proof_counts AS (
+       SELECT
+         SUM(CASE WHEN method = 'otp' THEN 1 ELSE 0 END) AS otp_count,
+         SUM(CASE WHEN method = 'passkey' THEN 1 ELSE 0 END) AS passkey_count
+       FROM eligible
+     ),
+     requirements AS (
+       SELECT EXISTS (
+         SELECT 1 FROM passkey_credentials
+         WHERE account_id = ? AND revoked_at IS NULL
+       ) AS passkey_required
+     ),
+     authorized AS (
+       SELECT 1
+       FROM proof_counts, requirements
+       WHERE otp_count = 1
+         AND ((passkey_required = 0 AND passkey_count = 0)
+           OR (passkey_required = 1 AND passkey_count = 1))
+     )
+     UPDATE account_deletion_proofs
+     SET consumed = 1
+     WHERE token_hash IN (SELECT token_hash FROM eligible)
+       AND EXISTS (SELECT 1 FROM authorized)
+     RETURNING token_hash, method`
+  ).bind(accountId, sessionIdHash, nowMs, accountId).all();
+  const methods = results.map((row) => row.method).sort();
+  return {
+    authorized: methods.length > 0,
+    methods,
+    proofTokenHashes: results.map((row) => row.token_hash),
+  };
+}
+
 function liveDeletionProofGuard(proofTokenHashes, { accountId, sessionIdHash, purpose, nowMs }) {
   if (proofTokenHashes.length === 0) return { sql: '0', bindings: [] };
   const sql = proofTokenHashes.map(() => `EXISTS (

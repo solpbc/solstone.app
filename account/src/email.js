@@ -33,6 +33,34 @@ if you didn't request this, you can ignore this email.`;
 
 export async function sendDeletionProofEmail({ env, address, code, purpose }) {
   const formatted = `${code.slice(0, 3)} ${code.slice(3)}`;
+  if (purpose === 'export') {
+    const subject = `confirm your solstone data download: ${formatted}`;
+    const text = `you requested a copy of your solstone data.
+
+enter this code to continue:
+
+${formatted}
+
+it expires in 10 minutes.
+
+if you did not request this, you can ignore this email.`;
+    const html = `<!DOCTYPE html>
+<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
+  <p>you requested a copy of your solstone data.</p>
+  <p>enter this code to continue:</p>
+  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
+  <p>it expires in 10 minutes.</p>
+  <p>if you did not request this, you can ignore this email.</p>
+</body></html>`;
+    const response = await env.EMAIL.send({
+      to: address,
+      from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+      subject,
+      text,
+      html,
+    });
+    return { sent: true, messageId: response?.messageId };
+  }
   const action = purpose === 'cancel' ? 'cancel an account deletion request' : 'delete your sign-in and services';
   const subject = `confirm ${action}: ${formatted}`;
   const text = `you requested to ${action}.

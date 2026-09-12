@@ -373,7 +373,7 @@ CREATE TABLE IF NOT EXISTS account_deletion_proofs (
   token_hash TEXT PRIMARY KEY NOT NULL,
   account_id TEXT NOT NULL,
   session_id_hash TEXT NOT NULL,
-  purpose TEXT NOT NULL CHECK (purpose IN ('delete', 'cancel')),
+  purpose TEXT NOT NULL CHECK (purpose IN ('delete', 'cancel', 'export')),
   method TEXT NOT NULL CHECK (method IN ('otp', 'passkey')),
   issued_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
