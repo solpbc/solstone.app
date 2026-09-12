@@ -461,15 +461,16 @@ async function deletionDelayedStatus(env, deletion) {
   if (deletion.last_error_code === 'service_reconciliation_pending') {
     return `service reconciliation pending; next retry ${retry}`;
   }
+  const placeholders = DELETION_SERVICES.map(() => '?').join(', ');
   const { results } = await env.DB.prepare(
     `SELECT service
      FROM account_deletion_service_ops
      WHERE operation_id = ?
-       AND service IN (?, ?)
+       AND service IN (${placeholders})
        AND state NOT IN ('confirmed')
      ORDER BY CASE service WHEN 'relay' THEN 0 ELSE 1 END
      LIMIT 1`
-  ).bind(deletion.operation_id, DELETION_SERVICES[0], DELETION_SERVICES[1]).all();
+  ).bind(deletion.operation_id, ...DELETION_SERVICES).all();
   const delayedService = results?.[0]?.service;
   if (delayedService === 'relay') return `relay cleanup delayed; next retry ${retry}`;
   if (delayedService === 'support') return `support cleanup delayed; next retry ${retry}`;

@@ -29,6 +29,10 @@
     "cache_control": "no-store",
     "nonce_length": 43,
     "timeout_ms": 5000,
+    "required_request_headers": [
+      "Authorization",
+      "X-Owner-Purge-Readiness-Nonce"
+    ],
     "required_response_headers": [
       "Cache-Control",
       "X-Owner-Purge-Readiness-Version",

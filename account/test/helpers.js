@@ -93,8 +93,14 @@ function makeDefaultPurgeBinding(service, overrides = {}) {
     async fetch(input, init = {}) {
       const url = new URL(typeof input === 'string' ? input : input.url);
       if (url.pathname === '/internal/deletion/purge/ready') {
-        const nonce = init.headers?.['X-Owner-Purge-Nonce']
-          || (init.headers instanceof Headers ? init.headers.get('X-Owner-Purge-Nonce') : null);
+        const headers = init.headers || {};
+        const oldNonce = headers instanceof Headers ? headers.get('X-Owner-Purge-Nonce') : headers['X-Owner-Purge-Nonce'];
+        if (oldNonce !== undefined && oldNonce !== null) {
+          return new Response('Old header forbidden', { status: 400 });
+        }
+        const nonce = headers instanceof Headers
+          ? headers.get('X-Owner-Purge-Readiness-Nonce')
+          : headers['X-Owner-Purge-Readiness-Nonce'];
         const secretV1 = overrides[`ACCOUNT_${service.toUpperCase()}_PURGE_HMAC_KEY_V1`] || 'owner-purge-v1-fixture-test-key';
         const secretV2 = overrides[`ACCOUNT_${service.toUpperCase()}_PURGE_HMAC_KEY_V2`] || 'owner-purge-v2-fixture-test-key';
         const domain = `solpbc-owner-purge-v1:${service}:readiness`;

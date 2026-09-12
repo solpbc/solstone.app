@@ -16,6 +16,7 @@ import {
 } from '../src/deletion-services.js';
 import { runAccountDeletionCoordinator } from '../src/deletion-coordinator.js';
 import { createDeletionProof, markDeletionProofVerified } from '../src/db.js';
+import { hashWithPepper } from '../src/crypto.js';
 import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
 import fixture from '../test-fixtures/owner-purge-readiness-v1.json';
 
@@ -77,7 +78,11 @@ function makeStrictPeerDouble(service, {
       const url = new URL(typeof input === 'string' ? input : input.url);
       const headers = init.headers || {};
       const auth = typeof headers.get === 'function' ? headers.get('Authorization') : headers.Authorization;
-      const nonce = typeof headers.get === 'function' ? headers.get('X-Owner-Purge-Nonce') : headers['X-Owner-Purge-Nonce'];
+      const oldNonce = typeof headers.get === 'function' ? headers.get('X-Owner-Purge-Nonce') : headers['X-Owner-Purge-Nonce'];
+      if (oldNonce !== undefined && oldNonce !== null) {
+        return new Response('Old header forbidden', { status: 400 });
+      }
+      const nonce = typeof headers.get === 'function' ? headers.get('X-Owner-Purge-Readiness-Nonce') : headers['X-Owner-Purge-Readiness-Nonce'];
       const origin = typeof headers.get === 'function' ? headers.get('Origin') : headers.Origin;
 
       calls.push({
@@ -468,7 +473,7 @@ describe('deletion readiness protocol and shared registry', () => {
       const capturedNonces = [];
       const trackingDouble = (service) => ({
         async fetch(input, init) {
-          const nonce = init.headers?.['X-Owner-Purge-Nonce'];
+          const nonce = init.headers?.['X-Owner-Purge-Readiness-Nonce'];
           capturedNonces.push(nonce);
           const domain = readinessDomainFor(service);
           const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', domain, nonce);
@@ -501,6 +506,38 @@ describe('deletion readiness protocol and shared registry', () => {
         expect(nonce).toMatch(/^[A-Za-z0-9_-]+$/);
       }
     });
+
+    it('rejects legacy X-Owner-Purge-Nonce header and requires X-Owner-Purge-Readiness-Nonce', async () => {
+      const peerCalls = [];
+      const env = makeTestEnv({
+        RELAY: makeStrictPeerDouble('relay', { calls: peerCalls }),
+        SUPPORT_WORKER: makeStrictPeerDouble('support'),
+      });
+
+      const res = await checkDeletionReadiness(env);
+      expect(res.ok).toBe(true);
+      expect(peerCalls[0].nonce).toBeDefined();
+
+      // Directly calling strict double with old header should be rejected (status 400)
+      const legacyDouble = makeStrictPeerDouble('relay');
+      const legacyRes = await legacyDouble.fetch('https://relay.internal/internal/deletion/purge/ready', {
+        method: 'GET',
+        headers: {
+          Authorization: 'Bearer test-relay-purge-bearer',
+          'X-Owner-Purge-Nonce': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        },
+      });
+      expect(legacyRes.status).toBe(400);
+
+      // Calling strict double without readiness nonce header should be rejected (status 400)
+      const missingNonceRes = await legacyDouble.fetch('https://relay.internal/internal/deletion/purge/ready', {
+        method: 'GET',
+        headers: {
+          Authorization: 'Bearer test-relay-purge-bearer',
+        },
+      });
+      expect(missingNonceRes.status).toBe(400);
+    });
   });
 
   describe('route sequencing in handleDeletionConfirm & 503 refusal page', () => {
@@ -510,7 +547,7 @@ describe('deletion readiness protocol and shared registry', () => {
         RELAY: {
           async fetch(input, init) {
             executionLog.push('readiness_check_relay');
-            const nonce = init.headers?.['X-Owner-Purge-Nonce'];
+            const nonce = init.headers?.['X-Owner-Purge-Readiness-Nonce'];
             const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', 'solpbc-owner-purge-v1:relay:readiness', nonce);
             const r2 = await independentFrameAndSign('owner-purge-v2-fixture-test-key', 'solpbc-owner-purge-v1:relay:readiness', nonce);
             return new Response(null, {
@@ -527,7 +564,7 @@ describe('deletion readiness protocol and shared registry', () => {
         SUPPORT_WORKER: {
           async fetch(input, init) {
             executionLog.push('readiness_check_support');
-            const nonce = init.headers?.['X-Owner-Purge-Nonce'];
+            const nonce = init.headers?.['X-Owner-Purge-Readiness-Nonce'];
             const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', 'solpbc-owner-purge-v1:support:readiness', nonce);
             const r2 = await independentFrameAndSign('owner-purge-v2-fixture-test-key', 'solpbc-owner-purge-v1:support:readiness', nonce);
             return new Response(null, {
@@ -617,6 +654,43 @@ describe('deletion readiness protocol and shared registry', () => {
       expect(proofRow).toMatchObject({ consumed: 0 });
       const deletionRow = await workerEnv.DB.prepare('SELECT operation_id FROM account_deletions').first();
       expect(deletionRow).toBeNull();
+    });
+  });
+
+  describe('exhaustive delayed-status enumeration over shared DELETION_SERVICES', () => {
+    it('queries and formats delayed status for every service in DELETION_SERVICES', async () => {
+      const env = makeTestEnv();
+      const account = await seedAccount({ email: 'delayed-status-check@example.com', testEnv: env });
+      const rawStatusToken = 'status-token-for-delayed-test';
+      const tokenHash = await hashWithPepper(rawStatusToken, env);
+
+      for (const service of DELETION_SERVICES) {
+        const opId = `op-delayed-${service}`;
+        await workerEnv.DB.prepare(
+          `INSERT INTO account_deletions (
+             operation_id, account_id, phase, requested_at, frozen_at, snapshot_digest, snapshot_encrypted,
+             cancellation_deadline_at, next_attempt_at, status_token_hash, backup_empty_verified_at, stripe_purge_state
+           ) VALUES (?, ?, 'purging', 1000, 1001, 'snap-digest', 'snap-enc', 2000, 1700000000000, ?, 1000, 'deleted')`
+        ).bind(opId, account.accountId, tokenHash).run();
+
+        await workerEnv.DB.prepare(
+          `INSERT INTO account_deletion_service_ops (
+             id, operation_id, service, key_version, state, attempt_count, next_attempt_at
+           ) VALUES (?, ?, ?, 2, 'pending', 1, 1700000000000)`
+        ).bind(`op-srv-${service}`, opId, service).run();
+
+        const req = new Request('https://services.solstone.app/account/delete/status', {
+          headers: { Cookie: `account_deletion_status=${rawStatusToken}` },
+        });
+        const res = await worker.fetch(req, env);
+        expect(res.status).toBe(200);
+        const text = await res.text();
+        expect(text).toContain(`${service} cleanup delayed`);
+
+        // Clean up ops for next iteration
+        await workerEnv.DB.prepare('DELETE FROM account_deletion_service_ops WHERE operation_id = ?').bind(opId).run();
+        await workerEnv.DB.prepare('DELETE FROM account_deletions WHERE operation_id = ?').bind(opId).run();
+      }
     });
   });
 

@@ -67,7 +67,7 @@ async function checkServiceReadiness(env, service, signal) {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${bearer}`,
-        'X-Owner-Purge-Nonce': nonce,
+        'X-Owner-Purge-Readiness-Nonce': nonce,
       },
       redirect: 'manual',
       signal,
