@@ -1,6 +1,6 @@
 import { decryptEmail } from './crypto.js';
 import { OWNER_DATA_INVENTORY } from './owner-data-inventory.js';
-import { truncateIp, uaLabel } from './settings.js';
+import { passkeyLabel, truncateIp, uaLabel } from './settings.js';
 
 const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export const OWNER_LOCAL_RECORD_LIMIT = 10_000;
@@ -14,8 +14,16 @@ const SUPPORTED_TRANSFORMS = new Set([
   'decrypt_email',
   'decrypt_truncate_ip',
   'ua_label',
+  'passkey_label',
   'sqlite_boolean',
 ]);
+
+// Columns a transform reads in addition to its own. They are selected for the
+// transform's use only and never emitted; the denied-coordinate and
+// denied-public-name checks still apply to what is emitted.
+const TRANSFORM_EXTRA_INPUTS = {
+  passkey_label: ['aaguid'],
+};
 
 const ALLOWED_TRANSFORM_SOURCES = {
   'account_emails.address_encrypted': {
@@ -181,7 +189,12 @@ export async function collectOwnerLocalExport({
       (col) => col && col.treatment === 'exported'
     );
 
-    const selectColumns = exportedColumns.map((col) => `"${col.name}"`).join(', ');
+    const extraInputs = [...new Set(exportedColumns.flatMap((col) => TRANSFORM_EXTRA_INPUTS[col.transform] || []))]
+      .filter((name) => !exportedColumns.some((col) => col.name === name));
+    if (extraInputs.some((name) => !IDENTIFIER_RE.test(name))) {
+      return { ok: false, error: 'invalid_identifier' };
+    }
+    const selectColumns = [...exportedColumns.map((col) => col.name), ...extraInputs].map((name) => `"${name}"`).join(', ');
     const idColumn = tableEntry.association === 'account_primary_key' ? '"id"' : '"account_id"';
     const remainingRecords = OWNER_LOCAL_RECORD_LIMIT - totalRecordCount;
     if (remainingRecords <= 0) return { ok: false, error: 'resource_limit' };
@@ -255,6 +268,9 @@ export async function collectOwnerLocalExport({
             break;
           case 'ua_label':
             transformedValue = uaLabel(rawValue);
+            break;
+          case 'passkey_label':
+            transformedValue = passkeyLabel(rawValue, row.aaguid);
             break;
           case 'sqlite_boolean':
             if (rawValue == null) {

@@ -513,15 +513,14 @@ async function insertChallenge(challenge, { createdAt = NOW, expiresAt = NOW + D
 }
 
 async function insertOtp(emailLowerHash, {
-  email = `${emailLowerHash}@example.com`,
   codeHash = `code-${emailLowerHash}`,
   expiresAt,
   consumed,
   startedAt,
 } = {}) {
   await workerEnv.DB
-    .prepare('INSERT INTO otp_tokens (email_lower_hash, email_lower, code_hash, expires_at, attempts, consumed, started_at) VALUES (?, ?, ?, ?, 0, ?, ?)')
-    .bind(emailLowerHash, email, codeHash, expiresAt, consumed, startedAt)
+    .prepare('INSERT INTO otp_tokens (email_lower_hash, code_hash, expires_at, attempts, consumed, started_at) VALUES (?, ?, ?, 0, ?, ?)')
+    .bind(emailLowerHash, codeHash, expiresAt, consumed, startedAt)
     .run();
 }
 

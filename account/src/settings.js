@@ -257,13 +257,9 @@ async function sessionViewRow(row, env) {
 }
 
 function passkeyViewRow(row, nowMs) {
-  const friendlyName = typeof row.friendly_name === 'string' && row.friendly_name.trim()
-    ? row.friendly_name
-    : null;
-  const mappedLabel = friendlyName ? null : aaguidLabel(row.aaguid);
   return {
     credential_id: row.credential_id,
-    name: friendlyName || mappedLabel || 'passkey',
+    name: passkeyLabel(row.friendly_name, row.aaguid),
     friendlyNameInput: row.friendly_name || '',
     addedText: `added ${formatDate(row.created_at)}`,
     lastUsedText: row.last_used_at == null
@@ -297,6 +293,15 @@ function detectOs(ua) {
   if (/Windows/.test(ua)) return 'windows';
   if (/Linux/.test(ua)) return 'linux';
   return 'device';
+}
+
+// The label an owner sees for a passkey, everywhere it is shown or exported:
+// the name they gave it, else the authenticator model derived from its AAGUID,
+// else the word "passkey". The settings page, the transparency page and the
+// owner export all derive from here so the download is never less than the page.
+export function passkeyLabel(friendlyName, aaguid) {
+  const named = typeof friendlyName === 'string' && friendlyName.trim() ? friendlyName : null;
+  return named || aaguidLabel(aaguid) || 'passkey';
 }
 
 export function aaguidLabel(aaguid) {

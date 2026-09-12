@@ -224,16 +224,18 @@ const LEGACY_PREFIX_REDIRECTS = [
   { method: 'POST', prefix: '/settings/devices/', newPrefix: '/devices/' },
 ];
 
+// The one CSRF origin predicate for every signed-in, state-changing POST
+// (settings, emails, devices, enable, billing, support, deletion, export).
+// Exact-origin match on the Origin header only: no prefix match (which admitted
+// `https://services.solstone.app.evil.test`) and no Referer fallback. The
+// Referer arm existed for email-security link rewriting (Proofpoint / Mimecast /
+// Defender), which only ever reached the two pre-auth sign-in POSTs; those moved
+// to the CSRF synchronizer token in 2026-05, and every route guarded here is
+// reached from the signed-in dashboard, never from an emailed link. Tightened
+// 2026-09 after that predicted fresh finding surfaced. The session cookie is
+// SameSite=Lax, so this is defence in depth over an already-unauthenticated
+// cross-site POST, not the only barrier.
 export function originAllowed(req) {
-  const origin = req.headers.get('Origin');
-  const referer = req.headers.get('Referer');
-  return (
-    (typeof origin === 'string' && origin.startsWith(ORIGIN)) ||
-    (typeof referer === 'string' && referer.startsWith(ORIGIN))
-  );
-}
-
-export function supportOriginAllowed(req) {
   const origin = req.headers.get('Origin');
   if (typeof origin !== 'string') return false;
   try {
@@ -242,6 +244,8 @@ export function supportOriginAllowed(req) {
     return false;
   }
 }
+
+export const supportOriginAllowed = originAllowed;
 
 export function getClientIp(req) {
   return req.headers.get('CF-Connecting-IP') || req.headers.get('x-forwarded-for') || 'unknown';
@@ -1173,7 +1177,7 @@ async function handleSigninStart(req, env) {
   const emailCount = await bumpRateBucket(env.DB, emailBucketKey, DAY_MS, nowMs);
   if (emailCount > EMAIL_DAY_LIMIT) return redirect(verifyLocation);
 
-  await upsertOtp(env.DB, { emailLowerHash, emailLower, codeHash, nowMs, ttlMs: OTP_TTL_MS });
+  await upsertOtp(env.DB, { emailLowerHash, codeHash, nowMs, ttlMs: OTP_TTL_MS });
   try {
     await sendOtpEmail({ env, address: emailLower, code });
   } catch {
@@ -1267,7 +1271,7 @@ async function handleSigninVerifyPost(req, env) {
   const accountId = existing
     ? existing.account_id
     : (await createAccountWithEmail(env.DB, {
-        addressEncrypted: await encryptEmail(matched.emailLower, env),
+        addressEncrypted: await encryptEmail(emailLower, env),
         addressLowerHash: emailLowerHash,
         nowMs,
       })).accountId;

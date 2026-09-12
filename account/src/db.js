@@ -481,37 +481,37 @@ export async function getAccountTransparencyRow(db, accountId) {
   return row || null;
 }
 
-export async function upsertOtp(db, { emailLowerHash, emailLower, codeHash, nowMs, ttlMs }) {
+export async function upsertOtp(db, { emailLowerHash, codeHash, nowMs, ttlMs }) {
   await db
     .prepare(
-      `INSERT INTO otp_tokens (email_lower_hash, email_lower, code_hash, expires_at, attempts, consumed, started_at)
-       VALUES (?, ?, ?, ?, 0, 0, ?)
+      `INSERT INTO otp_tokens (email_lower_hash, code_hash, expires_at, attempts, consumed, started_at)
+       VALUES (?, ?, ?, 0, 0, ?)
        ON CONFLICT(email_lower_hash) DO UPDATE SET
-         email_lower = excluded.email_lower,
          code_hash = excluded.code_hash,
          expires_at = excluded.expires_at,
          attempts = 0,
          consumed = 0,
          started_at = excluded.started_at`
     )
-    .bind(emailLowerHash, emailLower, codeHash, nowMs + ttlMs, nowMs)
+    .bind(emailLowerHash, codeHash, nowMs + ttlMs, nowMs)
     .run();
 }
 
+// Resolves true when exactly this hash/code pair was live and is now consumed.
+// The caller already holds the address it hashed; nothing is read back.
 export async function matchOtp(db, { emailLowerHash, codeHash, nowMs }) {
-  const row = await db
+  const result = await db
     .prepare(
       `UPDATE otp_tokens
        SET consumed = 1
        WHERE email_lower_hash = ?
          AND code_hash = ?
          AND consumed = 0
-         AND expires_at > ?
-       RETURNING email_lower`
+         AND expires_at > ?`
     )
     .bind(emailLowerHash, codeHash, nowMs)
-    .first();
-  return row ? { emailLower: row.email_lower } : null;
+    .run();
+  return result?.meta?.changes === 1;
 }
 
 export async function bumpOtpAttempts(db, { emailLowerHash, nowMs, maxAttempts }) {
@@ -805,6 +805,16 @@ export async function consumeProofsAndCancelDeletionRequest(db, {
   };
 }
 
+// Atomic consume for the export proof set. The pre-check is requireFreshProof
+// (deletion.js), the single JS statement of the fresh-proof rule; this statement
+// re-derives that rule inside the UPDATE (an OTP proof, plus a passkey proof iff
+// an active passkey exists), consumes every eligible proof so none is left to
+// fund a second download, and adds the two conditions the export must re-check
+// at emission time: the session is still live and the account is not mid-purge.
+// Deliberately SQL rather than a call to requireFreshProof: consume-and-revalidate
+// in one statement is what makes a passkey added mid-request, a concurrent second
+// download, or a session revoked after collection lose cleanly. Change the rule
+// in both places; test/owner-export-foundation.test.js pins their agreement.
 export async function consumeFreshExportProofs(db, {
   accountId,
   sessionIdHash,
@@ -853,9 +863,8 @@ export async function consumeFreshExportProofs(db, {
      authorized AS (
        SELECT 1
        FROM proof_counts, requirements, live_session, phase_check
-       WHERE otp_count = 1
-         AND ((passkey_required = 0 AND passkey_count = 0)
-           OR (passkey_required = 1 AND passkey_count = 1))
+       WHERE otp_count >= 1
+         AND (passkey_required = 0 OR passkey_count >= 1)
      )
      UPDATE account_deletion_proofs
      SET consumed = 1
@@ -869,66 +878,6 @@ export async function consumeFreshExportProofs(db, {
     methods,
     proofTokenHashes: results.map((row) => row.token_hash),
   };
-}
-
-export async function hasFreshExportProofs(db, {
-  accountId,
-  sessionIdHash,
-  nowMs,
-}) {
-  const row = await db.prepare(
-    `WITH eligible AS MATERIALIZED (
-       SELECT method
-       FROM account_deletion_proofs
-       WHERE account_id = ?
-         AND session_id_hash = ?
-         AND purpose = 'export'
-         AND verified = 1
-         AND consumed = 0
-         AND expires_at > ?
-     ),
-     proof_counts AS (
-       SELECT
-         SUM(CASE WHEN method = 'otp' THEN 1 ELSE 0 END) AS otp_count,
-         SUM(CASE WHEN method = 'passkey' THEN 1 ELSE 0 END) AS passkey_count
-       FROM eligible
-     )
-     SELECT EXISTS (
-       SELECT 1
-       FROM proof_counts
-       WHERE otp_count = 1
-         AND ((NOT EXISTS (
-           SELECT 1 FROM passkey_credentials
-           WHERE account_id = ? AND revoked_at IS NULL
-         ) AND passkey_count = 0)
-         OR (EXISTS (
-           SELECT 1 FROM passkey_credentials
-           WHERE account_id = ? AND revoked_at IS NULL
-         ) AND passkey_count = 1))
-         AND EXISTS (
-           SELECT 1 FROM sessions
-           WHERE id_hash = ?
-             AND account_id = ?
-             AND revoked_at IS NULL
-             AND expires_at > ?
-         )
-         AND NOT EXISTS (
-           SELECT 1 FROM account_deletions
-           WHERE account_id = ? AND phase = 'purging'
-         )
-     ) AS authorized`
-  ).bind(
-    accountId,
-    sessionIdHash,
-    nowMs,
-    accountId,
-    accountId,
-    sessionIdHash,
-    accountId,
-    nowMs,
-    accountId,
-  ).first();
-  return row?.authorized === 1;
 }
 
 function liveDeletionProofGuard(proofTokenHashes, { accountId, sessionIdHash, purpose, nowMs }) {

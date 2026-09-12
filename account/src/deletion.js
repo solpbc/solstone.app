@@ -48,10 +48,10 @@ import {
 } from './html.js';
 import { checkDeletionReadiness } from './deletion-readiness.js';
 import { DELETION_SERVICES } from './deletion-services.js';
+import { originAllowed } from './index.js';
 import { rateBucketFamily } from './owner-data-inventory.js';
 import { loadMenuContext, requireSignedInSession, signedInHtml } from './settings.js';
 
-const ORIGIN = 'https://services.solstone.app';
 const PROOF_TTL_MS = 10 * 60 * 1000;
 const CANCELLATION_WINDOW_MS = 72 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -64,14 +64,11 @@ function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
 }
 
+// Same predicate as every other signed-in POST; kept under its historical name
+// for the deletion and export call sites. A call-time wrapper rather than an
+// alias because deletion.js and index.js import each other.
 export function strictDeletionOriginAllowed(req) {
-  const origin = req.headers.get('Origin');
-  if (typeof origin !== 'string') return false;
-  try {
-    return new URL(origin).origin === ORIGIN;
-  } catch {
-    return false;
-  }
+  return originAllowed(req);
 }
 
 export async function startEmailProof(env, { accountId, sessionIdHash, purpose, ip = '' }) {
@@ -185,6 +182,15 @@ export async function finishPasskeyProof(env, { accountId, sessionIdHash, purpos
   return verified ? { ok: true } : { ok: false, reason: 'proof_expired' };
 }
 
+// The fresh-proof rule, in one place: a verified, unconsumed, unexpired OTP
+// proof for this session and purpose, plus a passkey proof whenever the account
+// has an active passkey. Every purpose (delete, cancel,
+// export) pre-checks here. Consumption then re-validates atomically in SQL:
+// delete/cancel via liveDeletionProofGuard (db.js), export via
+// consumeFreshExportProofs (db.js), which re-derives this same rule inside the
+// consuming statement so a passkey added mid-request is evaluated. Any change
+// to the rule here must land in consumeFreshExportProofs too;
+// test/owner-export-foundation.test.js pins that the two agree.
 export async function requireFreshProof(env, { accountId, sessionIdHash, purpose }) {
   const nowMs = Date.now();
   const passkeyRequired = await hasAnyActivePasskey(env.DB, accountId);

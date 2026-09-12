@@ -214,6 +214,47 @@ describe('owner local export collector (AC1–3)', () => {
     });
   });
 
+  describe('passkey label derivation', () => {
+    it('exports the label the page shows: the owner name, else the authenticator model, else "passkey", never the raw aaguid', async () => {
+      const env = makeTestEnv();
+      const owner = await seedAccount({ email: 'passkey-label@example.com', nowMs: NOW, testEnv: env });
+      const rows = [
+        ['sentinel-cred-q1x', 'fbfc3007-154e-4ecc-8c0b-6e020557d7bd', 'my laptop'],
+        ['sentinel-cred-q2x', 'fbfc3007-154e-4ecc-8c0b-6e020557d7bd', null],
+        ['sentinel-cred-q3x', '08987058-cadc-4b81-b6e1-30de50dcbe96', '   '],
+        ['sentinel-cred-q4x', 'sensitive-aaguid-unmapped-0000', null],
+        ['sentinel-cred-q5x', '00000000-0000-0000-0000-000000000000', null],
+      ];
+      for (const [credentialId, aaguid, friendlyName] of rows) {
+        await workerEnv.DB.prepare(
+          `INSERT INTO passkey_credentials (
+             credential_id, account_id, public_key, counter, aaguid, transports, device_type, friendly_name, created_at
+           ) VALUES (?, ?, ?, 0, ?, '[]', 'single_device', ?, ?)`
+        ).bind(credentialId, owner.accountId, new Uint8Array([1]), aaguid, friendlyName, NOW).run();
+      }
+      const consoleSpy = installConsoleSpy();
+
+      const result = await collectOwnerLocalExport({ db: workerEnv.DB, env, accountId: owner.accountId });
+
+      expect(result.ok).toBe(true);
+      const passkeys = result.classes.find((c) => c.name === 'passkey_credentials');
+      expect(passkeys.records.map((record) => record.name)).toEqual([
+        'my laptop', 'icloud keychain', 'windows hello', 'passkey', 'passkey',
+      ]);
+      expect(passkeys.fields.name).toEqual({
+        transform: 'passkey_label',
+        semantics: 'the name you gave this passkey, or its authenticator model when unnamed, or just passkey',
+      });
+      const serialized = JSON.stringify(result);
+      for (const [credentialId, aaguid] of rows) {
+        expect(serialized).not.toContain(aaguid);
+        expect(serialized).not.toContain(credentialId);
+      }
+      expect(Object.keys(passkeys.records[0]).sort()).toEqual(['created_at', 'device_type', 'last_used_at', 'name', 'revoked_at']);
+      consoleSpy.restore?.();
+    });
+  });
+
   describe('IP and UA transformations and pins', () => {
     it('pins IPv4, IPv6, malformed IP, and null stored IP transformations', async () => {
       const env = makeTestEnv();
@@ -329,9 +370,12 @@ describe('owner local export collector (AC1–3)', () => {
         const stmtSql = statements[i];
 
         const idCol = entry.name === 'accounts' ? '"id"' : '"account_id"';
-        const cols = entry.columns
-          .filter((c) => c.treatment === 'exported')
-          .map((c) => `"${c.name}"`)
+        const exportedCols = entry.columns.filter((c) => c.treatment === 'exported');
+        // passkey_label reads aaguid as a non-emitted input; it is selected last.
+        const extraInputs = exportedCols.some((c) => c.transform === 'passkey_label')
+          && !exportedCols.some((c) => c.name === 'aaguid') ? ['aaguid'] : [];
+        const cols = [...exportedCols.map((c) => c.name), ...extraInputs]
+          .map((name) => `"${name}"`)
           .join(', ');
 
         const expectedSql = `SELECT ${cols} FROM "${entry.name}" WHERE ${idCol} = ? ORDER BY rowid ASC LIMIT ?`;
@@ -804,8 +848,8 @@ async function seedAllWithSentinels(env, account, tag, instanceId) {
 
   // 24. otp_tokens
   await workerEnv.DB.prepare(
-    'INSERT INTO otp_tokens (email_lower_hash, email_lower, code_hash, expires_at, started_at) VALUES (?, ?, ?, ?, ?)'
-  ).bind(sensitiveSentinels.otpEmailLowerHash, `${tag}@example.com`, sensitiveSentinels.otpCodeHash, NOW + 1000, NOW).run();
+    'INSERT INTO otp_tokens (email_lower_hash, code_hash, expires_at, started_at) VALUES (?, ?, ?, ?)'
+  ).bind(sensitiveSentinels.otpEmailLowerHash, sensitiveSentinels.otpCodeHash, NOW + 1000, NOW).run();
 
   // 25. rate_buckets
   await workerEnv.DB.prepare(

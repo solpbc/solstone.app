@@ -1,7 +1,8 @@
 import { decryptEmail } from './crypto.js';
-import { consumeFreshExportProofs, hasFreshExportProofs, listAccountEmails } from './db.js';
+import { consumeFreshExportProofs, listAccountEmails } from './db.js';
 import {
   finishPasskeyProof,
+  requireFreshProof,
   startEmailProof,
   startPasskeyProof,
   strictDeletionOriginAllowed,
@@ -39,12 +40,16 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
     const guard = await exportGuard(req, env);
     if (guard instanceof Response) return guard;
 
-    const proofReady = await hasFreshExportProofs(env.DB, {
+    // Pre-check with the shared fresh-proof rule before any collection I/O; the
+    // session is already proven live and non-purging by exportGuard. The
+    // authoritative check is consumeFreshExportProofs below, which re-validates
+    // and consumes in one statement immediately before the document is sent.
+    const fresh = await requireFreshProof(env, {
       accountId: guard.session.account_id,
       sessionIdHash: guard.session.id_hash,
-      nowMs: Date.now(),
+      purpose: PURPOSE,
     });
-    if (!proofReady) return refusal(403, EXPORT_PROOF_INVALID);
+    if (!fresh.otpVerified || !fresh.passkeyVerified) return refusal(403, EXPORT_PROOF_INVALID);
 
     const local = await collectOwnerLocalExport({
       db: env.DB,

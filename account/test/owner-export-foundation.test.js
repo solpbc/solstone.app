@@ -2,7 +2,7 @@ import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
 import { createDeletionProof, consumeFreshExportProofs } from '../src/db.js';
-import { startEmailProof } from '../src/deletion.js';
+import { requireFreshProof, startEmailProof } from '../src/deletion.js';
 import { sendDeletionProofEmail } from '../src/email.js';
 import { makeTestEnv, resetDb, seedAccount, seedCredential, seedSession } from './helpers.js';
 
@@ -135,7 +135,7 @@ describe('owner export foundation', () => {
     })).resolves.toMatchObject({ authorized: true, methods: ['otp', 'passkey'] });
   });
 
-  it('fails closed on duplicate, expired, wrong-purpose, and wrong-session proofs', async () => {
+  it('consumes every eligible proof in one emission and ignores expired, wrong-purpose, and wrong-session proofs', async () => {
     const env = makeTestEnv();
     const account = await seedAccount({ testEnv: env });
     const session = await seedSession(account.accountId, { testEnv: env, nowMs: NOW - 1000, expiresAt: NOW + 3600000 });
@@ -144,11 +144,56 @@ describe('owner export foundation', () => {
     await proof(account.accountId, session.idHash, 'passkey', 'expired', { expiresAt: NOW });
     await proof(account.accountId, 'other-session', 'passkey', 'wrong-session');
     await proof(account.accountId, session.idHash, 'passkey', 'wrong-purpose', { purpose: 'delete' });
+    // A second verified code (the owner re-ran the ceremony) must not dead-end the
+    // download; both are spent by the one emission so neither funds another.
+    await expect(consumeFreshExportProofs(workerEnv.DB, {
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
+    })).resolves.toMatchObject({ authorized: true, methods: ['otp', 'otp'] });
+    await expect(consumed('fresh')).resolves.toBe(1);
+    await expect(consumed('duplicate')).resolves.toBe(1);
+    await expect(consumed('expired')).resolves.toBe(0);
+    await expect(consumed('wrong-session')).resolves.toBe(0);
+    await expect(consumed('wrong-purpose')).resolves.toBe(0);
     await expect(consumeFreshExportProofs(workerEnv.DB, {
       accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
     })).resolves.toMatchObject({ authorized: false, methods: [] });
-    await expect(consumed('fresh')).resolves.toBe(0);
-    await expect(consumed('duplicate')).resolves.toBe(0);
+  });
+
+  it('agrees with requireFreshProof, the shared pre-check, on every proof-state axis', async () => {
+    const scenarios = [
+      ['no proofs', [], false],
+      ['otp only, no passkey on the account', [['otp']], false],
+      ['otp only, active passkey', [['otp']], true],
+      ['otp and passkey proof, active passkey', [['otp'], ['passkey']], true],
+      ['passkey proof only, active passkey', [['passkey']], true],
+      ['expired otp', [['otp', { expiresAt: NOW }]], false],
+      ['otp for another session', [['otp', { sessionIdHash: 'other-session' }]], false],
+      ['otp for another purpose', [['otp', { purpose: 'delete' }]], false],
+      ['two verified otps', [['otp'], ['otp']], false],
+      ['stale passkey proof after the passkey was removed', [['otp'], ['passkey']], false],
+      ['otp and an expired passkey proof, active passkey', [['otp'], ['passkey', { expiresAt: NOW }]], true],
+    ];
+    // requireFreshProof reads the real clock, so this scenario set is built on it.
+    const now = Date.now();
+    let scenarioIndex = 0;
+    for (const [name, proofs, activePasskey] of scenarios) {
+      const tag = `parity-${scenarioIndex++}`;
+      const env = makeTestEnv();
+      const account = await seedAccount({ email: `${tag}@example.com`, testEnv: env });
+      const session = await seedSession(account.accountId, { testEnv: env, nowMs: now - 1000, expiresAt: now + 3600000 });
+      if (activePasskey) await seedCredential({ accountId: account.accountId, credentialId: `credential-${tag}` });
+      let index = 0;
+      for (const [method, options = {}] of proofs) {
+        const expiresAt = options.expiresAt === NOW ? now : now + 60_000;
+        await proof(account.accountId, options.sessionIdHash || session.idHash, method, `${tag}-${index++}`, { ...options, expiresAt });
+      }
+      const fresh = await requireFreshProof(env, { accountId: account.accountId, sessionIdHash: session.idHash, purpose: 'export' });
+      const ready = fresh.otpVerified && fresh.passkeyVerified;
+      const consumeResult = await consumeFreshExportProofs(workerEnv.DB, {
+        accountId: account.accountId, sessionIdHash: session.idHash, nowMs: now,
+      });
+      expect(consumeResult.authorized, name).toBe(ready);
+    }
   });
 
   it('refuses consumption on revoked session, expired session, and purging phase', async () => {

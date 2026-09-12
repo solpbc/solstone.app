@@ -35,9 +35,9 @@ import {
 import { forbidden, isValidEmail, originAllowed } from './index.js';
 import { getValidSession } from './session.js';
 import {
-  aaguidLabel,
   loadMenuContext,
   noStore,
+  passkeyLabel,
   requireSignedInSession,
   signedInHtml,
   signedInRedirect,
@@ -345,12 +345,8 @@ async function transparencySessionRow(row, env) {
 }
 
 function transparencyPasskeyRow(row) {
-  const friendlyName = typeof row.friendly_name === 'string' && row.friendly_name.trim()
-    ? row.friendly_name
-    : null;
-  const mappedLabel = friendlyName ? null : aaguidLabel(row.aaguid);
   return {
-    name: friendlyName || mappedLabel || 'passkey',
+    name: passkeyLabel(row.friendly_name, row.aaguid),
     aaguid: row.aaguid || '—',
     credentialId: row.credential_id,
     createdAt: row.created_at,

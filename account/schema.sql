@@ -20,10 +20,11 @@ CREATE TABLE IF NOT EXISTS account_emails (
   address_lower_hash TEXT NOT NULL UNIQUE,
   is_primary INTEGER NOT NULL DEFAULT 1,
   verified_at INTEGER,
+  created_at INTEGER NOT NULL,
+  -- Column order mirrors production, where 0005 appended these after created_at.
   verification_code_hash TEXT,
   verification_expires_at INTEGER,
   verification_attempts INTEGER NOT NULL DEFAULT 0,
-  created_at INTEGER NOT NULL,
   FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
@@ -57,7 +58,6 @@ CREATE TABLE IF NOT EXISTS rate_buckets (
 
 CREATE TABLE IF NOT EXISTS otp_tokens (
   email_lower_hash TEXT PRIMARY KEY,
-  email_lower TEXT NOT NULL,
   code_hash TEXT NOT NULL,
   expires_at INTEGER NOT NULL,
   attempts INTEGER NOT NULL DEFAULT 0,

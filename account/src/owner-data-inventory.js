@@ -91,7 +91,7 @@ const TABLES = [
     omitted('window_start', 'transient rate state', 'transient_deletion'),
   ], { description: 'transient rate limits' }),
   table('otp_tokens', 'verified_email_derived', 'derived_key_purge', 'transient_auth_rate', [
-    omitted('email_lower_hash', 'email lookup hash'), omitted('email_lower', 'transient sign-in input'),
+    omitted('email_lower_hash', 'email lookup hash'),
     omitted('code_hash', 'authentication material'), omitted('expires_at', 'transient authentication state', 'transient_deletion'),
     omitted('attempts', 'transient authentication state', 'transient_deletion'),
     omitted('consumed', 'transient authentication state', 'transient_deletion'),
@@ -102,7 +102,8 @@ const TABLES = [
     omitted('public_key', 'authentication material'), omitted('counter', 'authentication replay state'),
     omitted('aaguid', 'authenticator fingerprint'), omitted('transports', 'authentication transport metadata'),
     omitted('backup_eligible', 'authentication capability metadata'), omitted('backup_state', 'authentication capability metadata'),
-    exported('device_type'), exported('friendly_name', 'identity', 'owner-assigned label', 'name'),
+    exported('device_type'),
+    exported('friendly_name', 'passkey_label', 'the name you gave this passkey, or its authenticator model when unnamed, or just passkey', 'name'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_used_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('revoked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
