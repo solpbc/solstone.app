@@ -30,8 +30,8 @@ state and sits on sol pbc's money path. Treat it accordingly.
 **What it does:** email-OTP + passkey (WebAuthn) sign-in, sessions, multi-email
 management, device registration + dispatch tokens, APNs push, Stripe billing,
 SPL/SPB entitlement grants pushed to the relay, an R2 credential broker (SPB),
-a support-portal proxy, and a CF-Access-gated `/admin/*` surface. Cron
-(`0 */6 * * *`) runs retention.
+a support-portal proxy, and a CF-Access-gated `/admin/*` surface. Three cron schedules run (see `[triggers]` in `account/wrangler.toml`); the
+6-hourly one runs retention.
 
 **Module map (`account/src/`):**
 
@@ -57,7 +57,7 @@ shipped migration. When you tighten a column/constraint, ship the migration
 **Tests:** vitest on `@cloudflare/vitest-pool-workers`, two configs run in
 sequence by `npm test` (`vitest.config.js` for worker tests,
 `vitest.static.config.js` for the static-asset checks). The suite is large
-(~100 files) and includes per-migration tests — keep it green and add coverage
+(~140 files) and includes per-migration tests — keep it green and add coverage
 for new routes/migrations.
 
 ## 3. Build / test / deploy
@@ -89,8 +89,8 @@ These are not optional. A change that weakens one is wrong regardless of size.
 - **`/admin/*` is two-layer-protected; keep it that way.** Edge Cloudflare
   Access (`CF_ACCESS_AUD`) *plus* the in-worker JWT check. `workers_dev = false`
   in `account/wrangler.toml` is load-bearing: a live `*.workers.dev` hostname
-  would bypass the custom domain's edge CF Access and leave only one layer (CSO
-  audit F5). Never re-enable `workers_dev`.
+  would bypass the custom domain's edge CF Access and leave only one layer (a prior
+  security audit finding). Never re-enable `workers_dev`.
 - **Identity is resolved at the boundary, never client-supplied.** Derive the
   actor from the authenticated session / CF Access token / signed dispatch
   token — never trust an account id named in a request body or URL as the actor.
@@ -113,7 +113,25 @@ These are not optional. A change that weakens one is wrong regardless of size.
 - **Encrypt PII at rest.** Emails are stored encrypted (`crypto.js`
   `encryptEmail`), compared via hashes with a pepper, and OTP/credential
   comparisons use `timingSafeEqual`. Don't add a code path that stores or logs a
-  plaintext email or token.
+  plaintext email or token. (`otp_tokens` carried a plaintext `email_lower`
+  column from 2026-05 until migration 0033 dropped it; the verify handler already
+  holds the address it hashed, so nothing needs to read one back.)
+- **CSRF is two deliberate mechanisms; don't "fix" either one.** The two
+  pre-auth sign-in POSTs carry a per-deploy constant synchronizer token
+  (`csrfToken(env)`), and the billing, enable and support forms carry the same
+  token on top of the origin check. It was chosen in 2026-05 because
+  email-security link rewriting (Proofpoint, Mimecast, Defender) rewrites
+  `Origin` and `Referer` on a link click; the token is not per-session on
+  purpose and same-origin policy keeps it out of a cross-origin page's reach. Every signed-in, state-changing dashboard
+  POST is guarded by `originAllowed`, an exact match on the `Origin` header with
+  no prefix match and no `Referer` fallback, tightened in 2026-09 after
+  `https://services.solstone.app.evil.test` was found to pass the old prefix
+  check. Two families sit outside it on purpose: the four passkey ceremony
+  endpoints use `passkeyOriginAllowed` as a soft pre-check, because the finish
+  step verifies the WebAuthn response against the expected origin and the start
+  step only mints a challenge; and `/signout` relies on the cookie alone. The session cookie is `SameSite=Lax` underneath
+  all of it. Do not add a per-session token, and do not loosen the origin
+  predicate.
 - **Data covenant (Article 8).** This is user account data. It is never sold,
   licensed, shared, or used for analytics, profiling, or behavioral tracking —
   no exceptions, no analytics SDKs, no tracking pixels. Architectural, not policy.
