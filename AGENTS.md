@@ -132,9 +132,6 @@ These are not optional. A change that weakens one is wrong regardless of size.
   step only mints a challenge; and `/signout` relies on the cookie alone. The session cookie is `SameSite=Lax` underneath
   all of it. Do not add a per-session token, and do not loosen the origin
   predicate.
-- **Data covenant (Article 8).** This is user account data. It is never sold,
-  licensed, shared, or used for analytics, profiling, or behavioral tracking —
-  no exceptions, no analytics SDKs, no tracking pixels. Architectural, not policy.
 
 ## 5. Coding principles (sol pbc engineering standards, inlined)
 
