@@ -70,7 +70,7 @@ describe('settings sessions', () => {
     expect(body).toContain('2001:db8:abcd:1234::/64');
   });
 
-  it('escapes unrecognized user agents in the sessions view', async () => {
+  it('normalizes unrecognized user agents to unknown device in the sessions view', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -81,8 +81,9 @@ describe('settings sessions', () => {
     }), testEnv);
     const body = await response.text();
 
-    expect(body).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(body).toContain('unknown device');
     expect(body).not.toContain('<script>alert(1)</script>');
+    expect(body).not.toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 
   it('forbids self-revoke without changing the row', async () => {

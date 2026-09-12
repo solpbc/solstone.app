@@ -275,8 +275,10 @@ function passkeyViewRow(row, nowMs) {
 export function uaLabel(ua) {
   const value = typeof ua === 'string' ? ua.trim() : '';
   if (!value) return 'unknown device';
+  // Internal operator impersonation marker stored on sessions.last_user_agent
+  if (value.startsWith('impersonation by ')) return value;
   const browser = detectBrowser(value);
-  if (!browser) return value.slice(0, 64);
+  if (!browser) return 'unknown device';
   return `${browser} on ${detectOs(value)}`;
 }
 
