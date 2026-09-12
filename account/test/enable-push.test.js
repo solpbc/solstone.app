@@ -69,7 +69,7 @@ describe('/enable/push', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('notifications want to reach this device for you.');
+    expect(body).toContain('notifications need permission to reach your device.');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="device_token" value="${DEVICE_TOKEN}"`);
     expect(body).toContain(`name="platform" value="ios"`);

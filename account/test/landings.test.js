@@ -50,7 +50,7 @@ describe('service landing pages', () => {
     expect(body).toContain('confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.');
     expect(body).toContain('confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.');
     expect(body).toContain('href="/confidential-processing/data"');
-    expect(body).toContain("sol pbc's own engine");
+    expect(body).toContain("sol pbc's own model");
     expect(body).toContain("a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.");
     expect(body).toContain('your journal does the checking');
     expect(body).toContain("your journal must verify the service before anything is sent. if it can't verify, it doesn't send.");

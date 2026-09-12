@@ -192,13 +192,13 @@ export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bu
     title: 'enable notifications',
     body: `${brandbar()}
 <h1>enable notifications</h1>
-<p class="lead">notifications want to reach this device for you. two things, and only these two:</p>
+<p class="lead">notifications need permission to reach your device. two things, and only these two:</p>
 <div class="card">
   <div class="grant">
     <div class="n">1</div>
     <div>
       <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes this device. nothing from your journal comes with it: no entries, nothing the solstone app has taken in alongside you. just: this is your phone.</div>
+      <div class="gd">so your sign-in recognizes your device. nothing from your journal comes with it: no entries, nothing the solstone app has taken in alongside you. just: this is your phone.</div>
     </div>
   </div>
   <div class="grant">
@@ -507,7 +507,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <div class="n">3</div>
     <div>
       <div class="gt">your journal must verify before it sends</div>
-      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes. if it can't verify, it doesn't send, and the solstone app tells you why. the engine runs on confidential hardware sol pbc operates: a model sol pbc runs itself, with no third-party AI provider in the path. sol pbc gives your device a credential so only this journal can reach the engine. the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and it never quietly does it a different way.</div>
+      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes. if it can't verify, it doesn't send, and the solstone app tells you why. the model runs on confidential hardware sol pbc operates, with no third-party AI provider in the path. sol pbc gives your device a credential so only this journal can reach the model. the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and it never quietly does it a different way.</div>
     </div>
   </div>
   <form method="post" action="/enable/spp/confirm">
@@ -574,11 +574,11 @@ ${BRANDLOCK}
 <div class="group">
   ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
-  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'notifications reach you when there’s something worth a look.', '<span class="tag builtin">built in</span>')}
+  ${row('/notifications', IC_PUSH_SVG, 'notifications', "notifications reach you when there's something worth a look.", '<span class="tag builtin">built in</span>')}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
-<p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on. solstone itself never asks you to sign in.</p>`,
+  <p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you've turned on. solstone itself never asks you to sign in.</p>`,
     });
   }
 
@@ -592,7 +592,7 @@ ${BRANDLOCK}
   const welcomePanel = welcome
     ? `<div class="card" style="margin-bottom:24px">
   <h2>set up a passkey for next time</h2>
-  <p>use this device to sign in without typing a code.</p>
+  <p>use your device to sign in without typing a code.</p>
   <label for="passkey-friendly-name">device name</label>
   <input id="passkey-friendly-name" type="text" maxlength="64" placeholder="device name (optional)" autocomplete="off">
   <div class="btn-row">
@@ -636,8 +636,8 @@ export function renderPrivateNetworkLanding() {
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_NET, 'your own network, always free', 'on the same wifi, or over your own vpn, your devices reach your journal directly. sol pbc is never in the path.')}
-  ${beat(IC_GLOBE, 'your private network, from anywhere', 'sol pbc runs a blind relay so your devices stay reachable when you’re away from home or asleep, your private network spanning wherever your devices are. operated by sol pbc.')}
-  ${beat(IC_VAULT, 'blind by construction', 'the relay passes along encrypted bytes it can’t read. sol pbc operates it but <strong>cannot see your traffic</strong>. there’s no key to reveal, by design, not by promise.')}
+  ${beat(IC_GLOBE, 'your private network, from anywhere', "sol pbc runs a blind relay so your devices stay reachable when you're away from home or asleep, your private network spanning wherever your devices are. operated by sol pbc.")}
+  ${beat(IC_VAULT, 'blind by construction', "the relay passes along encrypted bytes it can't read. sol pbc operates it but <strong>cannot see your traffic</strong>. there's no key to reveal, by design, not by promise.")}
 </div>
 <div class="card">
   <div class="pricecard">
@@ -646,7 +646,7 @@ ${BRANDLOCK}
   </div>
   <p class="free-note" style="margin:14px 0 0">you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
 </div>
-<p class="disclosure">open source, self-hostable. run your own relay if you’d rather. <a href="/terms">terms</a></p>`,
+<p class="disclosure">open source, self-hostable. run your own relay if you'd rather. <a href="/terms">terms</a></p>`,
   });
 }
 
@@ -681,7 +681,7 @@ export function renderNotificationsLanding() {
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>notifications</h1>
 <p class="hero-tag">built in</p>
-<p class="lead">notifications reach you on your devices when there’s something worth a look: a short heads-up, never the full thing.</p>
+<p class="lead">notifications reach you on your devices when there's something worth a look: a short heads-up, never the full thing.</p>
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_PUSH_SVG, 'built into solstone', 'notifications come with solstone, free, with no hosted service to enable. you turn them on for each device, and choose what reaches you.')}
@@ -706,7 +706,7 @@ export function renderConfidentialProcessingLanding() {
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_CHIP, 'the thinking, off your device', 'confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.')}
-  ${beat(IC_VAULT, "sol pbc's own engine", "a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.")}
+  ${beat(IC_VAULT, "sol pbc's own model", "a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.")}
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
 </div>
@@ -1232,10 +1232,10 @@ ${renderDeletionForm({
   error,
   status,
   statusId: 'deletion-request-status',
-  intro: 'This begins deletion of your portal sign-in and services after you confirm ownership.',
+  intro: 'this begins deletion of your portal sign-in and services after you confirm ownership.',
 })}
-<p>This does not delete a journal, device, or bucket you control. Those remain under their own owner-controlled arrangements.</p>
-<p class="disclosure">Retention and financial deletion details will be provided here before this feature is deployed.</p>`,
+<p>this does not delete a journal, device, or bucket you control. those remain under their own owner-controlled arrangements.</p>
+<p class="disclosure">after you confirm, you have 72 hours to cancel before deletion begins.</p>`,
   });
 }
 
@@ -1254,7 +1254,7 @@ ${renderDeletionForm({
   error,
   status,
   statusId: 'deletion-otp-status',
-  intro: 'Enter the fresh code sent to your verified email address.',
+  intro: 'enter the fresh code sent to your verified email address.',
   fields: [{
     id: 'deletion-otp-code', name: 'code', label: '6-digit code',
     hint: 'The code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
@@ -1268,7 +1268,7 @@ ${renderDeletionForm({
   hidden: { purpose },
   status: '',
   statusId: 'deletion-passkey-status',
-  intro: 'If you have an active passkey, you must also verify it before continuing.',
+  intro: 'if you have an active passkey, you must also verify it before continuing.',
   extra: `<button class="btn secondary" type="button" data-deletion-passkey data-purpose="${escAttr(purpose)}">verify with passkey</button>`,
 })}
 ${deletionPasskeyScript()}`,
@@ -1330,7 +1330,7 @@ export function renderDeletionCancelPage({ menu, phase, exportEnabled = false })
   if (phase === 'purging') {
     return layout({
       title: 'deletion in progress',
-      body: `${topbar(menu)}<h1>deletion in progress</h1><p>The deletion safety period has ended and this request can no longer be cancelled.</p>`,
+      body: `${topbar(menu)}<h1>deletion in progress</h1><p>the deletion safety period has ended and this request can no longer be cancelled.</p>`,
     });
   }
   const exportLink = exportEnabled
@@ -1344,7 +1344,7 @@ ${renderDeletionForm({
   action: '/account/delete/proof/otp',
   submitLabel: 'send a cancellation code',
   hidden: { purpose: 'cancel' },
-  intro: 'A fresh ownership proof is required before cancellation.',
+  intro: 'a fresh ownership proof is required before cancellation.',
   statusId: 'deletion-cancel-status',
 })}${exportLink}`,
   });
@@ -1359,10 +1359,10 @@ export function renderDeletionStatus({ state = 'deletion status unavailable' } =
 
 export function renderDeletionUnavailablePage({ menu } = {}) {
   return layout({
-    title: 'deletion request can’t be confirmed',
+    title: "deletion request can't be confirmed",
     body: `${topbar(menu)}
 <div class="card">
-  <h1>deletion request can’t be confirmed</h1>
+  <h1>deletion request can't be confirmed</h1>
   <p class="lead">please try again later.</p>
   <p><a class="btn primary" href="/account/delete">return to deletion request</a></p>
 </div>`,
@@ -1429,7 +1429,7 @@ export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
       : `<div class="trail"><form method="post" action="${action}"><button class="btn danger" type="submit">sign out</button></form></div>`;
     return `<div class="row" style="cursor:default">
   <div class="body">
-    <div class="title">${esc(row.deviceLabel)}${isCurrent ? ' <span class="pill on" style="margin-left:4px"><span class="dot"></span>this device</span>' : ''}</div>
+    <div class="title">${esc(row.deviceLabel)}${isCurrent ? ' <span class="pill on" style="margin-left:4px"><span class="dot"></span>current device</span>' : ''}</div>
     <div class="desc">${esc(row.ipLabel)} · last active ${esc(formatRelativeTime(row.last_active_at, now))} · signed in ${esc(formatRelativeTime(row.created_at, now))}</div>
   </div>
   ${revoke}
@@ -1480,7 +1480,7 @@ export function renderServicesDevices({ devices, nowMs, disableFlash = '', menu 
     <div class="title">${esc(label)}</div>
     <div class="desc">${esc(desc.join(' · '))}</div>
   </div>
-  <div class="trail"><form method="post" action="${action}"><button class="btn danger" type="submit">revoke this device</button></form></div>
+  <div class="trail"><form method="post" action="${action}"><button class="btn danger" type="submit">turn off notifications</button></form></div>
 </div>`;
   }).join('');
   const groupHtml = rowHtml ? `<div class="group">${rowHtml}</div>` : '';

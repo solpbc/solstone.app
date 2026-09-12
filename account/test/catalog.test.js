@@ -33,7 +33,7 @@ describe('services catalog', () => {
     expect(body).toContain('the tester program. approved scouts can enable confidential processing.');
     expect(body).toContain('your journal is always private, only yours.');
     expect(body).toContain('href="/?signin"');
-    expect(body).toContain('no analytics, no tracking, no third parties. sign in only to manage what you’ve turned on');
+    expect(body).toContain("no analytics, no tracking, no third parties. sign in only to manage what you've turned on");
     expect(body).toContain('href="/transparency"');
     expect(body).not.toContain('action="/signin/start"');
   });

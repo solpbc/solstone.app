@@ -51,7 +51,7 @@ describe('settings sessions', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('safari on macos');
     expect(body).toContain('73.225.42.x');
-    expect(body).toContain('<span class="pill on" style="margin-left:4px"><span class="dot"></span>this device</span>');
+    expect(body).toContain('<span class="pill on" style="margin-left:4px"><span class="dot"></span>current device</span>');
     expect(body).not.toContain(`${session.idHash}/revoke`);
   });
 

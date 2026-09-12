@@ -743,7 +743,7 @@ describe('deletion readiness protocol and shared registry', () => {
       expect(res.headers.get('Cache-Control')).toBe('no-store');
 
       const body = await res.text();
-      expect(body).toContain('deletion request can’t be confirmed');
+      expect(body).toContain("deletion request can't be confirmed");
       expect(body).toContain('please try again later.');
       // Exactly one recovery action link to /account/delete
       const matches = body.match(/href="\/account\/delete"/g) || [];

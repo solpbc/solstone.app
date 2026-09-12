@@ -61,7 +61,10 @@ if you did not request this, you can ignore this email.`;
     });
     return { sent: true, messageId: response?.messageId };
   }
-  const action = purpose === 'cancel' ? 'cancel an account deletion request' : 'delete your sign-in and services';
+  const action = purpose === 'cancel' ? 'cancel your deletion request' : 'delete your sign-in and services';
+  const notice = purpose === 'cancel'
+    ? 'this cancels your deletion request.'
+    : 'this starts a deletion request. you have 72 hours to cancel before deletion begins.';
   const subject = `confirm ${action}: ${formatted}`;
   const text = `you requested to ${action}.
 
@@ -71,7 +74,7 @@ ${formatted}
 
 it expires in 10 minutes.
 
-this confirmation starts an irreversible-account-action workflow. retention and financial details will be provided before deployment.
+${notice}
 
 if you did not request this, you can ignore this email.`;
   const html = `<!DOCTYPE html>
@@ -80,7 +83,7 @@ if you did not request this, you can ignore this email.`;
   <p>enter this code to continue:</p>
   <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #B42318; background: #FFF4F2; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
   <p>it expires in 10 minutes.</p>
-  <p>this confirmation starts an irreversible-account-action workflow. retention and financial details will be provided before deployment.</p>
+  <p>${notice}</p>
   <p>if you did not request this, you can ignore this email.</p>
 </body></html>`;
   const response = await env.EMAIL.send({

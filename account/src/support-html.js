@@ -125,7 +125,7 @@ function renderActiveSection(section, nowMs) {
   <div class="desc">${esc(supportStatusLabel(row.status))} · updated ${esc(formatRelativeTime(row.updatedAtMs, nowMs))}</div>
 </div></div>`).join('');
   return `<section><h2>active requests</h2>${supportNotices(section.notices || [])}${sectionProblem(section)}
-${rows ? `<div class="group">${rows}</div>` : section.state === 'ready' ? '<p>no open requests. need help? open one below, or sol can file one for you.</p>' : ''}</section>`;
+${rows ? `<div class="group">${rows}</div>` : section.state === 'ready' ? '<p>no open requests. need help? open one below.</p>' : ''}</section>`;
 }
 
 function renderClosedSection(section) {
