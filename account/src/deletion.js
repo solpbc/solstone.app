@@ -39,12 +39,15 @@ import {
   verifyPasskeyAssertion,
 } from './passkey.js';
 import {
+  formatDate,
   renderDeletionCancelPage,
   renderDeletionPage,
   renderDeletionProofPage,
   renderDeletionStatus,
-  formatDate,
+  renderDeletionUnavailablePage,
 } from './html.js';
+import { checkDeletionReadiness } from './deletion-readiness.js';
+import { DELETION_SERVICES } from './deletion-services.js';
 import { loadMenuContext, requireSignedInSession, signedInHtml } from './settings.js';
 
 const ORIGIN = 'https://services.solstone.app';
@@ -357,6 +360,11 @@ export async function handleDeletionConfirm(req, env) {
         : 'verify your email code before continuing.',
     }), { status: 400 });
   }
+  const readiness = await checkDeletionReadiness(env);
+  if (!readiness.ok) {
+    const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+    return signedInHtml(renderDeletionUnavailablePage({ menu }), { status: 503 });
+  }
   const requestedAt = Date.now();
   const operationId = generateSessionToken();
   const statusToken = generateSessionToken();
@@ -457,11 +465,11 @@ async function deletionDelayedStatus(env, deletion) {
     `SELECT service
      FROM account_deletion_service_ops
      WHERE operation_id = ?
-       AND service IN ('relay', 'support')
+       AND service IN (?, ?)
        AND state NOT IN ('confirmed')
      ORDER BY CASE service WHEN 'relay' THEN 0 ELSE 1 END
      LIMIT 1`
-  ).bind(deletion.operation_id).all();
+  ).bind(deletion.operation_id, DELETION_SERVICES[0], DELETION_SERVICES[1]).all();
   const delayedService = results?.[0]?.service;
   if (delayedService === 'relay') return `relay cleanup delayed; next retry ${retry}`;
   if (delayedService === 'support') return `support cleanup delayed; next retry ${retry}`;

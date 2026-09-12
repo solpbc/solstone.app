@@ -6,13 +6,18 @@ import {
   sha256Base64Url,
   timingSafeEqual,
 } from './crypto.js';
+import {
+  bearerFor,
+  bindingFor,
+  CONFIRM_PATH,
+  CURRENT_KEY_VERSION,
+  domainFor,
+  hmacKeyFor,
+  PURGE_PATH,
+} from './deletion-services.js';
 
 const REQUEST_MAX_LIFETIME_MS = 604800000;
 const ATTESTATION_MAX_LIFETIME_MS = 300000;
-// Matches owner-purge-v1.json integrity.key_versions.current.
-const CURRENT_KEY_VERSION = 2;
-const PURGE_PATH = '/internal/deletion/purge';
-const CONFIRM_PATH = '/internal/deletion/purge/confirm';
 const RESPONSE_FIELDS = {
   version: 'number',
   key_version: 'number',
@@ -213,7 +218,7 @@ async function integrityFor(env, service, keyVersion, purpose, value) {
 }
 
 async function callService(env, service, path, body) {
-  const binding = service === 'relay' ? env.RELAY : env.SUPPORT_WORKER;
+  const binding = bindingFor(env, service);
   const bearer = bearerFor(env, service);
   if (!binding || !bearer) return null;
   try {
@@ -271,22 +276,6 @@ function validServiceSnapshot(snapshot, service) {
     && snapshot.verified_emails.every((email) => typeof email === 'string');
 }
 
-function bearerFor(env, service) {
-  const bearer = service === 'relay'
-    ? env.ACCOUNT_RELAY_PURGE_BEARER_TOKEN
-    : env.ACCOUNT_SUPPORT_PURGE_BEARER_TOKEN;
-  return typeof bearer === 'string' && bearer ? bearer : null;
-}
-
-function hmacKeyFor(env, service, keyVersion) {
-  const prefix = service === 'relay' ? 'ACCOUNT_RELAY_PURGE_HMAC_KEY_V' : 'ACCOUNT_SUPPORT_PURGE_HMAC_KEY_V';
-  const key = env[`${prefix}${keyVersion}`];
-  return typeof key === 'string' && key ? key : null;
-}
-
-function domainFor(service, purpose) {
-  return `solpbc-owner-purge-v1:${service}:${purpose}`;
-}
 
 function parseProtocolResponse(raw) {
   if (typeof raw !== 'string') throw new Error('invalid response');

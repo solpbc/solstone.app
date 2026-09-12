@@ -1,6 +1,7 @@
 import { decryptEmail, generateSessionToken, hashKey, hashWithPepper } from './crypto.js';
 import { captureDeletionSnapshotForAccount } from './deletion.js';
 import { advanceDeletionServiceOperation, remintExpiredDeletionServiceOperation } from './deletion-contract.js';
+import { DELETION_SERVICES } from './deletion-services.js';
 import { mintScopedCredential } from './r2-credential.js';
 import { listMultipartUploads, listObjectsV2 } from './s3.js';
 import { prefixFor } from './spb-broker.js';
@@ -10,7 +11,6 @@ import { deleteStripeCustomer } from './stripe.js';
 const LEASE_MS = 5 * 60 * 1000;
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 const MAX_BACKOFF = 6 * 60 * 60 * 1000;
-const DELETION_SERVICES = ['relay', 'support'];
 const SERVICE_RECONCILIATION_PENDING = 'service_reconciliation_pending';
 
 export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
