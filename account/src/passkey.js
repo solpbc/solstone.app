@@ -314,14 +314,22 @@ export function passkeyChallengeFromClientData(clientDataJSONB64u) {
   return extractChallengeFromClientData(clientDataJSONB64u);
 }
 
+// Soft pre-check for the four passkey ceremony endpoints. Unlike the dashboard's
+// originAllowed, this admits requests with neither Origin nor Referer so curl-style
+// callers and native integrations can start or finish a ceremony. When Origin is
+// present, it requires an exact origin match against EXPECTED_ORIGIN (rejecting
+// deceptive prefixes like services.solstone.app.evil.test). Referer-only requests
+// are rejected. The finish ceremony independently verifies WebAuthn response origin.
 export function passkeyOriginAllowed(req, _env) {
   const origin = req.headers.get('Origin');
   const referer = req.headers.get('Referer');
   if (!origin && !referer) return true;
-  return (
-    (typeof origin === 'string' && origin.startsWith(EXPECTED_ORIGIN)) ||
-    (typeof referer === 'string' && referer.startsWith(EXPECTED_ORIGIN))
-  );
+  if (typeof origin !== 'string') return false;
+  try {
+    return new URL(origin).origin === EXPECTED_ORIGIN;
+  } catch {
+    return false;
+  }
 }
 
 function methodAndOriginGuard(req, env, tagBase) {

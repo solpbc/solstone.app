@@ -127,9 +127,11 @@ These are not optional. A change that weakens one is wrong regardless of size.
   no prefix match and no `Referer` fallback, tightened in 2026-09 after
   `https://services.solstone.app.evil.test` was found to pass the old prefix
   check. Two families sit outside it on purpose: the four passkey ceremony
-  endpoints use `passkeyOriginAllowed` as a soft pre-check, because the finish
-  step verifies the WebAuthn response against the expected origin and the start
-  step only mints a challenge; and `/signout` relies on the cookie alone. The session cookie is `SameSite=Lax` underneath
+  endpoints use `passkeyOriginAllowed` (not dashboard `originAllowed`) as a
+  pre-check that exact-matches `Origin` when present, admits header-less
+  requests, and has no Referer arm, because the finish step still verifies the
+  WebAuthn response against the expected origin; and `/signout` relies on the
+  cookie alone. The session cookie is `SameSite=Lax` underneath
   all of it. Do not add a per-session token, and do not loosen the origin
   predicate.
 
