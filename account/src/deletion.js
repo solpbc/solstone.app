@@ -247,7 +247,8 @@ export async function handleAccountDeletionPage(req, env) {
     getActiveDeletionForAccount(env.DB, guard.session.account_id),
   ]);
   if (active) {
-    return signedInHtml(renderDeletionCancelPage({ menu, phase: active.phase }));
+    const exportEnabled = env?.OWNER_EXPORT_ENABLED === 'true';
+    return signedInHtml(renderDeletionCancelPage({ menu, phase: active.phase, exportEnabled }));
   }
   return signedInHtml(renderDeletionPage({ menu }));
 }

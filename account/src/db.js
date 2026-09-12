@@ -833,9 +833,26 @@ export async function consumeFreshExportProofs(db, {
          WHERE account_id = ? AND revoked_at IS NULL
        ) AS passkey_required
      ),
+     live_session AS (
+       SELECT 1
+       FROM sessions
+       WHERE id_hash = ?
+         AND account_id = ?
+         AND revoked_at IS NULL
+         AND expires_at > ?
+     ),
+     phase_check AS (
+       SELECT 1
+       WHERE NOT EXISTS (
+         SELECT 1
+         FROM account_deletions
+         WHERE account_id = ?
+           AND phase = 'purging'
+       )
+     ),
      authorized AS (
        SELECT 1
-       FROM proof_counts, requirements
+       FROM proof_counts, requirements, live_session, phase_check
        WHERE otp_count = 1
          AND ((passkey_required = 0 AND passkey_count = 0)
            OR (passkey_required = 1 AND passkey_count = 1))
@@ -845,7 +862,7 @@ export async function consumeFreshExportProofs(db, {
      WHERE token_hash IN (SELECT token_hash FROM eligible)
        AND EXISTS (SELECT 1 FROM authorized)
      RETURNING token_hash, method`
-  ).bind(accountId, sessionIdHash, nowMs, accountId).all();
+  ).bind(accountId, sessionIdHash, nowMs, accountId, sessionIdHash, accountId, nowMs, accountId).all();
   const methods = results.map((row) => row.method).sort();
   return {
     authorized: methods.length > 0,

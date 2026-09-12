@@ -1323,13 +1323,18 @@ ${exportPasskeyScript()}`,
   });
 }
 
-export function renderDeletionCancelPage({ menu, phase }) {
+export const DELETION_EXPORT_PROMPT_LINK = 'download your data before this completes';
+
+export function renderDeletionCancelPage({ menu, phase, exportEnabled = false }) {
   if (phase === 'purging') {
     return layout({
       title: 'deletion in progress',
       body: `${topbar(menu)}<h1>deletion in progress</h1><p>The deletion safety period has ended and this request can no longer be cancelled.</p>`,
     });
   }
+  const exportLink = exportEnabled
+    ? `<p><a href="/account/export">${esc(DELETION_EXPORT_PROMPT_LINK)}</a></p>`
+    : '';
   return layout({
     title: 'cancel deletion request',
     body: `${topbar(menu)}
@@ -1340,7 +1345,7 @@ ${renderDeletionForm({
   hidden: { purpose: 'cancel' },
   intro: 'A fresh ownership proof is required before cancellation.',
   statusId: 'deletion-cancel-status',
-})}`,
+})}${exportLink}`,
   });
 }
 

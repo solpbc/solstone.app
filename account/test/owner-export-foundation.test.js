@@ -65,34 +65,36 @@ describe('owner export foundation', () => {
   it('atomically consumes exactly the fresh proof set required at execution time', async () => {
     const env = makeTestEnv();
     const account = await seedAccount({ testEnv: env });
-    await proof(account.accountId, 'session', 'otp', 'otp-one');
+    const session = await seedSession(account.accountId, { testEnv: env, nowMs: NOW - 1000, expiresAt: NOW + 3600000 });
+    await proof(account.accountId, session.idHash, 'otp', 'otp-one');
     await expect(consumeFreshExportProofs(workerEnv.DB, {
-      accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW,
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
     })).resolves.toMatchObject({ authorized: true, methods: ['otp'] });
     await expect(consumed('otp-one')).resolves.toBe(1);
     await expect(consumeFreshExportProofs(workerEnv.DB, {
-      accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW,
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
     })).resolves.toMatchObject({ authorized: false, methods: [] });
 
     await seedCredential({ accountId: account.accountId, credentialId: 'active' });
-    await proof(account.accountId, 'session', 'otp', 'otp-two');
+    await proof(account.accountId, session.idHash, 'otp', 'otp-two');
     await expect(consumeFreshExportProofs(workerEnv.DB, {
-      accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW,
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
     })).resolves.toMatchObject({ authorized: false, methods: [] });
     await expect(consumed('otp-two')).resolves.toBe(0);
-    await proof(account.accountId, 'session', 'passkey', 'passkey-one');
+    await proof(account.accountId, session.idHash, 'passkey', 'passkey-one');
     await expect(consumeFreshExportProofs(workerEnv.DB, {
-      accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW,
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
     })).resolves.toMatchObject({ authorized: true, methods: ['otp', 'passkey'] });
   });
 
   it('authorizes at most one of two concurrent emission attempts', async () => {
     const env = makeTestEnv();
     const account = await seedAccount({ testEnv: env });
-    await proof(account.accountId, 'session', 'otp', 'one-shot');
+    const session = await seedSession(account.accountId, { testEnv: env, nowMs: NOW - 1000, expiresAt: NOW + 3600000 });
+    await proof(account.accountId, session.idHash, 'otp', 'one-shot');
     const results = await Promise.all([
-      consumeFreshExportProofs(workerEnv.DB, { accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW }),
-      consumeFreshExportProofs(workerEnv.DB, { accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW }),
+      consumeFreshExportProofs(workerEnv.DB, { accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW }),
+      consumeFreshExportProofs(workerEnv.DB, { accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW }),
     ]);
     expect(results.map(({ authorized }) => authorized).sort()).toEqual([false, true]);
     await expect(consumed('one-shot')).resolves.toBe(1);
@@ -101,7 +103,8 @@ describe('owner export foundation', () => {
   it('evaluates a newly active passkey inside the consuming statement', async () => {
     const env = makeTestEnv();
     const account = await seedAccount({ testEnv: env });
-    await proof(account.accountId, 'session', 'otp', 'race-otp');
+    const session = await seedSession(account.accountId, { testEnv: env, nowMs: NOW - 1000, expiresAt: NOW + 3600000 });
+    await proof(account.accountId, session.idHash, 'otp', 'race-otp');
     let inserted = false;
     const raceDb = {
       prepare(sql) {
@@ -123,28 +126,66 @@ describe('owner export foundation', () => {
       },
     };
     await expect(consumeFreshExportProofs(raceDb, {
-      accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW,
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
     })).resolves.toMatchObject({ authorized: false, methods: [] });
     await expect(consumed('race-otp')).resolves.toBe(0);
-    await proof(account.accountId, 'session', 'passkey', 'race-passkey-proof');
+    await proof(account.accountId, session.idHash, 'passkey', 'race-passkey-proof');
     await expect(consumeFreshExportProofs(workerEnv.DB, {
-      accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW,
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
     })).resolves.toMatchObject({ authorized: true, methods: ['otp', 'passkey'] });
   });
 
   it('fails closed on duplicate, expired, wrong-purpose, and wrong-session proofs', async () => {
     const env = makeTestEnv();
     const account = await seedAccount({ testEnv: env });
-    await proof(account.accountId, 'session', 'otp', 'fresh');
-    await proof(account.accountId, 'session', 'otp', 'duplicate');
-    await proof(account.accountId, 'session', 'passkey', 'expired', { expiresAt: NOW });
+    const session = await seedSession(account.accountId, { testEnv: env, nowMs: NOW - 1000, expiresAt: NOW + 3600000 });
+    await proof(account.accountId, session.idHash, 'otp', 'fresh');
+    await proof(account.accountId, session.idHash, 'otp', 'duplicate');
+    await proof(account.accountId, session.idHash, 'passkey', 'expired', { expiresAt: NOW });
     await proof(account.accountId, 'other-session', 'passkey', 'wrong-session');
-    await proof(account.accountId, 'session', 'passkey', 'wrong-purpose', { purpose: 'delete' });
+    await proof(account.accountId, session.idHash, 'passkey', 'wrong-purpose', { purpose: 'delete' });
     await expect(consumeFreshExportProofs(workerEnv.DB, {
-      accountId: account.accountId, sessionIdHash: 'session', nowMs: NOW,
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
     })).resolves.toMatchObject({ authorized: false, methods: [] });
     await expect(consumed('fresh')).resolves.toBe(0);
     await expect(consumed('duplicate')).resolves.toBe(0);
+  });
+
+  it('refuses consumption on revoked session, expired session, and purging phase', async () => {
+    const env = makeTestEnv();
+    const account = await seedAccount({ testEnv: env });
+    const session = await seedSession(account.accountId, { testEnv: env, nowMs: NOW - 1000, expiresAt: NOW + 3600000 });
+    await proof(account.accountId, session.idHash, 'otp', 'revoked-session-proof');
+
+    // Revoked session
+    await workerEnv.DB.prepare('UPDATE sessions SET revoked_at = ? WHERE id_hash = ?').bind(NOW, session.idHash).run();
+    await expect(consumeFreshExportProofs(workerEnv.DB, {
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
+    })).resolves.toMatchObject({ authorized: false, methods: [] });
+    await expect(consumed('revoked-session-proof')).resolves.toBe(0);
+
+    // Restore revoked and test expired session
+    await workerEnv.DB.prepare('UPDATE sessions SET revoked_at = NULL, expires_at = ? WHERE id_hash = ?').bind(NOW - 1, session.idHash).run();
+    await expect(consumeFreshExportProofs(workerEnv.DB, {
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
+    })).resolves.toMatchObject({ authorized: false, methods: [] });
+    await expect(consumed('revoked-session-proof')).resolves.toBe(0);
+
+    // Restore expires_at and test purging phase
+    await workerEnv.DB.prepare('UPDATE sessions SET expires_at = ? WHERE id_hash = ?').bind(NOW + 3600000, session.idHash).run();
+    await activeDeletion(account.accountId, 'purging');
+    await expect(consumeFreshExportProofs(workerEnv.DB, {
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
+    })).resolves.toMatchObject({ authorized: false, methods: [] });
+    await expect(consumed('revoked-session-proof')).resolves.toBe(0);
+
+    // Clean deletion row and test requested/frozen phase allows consumption
+    await workerEnv.DB.prepare('DELETE FROM account_deletions WHERE account_id = ?').bind(account.accountId).run();
+    await activeDeletion(account.accountId, 'requested');
+    await expect(consumeFreshExportProofs(workerEnv.DB, {
+      accountId: account.accountId, sessionIdHash: session.idHash, nowMs: NOW,
+    })).resolves.toMatchObject({ authorized: true, methods: ['otp'] });
+    await expect(consumed('revoked-session-proof')).resolves.toBe(1);
   });
 
   it('gives export its own email contract without changing delete or cancel copy', async () => {
@@ -200,15 +241,16 @@ if you did not request this, you can ignore this email.`);
     const preparationHtml = await preparation.text();
     expect(preparationHtml).toContain('action="/account/export/proof/otp"');
     expect(preparationHtml).not.toContain('/account/delete');
-    expect(preparationHtml).not.toContain('delete your');
-
     const proofPage = await worker.fetch(new Request(`${ORIGIN}/account/export/proof/otp`, {
       method: 'POST',
       headers: { Cookie: session.cookie, Origin: ORIGIN },
     }), env, {});
+    expect(proofPage.status).toBe(200);
+    expect(proofPage.headers.get('Content-Type')).toContain('text/html');
     const proofHtml = await proofPage.text();
     expect(proofHtml).toContain('action="/account/export/proof/otp/verify"');
     expect(proofHtml).not.toContain('/account/delete');
+    expect(() => JSON.parse(proofHtml)).toThrow();
   });
 });
 

@@ -1,3 +1,5 @@
+import { decryptEmail } from './crypto.js';
+import { consumeFreshExportProofs, listAccountEmails } from './db.js';
 import {
   finishPasskeyProof,
   startEmailProof,
@@ -6,10 +8,17 @@ import {
   verifyEmailProof,
 } from './deletion.js';
 import { renderExportPage, renderExportProofPage } from './html.js';
+import { composeOwnerExportDocument } from './owner-export-compose.js';
+import { collectOwnerLocalExport } from './owner-export-local.js';
 import { ownerExportNotFound } from './owner-export-path.js';
+import { collectOwnerRelayExport, relayExpectedInstanceIds } from './owner-export-relay.js';
+import { collectOwnerSupportExport } from './owner-export-support.js';
 import { loadMenuContext, requireSignedInSession, signedInHtml } from './settings.js';
 
 const PURPOSE = 'export';
+export const EXPORT_SERVICE_UNAVAILABLE = 'service unavailable';
+export const EXPORT_PROOF_INVALID = "this download request isn't valid";
+export const EXPORT_FILENAME = 'solstone-owner-export.json';
 
 export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
   if (url.pathname === '/account/export' && req.method === 'GET') {
@@ -17,6 +26,76 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
     if (guard instanceof Response) return guard;
     const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
     return signedInHtml(renderExportPage({ menu }));
+  }
+
+  if (url.pathname === '/account/export' && req.method === 'POST') {
+    const guard = await exportGuard(req, env);
+    if (guard instanceof Response) return guard;
+
+    const local = await collectOwnerLocalExport({
+      db: env.DB,
+      env,
+      accountId: guard.session.account_id,
+    });
+    if (!local.ok) {
+      return refusal(503, EXPORT_SERVICE_UNAVAILABLE);
+    }
+
+    const splClass = local.classes.find((c) => c.name === 'spl_bindings');
+    const sppClass = local.classes.find((c) => c.name === 'spp_bindings');
+    const splIds = (splClass?.records || []).map((r) => r.instance_id).filter(Boolean);
+    const sppIds = (sppClass?.records || []).map((r) => r.instance_id).filter(Boolean);
+    const relayIds = relayExpectedInstanceIds(splIds, sppIds);
+
+    const relay = await collectOwnerRelayExport({
+      env,
+      instanceIds: relayIds,
+    });
+
+    const emailRows = await listAccountEmails(env.DB, guard.session.account_id);
+    const verifiedEmails = [];
+    let decryptFailed = false;
+    for (const row of emailRows) {
+      if (row.verified_at == null) continue;
+      try {
+        const decrypted = await decryptEmail(row.address_encrypted, env);
+        verifiedEmails.push(decrypted);
+      } catch {
+        decryptFailed = true;
+      }
+    }
+
+    const support = await collectOwnerSupportExport({
+      env,
+      accountId: guard.session.account_id,
+      verifiedEmails,
+      decryptFailed,
+    });
+
+    const document = composeOwnerExportDocument({
+      generatedAtMs: guard.nowMs,
+      local,
+      relay,
+      support,
+    });
+
+    const consumeResult = await consumeFreshExportProofs(env.DB, {
+      accountId: guard.session.account_id,
+      sessionIdHash: guard.session.id_hash,
+      nowMs: guard.nowMs,
+    });
+    if (!consumeResult.authorized) {
+      return refusal(403, EXPORT_PROOF_INVALID);
+    }
+
+    return new Response(JSON.stringify(document), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename=${EXPORT_FILENAME}`,
+        'Cache-Control': 'no-store',
+      },
+    });
   }
 
   if (url.pathname === '/account/export/proof/otp' && req.method === 'POST') {
@@ -106,7 +185,7 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
 }
 
 async function exportGuard(req, env) {
-  if (!strictDeletionOriginAllowed(req)) return refusal(403, "this download request isn't valid");
+  if (!strictDeletionOriginAllowed(req)) return refusal(403, EXPORT_PROOF_INVALID);
   return requireSignedInSession(req, env);
 }
 

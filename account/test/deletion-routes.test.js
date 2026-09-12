@@ -107,6 +107,45 @@ describe('deletion routes', () => {
     expect(response.headers.get('Set-Cookie')).toMatch(/^account_deletion_status=[A-Za-z0-9_-]+;/);
     await expect(baseDb.prepare('SELECT phase FROM account_deletions').first()).resolves.toMatchObject({ phase: 'frozen' });
   });
+
+  it('renders data download link under active deletion only when export gate is on and phase is cancellable', async () => {
+    const envGateOff = makeTestEnv({ OWNER_EXPORT_ENABLED: 'false' });
+    const envGateOn = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true' });
+    const account = await seedAccount({ testEnv: envGateOn });
+    const session = await seedSession(account.accountId, { testEnv: envGateOn });
+
+    // 1. No active deletion: neither gate-on nor gate-off has an /account/export link on /account/delete
+    const resNoDeletionOff = await worker.fetch(request('/account/delete', { cookie: session.cookie }), envGateOff);
+    expect(await resNoDeletionOff.text()).not.toContain('href="/account/export"');
+    const resNoDeletionOn = await worker.fetch(request('/account/delete', { cookie: session.cookie }), envGateOn);
+    expect(await resNoDeletionOn.text()).not.toContain('href="/account/export"');
+
+    // 2. Active deletion in 'requested' phase
+    await workerEnv.DB.prepare(
+      "INSERT INTO account_deletions (operation_id, account_id, phase, requested_at, cancellation_deadline_at, status_token_hash) VALUES ('op-req', ?, 'requested', 1, 2, 'status')"
+    ).bind(account.accountId).run();
+    const resReqOff = await worker.fetch(request('/account/delete', { cookie: session.cookie }), envGateOff);
+    expect(await resReqOff.text()).not.toContain('href="/account/export"');
+    const resReqOn = await worker.fetch(request('/account/delete', { cookie: session.cookie }), envGateOn);
+    const bodyReqOn = await resReqOn.text();
+    expect(bodyReqOn).toContain('href="/account/export"');
+    expect(bodyReqOn).not.toMatch(/forever|retention policy/i);
+    expect(bodyReqOn).toContain('<a');
+
+    // 3. Active deletion in 'frozen' phase
+    await workerEnv.DB.prepare("UPDATE account_deletions SET phase = 'frozen' WHERE operation_id = 'op-req'").run();
+    const resFrozenOff = await worker.fetch(request('/account/delete', { cookie: session.cookie }), envGateOff);
+    expect(await resFrozenOff.text()).not.toContain('href="/account/export"');
+    const resFrozenOn = await worker.fetch(request('/account/delete', { cookie: session.cookie }), envGateOn);
+    expect(await resFrozenOn.text()).toContain('href="/account/export"');
+
+    // 4. Active deletion in 'purging' phase
+    await workerEnv.DB.prepare("UPDATE account_deletions SET phase = 'purging' WHERE operation_id = 'op-req'").run();
+    const resPurgingOff = await worker.fetch(request('/account/delete', { cookie: session.cookie }), envGateOff);
+    expect(await resPurgingOff.text()).not.toContain('href="/account/export"');
+    const resPurgingOn = await worker.fetch(request('/account/delete', { cookie: session.cookie }), envGateOn);
+    expect(await resPurgingOn.text()).not.toContain('href="/account/export"');
+  });
 });
 
 function request(path, { cookie, method = 'GET', form, origin = 'https://services.solstone.app' } = {}) {
