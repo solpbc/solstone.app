@@ -1,0 +1,57 @@
+{
+  "fixture_id": "solpbc-owner-purge-readiness-wire-v1",
+  "version": 1,
+  "route": "/internal/deletion/purge/ready",
+  "method": "GET",
+  "domain": "solpbc-owner-purge-v1:<service>:readiness",
+  "headers": {
+    "readiness_version": "X-Owner-Purge-Readiness-Version",
+    "readiness_nonce": "X-Owner-Purge-Readiness-Nonce",
+    "readiness_proof_v1": "X-Owner-Purge-Readiness-Proof-V1",
+    "readiness_proof_v2": "X-Owner-Purge-Readiness-Proof-V2",
+    "cache_control": "Cache-Control",
+    "allow": "Allow"
+  },
+  "non_production_test_keys_utf8": {
+    "1": "owner-purge-v1-fixture-test-key",
+    "2": "owner-purge-v2-fixture-test-key"
+  },
+  "canonicalization": {
+    "json": "recursive JSON; object keys sorted by UTF-8 bytes; arrays retain supplied order; no whitespace",
+    "integrity_framing": "uint64be(length(UTF-8(domain))) || UTF-8(domain) || uint64be(length(UTF-8(canonical_json_without_integrity))) || UTF-8(canonical_json_without_integrity)"
+  },
+  "transcripts": [
+    {
+      "name": "support_readiness_valid_nonce",
+      "service": "support",
+      "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "canonical_v1": "{\"key_version\":1,\"nonce\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"service\":\"support\",\"version\":1}",
+      "canonical_v2": "{\"key_version\":2,\"nonce\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"service\":\"support\",\"version\":1}",
+      "frame_v1_hex": "0000000000000027736f6c7062632d6f776e65722d70757267652d76313a737570706f72743a72656164696e65737300000000000000677b226b65795f76657273696f6e223a312c226e6f6e6365223a2241414543417751464267634943516f4c4441304f4478415245684d554652595847426b6147787764486838222c2273657276696365223a22737570706f7274222c2276657273696f6e223a317d",
+      "frame_v2_hex": "0000000000000027736f6c7062632d6f776e65722d70757267652d76313a737570706f72743a72656164696e65737300000000000000677b226b65795f76657273696f6e223a322c226e6f6e6365223a2241414543417751464267634943516f4c4441304f4478415245684d554652595847426b6147787764486838222c2273657276696365223a22737570706f7274222c2276657273696f6e223a317d",
+      "expected_status": 204,
+      "expected_headers": {
+        "Cache-Control": "no-store",
+        "X-Owner-Purge-Readiness-Version": "1",
+        "X-Owner-Purge-Readiness-Proof-V1": "m9_3lDAO0XCT9iiIlacX4u-ehyI3pSBmo8CZ6L444Sc",
+        "X-Owner-Purge-Readiness-Proof-V2": "xy-oDgIR9nP8gRT98FcbC0q5GDYsJ2q6iRskmyVqP84"
+      }
+    }
+  ],
+  "failure_vectors": [
+    { "name": "unsupported_method_post", "method": "POST", "expected_status": 405, "expected_allow": "GET, HEAD" },
+    { "name": "unsupported_method_put", "method": "PUT", "expected_status": 405, "expected_allow": "GET, HEAD" },
+    { "name": "unsupported_method_delete", "method": "DELETE", "expected_status": 405, "expected_allow": "GET, HEAD" },
+    { "name": "forbidden_origin_header", "origin": "https://attacker.test", "expected_status": 403 },
+    { "name": "missing_nonce", "nonce": null, "expected_status": 400 },
+    { "name": "malformed_nonce_short", "nonce": "short-nonce", "expected_status": 400 },
+    { "name": "malformed_nonce_chars", "nonce": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA$", "expected_status": 400 },
+    { "name": "missing_authorization", "auth": null, "expected_status": 401 },
+    { "name": "invalid_bearer_token", "auth": "Bearer wrong-token", "expected_status": 401 },
+    { "name": "missing_auth_token_config", "missing_config": "OWNER_PURGE_SUPPORT_AUTH_TOKEN", "expected_status": 503 },
+    { "name": "bearer_equals_key_v1", "bearer_config": "owner-purge-v1-fixture-test-key", "expected_status": 503 },
+    { "name": "missing_key_v1_config", "missing_config": "OWNER_PURGE_SUPPORT_KEY_V1", "expected_status": 503 },
+    { "name": "missing_key_v2_config", "missing_config": "OWNER_PURGE_SUPPORT_KEY_V2", "expected_status": 503 },
+    { "name": "schema_pre_0008_unconfirmed", "schema": "pre-0008", "expected_status": 503 }
+  ]
+}

@@ -1304,11 +1304,11 @@ export function renderDeletionStatus({ state = 'deletion status unavailable' } =
 
 export function renderDeletionUnavailablePage({ menu } = {}) {
   return layout({
-    title: 'deletion services temporarily unavailable',
+    title: 'deletion request can’t be confirmed',
     body: `${topbar(menu)}
 <div class="card">
-  <h1>deletion services temporarily unavailable</h1>
-  <p class="lead">deletion services are temporarily unavailable; please try again in a few moments.</p>
+  <h1>deletion request can’t be confirmed</h1>
+  <p class="lead">please try again later.</p>
   <p><a class="btn primary" href="/account/delete">return to deletion request</a></p>
 </div>`,
   });

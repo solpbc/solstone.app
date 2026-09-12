@@ -18,13 +18,26 @@ import { runAccountDeletionCoordinator } from '../src/deletion-coordinator.js';
 import { createDeletionProof, markDeletionProofVerified } from '../src/db.js';
 import { hashWithPepper } from '../src/crypto.js';
 import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
-import fixture from '../test-fixtures/owner-purge-readiness-v1.json';
+import relayFixtureText from '../test-fixtures/relay-owner-purge-readiness-v1.json?raw';
+import supportFixtureText from '../test-fixtures/support-owner-purge-readiness-v1.json?raw';
+import provenance from '../test-fixtures/owner-purge-readiness-provenance-v1.json';
+import destructiveFixtureText from '../proto/owner-purge-v1.json?raw';
+
+const relayFixture = JSON.parse(relayFixtureText);
+const supportFixture = JSON.parse(supportFixtureText);
 
 // Independent framer and signer (strictly independent: no imports from production crypto/canonicalization helpers)
-async function independentFrameAndSign(secret, domain, nonce) {
+async function independentFrameAndSign(secret, service, nonce, keyVersion) {
   const enc = new TextEncoder();
+  const canonical = independentCanonicalJson({
+    key_version: keyVersion,
+    nonce,
+    service,
+    version: 1,
+  });
+  const domain = `solpbc-owner-purge-v1:${service}:readiness`;
   const domainBytes = enc.encode(domain);
-  const nonceBytes = enc.encode(nonce);
+  const payloadBytes = enc.encode(canonical);
 
   const domainView = new DataView(new ArrayBuffer(8));
   domainView.setBigUint64(0, BigInt(domainBytes.length), false);
@@ -32,15 +45,15 @@ async function independentFrameAndSign(secret, domain, nonce) {
   framedDomain.set(new Uint8Array(domainView.buffer));
   framedDomain.set(domainBytes, 8);
 
-  const nonceView = new DataView(new ArrayBuffer(8));
-  nonceView.setBigUint64(0, BigInt(nonceBytes.length), false);
-  const framedNonce = new Uint8Array(8 + nonceBytes.length);
-  framedNonce.set(new Uint8Array(nonceView.buffer));
-  framedNonce.set(nonceBytes, 8);
+  const payloadView = new DataView(new ArrayBuffer(8));
+  payloadView.setBigUint64(0, BigInt(payloadBytes.length), false);
+  const framedPayload = new Uint8Array(8 + payloadBytes.length);
+  framedPayload.set(new Uint8Array(payloadView.buffer));
+  framedPayload.set(payloadBytes, 8);
 
-  const combined = new Uint8Array(framedDomain.length + framedNonce.length);
+  const combined = new Uint8Array(framedDomain.length + framedPayload.length);
   combined.set(framedDomain);
-  combined.set(framedNonce, framedDomain.length);
+  combined.set(framedPayload, framedDomain.length);
 
   const frameHex = Array.from(combined, (b) => b.toString(16).padStart(2, '0')).join('');
 
@@ -55,7 +68,27 @@ async function independentFrameAndSign(secret, domain, nonce) {
   const bin = Array.from(new Uint8Array(sig), (b) => String.fromCharCode(b)).join('');
   const proof = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 
-  return { frameHex, proof };
+  return { canonical, frameHex, proof };
+}
+
+function independentCanonicalJson(value) {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'number') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(independentCanonicalJson).join(',')}]`;
+  const keys = Object.keys(value).sort((left, right) => {
+    const a = new TextEncoder().encode(left);
+    const b = new TextEncoder().encode(right);
+    for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
+      if (a[index] !== b[index]) return a[index] - b[index];
+    }
+    return a.length - b.length;
+  });
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${independentCanonicalJson(value[key])}`).join(',')}}`;
+}
+
+async function sha256Hex(text) {
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function makeStrictPeerDouble(service, {
@@ -70,6 +103,8 @@ function makeStrictPeerDouble(service, {
   proofV2Override = undefined,
   delayMs = 0,
   duplicateHeader = null,
+  legacyProofV1 = false,
+  legacyProofV2 = false,
   isRedirect = false,
   calls = [],
 } = {}) {
@@ -132,9 +167,8 @@ function makeStrictPeerDouble(service, {
         });
       }
 
-      const domain = readinessDomainFor(service);
-      const resV1 = await independentFrameAndSign(keyV1, domain, nonce);
-      const resV2 = await independentFrameAndSign(keyV2, domain, nonce);
+      const resV1 = await independentFrameAndSign(keyV1, service, nonce, 1);
+      const resV2 = await independentFrameAndSign(keyV2, service, nonce, 2);
 
       const finalProofV1 = proofV1Override !== undefined ? proofV1Override : resV1.proof;
       const finalProofV2 = proofV2Override !== undefined ? proofV2Override : resV2.proof;
@@ -144,6 +178,8 @@ function makeStrictPeerDouble(service, {
       if (readinessVersion !== null) respHeaders.set('X-Owner-Purge-Readiness-Version', readinessVersion);
       if (finalProofV1 !== null) respHeaders.set('X-Owner-Purge-Readiness-Proof-V1', finalProofV1);
       if (finalProofV2 !== null) respHeaders.set('X-Owner-Purge-Readiness-Proof-V2', finalProofV2);
+      if (legacyProofV1) respHeaders.set('X-Owner-Purge-Proof-V1', finalProofV1);
+      if (legacyProofV2) respHeaders.set('X-Owner-Purge-Proof-V2', finalProofV2);
 
       if (duplicateHeader) {
         respHeaders.append(duplicateHeader.name, duplicateHeader.value);
@@ -222,6 +258,36 @@ describe('deletion readiness protocol and shared registry', () => {
       expect(hmacKeyFor(missingKeyV2, 'support', 2)).toBeNull();
     });
 
+    it('refuses every bearer-to-bearer and bearer-to-HMAC alias before peer calls', async () => {
+      const base = makeTestEnv();
+      const keyNames = [
+        'ACCOUNT_RELAY_PURGE_HMAC_KEY_V1',
+        'ACCOUNT_RELAY_PURGE_HMAC_KEY_V2',
+        'ACCOUNT_SUPPORT_PURGE_HMAC_KEY_V1',
+        'ACCOUNT_SUPPORT_PURGE_HMAC_KEY_V2',
+      ];
+      const cases = [{
+        ACCOUNT_SUPPORT_PURGE_BEARER_TOKEN: base.ACCOUNT_RELAY_PURGE_BEARER_TOKEN,
+      }];
+      for (const bearerName of ['ACCOUNT_RELAY_PURGE_BEARER_TOKEN', 'ACCOUNT_SUPPORT_PURGE_BEARER_TOKEN']) {
+        for (const keyName of keyNames) cases.push({ [bearerName]: base[keyName] });
+      }
+
+      for (const overrides of cases) {
+        const relayCalls = [];
+        const supportCalls = [];
+        const testEnv = makeTestEnv({
+          ...overrides,
+          RELAY: makeStrictPeerDouble('relay', { calls: relayCalls }),
+          SUPPORT_WORKER: makeStrictPeerDouble('support', { calls: supportCalls }),
+        });
+        expect(validateDeletionServiceConfig(testEnv)).toBe(false);
+        expect((await checkDeletionReadiness(testEnv)).ok).toBe(false);
+        expect(relayCalls).toHaveLength(0);
+        expect(supportCalls).toHaveLength(0);
+      }
+    });
+
     it('permits equal HMAC V1 and V2 key values across services', async () => {
       const equalKeyEnv = makeTestEnv({
         ACCOUNT_RELAY_PURGE_HMAC_KEY_V1: 'same-shared-secret-key-12345',
@@ -262,51 +328,48 @@ describe('deletion readiness protocol and shared registry', () => {
   });
 
   describe('fixture vectors & independent framer reproduction', () => {
-    it('reproduces all 4 frozen vectors byte-for-byte from fixture', async () => {
-      for (const vector of fixture.vectors) {
-        const { frameHex, proof } = await independentFrameAndSign(
-          vector.key,
-          vector.domain,
-          vector.nonce
+    it('vendors the exact landed peer bytes and reproduces all four fixed proofs', async () => {
+      expect(provenance.relay).toEqual({
+        repository: 'solpbc/spl',
+        commit: '97861fac6dee59cffa04253b6b02728cfcd44266',
+        path: 'proto/owner-purge-readiness-v1.json',
+        sha256: 'e6456d20243c7a73542bacd8a31a2c1f321f08bee7034584d03977b6e0ba0ef4',
+      });
+      expect(provenance.support).toEqual({
+        repository: 'extro-sites',
+        commit: '284c8bace2738633601f581672b6c88cbdf8d922',
+        path: 'sites/support/proto/owner-purge-ready-v1.json',
+        sha256: '4cdc531a57013a6c7e4d3b86c0a172e87588cf4caad725d56ed4e4f793fc17e7',
+      });
+      expect(await sha256Hex(relayFixtureText)).toBe(provenance.relay.sha256);
+      expect(await sha256Hex(supportFixtureText)).toBe(provenance.support.sha256);
+      expect(await sha256Hex(destructiveFixtureText)).toBe(provenance.destructive_contract.sha256);
+
+      const relay = relayFixture.sample_readiness;
+      for (const keyVersion of [1, 2]) {
+        const result = await independentFrameAndSign(
+          relayFixture.integrity.non_production_test_keys_utf8[String(keyVersion)],
+          'relay',
+          relay.nonce,
+          keyVersion
         );
-        expect(frameHex).toBe(vector.frame_hex);
-        expect(proof).toBe(vector.proof);
+        expect(result.canonical).toBe(relay[`canonical_v${keyVersion}`]);
+        expect(result.frameHex).toBe(relay[`frame_hex_v${keyVersion}`]);
+        expect(result.proof).toBe(relay[`proof_v${keyVersion}`]);
       }
-    });
 
-    it('reproduces secondary deterministic non-fixture nonce vectors byte-for-byte', async () => {
-      const nonce = fixture.secondary_deterministic_vectors.nonce;
-      const relayV1 = await independentFrameAndSign(
-        fixture.keys.v1,
-        fixture.domains.relay,
-        nonce
-      );
-      expect(relayV1.frameHex).toBe(fixture.secondary_deterministic_vectors.relay_v1.frame_hex);
-      expect(relayV1.proof).toBe(fixture.secondary_deterministic_vectors.relay_v1.proof);
-
-      const relayV2 = await independentFrameAndSign(
-        fixture.keys.v2,
-        fixture.domains.relay,
-        nonce
-      );
-      expect(relayV2.frameHex).toBe(fixture.secondary_deterministic_vectors.relay_v2.frame_hex);
-      expect(relayV2.proof).toBe(fixture.secondary_deterministic_vectors.relay_v2.proof);
-
-      const supportV1 = await independentFrameAndSign(
-        fixture.keys.v1,
-        fixture.domains.support,
-        nonce
-      );
-      expect(supportV1.frameHex).toBe(fixture.secondary_deterministic_vectors.support_v1.frame_hex);
-      expect(supportV1.proof).toBe(fixture.secondary_deterministic_vectors.support_v1.proof);
-
-      const supportV2 = await independentFrameAndSign(
-        fixture.keys.v2,
-        fixture.domains.support,
-        nonce
-      );
-      expect(supportV2.frameHex).toBe(fixture.secondary_deterministic_vectors.support_v2.frame_hex);
-      expect(supportV2.proof).toBe(fixture.secondary_deterministic_vectors.support_v2.proof);
+      const support = supportFixture.transcripts[0];
+      for (const keyVersion of [1, 2]) {
+        const result = await independentFrameAndSign(
+          supportFixture.non_production_test_keys_utf8[String(keyVersion)],
+          'support',
+          support.nonce,
+          keyVersion
+        );
+        expect(result.canonical).toBe(support[`canonical_v${keyVersion}`]);
+        expect(result.frameHex).toBe(support[`frame_v${keyVersion}_hex`]);
+        expect(result.proof).toBe(support.expected_headers[`X-Owner-Purge-Readiness-Proof-V${keyVersion}`]);
+      }
     });
   });
 
@@ -475,9 +538,8 @@ describe('deletion readiness protocol and shared registry', () => {
         async fetch(input, init) {
           const nonce = init.headers?.['X-Owner-Purge-Readiness-Nonce'];
           capturedNonces.push(nonce);
-          const domain = readinessDomainFor(service);
-          const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', domain, nonce);
-          const r2 = await independentFrameAndSign('owner-purge-v2-fixture-test-key', domain, nonce);
+          const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', service, nonce, 1);
+          const r2 = await independentFrameAndSign('owner-purge-v2-fixture-test-key', service, nonce, 2);
           return new Response(null, {
             status: 204,
             headers: {
@@ -524,7 +586,7 @@ describe('deletion readiness protocol and shared registry', () => {
         method: 'GET',
         headers: {
           Authorization: 'Bearer test-relay-purge-bearer',
-          'X-Owner-Purge-Nonce': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+          'X-Owner-Purge-Nonce': relayFixture.sample_readiness.nonce,
         },
       });
       expect(legacyRes.status).toBe(400);
@@ -541,6 +603,45 @@ describe('deletion readiness protocol and shared registry', () => {
   });
 
   describe('route sequencing in handleDeletionConfirm & 503 refusal page', () => {
+    it('rejects legacy destructive proof response headers through the full confirm handler', async () => {
+      for (const legacyHeaders of [
+        { legacyProofV1: true },
+        { legacyProofV2: true },
+        { legacyProofV1: true, legacyProofV2: true },
+      ]) {
+        await resetDb();
+        const testEnv = makeTestEnv({
+          RELAY: makeStrictPeerDouble('relay', legacyHeaders),
+          SUPPORT_WORKER: makeStrictPeerDouble('support'),
+        });
+        const owner = await seedAccount({ testEnv });
+        const session = await seedSession(owner.accountId, { testEnv });
+        const tokenHash = `legacy-proof-${legacyHeaders.legacyProofV1 ? 'v1' : ''}${legacyHeaders.legacyProofV2 ? 'v2' : ''}`;
+        await createDeletionProof(workerEnv.DB, {
+          tokenHash,
+          accountId: owner.accountId,
+          sessionIdHash: session.idHash,
+          purpose: 'delete',
+          method: 'otp',
+          issuedAt: Date.now(),
+          expiresAt: Date.now() + 60_000,
+          otpCodeHash: 'hash',
+        });
+        await markDeletionProofVerified(workerEnv.DB, { tokenHash, nowMs: Date.now() });
+
+        const response = await worker.fetch(confirmRequest(session.cookie), testEnv);
+        expect(response.status).toBe(503);
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+        expect(await workerEnv.DB.prepare('SELECT operation_id FROM account_deletions').first()).toBeNull();
+        expect(await workerEnv.DB.prepare(
+          'SELECT consumed FROM account_deletion_proofs WHERE token_hash = ?'
+        ).bind(tokenHash).first()).toMatchObject({ consumed: 0 });
+        expect(await workerEnv.DB.prepare(
+          'SELECT revoked_at FROM sessions WHERE id_hash = ?'
+        ).bind(session.idHash).first()).toMatchObject({ revoked_at: null });
+      }
+    });
+
     it('executes in strict order: proof validation, readiness check, DB mutation, snapshot capture', async () => {
       const executionLog = [];
       const testEnv = makeTestEnv({
@@ -548,8 +649,8 @@ describe('deletion readiness protocol and shared registry', () => {
           async fetch(input, init) {
             executionLog.push('readiness_check_relay');
             const nonce = init.headers?.['X-Owner-Purge-Readiness-Nonce'];
-            const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', 'solpbc-owner-purge-v1:relay:readiness', nonce);
-            const r2 = await independentFrameAndSign('owner-purge-v2-fixture-test-key', 'solpbc-owner-purge-v1:relay:readiness', nonce);
+            const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', 'relay', nonce, 1);
+            const r2 = await independentFrameAndSign('owner-purge-v2-fixture-test-key', 'relay', nonce, 2);
             return new Response(null, {
               status: 204,
               headers: {
@@ -565,8 +666,8 @@ describe('deletion readiness protocol and shared registry', () => {
           async fetch(input, init) {
             executionLog.push('readiness_check_support');
             const nonce = init.headers?.['X-Owner-Purge-Readiness-Nonce'];
-            const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', 'solpbc-owner-purge-v1:support:readiness', nonce);
-            const r2 = await independentFrameAndSign('owner-purge-v2-fixture-test-key', 'solpbc-owner-purge-v1:support:readiness', nonce);
+            const r1 = await independentFrameAndSign('owner-purge-v1-fixture-test-key', 'support', nonce, 1);
+            const r2 = await independentFrameAndSign('owner-purge-v2-fixture-test-key', 'support', nonce, 2);
             return new Response(null, {
               status: 204,
               headers: {
@@ -642,7 +743,8 @@ describe('deletion readiness protocol and shared registry', () => {
       expect(res.headers.get('Cache-Control')).toBe('no-store');
 
       const body = await res.text();
-      expect(body).toContain('deletion services are temporarily unavailable; please try again in a few moments.');
+      expect(body).toContain('deletion request can’t be confirmed');
+      expect(body).toContain('please try again later.');
       // Exactly one recovery action link to /account/delete
       const matches = body.match(/href="\/account\/delete"/g) || [];
       expect(matches.length).toBe(1);

@@ -1,4 +1,4 @@
-import { framedHmacSha256Base64Url, randomBase64Url, timingSafeEqual } from './crypto.js';
+import { canonicalJson, framedHmacSha256Base64Url, randomBase64Url, timingSafeEqual } from './crypto.js';
 import {
   bearerFor,
   bindingFor,
@@ -6,12 +6,15 @@ import {
   hmacKeyFor,
   readinessDomainFor,
   READY_PATH,
-  RETAINED_KEY_VERSIONS,
+  validateDeletionServiceConfig,
 } from './deletion-services.js';
 
 export const TOTAL_READINESS_TIMEOUT_MS = 5000;
 
 export async function checkDeletionReadiness(env, { timeoutMs = TOTAL_READINESS_TIMEOUT_MS } = {}) {
+  if (!validateDeletionServiceConfig(env)) {
+    return { ok: false, error: 'credential_alias' };
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error('readiness_timeout')), timeoutMs);
 
@@ -101,14 +104,27 @@ async function checkServiceReadiness(env, service, signal) {
     if (!proofV2 || proofV2.includes(',')) {
       return { ok: false, service, error: 'missing_or_duplicate_proof_v2' };
     }
+    if (response.headers.has('x-owner-purge-proof-v1') || response.headers.has('x-owner-purge-proof-v2')) {
+      return { ok: false, service, error: 'legacy_proof_header' };
+    }
 
     const domain = readinessDomainFor(service);
-    const expectedProofV1 = await framedHmacSha256Base64Url(keyV1, domain, nonce);
+    const expectedProofV1 = await framedHmacSha256Base64Url(keyV1, domain, canonicalJson({
+      key_version: 1,
+      nonce,
+      service,
+      version: 1,
+    }));
     if (!timingSafeEqual(proofV1, expectedProofV1)) {
       return { ok: false, service, error: 'proof_v1_verification_failed' };
     }
 
-    const expectedProofV2 = await framedHmacSha256Base64Url(keyV2, domain, nonce);
+    const expectedProofV2 = await framedHmacSha256Base64Url(keyV2, domain, canonicalJson({
+      key_version: 2,
+      nonce,
+      service,
+      version: 1,
+    }));
     if (!timingSafeEqual(proofV2, expectedProofV2)) {
       return { ok: false, service, error: 'proof_v2_verification_failed' };
     }

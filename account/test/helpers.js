@@ -1,7 +1,7 @@
 import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test';
 import { expect, vi } from 'vitest';
 import schema from '../schema.sql?raw';
-import { encryptEmail, framedHmacSha256Base64Url, generateOtp, generateSessionToken, hashKey, hashWithPepper } from '../src/crypto.js';
+import { canonicalJson, encryptEmail, framedHmacSha256Base64Url, generateOtp, generateSessionToken, hashKey, hashWithPepper } from '../src/crypto.js';
 import {
   createAccountWithEmail,
   createSession,
@@ -46,7 +46,9 @@ export function makeTestEnv(overrides = {}) {
     IMPERSONATE_ALLOWED: overrides.IMPERSONATE_ALLOWED,
     EMAIL_PATH_DISABLED: overrides.EMAIL_PATH_DISABLED || 'false',
     SIGNUP_DISABLED: overrides.SIGNUP_DISABLED || 'false',
-    SUPPORT_WORKER: overrides.SUPPORT_WORKER || makeDefaultPurgeBinding('support', overrides),
+    SUPPORT_WORKER: Object.prototype.hasOwnProperty.call(overrides, 'SUPPORT_WORKER')
+      ? overrides.SUPPORT_WORKER
+      : makeDefaultPurgeBinding('support', overrides),
     SERVICES_AUTH_TOKEN: overrides.SERVICES_AUTH_TOKEN || 'test-services-auth-token',
     APNS_TEAM_ID: overrides.APNS_TEAM_ID,
     APNS_KEY_ID: overrides.APNS_KEY_ID,
@@ -84,7 +86,9 @@ export function makeTestEnv(overrides = {}) {
     SPP_ENGINE_ENDPOINT: overrides.SPP_ENGINE_ENDPOINT ?? 'https://processing.solstone.app',
     SPP_ENGINE_MODEL: overrides.SPP_ENGINE_MODEL ?? 'Qwen/Qwen3.5-4B',
     SPP_ENGINE_AUTH_SECRET: overrides.SPP_ENGINE_AUTH_SECRET ?? 'test-spp-engine-auth-secret',
-    RELAY: overrides.RELAY || makeDefaultPurgeBinding('relay', overrides),
+    RELAY: Object.prototype.hasOwnProperty.call(overrides, 'RELAY')
+      ? overrides.RELAY
+      : makeDefaultPurgeBinding('relay', overrides),
   };
 }
 
@@ -104,8 +108,18 @@ function makeDefaultPurgeBinding(service, overrides = {}) {
         const secretV1 = overrides[`ACCOUNT_${service.toUpperCase()}_PURGE_HMAC_KEY_V1`] || 'owner-purge-v1-fixture-test-key';
         const secretV2 = overrides[`ACCOUNT_${service.toUpperCase()}_PURGE_HMAC_KEY_V2`] || 'owner-purge-v2-fixture-test-key';
         const domain = `solpbc-owner-purge-v1:${service}:readiness`;
-        const proofV1 = await framedHmacSha256Base64Url(secretV1, domain, nonce || '');
-        const proofV2 = await framedHmacSha256Base64Url(secretV2, domain, nonce || '');
+        const proofV1 = await framedHmacSha256Base64Url(secretV1, domain, canonicalJson({
+          key_version: 1,
+          nonce: nonce || '',
+          service,
+          version: 1,
+        }));
+        const proofV2 = await framedHmacSha256Base64Url(secretV2, domain, canonicalJson({
+          key_version: 2,
+          nonce: nonce || '',
+          service,
+          version: 1,
+        }));
         return new Response(null, {
           status: 204,
           headers: {

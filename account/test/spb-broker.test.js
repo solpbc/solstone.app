@@ -34,6 +34,16 @@ const BACKUP_ACTIONS = [
 ];
 const MAINTENANCE_ACTIONS = [...BACKUP_ACTIONS, 'DeleteObject', 'DeleteObjects'];
 const HUB_URL = 'https://extro.solpbc.org/hooks/security';
+const ENTITLEMENT_CASES = [
+  ['active', { status: 'active' }, 200],
+  ['comp-active', { status: 'active', source: 'comp', currentPeriodEnd: null }, 200],
+  ['in-grace past_due', { status: 'past_due', currentPeriodEnd: 'future' }, 200],
+  ['out-of-grace past_due', { status: 'past_due', currentPeriodEnd: 'past' }, 402],
+  ['past_due without a period end', { status: 'past_due', currentPeriodEnd: null }, 402],
+  ['lapsed', { status: 'lapsed' }, 402],
+  ['canceled', { status: 'canceled' }, 402],
+  ['missing', null, 402],
+];
 
 describe('spb credential broker', () => {
   beforeEach(async () => {
@@ -152,34 +162,25 @@ describe('spb credential broker', () => {
     expect(JSON.stringify(claims)).not.toContain('EVIL');
   });
 
-  it('serves only active, comp-active, and in-grace past_due entitlements', async () => {
+  it.each(ENTITLEMENT_CASES)('serves the expected result for %s entitlement', async (_label, entitlement, status) => {
     const nowSeconds = Math.floor(Date.now() / 1000);
-    const cases = [
-      [{ status: 'active' }, 200],
-      [{ status: 'active', source: 'comp', currentPeriodEnd: null }, 200],
-      [{ status: 'past_due', currentPeriodEnd: nowSeconds + 60 }, 200],
-      [{ status: 'past_due', currentPeriodEnd: nowSeconds - 15 * 86400 }, 402],
-      [{ status: 'past_due', currentPeriodEnd: null }, 402],
-      [{ status: 'lapsed' }, 402],
-      [{ status: 'canceled' }, 402],
-      [null, 402],
-    ];
+    const resolvedEntitlement = entitlement?.currentPeriodEnd === 'future'
+      ? { ...entitlement, currentPeriodEnd: nowSeconds + 60 }
+      : entitlement?.currentPeriodEnd === 'past'
+        ? { ...entitlement, currentPeriodEnd: nowSeconds - 15 * 86400 }
+        : entitlement;
+    const { testEnv } = await seedBrokerReady({ entitlement: resolvedEntitlement });
 
-    for (const [entitlement, status] of cases) {
-      await resetDb();
-      const { testEnv } = await seedBrokerReady({ entitlement });
+    const response = await worker.fetch(credentialsRequest({ scope: 'backup' }, BROKER_TOKEN), testEnv);
 
-      const response = await worker.fetch(credentialsRequest({ scope: 'backup' }, BROKER_TOKEN), testEnv);
-
-      expect(response.status).toBe(status);
-      if (status === 402) {
-        expect(await response.json()).toEqual({ error: 'needs_subscription' });
-        await expect(auditRows()).resolves.toEqual([expect.objectContaining({
-          outcome: 'refused_entitlement',
-          scope: null,
-          ttl: null,
-        })]);
-      }
+    expect(response.status).toBe(status);
+    if (status === 402) {
+      expect(await response.json()).toEqual({ error: 'needs_subscription' });
+      await expect(auditRows()).resolves.toEqual([expect.objectContaining({
+        outcome: 'refused_entitlement',
+        scope: null,
+        ttl: null,
+      })]);
     }
   });
 

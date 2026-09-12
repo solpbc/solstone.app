@@ -1,0 +1,18 @@
+{
+  "relay": {
+    "repository": "solpbc/spl",
+    "commit": "97861fac6dee59cffa04253b6b02728cfcd44266",
+    "path": "proto/owner-purge-readiness-v1.json",
+    "sha256": "e6456d20243c7a73542bacd8a31a2c1f321f08bee7034584d03977b6e0ba0ef4"
+  },
+  "support": {
+    "repository": "extro-sites",
+    "commit": "284c8bace2738633601f581672b6c88cbdf8d922",
+    "path": "sites/support/proto/owner-purge-ready-v1.json",
+    "sha256": "4cdc531a57013a6c7e4d3b86c0a172e87588cf4caad725d56ed4e4f793fc17e7"
+  },
+  "destructive_contract": {
+    "path": "account/proto/owner-purge-v1.json",
+    "sha256": "716133ca9dd49b0d938720a52b8c46122d73fa2c99085eac3a4100af04bc1066"
+  }
+}

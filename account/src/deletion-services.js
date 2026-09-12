@@ -36,12 +36,19 @@ export function domainFor(service, purpose) {
 }
 
 export function validateDeletionServiceConfig(env) {
+  const bearers = [];
+  const keys = [];
   for (const service of DELETION_SERVICES) {
     if (!bindingFor(env, service)) return false;
-    if (!bearerFor(env, service)) return false;
+    const bearer = bearerFor(env, service);
+    if (!bearer) return false;
+    bearers.push(bearer);
     for (const version of RETAINED_KEY_VERSIONS) {
-      if (!hmacKeyFor(env, service, version)) return false;
+      const key = hmacKeyFor(env, service, version);
+      if (!key) return false;
+      keys.push(key);
     }
   }
-  return true;
+  return new Set(bearers).size === bearers.length
+    && bearers.every((bearer) => !keys.includes(bearer));
 }
