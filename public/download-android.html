@@ -307,7 +307,7 @@
             <p>fetch the checksum we publish beside the file, and let your machine do the comparing rather than your eyes:</p>
             <pre><code>curl -fLO https://updates.solstone.app/solstone-android/release/{{VERSION}}/SHA256SUMS
 sha256sum -c SHA256SUMS</code></pre>
-            <p>on a mac, <code>shasum -a 256 -c SHA256SUMS</code>. on windows, <code>Get-FileHash {{APK_NAME}} -Algorithm SHA256</code> in PowerShell, and compare it yourself to the value below. either way you want <code>OK</code> and nothing else; a mismatch says so and exits non-zero.</p>
+            <p>on a mac, <code>shasum -a 256 -c SHA256SUMS</code>. either of those prints <code>OK</code> and exits zero, or says plainly that it did not match and exits non-zero. on windows, <code>Get-FileHash {{APK_NAME}} -Algorithm SHA256</code> in PowerShell prints the digest as uppercase hex and leaves the comparing to you, against the value below.</p>
             {{DIGEST_BLOCK}}
 
             <h3>the signing certificate</h3>
@@ -315,9 +315,9 @@ sha256sum -c SHA256SUMS</code></pre>
             <pre><code class="fingerprint">12:DF:E3:2F:91:F7:18:25:90:09:27:37:91:7E:D7:19:33:7F:8F:9B:11:63:24:5B:3B:DC:34:79:A6:BE:26:60</code></pre>
             <p>if you have the android build tools, read it off the file before you install it:</p>
             <pre><code>apksigner verify --print-certs {{APK_NAME}}</code></pre>
-            <p>that prints several digests per signer. the one to compare is the line reading <code>Signer #1 certificate SHA-256 digest</code> — ⚠ not the SHA-1 or MD5 lines under it, which are different values and will not match.</p>
+            <p>that prints several digests per signer. the one to compare is the line reading <code>Signer #1 certificate SHA-256 digest</code>, not the SHA-1 or MD5 lines under it: those are different values and will not match.</p>
             <p>and once it is installed, off the phone itself. this one needs usb debugging turned on in developer options, and a unix shell:</p>
-            <pre><code>adb shell dumpsys package app.solstone.observer.phone | grep "Signatures: ["</code></pre>
+            <pre><code>adb shell dumpsys package app.solstone.observer.phone | grep -F "Signatures: ["</code></pre>
             <p>turn usb debugging back off when you are done. the two commands print the same value in different shapes, and both are the fingerprint above: <code>apksigner</code> gives it lowercase with no colons, the phone gives it uppercase with them.</p>
 
             <h2>what the app asks you for</h2>
@@ -383,9 +383,9 @@ sha256sum -c SHA256SUMS</code></pre>
                 </tbody>
             </table>
 
-            <p>that list is read out of the file you are about to download, not out of our source code — android merges in permissions from the libraries an app is built on, and the last two above arrive that way. read it yourself:</p>
+            <p>that list is read out of the file you are about to download, not out of our source code. android merges in permissions from the libraries an app is built on, and the last two above arrive that way. read it yourself, if you have the android build tools:</p>
             <pre><code>aapt2 dump permissions {{APK_NAME}}</code></pre>
-            <p>there is no analytics or tracking code in this app, and the build refuses any dependency that would add some — the source is linked below if you want to read that rule. what the app takes in goes to the journal you paired it with, on a computer you keep. reaching that journal from off your own network goes over the private network, and if that is the relay sol pbc runs rather than a network you run yourself, it passes encrypted bytes it cannot read. your journal is always private, only yours.</p>
+            <p>there is no analytics or tracking code in this app. the source is linked below, and the build refuses the analytics and crash-reporting dependencies it names. what the app takes in goes to the journal you paired it with, on a computer you keep. reaching that journal from off your own network goes over the private network, and if that is the relay sol pbc runs rather than a network you run yourself, it passes encrypted bytes it cannot read. your journal is always private, only yours.</p>
 
             <nav class="links" aria-label="more">
                 <a href="/releases/android">what's new in this version &rarr;</a>
