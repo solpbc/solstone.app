@@ -16,7 +16,7 @@ import {
 } from '../src/deletion-services.js';
 import { runAccountDeletionCoordinator } from '../src/deletion-coordinator.js';
 import { createDeletionProof, markDeletionProofVerified } from '../src/db.js';
-import { hashWithPepper } from '../src/crypto.js';
+import { canonicalJson, encryptEmail, framedHmacSha256Base64Url, hashWithPepper } from '../src/crypto.js';
 import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
 import relayFixtureText from '../test-fixtures/relay-owner-purge-readiness-v1.json?raw';
 import supportFixtureText from '../test-fixtures/support-owner-purge-readiness-v1.json?raw';
@@ -797,28 +797,80 @@ describe('deletion readiness protocol and shared registry', () => {
   });
 
   describe('seeded purging recovery without coordinator gate', () => {
-    it('allows coordinator to process seeded purging records without requiring readiness', async () => {
-      const env = makeTestEnv();
+    it('recovers a seeded purging record all the way to complete without requiring readiness', async () => {
+      const env = makeTestEnv({
+        RELAY: recoveryContractService('relay'),
+        SUPPORT_WORKER: recoveryContractService('support'),
+      });
       const account = await seedAccount({ email: 'purging-recovery-check@example.com', testEnv: env });
+      const snapshotEncrypted = await encryptEmail(JSON.stringify({
+        relay: { instance_ids: [] },
+        support: { portal_principal: account.accountId, verified_emails: [] },
+        backup: { spb_instance_ids: [] },
+        stripe_customer_id: null,
+      }), env);
 
       await workerEnv.DB.prepare(
         `INSERT INTO account_deletions (
            operation_id, account_id, phase, requested_at, frozen_at, snapshot_digest, snapshot_encrypted,
-           cancellation_deadline_at, next_attempt_at, status_token_hash
-         ) VALUES ('purging-op-id', ?, 'purging', 1000, 1001, 'snap-digest', 'snap-enc', 2000, 0, 'status-hash')`
-      ).bind(account.accountId).run();
+           cancellation_deadline_at, next_attempt_at, status_token_hash, backup_empty_verified_at
+         ) VALUES ('purging-op-id', ?, 'purging', 1000, 1001, 'snap-digest', ?, 2000, 0, 'status-hash', 1000)`
+      ).bind(account.accountId, snapshotEncrypted).run();
 
-      // Coordinator runs without readiness pre-flight
+      // Coordinator runs without a readiness pre-flight (unlike requested/frozen)
+      // and, given no in-flight service ops, mints, submits, and confirms both
+      // legs itself before finalizing — the whole recovery in a single pass.
       const result = await runAccountDeletionCoordinator(env, 3000);
-      expect(result).toBeDefined();
+      expect(result).toMatchObject({ phase: 'complete' });
 
       const row = await workerEnv.DB.prepare(
-        "SELECT phase, snapshot_digest FROM account_deletions WHERE operation_id = 'purging-op-id'"
+        `SELECT phase, snapshot_digest, snapshot_encrypted, account_id, status_token_hash
+         FROM account_deletions WHERE operation_id = 'purging-op-id'`
       ).first();
-      expect(row.snapshot_digest).toBe('snap-digest');
+      expect(row).toMatchObject({
+        phase: 'complete',
+        snapshot_digest: null,
+        snapshot_encrypted: null,
+        account_id: null,
+        status_token_hash: null,
+      });
+      await expect(workerEnv.DB.prepare(
+        "SELECT COUNT(*) AS count FROM account_deletion_service_ops WHERE operation_id = 'purging-op-id'"
+      ).first()).resolves.toMatchObject({ count: 0 });
+      await expect(workerEnv.DB.prepare(
+        "SELECT state FROM account_deletion_completions WHERE token_hash = 'status-hash'"
+      ).first()).resolves.toMatchObject({ state: 'complete' });
     });
   });
 });
+
+// A fake service binding that signs every submit/confirm envelope it is
+// handed with the fixture test keys makeTestEnv() defaults to, matching
+// whatever the caller actually sent — this lets a seeded purging row's
+// service legs complete against a real round trip rather than a stub that
+// always says yes.
+function recoveryContractService(service) {
+  return { async fetch(input, init) {
+    const body = JSON.parse(init.body);
+    const envelope = body.envelope;
+    const unsigned = {
+      version: 1,
+      key_version: envelope.key_version,
+      service,
+      operation_id: envelope.operation_id,
+      request_digest: envelope.request_digest,
+      disposition: new URL(input).pathname.endsWith('/confirm') ? 'confirmed' : 'complete',
+    };
+    return new Response(JSON.stringify({
+      ...unsigned,
+      integrity: await framedHmacSha256Base64Url(
+        envelope.key_version === 1 ? 'owner-purge-v1-fixture-test-key' : 'owner-purge-v2-fixture-test-key',
+        `solpbc-owner-purge-v1:${service}:response`,
+        canonicalJson(unsigned),
+      ),
+    }), { headers: { 'Content-Type': 'application/json' } });
+  } };
+}
 
 function confirmRequest(cookie) {
   return new Request('https://services.solstone.app/account/delete/confirm', {
