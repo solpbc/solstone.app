@@ -269,14 +269,13 @@ export const RELEASE_PAGE_CONFIGS = {
     stream: "android",
     heading: "Android app releases",
     intro:
-      "these are the Android app's own changes: pairing, and how it syncs to your journal — sol on your Android phone. the Android app is in beta — builds reach trusted testers through the App Tester app.",
-    // Beta channel, invite-only — there is no public download yet, so no primary CTA.
-    primaryLink: null,
+      "these are the Android app's own changes: its sources, pairing, and how it reaches your journal. the app is in beta, and it does not update itself, so the download page is always where the current one is.",
+    primaryLink: { href: "/download/android", text: "download solstone for Android →" },
     sourceUrl: "https://github.com/solpbc/solstone-android",
     unavailableUrl: "https://github.com/solpbc/solstone-android/releases",
-    unavailableLabel: "see every Android app release on github →",
+    unavailableLabel: "see every Android app release on GitHub →",
     articleTitle: (version) => `solstone for Android ${version}`,
-    // The Android observer is a pairing client, not a journal host — keep linkify off.
+    // The Android app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
   ios: {

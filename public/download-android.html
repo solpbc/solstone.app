@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>download the solstone app for android</title>
+    <meta name="description" content="the signed solstone app for android, straight from us. what android asks you before it will install it, how to check the file is ours, and every permission the app declares.">
+    <meta property="og:title" content="download solstone for android">
+    <meta property="og:description" content="the signed solstone app for android, straight from us. what android asks before it will install it, how to check the file is ours, and every permission the app declares.">
+    <meta property="og:url" content="https://solstone.app/download/android">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="720">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/download/android">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="stylesheet" href="/static/tokens.css">
+    <link rel="stylesheet" href="/static/base.css">
+    <style>
+        /* base.css supplies the sunrise ground, the h1 treatment and the footer
+           spine. This page is a document rather than a card grid: one readable
+           column, because its job is to be read before anything is downloaded. */
+        body {
+            padding: 2rem 0 0;
+        }
+        a {
+            color: var(--orange-text-aa);
+        }
+        .logo {
+            height: 36px;
+            margin-bottom: 2rem;
+        }
+        .column {
+            max-width: 660px;
+            width: 90vw;
+            padding: 0 0.25rem;
+        }
+        h1 {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        h1::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            width: 76px;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #FFCC33, #E8913A);
+        }
+        .lead {
+            font-size: 1.02rem;
+            line-height: 1.65;
+            color: var(--ink-soft);
+            text-align: center;
+            margin-bottom: 1.75rem;
+        }
+        .primary-action {
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+        .download-btn {
+            display: inline-block;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 600;
+            text-transform: lowercase;
+            letter-spacing: 0.03em;
+            color: var(--ink);
+            background: var(--orange);
+            padding: 0.85rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .download-btn:hover {
+            background: var(--orange-ink);
+            color: var(--paper);
+        }
+        .file-line {
+            margin-top: 0.75rem;
+            font-size: 0.88rem;
+            color: var(--ink-faint);
+        }
+        h2 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin: 2.5rem 0 0.85rem;
+        }
+        h3 {
+            font-family: var(--font-display);
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin: 1.5rem 0 0.5rem;
+        }
+        p {
+            font-size: 0.95rem;
+            line-height: 1.65;
+            color: var(--ink-soft);
+            margin-bottom: 0.9rem;
+        }
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            margin-bottom: 0.5rem;
+        }
+        .steps > li {
+            counter-increment: step;
+            position: relative;
+            padding-left: 2.4rem;
+            margin-bottom: 1.4rem;
+            font-size: 0.95rem;
+            line-height: 1.65;
+            color: var(--ink-soft);
+        }
+        .steps > li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0.05rem;
+            width: 1.65rem;
+            height: 1.65rem;
+            border-radius: 50%;
+            background: var(--orange-wash);
+            color: var(--orange-ink);
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Words android puts on the screen, quoted exactly so you can match them
+           to your phone. Their capitalization is the operating system's, not ours. */
+        .os-words {
+            display: block;
+            margin: 0.6rem 0;
+            padding: 0.7rem 0.95rem;
+            border-left: 3px solid var(--hairline-2);
+            background: var(--cream-bright);
+            border-radius: 0 6px 6px 0;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            color: var(--ink-soft);
+        }
+        .os-words strong {
+            display: block;
+            color: var(--ink);
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+        code, pre {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        code {
+            font-size: 0.86em;
+            background: var(--orange-wash);
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            color: var(--ink);
+        }
+        pre {
+            background: var(--cream-bright);
+            border: 1px solid var(--hairline-2);
+            border-radius: 6px;
+            padding: 0.85rem 1rem;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            color: var(--ink);
+            overflow-x: auto;
+            margin-bottom: 0.9rem;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: inherit;
+        }
+        /* A 95-character fingerprint and a 64-hex digest both overflow a phone,
+           which is the device this page is read on. `pre` does not wrap by
+           default and `overflow-x: auto` hides the tail behind a scroll nobody
+           finds; these two have to be readable in place. */
+        .fingerprint {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-all;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        th, td {
+            text-align: left;
+            vertical-align: top;
+            padding: 0.6rem 0.7rem 0.6rem 0;
+            border-bottom: 1px solid var(--hairline);
+            line-height: 1.55;
+        }
+        th {
+            font-family: var(--font-display);
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--ink);
+            text-transform: lowercase;
+            letter-spacing: 0.02em;
+        }
+        td:first-child, th:first-child {
+            padding-right: 1.1rem;
+            width: 38%;
+        }
+        td:first-child {
+            color: var(--ink);
+        }
+        td .sysname {
+            display: block;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.74rem;
+            color: var(--ink-faint);
+            word-break: break-all;
+            margin-top: 0.15rem;
+        }
+        .links {
+            margin: 2.5rem 0 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .links a {
+            display: block;
+            color: var(--ink-faint);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+        }
+        .links a:hover {
+            color: var(--orange-ink);
+        }
+        @media (max-width: 560px) {
+            td:first-child, th:first-child {
+                width: 45%;
+            }
+        }
+    </style>
+</head>
+<body class="sunrise">
+    <a href="#main" class="skip-link">skip to content</a>
+    <header>
+        <a href="/"><img src="/static/mark.svg" alt="solstone home" class="logo"></a>
+    </header>
+    <main id="main" tabindex="-1">
+        <div class="column">
+            <h1>download solstone for android</h1>
+            <p class="lead">this is the signed app, from us, on our own server. it is not in the Play Store, so android treats it as an app from a source it does not recognize, and there are two things you have to allow before it will install. both are below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
+        </div>
+
+        <div class="primary-action">
+            <a href="/download/android/latest" class="download-btn" id="dl">download solstone for android</a>
+            <p class="file-line">{{VERSION_LINE}}</p>
+        </div>
+
+        <div class="column">
+            <p class="early-days"><span class="stage-label">in beta.</span> solstone for android is early. it does what is on this page and not more, and it changes between versions. it does not update itself: what you install stays at that version until you come back here and install a newer one.</p>
+
+            <h2>what you will be asked</h2>
+            <p>the quoted words below are android's own, taken off a samsung galaxy running android 16. phone makers change this wording, so yours may say it a little differently. the two decisions are the same on every android since 8.0.</p>
+
+            <ol class="steps">
+                <li>
+                    <strong>your browser will warn you about the file.</strong> Chrome says:
+                    <span class="os-words"><strong>File might be harmful</strong>Do you want to download "{{APK_NAME}}"{{SIZE_PAREN}} from updates.solstone.app anyway?</span>
+                    this is what a browser says about any app file it did not get from a store. check the address it names is <code>updates.solstone.app</code>, then choose to download anyway.
+                </li>
+                <li>
+                    <strong>android will ask whether the app you opened the file from may install apps.</strong> open the downloaded file and you get:
+                    <span class="os-words"><strong>Permission required</strong>For your security, your phone currently isn't allowed to install unknown apps from this source. You can change this in Settings.</span>
+                    the dialog names whatever you opened the file from, which is why this permission is worth understanding: it is granted to <em>one app at a time</em>. downloaded on the phone, that is your browser. copied across from a computer, it is your file manager instead, and the screen says so. tap <em>settings</em>, then turn on <em>allow permission</em> on the <em>install unknown apps</em> screen, then come back and open the file again. allowing one app allows that app and nothing else, and you can turn it off again afterwards.
+                </li>
+                <li>
+                    <strong>then the installer asks once more, and that is the last question.</strong>
+                    <span class="os-words"><strong>Install this app?</strong>solstone</span>
+                    it installs. the app itself then asks for nothing until you turn something on. the one thing that can still appear is Play Protect, next.
+                </li>
+            </ol>
+
+            <h3>Play Protect</h3>
+            <p>if your phone has Google Play services, Play Protect scans the file while it installs. on the phone we tested, it scanned and the install went through with nothing more to answer. if it does stop to ask whether to send the app for scanning, or warns you about an app from an unknown developer, that is Play Protect not recognizing us yet rather than a finding about the file.</p>
+
+            <h3>phones without Google Play services</h3>
+            <p>on a de-googled phone there is no Play Protect step, because there is nothing there to run it. the <em>install unknown apps</em> permission in step 2 is android's own and still applies: it is part of android, not part of Google Play. we have not tested this on grapheneos, so we are not going to describe screens we have not seen. if you run one and something on this page is wrong for it, <a href="https://support.solstone.app">tell us</a> and we will fix the page.</p>
+
+            <h2>check the file is ours</h2>
+            <p>you do not have to take our word for what you downloaded. there are two things to check, and they check different things: the digest says you got the bytes we published, and the signing certificate says we are the ones who built them.</p>
+            <p><strong>this takes a computer</strong> — download the file there, check it, then copy it to the phone and install it from your file manager. <strong>and it is worth doing before the first install rather than after</strong>: from then on, android will only accept updates signed by the same key as the copy you already have. that is a real protection and it is the reason to look closely at the first one, because it is the copy every later one gets measured against.</p>
+
+            <h3>the digest</h3>
+            <p>fetch the checksum we publish beside the file, and let your machine do the comparing rather than your eyes:</p>
+            <pre><code>curl -fLO https://updates.solstone.app/solstone-android/release/{{VERSION}}/SHA256SUMS
+sha256sum -c SHA256SUMS</code></pre>
+            <p>on a mac, <code>shasum -a 256 -c SHA256SUMS</code>. on windows, <code>Get-FileHash {{APK_NAME}} -Algorithm SHA256</code> in PowerShell, and compare it yourself to the value below. either way you want <code>OK</code> and nothing else; a mismatch says so and exits non-zero.</p>
+            {{DIGEST_BLOCK}}
+
+            <h3>the signing certificate</h3>
+            <p>every release we publish is signed by one key. its certificate fingerprint is:</p>
+            <pre><code class="fingerprint">12:DF:E3:2F:91:F7:18:25:90:09:27:37:91:7E:D7:19:33:7F:8F:9B:11:63:24:5B:3B:DC:34:79:A6:BE:26:60</code></pre>
+            <p>if you have the android build tools, read it off the file before you install it:</p>
+            <pre><code>apksigner verify --print-certs {{APK_NAME}}</code></pre>
+            <p>that prints several digests per signer. the one to compare is the line reading <code>Signer #1 certificate SHA-256 digest</code> — ⚠ not the SHA-1 or MD5 lines under it, which are different values and will not match.</p>
+            <p>and once it is installed, off the phone itself. this one needs usb debugging turned on in developer options, and a unix shell:</p>
+            <pre><code>adb shell dumpsys package app.solstone.observer.phone | grep "Signatures: ["</code></pre>
+            <p>turn usb debugging back off when you are done. the two commands print the same value in different shapes, and both are the fingerprint above: <code>apksigner</code> gives it lowercase with no colons, the phone gives it uppercase with them.</p>
+
+            <h2>what the app asks you for</h2>
+            <p>nothing, when you open it. the app starts with every source off and no permission granted, and each source asks for its own permission at the moment you turn that source on. the audio screen asks about the microphone and nothing else.</p>
+            <p>there are four of these, and android asks you about them one at a time:</p>
+
+            <table>
+                <thead>
+                    <tr><th scope="col">android asks</th><th scope="col">what it is for</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>microphone<span class="sysname">RECORD_AUDIO</span></td>
+                        <td>the audio source takes in what you share with it, and all of it goes into your journal. asked the first time you turn audio on.</td>
+                    </tr>
+                    <tr>
+                        <td>camera<span class="sysname">CAMERA</span></td>
+                        <td>two things use it: the camera source, and the scanner that reads the pairing code from your journal. asked when you reach either one.</td>
+                    </tr>
+                    <tr>
+                        <td>approximate location<span class="sysname">ACCESS_COARSE_LOCATION</span></td>
+                        <td>so a place can sit alongside what the app takes in, in your journal. android's dialog offers you <em>approximate</em> and no precise option, because the app never asks for precise.</td>
+                    </tr>
+                    <tr>
+                        <td>notifications<span class="sysname">POST_NOTIFICATIONS</span></td>
+                        <td>so you can see the ongoing notice while a source is on, and hear about it when one stops. say no and the sources keep running; you lose the notices, and you can turn them on later in settings.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>the ones android grants at install, without asking</h3>
+            <p>android grants these when the app installs. it does not ask about them, because none of them reaches anything private on its own.</p>
+
+            <table>
+                <thead>
+                    <tr><th scope="col">permission</th><th scope="col">what it is for</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>internet, network state<span class="sysname">INTERNET · ACCESS_NETWORK_STATE</span></td>
+                        <td>to reach the journal you paired with, and to tell a network that's gone from a journal that's gone.</td>
+                    </tr>
+                    <tr>
+                        <td>ongoing work<span class="sysname">FOREGROUND_SERVICE · _MICROPHONE · _LOCATION · _CAMERA</span></td>
+                        <td>android makes an app declare what kind of work it keeps doing while you are in another app. these four are that declaration, and they grant nothing. the four permissions above are still the gate.</td>
+                    </tr>
+                    <tr>
+                        <td>keep the notice visible<span class="sysname">POST_PROMOTED_NOTIFICATIONS</span></td>
+                        <td>so the notice saying a source is on stays where you can see it rather than collapsing out of the way.</td>
+                    </tr>
+                    <tr>
+                        <td>start again after a restart<span class="sysname">RECEIVE_BOOT_COMPLETED</span></td>
+                        <td>so a source you left on is on again after you restart your phone, instead of quietly not running.</td>
+                    </tr>
+                    <tr>
+                        <td>keep the phone awake<span class="sysname">WAKE_LOCK</span></td>
+                        <td>to finish a piece of work rather than leave it half done when the screen goes off. this one comes from androidx's background-work library, not from our code.</td>
+                    </tr>
+                    <tr>
+                        <td>a permission only this app can hold<span class="sysname">app.solstone.observer.phone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION</span></td>
+                        <td>so the app's own internal messages cannot be read by other apps on your phone. the app defines it for itself, by way of an androidx library, and nothing else can ever hold it.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>that list is read out of the file you are about to download, not out of our source code — android merges in permissions from the libraries an app is built on, and the last two above arrive that way. read it yourself:</p>
+            <pre><code>aapt2 dump permissions {{APK_NAME}}</code></pre>
+            <p>there is no analytics or tracking code in this app, and the build refuses any dependency that would add some — the source is linked below if you want to read that rule. what the app takes in goes to the journal you paired it with, on a computer you keep. reaching that journal from off your own network goes over the private network, and if that is the relay sol pbc runs rather than a network you run yourself, it passes encrypted bytes it cannot read. your journal is always private, only yours.</p>
+
+            <nav class="links" aria-label="more">
+                <a href="/releases/android">what's new in this version &rarr;</a>
+                <a href="https://github.com/solpbc/solstone-android">source code on GitHub &rarr;</a>
+                <a href="/download">every other device &rarr;</a>
+                <a href="/">back to solstone.app &rarr;</a>
+            </nav>
+        </div>
+    </main>
+    <footer>
+        <nav class="footer-nav" aria-label="footer">
+            <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
+        </nav>
+        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
+    </footer>
+</body>
+</html>

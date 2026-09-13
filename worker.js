@@ -3,6 +3,7 @@ import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseGitHubReleaseItems, parse
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
 const JOURNAL_MACOS_APPCAST_URL = "https://updates.solstone.app/journal-macos/appcast.xml";
 const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win.json";
+const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/release";
 const JOURNAL_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-journal/releases";
 const LINUX_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-linux/releases";
 const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-android/releases";
@@ -55,6 +56,89 @@ async function latestWindowsSetupUrl() {
   } catch {
     return null;
   }
+}
+
+// The android app has no auto-updater: an app installed from a file stays at
+// that version until someone installs a newer one. So the release origin's
+// `latest` pointer is the only thing that knows the current version, and both
+// the permalink and the download page read it rather than hard-coding one.
+//
+// Returns null rather than stale facts if anything is unreadable. A download
+// page that names a version and a digest is a page someone checks a file
+// against; it must not be able to name the wrong ones.
+async function latestAndroidRelease() {
+  try {
+    const pointer = await fetch(`${ANDROID_ORIGIN_PREFIX}/latest`, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!pointer.ok) return null;
+    const match = (await pointer.text()).trim().match(/^version=(\d+\.\d+\.\d+)$/);
+    if (!match) return null;
+    const version = match[1];
+    const apkName = `solstone-android-${version}.apk`;
+    return { version, apkName, apkUrl: `${ANDROID_ORIGIN_PREFIX}/${version}/${apkName}` };
+  } catch {
+    return null;
+  }
+}
+
+// The page's extras, kept separate from the permalink above on purpose: an
+// unreadable SHA256SUMS must not stop someone getting the app, and an
+// unverified digest must never reach the page. Each failure gets its own
+// degradation.
+async function latestAndroidFacts() {
+  const release = await latestAndroidRelease();
+  if (!release) return null;
+  try {
+    // The digest is published beside the artifact, by the same publisher, in
+    // the same transaction. Read it rather than carrying a copy here.
+    const sums = await fetch(`${ANDROID_ORIGIN_PREFIX}/${release.version}/SHA256SUMS`, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    let sha256 = null;
+    if (sums.ok) {
+      const line = (await sums.text())
+        .split("\n")
+        .map((row) => row.trim().split(/\s+/))
+        .find(([, name]) => name === release.apkName);
+      if (line && /^[0-9a-f]{64}$/.test(line[0])) sha256 = line[0];
+    }
+
+    const head = await fetch(release.apkUrl, {
+      method: "HEAD",
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    const length = Number(head.headers.get("content-length"));
+    const size = head.ok && Number.isFinite(length) && length > 0 ? length : null;
+
+    return { ...release, sha256, size };
+  } catch {
+    return { ...release, sha256: null, size: null };
+  }
+}
+
+// Fill the download page's slots from the origin. Every slot has a second
+// reading that is still true when the origin cannot be read, so the page never
+// has to choose between going blank and stating something it did not verify.
+function renderAndroidPage(html, facts) {
+  const megabytes = facts?.size ? `${(facts.size / 1e6).toFixed(2)} MB` : null;
+  const versionPath = facts ? facts.version : "&lt;version&gt;";
+  const sumsUrl = `updates.solstone.app/solstone-android/release/${versionPath}/SHA256SUMS`;
+  const digestBlock = facts?.sha256
+    ? `<pre><code class="fingerprint">${facts.sha256}</code></pre>\n` +
+      `            <p>we publish it beside the file, at <code>${sumsUrl}</code>.</p>`
+    : `<p>we publish it beside the file, at <code>${sumsUrl}</code> — that is the copy to check against.</p>`;
+  return html
+    .replaceAll("{{VERSION}}", versionPath)
+    .replaceAll("{{APK_NAME}}", facts ? facts.apkName : "solstone-android-&lt;version&gt;.apk")
+    .replaceAll("{{SIZE_PAREN}}", megabytes ? ` (${megabytes})` : "")
+    .replaceAll(
+      "{{VERSION_LINE}}",
+      facts
+        ? `version ${facts.version}${megabytes ? ` &middot; ${megabytes}` : ""} &middot; for android 8.0 and later`
+        : "for android 8.0 and later",
+    )
+    .replaceAll("{{DIGEST_BLOCK}}", digestBlock);
 }
 
 export default {
@@ -151,6 +235,41 @@ export default {
       const headers = new Headers(pageResponse.headers);
       headers.set("Content-Type", "text/html; charset=utf-8");
       return new Response(pageResponse.body, { status: 200, headers });
+    }
+
+    // Binary URL: /download/android/latest 302s to the current versioned APK on
+    // updates.solstone.app, mirroring /download/macos/latest. There is no
+    // auto-updater on android to bypass this path — this IS how an owner gets a
+    // newer version.
+    if (url.pathname === "/download/android/latest" || url.pathname === "/download/android.apk") {
+      const release = await latestAndroidRelease();
+      if (!release) {
+        return new Response("Latest Android download is temporarily unavailable. Try again shortly.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+        });
+      }
+      return Response.redirect(release.apkUrl, 302);
+    }
+
+    // Human-shareable URL: /download/android mirrors /download/macos, with one
+    // deliberate difference — it does NOT auto-download. The page explains what
+    // android asks before it will install an app it did not get from a store,
+    // and a page whose job is to be read before a decision must not start the
+    // download out from under the reader. The binary is at
+    // /download/android/latest, behind a visible button.
+    if (url.pathname === "/download/android") {
+      const pageUrl = new URL(request.url);
+      pageUrl.pathname = "/download-android";
+      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
+      if (!pageResponse.ok) return pageResponse;
+      const facts = await latestAndroidFacts();
+      const headers = new Headers(pageResponse.headers);
+      headers.set("Content-Type", "text/html; charset=utf-8");
+      // Only cache a page that resolved everything. A degraded render must not
+      // sit at the edge for five minutes after the origin has come back.
+      headers.set("Cache-Control", facts?.sha256 && facts?.size ? "public, max-age=300" : "no-store");
+      return new Response(renderAndroidPage(await pageResponse.text(), facts), { status: 200, headers });
     }
 
     // The per-device get-sol page lives at /download (index of the /download/*
