@@ -97,8 +97,8 @@ These are not optional. A change that weakens one is wrong regardless of size.
   Treat any scope id in a path as an assertion to check against the
   authenticated record.
 - **Secrets live only in `wrangler secret put` — never in the repo.** Stripe
-  keys, APNs `.p8`, relay-grant secret, SPB broker keys, hub-webhook secret,
-  the impersonation allowlist. `account/wrangler.toml` documents each one and
+  keys, APNs `.p8`, relay-grant secret, SPB broker keys, hub-webhook secret.
+  `account/wrangler.toml` documents each one and
   why; `[vars]` holds **non-secret config only**. Never log a secret, a token, a
   session value, or PII. The hub security-event webhook (`HUB_WEBHOOK_URL`)
   never carries raw tokens or credentials — typed events only.
@@ -106,10 +106,7 @@ These are not optional. A change that weakens one is wrong regardless of size.
   on.** Verify Stripe webhook signatures (`STRIPE_WEBHOOK_SECRET`) before acting.
   The SPB broker ships with a default-off kill switch (`SPB_MINT_ENABLED` unset
   in prod). A loud fail-closed beats a quiet convenient default on the money path.
-- **Impersonation is default-off and transient.** `IMPERSONATE_ALLOWED` is unset
-  in prod (no account is impersonable, even with a valid CF Access token).
-  Provision it for a single test run and delete it after; never a `[vars]` entry,
-  never a hardcoded account id.
+- **Operator impersonation is available by default.** A Cloudflare Access-authenticated operator may mint a session for any existing account not under active deletion. Set `IMPERSONATE_DISABLED` to the exact string `"true"` only as a break-glass stop; leave it unset for normal operation. Other values do not disable impersonation.
 - **Encrypt PII at rest.** Emails are stored encrypted (`crypto.js`
   `encryptEmail`), compared via hashes with a pepper, and OTP/credential
   comparisons use `timingSafeEqual`. Don't add a code path that stores or logs a

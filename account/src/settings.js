@@ -251,7 +251,7 @@ async function sessionViewRow(row, env) {
   }
   return {
     ...row,
-    deviceLabel: uaLabel(row.last_user_agent),
+    deviceLabel: sessionDisplayLabel(row),
     ipLabel,
   };
 }
@@ -268,11 +268,16 @@ function passkeyViewRow(row, nowMs) {
   };
 }
 
+export function sessionDisplayLabel(row) {
+  if (typeof row?.operator_label === 'string' && row.operator_label.trim()) {
+    return row.operator_label;
+  }
+  return uaLabel(row?.last_user_agent);
+}
+
 export function uaLabel(ua) {
   const value = typeof ua === 'string' ? ua.trim() : '';
   if (!value) return 'unknown device';
-  // Internal operator impersonation marker stored on sessions.last_user_agent
-  if (value.startsWith('impersonation by ')) return value;
   const browser = detectBrowser(value);
   if (!browser) return 'unknown device';
   return `${browser} on ${detectOs(value)}`;

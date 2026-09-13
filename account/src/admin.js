@@ -23,7 +23,7 @@ import { json } from './index.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { SPB_HOSTED_SERVICE, reconcileAllServices } from './spb-entitlement.js';
 import { SESSION_COOKIE } from './session.js';
-import { aaguidLabel, uaLabel, truncateIp } from './settings.js';
+import { aaguidLabel, sessionDisplayLabel, truncateIp } from './settings.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { emitSecurityEvent } from './hub.js';
 
@@ -584,15 +584,16 @@ async function impersonateAccount(request, env, admin, ctx) {
   }
 
   const operator = admin.email || admin.service;
-  const allowlist = parseImpersonateAllowlist(env);
   const operator_ref = await hashWithPepper(`hub:operator:${operator}`, env);
   const account_ref = await hashWithPepper(`hub:account:${account.id}`, env);
-  if (!allowlist.has(account.id.toLowerCase())) {
-    const reason = allowlist.size === 0 ? 'disabled' : 'not_allowlisted';
-    console.warn(JSON.stringify({ event: 'admin_impersonate_denied', operator_ref, account_ref, reason }));
+  if (env.IMPERSONATE_DISABLED === 'true') {
+    console.warn(JSON.stringify({ event: 'admin_impersonate_denied', operator_ref, account_ref, reason: 'disabled' }));
     emitSecurityEvent(env, ctx, {
-      type: 'impersonate_denied', tier: 'T4',
-      operator_ref, account_ref, reason,
+      type: 'impersonate_denied',
+      tier: 'T4',
+      operator_ref,
+      account_ref,
+      reason: 'disabled',
     });
     return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
   }
@@ -607,7 +608,7 @@ async function impersonateAccount(request, env, admin, ctx) {
     accountId: account.id,
     nowMs,
     ttlMs: IMPERSONATE_TTL_MS,
-    lastUserAgent: marker,
+    operatorLabel: marker,
   });
   console.warn(JSON.stringify({ event: 'admin_impersonate', operator_ref, account_ref, session_ref }));
   emitSecurityEvent(env, ctx, {
@@ -800,7 +801,7 @@ async function listPasskeys(env, accountId) {
 async function listSessions(env, accountId) {
   const { results } = await env.DB
     .prepare(
-      `SELECT id_hash, last_ip_encrypted, last_user_agent, created_at, last_active_at, expires_at, revoked_at
+      `SELECT id_hash, last_ip_encrypted, last_user_agent, operator_label, created_at, last_active_at, expires_at, revoked_at
        FROM sessions
        WHERE account_id = ?
        ORDER BY created_at DESC`
@@ -809,7 +810,7 @@ async function listSessions(env, accountId) {
     .all();
   return Promise.all((results || []).map(async (row) => ({
     id_hash: row.id_hash,
-    ua_label: uaLabel(row.last_user_agent),
+    ua_label: sessionDisplayLabel(row),
     ip_trunc: row.last_ip_encrypted ? await decryptIpOrNull(row.last_ip_encrypted, env) : null,
     created_at: isoOrNull(row.created_at),
     last_active_at: isoOrNull(row.last_active_at),
@@ -833,15 +834,6 @@ async function decryptIpOrNull(value, env) {
 
 function isoOrNull(ms) {
   return ms == null ? null : new Date(ms).toISOString();
-}
-
-function parseImpersonateAllowlist(env) {
-  return new Set(
-    String(env.IMPERSONATE_ALLOWED ?? '')
-      .split(',')
-      .map((id) => id.trim().toLowerCase())
-      .filter(Boolean)
-  );
 }
 
 function isEmailLike(value) {

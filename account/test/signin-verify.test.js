@@ -114,6 +114,8 @@ describe('/signin/verify', () => {
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe('/?welcome=1');
     expect(extractCookieToken(response.headers.get('Set-Cookie') || '')).toMatch(/^[A-Za-z0-9_-]+$/);
+    const sessionRow = await workerEnv.DB.prepare('SELECT operator_label, last_user_agent FROM sessions').first();
+    expect(sessionRow.operator_label).toBeNull();
   });
 
   it('rejects malformed email with the generic error and echoes the form value', async () => {

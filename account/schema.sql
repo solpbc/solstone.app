@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   revoked_at INTEGER,
   last_ip_encrypted TEXT,
   last_user_agent TEXT,
+  operator_label TEXT,
   FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 

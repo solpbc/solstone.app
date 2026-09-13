@@ -217,10 +217,10 @@ export async function updateAccountLastSignin(db, accountId, nowMs) {
     .run();
 }
 
-export async function createSession(db, { idHash, accountId, nowMs, ttlMs = SESSION_TTL_MS, lastUserAgent = null }) {
+export async function createSession(db, { idHash, accountId, nowMs, ttlMs = SESSION_TTL_MS, lastUserAgent = null, operatorLabel = null }) {
   await db
-    .prepare('INSERT INTO sessions (id_hash, account_id, created_at, expires_at, last_active_at, last_user_agent) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(idHash, accountId, nowMs, nowMs + ttlMs, nowMs, lastUserAgent)
+    .prepare('INSERT INTO sessions (id_hash, account_id, created_at, expires_at, last_active_at, last_user_agent, operator_label) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(idHash, accountId, nowMs, nowMs + ttlMs, nowMs, lastUserAgent, operatorLabel)
     .run();
 }
 
@@ -245,7 +245,7 @@ export async function bumpSessionActivity(db, { idHash, accountId, nowMs, ipEncr
 export async function listSessionsForAccount(db, accountId) {
   const { results } = await db
     .prepare(
-      `SELECT id_hash, created_at, last_active_at, last_ip_encrypted, last_user_agent
+      `SELECT id_hash, created_at, last_active_at, last_ip_encrypted, last_user_agent, operator_label
        FROM sessions
        WHERE account_id = ? AND revoked_at IS NULL
        ORDER BY last_active_at DESC, id_hash DESC`
@@ -1748,7 +1748,7 @@ export async function listTransparencySessions(db, accountId) {
   const { results } = await db
     .prepare(
       `SELECT id_hash, created_at, expires_at, last_active_at, last_ip_encrypted,
-              last_user_agent, revoked_at
+              last_user_agent, operator_label, revoked_at
        FROM sessions
        WHERE account_id = ?
        ORDER BY last_active_at DESC, id_hash DESC`

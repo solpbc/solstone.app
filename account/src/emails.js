@@ -42,7 +42,7 @@ import {
   signedInHtml,
   signedInRedirect,
   truncateIp,
-  uaLabel,
+  sessionDisplayLabel,
 } from './settings.js';
 
 const EMAIL_VERIFY_TTL_MS = 10 * 60 * 1000;
@@ -336,7 +336,7 @@ async function transparencySessionRow(row, env) {
     }
   }
   return {
-    deviceLabel: uaLabel(row.last_user_agent),
+    deviceLabel: sessionDisplayLabel(row),
     ipLabel,
     createdAt: row.created_at,
     lastActiveAt: row.last_active_at,

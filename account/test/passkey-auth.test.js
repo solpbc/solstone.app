@@ -98,6 +98,8 @@ describe('passkey authentication', () => {
     expect(credential.last_used_at).toBeGreaterThan(0);
     expect(accountRow.last_signin_at).toBe(credential.last_used_at);
     expect(await rowCount('sessions')).toBe(1);
+    const sessionRow = await workerEnv.DB.prepare('SELECT operator_label FROM sessions').first();
+    expect(sessionRow.operator_label).toBeNull();
   });
 
   it('honors a validly signed resume', async () => {

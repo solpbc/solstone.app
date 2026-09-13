@@ -85,6 +85,7 @@ const TABLES = [
     exported('revoked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_ip_encrypted', 'decrypt_truncate_ip', 'encrypted at rest; shortened for display', 'network_address'),
     exported('last_user_agent', 'ua_label', 'device and browser label', 'device'),
+    exported('operator_label', 'identity', 'operator-session label', 'operator_label'),
   ], { deletionOrder: 60, description: 'sign-in sessions, including revoked sessions' }),
   table('rate_buckets', 'derived_rate_key', 'derived_key_purge', 'transient_auth_rate', [
     omitted('key', 'derived rate-limit key'), omitted('count', 'transient rate state', 'transient_deletion'),

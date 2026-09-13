@@ -36,6 +36,7 @@ describe('hub security-event redaction', () => {
     await installAdminHubStub(calls);
     const account = await seedAccount({ email: 'denied-owner@example.com' });
     const testEnv = makeTestEnv({
+      IMPERSONATE_DISABLED: 'true',
       HUB_WEBHOOK_URL: HUB_URL,
       HUB_WEBHOOK_SECRET: 'hub-secret',
     });
@@ -65,7 +66,6 @@ describe('hub security-event redaction', () => {
     await installAdminHubStub(calls);
     const account = await seedAccount({ email: 'minted-owner@example.com' });
     const testEnv = makeTestEnv({
-      IMPERSONATE_ALLOWED: account.accountId,
       HUB_WEBHOOK_URL: HUB_URL,
       HUB_WEBHOOK_SECRET: 'hub-secret',
     });

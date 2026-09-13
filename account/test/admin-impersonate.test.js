@@ -22,9 +22,9 @@ describe('admin impersonate endpoint', () => {
     vi.restoreAllMocks();
   });
 
-  it('mints a one-hour session by account_id', async () => {
+  it('mints a one-hour session by account_id with default-on env (AC1)', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const testEnv = makeTestEnv();
     const token = await mintToken();
 
     const response = await worker.fetch(
@@ -46,12 +46,13 @@ describe('admin impersonate endpoint', () => {
     expect(Number.isNaN(Date.parse(body.expires_at))).toBe(false);
     expect(response.headers.get('Set-Cookie')).toBeNull();
     expect(row.expires_at - row.created_at).toBe(IMPERSONATE_TTL_MS);
-    expect(row.last_user_agent).toBe('impersonation by jer@solpbc.org');
+    expect(row.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(row.last_user_agent).toBeNull();
   });
 
   it('authenticates end-to-end as the target account', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const testEnv = makeTestEnv();
     const token = await mintToken();
     const minted = await impersonate(token, { account_id: account.accountId }, testEnv);
 
@@ -64,19 +65,22 @@ describe('admin impersonate endpoint', () => {
     expect(body).toContain('<div class="who">target@example.com</div>');
   });
 
-  it('mints by email with normalization', async () => {
+  it('mints by email with normalization and default-on env (AC1)', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const testEnv = makeTestEnv();
     const token = await mintToken();
 
     const body = await impersonate(token, { email: 'Target@Example.com' }, testEnv);
+    const row = await sessionRowForAccount(account.accountId);
 
     expect(body.account_id).toBe(account.accountId);
+    expect(row.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(row.last_user_agent).toBeNull();
   });
 
   it('uses the short one-hour ttl instead of the default session ttl', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const testEnv = makeTestEnv();
     const token = await mintToken();
 
     await impersonate(token, { account_id: account.accountId }, testEnv);
@@ -88,7 +92,7 @@ describe('admin impersonate endpoint', () => {
 
   it('shows the audit marker in admin session details and remains revocable', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const testEnv = makeTestEnv();
     const token = await mintToken();
     const minted = await impersonate(token, { account_id: account.accountId }, testEnv);
 
@@ -112,14 +116,15 @@ describe('admin impersonate endpoint', () => {
 
   it('marks service-token operator sessions', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const testEnv = makeTestEnv();
     const token = await mintToken({ payload: { common_name: 'service-token' } });
 
     const body = await impersonate(token, { account_id: account.accountId }, testEnv);
     const row = await sessionRowForAccount(body.account_id);
 
     expect(body.account_id).toBe(account.accountId);
-    expect(row.last_user_agent).toBe('impersonation by service-token');
+    expect(row.operator_label).toBe('impersonation by service-token');
+    expect(row.last_user_agent).toBeNull();
   });
 
   it('returns uniform 404 for unknown or malformed account input', async () => {
@@ -206,7 +211,7 @@ describe('admin impersonate endpoint', () => {
 
   it('emits an audit log line without the raw token', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const testEnv = makeTestEnv();
     const token = await mintToken();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -229,112 +234,192 @@ describe('admin impersonate endpoint', () => {
     expect(payload).not.toHaveProperty('session_id_hash');
   });
 
-  it('denies impersonation when the allowlist is unset (default-off)', async () => {
+  it('denies impersonation when IMPERSONATE_DISABLED is "true", but non-true values do not disable (AC2)', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv();
     const token = await mintToken();
+
+    // 1. IMPERSONATE_DISABLED: 'true' -> uniform 404, admin_impersonate_denied with reason 'disabled', no session
+    const disabledEnv = makeTestEnv({ IMPERSONATE_DISABLED: 'true' });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const response = await worker.fetch(adminRequest('/admin/impersonate', token, {
+    const deniedResp = await worker.fetch(adminRequest('/admin/impersonate', token, {
       method: 'POST',
       body: { account_id: account.accountId },
-    }), testEnv);
-    const body = await response.json();
-    const row = await workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM sessions').first();
-    const logged = warn.mock.calls.flat().join('\n');
+    }), disabledEnv);
+    const deniedBody = await deniedResp.json();
+    const countRow = await workerEnv.DB.prepare('SELECT COUNT(*) AS count FROM sessions').first();
 
-    expect(response.status).toBe(404);
-    expect(body).toEqual({ error: 'account not found' });
-    expect(row.count).toBe(0);
+    expect(deniedResp.status).toBe(404);
+    expect(deniedBody).toEqual({ error: 'account not found' });
+    expect(countRow.count).toBe(0);
+
+    const logged = warn.mock.calls.flat().join('\n');
     const payload = JSON.parse(logged);
     expect(payload).toEqual({
       event: 'admin_impersonate_denied',
-      operator_ref: await hashWithPepper('hub:operator:jer@solpbc.org', testEnv),
-      account_ref: await hashWithPepper(`hub:account:${account.accountId}`, testEnv),
+      operator_ref: await hashWithPepper('hub:operator:jer@solpbc.org', disabledEnv),
+      account_ref: await hashWithPepper(`hub:account:${account.accountId}`, disabledEnv),
       reason: 'disabled',
     });
     expect(logged).not.toContain(account.accountId);
     expect(logged).not.toContain('jer@solpbc.org');
-    expect(payload).not.toHaveProperty('operator');
-    expect(payload).not.toHaveProperty('account_id');
-  });
 
-  it('denies impersonation for an account that is not on the allowlist', async () => {
-    const accountA = await seedAccount({ email: 'target-a@example.com' });
-    const accountB = await seedAccount({ email: 'target-b@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: accountA.accountId });
-    const token = await mintToken();
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 2. Non-true values ('TRUE', 'false', '1', '') do not disable impersonation
+    for (const nonTrueVal of ['TRUE', 'false', '1', '']) {
+      const nonTrueEnv = makeTestEnv({ IMPERSONATE_DISABLED: nonTrueVal });
+      const resp = await worker.fetch(adminRequest('/admin/impersonate', token, {
+        method: 'POST',
+        body: { account_id: account.accountId },
+      }), nonTrueEnv);
+      expect(resp.status).toBe(200);
+      const minted = await resp.json();
+      expect(minted.account_id).toBe(account.accountId);
+    }
 
-    await impersonate(token, { account_id: accountA.accountId }, testEnv);
-    const response = await worker.fetch(adminRequest('/admin/impersonate', token, {
+    // 3. Unset IMPERSONATE_DISABLED allows minting for the same target
+    const unsetEnv = makeTestEnv();
+    const unsetResp = await worker.fetch(adminRequest('/admin/impersonate', token, {
       method: 'POST',
-      body: { account_id: accountB.accountId },
-    }), testEnv);
-    const body = await response.json();
-    const row = await sessionRowForAccount(accountB.accountId);
-
-    expect(response.status).toBe(404);
-    expect(body).toEqual({ error: 'account not found' });
-    expect(row).toBeNull();
-    const payload = JSON.parse(warn.mock.calls.at(-1)[0]);
-    expect(payload).toEqual({
-      event: 'admin_impersonate_denied',
-      operator_ref: await hashWithPepper('hub:operator:jer@solpbc.org', testEnv),
-      account_ref: await hashWithPepper(`hub:account:${accountB.accountId}`, testEnv),
-      reason: 'not_allowlisted',
-    });
-    expect(JSON.stringify(payload)).not.toContain(accountB.accountId);
-    expect(JSON.stringify(payload)).not.toContain(accountA.accountId);
-    expect(payload).not.toHaveProperty('operator');
-    expect(payload).not.toHaveProperty('account_id');
+      body: { account_id: account.accountId },
+    }), unsetEnv);
+    expect(unsetResp.status).toBe(200);
   });
 
-  it('parses the allowlist tolerating spaces, mixed case, and empty commas', async () => {
+  it('allows two distinct CF Access principals to concurrently mint two accounts (AC3)', async () => {
     const accountA = await seedAccount({ email: 'target-a@example.com' });
     const accountB = await seedAccount({ email: 'target-b@example.com' });
-    const allowed = ` ${accountA.accountId} , ,${accountB.accountId.toUpperCase()}, `;
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: allowed });
-    const token = await mintToken();
+    const testEnv = makeTestEnv();
 
-    await impersonate(token, { account_id: accountA.accountId }, testEnv);
-    await impersonate(token, { account_id: accountB.accountId }, testEnv);
+    const tokenAlice = await mintToken({ payload: { email: 'alice@solpbc.org' } });
+    const tokenBob = await mintToken({ payload: { email: 'bob@solpbc.org' } });
+
+    const [mintAlice, mintBob] = await Promise.all([
+      impersonate(tokenAlice, { account_id: accountA.accountId }, testEnv),
+      impersonate(tokenBob, { account_id: accountB.accountId }, testEnv),
+    ]);
+
+    expect(mintAlice.account_id).toBe(accountA.accountId);
+    expect(mintBob.account_id).toBe(accountB.accountId);
+    expect(mintAlice.session_token).not.toBe(mintBob.session_token);
+
+    // Both minted sessions authenticate after both mints complete
+    const authA = await worker.fetch(new Request('https://services.solstone.app/', {
+      headers: { Cookie: `account_session=${mintAlice.session_token}` },
+    }), testEnv);
+    expect(authA.status).toBe(200);
+    expect(await authA.text()).toContain('<div class="who">target-a@example.com</div>');
+
+    const authB = await worker.fetch(new Request('https://services.solstone.app/', {
+      headers: { Cookie: `account_session=${mintBob.session_token}` },
+    }), testEnv);
+    expect(authB.status).toBe(200);
+    expect(await authB.text()).toContain('<div class="who">target-b@example.com</div>');
+
+    const rowA = await sessionRowForAccount(accountA.accountId);
+    const rowB = await sessionRowForAccount(accountB.accountId);
+    expect(rowA.operator_label).toBe('impersonation by alice@solpbc.org');
+    expect(rowB.operator_label).toBe('impersonation by bob@solpbc.org');
   });
 
-  it('denied responses are indistinguishable from the unknown-account 404', async () => {
+  it('updates last_user_agent on activity while keeping operator_label unchanged (AC5)', async () => {
     const account = await seedAccount({ email: 'target@example.com' });
     const testEnv = makeTestEnv();
     const token = await mintToken();
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const deniedResponse = await worker.fetch(adminRequest('/admin/impersonate', token, {
-      method: 'POST',
-      body: { account_id: account.accountId },
-    }), testEnv);
-    const deniedBody = await deniedResponse.json();
-    const unknownResponse = await worker.fetch(adminRequest('/admin/impersonate', token, {
-      method: 'POST',
-      body: { account_id: '00000000-0000-0000-0000-000000000000' },
-    }), testEnv);
-    const unknownBody = await unknownResponse.json();
+    const minted = await impersonate(token, { account_id: account.accountId }, testEnv);
+    const initialRow = await sessionRowForAccount(account.accountId);
+    expect(initialRow.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(initialRow.last_user_agent).toBeNull();
 
-    expect(deniedResponse.status).toBe(404);
-    expect(unknownResponse.status).toBe(404);
-    expect(deniedBody).toEqual({ error: 'account not found' });
-    expect(unknownBody).toEqual({ error: 'account not found' });
+    // First request with UA 1
+    const ua1 = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    await worker.fetch(new Request('https://services.solstone.app/', {
+      headers: {
+        Cookie: `account_session=${minted.session_token}`,
+        'User-Agent': ua1,
+      },
+    }), testEnv);
+
+    const rowAfterUa1 = await sessionRowForAccount(account.accountId);
+    expect(rowAfterUa1.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(rowAfterUa1.last_user_agent).toBe(ua1);
+
+    // Second request with UA 2
+    const ua2 = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+    await worker.fetch(new Request('https://services.solstone.app/', {
+      headers: {
+        Cookie: `account_session=${minted.session_token}`,
+        'User-Agent': ua2,
+      },
+    }), testEnv);
+
+    const rowAfterUa2 = await sessionRowForAccount(account.accountId);
+    expect(rowAfterUa2.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(rowAfterUa2.last_user_agent).toBe(ua2);
   });
 
-  it('keeps existing session callers on the default ttl with no user agent', async () => {
+  it('displays the operator label across all three display surfaces after activity (AC6)', async () => {
+    const account = await seedAccount({ email: 'target@example.com' });
+    const testEnv = makeTestEnv();
+    const adminToken = await mintToken();
+
+    const minted = await impersonate(adminToken, { account_id: account.accountId }, testEnv);
+
+    // Activity with a recognizable browser UA
+    const browserUa = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    await worker.fetch(new Request('https://services.solstone.app/', {
+      headers: {
+        Cookie: `account_session=${minted.session_token}`,
+        'User-Agent': browserUa,
+      },
+    }), testEnv);
+
+    // 1. GET /sign-in/sessions
+    const sessionsResp = await worker.fetch(new Request('https://services.solstone.app/sign-in/sessions', {
+      headers: {
+        Cookie: `account_session=${minted.session_token}`,
+        'User-Agent': browserUa,
+      },
+    }), testEnv);
+    expect(sessionsResp.status).toBe(200);
+    const sessionsHtml = await sessionsResp.text();
+    expect(sessionsHtml).toContain('impersonation by jer@solpbc.org');
+    expect(sessionsHtml).not.toContain('chrome on macos');
+
+    // 2. GET /transparency
+    const transResp = await worker.fetch(new Request('https://services.solstone.app/transparency', {
+      headers: {
+        Cookie: `account_session=${minted.session_token}`,
+        'User-Agent': browserUa,
+      },
+    }), testEnv);
+    expect(transResp.status).toBe(200);
+    const transHtml = await transResp.text();
+    expect(transHtml).toContain('impersonation by jer@solpbc.org');
+    expect(transHtml).not.toContain('chrome on macos');
+
+    // 3. GET /admin/accounts/:id
+    const adminAccountResp = await worker.fetch(
+      adminRequest(`/admin/accounts/${account.accountId}`, adminToken),
+      testEnv
+    );
+    expect(adminAccountResp.status).toBe(200);
+    const adminAccountBody = await adminAccountResp.json();
+    expect(adminAccountBody.sessions[0].ua_label).toBe('impersonation by jer@solpbc.org');
+  });
+
+  it('keeps existing session callers on the default ttl with no user agent and null operator_label', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'target@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     const row = await workerEnv.DB
-      .prepare('SELECT created_at, expires_at, last_user_agent FROM sessions WHERE id_hash = ?')
+      .prepare('SELECT created_at, expires_at, last_user_agent, operator_label FROM sessions WHERE id_hash = ?')
       .bind(session.idHash)
       .first();
 
     expect(row.expires_at - row.created_at).toBe(DEFAULT_SESSION_TTL_MS);
     expect(row.last_user_agent).toBeNull();
+    expect(row.operator_label).toBeNull();
   });
 });
 
@@ -364,7 +449,6 @@ describe('admin impersonate durable security events', () => {
     await installHubStub(hubCalls);
     const account = await seedAccount({ email: 'target@example.com' });
     const testEnv = makeTestEnv({
-      IMPERSONATE_ALLOWED: account.accountId,
       HUB_WEBHOOK_URL: HUB_URL,
       HUB_WEBHOOK_SECRET: 'test-hub-secret',
     });
@@ -400,6 +484,7 @@ describe('admin impersonate durable security events', () => {
     await installHubStub(hubCalls);
     const account = await seedAccount({ email: 'target@example.com' });
     const testEnv = makeTestEnv({
+      IMPERSONATE_DISABLED: 'true',
       HUB_WEBHOOK_URL: HUB_URL,
       HUB_WEBHOOK_SECRET: 'test-hub-secret',
     });
@@ -437,7 +522,7 @@ describe('admin impersonate durable security events', () => {
       return null;
     });
     const account = await seedAccount({ email: 'target@example.com' });
-    const testEnv = makeTestEnv({ IMPERSONATE_ALLOWED: account.accountId });
+    const testEnv = makeTestEnv();
     const token = await mintToken();
 
     const { response } = await fetchWithCtx(
@@ -476,7 +561,7 @@ async function impersonate(token, body, testEnv) {
 
 async function sessionRowForAccount(accountId) {
   return workerEnv.DB
-    .prepare('SELECT created_at, expires_at, last_user_agent FROM sessions WHERE account_id = ?')
+    .prepare('SELECT created_at, expires_at, last_user_agent, operator_label FROM sessions WHERE account_id = ?')
     .bind(accountId)
     .first();
 }

@@ -37,12 +37,13 @@ describe('session activity metadata', () => {
       },
     }), testEnv);
     const row = await workerEnv.DB
-      .prepare('SELECT last_ip_encrypted, last_user_agent FROM sessions WHERE id_hash = ?')
+      .prepare('SELECT last_ip_encrypted, last_user_agent, operator_label FROM sessions WHERE id_hash = ?')
       .bind(session.idHash)
       .first();
 
     await expect(decryptEmail(row.last_ip_encrypted, testEnv)).resolves.toBe('73.225.42.18');
     expect(row.last_user_agent).toBe(longUa.slice(0, 512));
+    expect(row.operator_label).toBeNull();
   });
 
   it('orders sessions by last activity descending', async () => {

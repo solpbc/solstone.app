@@ -12,6 +12,7 @@ import {
   createDeletionProof,
   upsertSppBinding,
 } from '../src/db.js';
+import worker from '../src/index.js';
 import {
   installConsoleSpy,
   makeTestEnv,
@@ -24,6 +25,7 @@ import {
   seedSession,
   seedSplBinding,
 } from './helpers.js';
+import { installJwksStub, mintToken } from './jwks-helper.js';
 
 const NOW = 1_700_000_123_456;
 const INSTANCE_OWNER = '11111111-1111-1111-1111-111111111111';
@@ -320,12 +322,27 @@ describe('owner local export collector (AC1–3)', () => {
         "UPDATE sessions SET last_user_agent = ? WHERE rowid = (SELECT MAX(rowid) FROM sessions)"
       ).bind(secretCustomUa).run();
 
-      // Session 3: Impersonation marker
-      const impersonationUa = 'impersonation by operator@solpbc.org';
-      await seedSession(owner.accountId, { nowMs: NOW + 20, testEnv: env });
-      await workerEnv.DB.prepare(
-        "UPDATE sessions SET last_user_agent = ? WHERE rowid = (SELECT MAX(rowid) FROM sessions)"
-      ).bind(impersonationUa).run();
+      // Session 3: Real operator impersonation mint + authenticated page load with recognized browser UA
+      await installJwksStub();
+      const token = await mintToken({ payload: { email: 'operator@solpbc.org' } });
+      const impersonateResp = await worker.fetch(new Request('https://services.solstone.app/admin/impersonate', {
+        method: 'POST',
+        headers: {
+          'Cf-Access-Jwt-Assertion': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ account_id: owner.accountId }),
+      }), env);
+      expect(impersonateResp.status).toBe(200);
+      const { session_token } = await impersonateResp.json();
+
+      const operatorBrowserUa = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      await worker.fetch(new Request('https://services.solstone.app/', {
+        headers: {
+          Cookie: `account_session=${session_token}`,
+          'User-Agent': operatorBrowserUa,
+        },
+      }), env);
 
       const result = await collectOwnerLocalExport({
         db: workerEnv.DB,
@@ -339,10 +356,22 @@ describe('owner local export collector (AC1–3)', () => {
 
       expect(uas).toContain('safari on macos');
       expect(uas).toContain('unknown device');
-      expect(uas).toContain('impersonation by operator@solpbc.org');
+      expect(uas).toContain('chrome on macos');
+      expect(uas).not.toContain('impersonation by operator@solpbc.org');
 
-      // Verify raw secret UA never appears
+      // Distinct operator_label field
+      const operatorLabels = sessions.map((s) => s.operator_label);
+      expect(operatorLabels).toContain('impersonation by operator@solpbc.org');
+      expect(operatorLabels).toContain(null);
+
+      const opSession = sessions.find((s) => s.operator_label === 'impersonation by operator@solpbc.org');
+      expect(opSession).toBeDefined();
+      expect(opSession.device).toBe('chrome on macos');
+      expect(opSession.operator_label).toBe('impersonation by operator@solpbc.org');
+
+      // Verify raw secret UA and operator browser UA never appear
       expect(JSON.stringify(result)).not.toContain(secretCustomUa);
+      expect(JSON.stringify(result)).not.toContain(operatorBrowserUa);
     });
   });
 
