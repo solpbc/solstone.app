@@ -40,7 +40,7 @@ describe('hub security-event redaction', () => {
       HUB_WEBHOOK_URL: HUB_URL,
       HUB_WEBHOOK_SECRET: 'hub-secret',
     });
-    const operator = 'jer@solpbc.org';
+    const operator = 'operator@solpbc.org';
     const token = await mintToken({ payload: { email: operator } });
     vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -69,7 +69,7 @@ describe('hub security-event redaction', () => {
       HUB_WEBHOOK_URL: HUB_URL,
       HUB_WEBHOOK_SECRET: 'hub-secret',
     });
-    const operator = 'jer@solpbc.org';
+    const operator = 'operator@solpbc.org';
     const token = await mintToken({ payload: { email: operator } });
     vi.spyOn(console, 'warn').mockImplementation(() => {});
 

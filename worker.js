@@ -193,7 +193,7 @@ export default {
       return env.ASSETS.fetch(assetRequest(rewritten, request));
     }
 
-    // The authoritative installer URL (req_impawibu, G20): install.sh must be
+    // The authoritative installer URL: install.sh must be
     // served as plain text, never HTML. The live content-type override is
     // public/_headers (Workers Assets serves this exact-matching static file
     // directly, so this handler never runs while the asset exists -- verified

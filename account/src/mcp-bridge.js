@@ -45,8 +45,8 @@ function d1Reason(message) {
 // Content-free failure log for a caught bridge-token error: bounded reason code
 // only, never the raw message (a D1 message can embed a bound parameter). Each
 // `catch` below returns a distinct 503 body identifying which step failed; this
-// adds the classification that lets a recurrence be diagnosed from `extro-sre
-// tail`/logs instead of only distinguishing "some step failed" (2026-09-10/11
+// adds the classification that lets a recurrence be diagnosed from operational
+// logs instead of only distinguishing "some step failed" (2026-09-10/11
 // solstone.app zone-5xx spike — every catch here was bare, so the live-window
 // capture could confirm requests were failing but not which branch or why).
 function logBridgeTokenFailure(step, err) {

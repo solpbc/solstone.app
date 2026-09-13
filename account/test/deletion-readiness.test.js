@@ -336,7 +336,7 @@ describe('deletion readiness protocol and shared registry', () => {
         sha256: 'e6456d20243c7a73542bacd8a31a2c1f321f08bee7034584d03977b6e0ba0ef4',
       });
       expect(provenance.support).toEqual({
-        repository: 'extro-sites',
+        repository: 'private-support-worker',
         commit: '284c8bace2738633601f581672b6c88cbdf8d922',
         path: 'sites/support/proto/owner-purge-ready-v1.json',
         sha256: '4cdc531a57013a6c7e4d3b86c0a172e87588cf4caad725d56ed4e4f793fc17e7',

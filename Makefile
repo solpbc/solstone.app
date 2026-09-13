@@ -17,7 +17,7 @@ install:
 # Sibling checkout of solstone-journal; override with `make publish-install-sh JOURNAL_REPO=<path>`.
 JOURNAL_REPO ?= ../solstone-journal
 
-# The authoritative-installer publish step (req_impawibu, G20). Republishes
+# The authoritative-installer publish step. Republishes
 # solstone-journal's core/distribution/install.sh, from its origin/main tip
 # only, to both live locations this repo/account own: public/install.sh
 # (served at solstone.app/install.sh) and the updates.solstone.app

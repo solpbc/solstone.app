@@ -40,7 +40,7 @@ export async function mintToken({
   iss = CF_ACCESS_ISSUER,
   aud = TEST_CF_ACCESS_AUD,
   exp = '2h',
-  payload = { email: 'jer@solpbc.org' },
+  payload = { email: 'operator@solpbc.org' },
   badSignature = false,
 } = {}) {
   const key = badSignature ? await badKey : await servedKey;

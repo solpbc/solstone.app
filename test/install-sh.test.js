@@ -24,7 +24,7 @@ function makeEnv() {
   };
 }
 
-// req_impawibu / G20: solstone.app/install.sh is the authoritative installer
+// solstone.app/install.sh is the authoritative installer
 // URL. A Worker that ever served this as HTML or the wrong content-type would
 // break `curl -fsSL https://solstone.app/install.sh | sh` in the worst way --
 // the owner pipes markup or a byte-ambiguous type into their shell.

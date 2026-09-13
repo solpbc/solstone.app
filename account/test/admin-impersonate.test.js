@@ -46,7 +46,7 @@ describe('admin impersonate endpoint', () => {
     expect(Number.isNaN(Date.parse(body.expires_at))).toBe(false);
     expect(response.headers.get('Set-Cookie')).toBeNull();
     expect(row.expires_at - row.created_at).toBe(IMPERSONATE_TTL_MS);
-    expect(row.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(row.operator_label).toBe('impersonation by operator@solpbc.org');
     expect(row.last_user_agent).toBeNull();
   });
 
@@ -74,7 +74,7 @@ describe('admin impersonate endpoint', () => {
     const row = await sessionRowForAccount(account.accountId);
 
     expect(body.account_id).toBe(account.accountId);
-    expect(row.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(row.operator_label).toBe('impersonation by operator@solpbc.org');
     expect(row.last_user_agent).toBeNull();
   });
 
@@ -102,7 +102,7 @@ describe('admin impersonate endpoint', () => {
     const idHash = await hashWithPepper(minted.session_token, testEnv);
 
     expect(showResponse.status).toBe(200);
-    expect(session.ua_label).toBe('impersonation by jer@solpbc.org');
+    expect(session.ua_label).toBe('impersonation by operator@solpbc.org');
     expect(session.revoked_at).toBeNull();
     expect(session.id_hash).toBe(idHash);
 
@@ -222,12 +222,12 @@ describe('admin impersonate endpoint', () => {
 
     expect(payload).toEqual({
       event: 'admin_impersonate',
-      operator_ref: await hashWithPepper('hub:operator:jer@solpbc.org', testEnv),
+      operator_ref: await hashWithPepper('hub:operator:operator@solpbc.org', testEnv),
       account_ref: await hashWithPepper(`hub:account:${account.accountId}`, testEnv),
       session_ref: await hashWithPepper(`hub:session:${idHash}`, testEnv),
     });
     expect(serialized).not.toContain(account.accountId);
-    expect(serialized).not.toContain('jer@solpbc.org');
+    expect(serialized).not.toContain('operator@solpbc.org');
     expect(serialized).not.toContain(body.session_token);
     expect(payload).not.toHaveProperty('operator');
     expect(payload).not.toHaveProperty('account_id');
@@ -257,12 +257,12 @@ describe('admin impersonate endpoint', () => {
     const payload = JSON.parse(logged);
     expect(payload).toEqual({
       event: 'admin_impersonate_denied',
-      operator_ref: await hashWithPepper('hub:operator:jer@solpbc.org', disabledEnv),
+      operator_ref: await hashWithPepper('hub:operator:operator@solpbc.org', disabledEnv),
       account_ref: await hashWithPepper(`hub:account:${account.accountId}`, disabledEnv),
       reason: 'disabled',
     });
     expect(logged).not.toContain(account.accountId);
-    expect(logged).not.toContain('jer@solpbc.org');
+    expect(logged).not.toContain('operator@solpbc.org');
 
     // 2. Non-true values ('TRUE', 'false', '1', '') do not disable impersonation
     for (const nonTrueVal of ['TRUE', 'false', '1', '']) {
@@ -328,7 +328,7 @@ describe('admin impersonate endpoint', () => {
 
     const minted = await impersonate(token, { account_id: account.accountId }, testEnv);
     const initialRow = await sessionRowForAccount(account.accountId);
-    expect(initialRow.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(initialRow.operator_label).toBe('impersonation by operator@solpbc.org');
     expect(initialRow.last_user_agent).toBeNull();
 
     // First request with UA 1
@@ -341,7 +341,7 @@ describe('admin impersonate endpoint', () => {
     }), testEnv);
 
     const rowAfterUa1 = await sessionRowForAccount(account.accountId);
-    expect(rowAfterUa1.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(rowAfterUa1.operator_label).toBe('impersonation by operator@solpbc.org');
     expect(rowAfterUa1.last_user_agent).toBe(ua1);
 
     // Second request with UA 2
@@ -354,7 +354,7 @@ describe('admin impersonate endpoint', () => {
     }), testEnv);
 
     const rowAfterUa2 = await sessionRowForAccount(account.accountId);
-    expect(rowAfterUa2.operator_label).toBe('impersonation by jer@solpbc.org');
+    expect(rowAfterUa2.operator_label).toBe('impersonation by operator@solpbc.org');
     expect(rowAfterUa2.last_user_agent).toBe(ua2);
   });
 
@@ -383,7 +383,7 @@ describe('admin impersonate endpoint', () => {
     }), testEnv);
     expect(sessionsResp.status).toBe(200);
     const sessionsHtml = await sessionsResp.text();
-    expect(sessionsHtml).toContain('impersonation by jer@solpbc.org');
+    expect(sessionsHtml).toContain('impersonation by operator@solpbc.org');
     expect(sessionsHtml).not.toContain('chrome on macos');
 
     // 2. GET /transparency
@@ -395,7 +395,7 @@ describe('admin impersonate endpoint', () => {
     }), testEnv);
     expect(transResp.status).toBe(200);
     const transHtml = await transResp.text();
-    expect(transHtml).toContain('impersonation by jer@solpbc.org');
+    expect(transHtml).toContain('impersonation by operator@solpbc.org');
     expect(transHtml).not.toContain('chrome on macos');
 
     // 3. GET /admin/accounts/:id
@@ -405,7 +405,7 @@ describe('admin impersonate endpoint', () => {
     );
     expect(adminAccountResp.status).toBe(200);
     const adminAccountBody = await adminAccountResp.json();
-    expect(adminAccountBody.sessions[0].ua_label).toBe('impersonation by jer@solpbc.org');
+    expect(adminAccountBody.sessions[0].ua_label).toBe('impersonation by operator@solpbc.org');
   });
 
   it('keeps existing session callers on the default ttl with no user agent and null operator_label', async () => {
