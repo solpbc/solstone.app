@@ -228,7 +228,7 @@ test("renderReleasesPage preserves chrome copy", () => {
 
   assert.match(
     html,
-    /<meta property="og:description" content="what's new in the journal — the memory sol keeps — in plain language\. it runs on your device: never sold, never shared\.">/,
+    /<meta property="og:description" content="what's new in the journal, in plain language\. the journal is the memory\. your journal lives on your device: never sold, never shared\.">/,
   );
   assert.match(
     macosHtml,
@@ -246,7 +246,7 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
   // iOS graduated from an "iOS soon" placeholder to a real stream 2026-07-25 —
   // the iPhone pill is now a live link on every other stream.
-  const iosPill = '<a class="ss-pill" href="/releases/ios">iPhone</a>';
+  const iosPill = '<a class="ss-pill" href="/releases/ios">iphone</a>';
 
   const assertOrder = (html, expected) => {
     let previousIndex = -1;
@@ -281,7 +281,7 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   assertOrder(journalHtml, [
     '<span class="ss-pill ss-active ss-home" aria-current="page">journal</span>',
     '<a class="ss-pill" href="/releases/macos">macOS</a>',
-    '<a class="ss-pill" href="/releases/linux">Linux</a>',
+    '<a class="ss-pill" href="/releases/linux">linux</a>',
     iosPill,
   ]);
   assert.doesNotMatch(journalHtml, /<a class="ss-pill ss-active ss-home"[^>]*>journal<\/a>/);
@@ -289,7 +289,7 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   assertOrder(macosHtml, [
     '<a class="ss-pill ss-home" href="/releases">journal</a>',
     '<span class="ss-pill ss-active" aria-current="page">macOS</span>',
-    '<a class="ss-pill" href="/releases/linux">Linux</a>',
+    '<a class="ss-pill" href="/releases/linux">linux</a>',
     iosPill,
   ]);
   assert.doesNotMatch(macosHtml, /<a class="ss-pill ss-active"[^>]*>macOS<\/a>/);
@@ -297,10 +297,10 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   assertOrder(linuxHtml, [
     '<a class="ss-pill ss-home" href="/releases">journal</a>',
     '<a class="ss-pill" href="/releases/macos">macOS</a>',
-    '<span class="ss-pill ss-active" aria-current="page">Linux</span>',
+    '<span class="ss-pill ss-active" aria-current="page">linux</span>',
     iosPill,
   ]);
-  assert.doesNotMatch(linuxHtml, /<a class="ss-pill ss-active"[^>]*>Linux<\/a>/);
+  assert.doesNotMatch(linuxHtml, /<a class="ss-pill ss-active"[^>]*>linux<\/a>/);
 
   // model line removed from every stream — the switcher's
   // always-first journal pill + primacy underline carry the cross-stream
@@ -464,18 +464,18 @@ test("renderReleasesPage renders the windows stream with notes, no date, and an 
 
   assert.equal(RELEASE_PAGE_CONFIGS.windows.stream, "windows");
   assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/windows">/);
-  assert.match(html, /<title>Windows app releases — solstone<\/title>/);
-  assert.match(html, /<h2 id="v0\.3\.0">solstone for Windows 0\.3\.0<\/h2>/);
+  assert.match(html, /<title>windows app releases — solstone<\/title>/);
+  assert.match(html, /<h2 id="v0\.3\.0">solstone for windows 0\.3\.0<\/h2>/);
   assert.match(html, /a windows thing/);
   // the Velopack feed carries no per-release date — the page renders none.
   assert.doesNotMatch(html, /class="rel-date"/);
   // download permalink + the Windows pill marked active on its own page.
-  assert.match(html, /<a href="\/download\/windows" class="intro-dl">download solstone for Windows →<\/a>/);
-  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">Windows<\/span>/);
+  assert.match(html, /<a href="\/download\/windows" class="intro-dl">download solstone for windows →<\/a>/);
+  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">windows<\/span>/);
 
   // and the Windows pill renders as a link in the desktop trio on other streams.
   const macosHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.macos);
-  assert.match(macosHtml, /<a class="ss-pill" href="\/releases\/windows">Windows<\/a>/);
+  assert.match(macosHtml, /<a class="ss-pill" href="\/releases\/windows">windows<\/a>/);
   assert.ok(
     macosHtml.indexOf('>macOS<') < macosHtml.indexOf('href="/releases/windows"') &&
       macosHtml.indexOf('href="/releases/windows"') < macosHtml.indexOf('href="/releases/linux"'),
@@ -495,8 +495,8 @@ test("renderReleasesPage renders the android stream from github releases with an
 
   assert.equal(RELEASE_PAGE_CONFIGS.android.stream, "android");
   assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/android">/);
-  assert.match(html, /<title>Android app releases — solstone<\/title>/);
-  assert.match(html, /<h2 id="v0\.1\.0">solstone for Android 0\.1\.0<\/h2>/);
+  assert.match(html, /<title>android app releases — solstone<\/title>/);
+  assert.match(html, /<h2 id="v0\.1\.0">solstone for android 0\.1\.0<\/h2>/);
   assert.match(html, /an android thing/);
   // GitHub releases carry a date; the release heading is stripped from the body.
   assert.match(html, /class="rel-date"/);
@@ -504,12 +504,12 @@ test("renderReleasesPage renders the android stream from github releases with an
   // The signed APK is published on our own release origin, so the Android page
   // carries a download CTA like the desktop streams do. It was deliberately
   // absent while the only channel was an invite-only tester group.
-  assert.match(html, /<a href="\/download\/android" class="intro-dl">download solstone for Android →<\/a>/);
-  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">Android<\/span>/);
+  assert.match(html, /<a href="\/download\/android" class="intro-dl">download solstone for android →<\/a>/);
+  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">android<\/span>/);
 
   // and the Android pill renders as a link after Linux on other streams.
   const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
-  assert.match(linuxHtml, /<a class="ss-pill" href="\/releases\/android">Android<\/a>/);
+  assert.match(linuxHtml, /<a class="ss-pill" href="\/releases\/android">android<\/a>/);
   assert.ok(
     linuxHtml.indexOf('href="/releases/linux"') < linuxHtml.indexOf('href="/releases/android"') &&
       linuxHtml.indexOf('href="/releases/android"') < linuxHtml.indexOf('href="/releases/ios"'),
@@ -529,21 +529,21 @@ test("renderReleasesPage renders the ios stream from github releases with an act
 
   assert.equal(RELEASE_PAGE_CONFIGS.ios.stream, "ios");
   assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/ios">/);
-  assert.match(html, /<title>iPhone app releases — solstone<\/title>/);
-  assert.match(html, /<h2 id="v0\.1\.1">solstone for iPhone 0\.1\.1<\/h2>/);
+  assert.match(html, /<title>iphone app releases — solstone<\/title>/);
+  assert.match(html, /<h2 id="v0\.1\.1">solstone for iphone 0\.1\.1<\/h2>/);
   assert.match(html, /an iphone thing/);
   // GitHub releases carry a date; the release heading is stripped from the body.
   assert.match(html, /class="rel-date"/);
   assert.doesNotMatch(html, /## \[0\.1\.1\]/);
   // invite-only TestFlight beta: no public download, so no primary CTA on the intro.
   assert.doesNotMatch(html, /class="intro-dl"/);
-  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">iPhone<\/span>/);
+  assert.match(html, /<span class="ss-pill ss-active" aria-current="page">iphone<\/span>/);
 
   // The retired "iOS soon" placeholder must not survive anywhere in the switcher.
   assert.doesNotMatch(html, /iOS soon/);
   const journalHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.journal);
   assert.doesNotMatch(journalHtml, /iOS soon/);
-  assert.match(journalHtml, /<a class="ss-pill" href="\/releases\/ios">iPhone<\/a>/);
+  assert.match(journalHtml, /<a class="ss-pill" href="\/releases\/ios">iphone<\/a>/);
 
   // The iPhone app is a pairing client — it never narrates a bundled journal pin.
   assert.equal(RELEASE_PAGE_CONFIGS.ios.linkifyBundledJournal, false);
@@ -552,7 +552,7 @@ test("renderReleasesPage renders the ios stream from github releases with an act
 test("an empty stream distinguishes never-released from fetch-failed", () => {
   // iOS has cut no release yet: "temporarily unavailable" would read as broken.
   const iosEmpty = renderReleasesPage([], RELEASE_PAGE_CONFIGS.ios);
-  assert.match(iosEmpty, /the first iPhone app release notes land with the next beta\./);
+  assert.match(iosEmpty, /the first iphone app release notes land with the next beta\./);
   assert.doesNotMatch(iosEmpty, /temporarily unavailable/);
   assert.match(iosEmpty, /<a href="https:\/\/github\.com\/solpbc\/solstone-swift\/releases">/);
 

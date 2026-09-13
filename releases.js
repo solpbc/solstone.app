@@ -135,7 +135,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
 <body>
     <a href="#main" class="skip-link">skip to content</a>
     <header>
-        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/mark.svg" alt="sol — solstone home" style="height:40px;"></a>
+        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/mark.svg" alt="solstone home" style="height:40px;"></a>
     </header>
     <main id="main" tabindex="-1">
         <div class="page-intro">
@@ -151,7 +151,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         </section>
 
         <nav class="rel-links" aria-label="more">
-            <a href="{{sourceUrl}}">source code on github &rarr;</a>
+            <a href="{{sourceUrl}}">source code on GitHub &rarr;</a>
             <a href="/">back to solstone.app &rarr;</a>
         </nav>
     </main>
@@ -171,17 +171,17 @@ export const RELEASE_PAGE_CONFIGS = {
     pageTitle: "journal releases — solstone",
     ogTitle: "journal releases",
     metaDescription:
-      "what's new in the journal — the memory sol keeps — in plain language. it runs on your device: never sold, never shared.",
+      "what's new in the journal, in plain language. the journal is the memory. your journal lives on your device: never sold, never shared.",
     ogUrl: "https://solstone.app/releases",
     canonicalUrl: "https://solstone.app/releases",
     stream: "journal",
     heading: "journal releases",
     intro:
-      "what's new in the journal, newest first. the journal is the memory sol keeps, on a computer you choose; these are the journal's own changes.",
+      "what's new in the journal, newest first. the journal is the memory, on a computer you choose; these are the journal's own changes.",
     primaryLink: { href: "/install", text: "install solstone →" },
     sourceUrl: "https://github.com/solpbc/solstone-journal",
     unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
-    unavailableLabel: "see every journal release on github →",
+    unavailableLabel: "see journal releases on GitHub →",
     articleTitle: (version) => `journal ${version}`,
     linkifyBundledJournal: false,
   },
@@ -195,11 +195,11 @@ export const RELEASE_PAGE_CONFIGS = {
     stream: "macos",
     heading: "macOS app releases",
     intro:
-      "these are the macOS app's own changes: installer, menu bar, settings, and auto-update — sol on your Mac.",
+      "these are the macOS app's own changes: installer, menu bar, settings, and auto-update. the solstone app runs on your mac.",
     primaryLink: { href: "/download/macos", text: "download solstone for macOS →" },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
-    unavailableLabel: "see every macOS app release on github →",
+    unavailableLabel: "see macOS app releases on GitHub →",
     articleTitle: (version) => `solstone for macOS ${version}`,
     linkifyBundledJournal: true,
   },
@@ -207,7 +207,7 @@ export const RELEASE_PAGE_CONFIGS = {
     pageTitle: "journal for mac releases — solstone",
     ogTitle: "journal for mac releases",
     metaDescription:
-      "release notes for the journal app on mac, in plain language. the journal — the memory sol keeps — as its own app.",
+      "release notes for the journal on mac, in plain language. the journal as its own app: the memory, where everything the solstone app takes in goes.",
     ogUrl: "https://solstone.app/releases/journal-macos",
     canonicalUrl: "https://solstone.app/releases/journal-macos",
     stream: "journal-macos",
@@ -217,89 +217,89 @@ export const RELEASE_PAGE_CONFIGS = {
     primaryLink: { href: "/download/macos", text: "download for mac →" },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
-    unavailableLabel: "see every macOS app release on github →",
+    unavailableLabel: "see journal for mac releases on GitHub →",
     articleTitle: (version) => `journal for mac ${version}`,
     linkifyBundledJournal: true,
   },
   linux: {
-    pageTitle: "Linux app releases — solstone",
-    ogTitle: "Linux app releases",
+    pageTitle: "linux app releases — solstone",
+    ogTitle: "linux app releases",
     metaDescription:
-      "release notes for the solstone Linux desktop app, in plain language. installation, systemd service, desktop integration, and sync changes.",
+      "release notes for the solstone linux desktop app, in plain language. installation, systemd service, desktop integration, and sync changes.",
     ogUrl: "https://solstone.app/releases/linux",
     canonicalUrl: "https://solstone.app/releases/linux",
     stream: "linux",
-    heading: "Linux app releases",
+    heading: "linux app releases",
     intro:
-      "these are the Linux desktop app's own changes: installation, systemd service, desktop integration, and how it syncs to your journal — sol on your Linux desktop.",
-    primaryLink: { href: "/download", text: "get sol for Linux →" },
+      "these are the linux app's own changes: installation, systemd service, desktop integration, and how it reaches your journal. the solstone app runs on your linux desktop.",
+    primaryLink: { href: "/download", text: "install solstone for linux →" },
     sourceUrl: "https://github.com/solpbc/solstone-linux",
     unavailableUrl: "https://github.com/solpbc/solstone-linux/releases",
-    unavailableLabel: "see every Linux release on github →",
-    articleTitle: (version) => `solstone for Linux ${version}`,
+    unavailableLabel: "see linux app releases on GitHub →",
+    articleTitle: (version) => `solstone for linux ${version}`,
     linkifyBundledJournal: true,
   },
   windows: {
-    pageTitle: "Windows app releases — solstone",
-    ogTitle: "Windows app releases",
+    pageTitle: "windows app releases — solstone",
+    ogTitle: "windows app releases",
     metaDescription:
-      "release notes for the solstone Windows app, in plain language. installer, tray, settings, and auto-update changes.",
+      "release notes for the solstone windows app, in plain language. installer, tray, settings, and auto-update changes.",
     ogUrl: "https://solstone.app/releases/windows",
     canonicalUrl: "https://solstone.app/releases/windows",
     stream: "windows",
-    heading: "Windows app releases",
+    heading: "windows app releases",
     intro:
-      "these are the Windows app's own changes: installer, tray, settings, and auto-update — sol on your Windows PC.",
-    primaryLink: { href: "/download/windows", text: "download solstone for Windows →" },
+      "these are the windows app's own changes: installer, tray, settings, and auto-update. the solstone app runs on your windows PC.",
+    primaryLink: { href: "/download/windows", text: "download solstone for windows →" },
     sourceUrl: "https://github.com/solpbc/solstone-windows",
     unavailableUrl: "https://github.com/solpbc/solstone-windows/releases",
-    unavailableLabel: "see every Windows app release on github →",
-    articleTitle: (version) => `solstone for Windows ${version}`,
+    unavailableLabel: "see windows app releases on GitHub →",
+    articleTitle: (version) => `solstone for windows ${version}`,
     // The Windows observer is a pairing client, not a journal host — its notes
     // never say "updated the bundled solstone journal to X", so keep linkify off.
     linkifyBundledJournal: false,
   },
   android: {
-    pageTitle: "Android app releases — solstone",
-    ogTitle: "Android app releases",
+    pageTitle: "android app releases — solstone",
+    ogTitle: "android app releases",
     metaDescription:
-      "release notes for the solstone Android app, in plain language. pairing and sync changes.",
+      "release notes for the solstone android app, in plain language. pairing and sync changes.",
     ogUrl: "https://solstone.app/releases/android",
     canonicalUrl: "https://solstone.app/releases/android",
     stream: "android",
-    heading: "Android app releases",
+    heading: "android app releases",
     intro:
-      "these are the Android app's own changes: its sources, pairing, and how it reaches your journal. the app is in beta, and it does not update itself, so the download page is always where the current one is.",
-    primaryLink: { href: "/download/android", text: "download solstone for Android →" },
+      "these are the android app's own changes: its sources, pairing, and how it reaches your journal. the app is in beta, and it does not update itself, so the download page is always where the current one is.",
+    primaryLink: { href: "/download/android", text: "download solstone for android →" },
     sourceUrl: "https://github.com/solpbc/solstone-android",
     unavailableUrl: "https://github.com/solpbc/solstone-android/releases",
-    unavailableLabel: "see every Android app release on GitHub →",
-    articleTitle: (version) => `solstone for Android ${version}`,
+    unavailableLabel: "see android app releases on GitHub →",
+    articleTitle: (version) => `solstone for android ${version}`,
     // The Android app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
   ios: {
-    pageTitle: "iPhone app releases — solstone",
-    ogTitle: "iPhone app releases",
+    pageTitle: "iphone app releases — solstone",
+    ogTitle: "iphone app releases",
     metaDescription:
-      "release notes for the solstone app on iPhone and Apple Watch, in plain language. pairing and sync changes.",
+      "release notes for the solstone app on iphone and apple watch, in plain language. pairing and sync changes.",
     ogUrl: "https://solstone.app/releases/ios",
     canonicalUrl: "https://solstone.app/releases/ios",
     stream: "ios",
-    heading: "iPhone app releases",
+    heading: "iphone app releases",
     intro:
-      "these are the iPhone app's own changes: pairing, the journal view, what is still waiting on your phone, and the Apple Watch — sol on your iPhone. the iPhone app is in beta — builds reach a small group of invited testers through TestFlight.",
+      "these are the iphone app's own changes: pairing, the journal view, what is still waiting on your phone, and the apple watch. the solstone app on your iphone is in beta: builds reach testers through TestFlight.",
     // Invite-only TestFlight beta — there is no public download, so no primary CTA
     // (same shape as Android).
     primaryLink: null,
     sourceUrl: "https://github.com/solpbc/solstone-swift",
     unavailableUrl: "https://github.com/solpbc/solstone-swift/releases",
-    unavailableLabel: "see every iPhone app release on github →",
+    unavailableLabel: "see iphone app releases on GitHub →",
     // No iPhone release has been cut yet, so the shared "temporarily unavailable"
     // line would read as broken rather than not-yet. Drop this once the first
     // release lands and the page populates on its own.
-    emptyBody: "the first iPhone app release notes land with the next beta.",
-    articleTitle: (version) => `solstone for iPhone ${version}`,
+    emptyBody: "the first iphone app release notes land with the next beta.",
+    articleTitle: (version) => `solstone for iphone ${version}`,
     // The iPhone app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
@@ -494,10 +494,10 @@ function streamSwitcher(currentStream) {
     pill("journal", "journal", "/releases", "ss-home"),
     pill("macos", "macOS", "/releases/macos"),
     pill("journal-macos", "journal for mac", "/releases/journal-macos"),
-    pill("windows", "Windows", "/releases/windows"),
-    pill("linux", "Linux", "/releases/linux"),
-    pill("android", "Android", "/releases/android"),
-    pill("ios", "iPhone", "/releases/ios"),
+    pill("windows", "windows", "/releases/windows"),
+    pill("linux", "linux", "/releases/linux"),
+    pill("android", "android", "/releases/android"),
+    pill("ios", "iphone", "/releases/ios"),
     "</nav>",
   ].join("\n");
 }
