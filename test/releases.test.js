@@ -5,6 +5,7 @@ import {
   RELEASE_PAGE_CONFIGS,
   formatReleaseDate,
   parseAppcastItems,
+  parseChangelogItems,
   parseGitHubReleaseItems,
   parseWinFeedItems,
   renderNotesMarkdown,
@@ -111,6 +112,52 @@ test("parseGitHubReleaseItems normalizes public GitHub release JSON", () => {
       description: "### Fixed\n- one",
     },
   ]);
+});
+
+test("parseChangelogItems splits Keep-a-Changelog sections in document order and skips Unreleased", () => {
+  const changelog = `# Changelog
+
+All notable changes are documented here.
+
+## [Unreleased]
+
+## [2.0.1] - 2026-09-13
+
+### Added
+
+- one
+
+## [2.0.0] - 2026-09-08
+
+### Fixed
+- two
+`;
+
+  const items = parseChangelogItems(changelog);
+
+  assert.deepEqual(items, [
+    { version: "2.0.1", pubDate: "2026-09-13", description: "### Added\n\n- one" },
+    { version: "2.0.0", pubDate: "2026-09-08", description: "### Fixed\n- two" },
+  ]);
+});
+
+test("parseChangelogItems skips a section with no body and tolerates a dateless heading", () => {
+  const changelog = `## [1.0.1]
+
+## [1.0.0] - 2026-01-01
+
+### Fixed
+- one
+`;
+
+  const items = parseChangelogItems(changelog);
+
+  assert.deepEqual(items, [{ version: "1.0.0", pubDate: "2026-01-01", description: "### Fixed\n- one" }]);
+});
+
+test("parseChangelogItems returns an empty array for non-string input", () => {
+  assert.deepEqual(parseChangelogItems(undefined), []);
+  assert.deepEqual(parseChangelogItems(null), []);
 });
 
 test("renderNotesMarkdown preserves heading and list structure", () => {

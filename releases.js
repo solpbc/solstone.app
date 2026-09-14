@@ -371,6 +371,51 @@ export function parseGitHubReleaseItems(releases) {
     .filter(Boolean);
 }
 
+// Parse a Keep-a-Changelog CHANGELOG.md (mirrored to the release origin
+// alongside binaries — see records/decisions/260907-*) into the shared item
+// shape. Every historical GitHub release body was already lifted verbatim
+// from one of these sections, so the same downstream renderer (stripped
+// heading -> renderNotesMarkdown) applies unchanged; this function just does
+// the splitting stripReleaseHeading used to do per-item, but over one
+// multi-section file instead of one release body at a time. Sections whose
+// bracket text isn't a bare x.y.z (e.g. "[Unreleased]") are skipped — there
+// is no shipped version to key them by.
+const CHANGELOG_HEADING = /^## \[([^\]]+)\](?:\s*-\s*(\d{4}-\d{2}-\d{2}))?\s*$/;
+
+export function parseChangelogItems(text) {
+  if (typeof text !== "string") return [];
+
+  const items = [];
+  let current = null;
+
+  const flush = () => {
+    if (!current) return;
+    const description = current.body.join("\n").trim();
+    if (current.version && description) {
+      items.push({ version: current.version, pubDate: current.pubDate, description });
+    }
+    current = null;
+  };
+
+  for (const line of text.split(/\r?\n/)) {
+    const heading = line.match(CHANGELOG_HEADING);
+    if (heading) {
+      flush();
+      const [, bracket, date] = heading;
+      current = {
+        version: /^\d+\.\d+\.\d+$/.test(bracket) ? bracket : null,
+        pubDate: date ?? null,
+        body: [],
+      };
+      continue;
+    }
+    if (current) current.body.push(line);
+  }
+  flush();
+
+  return items;
+}
+
 // Parse a Velopack release feed (releases.win.json) into the shared item shape.
 // The feed is a single { Assets: [...] } array, newest release first, with both a
 // "Full" and a "Delta" asset per version; per-release notes live in NotesMarkdown

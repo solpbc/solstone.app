@@ -1,11 +1,11 @@
-import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseGitHubReleaseItems, parseWinFeedItems, renderReleasesPage } from "./releases.js";
+import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseChangelogItems, parseGitHubReleaseItems, parseWinFeedItems, renderReleasesPage } from "./releases.js";
 
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
 const JOURNAL_MACOS_APPCAST_URL = "https://updates.solstone.app/journal-macos/appcast.xml";
 const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win.json";
 const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/release";
-const JOURNAL_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-journal/releases";
-const LINUX_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-linux/releases";
+const JOURNAL_CHANGELOG_URL = "https://updates.solstone.app/solstone-journal/CHANGELOG.md";
+const LINUX_CHANGELOG_URL = "https://updates.solstone.app/solstone-linux/CHANGELOG.md";
 const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-android/releases";
 const IOS_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-swift/releases";
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
@@ -334,13 +334,17 @@ export default {
 
     // Human-shareable release history: always returns a valid page, with
     // no-store graceful copy if the upstream source is temporarily unavailable.
+    // Reads the release origin's own CHANGELOG.md mirror, not GitHub — GitHub
+    // Releases stopped being kept current here 2026-09-07 (an optional,
+    // decoupled mirror step that silently lapsed); the origin's copy is
+    // updated in the same publish that ships the binaries, so it can't drift.
     if (url.pathname === "/releases") {
-      const items = await githubReleaseItems(JOURNAL_RELEASES_URL);
+      const items = await changelogReleaseItems(JOURNAL_CHANGELOG_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.journal);
     }
 
     if (url.pathname === "/releases/linux") {
-      const items = await githubReleaseItems(LINUX_RELEASES_URL);
+      const items = await changelogReleaseItems(LINUX_CHANGELOG_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.linux);
     }
 
@@ -460,6 +464,18 @@ async function githubReleaseItems(apiUrl) {
     });
     if (!res.ok) return [];
     return parseGitHubReleaseItems(await res.json());
+  } catch {
+    return [];
+  }
+}
+
+async function changelogReleaseItems(changelogUrl) {
+  try {
+    const res = await fetch(changelogUrl, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return [];
+    return parseChangelogItems(await res.text());
   } catch {
     return [];
   }
