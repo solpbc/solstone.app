@@ -500,13 +500,10 @@ test("parseWinFeedItems maps Full assets newest-first, skips deltas, note-less, 
   assert.deepEqual(parseWinFeedItems({ Assets: [null, { Type: "Full" }] }), []);
 });
 
-test("renderReleasesPage renders the windows stream with notes, no date, and an active Windows pill", () => {
-  const items = parseWinFeedItems({
-    Assets: [
-      { Version: "0.3.0", Type: "Full", NotesMarkdown: "### Added\n- a windows thing" },
-      { Version: "0.3.0", Type: "Delta", NotesMarkdown: "### Added\n- a windows thing" },
-    ],
-  });
+test("renderReleasesPage renders the windows stream from its origin CHANGELOG.md, with dates, and an active Windows pill", () => {
+  const items = parseChangelogItems(
+    "## [Unreleased]\n\n## [0.3.0] - 2026-06-27\n\n### Added\n- a windows thing\n\n## [0.2.0]\n\n### Fixed\n- an earlier, dateless thing\n",
+  );
   const html = renderReleasesPage(items, RELEASE_PAGE_CONFIGS.windows);
 
   assert.equal(RELEASE_PAGE_CONFIGS.windows.stream, "windows");
@@ -514,8 +511,10 @@ test("renderReleasesPage renders the windows stream with notes, no date, and an 
   assert.match(html, /<title>windows app releases · solstone<\/title>/);
   assert.match(html, /<h2 id="v0\.3\.0">solstone for windows 0\.3\.0<\/h2>/);
   assert.match(html, /a windows thing/);
-  // the Velopack feed carries no per-release date — the page renders none.
-  assert.doesNotMatch(html, /class="rel-date"/);
+  // the origin CHANGELOG.md carries dated sections (and tolerates a dateless
+  // one, e.g. 0.2.0) — the same shape journal and linux already render.
+  assert.match(html, /class="rel-date"/);
+  assert.match(html, /<h2 id="v0\.2\.0">solstone for windows 0\.2\.0<\/h2>/);
   // download permalink + the Windows pill marked active on its own page.
   assert.match(html, /<a href="\/download\/windows" class="intro-dl">download solstone for windows →<\/a>/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">windows<\/span>/);

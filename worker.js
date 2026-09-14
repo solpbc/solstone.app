@@ -1,4 +1,4 @@
-import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseChangelogItems, parseGitHubReleaseItems, parseWinFeedItems, renderReleasesPage } from "./releases.js";
+import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseChangelogItems, parseGitHubReleaseItems, renderReleasesPage } from "./releases.js";
 
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
 const JOURNAL_MACOS_APPCAST_URL = "https://updates.solstone.app/journal-macos/appcast.xml";
@@ -6,6 +6,7 @@ const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win
 const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/release";
 const JOURNAL_CHANGELOG_URL = "https://updates.solstone.app/solstone-journal/CHANGELOG.md";
 const LINUX_CHANGELOG_URL = "https://updates.solstone.app/solstone-linux/CHANGELOG.md";
+const WIN_CHANGELOG_URL = "https://updates.solstone.app/solstone-windows/CHANGELOG.md";
 const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-android/releases";
 const IOS_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-swift/releases";
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
@@ -396,22 +397,13 @@ export default {
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.macos);
     }
 
-    // Windows reads the live Velopack feed (our own R2 surface, not GitHub) —
-    // mirrors /releases/macos reading the live appcast. Per-release notes ride in
-    // each Full asset's NotesMarkdown; the page auto-reflects every release.
+    // Reads the release origin's own CHANGELOG.md mirror (same pattern as
+    // /releases and /releases/linux), not the Velopack feed — that feed only
+    // ever carries the single current version, which is exactly the "renders
+    // 2.0.2 only" gap this replaces. The feed itself is untouched and still
+    // the app's own auto-update source (see WIN_FEED_URL above).
     if (url.pathname === "/releases/windows") {
-      let items = [];
-      try {
-        const res = await fetch(WIN_FEED_URL, {
-          cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
-        });
-        if (res.ok) {
-          items = parseWinFeedItems(await res.json());
-        }
-      } catch {
-        items = [];
-      }
-
+      const items = await changelogReleaseItems(WIN_CHANGELOG_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.windows);
     }
 
