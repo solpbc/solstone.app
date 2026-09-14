@@ -213,7 +213,7 @@ export const RELEASE_PAGE_CONFIGS = {
     stream: "journal-macos",
     heading: "journal for mac releases",
     intro:
-      "these are the journal app's own changes on mac — your journal, its window, and its updates.",
+      "these are the journal's own changes on mac — your journal, its window, and its updates.",
     primaryLink: { href: "/download/macos", text: "download for mac →" },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
@@ -225,7 +225,7 @@ export const RELEASE_PAGE_CONFIGS = {
     pageTitle: "linux app releases — solstone",
     ogTitle: "linux app releases",
     metaDescription:
-      "release notes for the solstone linux desktop app, in plain language. installation, systemd service, desktop integration, and sync changes.",
+      "release notes for the solstone linux app, in plain language. installation, systemd service, desktop integration, and sync changes.",
     ogUrl: "https://solstone.app/releases/linux",
     canonicalUrl: "https://solstone.app/releases/linux",
     stream: "linux",
@@ -295,10 +295,6 @@ export const RELEASE_PAGE_CONFIGS = {
     sourceUrl: "https://github.com/solpbc/solstone-swift",
     unavailableUrl: "https://github.com/solpbc/solstone-swift/releases",
     unavailableLabel: "see iphone app releases on GitHub →",
-    // No iPhone release has been cut yet, so the shared "temporarily unavailable"
-    // line would read as broken rather than not-yet. Drop this once the first
-    // release lands and the page populates on its own.
-    emptyBody: "the first iphone app release notes land with the next beta.",
     articleTitle: (version) => `solstone for iphone ${version}`,
     // The iPhone app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,

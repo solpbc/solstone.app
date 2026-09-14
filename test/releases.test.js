@@ -596,11 +596,12 @@ test("renderReleasesPage renders the ios stream from github releases with an act
   assert.equal(RELEASE_PAGE_CONFIGS.ios.linkifyBundledJournal, false);
 });
 
-test("an empty stream distinguishes never-released from fetch-failed", () => {
-  // iOS has cut no release yet: "temporarily unavailable" would read as broken.
+test("an empty stream falls back to the shared unavailable message once a stream has shipped releases", () => {
+  // iOS has cut releases now, so an empty fetch means the feed failed, not "never released yet" —
+  // the stale never-released override was removed (req_dqffsaix item 1).
+  assert.equal(RELEASE_PAGE_CONFIGS.ios.emptyBody, undefined);
   const iosEmpty = renderReleasesPage([], RELEASE_PAGE_CONFIGS.ios);
-  assert.match(iosEmpty, /the first iphone app release notes land with the next beta\./);
-  assert.doesNotMatch(iosEmpty, /temporarily unavailable/);
+  assert.match(iosEmpty, /temporarily unavailable/);
   assert.match(iosEmpty, /<a href="https:\/\/github\.com\/solpbc\/solstone-swift\/releases">/);
 
   // Streams with a real history keep the outage wording — for them empty IS a failure.
