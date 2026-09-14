@@ -231,7 +231,7 @@ test("renderReleasesPage renders graceful fallback inside full chrome", () => {
   const html = renderReleasesPage([]);
 
   assert.match(html, /release notes are temporarily unavailable/);
-  assert.match(html, /<title>journal releases — solstone<\/title>/);
+  assert.match(html, /<title>journal releases · solstone<\/title>/);
   assert.match(html, /https:\/\/github\.com\/solpbc\/solstone-journal\/releases/);
   // shared footer spine: a nav row + the covenant row (matches every solstone.app page)
   assert.match(
@@ -511,7 +511,7 @@ test("renderReleasesPage renders the windows stream with notes, no date, and an 
 
   assert.equal(RELEASE_PAGE_CONFIGS.windows.stream, "windows");
   assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/windows">/);
-  assert.match(html, /<title>windows app releases — solstone<\/title>/);
+  assert.match(html, /<title>windows app releases · solstone<\/title>/);
   assert.match(html, /<h2 id="v0\.3\.0">solstone for windows 0\.3\.0<\/h2>/);
   assert.match(html, /a windows thing/);
   // the Velopack feed carries no per-release date — the page renders none.
@@ -542,7 +542,7 @@ test("renderReleasesPage renders the android stream from github releases with an
 
   assert.equal(RELEASE_PAGE_CONFIGS.android.stream, "android");
   assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/android">/);
-  assert.match(html, /<title>android app releases — solstone<\/title>/);
+  assert.match(html, /<title>android app releases · solstone<\/title>/);
   assert.match(html, /<h2 id="v0\.1\.0">solstone for android 0\.1\.0<\/h2>/);
   assert.match(html, /an android thing/);
   // GitHub releases carry a date; the release heading is stripped from the body.
@@ -576,7 +576,7 @@ test("renderReleasesPage renders the ios stream from github releases with an act
 
   assert.equal(RELEASE_PAGE_CONFIGS.ios.stream, "ios");
   assert.match(html, /<link rel="canonical" href="https:\/\/solstone\.app\/releases\/ios">/);
-  assert.match(html, /<title>iphone app releases — solstone<\/title>/);
+  assert.match(html, /<title>iphone app releases · solstone<\/title>/);
   assert.match(html, /<h2 id="v0\.1\.1">solstone for iphone 0\.1\.1<\/h2>/);
   assert.match(html, /an iphone thing/);
   // GitHub releases carry a date; the release heading is stripped from the body.

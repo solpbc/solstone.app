@@ -168,8 +168,8 @@ const RELEASES_PLACEHOLDER = "            <!-- per-version <article> blocks here
 
 export const RELEASE_PAGE_CONFIGS = {
   journal: {
-    pageTitle: "journal releases — solstone",
-    ogTitle: "journal releases",
+    pageTitle: "journal releases · solstone",
+    ogTitle: "journal releases · solstone",
     metaDescription:
       "what's new in the journal, in plain language. the journal is the memory. your journal lives on your device: never sold, never shared.",
     ogUrl: "https://solstone.app/releases",
@@ -186,8 +186,8 @@ export const RELEASE_PAGE_CONFIGS = {
     linkifyBundledJournal: false,
   },
   macos: {
-    pageTitle: "macOS app releases — solstone",
-    ogTitle: "macOS app releases",
+    pageTitle: "macOS app releases · solstone",
+    ogTitle: "macOS app releases · solstone",
     metaDescription:
       "release notes for the solstone macOS app, in plain language. installer, menu bar, settings, and auto-update changes.",
     ogUrl: "https://solstone.app/releases/macos",
@@ -204,8 +204,8 @@ export const RELEASE_PAGE_CONFIGS = {
     linkifyBundledJournal: true,
   },
   journalMacos: {
-    pageTitle: "journal for mac releases — solstone",
-    ogTitle: "journal for mac releases",
+    pageTitle: "journal for mac releases · solstone",
+    ogTitle: "journal for mac releases · solstone",
     metaDescription:
       "release notes for the journal on mac, in plain language. the journal as its own app: the memory, where everything the solstone app takes in goes.",
     ogUrl: "https://solstone.app/releases/journal-macos",
@@ -222,8 +222,8 @@ export const RELEASE_PAGE_CONFIGS = {
     linkifyBundledJournal: true,
   },
   linux: {
-    pageTitle: "linux app releases — solstone",
-    ogTitle: "linux app releases",
+    pageTitle: "linux app releases · solstone",
+    ogTitle: "linux app releases · solstone",
     metaDescription:
       "release notes for the solstone linux app, in plain language. installation, systemd service, desktop integration, and sync changes.",
     ogUrl: "https://solstone.app/releases/linux",
@@ -240,8 +240,8 @@ export const RELEASE_PAGE_CONFIGS = {
     linkifyBundledJournal: true,
   },
   windows: {
-    pageTitle: "windows app releases — solstone",
-    ogTitle: "windows app releases",
+    pageTitle: "windows app releases · solstone",
+    ogTitle: "windows app releases · solstone",
     metaDescription:
       "release notes for the solstone windows app, in plain language. installer, tray, settings, and auto-update changes.",
     ogUrl: "https://solstone.app/releases/windows",
@@ -260,8 +260,8 @@ export const RELEASE_PAGE_CONFIGS = {
     linkifyBundledJournal: false,
   },
   android: {
-    pageTitle: "android app releases — solstone",
-    ogTitle: "android app releases",
+    pageTitle: "android app releases · solstone",
+    ogTitle: "android app releases · solstone",
     metaDescription:
       "release notes for the solstone android app, in plain language. pairing and sync changes.",
     ogUrl: "https://solstone.app/releases/android",
@@ -279,8 +279,8 @@ export const RELEASE_PAGE_CONFIGS = {
     linkifyBundledJournal: false,
   },
   ios: {
-    pageTitle: "iphone app releases — solstone",
-    ogTitle: "iphone app releases",
+    pageTitle: "iphone app releases · solstone",
+    ogTitle: "iphone app releases · solstone",
     metaDescription:
       "release notes for the solstone app on iphone and apple watch, in plain language. pairing and sync changes.",
     ogUrl: "https://solstone.app/releases/ios",
