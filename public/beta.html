@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>join the solstone beta · iphone, ipad and android</title>
+    <meta name="description" content="the solstone app for iphone, ipad and android is in open beta. join on iphone or ipad through TestFlight, or download the signed android app from us. what you share goes into your journal, and your journal is always private, only yours.">
+    <meta property="og:title" content="join the solstone beta">
+    <meta property="og:description" content="the solstone app for iphone, ipad and android is in open beta. join on iphone or ipad through TestFlight, or download the signed android app from us.">
+    <meta property="og:url" content="https://solstone.app/beta">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="720">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/beta">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="stylesheet" href="/static/tokens.css">
+    <link rel="stylesheet" href="/static/base.css">
+    <style>
+        /* One readable column, same shell as /download/android. This page is
+           reached from a QR code on a phone, so the two actions come first and
+           everything else is below them. */
+        body {
+            padding: 2rem 0 0;
+        }
+        a {
+            color: var(--orange-text-aa);
+        }
+        .logo {
+            height: 36px;
+            margin-bottom: 2rem;
+        }
+        .column {
+            max-width: 660px;
+            width: 90vw;
+            padding: 0 0.25rem;
+        }
+        h1 {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        h1::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            width: 76px;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #FFCC33, #E8913A);
+        }
+        .lead {
+            font-size: 1.02rem;
+            line-height: 1.65;
+            color: var(--ink-soft);
+            text-align: center;
+            margin-bottom: 1.75rem;
+        }
+        .platform {
+            background: var(--cream-bright);
+            border: 1px solid rgba(176, 106, 26, 0.08);
+            border-radius: 10px;
+            padding: 1.5rem 1.5rem 1.25rem;
+            margin-bottom: 1.25rem;
+            text-align: center;
+        }
+        .platform h2 {
+            margin: 0 0 0.75rem;
+        }
+        .download-btn {
+            display: inline-block;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 600;
+            text-transform: lowercase;
+            letter-spacing: 0.03em;
+            color: var(--ink);
+            background: var(--orange);
+            padding: 0.85rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .download-btn:hover {
+            background: var(--orange-ink);
+            color: var(--paper);
+        }
+        .file-line {
+            margin: 0.75rem 0 0;
+            font-size: 0.88rem;
+            color: var(--ink-faint);
+        }
+        h2 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin: 2.5rem 0 0.85rem;
+        }
+        p {
+            font-size: 0.95rem;
+            line-height: 1.65;
+            color: var(--ink-soft);
+            margin-bottom: 0.9rem;
+        }
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 2.5rem 0 3rem;
+            font-size: 0.92rem;
+        }
+        footer {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <a href="#main" class="skip-link">skip to content</a>
+    <header>
+        <a href="/"><img src="/static/mark.svg" alt="solstone home" class="logo"></a>
+    </header>
+    <main id="main" tabindex="-1">
+        <div class="column">
+            <h1>join the solstone beta</h1>
+            <p class="lead">solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours.</p>
+
+            <div class="platform">
+                <h2>iphone and ipad</h2>
+                <a href="https://testflight.apple.com/join/Ms9sywVj" class="download-btn">join on iphone or ipad</a>
+                <p class="file-line">opens in TestFlight, Apple's app for betas. if you don't have TestFlight, the link takes you to it on the App Store first. needs iOS 26 or later.</p>
+            </div>
+
+            <div class="platform">
+                <h2>android</h2>
+                <a href="/download/android" class="download-btn">download for android</a>
+                <p class="file-line">the signed app, from us, on our own server. it walks you through what android asks before it installs an app it didn't get from a store. it isn't in the Play Store yet, and it doesn't update itself.</p>
+            </div>
+
+            <h2>in beta</h2>
+            <p>the phone apps are early, and they change between versions. if something breaks or something is confusing, <a href="https://support.solstone.app">tell us</a>.</p>
+
+            <h2>what the app needs</h2>
+            <p>the solstone app on your phone pairs with your journal, on a computer you own and run solstone on. what you bring in on the phone goes into it. set up your journal on your computer first if you haven't already; that's where your memories live. <a href="/install">get started &rarr;</a></p>
+
+            <h2>you don't have to take our word for it</h2>
+            <p>solstone is open source. read the code, run it yourself, verify every claim. there's no telemetry, no analytics, and no phone home.</p>
+
+            <nav class="links" aria-label="more">
+                <a href="https://github.com/solpbc/solstone-swift">iphone source on GitHub &rarr;</a>
+                <a href="https://github.com/solpbc/solstone-android">android source on GitHub &rarr;</a>
+                <a href="/download">every other device &rarr;</a>
+                <a href="/">back to solstone.app &rarr;</a>
+            </nav>
+        </div>
+    </main>
+    <footer>
+        <nav class="footer-nav" aria-label="footer">
+            <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
+        </nav>
+        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
+    </footer>
+</body>
+</html>

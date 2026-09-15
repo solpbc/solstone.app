@@ -313,6 +313,15 @@ export default {
       return env.ASSETS.fetch(assetRequest(rewritten, request));
     }
 
+    // /beta is the one URL printed on QR codes and handed out for the phone
+    // betas. The page is static; what it points at (the TestFlight public
+    // link, /download/android) can change without reprinting anything.
+    if (url.pathname === "/beta") {
+      const rewritten = new URL(request.url);
+      rewritten.pathname = "/beta.html";
+      return env.ASSETS.fetch(assetRequest(rewritten, request));
+    }
+
     // The authoritative installer URL: install.sh must be
     // served as plain text, never HTML. The live content-type override is
     // public/_headers (Workers Assets serves this exact-matching static file

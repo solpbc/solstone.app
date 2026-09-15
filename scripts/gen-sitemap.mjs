@@ -30,6 +30,7 @@ const PAGES = [
   ["/download/journal", "public/download-journal.html"],
   ["/download/windows", "public/download-windows.html"],
   ["/download/android", "public/download-android.html"],
+  ["/beta", "public/beta.html"],
   ["/releases", "releases.js"],
   ["/releases/macos", "releases.js"],
   ["/releases/journal-macos", "releases.js"],

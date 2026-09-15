@@ -10,7 +10,7 @@
   </url>
   <url>
     <loc>https://solstone.app/download</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/download/macos</loc>
@@ -27,6 +27,10 @@
   <url>
     <loc>https://solstone.app/download/android</loc>
     <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://solstone.app/beta</loc>
+    <lastmod>2026-09-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases</loc>
