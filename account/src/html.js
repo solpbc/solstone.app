@@ -266,14 +266,14 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing the solstone app has taken in alongside you. just: this journal asked for private network access.</div>
+      <div class="gd">so sol pbc can approve this request. no journal content comes with it, only what identifies the request.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">2</div>
     <div>
       <div class="gt">enable private network access</div>
-      <div class="gd">sol pbc records an approval for this journal and hands that approval back. nothing from the journal is sent to sol pbc to do this.</div>
+      <div class="gd">sol pbc records your journal's approval and hands it back. nothing from your journal is sent to sol pbc to do this.</div>
     </div>
   </div>
   <form method="post" action="/enable/spl/confirm">
@@ -486,7 +486,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     <div class="n">1</div>
     <div>
       <div class="gt">know this request is yours</div>
-      <div class="gd">so the portal can approve this request without receiving anything from the journal: no entries, nothing the solstone app has taken in alongside you. just: this journal asked for confidential processing.</div>
+      <div class="gd">so sol pbc can approve this request. no journal content comes with it, only what identifies the request.</div>
     </div>
   </div>
   <div class="grant">

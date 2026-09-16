@@ -84,6 +84,8 @@ describe('/enable/spp', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain("this journal is asking to turn on confidential processing. here's exactly what that means. it stays off until you allow it.");
+    expect(body).toContain('so sol pbc can approve this request. no journal content comes with it, only what identifies the request.');
+    expect(body).not.toContain('taken in alongside you');
     expect(body).toContain('href="/confidential-processing/data"');
     expect(body).toContain('<a href="/confidential-processing/data">the text and images that go to a model for processing</a>');
     expect(body).toContain('when the audio switch is on (its default), your audio recordings for transcription go too.');
