@@ -3,6 +3,7 @@ import {
   insertSpbSweepAudit,
   selectDueLapsedBindings,
 } from './db.js';
+import { hashWithPepper } from './crypto.js';
 import { emitSecurityEvent } from './hub.js';
 import { mintScopedCredential } from './r2-credential.js';
 import {
@@ -17,19 +18,26 @@ export const LAPSE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const DELETE_BATCH_SIZE = 1000;
 
 export async function runSpbLapseSweep(env, ctx, nowMs = Date.now()) {
-  if (env.SPB_SWEEP_ENABLED !== 'true') return;
+  if (env.SPB_SWEEP_ENABLED !== 'true') {
+    // The 30-day deletion promise (ToS § 4) keeps running whether or not this cron does —
+    // a silent early return here is indistinguishable from a clean run to everything downstream.
+    console.warn(JSON.stringify({ event: 'spb_lapse_sweep_skipped', reason: 'disabled', ts: Date.now() }));
+    emitSecurityEvent(env, ctx, { type: 'spb_lapse_sweep_skipped', tier: 'T4', reason: 'disabled' });
+    return;
+  }
 
   const startMs = Date.now();
   const bindings = await selectDueLapsedBindings(env.DB, nowMs - LAPSE_RETENTION_MS);
   let bindingsSwept = 0;
+  let bindingsFailed = 0;
   let objectsDeleted = 0;
   let multipartAborted = 0;
 
   for (let i = 0; i < bindings.length; i++) {
     const binding = bindings[i];
+    const accountId = binding.account_id;
+    const instanceId = binding.instance_id;
     try {
-      const accountId = binding.account_id;
-      const instanceId = binding.instance_id;
       const prefix = prefixFor(accountId, instanceId);
       const cred = await mintScopedCredential(env, {
         prefix,
@@ -55,9 +63,14 @@ export async function runSpbLapseSweep(env, ctx, nowMs = Date.now()) {
       objectsDeleted += bindingObjectsDeleted;
       multipartAborted += bindingMultipartAborted;
     } catch (err) {
+      bindingsFailed += 1;
+      const accountRef = await hashWithPepper(`hub:account:${accountId}`, env);
+      const instanceRef = await hashWithPepper(`hub:instance:${instanceId}`, env);
       console.error(JSON.stringify({
         event: 'spb_lapse_sweep_failed',
         binding_index: i,
+        account_ref: accountRef,
+        instance_ref: instanceRef,
         error_type: err?.name || 'Error',
       }));
     }
@@ -66,6 +79,7 @@ export async function runSpbLapseSweep(env, ctx, nowMs = Date.now()) {
   console.warn(JSON.stringify({
     event: 'spb_lapse_sweep',
     bindings_swept: bindingsSwept,
+    bindings_failed: bindingsFailed,
     objects_deleted: objectsDeleted,
     multipart_aborted: multipartAborted,
     duration_ms: Date.now() - startMs,
@@ -75,6 +89,7 @@ export async function runSpbLapseSweep(env, ctx, nowMs = Date.now()) {
     type: 'spb_lapse_sweep',
     tier: 'T4',
     bindings_swept: bindingsSwept,
+    bindings_failed: bindingsFailed,
     objects_deleted: objectsDeleted,
     multipart_aborted: multipartAborted,
   });

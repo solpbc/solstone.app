@@ -102,6 +102,7 @@ describe('spb lapse sweep', () => {
     expect(summary).toMatchObject({
       event: 'spb_lapse_sweep',
       bindings_swept: 2,
+      bindings_failed: 0,
       objects_deleted: 1002,
       multipart_aborted: 3,
     });
@@ -127,14 +128,14 @@ describe('spb lapse sweep', () => {
     expect(abortCall.headers['x-amz-content-sha256']).toBe(EMPTY_SHA256_HASH);
   });
 
-  it('returns before DB selection, logging, and R2 calls when disabled', async () => {
+  it('returns before DB selection and R2 calls when disabled, but emits a skipped heartbeat', async () => {
     const testEnv = makeTestEnv();
     delete testEnv.SPB_SWEEP_ENABLED;
     const account = await seedAccount({ email: 'spb-disabled@example.com', testEnv });
     await seedSpbBinding({ accountId: account.accountId, instanceId: INSTANCE_A, lapsedAt: OLD_LAPSE });
     const { calls } = installS3FetchMock(testEnv, {
       default: () => {
-        throw new Error('disabled sweep must not fetch');
+        throw new Error('disabled sweep must not fetch R2');
       },
     });
     const spy = installConsoleSpy();
@@ -148,7 +149,43 @@ describe('spb lapse sweep', () => {
     expect(calls).toHaveLength(0);
     await expect(bindingRow(account.accountId, INSTANCE_A)).resolves.not.toBeNull();
     await expect(auditRows()).resolves.toEqual([]);
-    expect(spy.calls).toHaveLength(0);
+    expect(spy.calls).toHaveLength(1);
+    const skipped = JSON.parse(spy.calls.find((call) => call.level === 'warn').args[0]);
+    expect(skipped).toEqual({ event: 'spb_lapse_sweep_skipped', reason: 'disabled', ts: expect.any(Number) });
+  });
+
+  it('emits a skipped-heartbeat hub event (not the bindings-swept event) when disabled', async () => {
+    const testEnv = makeTestEnv({
+      HUB_WEBHOOK_URL: 'https://extro.solpbc.org/hooks/security',
+      HUB_WEBHOOK_SECRET: 'hub-secret',
+    });
+    delete testEnv.SPB_SWEEP_ENABLED;
+    const hubCalls = [];
+    vi.stubGlobal('fetch', vi.fn(async (input, init = {}) => {
+      const url = new URL(typeof input === 'string' ? input : input.url);
+      if (url.host === 'extro.solpbc.org') {
+        hubCalls.push({ url: url.toString(), body: JSON.parse(init.body) });
+        return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+      }
+      throw new Error(`disabled sweep must not reach: ${url.host}`);
+    }));
+    const ctx = createExecutionContext();
+    const spy = installConsoleSpy();
+
+    try {
+      await runSpbLapseSweep(testEnv, ctx, NOW);
+      await waitOnExecutionContext(ctx);
+    } finally {
+      spy.restore();
+    }
+
+    expect(hubCalls).toHaveLength(1);
+    expect(hubCalls[0].body).toMatchObject({
+      office: 'cso',
+      type: 'spb_lapse_sweep_skipped',
+      tier: 'T4',
+      reason: 'disabled',
+    });
   });
 
   it('treats an empty prefix as idempotent success', async () => {
@@ -209,8 +246,12 @@ describe('spb lapse sweep', () => {
     expect(failure).toEqual({
       event: 'spb_lapse_sweep_failed',
       binding_index: 0,
+      account_ref: await hashWithPepper(`hub:account:${failed.accountId}`, testEnv),
+      instance_ref: await hashWithPepper(`hub:instance:${INSTANCE_A}`, testEnv),
       error_type: 'S3DeleteObjectsError',
     });
+    const summary = JSON.parse(spy.calls.find((call) => call.level === 'warn').args[0]);
+    expect(summary).toMatchObject({ event: 'spb_lapse_sweep', bindings_swept: 1, bindings_failed: 1 });
     expect(JSON.stringify(spy.calls)).not.toContain(failed.accountId);
     expect(JSON.stringify(spy.calls)).not.toContain(failedPrefix);
 
@@ -311,6 +352,7 @@ describe('spb lapse sweep', () => {
       type: 'spb_lapse_sweep',
       tier: 'T4',
       bindings_swept: 1,
+      bindings_failed: 0,
       objects_deleted: 1,
       multipart_aborted: 0,
     });
