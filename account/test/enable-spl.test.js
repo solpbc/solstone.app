@@ -81,6 +81,9 @@ describe('/enable/spl', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('this journal is asking to enable private network access.');
+    expect(body).toContain('so sol pbc can approve this request. no journal content comes with it, only what identifies the request.');
+    expect(body).toContain("sol pbc records your journal's approval and hands it back. nothing from your journal is sent to sol pbc to do this.");
+    expect(body).not.toContain('taken in alongside you');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
   });
