@@ -15,610 +15,216 @@
     <link rel="stylesheet" href="/static/tokens.css">
     <link rel="stylesheet" href="/static/base.css">
     <style>
-        .page-intro {
-            text-align: center;
-            padding: 3rem 1.5rem 2rem;
-            max-width: 640px;
-        }
-        .page-intro h1 {
-            margin-bottom: 1rem;
-            position: relative;
-            padding-bottom: 1rem;
-        }
-        /* sunrise signature: gold→orange underline beneath the page h1 */
-        .page-intro h1::after {
-            content: "";
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 0;
-            width: 76px;
-            height: 4px;
-            border-radius: 2px;
-            background: linear-gradient(90deg, #FFCC33, #E8913A);
-        }
-        .page-intro p {
-            font-size: 1rem;
-            line-height: 1.6;
-            color: var(--ink-soft);
-        }
-        .install-section-title {
-            font-family: var(--font-display);
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--ink-soft);
-            text-align: center;
-            margin: 1.75rem 0 0.75rem;
-            max-width: 820px;
-            width: 90vw;
-            letter-spacing: 0.02em;
-        }
-        .cards {
-            max-width: 820px;
-            width: 90vw;
-            padding: 0 1.5rem;
-        }
-        .card {
-            background: var(--cream-bright);
-            border: 1px solid rgba(176, 106, 26, 0.08);
-            border-radius: 10px;
-            padding: 1.75rem;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 1px 2px rgba(139, 90, 24, 0.05),
-                        0 12px 32px -18px rgba(139, 90, 24, 0.22);
-        }
-        .card .subtitle {
-            font-size: 0.92rem;
-            color: var(--ink-soft);
-            line-height: 1.55;
-            margin-bottom: 1.25rem;
-        }
-        .card-actions {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        .copy-btn {
-            font-family: var(--font-display);
-            font-size: 0.82rem;
-            font-weight: 600;
-            background: var(--ink);
-            border: 1px solid var(--ink);
-            border-radius: 6px;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s, color 0.15s;
-            color: var(--ink-on-dark);
-            white-space: nowrap;
-        }
-        .copy-btn:hover {
-            background: var(--orange);
-            border-color: var(--orange);
-            color: var(--ink);
-        }
-        .copy-btn.copied {
-            background: var(--orange);
-            border-color: var(--orange);
-            color: var(--ink);
-        }
-        .gh-link {
-            font-size: 0.82rem;
-            color: var(--ink-faint);
-            text-decoration: none;
-            transition: color 0.15s;
-            white-space: nowrap;
-        }
-        .gh-link:hover {
-            color: var(--orange-ink);
-        }
-        .supplemental {
-            max-width: 820px;
-            width: 90vw;
-            padding: 0 1.5rem;
-            margin-top: 1.5rem;
-        }
-        .supplemental .card {
-            border-color: rgba(176, 106, 26, 0.08);
-            background: var(--cream-bright);
-        }
-        .supplemental .card h2 {
-            font-family: var(--font-display);
-            font-size: 1.05rem;
-            color: var(--ink-soft);
-            margin-bottom: 0.4rem;
-        }
-        .supplemental .card .subtitle {
-            color: var(--ink-faint);
-            font-size: 0.88rem;
-            margin-bottom: 0.75rem;
-        }
-        /* Diagram switcher (single device / multiple devices) */
-        .diagram-switcher {
-            max-width: 820px;
-            width: 90vw;
-            padding: 0 1.5rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        .diagram-switcher input[type="radio"] {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            clip: rect(0,0,0,0);
-            overflow: hidden;
-        }
-        .mode-toggle {
-            display: inline-flex;
-            border: 1px solid var(--hairline-2);
-            border-radius: 999px;
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-        .mode-toggle label {
-            font-family: var(--font-display);
-            font-size: 0.82rem;
-            font-weight: 600;
-            padding: 0.4rem 1.1rem;
-            cursor: pointer;
-            color: var(--ink-faint);
-            transition: background 0.15s, color 0.15s;
-            user-select: none;
-        }
-        .mode-toggle label:hover {
-            color: var(--ink-soft);
-        }
-        #mode-single:checked ~ .mode-toggle label[for="mode-single"],
-        #mode-multi:checked ~ .mode-toggle label[for="mode-multi"] {
-            background: var(--ink);
-            color: var(--ink-on-dark);
-        }
-        .diagram-switcher input[type="radio"]:focus-visible + .mode-toggle label,
-        .mode-toggle label:focus-visible {
-            outline: 2px solid var(--focus);
-            outline-offset: 2px;
-        }
-        .diagram-panel {
-            display: none;
-        }
-        #mode-single:checked ~ .diagram-single {
-            display: block;
-        }
-        #mode-multi:checked ~ .diagram-multi {
-            display: block;
-        }
-        .diagram-panel svg.dg { width: 100%; height: auto; display: block; }
-        /* inline architecture diagrams — token-driven so labels render in
-           Comfortaa (an <img>-referenced SVG can't load the page @font-face)
-           and every fill matches the design system. Cards are near-white, so
-           text uses the paper inks. */
-        .dg-label  { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.08em; fill: var(--ink-faint-paper); }
-        .dg-title  { font-family: var(--font-display); font-weight: 700; fill: var(--ink); }
-        .dg-title.soon { fill: var(--ink-faint-paper); }
-        .dg-desc   { font-family: var(--font-body); fill: var(--ink-soft-paper); }
-        .dg-meta   { font-family: var(--font-body); fill: var(--ink-faint-paper); }
-        .dg-mono   { font-family: var(--font-mono); fill: var(--ink-faint-paper); }
-        .dg-soon   { font-family: var(--font-body); font-style: italic; fill: var(--ink-faint-paper); }
-        /* de-rectilinearized (Mike Salamon review 2026-07-03): depth comes from
-           fills + warm drop shadows, not outline strokes; the journal containment
-           keeps a warm wash — warmth lives where the covenant binds. */
-        .dg-card   { fill: var(--paper); stroke: none; filter: drop-shadow(0 1.5px 3px rgba(139, 90, 24, 0.16)); }
-        .dg-card.soon { fill: rgba(255, 255, 255, 0.5); stroke: var(--hairline-2); stroke-width: 1; stroke-dasharray: 6 4; filter: none; }
-        .dg-journal { fill: #FBF1DB; stroke: none; }
-        .dg-flow   { stroke: var(--hairline-2); stroke-width: 1.5; }
-        .dg-arrow  { fill: var(--hairline-2); }
-        /* Platform tabs (mirrors the diagram toggle) */
-        .platform-card {
-            position: relative;
-        }
-        .platform-card input[type="radio"] {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            clip: rect(0,0,0,0);
-            overflow: hidden;
-        }
-        .platform-toggle {
-            display: inline-flex;
-            border: 1px solid var(--hairline-2);
-            border-radius: 999px;
-            overflow: hidden;
-            margin: 0 auto 1.25rem;
-            align-self: center;
-        }
-        .platform-toggle label {
-            font-family: var(--font-display);
-            font-size: 0.82rem;
-            font-weight: 600;
-            padding: 0.4rem 1.1rem;
-            cursor: pointer;
-            color: var(--ink-faint);
-            transition: background 0.15s, color 0.15s;
-            user-select: none;
-        }
-        .platform-toggle label:hover {
-            color: var(--ink-soft);
-        }
-        #plat-macos:checked ~ .platform-toggle label[for="plat-macos"],
-        #plat-linux:checked ~ .platform-toggle label[for="plat-linux"] {
-            background: var(--ink);
-            color: var(--ink-on-dark);
-        }
-        .platform-card input[type="radio"]:focus-visible + .platform-toggle label,
-        .platform-toggle label:focus-visible {
-            outline: 2px solid var(--focus);
-            outline-offset: 2px;
-        }
-        .platform-panel {
-            display: none;
-        }
-        #plat-macos:checked ~ .platform-macos {
-            display: block;
-        }
-        #plat-linux:checked ~ .platform-linux {
-            display: block;
-        }
-        .platform-prereq {
-            font-size: 0.88rem;
-            color: var(--ink-soft);
-            margin-bottom: 0.85rem;
-            line-height: 1.55;
-        }
-        .step-label {
-            font-family: var(--font-display);
-            font-size: 0.92rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin: 0 0 0.6rem;
-            letter-spacing: 0.01em;
-        }
-        .step-block + .step-block {
-            margin-top: 1.5rem;
-            padding-top: 1.25rem;
-            border-top: 1px solid var(--hairline);
-        }
-        .download-btn {
-            display: inline-block;
-            align-self: flex-start;
-            font-family: var(--font-display);
-            font-size: 0.95rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #FFCC33 0%, #E8913A 100%);
-            color: var(--ink);
-            text-decoration: none;
-            border: none;
-            border-radius: 6px;
-            padding: 0.65rem 1.1rem;
-            margin-bottom: 0.5rem;
-        }
-        .download-btn:hover {
-            background: linear-gradient(135deg, #F2BF2B 0%, #DB8330 100%);
-            color: var(--ink);
-        }
-        .trust-signal {
-            font-size: 0.78rem;
-            color: var(--ink-faint);
-            margin: 0;
-            line-height: 1.4;
-        }
-        .platform-prereq code,
-        .install-finish code,
-        .card .subtitle code {
-            font-family: var(--font-mono);
-            font-size: 0.84em;
-            background: var(--orange-wash);
-            padding: 0.05rem 0.35rem;
-            border-radius: 3px;
-            color: var(--ink-soft);
-        }
-        .install-steps {
-            font-family: var(--font-mono);
-            font-size: 0.82rem;
-            color: var(--ink-soft);
-            background: var(--orange-wash);
-            border: 1px solid var(--hairline-2);
-            border-radius: 6px;
-            padding: 0.85rem 1rem;
-            margin-bottom: 0.85rem;
-            overflow-x: auto;
-            line-height: 1.55;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-        }
-        .install-finish {
-            font-size: 0.88rem;
-            color: var(--ink-soft);
-            line-height: 1.55;
-            margin-bottom: 0.5rem;
-        }
-        .dev-path {
-            margin-top: 1.5rem;
-            padding-top: 1.25rem;
-            border-top: 1px solid var(--hairline);
-        }
-        .dev-path summary {
-            font-family: var(--font-display);
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--ink-faint);
-            cursor: pointer;
-            list-style: none;
-            transition: color 0.15s;
-        }
-        .dev-path summary:hover {
-            color: var(--orange-ink);
-        }
-        .dev-path summary::-webkit-details-marker {
-            display: none;
-        }
-        .dev-path summary::before {
-            content: "▸ ";
-            font-size: 0.75rem;
-            color: var(--ink-faint);
-        }
-        .dev-path[open] summary::before {
-            content: "▾ ";
-        }
-        .dev-path-body {
-            margin-top: 1rem;
-        }
-        .blurb {
-            display: none;
-        }
-        /* The sunrise-gradient ground is shared: <body class="sunrise"> in base.css.
-           No per-page copy of the recipe. */
-        /* the three-ways-to-think rows — a quiet System-Settings register: no
-           tiers, no comparison table. one row per way to think. */
-        .think-ways {
-            max-width: 820px;
-            width: 90vw;
-            padding: 0 1.5rem;
-        }
-        .think-ways .card {
-            gap: 0;
-        }
-        .think-way {
-            padding: 1.1rem 0;
-        }
-        .think-way + .think-way {
-            border-top: 1px solid var(--hairline);
-        }
-        .think-way h3 {
-            font-family: var(--font-display);
-            font-size: 0.98rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 0.35rem;
-            letter-spacing: 0.01em;
-        }
-        .think-way p {
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: var(--ink-soft);
-            margin: 0;
-        }
-        .think-way a {
-            color: var(--orange-ink);
-            text-decoration: underline;
-        }
-        .think-invariant {
-            font-size: 0.86rem;
-            line-height: 1.6;
-            color: var(--ink-faint);
-            margin: 1rem 0 0;
-            padding-top: 0.9rem;
-            border-top: 1px solid var(--hairline);
-        }
-        .windows-pointer {
-            max-width: 820px;
-            width: 90vw;
-            padding: 0 1.5rem;
-            font-size: 0.86rem;
-            line-height: 1.6;
-            color: var(--ink-faint);
-            margin: 0.85rem auto 0;
-            text-align: center;
-        }
-        .windows-pointer a {
-            color: var(--orange-ink);
-            text-decoration: underline;
-        }
-        /* alert box tracks the cards' content column instead of its own 600px
-           cap — .cards is max-width 820/90vw with 1.5rem
-           side padding, so the visible card edge is 3rem narrower */
-        .early-days {
-            max-width: calc(820px - 3rem);
-            width: calc(90vw - 3rem);
+        .install-page { width: min(100% - 2.5rem, 860px); margin: 0 auto; }
+        .page-intro { max-width: 650px; margin: 2.5rem auto 1.5rem; text-align: center; }
+        .page-intro h1 { margin-bottom: 1rem; padding-bottom: 1rem; position: relative; }
+        .page-intro h1::after { content: ""; position: absolute; bottom: 0; left: calc(50% - 38px); width: 76px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #FFCC33, #E8913A); }
+        .install-page p { line-height: 1.65; }
+        .install-page a:not(.action):not(.platform-link) { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+        .overview { display: grid; grid-template-columns: 1fr 2rem 1fr; align-items: stretch; margin: 0 auto 1rem; }
+        .overview-part { padding: 1.15rem 1.35rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px -10px rgba(139,90,24,.25); }
+        .overview-part.journal { background: #FBF1DB; }
+        .overview-part h2 { font-family: var(--font-display); font-size: 1rem; color: var(--ink); margin-bottom: .4rem; }
+        .overview-part p { font-size: .94rem; }
+        .connection { display: grid; place-items: center; color: var(--ink-soft); font-size: 1.4rem; }
+        .overview-note { text-align: center; font-size: .94rem; }
+        .early-note { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid #E8913A; font-size: .94rem; }
+        .setup { background: white; border-radius: 14px; padding: 1.75rem; box-shadow: 0 3px 5px rgba(139,90,24,.04), 0 18px 40px -24px rgba(139,90,24,.25); }
+        .setup h2, .more h2 { font-family: var(--font-display); font-size: 1.25rem; color: var(--ink); margin-bottom: .6rem; }
+        .platform-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.2rem 0; }
+        .platform-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .6rem .85rem; border: 1px solid var(--hairline-2); border-radius: 7px; font-size: .94rem; color: var(--ink); text-decoration: none; }
+        .platform-link:hover { background: #FBF1DB; }
+        .platform-link[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: white; }
+        .platform-panel { scroll-margin-top: 1rem; padding-top: .5rem; }
+        .platform-panel + .platform-panel { margin-top: 1.5rem; border-top: 1px solid var(--hairline); }
+        .enhanced .platform-panel { margin-top: 0; border-top: 0; }
+        .platform-panel[hidden] { display: none; }
+        .platform-panel h3 { font-family: var(--font-display); font-size: 1.05rem; margin-bottom: .5rem; color: var(--ink); }
+        .requirements { font-size: .9rem; margin-bottom: 1rem; }
+        .existing { background: #F8F7F3; padding: .8rem 1rem; border-radius: 7px; margin-bottom: 1.25rem; font-size: .94rem; }
+        .steps { list-style: none; counter-reset: step; }
+        .steps > li { position: relative; padding-left: 2.5rem; counter-increment: step; }
+        .steps > li::before { content: counter(step); position: absolute; left: 0; top: -.1rem; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: 50%; background: #FBF1DB; font-weight: 600; color: var(--ink); }
+        .steps > li + li { margin-top: 1.75rem; }
+        .steps h4 { font-size: 1rem; color: var(--ink); margin-bottom: .4rem; }
+        .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: .85rem; }
+        .action, .copy-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .65rem 1rem; border-radius: 7px; border: 0; font: 600 .94rem var(--font-body); cursor: pointer; text-decoration: none; text-align: center; }
+        .action { background: linear-gradient(135deg, #FFCC33, #E8913A); color: var(--ink); }
+        .action:hover { background: #FFCC33; color: var(--ink); }
+        .copy-btn { background: var(--ink); color: white; }
+        .copy-btn:hover { background: var(--ink-soft); }
+        .copy-btn[hidden] { display: none; }
+        .references { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; font-size: .9rem; margin-top: 1.25rem; }
+        .reference-intro { flex-basis: 100%; }
+        .references a { display: inline-flex; align-items: center; min-height: 44px; }
+        .install-page pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .87rem/1.65 var(--font-mono); background: #F8F7F3; color: var(--ink); border-radius: 7px; padding: 1rem; margin-top: .85rem; }
+        .install-page code { font-family: var(--font-mono); font-size: .9em; }
+        .install-page details { border-top: 1px solid var(--hairline); margin-top: 1.5rem; padding-top: .5rem; }
+        .install-page summary { cursor: pointer; padding: .8rem 0; min-height: 44px; color: var(--ink); font-weight: 600; }
+        .detail-body { padding: .25rem 0 .5rem; }
+        .detail-body p + p { margin-top: .85rem; }
+        .detail-body h3 { font-size: 1rem; color: var(--ink); margin: 1rem 0 .3rem; }
+        .platform-request { margin: 1.25rem 0 0; font-size: .94rem; text-align: center; }
+        .more { margin: 2.25rem auto 0; max-width: 700px; }
+        .copy-message { font-size: .9rem; margin-top: .5rem; }
+        .copy-message:empty { display: none; }
+        @media (max-width: 540px) {
+            .page-intro { margin-top: 1.75rem; }
+            .overview { grid-template-columns: 1fr; }
+            .connection { min-height: 1.8rem; transform: rotate(90deg); }
+            .overview-part { padding: 1rem; }
+            .setup { padding: 1.15rem; }
+            .platform-nav { gap: .4rem; }
+            .platform-link { flex: 1 1 28%; padding-inline: .6rem; }
+            .steps > li { padding-left: 2.1rem; }
         }
     </style>
 </head>
 <body class="sunrise">
     <a href="#main" class="skip-link">skip to content</a>
-    <header>
-        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/mark.svg" alt="solstone home" style="height:40px;"></a>
-    </header>
+    <header><a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/mark.svg" alt="solstone home" width="40" height="40"></a></header>
     <main id="main" tabindex="-1">
-    <div class="page-intro">
-        <h1>get started with solstone.</h1>
-        <p>solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal, the memory, on a device you own. open source, made by sol pbc.</p>
-    </div>
-
-    <div class="diagram-switcher">
-        <input type="radio" id="mode-single" name="arch-mode" checked>
-        <input type="radio" id="mode-multi" name="arch-mode">
-        <div class="mode-toggle">
-            <label for="mode-single">single device</label>
-            <label for="mode-multi">multiple devices</label>
+    <div class="install-page">
+        <div class="page-intro">
+            <h1>get started with solstone.</h1>
+            <p>a personal memory platform. what you share with the solstone app goes into your journal, on a computer you own.</p>
         </div>
-        <div class="diagram-panel diagram-single">
-            <svg class="dg" viewBox="0 0 720 448" role="img" aria-label="solstone on a single device: the solstone app takes in your screen and audio, and it all goes into your journal at ~/journal">
-                <text x="360" y="14" text-anchor="middle" font-size="11" class="dg-label">your device</text>
-                <rect x="24" y="24" width="672" height="400" rx="12" class="dg-card"/>
-                <rect x="72" y="52" width="576" height="72" rx="6" class="dg-card"/>
-                <text x="360" y="78" text-anchor="middle" font-size="15" class="dg-title">the solstone app</text>
-                <text x="360" y="98" text-anchor="middle" font-size="12" class="dg-desc">screen + audio, taken in</text>
-                <text x="360" y="115" text-anchor="middle" font-size="10" class="dg-meta">macos · linux · tmux</text>
-                <line x1="360" y1="124" x2="360" y2="168" class="dg-flow"/>
-                <polygon points="360,170 356,162 364,162" class="dg-arrow"/>
-                <text x="360" y="190" text-anchor="middle" font-size="11" class="dg-label">your journal</text>
-                <rect x="60" y="200" width="600" height="200" rx="12" class="dg-journal"/>
-                <text x="360" y="227" text-anchor="middle" font-size="11" class="dg-mono">~/journal</text>
-                <rect x="92" y="246" width="536" height="104" rx="6" class="dg-card"/>
-                <text x="360" y="282" text-anchor="middle" font-size="15" class="dg-title">the memory</text>
-                <text x="360" y="304" text-anchor="middle" font-size="12" class="dg-desc">everything the solstone app takes in, kept, organized, and searchable here</text>
-                <text x="360" y="324" text-anchor="middle" font-size="10" class="dg-meta">transcription · vision · search · dashboard</text>
-                <text x="360" y="380" text-anchor="middle" font-size="11" class="dg-meta">your journal is always private, only yours</text>
-            </svg>
+        <div class="overview" aria-label="how solstone fits together">
+            <section class="overview-part">
+                <h2>the solstone app</h2>
+                <p>takes in what you choose to share from your devices.</p>
+            </section>
+            <span class="connection" aria-hidden="true">→</span>
+            <section class="overview-part journal">
+                <h2>your journal</h2>
+                <p>keeps it organized and searchable on your mac or linux computer.</p>
+            </section>
         </div>
-        <div class="diagram-panel diagram-multi">
-            <svg class="dg" viewBox="0 0 840 452" role="img" aria-label="solstone across devices: the solstone app runs on each of your devices (linux, macos, tmux, windows; mobile in beta), and everything goes into your journal at ~/journal">
-                <text x="420" y="14" text-anchor="middle" font-size="11" class="dg-label">your devices</text>
-                <rect x="16" y="24" width="808" height="128" rx="12" class="dg-card"/>
-                <rect x="40" y="48" width="144" height="80" rx="6" class="dg-card"/>
-                <text x="112" y="72" text-anchor="middle" font-size="13" class="dg-title">linux</text>
-                <text x="112" y="92" text-anchor="middle" font-size="11" class="dg-desc">the solstone app: screen + audio</text>
-                <text x="112" y="110" text-anchor="middle" font-size="10" class="dg-mono">solstone-linux</text>
-                <rect x="194" y="48" width="144" height="80" rx="6" class="dg-card"/>
-                <text x="266" y="72" text-anchor="middle" font-size="13" class="dg-title">macos</text>
-                <text x="266" y="92" text-anchor="middle" font-size="11" class="dg-desc">the solstone app: screen + audio</text>
-                <text x="266" y="110" text-anchor="middle" font-size="10" class="dg-mono">solstone-macos</text>
-                <rect x="348" y="48" width="144" height="80" rx="6" class="dg-card"/>
-                <text x="420" y="72" text-anchor="middle" font-size="13" class="dg-title">tmux</text>
-                <text x="420" y="92" text-anchor="middle" font-size="11" class="dg-desc">the solstone app: terminal sessions</text>
-                <text x="420" y="110" text-anchor="middle" font-size="10" class="dg-mono">solstone-tmux</text>
-                <rect x="502" y="48" width="144" height="80" rx="6" class="dg-card"/>
-                <text x="574" y="72" text-anchor="middle" font-size="13" class="dg-title">windows</text>
-                <text x="574" y="92" text-anchor="middle" font-size="11" class="dg-desc">the solstone app: screen + audio</text>
-                <text x="574" y="110" text-anchor="middle" font-size="10" class="dg-mono">solstone-windows</text>
-                <rect x="656" y="48" width="144" height="80" rx="6" class="dg-card soon"/>
-                <text x="728" y="80" text-anchor="middle" font-size="13" class="dg-title soon">mobile</text>
-                <text x="728" y="100" text-anchor="middle" font-size="10" class="dg-soon">in beta</text>
-                <line x1="420" y1="152" x2="420" y2="196" class="dg-flow"/>
-                <polygon points="420,198 416,190 424,190" class="dg-arrow"/>
-                <text x="420" y="218" text-anchor="middle" font-size="11" class="dg-label">your journal</text>
-                <rect x="120" y="228" width="600" height="200" rx="12" class="dg-journal"/>
-                <text x="420" y="255" text-anchor="middle" font-size="11" class="dg-mono">~/journal</text>
-                <rect x="152" y="274" width="536" height="104" rx="6" class="dg-card"/>
-                <text x="420" y="310" text-anchor="middle" font-size="15" class="dg-title">the memory</text>
-                <text x="420" y="332" text-anchor="middle" font-size="12" class="dg-desc">everything the solstone app takes in, kept, organized, and searchable here</text>
-                <text x="420" y="352" text-anchor="middle" font-size="10" class="dg-meta">transcription · vision · search · dashboard</text>
-                <text x="420" y="408" text-anchor="middle" font-size="11" class="dg-meta">your journal is always private, only yours</text>
-            </svg>
-        </div>
-    </div>
+        <p class="overview-note">start on one computer. connect more devices to the same journal whenever you're ready.</p>
+        <p class="early-note"><strong>early days.</strong> solstone is open source and hands-on. expect rough edges; linux setup uses the terminal. <a href="https://support.solstone.app">we're here to help.</a></p>
 
-    <h2 class="install-section-title">your journal is open and portable</h2>
-    <div class="cards">
-        <div class="card">
-            <p class="subtitle">open it and it's a folder of dated directories: plain markdown, json, and your own raw audio and screen frames (if you opt to preserve them after processing). you can <code>cat</code> it, <code>grep</code> it, put it in <code>git</code>, and back it up like any other folder. no proprietary format, no schema only we can read. search rebuilds from the folder if you delete it. your journal is the memory. everything else is derived.</p>
-        </div>
-    </div>
+        <section class="setup" aria-labelledby="setup-heading">
+            <h2 id="setup-heading">install on your device</h2>
+            <p>choose the device you're setting up.</p>
+            <nav class="platform-nav" aria-label="choose your platform">
+                <a class="platform-link" id="tab-macos" href="#macos">mac</a>
+                <a class="platform-link" id="tab-linux" href="#linux">linux</a>
+                <a class="platform-link" id="tab-windows" href="#windows">windows</a>
+                <a class="platform-link" id="tab-ios" href="#ios">iphone / ipad</a>
+                <a class="platform-link" id="tab-android" href="#android">android</a>
+                <a class="platform-link" id="tab-tmux" href="#tmux">tmux</a>
+            </nav>
 
-    <p class="early-days"><span class="stage-label">early days.</span> solstone is open source and hands-on. you'll spend time in the terminal, you'll find rough edges, and we'll fix them together as we go.</p>
-
-    <h2 class="install-section-title">three ways to think</h2>
-    <div class="think-ways">
-        <div class="card">
-            <div class="think-way">
-                <h3>local, the default.</h3>
-                <p>a model runs on this computer, the default on a capable machine. setup checks for you before anything downloads.</p>
-            </div>
-            <div class="think-way">
-                <h3>your own model.</h3>
-                <p>bring your own provider key (Claude, Gemini, or GPT), or point the solstone app at any OpenAI-compatible endpoint you run. sol pbc is never in the path.</p>
-            </div>
-            <div class="think-way">
-                <h3>confidential processing.</h3>
-                <p>available to approved scouts. think off your device on confidential hardware sol pbc runs that keeps nothing: no content retained, no human review, nothing used to train. your journal stays on your device. <a href="https://services.solstone.app/confidential-processing">how it works →</a></p>
-            </div>
-            <p class="think-invariant">whichever you choose: your journal always lives on your device, and nothing is chosen for you silently. if no model is set, the solstone app tells you and waits.</p>
-        </div>
-    </div>
-
-    <h2 class="install-section-title">install with a coding agent</h2>
-    <div class="cards">
-        <div class="card">
-            <p class="subtitle">paste this prompt into Claude Code, Codex CLI, Gemini CLI, or similar.</p>
-            <div class="card-actions">
-                <button class="copy-btn" data-target="blurb-agent" data-default-label="copy for agent" aria-label="copy for agent: install prompt for solstone">copy for agent</button>
-                <a href="https://github.com/solpbc/solstone-journal" class="gh-link">GitHub &rarr;</a>
-                <a href="/releases" class="gh-link">what's new &rarr;</a>
-            </div>
-            <pre class="blurb" id="blurb-agent">install solstone from https://solstone.app/install</pre>
-        </div>
-    </div>
-
-    <h2 class="install-section-title">install yourself</h2>
-    <div class="cards">
-        <div class="card platform-card">
-            <input type="radio" id="plat-macos" name="platform" checked>
-            <input type="radio" id="plat-linux" name="platform">
-            <div class="platform-toggle">
-                <label for="plat-macos">macos</label>
-                <label for="plat-linux">linux</label>
-            </div>
-
-            <div class="platform-panel platform-macos">
-                <p class="install-finish">setting up a new mac? the solstone app and the journal are two separate apps. for a new mac, install both. both require Apple Silicon; Intel macs aren't supported.</p>
-                <a href="https://solstone.app/download/macos" class="download-btn">download the solstone app</a>
-                <a href="https://solstone.app/download/journal" class="download-btn">download the journal</a>
-                <p class="trust-signal">both signed by sol pbc, notarized by Apple, each updating over its own signed channel.</p>
-                <p class="install-finish">the solstone app takes in what you share with it here; the journal, its own app, is where it all gets kept, named and marked as yours on first run. already have a journal on another machine? the solstone app alone connects to it. choosing among the three ways to think, above, happens once you're set up, on your terms.</p>
-
-                <details class="dev-path">
-                    <summary>building from source? (developer path)</summary>
-                    <div class="dev-path-body">
-                        <p class="platform-prereq">the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are <code>solstone</code> and <code>journal</code>. install the signed release with the installer at <a href="https://solstone.app/install.sh" class="gh-link" style="text-decoration:underline;">solstone.app/install.sh</a>.</p>
-                        <pre class="install-steps" id="steps-macos">curl -fsSL https://solstone.app/install.sh | sh
-journal setup</pre>
-                        <div class="card-actions">
-                            <button class="copy-btn" data-target="steps-macos" data-default-label="copy for human" aria-label="copy for human: macos install commands">copy for human</button>
-                            <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
-                        </div>
-                        <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard walks you through setting your identity and choosing among the three ways to think, above. your journal stays on this machine whichever you choose.</p>
-                    </div>
+            <section class="platform-panel" id="macos" aria-labelledby="macos-heading">
+                <h3 id="macos-heading">on your mac</h3>
+                <p class="requirements">Apple Silicon and macos 15 or later required. Intel macs aren't supported.</p>
+                <p class="existing">already have a journal? <a href="#mac-app">just install the solstone app</a> and connect it to your existing journal.</p>
+                <ol class="steps">
+                    <li>
+                        <h4>create your journal first</h4>
+                        <p>install and open the journal app. choose a name and a place for your journal. then choose <strong>open your journal</strong> to read it in your browser.</p>
+                        <div class="actions"><a class="action" href="/download/journal">get the journal app</a></div>
+                    </li>
+                    <li id="mac-app">
+                        <h4>connect the solstone app</h4>
+                        <p>install and open the solstone app. in settings, choose <strong>journal</strong> to connect. for a journal on this mac, confirm the one it finds. follow the prompts to choose what you share.</p>
+                        <div class="actions"><a class="action" href="/download/macos">get the solstone app</a></div>
+                    </li>
+                </ol>
+                <details>
+                    <summary>journal on another computer?</summary>
+                    <div class="detail-body"><p>in your journal, open <strong>network</strong> and choose <strong>add a device</strong>. copy the pairing link. in the solstone app's journal settings, choose <strong>pair to a journal on another device</strong>, paste the link, and confirm it's your journal.</p></div>
                 </details>
-            </div>
+                <div class="references"><a href="https://github.com/solpbc/solstone-macos/blob/main/INSTALL.md">mac setup help</a></div>
+            </section>
 
-            <div class="platform-panel platform-linux">
-                <p class="platform-prereq">the journal ships as one self-contained tree. it needs no interpreter and no package manager of its own. the two commands are <code>solstone</code> and <code>journal</code>. one tree covers the journal on this machine and talking to a journal that already lives elsewhere. install the signed release with the installer at <a href="https://solstone.app/install.sh" class="gh-link" style="text-decoration:underline;">solstone.app/install.sh</a>.</p>
-                <pre class="install-steps" id="steps-linux">curl -fsSL https://solstone.app/install.sh | sh
+            <section class="platform-panel" id="linux" aria-labelledby="linux-heading">
+                <h3 id="linux-heading">on your linux computer</h3>
+                <p class="requirements">journal: Intel/AMD or ARM. desktop app: Intel/AMD (x86_64).</p>
+                <p class="existing">already have a journal? <a href="#linux-app">add the desktop app</a> and connect it to your existing journal.</p>
+                <ol class="steps">
+                    <li>
+                        <h4>set up your journal</h4>
+                        <p>run these commands in your terminal.</p>
+                        <pre id="linux-commands">curl -fsSL https://solstone.app/install.sh | sh
 journal setup</pre>
-                <div class="card-actions">
-                    <button class="copy-btn" data-target="steps-linux" data-default-label="copy for human" aria-label="copy for human: linux install commands">copy for human</button>
-                    <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md" class="gh-link">full INSTALL.md &rarr;</a>
+                        <div class="actions"><button class="copy-btn" data-target="linux-commands" hidden>copy commands</button></div>
+                        <p class="copy-message" role="status" id="linux-commands-status"></p>
+                        <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
+                    </li>
+                    <li id="linux-app">
+                        <h4>add the desktop app</h4>
+                        <p>the solstone app takes in what you share from this desktop, and all of it goes into your journal. its setup guide includes the packages your system needs.</p>
+                        <div class="actions"><a class="action" href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">set up the linux app</a></div>
+                    </li>
+                </ol>
+                <div class="references"><a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md">journal setup help</a><a href="/install.sh">read the installer</a></div>
+            </section>
+
+            <section class="platform-panel" id="windows" aria-labelledby="windows-heading">
+                <h3 id="windows-heading">on your windows computer</h3>
+                <p class="requirements">the windows app connects to a journal on a mac or linux computer. the journal doesn't run on windows yet.</p>
+                <p>have a journal ready? install the solstone app, then connect it to your journal and choose what you share.</p>
+                <div class="actions"><a class="action" href="/download/windows">get the windows app</a></div>
+                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
+            </section>
+
+            <section class="platform-panel" id="ios" aria-labelledby="ios-heading">
+                <h3 id="ios-heading">on your iphone or ipad</h3>
+                <p class="requirements">ios 26 or later. available in beta through TestFlight.</p>
+                <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
+                <div class="actions"><a class="action" href="https://testflight.apple.com/join/Ms9sywVj">join the iphone / ipad beta</a></div>
+                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a><a href="/beta">about the beta</a></div>
+            </section>
+
+            <section class="platform-panel" id="android" aria-labelledby="android-heading">
+                <h3 id="android-heading">on your android phone</h3>
+                <p class="requirements">beta. installed directly, outside the Play Store; updates are manual.</p>
+                <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
+                <div class="actions"><a class="action" href="/download/android">get the android app</a></div>
+                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
+            </section>
+
+            <section class="platform-panel" id="tmux" aria-labelledby="tmux-heading">
+                <h3 id="tmux-heading">from your terminal</h3>
+                <p class="requirements">for tmux on mac or linux, with a journal already set up.</p>
+                <p>solstone-tmux brings what you share from your terminal sessions into your journal. it can run alongside the desktop app.</p>
+                <div class="actions"><a class="action" href="https://github.com/solpbc/solstone-tmux/blob/main/INSTALL.md">set up solstone-tmux</a></div>
+                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
+            </section>
+
+            <details>
+                <summary>prefer to install with a coding agent?</summary>
+                <div class="detail-body">
+                    <p>paste this into Claude Code, Codex CLI, Gemini CLI, or similar.</p>
+                    <pre id="agent-prompt">install solstone from https://solstone.app/install</pre>
+                    <div class="actions"><button class="copy-btn" data-target="agent-prompt" hidden>copy prompt</button></div>
+                    <p class="copy-message" role="status" id="agent-prompt-status"></p>
                 </div>
-                <p class="install-finish">then open <code>http://localhost:5015</code>. the first-run wizard walks you through setting your identity and choosing among the three ways to think, above. your journal stays on this machine whichever you choose. to run the solstone app on your linux desktop, see <a href="/download" class="gh-link" style="text-decoration:underline;">solstone.app/download</a>.</p>
-            </div>
-        </div>
-    </div>
+            </details>
+        </section>
+        <p class="platform-request">don't see your platform? <a href="https://support.solstone.app">tell us what you'd like supported.</a></p>
 
-    <p class="install-finish"><strong>where your journal lives.</strong> your journal lives on linux machines (Intel/AMD or ARM) and on Apple Silicon macs running macOS 14 or later. anywhere else, you can still read and search a journal kept on another machine, but that machine can't host one of its own. need another platform? tell us.</p>
-
-    <p class="windows-pointer">on windows? install solstone for windows at <a href="/download">solstone.app/download</a>. it pairs with the journal on your mac or linux machine. (the journal doesn't run on windows yet.)</p>
-
-    <div class="supplemental">
-        <div class="card">
-            <h2>already have solstone installed?</h2>
-            <p class="subtitle">install solstone on more of your devices at <a href="/download" class="gh-link" style="text-decoration:underline;">solstone.app/download</a>.</p>
-        </div>
-    </div>
-
-    <div class="supplemental">
-        <div class="card">
-            <h2>want to help shape what comes next?</h2>
-            <p class="subtitle">solstone is being built in the open. scouts get early features first and a direct line to tell us what they're seeing. confidential processing is available to approved scouts.</p>
-            <div class="card-actions">
-                <a href="https://services.solstone.app/scout" class="gh-link">apply to be a scout &rarr;</a>
-            </div>
-        </div>
+        <section class="more" aria-labelledby="yours-heading">
+            <h2 id="yours-heading">your journal stays yours</h2>
+            <p>your journal is a folder on your computer, in open formats. you can read it, move it, and back it up yourself. your journal is always private, only yours.</p>
+            <details>
+                <summary>where does the thinking happen?</summary>
+                <div class="detail-body">
+                    <p>you choose during setup. your journal stays on your computer whichever you choose.</p>
+                    <h3>local, the default</h3>
+                    <p>a model runs on this computer. setup checks that your machine can run it before anything downloads.</p>
+                    <h3>your own model</h3>
+                    <p>bring your own provider key (Claude, Gemini, or GPT), or use an OpenAI-compatible endpoint you run. sol pbc is never in the path.</p>
+                    <h3>confidential processing</h3>
+                    <p>available to approved scouts. think off your device on confidential hardware sol pbc runs. no content is retained · no human reviews it · nothing is used to train. <a href="https://services.solstone.app/confidential-processing">how it works</a></p>
+                    <p>nothing is chosen for you silently. if no model is set, the solstone app tells you and waits.</p>
+                </div>
+            </details>
+            <nav class="references" aria-label="more about solstone"><a href="https://github.com/solpbc/solstone-journal">source on GitHub</a><a href="/releases">what's new</a><a href="https://services.solstone.app/scout">become a scout</a></nav>
+        </section>
     </div>
     </main>
-
-    <div class="visually-hidden" role="status" aria-live="polite" id="copy-status"></div>
-
     <footer>
         <nav class="footer-nav" aria-label="footer">
             <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
@@ -627,57 +233,92 @@ journal setup</pre>
     </footer>
 
     <script>
-        // announce transient state to assistive tech via the polite live region
-        function announce(msg) {
-            var status = document.getElementById('copy-status');
-            if (!status) return;
-            status.textContent = '';
-            // re-set on the next tick so repeated copies re-announce
-            setTimeout(function() { status.textContent = msg; }, 50);
+        // Links and all instructions remain usable without JavaScript.
+        const nav = document.querySelector('.platform-nav');
+        const tabs = [...nav.querySelectorAll('.platform-link')];
+        const panels = [...document.querySelectorAll('.platform-panel')];
+        function selectPlatform(id, focus = false) {
+            tabs.forEach(tab => {
+                const active = tab.hash === '#' + id;
+                tab.setAttribute('aria-selected', String(active));
+                tab.tabIndex = active ? 0 : -1;
+                if (active && focus) tab.focus();
+            });
+            panels.forEach(panel => { panel.hidden = panel.id !== id; });
         }
-        document.querySelectorAll('.copy-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                var blurb = document.getElementById(btn.dataset.target);
-                if (!blurb) return;
-                var text = blurb.textContent;
-                var defaultLabel = btn.dataset.defaultLabel || 'copy';
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(function() {
-                        btn.textContent = 'copied!';
-                        btn.classList.add('copied');
-                        announce('copied to clipboard');
-                        setTimeout(function() {
-                            btn.textContent = defaultLabel;
-                            btn.classList.remove('copied');
-                        }, 2000);
-                    }, function() {
-                        showFallback(blurb);
-                    });
-                } else {
-                    showFallback(blurb);
+        function platformForHash() {
+            const target = document.getElementById(location.hash.slice(1));
+            return target && target.closest('.platform-panel');
+        }
+        nav.setAttribute('role', 'tablist');
+        tabs.forEach(tab => {
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-controls', tab.hash.slice(1));
+        });
+        panels.forEach(panel => {
+            panel.setAttribute('role', 'tabpanel');
+            panel.setAttribute('aria-labelledby', 'tab-' + panel.id);
+            panel.tabIndex = 0;
+        });
+        document.querySelector('.setup').classList.add('enhanced');
+        selectPlatform((platformForHash() || panels[0]).id);
+        document.addEventListener('click', event => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const link = event.target.closest('a[href^="#"]');
+            if (!link) return;
+            const target = document.getElementById(link.hash.slice(1));
+            const panel = target && target.closest('.platform-panel');
+            if (!panel) return;
+            event.preventDefault();
+            selectPlatform(panel.id);
+            history.pushState(null, '', link.hash);
+            if (!link.classList.contains('platform-link')) {
+                target.scrollIntoView({block: 'start'});
+                if (target !== panel) target.tabIndex = -1;
+                target.focus({preventScroll: true});
+            }
+        });
+        nav.addEventListener('keydown', event => {
+            const index = tabs.indexOf(document.activeElement);
+            if (index < 0) return;
+            if (event.key === ' ') {
+                event.preventDefault();
+                tabs[index].click();
+                return;
+            }
+            let next;
+            if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+            if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+            if (event.key === 'Home') next = 0;
+            if (event.key === 'End') next = tabs.length - 1;
+            if (next === undefined) return;
+            event.preventDefault();
+            selectPlatform(tabs[next].hash.slice(1), true);
+            history.replaceState(null, '', tabs[next].hash);
+        });
+        window.addEventListener('hashchange', () => {
+            const panel = platformForHash();
+            selectPlatform(panel ? panel.id : 'macos');
+        });
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.hidden = false;
+            button.addEventListener('click', async () => {
+                const source = document.getElementById(button.dataset.target);
+                const status = document.getElementById(source.id + '-status');
+                status.textContent = '';
+                try {
+                    await navigator.clipboard.writeText(source.textContent);
+                    status.textContent = 'copied to clipboard.';
+                } catch {
+                    const range = document.createRange();
+                    range.selectNodeContents(source);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    status.textContent = "copy is unavailable here. select the text above and copy it from your device's menu, or press Ctrl+C (⌘C on mac).";
                 }
             });
         });
-        function showFallback(blurb) {
-            announce('text selected. press ctrl+c (or cmd+c on mac) to copy');
-            blurb.style.display = 'block';
-            blurb.style.whiteSpace = 'pre-wrap';
-            blurb.style.background = 'var(--orange-wash)';
-            blurb.style.border = '1px solid var(--hairline-2)';
-            blurb.style.borderRadius = '6px';
-            blurb.style.padding = '1rem';
-            blurb.style.fontSize = '0.8rem';
-            blurb.style.color = 'var(--ink-soft)';
-            blurb.style.marginTop = '1rem';
-            blurb.style.fontFamily = 'monospace';
-            blurb.style.maxHeight = '300px';
-            blurb.style.overflow = 'auto';
-            var sel = window.getSelection();
-            var range = document.createRange();
-            range.selectNodeContents(blurb);
-            sel.removeAllRanges();
-            sel.addRange(range);
-        }
     </script>
 </body>
 </html>
