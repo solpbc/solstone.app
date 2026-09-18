@@ -7,6 +7,7 @@ import {
   resetDb,
   seedAccount,
   seedAccountEmail,
+  seedCredentialChangeProof,
   seedSession,
 } from './helpers.js';
 
@@ -242,6 +243,7 @@ async function setupAccount({ email = 'person@example.com' } = {}) {
   const testEnv = makeTestEnv();
   const account = await seedAccount({ email, testEnv });
   const session = await seedSession(account.accountId, { testEnv });
+  await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
   return { testEnv, account, session };
 }
 

@@ -89,6 +89,7 @@ import {
   handleDeletionPasskeyStart,
   handleDeletionStatus,
 } from './deletion.js';
+import { handleCredentialChangeRoute, seedCredentialChangeProofFromSignIn } from './credential-change.js';
 import { handleOwnerExportRoute } from './owner-export.js';
 import { isOwnerExportPath, ownerExportNotFound } from './owner-export-path.js';
 import {
@@ -691,6 +692,11 @@ async function routeRequest(req, env, ctx) {
         return handleTransparency(req, env);
       }
 
+      if (url.pathname.startsWith('/account/credential-change/proof')) {
+        const credentialChangeResponse = await handleCredentialChangeRoute(req, env, url);
+        if (credentialChangeResponse) return credentialChangeResponse;
+      }
+
       if (url.pathname === '/account/delete' && req.method === 'GET') {
         return handleAccountDeletionPage(req, env);
       }
@@ -1283,6 +1289,10 @@ async function handleSigninVerifyPost(req, env) {
   const sessionToken = generateSessionToken();
   const idHash = await hashWithPepper(sessionToken, env);
   await createSession(env.DB, { idHash, accountId, nowMs });
+  // The OTP just verified is live proof of email control; seed a
+  // credential-change proof from it so a first-run passkey enrollment (the
+  // welcome panel, seconds from here) needs no second code. req_oopzclpx.
+  await seedCredentialChangeProofFromSignIn(env, { accountId, sessionIdHash: idHash, nowMs });
   const location = resume ? `${resume.path}${resume.queryString}` : (isNew ? '/?welcome=1' : '/');
   return redirect(location, 303, {
     'Set-Cookie': sessionCookie(sessionToken),

@@ -1,3 +1,4 @@
+import { credentialChangeStepUpPath, requireFreshCredentialChangeProof } from './credential-change.js';
 import { decryptEmail } from './crypto.js';
 import {
   applyScoutPendingWithEvent,
@@ -183,6 +184,12 @@ export async function handleRemovePasskey(req, env, credentialId) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
+  const fresh = await requireFreshCredentialChangeProof(env, {
+    accountId: guard.session.account_id, sessionIdHash: guard.session.id_hash,
+  });
+  if (!fresh.otpVerified || !fresh.passkeyVerified) {
+    return noStore(signedInRedirect(credentialChangeStepUpPath('/sign-in/passkeys')));
+  }
   if (!credentialId) return noStore(forbidden());
   await removePasskey(env.DB, {
     credentialId,

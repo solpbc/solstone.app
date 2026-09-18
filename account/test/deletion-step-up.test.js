@@ -9,8 +9,8 @@ vi.mock('@simplewebauthn/server', () => ({
 }));
 
 import { generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { finishPasskeyProof, requireFreshProof, startEmailProof, startPasskeyProof, verifyEmailProof } from '../src/deletion.js';
-import { createDeletionProof } from '../src/db.js';
+import { finishPasskeyProof, startEmailProof, startPasskeyProof, verifyEmailProof } from '../src/deletion.js';
+import { createDeletionProof, requireFreshProof } from '../src/db.js';
 import { makeTestEnv, resetDb, seedAccount, seedCredential } from './helpers.js';
 
 describe('deletion step-up proofs', () => {
@@ -27,9 +27,9 @@ describe('deletion step-up proofs', () => {
     await startEmailProof(testEnv, { accountId: account.accountId, sessionIdHash: 'session', purpose: 'delete', ip: '203.0.113.1' });
     const code = testEnv.EMAIL.sent[0].text.match(/\b(\d{3}) (\d{3})\b/).slice(1).join('');
     await expect(verifyEmailProof(testEnv, { accountId: account.accountId, sessionIdHash: 'session', purpose: 'delete', code, ip: '203.0.113.1' })).resolves.toEqual({ ok: true });
-    await expect(requireFreshProof(testEnv, { accountId: account.accountId, sessionIdHash: 'session', purpose: 'delete' })).resolves.toMatchObject({ otpVerified: true, passkeyVerified: true });
+    await expect(requireFreshProof(testEnv.DB, { accountId: account.accountId, sessionIdHash: 'session', purpose: 'delete' })).resolves.toMatchObject({ otpVerified: true, passkeyVerified: true });
     await workerEnv.DB.prepare('UPDATE account_deletion_proofs SET expires_at = 0').run();
-    await expect(requireFreshProof(testEnv, { accountId: account.accountId, sessionIdHash: 'session', purpose: 'delete' })).resolves.toMatchObject({ otpVerified: false });
+    await expect(requireFreshProof(testEnv.DB, { accountId: account.accountId, sessionIdHash: 'session', purpose: 'delete' })).resolves.toMatchObject({ otpVerified: false });
   });
 
   it('requires a fresh user-verified passkey assertion for an active passkey', async () => {

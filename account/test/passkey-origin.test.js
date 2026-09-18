@@ -12,7 +12,7 @@ import {
   generateRegistrationOptions,
 } from '@simplewebauthn/server';
 import worker from '../src/index.js';
-import { makeTestEnv, resetDb, rowCount, seedAccount, seedSession } from './helpers.js';
+import { makeTestEnv, resetDb, rowCount, seedAccount, seedCredentialChangeProof, seedSession } from './helpers.js';
 
 const ORIGIN = 'https://services.solstone.app';
 
@@ -28,6 +28,7 @@ describe('passkey origin and response headers', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
 
     const register = await worker.fetch(passkeyRequest('/passkey/register/start', {
       cookie: session.cookie,
@@ -43,6 +44,7 @@ describe('passkey origin and response headers', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
 
     for (const [path, cookie] of [
       ['/passkey/register/start', session.cookie],
@@ -75,6 +77,7 @@ describe('passkey origin and response headers', () => {
       const testEnv = makeTestEnv();
       const account = await seedAccount({ testEnv });
       const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
 
       for (const [path, cookie] of [
         ['/passkey/register/start', session.cookie],
@@ -105,6 +108,7 @@ describe('passkey origin and response headers', () => {
       const testEnv = makeTestEnv();
       const account = await seedAccount({ testEnv });
       const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
 
       for (const [path, cookie] of [
         ['/passkey/register/start', session.cookie],
@@ -126,6 +130,7 @@ describe('passkey origin and response headers', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
 
     const registerFinish = await worker.fetch(passkeyRequest('/passkey/register/finish', {
       cookie: session.cookie,

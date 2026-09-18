@@ -11,6 +11,7 @@ import {
   bumpRateBucket,
   consumePasskeyChallenge,
   createSession,
+  CREDENTIAL_CHANGE_PURPOSE,
   getDashboardData,
   getActiveDeletionForAccount,
   getPasskeyCredential,
@@ -19,6 +20,7 @@ import {
   insertPasskeyChallenge,
   insertPasskeyCredential,
   listPasskeyCredentialsForAccount,
+  requireFreshProof,
   setPasskeyUserHandleIfMissing,
   updateAccountLastSignin,
   updatePasskeyCredentialCounter,
@@ -338,12 +340,31 @@ function methodAndOriginGuard(req, env, tagBase) {
   return null;
 }
 
+// Every passkey add (start + finish) additionally requires a fresh
+// credential-change proof — closes the gap a stolen session cookie could
+// otherwise exploit (req_oopzclpx). The refusal below is deliberately
+// distinct in body and step_up_required from the plain {error:'invalid
+// request'}/{error:'sign-in required'} shapes above it, so a live check
+// never confuses an origin/session refusal with a missing-fresh-proof one.
 async function requirePasskeySession(req, env, tagBase) {
   const guard = methodAndOriginGuard(req, env, tagBase);
   if (guard) return guard;
   const nowMs = Date.now();
   const session = await getValidSession(req, env, nowMs);
   if (!session) return fail(`${tagBase}_session`, 401, 'sign-in required');
+  const fresh = await requireFreshProof(env.DB, {
+    accountId: session.account_id,
+    sessionIdHash: session.id_hash,
+    purpose: CREDENTIAL_CHANGE_PURPOSE,
+  });
+  if (!fresh.otpVerified || !fresh.passkeyVerified) {
+    console.error(`${tagBase}_stepup`);
+    return jsonResponse({
+      error: "verify it's you before this change",
+      step_up_required: true,
+      step_up_url: '/account/credential-change/proof?next=/sign-in/passkeys',
+    }, 403);
+  }
   return { accountId: session.account_id, nowMs };
 }
 

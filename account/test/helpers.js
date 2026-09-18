@@ -4,11 +4,13 @@ import schema from '../schema.sql?raw';
 import { canonicalJson, encryptEmail, framedHmacSha256Base64Url, generateOtp, generateSessionToken, hashKey, hashWithPepper } from '../src/crypto.js';
 import {
   createAccountWithEmail,
+  createDeletionProof,
   createSession,
   insertPasskeyChallenge,
   insertPasskeyCredential,
   upsertOtp,
 } from '../src/db.js';
+import { seedCredentialChangeProofFromSignIn } from '../src/credential-change.js';
 
 const TEST_SECRET = 'MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=';
 const TEST_PEPPER = 'test-hmac-pepper';
@@ -637,6 +639,31 @@ export async function seedSession(accountId, { nowMs = Date.now(), testEnv = mak
   const idHash = await hashWithPepper(token, testEnv);
   await createSession(env.DB, { idHash, accountId, nowMs });
   return { token, cookie: `account_session=${token}`, idHash };
+}
+
+// Seeds a fresh 'credential-change' proof directly, the same shape a real
+// sign-in OTP now seeds in production (index.js handleSigninVerifyPost).
+// Call after seedSession for any test exercising a passkey/email mutation
+// that isn't itself testing the step-up gate. Pass withPasskeyProof: true
+// when the account already has an active passkey at request time — that
+// makes requireFreshProof require a passkey-method proof too.
+export async function seedCredentialChangeProof({
+  accountId, sessionIdHash, nowMs = Date.now(), testEnv = makeTestEnv(), withPasskeyProof = false,
+}) {
+  await seedCredentialChangeProofFromSignIn(testEnv, { accountId, sessionIdHash, nowMs });
+  if (!withPasskeyProof) return;
+  const tokenHash = await hashWithPepper(generateSessionToken(), testEnv);
+  await createDeletionProof(env.DB, {
+    tokenHash,
+    accountId,
+    sessionIdHash,
+    purpose: 'credential-change',
+    method: 'passkey',
+    issuedAt: nowMs,
+    expiresAt: nowMs + 10 * 60 * 1000,
+    passkeyChallenge: `test-fixture-${tokenHash}`,
+    verified: true,
+  });
 }
 
 export async function seedDevice({

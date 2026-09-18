@@ -12,6 +12,7 @@ import {
   rowCount,
   seedAccount,
   seedAccountEmail,
+  seedCredentialChangeProof,
   seedOtp,
   seedSession,
   startRequest,
@@ -62,6 +63,7 @@ describe('kill switches', () => {
     const testEnv = makeTestEnv({ EMAIL_PATH_DISABLED: 'true' });
     const actor = await seedAccount({ email: 'actor@example.com', testEnv });
     const session = await seedSession(actor.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: actor.accountId, sessionIdHash: session.idHash, testEnv });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const { response } = await fetchWithCtx(
@@ -147,6 +149,7 @@ async function collisionSnapshotFor(address) {
   const actor = await seedAccount({ email: `actor-${address}`, testEnv });
   const owner = await seedAccount({ email: `owner-${address}`, testEnv });
   const session = await seedSession(actor.accountId, { testEnv });
+  await seedCredentialChangeProof({ accountId: actor.accountId, sessionIdHash: session.idHash, testEnv });
   await seedAccountEmail({
     accountId: owner.accountId,
     address,

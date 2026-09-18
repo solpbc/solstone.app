@@ -221,7 +221,7 @@ const TABLES = [
     omitted('expires_at', 'transient proof state', 'transient_deletion'), omitted('verified', 'transient proof state', 'transient_deletion'),
     omitted('consumed', 'transient proof state', 'transient_deletion'), omitted('attempt_count', 'transient proof state', 'transient_deletion'),
     omitted('otp_code_hash', 'proof authentication hash'), omitted('passkey_challenge', 'proof authentication challenge'),
-  ], { deletionOrder: 20, description: 'transient deletion and export proofs' }),
+  ], { deletionOrder: 20, description: 'transient deletion, export, and credential-change proofs' }),
   table('account_deletion_service_ops', 'operation_id', 'transient_cleanup', 'deletion_machinery', [
     omitted('id', 'deletion machinery', 'transient_deletion'), omitted('operation_id', 'deletion machinery', 'transient_deletion'),
     omitted('service', 'deletion machinery', 'transient_deletion'), omitted('service_operation_id', 'deletion machinery', 'transient_deletion'),
@@ -275,7 +275,7 @@ export const RATE_BUCKET_FAMILIES = deepFreeze([
   { scope: 'passkey_auth_ip', association: 'transient_unassociated', deletion: 'transient_cleanup' },
   { scope: 'passkey_register_ip', association: 'transient_unassociated', deletion: 'transient_cleanup' },
   { scope: 'passkey_register_account', association: 'account_id', deletion: 'derived_key_purge' },
-  ...['delete_proof', 'export_proof'].flatMap((purpose) => ['otp', 'passkey'].flatMap((method) => [
+  ...['delete_proof', 'export_proof', 'credential_change_proof'].flatMap((purpose) => ['otp', 'passkey'].flatMap((method) => [
     { scope: `${purpose}_${method}_account`, association: 'account_id', deletion: 'derived_key_purge' },
     { scope: `${purpose}_${method}_ip`, association: 'transient_unassociated', deletion: 'transient_cleanup' },
   ])),

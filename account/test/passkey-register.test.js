@@ -19,6 +19,7 @@ import {
   resetDb,
   seedAccount,
   seedCredential,
+  seedCredentialChangeProof,
   seedPasskeyChallenge,
   seedSession,
 } from './helpers.js';
@@ -52,6 +53,9 @@ describe('passkey registration', () => {
     const account = await seedAccount({ email: 'Passkey@Example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     await seedCredential({ accountId: account.accountId, credentialId: 'existing-credential-id' });
+    await seedCredentialChangeProof({
+      accountId: account.accountId, sessionIdHash: session.idHash, testEnv, withPasskeyProof: true,
+    });
 
     const response = await worker.fetch(passkeyRequest('/passkey/register/start', { cookie: session.cookie }), testEnv);
     const body = await response.json();
@@ -81,6 +85,7 @@ describe('passkey registration', () => {
     const testEnv = makeTestEnv({ DB: recordingDb(workerEnv.DB, statements) });
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     generateRegistrationOptions.mockImplementationOnce(async (options) => ({
       challenge: 'register-challenge',
       user: { id: b64u(options.userID) },
@@ -105,6 +110,7 @@ describe('passkey registration', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     await seedPasskeyChallenge({ challenge: 'finish-challenge', purpose: 'register', accountId: account.accountId });
 
     const response = await worker.fetch(passkeyRequest('/passkey/register/finish', {
@@ -131,6 +137,7 @@ describe('passkey registration', () => {
     const account = await seedAccount({ email: 'one@example.com', testEnv });
     const other = await seedAccount({ email: 'two@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     await seedPasskeyChallenge({ challenge: 'wrong-account', purpose: 'register', accountId: other.accountId });
 
     const response = await worker.fetch(passkeyRequest('/passkey/register/finish', {
@@ -146,6 +153,7 @@ describe('passkey registration', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     await seedPasskeyChallenge({ challenge: 'wrong-purpose', purpose: 'authenticate', accountId: null });
 
     const response = await worker.fetch(passkeyRequest('/passkey/register/finish', {

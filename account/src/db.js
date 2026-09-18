@@ -2,6 +2,16 @@ import { hashWithPepper } from './crypto.js';
 
 const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
+// Shared with deletion.js/owner-export.js/credential-change.js: how long a
+// verified fresh-proof (OTP, plus passkey when the account has one) licenses
+// a sensitive action for. Lives here, not in a feature module, because
+// requireFreshProof below is a pure composition of two D1 reads.
+export const PROOF_TTL_MS = 10 * 60 * 1000;
+
+// The account_deletion_proofs purpose for passkey/email step-up (add/remove a
+// passkey, add/remove/promote an email) — see credential-change.js.
+export const CREDENTIAL_CHANGE_PURPOSE = 'credential-change';
+
 export async function findEmailByHash(db, addressLowerHash) {
   return db
     .prepare('SELECT id, account_id FROM account_emails WHERE address_lower_hash = ?')
@@ -606,13 +616,14 @@ export async function createDeletionProof(db, {
   expiresAt,
   otpCodeHash = null,
   passkeyChallenge = null,
+  verified = false,
 }) {
   await db
     .prepare(
       `INSERT INTO account_deletion_proofs (
          token_hash, account_id, session_id_hash, purpose, method, issued_at, expires_at,
          verified, consumed, attempt_count, otp_code_hash, passkey_challenge
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)`
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`
     )
     .bind(
       tokenHash,
@@ -622,6 +633,7 @@ export async function createDeletionProof(db, {
       method,
       issuedAt,
       expiresAt,
+      verified ? 1 : 0,
       otpCodeHash,
       passkeyChallenge
     )
@@ -659,6 +671,38 @@ export async function getLatestDeletionProof(db, {
     .bind(...values)
     .first();
   return row || null;
+}
+
+// The fresh-proof rule, in one place: a verified, unconsumed, unexpired OTP
+// proof for this session and purpose, plus a passkey proof whenever the
+// account has an active passkey. Moved here from deletion.js (2026-09-17,
+// req_oopzclpx) so passkey.js/emails.js/settings.js can call it for the
+// credential-change purpose without a circular import back through
+// deletion.js (which imports from passkey.js). Every purpose (delete, cancel,
+// export, credential-change) pre-checks here. delete/cancel/export additionally
+// consume the proof atomically at the point of mutation (liveDeletionProofGuard
+// below, consumeFreshExportProofs); credential-change deliberately does not —
+// it is a checked, non-consuming freshness window, not a single-use proof. Any
+// change to this rule must stay in agreement with consumeFreshExportProofs;
+// test/owner-export-foundation.test.js pins that the two agree.
+export async function requireFreshProof(db, { accountId, sessionIdHash, purpose }) {
+  const nowMs = Date.now();
+  const passkeyRequired = await hasAnyActivePasskey(db, accountId);
+  const otp = await getLatestDeletionProof(db, {
+    accountId, sessionIdHash, purpose, method: 'otp', nowMs, verified: true,
+  });
+  const passkey = passkeyRequired
+    ? await getLatestDeletionProof(db, {
+      accountId, sessionIdHash, purpose, method: 'passkey', nowMs, verified: true,
+    })
+    : null;
+  return {
+    otpRequired: true,
+    passkeyRequired,
+    otpVerified: Boolean(otp),
+    passkeyVerified: !passkeyRequired || Boolean(passkey),
+    proofTokenHashes: [otp?.token_hash, passkey?.token_hash].filter(Boolean),
+  };
 }
 
 export async function markDeletionProofVerified(db, { tokenHash, nowMs }) {

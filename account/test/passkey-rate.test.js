@@ -14,7 +14,7 @@ import {
 } from '@simplewebauthn/server';
 import { hashKey } from '../src/crypto.js';
 import worker from '../src/index.js';
-import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
+import { makeTestEnv, resetDb, seedAccount, seedCredentialChangeProof, seedSession } from './helpers.js';
 
 describe('passkey rate limits', () => {
   beforeEach(async () => {
@@ -28,6 +28,7 @@ describe('passkey rate limits', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     const ip = '203.0.113.101';
 
     await worker.fetch(passkeyRequest('/passkey/register/start', { cookie: session.cookie, ip }), testEnv);
@@ -50,6 +51,8 @@ describe('passkey rate limits', () => {
     const other = await seedAccount({ email: 'other-rate@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     const otherSession = await seedSession(other.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
+    await seedCredentialChangeProof({ accountId: other.accountId, sessionIdHash: otherSession.idHash, testEnv });
     const nowMs = Date.now();
     const registerAccountKey = await hashKey('passkey_register_account', account.accountId, testEnv);
     const registerIpKey = await hashKey('passkey_register_ip', '203.0.113.102', testEnv);

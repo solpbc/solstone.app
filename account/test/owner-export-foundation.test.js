@@ -1,8 +1,8 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
-import { createDeletionProof, consumeFreshExportProofs } from '../src/db.js';
-import { requireFreshProof, startEmailProof } from '../src/deletion.js';
+import { createDeletionProof, consumeFreshExportProofs, requireFreshProof } from '../src/db.js';
+import { startEmailProof } from '../src/deletion.js';
 import { sendDeletionProofEmail } from '../src/email.js';
 import { makeTestEnv, resetDb, seedAccount, seedCredential, seedSession } from './helpers.js';
 
@@ -187,7 +187,7 @@ describe('owner export foundation', () => {
         const expiresAt = options.expiresAt === NOW ? now : now + 60_000;
         await proof(account.accountId, options.sessionIdHash || session.idHash, method, `${tag}-${index++}`, { ...options, expiresAt });
       }
-      const fresh = await requireFreshProof(env, { accountId: account.accountId, sessionIdHash: session.idHash, purpose: 'export' });
+      const fresh = await requireFreshProof(env.DB, { accountId: account.accountId, sessionIdHash: session.idHash, purpose: 'export' });
       const ready = fresh.otpVerified && fresh.passkeyVerified;
       const consumeResult = await consumeFreshExportProofs(workerEnv.DB, {
         accountId: account.accountId, sessionIdHash: session.idHash, nowMs: now,

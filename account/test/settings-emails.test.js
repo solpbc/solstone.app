@@ -13,6 +13,7 @@ import {
   seedAccount,
   seedAccountEmail,
   seedCredential,
+  seedCredentialChangeProof,
   seedSession,
 } from './helpers.js';
 
@@ -205,6 +206,7 @@ describe('settings emails list and add flow', () => {
     const actor = await seedAccount({ email: 'actor@example.com', testEnv });
     const owner = await seedAccount({ email: 'owner@example.com', testEnv });
     const session = await seedSession(actor.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: actor.accountId, sessionIdHash: session.idHash, testEnv });
     await seedAccountEmail({
       accountId: owner.accountId,
       address: 'collision@example.com',
@@ -240,6 +242,7 @@ describe('settings emails list and add flow', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     for (let i = 0; i < 10; i++) {
       await fetchWithCtx(
         worker,
@@ -518,6 +521,7 @@ async function setupAccount({ email = 'person@example.com', nowMs = Date.now() }
   const testEnv = makeTestEnv();
   const account = await seedAccount({ email, nowMs, testEnv });
   const session = await seedSession(account.accountId, { testEnv });
+  await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
   return { testEnv, account, session };
 }
 
@@ -565,6 +569,7 @@ async function collisionSnapshotForAddress(address) {
   const actor = await seedAccount({ email: `actor-${address}`, testEnv });
   const owner = await seedAccount({ email: `owner-${address}`, testEnv });
   const session = await seedSession(actor.accountId, { testEnv });
+  await seedCredentialChangeProof({ accountId: actor.accountId, sessionIdHash: session.idHash, testEnv });
   await seedAccountEmail({
     accountId: owner.accountId,
     address,

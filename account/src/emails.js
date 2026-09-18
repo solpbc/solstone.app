@@ -24,6 +24,7 @@ import {
   removeAccountEmail,
   resetAccountEmailVerification,
 } from './db.js';
+import { credentialChangeStepUpPath, requireFreshCredentialChangeProof } from './credential-change.js';
 import { sendVerifyEmail } from './email.js';
 import {
   formatDate,
@@ -62,6 +63,12 @@ export async function handleAddEmail(req, env, ctx) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
+  const freshAdd = await requireFreshCredentialChangeProof(env, {
+    accountId: guard.session.account_id, sessionIdHash: guard.session.id_hash,
+  });
+  if (!freshAdd.otpVerified || !freshAdd.passkeyVerified) {
+    return noStore(signedInRedirect(credentialChangeStepUpPath('/sign-in/emails')));
+  }
 
   const form = await req.formData();
   const addressLower = (form.get('address')?.toString() || '').trim().toLowerCase();
@@ -203,6 +210,12 @@ export async function handleMakeEmailPrimary(req, env, emailId) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
+  const freshPrimary = await requireFreshCredentialChangeProof(env, {
+    accountId: guard.session.account_id, sessionIdHash: guard.session.id_hash,
+  });
+  if (!freshPrimary.otpVerified || !freshPrimary.passkeyVerified) {
+    return noStore(signedInRedirect(credentialChangeStepUpPath('/sign-in/emails')));
+  }
   if (!emailId) return signedInRedirect('/sign-in/emails');
 
   const row = await findVerifiedAccountEmailById(env.DB, {
@@ -222,6 +235,12 @@ export async function handleRemoveEmail(req, env, emailId) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
+  const freshRemove = await requireFreshCredentialChangeProof(env, {
+    accountId: guard.session.account_id, sessionIdHash: guard.session.id_hash,
+  });
+  if (!freshRemove.otpVerified || !freshRemove.passkeyVerified) {
+    return noStore(signedInRedirect(credentialChangeStepUpPath('/sign-in/emails')));
+  }
   if (!emailId) return signedInRedirect('/sign-in/emails');
 
   const changes = await removeAccountEmail(env.DB, {

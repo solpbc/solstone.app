@@ -30,6 +30,8 @@ import {
   listSplBindings,
   listSppBindings,
   markDeletionProofVerified,
+  PROOF_TTL_MS,
+  requireFreshProof,
   updatePasskeyCredentialCounter,
 } from './db.js';
 import { sendDeletionProofEmail } from './email.js';
@@ -52,7 +54,6 @@ import { originAllowed } from './index.js';
 import { rateBucketFamily } from './owner-data-inventory.js';
 import { loadMenuContext, requireSignedInSession, signedInHtml } from './settings.js';
 
-const PROOF_TTL_MS = 10 * 60 * 1000;
 const CANCELLATION_WINDOW_MS = 72 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const PROOF_MAX_ATTEMPTS = 5;
@@ -180,35 +181,6 @@ export async function finishPasskeyProof(env, { accountId, sessionIdHash, purpos
   );
   const verified = await markDeletionProofVerified(env.DB, { tokenHash: proof.token_hash, nowMs });
   return verified ? { ok: true } : { ok: false, reason: 'proof_expired' };
-}
-
-// The fresh-proof rule, in one place: a verified, unconsumed, unexpired OTP
-// proof for this session and purpose, plus a passkey proof whenever the account
-// has an active passkey. Every purpose (delete, cancel,
-// export) pre-checks here. Consumption then re-validates atomically in SQL:
-// delete/cancel via liveDeletionProofGuard (db.js), export via
-// consumeFreshExportProofs (db.js), which re-derives this same rule inside the
-// consuming statement so a passkey added mid-request is evaluated. Any change
-// to the rule here must land in consumeFreshExportProofs too;
-// test/owner-export-foundation.test.js pins that the two agree.
-export async function requireFreshProof(env, { accountId, sessionIdHash, purpose }) {
-  const nowMs = Date.now();
-  const passkeyRequired = await hasAnyActivePasskey(env.DB, accountId);
-  const otp = await getLatestDeletionProof(env.DB, {
-    accountId, sessionIdHash, purpose, method: 'otp', nowMs, verified: true,
-  });
-  const passkey = passkeyRequired
-    ? await getLatestDeletionProof(env.DB, {
-      accountId, sessionIdHash, purpose, method: 'passkey', nowMs, verified: true,
-    })
-    : null;
-  return {
-    otpRequired: true,
-    passkeyRequired,
-    otpVerified: Boolean(otp),
-    passkeyVerified: !passkeyRequired || Boolean(passkey),
-    proofTokenHashes: [otp?.token_hash, passkey?.token_hash].filter(Boolean),
-  };
 }
 
 export async function captureDeletionSnapshotForAccount(env, accountId, operationId) {
@@ -353,7 +325,7 @@ export async function handleDeletionPasskeyFinish(req, env) {
 export async function handleDeletionConfirm(req, env) {
   const guard = await deletionGuard(req, env);
   if (guard instanceof Response) return guard;
-  const fresh = await requireFreshProof(env, {
+  const fresh = await requireFreshProof(env.DB, {
     accountId: guard.session.account_id,
     sessionIdHash: guard.session.id_hash,
     purpose: 'delete',
@@ -415,7 +387,7 @@ export async function handleDeletionCancel(req, env) {
   if (guard instanceof Response) return guard;
   const active = await getActiveDeletionForAccount(env.DB, guard.session.account_id);
   if (!active || active.phase === 'purging') return refusal(409, 'deletion can no longer be cancelled');
-  const fresh = await requireFreshProof(env, {
+  const fresh = await requireFreshProof(env.DB, {
     accountId: guard.session.account_id,
     sessionIdHash: guard.session.id_hash,
     purpose: 'cancel',
@@ -504,7 +476,11 @@ function normalizePurpose(value) {
 }
 
 async function checkProofRateLimit(env, { accountId, ip, method, purpose, nowMs }) {
-  const family = purpose === 'export' ? 'export_proof' : 'delete_proof';
+  const family = purpose === 'export'
+    ? 'export_proof'
+    : purpose === 'credential-change'
+      ? 'credential_change_proof'
+      : 'delete_proof';
   const accountKey = await hashKey(rateBucketFamily(`${family}_${method}_account`).scope, accountId, env);
   const ipKey = await hashKey(rateBucketFamily(`${family}_${method}_ip`).scope, ip || 'unknown', env);
   const [accountCount, ipCount] = await Promise.all([

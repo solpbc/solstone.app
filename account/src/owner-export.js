@@ -1,8 +1,7 @@
 import { decryptEmail } from './crypto.js';
-import { consumeFreshExportProofs, listAccountEmails } from './db.js';
+import { consumeFreshExportProofs, listAccountEmails, requireFreshProof } from './db.js';
 import {
   finishPasskeyProof,
-  requireFreshProof,
   startEmailProof,
   startPasskeyProof,
   strictDeletionOriginAllowed,
@@ -44,7 +43,7 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
     // session is already proven live and non-purging by exportGuard. The
     // authoritative check is consumeFreshExportProofs below, which re-validates
     // and consumes in one statement immediately before the document is sent.
-    const fresh = await requireFreshProof(env, {
+    const fresh = await requireFreshProof(env.DB, {
       accountId: guard.session.account_id,
       sessionIdHash: guard.session.id_hash,
       purpose: PURPOSE,

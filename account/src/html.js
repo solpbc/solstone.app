@@ -1414,6 +1414,69 @@ document.querySelectorAll('[data-export-passkey]').forEach((button) => button.ad
 </script>`;
 }
 
+// The step-up page a gated passkey/email route redirects to when the signed-in
+// session has no fresh 'credential-change' proof. next is one of a small fixed
+// set of settings pages (validated server-side) so the OTP form and the
+// passkey script both know where to send the owner back once fresh.
+export function renderCredentialChangeProofPage({ menu, next = '/sign-in', error = '', status = '' }) {
+  return layout({
+    title: "confirm it's you",
+    body: `${topbar(menu)}
+<a class="back" href="${escAttr(next)}">${BACK_SVG} back</a>
+${renderDeletionForm({
+  heading: "confirm it's you",
+  action: '/account/credential-change/proof/otp/verify',
+  submitLabel: 'verify code',
+  hidden: { next },
+  error,
+  status,
+  statusId: 'credential-change-otp-status',
+  intro: 'this change needs a fresh code. enter the code sent to your verified email address.',
+  fields: [{
+    id: 'credential-change-otp-code', name: 'code', label: '6-digit code',
+    hint: 'the code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
+    autocomplete: 'one-time-code', pattern: '[0-9]*',
+  }],
+})}
+${renderDeletionForm({
+  heading: 'passkey verification',
+  action: next,
+  method: 'get',
+  submitLabel: 'continue',
+  status: '',
+  statusId: 'credential-change-passkey-status',
+  intro: 'if you have an active passkey, you must also verify it before continuing.',
+  extra: `<button class="btn secondary" type="button" data-credential-change-passkey data-next="${escAttr(next)}">verify with passkey</button>`,
+})}
+${credentialChangePasskeyScript()}`,
+  });
+}
+
+function credentialChangePasskeyScript() {
+  return `<script>
+document.querySelectorAll('[data-credential-change-passkey]').forEach((button) => button.addEventListener('click', async () => {
+  const status = document.getElementById('credential-change-passkey-status');
+  const next = button.dataset.next;
+  try {
+    const start = await fetch('/account/credential-change/proof/passkey/start', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:'{}'});
+    const startBody = await start.json();
+    if (!start.ok) throw new Error('start');
+    const options = startBody.options;
+    options.challenge = Uint8Array.from(atob(options.challenge.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+    options.allowCredentials = (options.allowCredentials || []).map((item) => ({...item,id:Uint8Array.from(atob(item.id.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))}));
+    const credential = await navigator.credentials.get({publicKey:options});
+    const b64 = (value) => btoa(String.fromCharCode(...new Uint8Array(value))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+    const response = {id:credential.id,rawId:b64(credential.rawId),type:credential.type,response:{clientDataJSON:b64(credential.response.clientDataJSON),authenticatorData:b64(credential.response.authenticatorData),signature:b64(credential.response.signature),userHandle:credential.response.userHandle ? b64(credential.response.userHandle) : null},clientExtensionResults:credential.getClientExtensionResults()};
+    const finish = await fetch('/account/credential-change/proof/passkey/finish', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:JSON.stringify({response})});
+    const finishBody = await finish.json();
+    if (!finish.ok) throw new Error('finish');
+    if (finishBody.ready) { window.location.href = next; return; }
+    status.textContent = 'passkey verified. check your email for a code too.';
+  } catch (_) { window.location.reload(); }
+}));
+</script>`;
+}
+
 export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
   const hasOtherSessions = rows.some((row) => row.id_hash !== currentIdHash);
   const revokeOthers = hasOtherSessions

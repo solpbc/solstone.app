@@ -1,7 +1,7 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
+import { makeTestEnv, resetDb, seedAccount, seedCredentialChangeProof, seedSession } from './helpers.js';
 
 describe('settings passkeys', () => {
   beforeEach(async () => {
@@ -13,6 +13,7 @@ describe('settings passkeys', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
 
     const response = await worker.fetch(settingsRequest('/sign-in/passkeys', session.cookie), testEnv);
     const body = await response.text();
@@ -30,6 +31,7 @@ describe('settings passkeys', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     await insertCredential({
       accountId: account.accountId,
       credentialId: 'google-credential',
@@ -69,6 +71,7 @@ describe('settings passkeys', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     await insertCredential({ accountId: account.accountId, credentialId: 'xss-credential' });
 
     const response = await worker.fetch(settingsPost('/sign-in/passkeys/xss-credential/rename', session.cookie, {
@@ -90,6 +93,7 @@ describe('settings passkeys', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
     await insertCredential({
       accountId: account.accountId,
       credentialId: 'unknown-aaguid',
@@ -121,6 +125,7 @@ describe('settings passkeys', () => {
     const accountA = await seedAccount({ email: 'passkey-a@example.com', testEnv });
     const accountB = await seedAccount({ email: 'passkey-b@example.com', testEnv });
     const sessionA = await seedSession(accountA.accountId, { testEnv });
+    await seedCredentialChangeProof({ accountId: accountA.accountId, sessionIdHash: sessionA.idHash, testEnv });
     await insertCredential({
       accountId: accountB.accountId,
       credentialId: 'b-credential',
@@ -144,6 +149,9 @@ describe('settings passkeys', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     await insertCredential({ accountId: account.accountId, credentialId: 'remove-me' });
+    await seedCredentialChangeProof({
+      accountId: account.accountId, sessionIdHash: session.idHash, testEnv, withPasskeyProof: true,
+    });
 
     const response = await worker.fetch(settingsPost('/sign-in/passkeys/remove-me/remove', session.cookie), testEnv);
     const row = await credentialRow('remove-me');
