@@ -14,6 +14,7 @@ import {
   parseTokens,
   rgbToOklab,
   sunOpacity,
+  SUNARC_JS,
 } from '../src/sunarc.js';
 
 const portalCssText = PORTAL_CSS;
@@ -573,6 +574,69 @@ describe('sunarc background', () => {
     expect(doc.documentElement.getAttribute('data-appearance')).toBeUndefined();
     expect(doc.sun.style.left).not.toBe('NaNpx');
     expect(doc.sun.style.top).not.toBe('NaNpx');
+  });
+
+  it('14. the assembled SUNARC_JS bundle executes cleanly and drives a real recompute standalone', () => {
+    // This is the artifact actually shipped: html.js inlines SUNARC_JS verbatim
+    // into a <script> tag on every page, executed by a real visitor's browser —
+    // a global scope that never loaded this worker's own build tooling. Every
+    // other test in this file calls the exported functions directly as
+    // ordinary JS, which sidesteps that gap entirely and would stay green even
+    // if the assembled string itself were broken (as it was in production
+    // once: a deploy-time bundler transform left a stray reference to a
+    // name-preservation helper in one re-emitted function body, invisible to
+    // source review and to every test that only calls the functions directly
+    // — caught only by loading the live page and reading the console).
+    // `new Function` resolves free variables against the true global object
+    // only, never this test module's lexical scope, so window/document/
+    // navigator must be passed as explicit parameters rather than closed over
+    // — the same isolation a fresh browser tab has. This does not reproduce
+    // the specific minification-only artifact above (this pool's own dev
+    // bundler doesn't inject it), so it is not a substitute for a post-deploy
+    // console check on that class of defect — but it does prove the string is
+    // syntactically sound and functionally complete standalone.
+    const doc = createMockDoc();
+    let intervalHandle = null;
+    const fakeWindow = {
+      innerWidth: 1280,
+      innerHeight: 900,
+      addEventListener() {},
+      removeEventListener() {},
+      setTimeout: (fn, ms) => setTimeout(fn, ms),
+      clearTimeout: (id) => clearTimeout(id),
+      setInterval: (fn, ms) => {
+        intervalHandle = setInterval(fn, ms);
+        return intervalHandle;
+      },
+      clearInterval: (id) => clearInterval(id),
+      getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
+    };
+    const fakeDocument = {
+      getElementById: doc.getElementById,
+      documentElement: doc.documentElement,
+      addEventListener() {},
+      removeEventListener() {},
+      visibilityState: 'visible',
+    };
+    // `new Function` bodies only ever resolve free variables against the true
+    // global object, never against this test module's local/lexical scope —
+    // the same isolation a fresh browser tab has from this worker's own build
+    // output. Passing window/document/navigator as explicit PARAMETERS (not
+    // relying on globals) means the only way the code can reach a name like
+    // `__name` is if SUNARC_JS defines it itself.
+    const run = new Function('window', 'document', 'navigator', SUNARC_JS);
+
+    try {
+      expect(() => {
+        run(fakeWindow, fakeDocument, {});
+      }).not.toThrow();
+      // A real recompute must actually have run, not merely "not thrown" —
+      // confirm it drove the mock DOM the same way createSunarcController's
+      // own direct-call tests already verify it should.
+      expect(doc.sun.style.opacity).not.toBe('');
+    } finally {
+      if (intervalHandle) clearInterval(intervalHandle);
+    }
   });
 });
 

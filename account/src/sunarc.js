@@ -648,6 +648,7 @@ export function createSunarcController(deps) {
 }
 
 export const SUNARC_JS = `(function(){
+function __name(fn){return fn;}
 ${degToRad.toString()}
 ${radToDeg.toString()}
 ${sinDeg.toString()}
