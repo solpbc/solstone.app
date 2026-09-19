@@ -1,0 +1,3397 @@
+#!/bin/sh
+{
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 sol pbc
+
+# Solstone POSIX Platform Installer
+
+INSTALLER_REVISION=1
+EMBEDDED_MIN_INSTALLER_REVISION=1
+TEST_SEAM=0
+
+PLATFORM_KEY_ID="2938B1EBDC1E3876"
+PLATFORM_PUBKEY="RWR2OB7c67E4KfRo4OnyOoXnvfOl+sum7TG6LscqXmN8mv/Q55nlBzCD"
+
+JOURNAL_KEY_ID="B44073BF49E0D944"
+JOURNAL_PUBKEY="RWRE2eBJv3NAtN0mF5+kqygYyP/ocYNw1Ng9yJhAKgyTflNV9NabMMjq"
+
+DESKTOP_KEY_ID="19EC9FAF7B331CF2"
+DESKTOP_PUBKEY="RWTyHDN7r5/sGTjcpaSzR+tGcH324jnxrsd7dRnfK7Qn/FAbAzU1JyGe"
+
+TMUX_KEY_ID="365708FAD9F80092"
+TMUX_PUBKEY="RWSSAPjZ+ghXNvb4ExBLSd59dQMtjqW+xIZcl9MWfpWvjsTws6sBPEZz"
+
+DEFAULT_ORIGIN="https://updates.solstone.app"
+
+# Global options
+OPT_COMPONENTS=""
+OPT_UPGRADE=0
+OPT_LANE="release"
+OPT_VERSION=""
+OPT_ROUTE="tree"
+OPT_ROUTE_EXPLICIT=0
+PKG_VARIANT=""
+OPT_PREFIX="${HOME}/.local"
+OPT_ORIGIN="${DEFAULT_ORIGIN}"
+OPT_DRY_RUN=0
+OPT_NON_INTERACTIVE=0
+OPT_YES=0
+OPT_NO_START=0
+OPT_NO_PATH=0
+OPT_SKIP_SIGNATURE=0
+OPT_LIST=0
+OPT_JSON=0
+OPT_UNINSTALL=0
+OPT_NOTICES_JSON="[]"
+
+SCRATCH_DIR=""
+SELECTED_COMPONENTS=""
+REPORT_COMPONENTS=""
+UNCHANGED_COMPONENTS=""
+SUCCEEDED_COMPONENTS=""
+REMOVED_COMPONENTS=""
+ATTEMPTED_COMPONENTS=""
+TREE_SELECTED_COMPONENTS=""
+PACKAGE_SELECTED_COMPONENTS=""
+RESOLVED_VERSION=""
+HOST_ARCH=""
+FETCH_TOOL=""
+TREE_FD=8
+PKG_FD=9
+PACKAGE_HELPER_READY=0
+
+: "${EMBEDDED_MIN_INSTALLER_REVISION}" "${PLATFORM_KEY_ID}" "${JOURNAL_KEY_ID}" "${DESKTOP_KEY_ID}" "${TMUX_KEY_ID}" "${JOURNAL_PUBKEY}" "${DESKTOP_PUBKEY}" "${TMUX_PUBKEY}" "${TREE_FD}" "${PKG_FD}"
+
+log_err() {
+    if [ "$OPT_JSON" -eq 0 ]; then
+        printf "ERROR: %s\n" "$1" >&2
+    fi
+}
+
+log_info() {
+    if [ "$OPT_JSON" -eq 0 ]; then
+        printf "%s\n" "$1" >&2
+    fi
+}
+
+cleanup_scratch() {
+    if [ -n "$SCRATCH_DIR" ] && [ -d "$SCRATCH_DIR" ]; then
+        rm -rf "$SCRATCH_DIR" 2>/dev/null || true
+    fi
+}
+
+report_exit() {
+    status="$1"
+    code="$2"
+    message="$3"
+    cleanup_scratch
+    if [ "$OPT_JSON" -eq 1 ]; then
+        comp_json=""
+        report_components="${REPORT_COMPONENTS:-$SELECTED_COMPONENTS}"
+        if [ -n "$report_components" ]; then
+            first_c=1
+            for comp in $report_components; do
+                c_role="$comp"
+                c_status="succeeded"
+                c_phase="complete"
+                c_unchanged=0
+                c_succeeded=0
+                case " $UNCHANGED_COMPONENTS " in
+                    *" $comp "*) c_status="unchanged"; c_unchanged=1 ;;
+                esac
+                case " $SUCCEEDED_COMPONENTS " in
+                    *" $comp "*) c_succeeded=1 ;;
+                esac
+                if [ "$status" != "success" ] && [ "$c_unchanged" -eq 0 ] && [ "$c_succeeded" -eq 0 ]; then
+                    c_status="failed"
+                    c_phase="failed"
+                    if [ "$OPT_UNINSTALL" -eq 1 ]; then
+                        case " $ATTEMPTED_COMPONENTS " in
+                            *" $comp "*) ;;
+                            *) c_status="unattempted"; c_phase="unattempted" ;;
+                        esac
+                    fi
+                fi
+                c_route="$OPT_ROUTE"
+                case " $TREE_SELECTED_COMPONENTS " in *" $comp "*) c_route="tree" ;; esac
+                case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) c_route="$PKG_VARIANT" ;; esac
+                case " $REMOVED_COMPONENTS " in
+                    *" $comp "*) c_status="removed"; c_phase="removed" ;;
+                esac
+                c_block="\"$comp\":{\"role\":\"$c_role\",\"status\":\"$c_status\",\"route\":\"$c_route\",\"phase\":\"$c_phase\"}"
+                if [ $first_c -eq 1 ]; then
+                    comp_json="$c_block"
+                    first_c=0
+                else
+                    comp_json="${comp_json},${c_block}"
+                fi
+            done
+        fi
+
+        lock_st="unlocked"
+        snap_st="unlocked"
+        receipts_json="[]"
+        if [ "$status" = "success" ] && [ "$OPT_DRY_RUN" -eq 0 ]; then
+            lock_st="released"
+            snap_st="converged"
+            r_tree=$(tree_receipt_path)
+            r_package=$(package_receipt_path)
+            case "$OPT_ROUTE" in
+                tree) [ ! -e "$r_tree" ] || receipts_json="[\"$r_tree\"]" ;;
+                mixed)
+                    if [ -e "$r_tree" ] && [ -e "$r_package" ]; then
+                        receipts_json="[\"$r_tree\",\"$r_package\"]"
+                    elif [ -e "$r_tree" ]; then
+                        receipts_json="[\"$r_tree\"]"
+                    elif [ -e "$r_package" ]; then
+                        receipts_json="[\"$r_package\"]"
+                    fi
+                    ;;
+                *) [ ! -e "$r_package" ] || receipts_json="[\"$r_package\"]" ;;
+            esac
+        fi
+
+        v_layer="minisign+digest"
+        [ "$OPT_SKIP_SIGNATURE" -eq 1 ] && v_layer="digest-matched; signatures skipped"
+
+        status_json="$status"
+        [ "$status" != "success" ] && status_json="refusal"
+
+        printf '{"status":"%s","root_code":"%s","message":"%s","lane":"%s","platform_version":"%s","arch":"%s","route":"%s","lock_state":"%s","snapshot_consistency":"%s","receipt_paths":%s,"notices":%s,"verification_layers":"%s","components":{%s}}\n' \
+            "$status_json" "$code" "$message" "$OPT_LANE" "${RESOLVED_VERSION:-$OPT_VERSION}" "$HOST_ARCH" "$OPT_ROUTE" "$lock_st" "$snap_st" "$receipts_json" "${OPT_NOTICES_JSON}" "$v_layer" "$comp_json"
+    else
+        if [ "$status" = "success" ]; then
+            log_info "Solstone installation completed successfully ($code)."
+        else
+            log_err "$code: $message"
+        fi
+    fi
+
+    if [ "$status" = "success" ]; then
+        exit 0
+    else
+        exit 1
+    fi
+}
+
+detect_arch() {
+    u_arch=$(uname -m 2>/dev/null || echo "unknown")
+    case "$u_arch" in
+        x86_64|amd64)
+            HOST_ARCH="x86_64"
+            ;;
+        aarch64|arm64)
+            HOST_ARCH="aarch64"
+            ;;
+        *)
+            report_exit "refusal" "unsupported-arch" "Architecture $u_arch is not supported by Solstone platform"
+            ;;
+    esac
+}
+
+detect_fetch_tool() {
+    if command -v curl >/dev/null 2>&1; then
+        FETCH_TOOL="curl"
+    elif command -v wget >/dev/null 2>&1; then
+        FETCH_TOOL="wget"
+    else
+        report_exit "refusal" "missing-fetch-tool" "Neither curl nor wget is available in PATH"
+    fi
+}
+
+validate_url_security() {
+    u="$1"
+    # Reject userinfo (@)
+    case "$u" in
+        *@*)
+            report_exit "refusal" "url-userinfo" "URL contains forbidden userinfo: $u"
+            ;;
+    esac
+
+    # Reject fragment (#)
+    case "$u" in
+        *#*)
+            report_exit "refusal" "url-fragment" "URL contains forbidden fragment: $u"
+            ;;
+    esac
+
+    # Extract scheme and host
+    case "$u" in
+        https://*)
+            host_part=$(echo "$u" | sed -E 's|^https://([^/:]+).*|\1|')
+            case "$host_part" in
+                updates.solstone.app|127.0.0.1|localhost|::1|\[::1\])
+                    ;;
+                *)
+                    report_exit "refusal" "url-insecure" "HTTPS host not approved: $host_part"
+                    ;;
+            esac
+            ;;
+        http://*)
+            host_part=$(echo "$u" | sed -E 's|^http://([^/:]+).*|\1|')
+            case "$host_part" in
+                127.0.0.1|localhost|::1|\[::1\])
+                    ;;
+                *)
+                    report_exit "refusal" "url-insecure" "HTTP scheme is only permitted for loopback hosts: $u"
+                    ;;
+            esac
+            ;;
+        *)
+            report_exit "refusal" "url-security-invalid" "Unsupported URL scheme: $u"
+            ;;
+    esac
+}
+
+validate_origin() {
+    case "$OPT_ORIGIN" in
+        *@*)
+            report_exit "refusal" "url-userinfo" "URL contains forbidden userinfo: $OPT_ORIGIN"
+            ;;
+        *#*)
+            report_exit "refusal" "url-fragment" "URL contains forbidden fragment: $OPT_ORIGIN"
+            ;;
+        https://updates.solstone.app)
+            return 0
+            ;;
+        http://127.0.0.1:*)
+            if [ "$TEST_SEAM" -ne 1 ]; then
+                report_exit "refusal" "origin-invalid" "Production installer origin must be https://updates.solstone.app"
+            fi
+            origin_port=${OPT_ORIGIN#http://127.0.0.1:}
+            case "$origin_port" in
+                ""|0|0*|*[!0123456789]*)
+                    report_exit "refusal" "origin-invalid" "Invalid loopback origin: $OPT_ORIGIN"
+                    ;;
+            esac
+            if [ "${#origin_port}" -gt 5 ] || [ "$origin_port" -gt 65535 ]; then
+                report_exit "refusal" "origin-invalid" "Invalid loopback origin: $OPT_ORIGIN"
+            fi
+            return 0
+            ;;
+        http://*|https://*)
+            report_exit "refusal" "url-insecure" "Origin is not approved: $OPT_ORIGIN"
+            ;;
+        *)
+            report_exit "refusal" "origin-invalid" "Invalid installer origin: $OPT_ORIGIN"
+            ;;
+    esac
+}
+
+is_canonical_version() {
+    candidate_version="$1"
+    case "$candidate_version" in
+        ""|*[!0123456789.]*) return 1 ;;
+    esac
+    saved_ifs=$IFS
+    IFS=.
+    # shellcheck disable=SC2086
+    set -- $candidate_version
+    IFS=$saved_ifs
+    [ "$#" -eq 3 ] || return 1
+    for version_part in "$@"; do
+        case "$version_part" in
+            ""|*[!0123456789]*) return 1 ;;
+            0) ;;
+            0*) return 1 ;;
+        esac
+        [ "${#version_part}" -le 20 ] || return 1
+    done
+    return 0
+}
+
+validate_requested_coordinates() {
+    validate_origin
+    case "$OPT_LANE" in
+        release|staging|dev) ;;
+        *) report_exit "refusal" "lane-invalid" "Invalid release lane: $OPT_LANE" ;;
+    esac
+    if [ -n "$OPT_VERSION" ] && ! is_canonical_version "$OPT_VERSION"; then
+        report_exit "refusal" "version-invalid" "Invalid platform version: $OPT_VERSION"
+    fi
+}
+
+revision_is_older() {
+    current_revision="$1"
+    required_revision="$2"
+    if [ "${#current_revision}" -lt "${#required_revision}" ]; then
+        return 0
+    fi
+    if [ "${#current_revision}" -gt "${#required_revision}" ]; then
+        return 1
+    fi
+    LC_ALL=C awk -v current="$current_revision" -v required="$required_revision" '
+        BEGIN { exit !("x" required > "x" current) }
+    '
+}
+
+read_manifest_scalar() {
+    cat "$1"
+    printf x
+}
+
+validate_manifest_identity() {
+    for required_scalar in schema_version protocol_version version lane platform_key_id minimum_installer_revision; do
+        if [ ! -f "${manifest_dir}/${required_scalar}" ]; then
+            report_exit "refusal" "schema-invalid" "Manifest is missing required field $required_scalar"
+        fi
+    done
+
+    manifest_schema=$(read_manifest_scalar "${manifest_dir}/schema_version")
+    manifest_schema=${manifest_schema%x}
+    manifest_protocol=$(read_manifest_scalar "${manifest_dir}/protocol_version")
+    manifest_protocol=${manifest_protocol%x}
+    manifest_version=$(read_manifest_scalar "${manifest_dir}/version")
+    manifest_version=${manifest_version%x}
+    manifest_lane=$(read_manifest_scalar "${manifest_dir}/lane")
+    manifest_lane=${manifest_lane%x}
+    manifest_platform_key=$(read_manifest_scalar "${manifest_dir}/platform_key_id")
+    manifest_platform_key=${manifest_platform_key%x}
+    manifest_min_revision=$(read_manifest_scalar "${manifest_dir}/minimum_installer_revision")
+    manifest_min_revision=${manifest_min_revision%x}
+
+    if [ "$manifest_schema" != "1" ] || [ "$manifest_protocol" != "1" ]; then
+        report_exit "refusal" "schema-invalid" "Manifest schema and protocol versions must both be 1"
+    fi
+    if ! is_canonical_version "$manifest_version"; then
+        report_exit "refusal" "schema-invalid" "Manifest platform version is invalid"
+    fi
+    if [ "$manifest_version" != "$RESOLVED_VERSION" ]; then
+        report_exit "refusal" "release-coherence" "Manifest platform version does not match the requested version"
+    fi
+    case "$manifest_lane" in
+        release|staging|dev) ;;
+        *) report_exit "refusal" "schema-invalid" "Manifest lane is invalid" ;;
+    esac
+    if [ "$manifest_lane" != "$OPT_LANE" ]; then
+        report_exit "refusal" "release-coherence" "Manifest lane does not match the requested lane"
+    fi
+    if [ "${#manifest_platform_key}" -ne 16 ]; then
+        report_exit "refusal" "schema-invalid" "Manifest platform key ID is invalid"
+    fi
+    case "$manifest_platform_key" in
+        *[!0123456789ABCDEF]*) report_exit "refusal" "schema-invalid" "Manifest platform key ID is invalid" ;;
+    esac
+    if [ "$manifest_platform_key" != "$PLATFORM_KEY_ID" ]; then
+        report_exit "refusal" "pin-mismatch" "Manifest platform key ID does not match the embedded pin"
+    fi
+    case "$manifest_min_revision" in
+        ""|0|0*|*[!0123456789]*)
+            report_exit "refusal" "schema-invalid" "Manifest minimum installer revision is invalid"
+            ;;
+    esac
+    if [ "${#manifest_min_revision}" -gt 20 ]; then
+        report_exit "refusal" "schema-invalid" "Manifest minimum installer revision is invalid"
+    fi
+    if revision_is_older "$INSTALLER_REVISION" "$manifest_min_revision"; then
+        report_exit "refusal" "revision-too-old" "Manifest requires minimum installer revision $manifest_min_revision (current installer is revision $INSTALLER_REVISION)"
+    fi
+}
+
+enforce_file_limit() {
+    limited_file="$1"
+    byte_limit="$2"
+    response_label="$3"
+    file_bytes=$(wc -c < "$limited_file" 2>/dev/null) || file_bytes=0
+    if [ "$file_bytes" -gt "$byte_limit" ]; then
+        rm -f "$limited_file"
+        report_exit "refusal" "response-too-large" "$response_label response exceeds $byte_limit bytes"
+    fi
+}
+
+validate_latest_file() {
+    latest_path="$1"
+    latest_shape=$(od -An -tu1 -v "$latest_path" 2>/dev/null | awk '
+        { for (i = 1; i <= NF; i++) bytes[++n] = $i }
+        END {
+            data_n = n
+            if (n > 0 && bytes[n] == 10) {
+                data_n--
+                if (data_n > 0 && bytes[data_n] == 13) data_n--
+            }
+            if (data_n < 1) exit 1
+            for (i = 1; i <= data_n; i++) {
+                if (!((bytes[i] >= 48 && bytes[i] <= 57) || bytes[i] == 46)) exit 1
+            }
+            for (i = data_n + 1; i <= n; i++) {
+                if (i == data_n + 1 && bytes[i] == 10 && i == n) continue
+                if (i == data_n + 1 && bytes[i] == 13 && i + 1 == n && bytes[i + 1] == 10) continue
+                if (i == n && bytes[i] == 10 && i - 1 == data_n + 1 && bytes[i - 1] == 13) continue
+                exit 1
+            }
+            print data_n
+        }
+    ') || report_exit "refusal" "latest-invalid" "Latest version response is malformed"
+    RESOLVED_VERSION=$(dd if="$latest_path" bs=1 count="$latest_shape" 2>/dev/null)
+    if ! is_canonical_version "$RESOLVED_VERSION"; then
+        report_exit "refusal" "latest-invalid" "Latest platform version is invalid"
+    fi
+}
+
+fetch_file_with_redirect_check() {
+    src_url="$1"
+    dest_path="$2"
+    max_bytes="${3:-}"
+    response_label="${4:-download}"
+
+    validate_url_security "$src_url"
+    init_authority=$(printf '%s\n' "$src_url" | sed -E 's|^([^:]+://[^/]+).*$|\1|')
+
+    hdr_file="${SCRATCH_DIR}/headers.$$"
+    rm -f "$hdr_file"
+
+    if [ "$FETCH_TOOL" = "curl" ]; then
+        http_code=$(curl -q -s -S --connect-timeout 10 --max-time 120 --retry 0 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$src_url" 2>/dev/null) || http_code="000"
+        if [ "$http_code" = "200" ]; then
+            rm -f "$hdr_file"
+            if [ -n "$max_bytes" ]; then
+                enforce_file_limit "$dest_path" "$max_bytes" "$response_label"
+            fi
+            return 0
+        elif [ "$http_code" = "301" ] || [ "$http_code" = "302" ] || [ "$http_code" = "307" ] || [ "$http_code" = "308" ]; then
+            loc=$(grep -i '^Location:' "$hdr_file" | head -n 1 | awk '{print $2}' | tr -d '\r\n')
+            rm -f "$hdr_file" "$dest_path"
+            if [ -z "$loc" ]; then
+                report_exit "refusal" "redirect-refused" "Redirect response missing Location header from $src_url"
+            fi
+            # Validate redirect URL security and host confinement
+            validate_url_security "$loc"
+            loc_authority=$(printf '%s\n' "$loc" | sed -E 's|^([^:]+://[^/]+).*$|\1|')
+            if [ "$loc_authority" != "$init_authority" ]; then
+                report_exit "refusal" "redirect-refused" "Redirect scheme or authority change forbidden"
+            fi
+
+            hop2_code=$(curl -q -s -S --connect-timeout 10 --max-time 120 --retry 0 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$loc" 2>/dev/null) || hop2_code="000"
+            rm -f "$hdr_file"
+            if [ "$hop2_code" = "200" ]; then
+                if [ -n "$max_bytes" ]; then
+                    enforce_file_limit "$dest_path" "$max_bytes" "$response_label"
+                fi
+                return 0
+            else
+                rm -f "$dest_path"
+                report_exit "refusal" "redirect-refused" "Multi-hop redirect or non-200 code ($hop2_code) from $loc"
+            fi
+        else
+            rm -f "$hdr_file" "$dest_path"
+            report_exit "refusal" "fetch-failed" "HTTP status $http_code from $src_url"
+        fi
+    elif [ "$FETCH_TOOL" = "wget" ]; then
+        if ! wget --no-config --tries=1 --connect-timeout=10 --timeout=120 --max-redirect=0 -q -O "$dest_path" "$src_url" 2>/dev/null; then
+            report_exit "refusal" "fetch-failed" "Failed to download $src_url"
+        fi
+        if [ -n "$max_bytes" ]; then
+            enforce_file_limit "$dest_path" "$max_bytes" "$response_label"
+        fi
+        return 0
+    fi
+}
+
+verify_sha256() {
+    file_path="$1"
+    expected_hex="$2"
+    actual_hex=$(sha256sum "$file_path" | awk '{print $1}')
+    if [ "$actual_hex" != "$expected_hex" ]; then
+        report_exit "refusal" "digest-mismatch" "SHA256 mismatch for $file_path (expected $expected_hex, got $actual_hex)"
+    fi
+}
+
+verify_minisign_signature() {
+    artifact_path="$1"
+    sig_path="$2"
+    pubkey="$3"
+
+    if [ "$OPT_SKIP_SIGNATURE" -eq 1 ]; then
+        return 0
+    fi
+
+    minisign_bin=$(command -v minisign 2>/dev/null || true)
+    if [ -z "$minisign_bin" ] || [ ! -x "$minisign_bin" ]; then
+        report_exit "refusal" "verifier-missing" "minisign binary is required for cryptographic verification"
+    fi
+
+    if ! "$minisign_bin" -V -P "$pubkey" -m "$artifact_path" -x "$sig_path" >/dev/null 2>&1; then
+        report_exit "refusal" "signature-invalid" "Cryptographic verification failed for $artifact_path"
+    fi
+}
+
+# AWK JSON Parser script definition
+init_awk_parser() {
+    cat <<'EOF_AWK' > "${SCRATCH_DIR}/parse_manifest.awk"
+BEGIN {
+    pos = 1
+    depth = 0
+    obj_count = 0
+    fatal_exit = 0
+}
+
+function err(code, msg) {
+    printf "ERROR:%s:%s\n", code, msg > "/dev/stderr"
+    fatal_exit = 1
+    exit_code = (code == "duplicate-key" ? 42 : 43)
+    exit exit_code
+}
+
+function is_whitelisted(p) {
+    if (schema_mode == "journal") {
+        if (p ~ /^(product|version|target|files)$/) return 1
+        if (p ~ /^files\.[A-Za-z0-9][A-Za-z0-9._-]*$/) return 1
+        return 0
+    }
+    if (schema_mode == "desktop" || schema_mode == "tmux") return 1
+    if (p ~ /(_is_list)$/) return 1
+    if (p ~ /^schema_version$/) return 1
+    if (p ~ /^protocol_version$/) return 1
+    if (p ~ /^version$/) return 1
+    if (p ~ /^lane$/) return 1
+    if (p ~ /^created_unix$/) return 1
+    if (p ~ /^platform_key_id$/) return 1
+    if (p ~ /^minimum_installer_revision$/) return 1
+    if (p ~ /^source_commit$/) return 1
+    if (p ~ /^components$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.(version|handler_contract_version|install_entrypoint|uninstall_service_entrypoint)$/) return 1
+    if (p ~ /^components\.journal\.provenance$/) return 1
+    if (p ~ /^components\.journal\.provenance\.(upgrade_epoch|state_reader_min|state_reader_max|retention_window)$/) return 1
+    if (p ~ /^components\.journal\.provenance\.bootstrap$/) return 1
+    if (p ~ /^components\.journal\.provenance\.bootstrap\.(url|sha256|contract_version)$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.(filename|sha256|bytes|native_target|payload_build_id)$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.executable$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.executable\.(name|sha256)$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.executable\.version_command$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.executable\.version_command\.[0-9]+$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.package_identity$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.package_identity\.(name|version|arch)$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.archive_inventory$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.archive_inventory\.[0-9]+$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.archive_inventory\.[0-9]+\.(path|kind|size|sha256|link_target)$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.authority$/) return 1
+    if (p ~ /^components\.(journal|desktop|tmux)\.arches\.(x86_64|aarch64)\.(tree|deb|rpm)\.authority\.(type|verifier_id|manifest_sha256|signature_sha256|release_sha256|bootstrap_sha256|sums_sha256|target_json_sha256)$/) return 1
+    return 0
+}
+
+function next_tok(   c, str_val, num_val, esc) {
+    tok_had_escape = 0
+    while (pos <= len) {
+        c = substr(src, pos, 1)
+        if (c == " " || c == "\t" || c == "\n" || c == "\r") { pos++; continue }
+        if (c == "{" || c == "}" || c == "[" || c == "]" || c == ":" || c == ",") {
+            pos++
+            tok_type = c
+            tok_val = c
+            return
+        }
+        if (c == "\"") {
+            pos++
+            str_val = ""
+            while (pos <= len) {
+                c = substr(src, pos, 1)
+                if (c == "\"") {
+                    pos++
+                    tok_type = "STRING"
+                    tok_val = str_val
+                    return
+                }
+                if (c == "\\") {
+                    tok_had_escape = 1
+                    pos++
+                    esc = substr(src, pos, 1)
+                    pos++
+                    if (esc == "\"") str_val = str_val "\""
+                    else if (esc == "\\") str_val = str_val "\\"
+                    else if (esc == "/") str_val = str_val "/"
+                    else if (esc == "n") str_val = str_val "\n"
+                    else if (esc == "t") str_val = str_val "\t"
+                    else str_val = str_val esc
+                } else {
+                    str_val = str_val c
+                    pos++
+                }
+            }
+            err("schema-invalid", "unterminated string")
+        }
+        num_val = ""
+        while (pos <= len) {
+            c = substr(src, pos, 1)
+            if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "{" || c == "}" || c == "[" || c == "]" || c == ":" || c == ",") break
+            num_val = num_val c
+            pos++
+        }
+        if (num_val == "true" || num_val == "false") { tok_type = "BOOL"; tok_val = num_val; return }
+        if (num_val == "null") { tok_type = "NULL"; tok_val = num_val; return }
+        tok_type = "NUMBER"
+        tok_val = num_val
+        return
+    }
+    tok_type = "EOF"
+    tok_val = ""
+}
+
+function write_val(path_str, val, value_type,   fpath, dpath, last_slash) {
+    if (!is_whitelisted(path_str)) {
+        err("schema-invalid", "unknown field: " path_str)
+    }
+    if (schema_mode == "journal") {
+        if (path_str == "files") err("schema-invalid", "files must be an object")
+        if (value_type != "STRING") err("schema-invalid", "journal manifest values must be strings: " path_str)
+    }
+    if (schema_mode == "desktop") {
+        if (path_str == "artifacts") err("schema-invalid", "desktop artifacts must be an array")
+        if (path_str ~ /^artifacts\.[0-9]+$/) err("schema-invalid", "desktop artifact member must be an object")
+
+        if (tok_had_escape && path_str ~ /^(schema_version|source_dirty|product|version|source_commit|cargo_lock_sha256|target\.kind|target\.triple|target\.profile|artifacts\.[0-9]+\.(path|sha256|bytes))$/) {
+            err("schema-invalid", "escaped desktop security field: " path_str)
+        }
+        if (path_str == "schema_version") {
+            if (value_type != "NUMBER" || val !~ /^(0|[1-9][0-9]*)$/) err("schema-invalid", "desktop schema_version must be an integer")
+        } else if (path_str == "source_dirty") {
+            if (value_type != "BOOL") err("schema-invalid", "desktop source_dirty must be boolean")
+        } else if (path_str ~ /^(product|version|source_commit|cargo_lock_sha256|target\.kind|target\.triple|target\.profile)$/) {
+            if (value_type != "STRING") err("schema-invalid", "desktop security field must be a string: " path_str)
+        } else if (path_str ~ /^artifacts\.[0-9]+\.(path|sha256)$/) {
+            if (value_type != "STRING") err("schema-invalid", "desktop artifact field must be a string: " path_str)
+        } else if (path_str ~ /^artifacts\.[0-9]+\.bytes$/) {
+            if (value_type != "NUMBER" || val !~ /^(0|[1-9][0-9]*)$/) err("schema-invalid", "desktop artifact bytes must be an integer")
+        } else if (path_str != "artifacts/_is_list") {
+            return
+        }
+    }
+    if (schema_mode == "tmux") {
+        if (path_str == "artifacts") err("schema-invalid", "tmux artifacts must be an array")
+        if (path_str ~ /^artifacts\.[0-9]+$/) err("schema-invalid", "tmux artifact member must be an object")
+
+        if (tok_had_escape && path_str ~ /^(schema_version|product_version|source_commit|rust_target|executable\.name|executable\.sha256|artifacts\.[0-9]+\.(name|sha256))$/) {
+            err("schema-invalid", "escaped tmux security field: " path_str)
+        }
+        if (path_str == "schema_version") {
+            if (value_type != "NUMBER" || val !~ /^(0|[1-9][0-9]*)$/) err("schema-invalid", "tmux schema_version must be an integer")
+        } else if (path_str ~ /^(product_version|source_commit|rust_target|executable\.name|executable\.sha256)$/) {
+            if (value_type != "STRING") err("schema-invalid", "tmux security field must be a string: " path_str)
+        } else if (path_str ~ /^artifacts\.[0-9]+\.(name|sha256)$/) {
+            if (value_type != "STRING") err("schema-invalid", "tmux artifact field must be a string: " path_str)
+        } else if (path_str != "artifacts/_is_list") {
+            return
+        }
+    }
+    fpath = path_str
+    gsub(/\./, "/", fpath)
+    fpath = out_dir "/" fpath
+
+    last_slash = 0
+    for (i = length(fpath); i >= 1; i--) {
+        if (substr(fpath, i, 1) == "/") {
+            last_slash = i
+            break
+        }
+    }
+    if (last_slash > 0) {
+        dpath = substr(fpath, 1, last_slash - 1)
+        if (!(dpath in created_dirs)) {
+            system("mkdir -p \"" dpath "\" 2>/dev/null")
+            created_dirs[dpath] = 1
+        }
+    }
+    printf "%s", val > fpath
+    close(fpath)
+}
+
+function parse_value(cur_path,   key, arr_idx, obj_id, child_path) {
+    if (tok_type == "STRING" || tok_type == "NUMBER" || tok_type == "BOOL" || tok_type == "NULL") {
+        write_val(cur_path, tok_val, tok_type)
+        next_tok()
+        return
+    }
+    if (tok_type == "{") {
+        if (schema_mode == "journal" && cur_path ~ /^files\./) err("schema-invalid", "file digest must be a string")
+        next_tok()
+        obj_id = ++obj_count
+        if (tok_type == "}") {
+            next_tok()
+            return
+        }
+        while (1) {
+            if (tok_type != "STRING") err("schema-invalid", "expected string key")
+            key = tok_val
+            if ((schema_mode == "desktop" || schema_mode == "tmux") && tok_had_escape) err("schema-invalid", "escaped native manifest key")
+            if ((schema_mode == "desktop" || schema_mode == "tmux") && key !~ /^[A-Za-z_][A-Za-z0-9_]*$/) err("schema-invalid", "unsafe native manifest key: " key)
+            if ((obj_id, key) in seen) err("duplicate-key", "duplicate key: " key)
+            seen[obj_id, key] = 1
+
+            child_path = (cur_path == "" ? key : cur_path "." key)
+            if (!is_whitelisted(child_path)) err("schema-invalid", "unknown key: " child_path)
+
+            next_tok()
+            if (tok_type != ":") err("schema-invalid", "expected colon")
+            next_tok()
+
+            parse_value(child_path)
+
+            if (tok_type == "}") {
+                next_tok()
+                break
+            }
+            if (tok_type != ",") err("schema-invalid", "expected comma")
+            next_tok()
+        }
+        return
+    }
+    if (tok_type == "[") {
+        if (schema_mode == "journal") err("schema-invalid", "arrays are not permitted in journal manifests")
+        if ((schema_mode == "desktop" || schema_mode == "tmux") && cur_path ~ /^artifacts\.[0-9]+$/) err("schema-invalid", "native artifact member must be an object")
+        next_tok()
+        arr_idx = 0
+        if (tok_type == "]") {
+            write_val(cur_path "/_is_list", "0", "LIST")
+            next_tok()
+            return
+        }
+        while (1) {
+            child_path = cur_path "." arr_idx
+            parse_value(child_path)
+            arr_idx++
+            if (tok_type == "]") {
+                write_val(cur_path "/_is_list", arr_idx, "LIST")
+                next_tok()
+                break
+            }
+            if (tok_type != ",") err("schema-invalid", "expected comma in array")
+            next_tok()
+        }
+        return
+    }
+    err("schema-invalid", "unexpected token: " tok_type)
+}
+
+{
+    src = (src == "" ? $0 : src "\n" $0)
+}
+
+END {
+    if (fatal_exit) exit exit_code
+    len = length(src)
+    next_tok()
+    parse_value("")
+    if (tok_type != "EOF") err("schema-invalid", "extra data at end of JSON")
+}
+EOF_AWK
+
+    cat <<'EOF_AWK' > "${SCRATCH_DIR}/parse_journal_release.awk"
+function fail(msg) {
+    print "ERROR:schema-invalid:" msg > "/dev/stderr"
+    failed = 1
+    exit 44
+}
+function allowed(k) {
+    return k ~ /^(product|version|target|commit|lock_sha256|upgrade_epoch|retention_window|min_bootstrap_revision|bootstrap_contract_version|bootstrap_filename|state_reader_min|state_reader_max)$/
+}
+{
+    line = $0
+    if (line == "" || line ~ /\r/) fail("noncanonical release line")
+    equals = index(line, "=")
+    if (equals < 2 || index(substr(line, equals + 1), "=") != 0) fail("noncanonical release line")
+    key = substr(line, 1, equals - 1)
+    value = substr(line, equals + 1)
+    if (!allowed(key) || value == "") fail("unknown or empty release field")
+    if (seen[key]++) fail("duplicate release field: " key)
+    printf "%s", value > (out_dir "/" key)
+    close(out_dir "/" key)
+}
+END {
+    if (failed) exit 44
+    required = "product version target commit lock_sha256 upgrade_epoch retention_window min_bootstrap_revision bootstrap_contract_version bootstrap_filename state_reader_min state_reader_max"
+    count = split(required, names, " ")
+    for (i = 1; i <= count; i++) if (!seen[names[i]]) fail("missing release field: " names[i])
+}
+EOF_AWK
+
+    cat <<'EOF_AWK' > "${SCRATCH_DIR}/parse_journal_sums.awk"
+function fail(msg) {
+    print "ERROR:schema-invalid:" msg > "/dev/stderr"
+    failed = 1
+    exit 45
+}
+{
+    line = $0
+    if (length(line) < 67 || substr(line, 65, 2) != "  ") fail("noncanonical checksum line")
+    digest = substr(line, 1, 64)
+    name = substr(line, 67)
+    if (length(digest) != 64 || digest !~ /^[0-9a-f]+$/) fail("invalid checksum digest")
+    if (name !~ /^[A-Za-z0-9][A-Za-z0-9._-]*$/) fail("invalid checksum filename")
+    if (seen[name]++) fail("duplicate checksum filename: " name)
+}
+END {
+    if (failed) exit 45
+    if (NR == 0) fail("empty checksum file")
+}
+EOF_AWK
+
+    cat <<'EOF_AWK' > "${SCRATCH_DIR}/parse_tmux_sums.awk"
+function fail(msg) {
+    print "ERROR:schema-invalid:" msg > "/dev/stderr"
+    failed = 1
+    exit 46
+}
+{
+    line = $0
+    if (length(line) < 67 || substr(line, 65, 2) != "  ") fail("noncanonical checksum line")
+    digest = substr(line, 1, 64)
+    name = substr(line, 67)
+    if (digest !~ /^[0-9a-f]+$/ || length(digest) != 64) fail("invalid checksum digest")
+    if (name !~ /^[A-Za-z0-9][A-Za-z0-9._-]*$/) fail("invalid checksum filename")
+    if (seen[name]++) fail("duplicate checksum filename: " name)
+}
+END {
+    if (failed) exit 46
+    if (NR == 0) fail("empty checksum file")
+}
+EOF_AWK
+}
+
+journal_name_path() {
+    printf '%s\n' "$1" | sed 's|\.|/|g'
+}
+
+read_plain_value() {
+    cat "$1"
+    printf x
+}
+
+preflight_journal_authority() {
+    j_manifest_root="${SCRATCH_DIR}/journal-manifest"
+    j_release_root="${SCRATCH_DIR}/journal-release"
+    mkdir -p "$j_manifest_root" "$j_release_root"
+
+    j_version=$(read_plain_value "${manifest_dir}/components/journal/version")
+    j_version=${j_version%x}
+    j_target="linux-${HOST_ARCH}"
+    j_base="solstone-journal-${j_version}-${j_target}"
+    j_manifest_name="${j_base}.manifest.json"
+    j_signature_name="${j_manifest_name}.minisig"
+    j_release_name="${j_base}.release"
+    j_sums_name="${j_base}.sha256"
+    j_origin="${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}"
+
+    j_manifest_file="${SCRATCH_DIR}/${j_manifest_name}"
+    j_signature_file="${SCRATCH_DIR}/${j_signature_name}"
+    j_release_file="${SCRATCH_DIR}/${j_release_name}"
+    j_sums_file="${SCRATCH_DIR}/${j_sums_name}"
+
+    fetch_file_with_redirect_check "${j_origin}/${j_manifest_name}" "$j_manifest_file" 65536 "journal native manifest"
+    fetch_file_with_redirect_check "${j_origin}/${j_signature_name}" "$j_signature_file" 16384 "journal native signature"
+    fetch_file_with_redirect_check "${j_origin}/${j_release_name}" "$j_release_file" 16384 "journal release metadata"
+    fetch_file_with_redirect_check "${j_origin}/${j_sums_name}" "$j_sums_file" 65536 "journal checksum sidecar"
+
+    j_authority_root="${manifest_dir}/components/journal/arches/${HOST_ARCH}/${check_var}/authority"
+    j_manifest_sha=$(read_plain_value "${j_authority_root}/manifest_sha256")
+    j_manifest_sha=${j_manifest_sha%x}
+    j_signature_sha=$(read_plain_value "${j_authority_root}/signature_sha256")
+    j_signature_sha=${j_signature_sha%x}
+    j_release_sha=$(read_plain_value "${j_authority_root}/release_sha256")
+    j_release_sha=${j_release_sha%x}
+    j_bootstrap_sha=$(read_plain_value "${j_authority_root}/bootstrap_sha256")
+    j_bootstrap_sha=${j_bootstrap_sha%x}
+
+    verify_sha256 "$j_manifest_file" "$j_manifest_sha"
+    verify_sha256 "$j_signature_file" "$j_signature_sha"
+    verify_sha256 "$j_release_file" "$j_release_sha"
+    verify_minisign_signature "$j_manifest_file" "$j_signature_file" "$JOURNAL_PUBKEY"
+
+    j_parse_err="${SCRATCH_DIR}/journal-manifest.err"
+    if ! awk -v schema_mode=journal -v out_dir="$j_manifest_root" -f "${SCRATCH_DIR}/parse_manifest.awk" "$j_manifest_file" 2>"$j_parse_err"; then
+        j_err=$(head -n 1 "$j_parse_err" | tr -d '\r\n')
+        report_exit "refusal" "schema-invalid" "Journal native manifest is invalid ($j_err)"
+    fi
+
+    for j_required in product version target; do
+        if [ ! -f "${j_manifest_root}/${j_required}" ]; then
+            report_exit "refusal" "schema-invalid" "Journal native manifest is missing $j_required"
+        fi
+    done
+    j_product=$(read_plain_value "${j_manifest_root}/product")
+    j_product=${j_product%x}
+    j_native_version=$(read_plain_value "${j_manifest_root}/version")
+    j_native_version=${j_native_version%x}
+    j_native_target=$(read_plain_value "${j_manifest_root}/target")
+    j_native_target=${j_native_target%x}
+    if [ "$j_product" != "solstone-journal" ] || [ "$j_native_version" != "$j_version" ] || [ "$j_native_target" != "$j_target" ]; then
+        report_exit "refusal" "release-coherence" "Journal native identity does not match the selected platform entry"
+    fi
+
+    j_selected_name=$(read_plain_value "${manifest_dir}/components/journal/arches/${HOST_ARCH}/${check_var}/filename")
+    j_selected_name=${j_selected_name%x}
+    j_selected_sha=$(read_plain_value "${manifest_dir}/components/journal/arches/${HOST_ARCH}/${check_var}/sha256")
+    j_selected_sha=${j_selected_sha%x}
+    case "$check_var" in
+        tree) j_expected_name="${j_base}.tar.gz" ;;
+        deb) j_expected_name="${j_base}.deb" ;;
+        rpm) j_expected_name="${j_base}.rpm" ;;
+        *) report_exit "refusal" "schema-invalid" "Journal selected route is invalid" ;;
+    esac
+    if [ "$j_selected_name" != "$j_expected_name" ]; then
+        report_exit "refusal" "release-coherence" "Journal selected filename does not match its producer route"
+    fi
+    j_bootstrap_url=$(read_plain_value "${manifest_dir}/components/journal/provenance/bootstrap/url")
+    j_bootstrap_url=${j_bootstrap_url%x}
+    j_bootstrap_name=${j_bootstrap_url##*/}
+
+    for j_name in "$j_selected_name" "$j_release_name" "$j_sums_name" "$j_bootstrap_name"; do
+        j_name_path=$(journal_name_path "$j_name")
+        if [ ! -f "${j_manifest_root}/files/${j_name_path}" ]; then
+            report_exit "refusal" "schema-invalid" "Journal native manifest is missing required file $j_name"
+        fi
+    done
+    j_selected_native_sha=$(read_plain_value "${j_manifest_root}/files/$(journal_name_path "$j_selected_name")")
+    j_selected_native_sha=${j_selected_native_sha%x}
+    j_release_native_sha=$(read_plain_value "${j_manifest_root}/files/$(journal_name_path "$j_release_name")")
+    j_release_native_sha=${j_release_native_sha%x}
+    j_sums_native_sha=$(read_plain_value "${j_manifest_root}/files/$(journal_name_path "$j_sums_name")")
+    j_sums_native_sha=${j_sums_native_sha%x}
+    j_bootstrap_native_sha=$(read_plain_value "${j_manifest_root}/files/$(journal_name_path "$j_bootstrap_name")")
+    j_bootstrap_native_sha=${j_bootstrap_native_sha%x}
+
+    if [ "$j_selected_native_sha" != "$j_selected_sha" ] || [ "$j_release_native_sha" != "$j_release_sha" ] || [ "$j_bootstrap_native_sha" != "$j_bootstrap_sha" ]; then
+        report_exit "refusal" "release-coherence" "Journal native file map does not match the selected platform entry"
+    fi
+    verify_sha256 "$j_sums_file" "$j_sums_native_sha"
+
+    j_sums_err="${SCRATCH_DIR}/journal-sums.err"
+    if ! awk -f "${SCRATCH_DIR}/parse_journal_sums.awk" "$j_sums_file" 2>"$j_sums_err"; then
+        j_err=$(head -n 1 "$j_sums_err" | tr -d '\r\n')
+        report_exit "refusal" "schema-invalid" "Journal checksum sidecar is invalid ($j_err)"
+    fi
+    for j_name in "$j_selected_name" "$j_release_name" "$j_bootstrap_name"; do
+        j_sum_value=$(awk -v wanted="$j_name" 'substr($0, 67) == wanted { print substr($0, 1, 64) }' "$j_sums_file")
+        if [ -z "$j_sum_value" ]; then
+            report_exit "refusal" "schema-invalid" "Journal checksum sidecar is missing required file $j_name"
+        fi
+    done
+    j_selected_sum_sha=$(awk -v wanted="$j_selected_name" 'substr($0, 67) == wanted { print substr($0, 1, 64) }' "$j_sums_file")
+    j_release_sum_sha=$(awk -v wanted="$j_release_name" 'substr($0, 67) == wanted { print substr($0, 1, 64) }' "$j_sums_file")
+    j_bootstrap_sum_sha=$(awk -v wanted="$j_bootstrap_name" 'substr($0, 67) == wanted { print substr($0, 1, 64) }' "$j_sums_file")
+    if [ "$j_selected_sum_sha" != "$j_selected_sha" ] || [ "$j_release_sum_sha" != "$j_release_sha" ] || [ "$j_bootstrap_sum_sha" != "$j_bootstrap_sha" ]; then
+        report_exit "refusal" "release-coherence" "Journal checksum sidecar does not match the selected platform entry"
+    fi
+
+    j_release_err="${SCRATCH_DIR}/journal-release.err"
+    if ! awk -v out_dir="$j_release_root" -f "${SCRATCH_DIR}/parse_journal_release.awk" "$j_release_file" 2>"$j_release_err"; then
+        j_err=$(head -n 1 "$j_release_err" | tr -d '\r\n')
+        report_exit "refusal" "schema-invalid" "Journal release metadata is invalid ($j_err)"
+    fi
+    j_release_product=$(read_plain_value "${j_release_root}/product")
+    j_release_product=${j_release_product%x}
+    j_release_version=$(read_plain_value "${j_release_root}/version")
+    j_release_version=${j_release_version%x}
+    j_release_target=$(read_plain_value "${j_release_root}/target")
+    j_release_target=${j_release_target%x}
+    j_release_bootstrap=$(read_plain_value "${j_release_root}/bootstrap_filename")
+    j_release_bootstrap=${j_release_bootstrap%x}
+    if [ "$j_release_product" != "solstone-journal" ] || [ "$j_release_version" != "$j_version" ] || [ "$j_release_target" != "$j_target" ] || [ "$j_release_bootstrap" != "$j_bootstrap_name" ]; then
+        report_exit "refusal" "release-coherence" "Journal release identity does not match the selected platform entry"
+    fi
+
+    j_release_commit=$(read_plain_value "${j_release_root}/commit")
+    j_release_commit=${j_release_commit%x}
+    j_release_lock=$(read_plain_value "${j_release_root}/lock_sha256")
+    j_release_lock=${j_release_lock%x}
+    case "$j_release_commit" in
+        *[!0123456789abcdef]*) report_exit "refusal" "schema-invalid" "Journal release commit is invalid" ;;
+    esac
+    if [ "${#j_release_commit}" -ne 40 ]; then
+        report_exit "refusal" "schema-invalid" "Journal release commit is invalid"
+    fi
+    case "$j_release_lock" in
+        *[!0123456789abcdef]*) report_exit "refusal" "schema-invalid" "Journal release lock digest is invalid" ;;
+    esac
+    if [ "${#j_release_lock}" -ne 64 ]; then
+        report_exit "refusal" "schema-invalid" "Journal release lock digest is invalid"
+    fi
+
+    for j_field in upgrade_epoch retention_window bootstrap_contract_version state_reader_min state_reader_max; do
+        j_release_value=$(read_plain_value "${j_release_root}/${j_field}")
+        j_release_value=${j_release_value%x}
+        if [ "$j_field" = "bootstrap_contract_version" ]; then
+            j_platform_path="${manifest_dir}/components/journal/provenance/bootstrap/contract_version"
+        else
+            j_platform_path="${manifest_dir}/components/journal/provenance/${j_field}"
+        fi
+        j_platform_value=$(read_plain_value "$j_platform_path")
+        j_platform_value=${j_platform_value%x}
+        if [ "$j_release_value" != "$j_platform_value" ]; then
+            report_exit "refusal" "release-coherence" "Journal release field $j_field does not match the selected platform entry"
+        fi
+    done
+    j_min_bootstrap=$(read_plain_value "${j_release_root}/min_bootstrap_revision")
+    j_min_bootstrap=${j_min_bootstrap%x}
+    case "$j_min_bootstrap" in
+        ""|0|0*|*[!0123456789]*) report_exit "refusal" "schema-invalid" "Journal minimum bootstrap revision is invalid" ;;
+    esac
+    if [ "${#j_min_bootstrap}" -gt 20 ]; then
+        report_exit "refusal" "schema-invalid" "Journal minimum bootstrap revision is invalid"
+    fi
+}
+
+preflight_desktop_authority() {
+    d_manifest_root="${SCRATCH_DIR}/desktop-manifest"
+    mkdir -p "$d_manifest_root"
+
+    d_version=$(read_plain_value "${manifest_dir}/components/desktop/version")
+    d_version=${d_version%x}
+    d_base="solstone-linux-${d_version}-linux-x86_64"
+    d_manifest_name="${d_base}.rust-release-manifest.json"
+    d_signature_name="${d_manifest_name}.minisig"
+    d_origin="${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}"
+    d_manifest_file="${SCRATCH_DIR}/${d_manifest_name}"
+    d_signature_file="${SCRATCH_DIR}/${d_signature_name}"
+
+    fetch_file_with_redirect_check "${d_origin}/${d_manifest_name}" "$d_manifest_file" 65536 "desktop native manifest"
+    fetch_file_with_redirect_check "${d_origin}/${d_signature_name}" "$d_signature_file" 16384 "desktop native signature"
+
+    d_authority_root="${manifest_dir}/components/desktop/arches/${HOST_ARCH}/${check_var}/authority"
+    d_manifest_sha=$(read_plain_value "${d_authority_root}/manifest_sha256")
+    d_manifest_sha=${d_manifest_sha%x}
+    d_signature_sha=$(read_plain_value "${d_authority_root}/signature_sha256")
+    d_signature_sha=${d_signature_sha%x}
+
+    verify_sha256 "$d_manifest_file" "$d_manifest_sha"
+    verify_sha256 "$d_signature_file" "$d_signature_sha"
+    verify_minisign_signature "$d_manifest_file" "$d_signature_file" "$DESKTOP_PUBKEY"
+
+    d_parse_err="${SCRATCH_DIR}/desktop-manifest.err"
+    if ! awk -v schema_mode=desktop -v out_dir="$d_manifest_root" -f "${SCRATCH_DIR}/parse_manifest.awk" "$d_manifest_file" 2>"$d_parse_err"; then
+        d_err=$(head -n 1 "$d_parse_err" | tr -d '\r\n')
+        report_exit "refusal" "schema-invalid" "Desktop native manifest is invalid ($d_err)"
+    fi
+
+    for d_required in schema_version product version source_commit source_dirty cargo_lock_sha256 target/kind target/triple target/profile artifacts/_is_list; do
+        if [ ! -f "${d_manifest_root}/${d_required}" ]; then
+            report_exit "refusal" "schema-invalid" "Desktop native manifest is missing $d_required"
+        fi
+    done
+
+    d_schema=$(read_plain_value "${d_manifest_root}/schema_version")
+    d_schema=${d_schema%x}
+    if [ "$d_schema" != "1" ]; then
+        report_exit "refusal" "schema-invalid" "Desktop native manifest schema_version is unsupported"
+    fi
+    d_product=$(read_plain_value "${d_manifest_root}/product")
+    d_product=${d_product%x}
+    d_native_version=$(read_plain_value "${d_manifest_root}/version")
+    d_native_version=${d_native_version%x}
+    d_source_dirty=$(read_plain_value "${d_manifest_root}/source_dirty")
+    d_source_dirty=${d_source_dirty%x}
+    d_target_kind=$(read_plain_value "${d_manifest_root}/target/kind")
+    d_target_kind=${d_target_kind%x}
+    d_target_triple=$(read_plain_value "${d_manifest_root}/target/triple")
+    d_target_triple=${d_target_triple%x}
+    d_target_profile=$(read_plain_value "${d_manifest_root}/target/profile")
+    d_target_profile=${d_target_profile%x}
+    if [ "$d_product" != "solstone-linux" ] || [ "$d_native_version" != "$d_version" ] || [ "$d_source_dirty" != "false" ] || [ "$d_target_kind" != "compiled" ] || [ "$d_target_triple" != "x86_64-unknown-linux-gnu" ] || [ "$d_target_profile" != "release" ]; then
+        report_exit "refusal" "release-coherence" "Desktop native identity does not match the selected platform entry"
+    fi
+
+    d_source_commit=$(read_plain_value "${d_manifest_root}/source_commit")
+    d_source_commit=${d_source_commit%x}
+    d_lock_sha=$(read_plain_value "${d_manifest_root}/cargo_lock_sha256")
+    d_lock_sha=${d_lock_sha%x}
+    case "$d_source_commit" in
+        *[!0123456789abcdef]*) report_exit "refusal" "schema-invalid" "Desktop source commit is invalid" ;;
+    esac
+    if [ "${#d_source_commit}" -ne 40 ]; then
+        report_exit "refusal" "schema-invalid" "Desktop source commit is invalid"
+    fi
+    case "$d_lock_sha" in
+        *[!0123456789abcdef]*) report_exit "refusal" "schema-invalid" "Desktop Cargo.lock digest is invalid" ;;
+    esac
+    if [ "${#d_lock_sha}" -ne 64 ]; then
+        report_exit "refusal" "schema-invalid" "Desktop Cargo.lock digest is invalid"
+    fi
+
+    d_selected_name=$(read_plain_value "${manifest_dir}/components/desktop/arches/${HOST_ARCH}/${check_var}/filename")
+    d_selected_name=${d_selected_name%x}
+    d_selected_sha=$(read_plain_value "${manifest_dir}/components/desktop/arches/${HOST_ARCH}/${check_var}/sha256")
+    d_selected_sha=${d_selected_sha%x}
+    d_selected_bytes=$(read_plain_value "${manifest_dir}/components/desktop/arches/${HOST_ARCH}/${check_var}/bytes")
+    d_selected_bytes=${d_selected_bytes%x}
+    case "$check_var" in
+        tree) d_expected_name="${d_base}.tar.gz" ;;
+        deb) d_expected_name="solstone-linux_${d_version}-1_amd64.deb" ;;
+        rpm) d_expected_name="solstone-linux-${d_version}-1.x86_64.rpm" ;;
+        *) report_exit "refusal" "schema-invalid" "Desktop selected route is invalid" ;;
+    esac
+    if [ "$d_selected_name" != "$d_expected_name" ]; then
+        report_exit "refusal" "release-coherence" "Desktop selected filename does not match its producer route"
+    fi
+
+    d_artifact_count=$(read_plain_value "${d_manifest_root}/artifacts/_is_list")
+    d_artifact_count=${d_artifact_count%x}
+    case "$d_artifact_count" in
+        ""|*[!0123456789]*) report_exit "refusal" "schema-invalid" "Desktop artifacts array is invalid" ;;
+    esac
+    d_index=0
+    d_selected_matches=0
+    while [ "$d_index" -lt "$d_artifact_count" ]; do
+        d_item_root="${d_manifest_root}/artifacts/${d_index}"
+        for d_field in path sha256 bytes; do
+            if [ ! -f "${d_item_root}/${d_field}" ]; then
+                report_exit "refusal" "schema-invalid" "Desktop artifact member is missing $d_field"
+            fi
+        done
+        d_item_name=$(read_plain_value "${d_item_root}/path")
+        d_item_name=${d_item_name%x}
+        d_item_sha=$(read_plain_value "${d_item_root}/sha256")
+        d_item_sha=${d_item_sha%x}
+        d_item_bytes=$(read_plain_value "${d_item_root}/bytes")
+        d_item_bytes=${d_item_bytes%x}
+        case "$d_item_sha" in
+            *[!0123456789abcdef]*) report_exit "refusal" "schema-invalid" "Desktop artifact digest is invalid" ;;
+        esac
+        if [ "${#d_item_sha}" -ne 64 ]; then
+            report_exit "refusal" "schema-invalid" "Desktop artifact digest is invalid"
+        fi
+        if [ "$d_item_name" = "$d_selected_name" ]; then
+            if [ "$d_selected_matches" -ne 0 ]; then
+                report_exit "refusal" "schema-invalid" "Desktop native manifest contains duplicate selected artifacts"
+            fi
+            d_selected_matches=$((d_selected_matches + 1))
+            if [ "$d_item_sha" != "$d_selected_sha" ] || [ "$d_item_bytes" != "$d_selected_bytes" ]; then
+                report_exit "refusal" "release-coherence" "Desktop native artifact does not match the selected platform entry"
+            fi
+        fi
+        d_index=$((d_index + 1))
+    done
+    if [ "$d_selected_matches" -eq 0 ]; then
+        report_exit "refusal" "release-coherence" "Desktop native manifest is missing the selected artifact"
+    fi
+}
+
+preflight_tmux_authority() {
+    t_target_root="${SCRATCH_DIR}/tmux-target"
+    mkdir -p "$t_target_root"
+
+    t_version=$(read_plain_value "${manifest_dir}/components/tmux/version")
+    t_version=${t_version%x}
+    case "$HOST_ARCH" in
+        x86_64)
+            t_rust_target="x86_64-unknown-linux-musl"
+            t_deb_arch="amd64"
+            t_rpm_arch="x86_64"
+            ;;
+        aarch64)
+            t_rust_target="aarch64-unknown-linux-musl"
+            t_deb_arch="arm64"
+            t_rpm_arch="aarch64"
+            ;;
+        *) report_exit "refusal" "unsupported-arch" "Unsupported architecture for Tmux: $HOST_ARCH" ;;
+    esac
+    t_target_name="solstone-tmux-${t_version}-${t_rust_target}.target.json"
+    t_origin="${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}"
+    t_sums_file="${SCRATCH_DIR}/SHA256SUMS"
+    t_signature_file="${SCRATCH_DIR}/SHA256SUMS.minisig"
+    t_target_file="${SCRATCH_DIR}/${t_target_name}"
+
+    fetch_file_with_redirect_check "${t_origin}/SHA256SUMS" "$t_sums_file" 65536 "tmux checksum manifest"
+    fetch_file_with_redirect_check "${t_origin}/SHA256SUMS.minisig" "$t_signature_file" 16384 "tmux checksum signature"
+    fetch_file_with_redirect_check "${t_origin}/${t_target_name}" "$t_target_file" 65536 "tmux target manifest"
+
+    t_authority_root="${manifest_dir}/components/tmux/arches/${HOST_ARCH}/${check_var}/authority"
+    t_sums_sha=$(read_plain_value "${t_authority_root}/sums_sha256")
+    t_sums_sha=${t_sums_sha%x}
+    t_signature_sha=$(read_plain_value "${t_authority_root}/signature_sha256")
+    t_signature_sha=${t_signature_sha%x}
+    t_target_sha=$(read_plain_value "${t_authority_root}/target_json_sha256")
+    t_target_sha=${t_target_sha%x}
+
+    verify_sha256 "$t_sums_file" "$t_sums_sha"
+    verify_sha256 "$t_signature_file" "$t_signature_sha"
+    verify_sha256 "$t_target_file" "$t_target_sha"
+    verify_minisign_signature "$t_sums_file" "$t_signature_file" "$TMUX_PUBKEY"
+
+    t_sums_err="${SCRATCH_DIR}/tmux-sums.err"
+    if ! awk -f "${SCRATCH_DIR}/parse_tmux_sums.awk" "$t_sums_file" 2>"$t_sums_err"; then
+        t_err=$(head -n 1 "$t_sums_err" | tr -d '\r\n')
+        report_exit "refusal" "schema-invalid" "Tmux checksum manifest is invalid ($t_err)"
+    fi
+
+    t_target_sum=$(awk -v wanted="$t_target_name" 'substr($0, 67) == wanted { print substr($0, 1, 64) }' "$t_sums_file")
+    if [ -z "$t_target_sum" ]; then
+        report_exit "refusal" "schema-invalid" "Tmux checksum manifest is missing $t_target_name"
+    fi
+    if [ "$t_target_sum" != "$t_target_sha" ]; then
+        report_exit "refusal" "release-coherence" "Tmux target manifest digest does not match signed checksums"
+    fi
+
+    t_parse_err="${SCRATCH_DIR}/tmux-target.err"
+    if ! awk -v schema_mode=tmux -v out_dir="$t_target_root" -f "${SCRATCH_DIR}/parse_manifest.awk" "$t_target_file" 2>"$t_parse_err"; then
+        t_err=$(head -n 1 "$t_parse_err" | tr -d '\r\n')
+        report_exit "refusal" "schema-invalid" "Tmux target manifest is invalid ($t_err)"
+    fi
+    for t_required in schema_version product_version source_commit rust_target executable/name executable/sha256 artifacts/_is_list; do
+        if [ ! -f "${t_target_root}/${t_required}" ]; then
+            report_exit "refusal" "schema-invalid" "Tmux target manifest is missing $t_required"
+        fi
+    done
+
+    t_schema=$(read_plain_value "${t_target_root}/schema_version")
+    t_schema=${t_schema%x}
+    if [ "$t_schema" != "1" ]; then
+        report_exit "refusal" "schema-invalid" "Tmux target schema_version is unsupported"
+    fi
+    t_native_version=$(read_plain_value "${t_target_root}/product_version")
+    t_native_version=${t_native_version%x}
+    t_native_target=$(read_plain_value "${t_target_root}/rust_target")
+    t_native_target=${t_native_target%x}
+    if [ "$t_native_version" != "$t_version" ] || [ "$t_native_target" != "$t_rust_target" ]; then
+        report_exit "refusal" "release-coherence" "Tmux native identity does not match the selected platform entry"
+    fi
+
+    t_source_commit=$(read_plain_value "${t_target_root}/source_commit")
+    t_source_commit=${t_source_commit%x}
+    case "$t_source_commit" in
+        *[!0123456789abcdef]*) report_exit "refusal" "schema-invalid" "Tmux source commit is invalid" ;;
+    esac
+    if [ "${#t_source_commit}" -ne 40 ]; then
+        report_exit "refusal" "schema-invalid" "Tmux source commit is invalid"
+    fi
+
+    t_selected_name=$(read_plain_value "${manifest_dir}/components/tmux/arches/${HOST_ARCH}/${check_var}/filename")
+    t_selected_name=${t_selected_name%x}
+    t_selected_sha=$(read_plain_value "${manifest_dir}/components/tmux/arches/${HOST_ARCH}/${check_var}/sha256")
+    t_selected_sha=${t_selected_sha%x}
+    case "$check_var" in
+        tree) t_expected_name="solstone-tmux-${t_version}-${HOST_ARCH}-linux.tar.gz" ;;
+        deb) t_expected_name="solstone-tmux_${t_version}_${t_deb_arch}.deb" ;;
+        rpm) t_expected_name="solstone-tmux-${t_version}-1.${t_rpm_arch}.rpm" ;;
+        *) report_exit "refusal" "schema-invalid" "Tmux selected route is invalid" ;;
+    esac
+    if [ "$t_selected_name" != "$t_expected_name" ]; then
+        report_exit "refusal" "release-coherence" "Tmux selected filename does not match its producer route"
+    fi
+    t_selected_sum=$(awk -v wanted="$t_selected_name" 'substr($0, 67) == wanted { print substr($0, 1, 64) }' "$t_sums_file")
+    if [ -z "$t_selected_sum" ]; then
+        report_exit "refusal" "schema-invalid" "Tmux checksum manifest is missing $t_selected_name"
+    fi
+    if [ "$t_selected_sum" != "$t_selected_sha" ]; then
+        report_exit "refusal" "release-coherence" "Tmux selected artifact digest does not match signed checksums"
+    fi
+
+    t_exec_name=$(read_plain_value "${t_target_root}/executable/name")
+    t_exec_name=${t_exec_name%x}
+    t_exec_sha=$(read_plain_value "${t_target_root}/executable/sha256")
+    t_exec_sha=${t_exec_sha%x}
+    t_platform_exec_name=$(read_plain_value "${manifest_dir}/components/tmux/arches/${HOST_ARCH}/${check_var}/executable/name")
+    t_platform_exec_name=${t_platform_exec_name%x}
+    t_platform_exec_sha=$(read_plain_value "${manifest_dir}/components/tmux/arches/${HOST_ARCH}/${check_var}/executable/sha256")
+    t_platform_exec_sha=${t_platform_exec_sha%x}
+    case "$t_exec_sha" in
+        *[!0123456789abcdef]*) report_exit "refusal" "schema-invalid" "Tmux executable digest is invalid" ;;
+    esac
+    if [ "${#t_exec_sha}" -ne 64 ]; then
+        report_exit "refusal" "schema-invalid" "Tmux executable digest is invalid"
+    fi
+    if [ "$t_exec_name" != "solstone-tmux" ] || [ "$t_exec_name" != "$t_platform_exec_name" ] || [ "$t_exec_sha" != "$t_platform_exec_sha" ]; then
+        report_exit "refusal" "release-coherence" "Tmux executable identity does not match the selected platform entry"
+    fi
+
+    t_artifact_count=$(read_plain_value "${t_target_root}/artifacts/_is_list")
+    t_artifact_count=${t_artifact_count%x}
+    case "$t_artifact_count" in
+        ""|*[!0123456789]*) report_exit "refusal" "schema-invalid" "Tmux artifacts array is invalid" ;;
+    esac
+    t_index=0
+    t_selected_matches=0
+    while [ "$t_index" -lt "$t_artifact_count" ]; do
+        t_item_root="${t_target_root}/artifacts/${t_index}"
+        for t_field in name sha256; do
+            if [ ! -f "${t_item_root}/${t_field}" ]; then
+                report_exit "refusal" "schema-invalid" "Tmux artifact member is missing $t_field"
+            fi
+        done
+        t_item_name=$(read_plain_value "${t_item_root}/name")
+        t_item_name=${t_item_name%x}
+        t_item_sha=$(read_plain_value "${t_item_root}/sha256")
+        t_item_sha=${t_item_sha%x}
+        case "$t_item_sha" in
+            *[!0123456789abcdef]*) report_exit "refusal" "schema-invalid" "Tmux artifact digest is invalid" ;;
+        esac
+        if [ "${#t_item_sha}" -ne 64 ]; then
+            report_exit "refusal" "schema-invalid" "Tmux artifact digest is invalid"
+        fi
+        if [ "$t_item_name" = "$t_selected_name" ]; then
+            if [ "$t_selected_matches" -ne 0 ]; then
+                report_exit "refusal" "schema-invalid" "Tmux target manifest contains duplicate selected artifacts"
+            fi
+            t_selected_matches=$((t_selected_matches + 1))
+            if [ "$t_item_sha" != "$t_selected_sha" ]; then
+                report_exit "refusal" "release-coherence" "Tmux target artifact does not match the selected platform entry"
+            fi
+        fi
+        t_index=$((t_index + 1))
+    done
+    if [ "$t_selected_matches" -eq 0 ]; then
+        report_exit "refusal" "release-coherence" "Tmux target manifest is missing the selected artifact"
+    fi
+}
+
+acquire_installer_locks() {
+    if [ "$OPT_DRY_RUN" -eq 1 ]; then
+        return 0
+    fi
+
+    if ! command -v flock >/dev/null 2>&1; then
+        report_exit "refusal" "lock-tool-missing" "flock command is required for safe platform locking"
+    fi
+
+    # Tree lock if tree route requested
+    if [ -n "$TREE_SELECTED_COMPONENTS" ]; then
+        mkdir -p "$OPT_PREFIX" 2>/dev/null || true
+        t_lock_file="${OPT_PREFIX}/.solstone-platform.lock"
+        exec 8>>"$t_lock_file"
+        if ! flock -n 8; then
+            report_exit "refusal" "tree-locked" "Another platform installation holds the tree lock at $OPT_PREFIX"
+        fi
+    fi
+}
+
+interactive_selection_menu() {
+    if [ "$OPT_NON_INTERACTIVE" -eq 1 ] || [ "$OPT_JSON" -eq 1 ]; then
+        report_exit "refusal" "no-selection" "No components selected in non-interactive mode (use --components or --all)"
+    fi
+
+    if ! sh -c 'test -t 0' </dev/tty >/dev/null 2>&1; then
+        report_exit "refusal" "no-selection" "interactive terminal /dev/tty is not readable (use --components or --all)"
+    fi
+
+    printf "\nSolstone Platform Component Selection:\n" > /dev/tty
+    printf "  1) All available components (journal, desktop, tmux)\n" > /dev/tty
+    printf "  2) Journal only\n" > /dev/tty
+    printf "  3) Desktop only\n" > /dev/tty
+    printf "  4) Tmux only\n" > /dev/tty
+    printf "Select components by number (1-4) or specify --components flag: " > /dev/tty
+
+    read -r choice < /dev/tty
+    case "$choice" in
+        1)
+            OPT_COMPONENTS="all"
+            ;;
+        2)
+            OPT_COMPONENTS="journal"
+            ;;
+        3)
+            OPT_COMPONENTS="desktop"
+            ;;
+        4)
+            OPT_COMPONENTS="tmux"
+            ;;
+        *)
+            report_exit "refusal" "invalid-selection" "Invalid component selection '$choice' (use --components <components>)"
+            ;;
+    esac
+}
+
+receipt_value() {
+    rv_file="$1"
+    rv_section="$2"
+    rv_key="$3"
+    awk -v wanted="[$rv_section]" -v key="$rv_key" '
+        /^\[/ {
+            active = ($0 == wanted)
+            if (active) sections++
+            next
+        }
+        active && index($0, key "=") == 1 {
+            count++
+            value = substr($0, length(key) + 2)
+        }
+        END {
+            if (sections != 1 || count != 1) exit 1
+            print value
+        }
+    ' "$rv_file"
+}
+
+append_receipt_section() {
+    ars_file="$1"
+    ars_section="$2"
+    ars_output="$3"
+    awk -v wanted="[$ars_section]" '
+        /^\[/ {
+            if (active && $0 != wanted) exit
+            active = ($0 == wanted)
+        }
+        active { print }
+    ' "$ars_file" >> "$ars_output"
+}
+
+component_selected() {
+    cs_wanted="$1"
+    for cs_component in $SELECTED_COMPONENTS; do
+        [ "$cs_component" = "$cs_wanted" ] && return 0
+    done
+    return 1
+}
+
+package_protocol_failure() {
+    ppf_output="$1"
+    ppf_fallback="$2"
+    ppf_message="$3"
+    case "$ppf_output" in
+        ERROR:*) report_exit "refusal" "${ppf_output#ERROR:}" "$ppf_message" ;;
+        *) report_exit "refusal" "$ppf_fallback" "$ppf_message" ;;
+    esac
+}
+
+init_package_helper() {
+    [ "$PACKAGE_HELPER_READY" -eq 0 ] || return 0
+    if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HELPER:-}" ]; then
+        helper_bin="$SOLSTONE_HELPER"
+    else
+        helper_bin="/usr/libexec/solstone-pkg-helper.sh"
+        [ ! -f "$helper_bin" ] && helper_bin="${PWD}/helpers/solstone-pkg-helper.sh"
+    fi
+    [ -f "$helper_bin" ] || report_exit "refusal" "helper-missing" "Package helper script not found at $helper_bin"
+
+    helper_flags=""
+    if [ "$TEST_SEAM" -eq 1 ]; then
+        [ -n "${SOLSTONE_LOCK_DIR:-}" ] && helper_flags="$helper_flags --lock-dir $SOLSTONE_LOCK_DIR"
+        [ -n "${SOLSTONE_ETC_ROOT:-}" ] && helper_flags="$helper_flags --etc-root $SOLSTONE_ETC_ROOT"
+        [ -n "${SOLSTONE_FAKE_PKG_DB:-}" ] && helper_flags="$helper_flags --fake-pkg-db $SOLSTONE_FAKE_PKG_DB"
+        [ -n "${SOLSTONE_FAKE_ROOT:-}" ] && helper_flags="$helper_flags --fake-root $SOLSTONE_FAKE_ROOT"
+        [ -n "${SOLSTONE_FAKE_JOURNAL_LAUNCHER:-}" ] && helper_flags="$helper_flags --fake-journal-launcher $SOLSTONE_FAKE_JOURNAL_LAUNCHER"
+    fi
+
+    sudo_prefix=""
+    if [ "$(id -u 2>/dev/null || echo 1000)" -ne 0 ]; then
+        sudo_prefix="sudo -n "
+    fi
+    # shellcheck disable=SC2086
+    if ! ping_res=$(printf "PING\n" | $sudo_prefix "$helper_bin" $helper_flags 2>/dev/null); then
+        report_exit "refusal" "privilege-required" "Noninteractive sudo privilege is required for package operations"
+    fi
+    [ "$ping_res" = "PONG" ] || report_exit "refusal" "privilege-required" "Package helper PING failed"
+    PACKAGE_HELPER_READY=1
+}
+
+package_read_receipt() {
+    PACKAGE_RECEIPT_FILE="${SCRATCH_DIR}/package-receipt.conf"
+    : > "$PACKAGE_RECEIPT_FILE" || report_exit "refusal" "receipt-read-failed" "Could not stage package receipt read"
+    # shellcheck disable=SC2086
+    if ! printf "READ_ETC_RECEIPT\n" | $sudo_prefix "$helper_bin" $helper_flags > "$PACKAGE_RECEIPT_FILE"; then
+        package_read_error=$(sed -n '1p' "$PACKAGE_RECEIPT_FILE")
+        package_protocol_failure "$package_read_error" "receipt-read-failed" "Could not read package receipt"
+    fi
+}
+
+package_load_section() {
+    pls_file="$1"
+    pls_component="$2"
+    pls_section="component:${pls_component}"
+    if ! PLS_PHASE=$(receipt_value "$pls_file" "$pls_section" phase 2>/dev/null) \
+        || ! PLS_STATUS=$(receipt_value "$pls_file" "$pls_section" status 2>/dev/null) \
+        || ! PLS_ROLE=$(receipt_value "$pls_file" "$pls_section" role 2>/dev/null) \
+        || ! PLS_ROUTE=$(receipt_value "$pls_file" "$pls_section" route 2>/dev/null) \
+        || ! PLS_POLICY=$(receipt_value "$pls_file" "$pls_section" service_policy 2>/dev/null) \
+        || ! PLS_NAME=$(receipt_value "$pls_file" "$pls_section" package_name 2>/dev/null) \
+        || ! PLS_VERSION=$(receipt_value "$pls_file" "$pls_section" package_version 2>/dev/null) \
+        || ! PLS_ARCH=$(receipt_value "$pls_file" "$pls_section" package_arch 2>/dev/null) \
+        || ! PLS_SHA=$(receipt_value "$pls_file" "$pls_section" artifact_sha256 2>/dev/null) \
+        || ! PLS_BUILD=$(receipt_value "$pls_file" "$pls_section" payload_build_id 2>/dev/null); then
+        return 1
+    fi
+    case "$PLS_PHASE:$PLS_STATUS" in
+        intended:intended|payload:payload|complete:installed) ;;
+        *) return 1 ;;
+    esac
+    case "$PLS_ROLE:$PLS_ROUTE:$PLS_POLICY" in
+        journal:deb:start|journal:deb:skip-service|journal:rpm:start|journal:rpm:skip-service|cli:deb:start|cli:deb:skip-service|cli:rpm:start|cli:rpm:skip-service|desktop:deb:start|desktop:deb:skip-service|desktop:rpm:start|desktop:rpm:skip-service|tmux:deb:start|tmux:deb:skip-service|tmux:rpm:start|tmux:rpm:skip-service) ;;
+        *) return 1 ;;
+    esac
+    [ "$PLS_ROLE" = "$pls_component" ] || return 1
+    [ -n "$PLS_NAME" ] && [ -n "$PLS_VERSION" ] && [ -n "$PLS_ARCH" ] \
+        && [ -n "$PLS_SHA" ] && [ -n "$PLS_BUILD" ] || return 1
+    case "$PLS_SHA" in *[!0123456789abcdef]*) return 1 ;; esac
+    case "$PLS_BUILD" in *[!0123456789abcdef]*) return 1 ;; esac
+    [ "${#PLS_SHA}" -eq 64 ] && [ "${#PLS_BUILD}" -eq 64 ] || return 1
+    PLS_HAS_PRIOR=0
+    PLS_PRIOR_ROLE=""
+    PLS_PRIOR_ROUTE=""
+    PLS_PRIOR_POLICY=""
+    PLS_PRIOR_NAME=""
+    PLS_PRIOR_VERSION=""
+    PLS_PRIOR_ARCH=""
+    PLS_PRIOR_SHA=""
+    PLS_PRIOR_BUILD=""
+    pls_prior_keys=0
+    if [ "$PLS_PHASE" != "complete" ]; then
+        pls_prior_keys=$(awk -v wanted="[$pls_section]" '
+            /^\[/ { active = ($0 == wanted); next }
+            active && /^(prior_role|prior_route|prior_service_policy|prior_package_name|prior_package_version|prior_package_arch|prior_artifact_sha256|prior_payload_build_id)=/ { count++ }
+            END { print count + 0 }
+        ' "$pls_file")
+    fi
+    case "$pls_prior_keys" in
+        0) ;;
+        8) ;;
+        *) return 1 ;;
+    esac
+    if [ "$pls_prior_keys" -eq 8 ]; then
+        PLS_PRIOR_ROLE=$(receipt_value "$pls_file" "$pls_section" prior_role 2>/dev/null) || return 1
+        if ! PLS_PRIOR_ROUTE=$(receipt_value "$pls_file" "$pls_section" prior_route 2>/dev/null) \
+            || ! PLS_PRIOR_POLICY=$(receipt_value "$pls_file" "$pls_section" prior_service_policy 2>/dev/null) \
+            || ! PLS_PRIOR_NAME=$(receipt_value "$pls_file" "$pls_section" prior_package_name 2>/dev/null) \
+            || ! PLS_PRIOR_VERSION=$(receipt_value "$pls_file" "$pls_section" prior_package_version 2>/dev/null) \
+            || ! PLS_PRIOR_ARCH=$(receipt_value "$pls_file" "$pls_section" prior_package_arch 2>/dev/null) \
+            || ! PLS_PRIOR_SHA=$(receipt_value "$pls_file" "$pls_section" prior_artifact_sha256 2>/dev/null) \
+            || ! PLS_PRIOR_BUILD=$(receipt_value "$pls_file" "$pls_section" prior_payload_build_id 2>/dev/null); then
+            return 1
+        fi
+        case "$PLS_PRIOR_ROLE:$PLS_PRIOR_ROUTE:$PLS_PRIOR_POLICY" in
+            "$pls_component":deb:start|"$pls_component":deb:skip-service|"$pls_component":rpm:start|"$pls_component":rpm:skip-service) ;;
+            *) return 1 ;;
+        esac
+        [ -n "$PLS_PRIOR_NAME" ] && [ -n "$PLS_PRIOR_VERSION" ] && [ -n "$PLS_PRIOR_ARCH" ] || return 1
+        case "$PLS_PRIOR_SHA" in *[!0123456789abcdef]*) return 1 ;; esac
+        case "$PLS_PRIOR_BUILD" in *[!0123456789abcdef]*) return 1 ;; esac
+        [ "${#PLS_PRIOR_SHA}" -eq 64 ] && [ "${#PLS_PRIOR_BUILD}" -eq 64 ] || return 1
+        PLS_HAS_PRIOR=1
+    fi
+    return 0
+}
+
+package_find_owner() {
+    pfo_file="$1"
+    pfo_name="$2"
+    pfo_version="$3"
+    pfo_arch="$4"
+    PFO_COUNT=0
+    PFO_MATCH=""
+    for pfo_component in journal cli desktop tmux; do
+        if ! package_load_section "$pfo_file" "$pfo_component"; then
+            continue
+        fi
+        [ "$PLS_ROUTE" = "$PKG_VARIANT" ] || continue
+        pfo_match=""
+        if [ "$PLS_NAME" = "$pfo_name" ] && [ "$PLS_VERSION" = "$pfo_version" ] && [ "$PLS_ARCH" = "$pfo_arch" ]; then
+            pfo_match="target"
+        fi
+        if [ "$PLS_HAS_PRIOR" -eq 1 ] && [ "$PLS_PRIOR_ROUTE" = "$PKG_VARIANT" ] \
+            && [ "$PLS_PRIOR_NAME" = "$pfo_name" ] \
+            && [ "$PLS_PRIOR_VERSION" = "$pfo_version" ] && [ "$PLS_PRIOR_ARCH" = "$pfo_arch" ]; then
+            [ -n "$pfo_match" ] && pfo_match="both" || pfo_match="prior"
+        fi
+        [ -n "$pfo_match" ] || continue
+        PFO_COUNT=$((PFO_COUNT + 1))
+        [ "$PFO_COUNT" -eq 1 ] || continue
+        PFO_MATCH="$pfo_match"
+        PFO_PHASE="$PLS_PHASE"
+        PFO_ROLE="$PLS_ROLE"
+        PFO_ROUTE="$PLS_ROUTE"
+        PFO_POLICY="$PLS_POLICY"
+        PFO_NAME="$PLS_NAME"
+        PFO_VERSION="$PLS_VERSION"
+        PFO_ARCH="$PLS_ARCH"
+        PFO_SHA="$PLS_SHA"
+        PFO_BUILD="$PLS_BUILD"
+        PFO_HAS_PRIOR="$PLS_HAS_PRIOR"
+        PFO_PRIOR_ROLE="$PLS_PRIOR_ROLE"
+        PFO_PRIOR_ROUTE="$PLS_PRIOR_ROUTE"
+        PFO_PRIOR_POLICY="$PLS_PRIOR_POLICY"
+        PFO_PRIOR_NAME="$PLS_PRIOR_NAME"
+        PFO_PRIOR_VERSION="$PLS_PRIOR_VERSION"
+        PFO_PRIOR_ARCH="$PLS_PRIOR_ARCH"
+        PFO_PRIOR_SHA="$PLS_PRIOR_SHA"
+        PFO_PRIOR_BUILD="$PLS_PRIOR_BUILD"
+    done
+}
+
+package_owner_matches_target() {
+    [ "$PFO_ROLE" = "$PC_ROLE" ] && [ "$PFO_ROUTE" = "$PC_ROUTE" ] \
+        && [ "$PFO_POLICY" = "$PC_POLICY" ] && [ "$PFO_NAME" = "$PC_NAME" ] \
+        && [ "$PFO_VERSION" = "$PC_VERSION" ] && [ "$PFO_ARCH" = "$PC_ARCH" ] \
+        && [ "$PFO_SHA" = "$PC_SHA" ] && [ "$PFO_BUILD" = "$PC_BUILD" ]
+}
+
+package_set_no_prior() {
+    PC_HAS_PRIOR=0
+    PC_PRIOR_ROLE=""
+    PC_PRIOR_ROUTE=""
+    PC_PRIOR_POLICY=""
+    PC_PRIOR_NAME=""
+    PC_PRIOR_VERSION=""
+    PC_PRIOR_ARCH=""
+    PC_PRIOR_SHA=""
+    PC_PRIOR_BUILD=""
+}
+
+package_set_prior_from_owner_target() {
+    PC_HAS_PRIOR=1
+    PC_PRIOR_ROLE="$PFO_ROLE"
+    PC_PRIOR_ROUTE="$PFO_ROUTE"
+    PC_PRIOR_POLICY="$PFO_POLICY"
+    PC_PRIOR_NAME="$PFO_NAME"
+    PC_PRIOR_VERSION="$PFO_VERSION"
+    PC_PRIOR_ARCH="$PFO_ARCH"
+    PC_PRIOR_SHA="$PFO_SHA"
+    PC_PRIOR_BUILD="$PFO_BUILD"
+}
+
+package_set_prior_from_owner_prior() {
+    PC_HAS_PRIOR=1
+    PC_PRIOR_ROLE="$PFO_PRIOR_ROLE"
+    PC_PRIOR_ROUTE="$PFO_PRIOR_ROUTE"
+    PC_PRIOR_POLICY="$PFO_PRIOR_POLICY"
+    PC_PRIOR_NAME="$PFO_PRIOR_NAME"
+    PC_PRIOR_VERSION="$PFO_PRIOR_VERSION"
+    PC_PRIOR_ARCH="$PFO_PRIOR_ARCH"
+    PC_PRIOR_SHA="$PFO_PRIOR_SHA"
+    PC_PRIOR_BUILD="$PFO_PRIOR_BUILD"
+}
+
+package_publish_phase() {
+    ppp_component="$1"
+    ppp_phase="$2"
+    ppp_status="$3"
+    ppp_section="${SCRATCH_DIR}/package-section.${ppp_component}.$$"
+    ppp_receipt="${SCRATCH_DIR}/package-receipt-next.$$"
+    {
+        printf "[component:%s]\n" "$ppp_component"
+        printf "phase=%s\n" "$ppp_phase"
+        printf "status=%s\n" "$ppp_status"
+        printf "role=%s\n" "$PC_ROLE"
+        printf "route=%s\n" "$PC_ROUTE"
+        printf "service_policy=%s\n" "$PC_POLICY"
+        printf "package_name=%s\n" "$PC_NAME"
+        printf "package_version=%s\n" "$PC_VERSION"
+        printf "package_arch=%s\n" "$PC_ARCH"
+        printf "artifact_sha256=%s\n" "$PC_SHA"
+        printf "payload_build_id=%s\n" "$PC_BUILD"
+        if [ "$ppp_phase" != "complete" ] && [ "$PC_HAS_PRIOR" -eq 1 ]; then
+            printf "prior_role=%s\n" "$PC_PRIOR_ROLE"
+            printf "prior_route=%s\n" "$PC_PRIOR_ROUTE"
+            printf "prior_service_policy=%s\n" "$PC_PRIOR_POLICY"
+            printf "prior_package_name=%s\n" "$PC_PRIOR_NAME"
+            printf "prior_package_version=%s\n" "$PC_PRIOR_VERSION"
+            printf "prior_package_arch=%s\n" "$PC_PRIOR_ARCH"
+            printf "prior_artifact_sha256=%s\n" "$PC_PRIOR_SHA"
+            printf "prior_payload_build_id=%s\n" "$PC_PRIOR_BUILD"
+        fi
+    } > "$ppp_section" || report_exit "refusal" "receipt-write-failed" "Could not stage package component receipt"
+    {
+        printf "[solstone]\n"
+        printf "schema_version=1\n"
+        printf "platform_version=%s\n" "$RESOLVED_VERSION"
+        printf "lane=%s\n" "$OPT_LANE"
+        printf "origin=%s\n" "$OPT_ORIGIN"
+        printf "arch=%s\n" "$HOST_ARCH"
+        printf "verification=%s\n" "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign")"
+        printf "installer_revision=%s\n" "$INSTALLER_REVISION"
+    } > "$ppp_receipt" || report_exit "refusal" "receipt-write-failed" "Could not stage package receipt"
+    for ppp_existing in journal cli desktop tmux; do
+        if [ "$ppp_existing" = "$ppp_component" ]; then
+            cat "$ppp_section" >> "$ppp_receipt" || report_exit "refusal" "receipt-write-failed" "Could not stage package component receipt"
+        elif component_selected "$ppp_existing"; then
+            [ ! -s "$PACKAGE_RECEIPT_FILE" ] || append_receipt_section "$PACKAGE_RECEIPT_FILE" "component:${ppp_existing}" "$ppp_receipt" || report_exit "refusal" "receipt-write-failed" "Could not preserve package receipt section"
+        else
+            [ ! -s "$PACKAGE_RECEIPT_FILE" ] || append_receipt_section "$PACKAGE_RECEIPT_FILE" "component:${ppp_existing}" "$ppp_receipt" || report_exit "refusal" "receipt-write-failed" "Could not preserve package receipt section"
+        fi
+    done
+    ppp_len=$(wc -c < "$ppp_receipt" | tr -d '[:space:]')
+    # shellcheck disable=SC2086
+    if ! ppp_result=$({ printf "WRITE_ETC_RECEIPT %s\n" "$ppp_len"; cat "$ppp_receipt"; } | $sudo_prefix "$helper_bin" $helper_flags); then
+        package_protocol_failure "$ppp_result" "receipt-write-failed" "Could not publish package receipt"
+    fi
+    [ "$ppp_result" = "OK" ] || package_protocol_failure "$ppp_result" "receipt-write-failed" "Could not publish package receipt"
+    cp "$ppp_receipt" "$PACKAGE_RECEIPT_FILE" || report_exit "refusal" "receipt-write-failed" "Could not retain package receipt state"
+}
+
+package_query_current() {
+    pqc_name="$1"
+    # shellcheck disable=SC2086
+    if ! PQUERY_OUT=$(printf "QUERY_PKG %s %s\n" "$PKG_VARIANT" "$pqc_name" | $sudo_prefix "$helper_bin" $helper_flags); then
+        package_protocol_failure "$PQUERY_OUT" "query-failed" "Could not query package $pqc_name"
+    fi
+    # shellcheck disable=SC2086
+    set -- $PQUERY_OUT
+    PQUERY_STATE="${1:-}"
+    PQUERY_NAME="${2:-}"
+    PQUERY_VERSION="${3:-}"
+    PQUERY_ARCH="${4:-}"
+    case "$PQUERY_STATE" in
+        ABSENT)
+            [ $# -eq 1 ] || report_exit "refusal" "query-malformed" "Package query returned malformed absence"
+            ;;
+        INSTALLED|CONFIG_FILES)
+            if [ $# -ne 4 ] || [ "$PQUERY_NAME" != "$pqc_name" ]; then
+                report_exit "refusal" "query-malformed" "Package query returned malformed identity"
+            fi
+            ;;
+        *) report_exit "refusal" "query-malformed" "Package query returned malformed output" ;;
+    esac
+}
+
+package_fetch_install() {
+    pfi_path="${SCRATCH_DIR}/${PC_FILENAME}"
+    fetch_file_with_redirect_check "${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}/${PC_FILENAME}" "$pfi_path"
+    verify_sha256 "$pfi_path" "$PC_SHA"
+    # shellcheck disable=SC2086
+    if ! PINSTALL_OUT=$(printf "INSTALL_PKG %s %s\n" "$PKG_VARIANT" "$pfi_path" | $sudo_prefix "$helper_bin" $helper_flags); then
+        package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
+    fi
+    [ "$PINSTALL_OUT" = "OK" ] || package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
+    package_query_current "$PC_NAME"
+    if [ "$PQUERY_STATE" != "INSTALLED" ] || [ "$PQUERY_NAME" != "$PC_NAME" ] \
+        || [ "$PQUERY_VERSION" != "$PC_VERSION" ] || [ "$PQUERY_ARCH" != "$PC_ARCH" ]; then
+        report_exit "refusal" "package-install-failed" "Installed package identity did not match candidate $PC_NAME"
+    fi
+}
+
+package_run_setup() {
+    [ "$PC_ROLE" = "journal" ] || return 0
+    if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_PKG_DB:-}" ]; then
+        [ -n "${SOLSTONE_FAKE_ROOT:-}" ] || report_exit "refusal" "setup-failed" "Fake package root is required for journal setup"
+        JOURNAL_LAUNCHER="${SOLSTONE_FAKE_ROOT}/usr/bin/journal"
+    else
+        JOURNAL_LAUNCHER="/usr/bin/journal"
+    fi
+    [ -x "$JOURNAL_LAUNCHER" ] || report_exit "refusal" "setup-failed" "Package-owned journal launcher is unavailable"
+    if [ "$OPT_NO_START" -eq 1 ]; then
+        if ! "$JOURNAL_LAUNCHER" setup --yes --installer-transaction --skip-service; then
+            report_exit "refusal" "setup-failed" "Journal setup failed"
+        fi
+    elif ! "$JOURNAL_LAUNCHER" setup --yes --installer-transaction; then
+        report_exit "refusal" "setup-failed" "Journal setup failed"
+    fi
+}
+
+package_complete_after_payload() {
+    package_run_setup
+    package_publish_phase "$PC_ROLE" complete installed
+    SUCCEEDED_COMPONENTS="${SUCCEEDED_COMPONENTS}${SUCCEEDED_COMPONENTS:+ }${PC_ROLE}"
+}
+
+package_candidate_is_older() {
+    pcio_installed="$1"
+    pcio_candidate="$2"
+    if [ "$PKG_VARIANT" = "deb" ]; then
+        command -v dpkg >/dev/null 2>&1 \
+            || report_exit "refusal" "query-unavailable" "dpkg is required to compare Debian package versions"
+        dpkg --compare-versions "$pcio_candidate" lt "$pcio_installed"
+        return $?
+    fi
+    pcio_first=$(printf '%s\n%s\n' "$pcio_installed" "$pcio_candidate" | sort -V | head -n 1)
+    [ "$pcio_first" = "$pcio_candidate" ] && [ "$pcio_installed" != "$pcio_candidate" ]
+}
+
+record_pointer_state() {
+    rp_name="$1"
+    rp_path="$2"
+    rp_state_dir="${SCRATCH_DIR}/pointer-rollback"
+    mkdir -p "$rp_state_dir" || report_exit "refusal" "target-write-failed" "Could not stage pointer rollback state"
+    if [ -L "$rp_path" ]; then
+        {
+            printf "symlink\n"
+            readlink "$rp_path"
+        } > "${rp_state_dir}/${rp_name}" || report_exit "refusal" "target-read-failed" "Could not record existing pointer $rp_path"
+    elif [ -e "$rp_path" ]; then
+        printf "other\n" > "${rp_state_dir}/${rp_name}" || report_exit "refusal" "target-read-failed" "Could not record existing path $rp_path"
+    else
+        printf "absent\n" > "${rp_state_dir}/${rp_name}" || report_exit "refusal" "target-read-failed" "Could not record absent pointer $rp_path"
+    fi
+}
+
+restore_pointer_state() {
+    rs_name="$1"
+    rs_path="$2"
+    rs_state="${SCRATCH_DIR}/pointer-rollback/${rs_name}"
+    [ -f "$rs_state" ] || return 0
+    rs_kind=$(sed -n '1p' "$rs_state")
+    case "$rs_kind" in
+        symlink)
+            rs_target=$(sed -n '2p' "$rs_state")
+            rs_tmp="${rs_path}.rollback.$$"
+            ln -s "$rs_target" "$rs_tmp" || return 1
+            mv -Tf "$rs_tmp" "$rs_path" || {
+                rm -f "$rs_tmp" 2>/dev/null || true
+                return 1
+            }
+            ;;
+        absent)
+            if [ -L "$rs_path" ]; then
+                rm -f "$rs_path" || return 1
+            elif [ -e "$rs_path" ]; then
+                return 1
+            fi
+            ;;
+        other)
+            [ -e "$rs_path" ] && [ ! -L "$rs_path" ] || return 1
+            ;;
+        *) return 1 ;;
+    esac
+    return 0
+}
+
+rollback_tree_pointers() {
+    rb_failed=0
+    for rb_comp in desktop tmux; do
+        rb_exec_name=$(cat "${SCRATCH_DIR}/manifest/components/${rb_comp}/arches/${HOST_ARCH}/tree/executable/name" 2>/dev/null || true)
+        [ -n "$rb_exec_name" ] || continue
+        restore_pointer_state "${rb_comp}.public" "${OPT_PREFIX}/bin/${rb_exec_name}" || rb_failed=1
+        restore_pointer_state "${rb_comp}.current" "${OPT_PREFIX}/opt/solstone/${rb_comp}/current" || rb_failed=1
+    done
+    [ "$rb_failed" -eq 0 ]
+}
+
+record_handler_path_state() {
+    rhps_path="${XDG_CONFIG_HOME:-$HOME/.config}/solstone/env"
+    rhps_dir="${SCRATCH_DIR}/handler-rollback"
+    mkdir -p "$rhps_dir" || report_exit "refusal" "target-write-failed" "could not stage handler rollback state"
+    if [ -L "$rhps_path" ]; then
+        {
+            printf "symlink\n"
+            readlink "$rhps_path"
+        } > "${rhps_dir}/path-state" || report_exit "refusal" "target-read-failed" "could not record PATH state"
+    elif [ -f "$rhps_path" ]; then
+        printf "regular\n" > "${rhps_dir}/path-state" \
+            || report_exit "refusal" "target-read-failed" "could not record PATH state"
+        cp "$rhps_path" "${rhps_dir}/path-content" \
+            || report_exit "refusal" "target-read-failed" "could not record PATH state"
+    elif [ -e "$rhps_path" ]; then
+        printf "other\n" > "${rhps_dir}/path-state" \
+            || report_exit "refusal" "target-read-failed" "could not record PATH state"
+    else
+        printf "absent\n" > "${rhps_dir}/path-state" \
+            || report_exit "refusal" "target-read-failed" "could not record PATH state"
+    fi
+}
+
+restore_handler_path_state() {
+    rhps_path="${XDG_CONFIG_HOME:-$HOME/.config}/solstone/env"
+    rhps_state="${SCRATCH_DIR}/handler-rollback/path-state"
+    [ -f "$rhps_state" ] || return 0
+    rhps_kind=$(sed -n '1p' "$rhps_state")
+    case "$rhps_kind" in
+        regular)
+            [ ! -L "$rhps_path" ] || return 1
+            mkdir -p "$(dirname "$rhps_path")" || return 1
+            cp "${SCRATCH_DIR}/handler-rollback/path-content" "$rhps_path" || return 1
+            ;;
+        symlink)
+            rhps_target=$(sed -n '2p' "$rhps_state")
+            mkdir -p "$(dirname "$rhps_path")" || return 1
+            rm -f "$rhps_path" || return 1
+            ln -s "$rhps_target" "$rhps_path" || return 1
+            ;;
+        absent)
+            if [ -L "$rhps_path" ] || [ -f "$rhps_path" ]; then rm -f "$rhps_path" || return 1; fi
+            [ ! -e "$rhps_path" ] || return 1
+            ;;
+        other) [ -e "$rhps_path" ] && [ ! -f "$rhps_path" ] && [ ! -L "$rhps_path" ] || return 1 ;;
+        *) return 1 ;;
+    esac
+}
+
+record_prior_service_policy() {
+    rpsp_component="$1"
+    rpsp_receipt="$2"
+    rpsp_dir="${SCRATCH_DIR}/handler-rollback"
+    mkdir -p "$rpsp_dir" || report_exit "refusal" "target-write-failed" "could not stage handler rollback state"
+    if [ -f "$rpsp_receipt" ] \
+        && receipt_value "$rpsp_receipt" "component:${rpsp_component}" role >/dev/null 2>&1; then
+        rpsp_policy=$(receipt_value "$rpsp_receipt" "component:${rpsp_component}" no_start 2>/dev/null) \
+            || report_exit "refusal" "ownership-unknown" "tree receipt for $rpsp_component is missing service policy"
+        case "$rpsp_policy" in 0|1) ;; *) report_exit "refusal" "ownership-unknown" "tree receipt for $rpsp_component has invalid service policy" ;; esac
+        printf '%s\n' "$rpsp_policy" > "${rpsp_dir}/prior-${rpsp_component}" \
+            || report_exit "refusal" "target-write-failed" "could not stage service rollback state"
+    else
+        printf 'absent\n' > "${rpsp_dir}/prior-${rpsp_component}" \
+            || report_exit "refusal" "target-write-failed" "could not stage service rollback state"
+    fi
+}
+
+rollback_tree_handlers() {
+    rth_failed=0
+    for rth_component in tmux desktop; do
+        rth_attempted="${SCRATCH_DIR}/handler-rollback/attempted-${rth_component}"
+        if [ -f "$rth_attempted" ]; then
+            rth_new_binary=$(cat "$rth_attempted")
+            "$rth_new_binary" uninstall-service >/dev/null 2>&1 || rth_failed=1
+        fi
+    done
+    rollback_tree_pointers || rth_failed=1
+    restore_handler_path_state || rth_failed=1
+    for rth_component in desktop tmux; do
+        rth_prior="${SCRATCH_DIR}/handler-rollback/prior-${rth_component}"
+        [ -f "$rth_prior" ] || continue
+        [ "$(cat "$rth_prior")" = "0" ] || continue
+        case "$rth_component" in desktop) rth_name="solstone-linux" ;; tmux) rth_name="solstone-tmux" ;; esac
+        rth_old_binary="${OPT_PREFIX}/bin/${rth_name}"
+        if [ ! -x "$rth_old_binary" ] || ! "$rth_old_binary" install-service >/dev/null 2>&1; then
+            rth_failed=1
+        fi
+    done
+    [ "$rth_failed" -eq 0 ]
+}
+
+tree_mutation_failure() {
+    tmf_code="$1"
+    tmf_message="$2"
+    if ! rollback_tree_handlers; then
+        report_exit "refusal" "rollback-failed" "$tmf_message; the previous active installation could not be fully restored"
+    fi
+    report_exit "refusal" "$tmf_code" "$tmf_message; the previous active installation was restored"
+}
+
+tree_receipt_failure() {
+    trf_message="$1"
+    if ! rollback_tree_handlers; then
+        report_exit "refusal" "rollback-failed" "$trf_message; the previous active installation could not be fully restored"
+    fi
+    report_exit "refusal" "receipt-write-failed" "$trf_message; the previous active installation was restored"
+}
+
+handler_state_matches() {
+    hs_component="$1"
+    hs_public_path="$2"
+    hs_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+    : "${hs_component}" "${hs_public_path}"
+
+    if [ "$OPT_NO_PATH" -eq 0 ]; then
+        hs_env="${hs_config_home}/solstone/env"
+        hs_expected_env="${SCRATCH_DIR}/expected.env"
+        cat > "$hs_expected_env" <<EOF
+### SOLSTONE-PLATFORM-MANAGED: platform-v1-path ###
+case ":\${PATH}:" in
+    *:${OPT_PREFIX}/bin:*) ;;
+    *) export PATH="${OPT_PREFIX}/bin:\${PATH}" ;;
+esac
+EOF
+        cmp -s "$hs_env" "$hs_expected_env" || return 1
+    fi
+    return 0
+}
+
+global_receipt_matches_current() {
+    gr_receipt="$1"
+    gr_verification="minisign"
+    [ "$OPT_SKIP_SIGNATURE" -eq 1 ] && gr_verification="digest-matched; signatures skipped"
+    [ "$(receipt_value "$gr_receipt" solstone schema_version 2>/dev/null || true)" = "1" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone platform_version 2>/dev/null || true)" = "$RESOLVED_VERSION" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone lane 2>/dev/null || true)" = "$OPT_LANE" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone origin 2>/dev/null || true)" = "$OPT_ORIGIN" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone route 2>/dev/null || true)" = "tree" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone prefix 2>/dev/null || true)" = "$OPT_PREFIX" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone arch 2>/dev/null || true)" = "$HOST_ARCH" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone verification 2>/dev/null || true)" = "$gr_verification" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone installer_revision 2>/dev/null || true)" = "$INSTALLER_REVISION" ] || return 1
+    [ "$(receipt_value "$gr_receipt" solstone phase 2>/dev/null || true)" = "complete" ] || return 1
+    return 0
+}
+
+tree_component_converged() {
+    tc_component="$1"
+    tc_manifest_dir="$2"
+    tc_receipt="$3"
+    [ -f "$tc_receipt" ] || return 1
+
+    tc_verification="minisign"
+    [ "$OPT_SKIP_SIGNATURE" -eq 1 ] && tc_verification="digest-matched; signatures skipped"
+    [ "$(receipt_value "$tc_receipt" solstone schema_version 2>/dev/null || true)" = "1" ] || return 1
+    [ "$(receipt_value "$tc_receipt" solstone route 2>/dev/null || true)" = "tree" ] || return 1
+    [ "$(receipt_value "$tc_receipt" solstone prefix 2>/dev/null || true)" = "$OPT_PREFIX" ] || return 1
+    [ "$(receipt_value "$tc_receipt" solstone arch 2>/dev/null || true)" = "$HOST_ARCH" ] || return 1
+    [ "$(receipt_value "$tc_receipt" solstone phase 2>/dev/null || true)" = "complete" ] || return 1
+
+    tc_section="component:${tc_component}"
+    tc_version=$(cat "${tc_manifest_dir}/components/${tc_component}/version")
+    tc_expected_sha=$(cat "${tc_manifest_dir}/components/${tc_component}/arches/${HOST_ARCH}/tree/executable/sha256")
+    tc_archive_sha=$(cat "${tc_manifest_dir}/components/${tc_component}/arches/${HOST_ARCH}/tree/sha256")
+    tc_digest12=$(printf "%s" "$tc_archive_sha" | cut -c1-12)
+    tc_current_target="${tc_version}-${tc_digest12}"
+    tc_exec_name=$(cat "${tc_manifest_dir}/components/${tc_component}/arches/${HOST_ARCH}/tree/executable/name")
+    tc_current="${OPT_PREFIX}/opt/solstone/${tc_component}/current"
+    tc_public="${OPT_PREFIX}/bin/${tc_exec_name}"
+    tc_rel=$(receipt_value "$tc_receipt" "$tc_section" executable_relpath 2>/dev/null || true)
+    case "$tc_rel" in
+        "bin/${tc_exec_name}"|"usr/bin/${tc_exec_name}"|"${tc_exec_name}") ;;
+        *) return 1 ;;
+    esac
+
+    [ "$(receipt_value "$tc_receipt" "$tc_section" role 2>/dev/null || true)" = "$tc_component" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" lane 2>/dev/null || true)" = "$OPT_LANE" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" origin 2>/dev/null || true)" = "$OPT_ORIGIN" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" route 2>/dev/null || true)" = "tree" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" prefix 2>/dev/null || true)" = "$OPT_PREFIX" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" arch 2>/dev/null || true)" = "$HOST_ARCH" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" version 2>/dev/null || true)" = "$tc_version" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" status 2>/dev/null || true)" = "installed" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" executable_sha256 2>/dev/null || true)" = "$tc_expected_sha" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" current 2>/dev/null || true)" = "$tc_current" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" public_path 2>/dev/null || true)" = "$tc_public" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" current_target 2>/dev/null || true)" = "$tc_current_target" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" verification 2>/dev/null || true)" = "$tc_verification" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" installer_revision 2>/dev/null || true)" = "$INSTALLER_REVISION" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" no_start 2>/dev/null || true)" = "$OPT_NO_START" ] || return 1
+    [ "$(receipt_value "$tc_receipt" "$tc_section" no_path 2>/dev/null || true)" = "$OPT_NO_PATH" ] || return 1
+    [ -L "$tc_current" ] && [ "$(readlink "$tc_current")" = "$tc_current_target" ] || return 1
+    [ -L "$tc_public" ] && [ "$(readlink "$tc_public")" = "${tc_current}/${tc_rel}" ] || return 1
+    tc_exec="${tc_current}/${tc_rel}"
+    [ -x "$tc_exec" ] || return 1
+    tc_actual_sha=$(sha256sum "$tc_exec" | awk '{print $1}')
+    [ "$tc_actual_sha" = "$tc_expected_sha" ] || return 1
+    tc_version_output=$("$tc_exec" --version 2>/dev/null || true)
+    printf "%s\n" "$tc_version_output" | awk -v wanted="$tc_version" '
+        {
+            normalized = $0
+            gsub(/[^0-9.]+/, " ", normalized)
+            count = split(normalized, parts, /[[:space:]]+/)
+            for (i = 1; i <= count; i++) if (parts[i] == wanted) found = 1
+        }
+        END { exit !found }
+    ' || return 1
+    handler_state_matches "$tc_component" "$tc_public" || return 1
+    return 0
+}
+
+plain_receipt_value() {
+    prv_file="$1"
+    prv_key="$2"
+    awk -v key="$prv_key" '
+        index($0, key "=") == 1 { count++; value = substr($0, length(key) + 2) }
+        END { if (count != 1) exit 1; print value }
+    ' "$prv_file"
+}
+
+tree_receipt_path() {
+    if [ "$TEST_SEAM" -eq 1 ] && [ -z "${XDG_DATA_HOME:-}" ]; then
+        printf '%s\n' "${OPT_PREFIX}/.solstone-platform/install.conf"
+    else
+        printf '%s\n' "${XDG_DATA_HOME:-$HOME/.local/share}/solstone/install.conf"
+    fi
+}
+
+tree_state_present() {
+    tsp_component="$1"
+    case "$tsp_component" in
+        journal|cli)
+            [ -e "${OPT_PREFIX}/current" ] || [ -L "${OPT_PREFIX}/current" ] \
+                || [ -e "${OPT_PREFIX}/install-receipt" ] || [ -L "${OPT_PREFIX}/install-receipt" ] \
+                || [ -e "${OPT_PREFIX}/bin/journal" ] || [ -L "${OPT_PREFIX}/bin/journal" ]
+            ;;
+        desktop|tmux)
+            tsp_name=$(cat "${manifest_dir}/components/${tsp_component}/arches/${HOST_ARCH}/tree/executable/name" 2>/dev/null || true)
+            [ -e "${OPT_PREFIX}/opt/solstone/${tsp_component}" ] || [ -L "${OPT_PREFIX}/opt/solstone/${tsp_component}" ] \
+                || { [ -n "$tsp_name" ] && { [ -e "${OPT_PREFIX}/bin/${tsp_name}" ] || [ -L "${OPT_PREFIX}/bin/${tsp_name}" ]; }; }
+            ;;
+        *) return 1 ;;
+    esac
+}
+
+tree_component_authority() {
+    tca_component="$1"
+    tca_mode="$2"
+    tca_required=3
+    TREE_CLAIM=0
+    TREE_STATE_PRESENT=0
+    tree_state_present "$tca_component" && TREE_STATE_PRESENT=1
+    tca_receipt=$(tree_receipt_path)
+    if [ ! -e "$tca_receipt" ] && [ ! -L "$tca_receipt" ]; then
+        return 0
+    fi
+    if [ -L "$tca_receipt" ] || [ ! -f "$tca_receipt" ] || [ ! -r "$tca_receipt" ]; then
+        report_exit "refusal" "receipt-write-failed" "Tree receipt path is not a readable regular file"
+    fi
+    if ! tca_role=$(receipt_value "$tca_receipt" "component:${tca_component}" role 2>/dev/null); then
+        return 0
+    fi
+    TREE_CLAIM=1
+    tca_route=$(receipt_value "$tca_receipt" "component:${tca_component}" route 2>/dev/null) \
+        || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+    tca_prefix=$(receipt_value "$tca_receipt" "component:${tca_component}" prefix 2>/dev/null) \
+        || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+    tca_arch=$(receipt_value "$tca_receipt" "component:${tca_component}" arch 2>/dev/null) \
+        || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+    tca_version=$(receipt_value "$tca_receipt" "component:${tca_component}" version 2>/dev/null) \
+        || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+    tca_status=$(receipt_value "$tca_receipt" "component:${tca_component}" status 2>/dev/null) \
+        || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+    if [ "$tca_role" != "$tca_component" ] || [ "$tca_route" != "tree" ] \
+        || [ "$tca_prefix" != "$OPT_PREFIX" ] || [ "$tca_arch" != "$HOST_ARCH" ] \
+        || [ "$tca_status" != "installed" ] || [ -z "$tca_version" ]; then
+        report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component does not match installed state"
+    fi
+
+    case "$tca_component" in
+        journal|cli)
+            tca_native="${OPT_PREFIX}/install-receipt"
+            tca_current="${OPT_PREFIX}/current"
+            tca_public="${OPT_PREFIX}/bin/journal"
+            tca_present=0
+            for tca_path in "$tca_native" "$tca_current" "$tca_public"; do
+                if [ -e "$tca_path" ] || [ -L "$tca_path" ]; then
+                    tca_present=$((tca_present + 1))
+                fi
+            done
+            if [ -e "$tca_native" ] || [ -L "$tca_native" ]; then
+                if [ ! -f "$tca_native" ] || [ -L "$tca_native" ] || [ ! -r "$tca_native" ]; then
+                    report_exit "refusal" "ownership-unknown" "journal install receipt does not match installed state"
+                fi
+                if [ "$(plain_receipt_value "$tca_native" route 2>/dev/null || true)" != "tree" ] \
+                    || [ "$(plain_receipt_value "$tca_native" role 2>/dev/null || true)" != "$tca_component" ] \
+                    || [ "$(plain_receipt_value "$tca_native" journal_version 2>/dev/null || true)" != "$tca_version" ]; then
+                    report_exit "refusal" "ownership-unknown" "journal install receipt does not match installed state"
+                fi
+            fi
+            if [ -e "$tca_current" ] || [ -L "$tca_current" ]; then
+                [ -L "$tca_current" ] || report_exit "refusal" "ownership-unknown" "journal current pointer is not owned"
+                tca_link=$(readlink "$tca_current") || report_exit "refusal" "ownership-unknown" "journal current pointer is unreadable"
+                case "$tca_link" in versions/*) ;; *) report_exit "refusal" "ownership-unknown" "journal current pointer leaves its owned tree" ;; esac
+                if [ ! -d "${OPT_PREFIX}/${tca_link}" ] && [ "$tca_mode" != "removal" ]; then
+                    report_exit "refusal" "ownership-unknown" "journal current target is missing"
+                fi
+            fi
+            if [ -e "$tca_public" ] || [ -L "$tca_public" ]; then
+                [ -x "$tca_public" ] || report_exit "refusal" "ownership-unknown" "journal launcher does not match installed state"
+                tca_output=$("$tca_public" --version 2>/dev/null || "$tca_public" 2>/dev/null || true)
+                printf '%s\n' "$tca_output" | awk -v wanted="$tca_version" '{ for (i=1; i<=NF; i++) if ($i == wanted) found=1 } END { exit !found }' \
+                    || report_exit "refusal" "ownership-unknown" "journal launcher version does not match its receipt"
+            fi
+            ;;
+        desktop|tmux)
+            tca_current=$(receipt_value "$tca_receipt" "component:${tca_component}" current 2>/dev/null) \
+                || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+            tca_target=$(receipt_value "$tca_receipt" "component:${tca_component}" current_target 2>/dev/null) \
+                || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+            tca_public=$(receipt_value "$tca_receipt" "component:${tca_component}" public_path 2>/dev/null) \
+                || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+            tca_rel=$(receipt_value "$tca_receipt" "component:${tca_component}" executable_relpath 2>/dev/null) \
+                || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+            tca_sha=$(receipt_value "$tca_receipt" "component:${tca_component}" executable_sha256 2>/dev/null) \
+                || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
+            tca_name=$(cat "${manifest_dir}/components/${tca_component}/arches/${HOST_ARCH}/tree/executable/name")
+            tca_root="${OPT_PREFIX}/opt/solstone/${tca_component}"
+            case "$tca_target" in ''|*/*|.|..) report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component contains an unsafe target" ;; esac
+            case "$tca_rel" in "bin/${tca_name}"|"usr/bin/${tca_name}"|"${tca_name}") ;; *) report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component contains an unsafe executable path" ;; esac
+            if [ "$tca_current" != "${tca_root}/current" ] || [ "$tca_public" != "${OPT_PREFIX}/bin/${tca_name}" ]; then
+                report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component leaves its owned paths"
+            fi
+            tca_dest="${tca_root}/${tca_target}"
+            tca_exec="${tca_dest}/${tca_rel}"
+            tca_present=0
+            for tca_path in "$tca_current" "$tca_public" "$tca_dest" "$tca_exec"; do
+                if [ -e "$tca_path" ] || [ -L "$tca_path" ]; then tca_present=$((tca_present + 1)); fi
+            done
+            if [ -e "$tca_current" ] || [ -L "$tca_current" ]; then
+                if [ ! -L "$tca_current" ] || [ "$(readlink "$tca_current")" != "$tca_target" ]; then
+                    report_exit "refusal" "ownership-unknown" "Current pointer for $tca_component does not match its receipt"
+                fi
+            fi
+            if [ -e "$tca_dest" ] || [ -L "$tca_dest" ]; then
+                if [ ! -d "$tca_dest" ] || [ -L "$tca_dest" ]; then
+                    report_exit "refusal" "ownership-unknown" "Payload directory for $tca_component is not owned"
+                fi
+            fi
+            if [ -e "$tca_public" ] || [ -L "$tca_public" ]; then
+                if [ ! -L "$tca_public" ] || [ "$(readlink "$tca_public")" != "${tca_current}/${tca_rel}" ]; then
+                    report_exit "refusal" "ownership-unknown" "Public pointer for $tca_component does not match its receipt"
+                fi
+            fi
+            if [ -e "$tca_exec" ] || [ -L "$tca_exec" ]; then
+                if [ ! -f "$tca_exec" ] || [ -L "$tca_exec" ]; then
+                    report_exit "refusal" "ownership-unknown" "Executable for $tca_component is not owned"
+                fi
+                [ "$(sha256sum "$tca_exec" | awk '{print $1}')" = "$tca_sha" ] \
+                    || report_exit "refusal" "ownership-unknown" "Executable for $tca_component does not match its receipt"
+            fi
+            tca_required=4
+            ;;
+    esac
+    if [ "$tca_mode" = "complete" ] && [ "$tca_present" -lt "$tca_required" ]; then
+        report_exit "refusal" "ownership-unknown" "Tree state for $tca_component is incomplete"
+    fi
+    [ "$tca_present" -eq 0 ] && TREE_STATE_PRESENT=0 || TREE_STATE_PRESENT=1
+}
+
+package_receipt_path() {
+    if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_ETC_ROOT:-}" ]; then
+        printf '%s\n' "${SOLSTONE_ETC_ROOT}/solstone/install.conf"
+    else
+        printf '%s\n' "/etc/solstone/install.conf"
+    fi
+}
+
+package_probe_identity() {
+    ppi_name="$1"
+    PPROBE_STATE="ABSENT"
+    PPROBE_VERSION=""
+    PPROBE_ARCH=""
+    if [ "$TEST_SEAM" -eq 1 ] && [ -z "${SOLSTONE_FAKE_PKG_DB:-}" ]; then
+        return 0
+    fi
+    if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_PKG_DB:-}" ]; then
+        ppi_file="${SOLSTONE_FAKE_PKG_DB}/${PKG_VARIANT}/${ppi_name}"
+        [ -e "$ppi_file" ] || return 0
+        if [ ! -f "$ppi_file" ] || [ ! -r "$ppi_file" ]; then
+            report_exit "refusal" "query-failed" "Could not read package identity for $ppi_name"
+        fi
+        # shellcheck disable=SC2046
+        set -- $(sed -n '1p' "$ppi_file")
+        if [ "$#" -ne 4 ] || [ "$1" != "INSTALLED" ] || [ "$2" != "$ppi_name" ]; then
+            report_exit "refusal" "query-malformed" "Package identity for $ppi_name is malformed"
+        fi
+        PPROBE_STATE="INSTALLED"
+        PPROBE_VERSION="$3"
+        PPROBE_ARCH="$4"
+        return 0
+    fi
+    if [ "$PKG_VARIANT" = "deb" ]; then
+        command -v dpkg-query >/dev/null 2>&1 || report_exit "refusal" "query-unavailable" "dpkg-query is required to detect package ownership"
+        if ppi_out=$(dpkg-query -W -f='${db:Status-Abbrev} ${Version} ${Architecture}\n' "$ppi_name" 2>/dev/null); then
+            # shellcheck disable=SC2086
+            set -- $ppi_out
+            if [ "$#" -ne 3 ] || [ "$1" != "ii" ]; then
+                report_exit "refusal" "query-malformed" "Package identity for $ppi_name is malformed"
+            fi
+            PPROBE_STATE="INSTALLED"
+            PPROBE_VERSION="$2"
+            PPROBE_ARCH="$3"
+        else
+            ppi_status=$?
+            [ "$ppi_status" -eq 1 ] || report_exit "refusal" "query-failed" "Could not query package identity for $ppi_name"
+        fi
+        return 0
+    fi
+    command -v rpm >/dev/null 2>&1 || report_exit "refusal" "query-unavailable" "rpm is required to detect package ownership"
+    if ppi_out=$(rpm -q --qf '%{VERSION}-%{RELEASE} %{ARCH}\n' "$ppi_name" 2>/dev/null); then
+        # shellcheck disable=SC2086
+        set -- $ppi_out
+        [ "$#" -eq 2 ] || report_exit "refusal" "query-malformed" "Package identity for $ppi_name is malformed"
+        PPROBE_STATE="INSTALLED"
+        PPROBE_VERSION="$1"
+        PPROBE_ARCH="$2"
+    else
+        ppi_status=$?
+        [ "$ppi_status" -eq 1 ] || report_exit "refusal" "query-failed" "Could not query package identity for $ppi_name"
+    fi
+}
+
+package_component_authority() {
+    pca_component="$1"
+    pca_mode="$2"
+    PACKAGE_CLAIM=0
+    PACKAGE_STATE_PRESENT=0
+    pca_receipt=$(package_receipt_path)
+    if [ ! -e "$pca_receipt" ] && [ ! -L "$pca_receipt" ]; then
+        pca_key="$pca_component"
+        [ "$pca_component" = "cli" ] && pca_key="journal"
+        pca_name=$(cat "${manifest_dir}/components/${pca_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/name" 2>/dev/null || true)
+        if [ -n "$pca_name" ]; then
+            package_probe_identity "$pca_name"
+            [ "$PPROBE_STATE" = "INSTALLED" ] && PACKAGE_STATE_PRESENT=1
+        fi
+        return 0
+    fi
+    if [ -L "$pca_receipt" ] || [ ! -f "$pca_receipt" ] || [ ! -r "$pca_receipt" ]; then
+        report_exit "refusal" "receipt-read-failed" "Package receipt is not a readable regular file"
+    fi
+    if ! package_load_section "$pca_receipt" "$pca_component"; then
+        pca_key="$pca_component"
+        [ "$pca_component" = "cli" ] && pca_key="journal"
+        pca_name=$(cat "${manifest_dir}/components/${pca_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/name" 2>/dev/null || true)
+        if [ -n "$pca_name" ]; then
+            package_probe_identity "$pca_name"
+            if [ "$PPROBE_STATE" = "INSTALLED" ]; then
+                PACKAGE_STATE_PRESENT=1
+                package_find_owner "$pca_receipt" "$pca_name" "$PPROBE_VERSION" "$PPROBE_ARCH"
+                [ "$PFO_COUNT" -eq 0 ] || PACKAGE_CLAIM=1
+            fi
+        fi
+        return 0
+    fi
+    PACKAGE_CLAIM=1
+    [ "$PLS_ROUTE" = "$PKG_VARIANT" ] || report_exit "refusal" "ownership-unknown" "Package receipt for $pca_component does not match this host route"
+    package_probe_identity "$PLS_NAME"
+    if [ "$PPROBE_STATE" = "ABSENT" ]; then
+        if [ "$pca_mode" != "removal" ] && [ "$PLS_PHASE" != "intended" ]; then
+            report_exit "refusal" "ownership-unknown" "Package receipt for $pca_component is not confirmed by the package database"
+        fi
+        PACKAGE_STATE_PRESENT=0
+        return 0
+    fi
+    PACKAGE_STATE_PRESENT=1
+    pca_match=0
+    if [ "$PPROBE_VERSION" = "$PLS_VERSION" ] && [ "$PPROBE_ARCH" = "$PLS_ARCH" ]; then pca_match=1; fi
+    if [ "$PLS_HAS_PRIOR" -eq 1 ] && [ "$PPROBE_VERSION" = "$PLS_PRIOR_VERSION" ] && [ "$PPROBE_ARCH" = "$PLS_PRIOR_ARCH" ]; then pca_match=1; fi
+    [ "$pca_match" -eq 1 ] || report_exit "refusal" "ownership-unknown" "Package database identity for $pca_component does not match its receipt"
+}
+
+append_selected_component() {
+    asc_var="$1"
+    asc_component="$2"
+    case "$asc_var" in
+        TREE_SELECTED_COMPONENTS)
+            case " $TREE_SELECTED_COMPONENTS " in *" $asc_component "*) return 0 ;; esac
+            TREE_SELECTED_COMPONENTS="${TREE_SELECTED_COMPONENTS}${TREE_SELECTED_COMPONENTS:+ }${asc_component}"
+            ;;
+        PACKAGE_SELECTED_COMPONENTS)
+            case " $PACKAGE_SELECTED_COMPONENTS " in *" $asc_component "*) return 0 ;; esac
+            PACKAGE_SELECTED_COMPONENTS="${PACKAGE_SELECTED_COMPONENTS}${PACKAGE_SELECTED_COMPONENTS:+ }${asc_component}"
+            ;;
+    esac
+}
+
+resolve_component_route() {
+    rcr_component="$1"
+    rcr_require_existing="$2"
+    rcr_mode="complete"
+    [ "$OPT_UNINSTALL" -eq 0 ] || rcr_mode="removal"
+    tree_component_authority "$rcr_component" "$rcr_mode"
+    rcr_tree_claim="$TREE_CLAIM"
+    rcr_tree_state="$TREE_STATE_PRESENT"
+    package_component_authority "$rcr_component" "$rcr_mode"
+    rcr_package_claim="$PACKAGE_CLAIM"
+    rcr_package_state="$PACKAGE_STATE_PRESENT"
+    if [ "$rcr_tree_claim" -eq 1 ] && [ "$rcr_package_claim" -eq 1 ]; then
+        report_exit "refusal" "ownership-conflict" "Component $rcr_component is claimed by both tree and package routes"
+    fi
+    if [ "$OPT_ROUTE_EXPLICIT" -eq 1 ]; then
+        case "$OPT_ROUTE" in
+            tree)
+                [ "$rcr_package_claim" -eq 0 ] || report_exit "refusal" "ownership-conflict" "Component $rcr_component is package-owned"
+                if [ "$rcr_tree_claim" -eq 1 ]; then append_selected_component TREE_SELECTED_COMPONENTS "$rcr_component"; return 0; fi
+                ;;
+            package|deb|rpm)
+                [ "$rcr_tree_claim" -eq 0 ] || report_exit "refusal" "ownership-conflict" "Component $rcr_component is tree-owned"
+                if [ "$rcr_package_claim" -eq 1 ]; then append_selected_component PACKAGE_SELECTED_COMPONENTS "$rcr_component"; return 0; fi
+                ;;
+        esac
+    else
+        if [ "$rcr_tree_claim" -eq 1 ]; then append_selected_component TREE_SELECTED_COMPONENTS "$rcr_component"; return 0; fi
+        if [ "$rcr_package_claim" -eq 1 ]; then append_selected_component PACKAGE_SELECTED_COMPONENTS "$rcr_component"; return 0; fi
+    fi
+    if [ "$rcr_tree_state" -eq 1 ] || [ "$rcr_package_state" -eq 1 ]; then
+        report_exit "refusal" "ownership-unknown" "Installed state for $rcr_component has no authoritative ownership receipt"
+    fi
+    if [ "$rcr_require_existing" -eq 1 ]; then
+        return 1
+    fi
+    case "$OPT_ROUTE" in
+        package|deb|rpm) append_selected_component PACKAGE_SELECTED_COMPONENTS "$rcr_component" ;;
+        *) append_selected_component TREE_SELECTED_COMPONENTS "$rcr_component" ;;
+    esac
+    return 0
+}
+
+receipt_section_count() {
+    rsc_file="$1"
+    rsc_section="$2"
+    awk -v wanted="[$rsc_section]" '$0 == wanted { count++ } END { print count + 0 }' "$rsc_file"
+}
+
+discover_upgrade_selection() {
+    dus_tree=$(tree_receipt_path)
+    dus_package=$(package_receipt_path)
+    SELECTED_COMPONENTS=""
+    for dus_file in "$dus_tree" "$dus_package"; do
+        if [ -e "$dus_file" ] || [ -L "$dus_file" ]; then
+            if [ -L "$dus_file" ] || [ ! -f "$dus_file" ] || [ ! -r "$dus_file" ]; then
+                report_exit "refusal" "receipt-read-failed" "Install receipt is not a readable regular file"
+            fi
+            for dus_component in journal cli desktop tmux; do
+                dus_count=$(receipt_section_count "$dus_file" "component:${dus_component}")
+                case "$dus_count" in
+                    0) continue ;;
+                    1) ;;
+                    *) report_exit "refusal" "ownership-unknown" "Install receipt has duplicate ownership for $dus_component" ;;
+                esac
+                dus_role=$(receipt_value "$dus_file" "component:${dus_component}" role 2>/dev/null) \
+                    || report_exit "refusal" "ownership-unknown" "Install receipt for $dus_component is malformed"
+                [ "$dus_role" = "$dus_component" ] \
+                    || report_exit "refusal" "ownership-unknown" "Install receipt for $dus_component has the wrong role"
+                case " $SELECTED_COMPONENTS " in
+                    *" $dus_component "*) ;;
+                    *) SELECTED_COMPONENTS="${SELECTED_COMPONENTS}${SELECTED_COMPONENTS:+ }${dus_component}" ;;
+                esac
+            done
+        fi
+    done
+    if [ -z "$SELECTED_COMPONENTS" ]; then
+        for dus_component in journal desktop tmux; do
+            if tree_state_present "$dus_component"; then
+                report_exit "refusal" "ownership-unknown" "Installed files exist without an ownership receipt"
+            fi
+            dus_name=$(cat "${manifest_dir}/components/${dus_component}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/name" 2>/dev/null || true)
+            if [ -n "$dus_name" ]; then
+                package_probe_identity "$dus_name"
+                [ "$PPROBE_STATE" = "ABSENT" ] || report_exit "refusal" "ownership-unknown" "Installed package $dus_name has no ownership receipt"
+            fi
+        done
+        report_exit "refusal" "no-selection" "No installed components were detected for upgrade"
+    fi
+    case " $SELECTED_COMPONENTS " in
+        *" journal "*) case " $SELECTED_COMPONENTS " in *" cli "*) report_exit "refusal" "source-ambiguous" "Cannot install both journal and cli simultaneously (source ambiguous)" ;; esac ;;
+    esac
+}
+
+parse_args() {
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --components)
+                OPT_COMPONENTS="$2"
+                shift 2
+                ;;
+            --components=*)
+                OPT_COMPONENTS="${1#*=}"
+                shift 1
+                ;;
+            --all)
+                OPT_COMPONENTS="all"
+                shift 1
+                ;;
+            --lane)
+                OPT_LANE="$2"
+                shift 2
+                ;;
+            --lane=*)
+                OPT_LANE="${1#*=}"
+                shift 1
+                ;;
+            --version)
+                OPT_VERSION="$2"
+                shift 2
+                ;;
+            --version=*)
+                OPT_VERSION="${1#*=}"
+                shift 1
+                ;;
+            --route)
+                OPT_ROUTE="$2"
+                OPT_ROUTE_EXPLICIT=1
+                shift 2
+                ;;
+            --route=*)
+                OPT_ROUTE="${1#*=}"
+                OPT_ROUTE_EXPLICIT=1
+                shift 1
+                ;;
+            --prefix)
+                OPT_PREFIX="$2"
+                shift 2
+                ;;
+            --prefix=*)
+                OPT_PREFIX="${1#*=}"
+                shift 1
+                ;;
+            --origin)
+                OPT_ORIGIN="$2"
+                shift 2
+                ;;
+            --origin=*)
+                OPT_ORIGIN="${1#*=}"
+                shift 1
+                ;;
+            --upgrade)
+                OPT_UPGRADE=1
+                shift 1
+                ;;
+            --dry-run)
+                OPT_DRY_RUN=1
+                shift 1
+                ;;
+            --non-interactive)
+                OPT_NON_INTERACTIVE=1
+                shift 1
+                ;;
+            -y|--yes)
+                OPT_YES=1
+                shift 1
+                ;;
+            --no-start)
+                OPT_NO_START=1
+                shift 1
+                ;;
+            --no-path)
+                OPT_NO_PATH=1
+                shift 1
+                ;;
+            --skip-signature)
+                OPT_SKIP_SIGNATURE=1
+                shift 1
+                ;;
+            --list)
+                OPT_LIST=1
+                shift 1
+                ;;
+            --json)
+                OPT_JSON=1
+                shift 1
+                ;;
+            --uninstall)
+                OPT_UNINSTALL=1
+                shift 1
+                ;;
+            -h|--help)
+                printf "Usage: install.sh [OPTIONS]\n"
+                exit 0
+                ;;
+            *)
+                report_exit "refusal" "unknown-argument" "Unknown argument: $1"
+                ;;
+        esac
+    done
+    : "${OPT_YES}"
+}
+
+run_tree_install() {
+    manifest_dir="${SCRATCH_DIR}/manifest"
+    for rti_component in $SELECTED_COMPONENTS; do
+        tree_component_authority "$rti_component" complete
+        if [ "$TREE_CLAIM" -eq 0 ] && [ "$TREE_STATE_PRESENT" -eq 1 ]; then
+            report_exit "refusal" "ownership-unknown" "Tree state for $rti_component changed before installation"
+        fi
+    done
+    receipt_file=$(tree_receipt_path)
+    receipt_dir=$(dirname "$receipt_file")
+    mkdir -p "$receipt_dir" || report_exit "refusal" "receipt-write-failed" "Could not create tree receipt directory $receipt_dir"
+    if [ -L "$receipt_file" ] || { [ -e "$receipt_file" ] && [ ! -f "$receipt_file" ]; }; then
+        report_exit "refusal" "receipt-write-failed" "Tree receipt path $receipt_file is not a regular file"
+    fi
+    receipt_probe="${receipt_dir}/.install.conf.probe.$$"
+    if ! (umask 077 && : > "$receipt_probe") || ! rm -f "$receipt_probe"; then
+        report_exit "refusal" "receipt-write-failed" "Tree receipt directory $receipt_dir is not writable"
+    fi
+    handler_path_state_recorded=0
+    all_selected_unchanged=1
+
+    for comp in $SELECTED_COMPONENTS; do
+        if [ "$comp" = "journal" ] || [ "$comp" = "cli" ]; then
+            all_selected_unchanged=0
+            # Bootstrap delegation
+            b_url=$(cat "${manifest_dir}/components/journal/provenance/bootstrap/url")
+            b_sha=$(cat "${manifest_dir}/components/journal/provenance/bootstrap/sha256")
+            b_contract=$(cat "${manifest_dir}/components/journal/provenance/bootstrap/contract_version")
+
+            if [ "$b_contract" -lt 2 ]; then
+                report_exit "refusal" "v1-bootstrap-unsupported" "Bootstrap contract version $b_contract is unsupported (requires >= 2)"
+            fi
+
+            b_script="${SCRATCH_DIR}/bootstrap.${comp}.sh"
+            fetch_file_with_redirect_check "$b_url" "$b_script"
+            verify_sha256 "$b_script" "$b_sha"
+            chmod 0755 "$b_script"
+
+            b_rev=$(grep '^BOOTSTRAP_REVISION=' "$b_script" | head -n 1 | cut -d'=' -f2 | tr -d '\r\n ' || echo "1")
+            if [ "${b_rev:-1}" -lt 2 ]; then
+                report_exit "refusal" "v1-bootstrap-unsupported" "Bootstrap revision $b_rev is unsupported (requires >= 2)"
+            fi
+
+            # Execute bootstrap
+            b_component_version=$(cat "${manifest_dir}/components/journal/version")
+            b_flags="--role $comp --prefix $OPT_PREFIX --origin $OPT_ORIGIN --lane $OPT_LANE --version $b_component_version"
+            [ "$OPT_NO_START" -eq 1 ] && b_flags="$b_flags --no-start"
+            [ "$OPT_NO_PATH" -eq 1 ] && b_flags="$b_flags --no-path"
+            [ "$OPT_SKIP_SIGNATURE" -eq 1 ] && b_flags="$b_flags --skip-signature"
+            [ "$OPT_UPGRADE" -eq 1 ] && b_flags="$b_flags --upgrade"
+            [ "$OPT_DRY_RUN" -eq 1 ] && b_flags="$b_flags --dry-run"
+
+            # shellcheck disable=SC2086
+            if ! "$b_script" $b_flags; then
+                report_exit "refusal" "component-failed" "Journal bootstrap execution failed for $comp"
+            fi
+        else
+            # Native tree component (desktop / tmux)
+            if [ "$handler_path_state_recorded" -eq 0 ]; then
+                record_handler_path_state
+                handler_path_state_recorded=1
+            fi
+            comp_exec_name=$(cat "${manifest_dir}/components/${comp}/arches/${HOST_ARCH}/tree/executable/name")
+            comp_entrypoint=$(cat "${manifest_dir}/components/${comp}/install_entrypoint")
+            comp_root="${OPT_PREFIX}/opt/solstone/${comp}"
+            comp_current="${comp_root}/current"
+            symlink_target="${OPT_PREFIX}/bin/${comp_exec_name}"
+            record_pointer_state "${comp}.current" "$comp_current"
+            record_pointer_state "${comp}.public" "$symlink_target"
+            record_prior_service_policy "$comp" "$receipt_file"
+            if tree_component_converged "$comp" "$manifest_dir" "$receipt_file"; then
+                if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HANDLER_ROOT:-}" ]; then
+                    h_root="$SOLSTONE_HANDLER_ROOT"
+                else
+                    h_root="/usr/libexec/solstone/handlers"
+                    [ ! -d "$h_root" ] && h_root="${PWD}/handlers"
+                fi
+                handler_bin="${h_root}/${comp}/v1/${comp_entrypoint}"
+                [ -f "$handler_bin" ] || tree_mutation_failure "handler-missing" "Install handler is missing for $comp"
+                chmod 0755 "$handler_bin" || tree_mutation_failure "handler-failed" "Could not make the $comp install handler executable"
+                h_flags="--prefix $OPT_PREFIX --binary $symlink_target --route tree --role $comp"
+                [ "$OPT_NO_START" -eq 1 ] && h_flags="$h_flags --no-start"
+                [ "$OPT_NO_PATH" -eq 1 ] && h_flags="$h_flags --no-path"
+                if [ "$OPT_NO_START" -eq 0 ]; then
+                    printf '%s\n' "$symlink_target" > "${SCRATCH_DIR}/handler-rollback/attempted-${comp}" \
+                        || tree_mutation_failure "handler-failed" "could not stage service rollback for $comp"
+                fi
+                # shellcheck disable=SC2086
+                "$handler_bin" $h_flags \
+                    || tree_mutation_failure "handler-failed" "Install handler failed for $comp"
+                UNCHANGED_COMPONENTS="${UNCHANGED_COMPONENTS}${UNCHANGED_COMPONENTS:+ }${comp}"
+                continue
+            fi
+            all_selected_unchanged=0
+            comp_version=$(cat "${manifest_dir}/components/${comp}/version")
+            comp_archive_fn=$(cat "${manifest_dir}/components/${comp}/arches/${HOST_ARCH}/tree/filename")
+            comp_archive_sha=$(cat "${manifest_dir}/components/${comp}/arches/${HOST_ARCH}/tree/sha256")
+            comp_exec_sha=$(cat "${manifest_dir}/components/${comp}/arches/${HOST_ARCH}/tree/executable/sha256")
+
+            archive_path="${SCRATCH_DIR}/${comp_archive_fn}"
+            fetch_file_with_redirect_check "${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}/${comp_archive_fn}" "$archive_path"
+            verify_sha256 "$archive_path" "$comp_archive_sha"
+
+            # Unpack into versioned directory
+            comp_digest12=$(printf "%s" "$comp_archive_sha" | cut -c1-12)
+            comp_current_target="${comp_version}-${comp_digest12}"
+            comp_dest="${OPT_PREFIX}/opt/solstone/${comp}/${comp_current_target}"
+            mkdir -p "$comp_dest" || report_exit "refusal" "target-write-failed" "Could not create component destination $comp_dest"
+            if ! tar -xzf "$archive_path" -C "$comp_dest"; then
+                report_exit "refusal" "archive-extract-failed" "Could not extract $comp_archive_fn into its content-addressed destination"
+            fi
+
+            # Verify executable
+            exec_path="${comp_dest}/bin/${comp_exec_name}"
+            [ ! -f "$exec_path" ] && exec_path="${comp_dest}/usr/bin/${comp_exec_name}"
+            [ ! -f "$exec_path" ] && exec_path="${comp_dest}/${comp_exec_name}"
+            if [ ! -f "$exec_path" ]; then
+                report_exit "refusal" "executable-missing" "Executable $comp_exec_name not found in unpacked tree"
+            fi
+            verify_sha256 "$exec_path" "$comp_exec_sha"
+            chmod 0755 "$exec_path" || report_exit "refusal" "target-write-failed" "Could not make $comp_exec_name executable"
+
+            exec_relpath=${exec_path#"${comp_dest}/"}
+            if [ -e "$comp_current" ] && [ ! -L "$comp_current" ]; then
+                report_exit "refusal" "ownership-conflict" "Current path for $comp exists but is not a platform-managed symlink"
+            fi
+            if [ -e "$symlink_target" ] && [ ! -L "$symlink_target" ]; then
+                report_exit "refusal" "ownership-conflict" "Public path $symlink_target exists but is not a platform-managed symlink"
+            fi
+            # Configure handler-owned state before publishing the new pointer.
+            # The selected native binary owns its service contract. The platform
+            # records enough state to restore the prior policy if a later step fails.
+            if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HANDLER_ROOT:-}" ]; then
+                h_root="$SOLSTONE_HANDLER_ROOT"
+            else
+                h_root="/usr/libexec/solstone/handlers"
+                [ ! -d "$h_root" ] && h_root="${PWD}/handlers"
+            fi
+            handler_bin="${h_root}/${comp}/v1/${comp_entrypoint}"
+            if [ ! -f "$handler_bin" ]; then
+                tree_mutation_failure "handler-missing" "Install handler is missing for $comp"
+            fi
+            chmod 0755 "$handler_bin" || tree_mutation_failure "handler-failed" "Could not make the $comp install handler executable"
+            h_flags="--prefix $OPT_PREFIX --binary $exec_path --route tree --role $comp"
+            [ "$OPT_NO_START" -eq 1 ] && h_flags="$h_flags --no-start"
+            [ "$OPT_NO_PATH" -eq 1 ] && h_flags="$h_flags --no-path"
+            if [ "$OPT_NO_START" -eq 0 ]; then
+                printf '%s\n' "$exec_path" > "${SCRATCH_DIR}/handler-rollback/attempted-${comp}" \
+                    || tree_mutation_failure "handler-failed" "could not stage service rollback for $comp"
+            fi
+            # shellcheck disable=SC2086
+            if ! "$handler_bin" $h_flags; then
+                tree_mutation_failure "handler-failed" "Install handler failed for $comp"
+            fi
+
+            # Publish the component through an atomic current-pointer replacement.
+            if [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_BEFORE_CURRENT:-0}" = "1" ]; then
+                tree_mutation_failure "test-before-current" "Injected failure before current pointer publication"
+            fi
+            current_tmp="${comp_root}/.current.tmp.$$"
+            ln -s "$comp_current_target" "$current_tmp" \
+                || tree_mutation_failure "pointer-publish-failed" "Could not stage current pointer for $comp"
+            if ! mv -Tf "$current_tmp" "$comp_current"; then
+                rm -f "$current_tmp" 2>/dev/null || true
+                tree_mutation_failure "pointer-publish-failed" "Could not atomically publish current pointer for $comp"
+            fi
+
+            mkdir -p "${OPT_PREFIX}/bin" \
+                || tree_mutation_failure "target-write-failed" "Could not create public binary directory ${OPT_PREFIX}/bin"
+            public_target="${comp_current}/${exec_relpath}"
+            if [ ! -L "$symlink_target" ] || [ "$(readlink "$symlink_target")" != "$public_target" ]; then
+                ln -s "$public_target" "${symlink_target}.tmp.$$" \
+                    || tree_mutation_failure "pointer-publish-failed" "Could not stage public pointer for $comp_exec_name"
+                if ! mv -Tf "${symlink_target}.tmp.$$" "$symlink_target"; then
+                    rm -f "${symlink_target}.tmp.$$" 2>/dev/null || true
+                    tree_mutation_failure "pointer-publish-failed" "Could not atomically publish public pointer for $comp_exec_name"
+                fi
+            fi
+
+        fi
+    done
+
+    if [ "$all_selected_unchanged" -eq 1 ] && [ -n "$UNCHANGED_COMPONENTS" ] \
+        && global_receipt_matches_current "$receipt_file"; then
+        return 0
+    fi
+
+    # Write the canonical global section and selected component sections while
+    # retaining unselected component custody byte-for-byte.
+    receipt_tmp="${receipt_file}.tmp.$$"
+    if ! {
+        printf "[solstone]\n"
+        printf "schema_version=1\n"
+        printf "platform_version=%s\n" "$RESOLVED_VERSION"
+        printf "lane=%s\n" "$OPT_LANE"
+        printf "origin=%s\n" "$OPT_ORIGIN"
+        printf "route=tree\n"
+        printf "prefix=%s\n" "$OPT_PREFIX"
+        printf "arch=%s\n" "$HOST_ARCH"
+        printf "verification=%s\n" "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign")"
+        printf "installer_revision=%s\n" "$INSTALLER_REVISION"
+        printf "phase=complete\n"
+    } > "$receipt_tmp"; then
+        tree_receipt_failure "Could not stage the tree install receipt"
+    fi
+
+    for existing_comp in journal cli desktop tmux; do
+        if component_selected "$existing_comp"; then
+            continue
+        fi
+        if [ -f "$receipt_file" ] && receipt_value "$receipt_file" "component:${existing_comp}" role >/dev/null 2>&1; then
+            append_receipt_section "$receipt_file" "component:${existing_comp}" "$receipt_tmp" \
+                || tree_receipt_failure "Could not preserve the $existing_comp receipt section"
+        fi
+    done
+
+    for comp in $SELECTED_COMPONENTS; do
+        if case " $UNCHANGED_COMPONENTS " in *" $comp "*) true ;; *) false ;; esac; then
+            append_receipt_section "$receipt_file" "component:${comp}" "$receipt_tmp" \
+                || tree_receipt_failure "Could not preserve the unchanged $comp receipt section"
+        else
+            c_key="$comp"
+            [ "$comp" = "cli" ] && c_key="journal"
+            c_version=$(cat "${manifest_dir}/components/${c_key}/version" 2>/dev/null || echo "$RESOLVED_VERSION")
+            {
+            printf "[component:%s]\n" "$comp"
+            printf "role=%s\n" "$comp"
+            printf "platform_version=%s\n" "$RESOLVED_VERSION"
+            printf "lane=%s\n" "$OPT_LANE"
+            printf "origin=%s\n" "$OPT_ORIGIN"
+            printf "route=tree\n"
+            printf "prefix=%s\n" "$OPT_PREFIX"
+            printf "arch=%s\n" "$HOST_ARCH"
+            printf "version=%s\n" "$c_version"
+            printf "status=installed\n"
+            if [ "$comp" = "desktop" ] || [ "$comp" = "tmux" ]; then
+                c_exec_name=$(cat "${manifest_dir}/components/${comp}/arches/${HOST_ARCH}/tree/executable/name")
+                c_exec_sha=$(cat "${manifest_dir}/components/${comp}/arches/${HOST_ARCH}/tree/executable/sha256")
+                c_archive_sha=$(cat "${manifest_dir}/components/${comp}/arches/${HOST_ARCH}/tree/sha256")
+                c_digest12=$(printf "%s" "$c_archive_sha" | cut -c1-12)
+                c_current="${OPT_PREFIX}/opt/solstone/${comp}/current"
+                c_public="${OPT_PREFIX}/bin/${c_exec_name}"
+                c_rel=${c_public:+$(readlink "$c_public")}
+                c_rel=${c_rel#"${c_current}/"}
+                printf "executable_sha256=%s\n" "$c_exec_sha"
+                printf "executable_relpath=%s\n" "$c_rel"
+                printf "current=%s\n" "$c_current"
+                printf "current_target=%s-%s\n" "$c_version" "$c_digest12"
+                printf "public_path=%s\n" "$c_public"
+                printf "verification=%s\n" "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign")"
+                printf "installer_revision=%s\n" "$INSTALLER_REVISION"
+                printf "no_start=%s\n" "$OPT_NO_START"
+                printf "no_path=%s\n" "$OPT_NO_PATH"
+            fi
+            } >> "$receipt_tmp" || tree_receipt_failure "Could not stage the $comp receipt section"
+        fi
+    done
+    if ! mv -Tf "$receipt_tmp" "$receipt_file"; then
+        tree_receipt_failure "Could not atomically publish the tree install receipt"
+    fi
+}
+
+run_package_install() {
+    manifest_dir="${SCRATCH_DIR}/manifest"
+    init_package_helper
+    package_read_receipt
+
+    for comp in $SELECTED_COMPONENTS; do
+        if [ "$comp" = "cli" ]; then
+            c_key="journal"
+        else
+            c_key="$comp"
+        fi
+        PC_ROLE="$comp"
+        PC_ROUTE="$PKG_VARIANT"
+        PC_POLICY="start"
+        [ "$OPT_NO_START" -eq 0 ] || PC_POLICY="skip-service"
+        PC_FILENAME=$(cat "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/filename")
+        PC_SHA=$(cat "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/sha256")
+        PC_NAME=$(cat "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/name")
+        PC_VERSION=$(cat "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/version")
+        PC_ARCH=$(cat "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/arch")
+        PC_BUILD=$(cat "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/payload_build_id")
+        package_set_no_prior
+
+        package_query_current "$PC_NAME"
+        case "$PQUERY_STATE" in
+            CONFIG_FILES) PQUERY_STATE="ABSENT" ;;
+        esac
+
+        if [ "$PQUERY_STATE" = "ABSENT" ]; then
+            if package_load_section "$PACKAGE_RECEIPT_FILE" "$PC_ROLE" \
+                && [ "$PLS_PHASE" = "payload" ] && [ "$PLS_NAME" = "$PC_NAME" ] \
+                && [ "$PLS_VERSION" = "$PC_VERSION" ] && [ "$PLS_ARCH" = "$PC_ARCH" ]; then
+                report_exit "refusal" "ownership-unknown" "Package database does not confirm payload receipt for $PC_NAME"
+            fi
+            package_set_no_prior
+            if package_load_section "$PACKAGE_RECEIPT_FILE" "$PC_ROLE" \
+                && [ "$PLS_PHASE" = "intended" ] && [ "$PLS_ROLE" = "$PC_ROLE" ] \
+                && [ "$PLS_ROUTE" = "$PC_ROUTE" ] && [ "$PLS_POLICY" = "$PC_POLICY" ] \
+                && [ "$PLS_NAME" = "$PC_NAME" ] && [ "$PLS_VERSION" = "$PC_VERSION" ] \
+                && [ "$PLS_ARCH" = "$PC_ARCH" ] && [ "$PLS_SHA" = "$PC_SHA" ] && [ "$PLS_BUILD" = "$PC_BUILD" ]; then
+                if [ "$PLS_HAS_PRIOR" -eq 1 ]; then
+                    PC_HAS_PRIOR=1
+                    PC_PRIOR_ROLE="$PLS_PRIOR_ROLE"
+                    PC_PRIOR_ROUTE="$PLS_PRIOR_ROUTE"
+                    PC_PRIOR_POLICY="$PLS_PRIOR_POLICY"
+                    PC_PRIOR_NAME="$PLS_PRIOR_NAME"
+                    PC_PRIOR_VERSION="$PLS_PRIOR_VERSION"
+                    PC_PRIOR_ARCH="$PLS_PRIOR_ARCH"
+                    PC_PRIOR_SHA="$PLS_PRIOR_SHA"
+                    PC_PRIOR_BUILD="$PLS_PRIOR_BUILD"
+                fi
+            else
+                package_publish_phase "$PC_ROLE" intended intended
+            fi
+            package_fetch_install
+            package_publish_phase "$PC_ROLE" payload payload
+            package_complete_after_payload
+            continue
+        fi
+
+        [ "$PQUERY_STATE" = "INSTALLED" ] || report_exit "refusal" "query-malformed" "Package query returned an unsupported state"
+        if [ "$PQUERY_ARCH" != "$PC_ARCH" ]; then
+            report_exit "refusal" "ownership-unknown" "Installed package $PC_NAME has unexpected architecture $PQUERY_ARCH"
+        fi
+        package_find_owner "$PACKAGE_RECEIPT_FILE" "$PQUERY_NAME" "$PQUERY_VERSION" "$PQUERY_ARCH"
+        if [ "$PFO_COUNT" -ne 1 ]; then
+            report_exit "refusal" "ownership-unknown" "Installed package $PC_NAME does not have a unique package receipt"
+        fi
+
+        if { [ "$PC_ROLE" = "journal" ] || [ "$PC_ROLE" = "cli" ]; } \
+            && { [ "$PFO_MATCH" = "target" ] || [ "$PFO_MATCH" = "both" ]; } && [ "$PFO_ROLE" != "$PC_ROLE" ]; then
+            report_exit "refusal" "role-conflict" "Installed journal package is owned by role $PFO_ROLE"
+        fi
+        if [ "$PC_ROLE" = "journal" ] || [ "$PC_ROLE" = "cli" ]; then
+            if package_candidate_is_older "$PQUERY_VERSION" "$PC_VERSION"; then
+                report_exit "refusal" "downgrade-route-unsupported" "Installed package $PC_NAME version $PQUERY_VERSION is newer than candidate $PC_VERSION"
+            fi
+        fi
+
+        case "$PFO_PHASE" in
+            complete)
+                if package_owner_matches_target; then
+                    UNCHANGED_COMPONENTS="${UNCHANGED_COMPONENTS}${UNCHANGED_COMPONENTS:+ }${PC_ROLE}"
+                    continue
+                fi
+                package_set_prior_from_owner_target
+                package_publish_phase "$PC_ROLE" intended intended
+                package_fetch_install
+                package_publish_phase "$PC_ROLE" payload payload
+                package_complete_after_payload
+                ;;
+            intended)
+                if package_owner_matches_target; then
+                    if [ "$PFO_HAS_PRIOR" -eq 1 ]; then
+                        package_set_prior_from_owner_prior
+                    fi
+                    case "$PFO_MATCH" in
+                        target|both)
+                            package_publish_phase "$PC_ROLE" payload payload
+                            package_complete_after_payload
+                            ;;
+                        prior)
+                            package_set_prior_from_owner_prior
+                            package_fetch_install
+                            package_publish_phase "$PC_ROLE" payload payload
+                            package_complete_after_payload
+                            ;;
+                        *) report_exit "refusal" "ownership-unknown" "Installed package $PC_NAME does not match intended receipt" ;;
+                    esac
+                elif { [ "$PFO_MATCH" = "prior" ] || [ "$PFO_MATCH" = "both" ]; } && [ "$PFO_HAS_PRIOR" -eq 1 ]; then
+                    if { [ "$PC_ROLE" = "journal" ] || [ "$PC_ROLE" = "cli" ]; } && [ "$PFO_PRIOR_ROLE" != "$PC_ROLE" ]; then
+                        report_exit "refusal" "role-conflict" "Installed journal package is owned by role $PFO_PRIOR_ROLE"
+                    fi
+                    package_set_prior_from_owner_prior
+                    package_publish_phase "$PC_ROLE" intended intended
+                    package_fetch_install
+                    package_publish_phase "$PC_ROLE" payload payload
+                    package_complete_after_payload
+                else
+                    report_exit "refusal" "ownership-unknown" "Installed package $PC_NAME does not match intended receipt"
+                fi
+                ;;
+            payload)
+                if package_owner_matches_target && { [ "$PFO_MATCH" = "target" ] || [ "$PFO_MATCH" = "both" ]; }; then
+                    package_complete_after_payload
+                else
+                    report_exit "refusal" "ownership-unknown" "Installed package $PC_NAME does not match payload receipt"
+                fi
+                ;;
+            *) report_exit "refusal" "ownership-unknown" "Installed package $PC_NAME has an invalid receipt phase" ;;
+        esac
+    done
+}
+
+stage_receipt_without_component() {
+    srwc_source="$1"
+    srwc_component="$2"
+    srwc_output="$3"
+    : > "$srwc_output" || return 1
+    append_receipt_section "$srwc_source" solstone "$srwc_output" || return 1
+    SRWC_REMAINING=0
+    for srwc_existing in journal cli desktop tmux; do
+        [ "$srwc_existing" = "$srwc_component" ] && continue
+        if receipt_value "$srwc_source" "component:${srwc_existing}" role >/dev/null 2>&1; then
+            append_receipt_section "$srwc_source" "component:${srwc_existing}" "$srwc_output" || return 1
+            SRWC_REMAINING=$((SRWC_REMAINING + 1))
+        fi
+    done
+}
+
+publish_tree_uninstall_receipt() {
+    ptur_component="$1"
+    ptur_receipt=$(tree_receipt_path)
+    ptur_next="${ptur_receipt}.tmp.$$"
+    stage_receipt_without_component "$ptur_receipt" "$ptur_component" "$ptur_next" \
+        || report_exit "refusal" "receipt-write-failed" "Could not stage tree uninstall receipt"
+    if [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_UNINSTALL_RECEIPT:-}" = "$ptur_component" ]; then
+        rm -f "$ptur_next" 2>/dev/null || true
+        report_exit "refusal" "receipt-write-failed" "Could not publish tree uninstall receipt"
+    fi
+    if [ "$SRWC_REMAINING" -eq 0 ]; then
+        rm -f "$ptur_next" || report_exit "refusal" "receipt-write-failed" "Could not discard empty tree uninstall receipt"
+        rm -f "$ptur_receipt" || report_exit "refusal" "receipt-write-failed" "Could not remove completed tree receipt"
+    elif ! mv -Tf "$ptur_next" "$ptur_receipt"; then
+        rm -f "$ptur_next" 2>/dev/null || true
+        report_exit "refusal" "receipt-write-failed" "Could not publish tree uninstall receipt"
+    fi
+}
+
+publish_package_uninstall_receipt() {
+    ppur_component="$1"
+    ppur_next="${SCRATCH_DIR}/package-uninstall-next.$$"
+    stage_receipt_without_component "$PACKAGE_RECEIPT_FILE" "$ppur_component" "$ppur_next" \
+        || report_exit "refusal" "receipt-write-failed" "Could not stage package uninstall receipt"
+    if [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_UNINSTALL_RECEIPT:-}" = "$ppur_component" ]; then
+        report_exit "refusal" "receipt-write-failed" "Could not publish package uninstall receipt"
+    fi
+    if [ "$SRWC_REMAINING" -eq 0 ]; then : > "$ppur_next"; fi
+    ppur_len=$(wc -c < "$ppur_next" | tr -d '[:space:]')
+    # shellcheck disable=SC2086
+    if ! ppur_result=$({ printf "WRITE_ETC_RECEIPT %s\n" "$ppur_len"; cat "$ppur_next"; } | $sudo_prefix "$helper_bin" $helper_flags); then
+        package_protocol_failure "$ppur_result" "receipt-write-failed" "Could not publish package uninstall receipt"
+    fi
+    [ "$ppur_result" = "OK" ] || package_protocol_failure "$ppur_result" "receipt-write-failed" "Could not publish package uninstall receipt"
+    cp "$ppur_next" "$PACKAGE_RECEIPT_FILE" || report_exit "refusal" "receipt-write-failed" "Could not retain package uninstall receipt state"
+}
+
+uninstall_tree_component() {
+    utc_component="$1"
+    ATTEMPTED_COMPONENTS="${ATTEMPTED_COMPONENTS}${ATTEMPTED_COMPONENTS:+ }${utc_component}"
+    tree_component_authority "$utc_component" removal
+    if [ "$TREE_CLAIM" -eq 0 ]; then
+        [ "$TREE_STATE_PRESENT" -eq 0 ] || report_exit "refusal" "ownership-unknown" "Tree state for $utc_component has no ownership receipt"
+        UNCHANGED_COMPONENTS="${UNCHANGED_COMPONENTS}${UNCHANGED_COMPONENTS:+ }${utc_component}"
+        return 0
+    fi
+    if [ "$TREE_STATE_PRESENT" -eq 0 ]; then
+        publish_tree_uninstall_receipt "$utc_component"
+        REMOVED_COMPONENTS="${REMOVED_COMPONENTS}${REMOVED_COMPONENTS:+ }${utc_component}"
+        SUCCEEDED_COMPONENTS="${SUCCEEDED_COMPONENTS}${SUCCEEDED_COMPONENTS:+ }${utc_component}"
+        return 0
+    fi
+    if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HANDLER_ROOT:-}" ]; then
+        utc_handlers="$SOLSTONE_HANDLER_ROOT"
+    else
+        utc_handlers="/usr/libexec/solstone/handlers"
+        [ ! -d "$utc_handlers" ] && utc_handlers="${PWD}/handlers"
+    fi
+    case "$utc_component" in
+        journal)
+            utc_journal="${OPT_PREFIX}/bin/journal"
+            if [ -x "$utc_journal" ] && ! "$utc_journal" setup --clean-uninstall --yes --installer-transaction; then
+                report_exit "refusal" "handler-failed" "journal clean uninstall failed"
+            fi
+            ;;
+        desktop|tmux)
+            utc_receipt=$(tree_receipt_path)
+            utc_target=$(receipt_value "$utc_receipt" "component:${utc_component}" current_target)
+            utc_rel=$(receipt_value "$utc_receipt" "component:${utc_component}" executable_relpath)
+            utc_binary="${OPT_PREFIX}/opt/solstone/${utc_component}/${utc_target}/${utc_rel}"
+            [ -x "$utc_binary" ] \
+                || report_exit "refusal" "handler-missing" "selected binary is unavailable for $utc_component service removal"
+            utc_handler="${utc_handlers}/${utc_component}/v1/uninstall-${utc_component}-service"
+            [ -f "$utc_handler" ] || report_exit "refusal" "handler-missing" "Uninstall handler is missing for $utc_component"
+            chmod 0755 "$utc_handler" || report_exit "refusal" "handler-failed" "Could not make the $utc_component uninstall handler executable"
+            "$utc_handler" --prefix "$OPT_PREFIX" --binary "$utc_binary" --route tree --role "$utc_component" \
+                || report_exit "refusal" "handler-failed" "Uninstall handler failed for $utc_component"
+            ;;
+    esac
+    case "$utc_component" in
+        journal|cli)
+            rm -f "${OPT_PREFIX}/bin/journal" || report_exit "refusal" "remove-failed" "Could not remove the journal launcher"
+            if [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_TREE_UNINSTALL_AFTER_PUBLIC:-}" = "$utc_component" ]; then
+                report_exit "refusal" "remove-failed" "Injected tree uninstall interruption"
+            fi
+            rm -f "${OPT_PREFIX}/current" "${OPT_PREFIX}/install-receipt" \
+                || report_exit "refusal" "remove-failed" "Could not remove journal ownership pointers"
+            rm -rf "${OPT_PREFIX}/versions" || report_exit "refusal" "remove-failed" "Could not remove journal payload versions"
+            ;;
+        desktop|tmux)
+            utc_receipt=$(tree_receipt_path)
+            utc_public=$(receipt_value "$utc_receipt" "component:${utc_component}" public_path)
+            utc_current=$(receipt_value "$utc_receipt" "component:${utc_component}" current)
+            utc_root="${OPT_PREFIX}/opt/solstone/${utc_component}"
+            rm -f "$utc_public" || report_exit "refusal" "remove-failed" "Could not remove the $utc_component public pointer"
+            if [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_TREE_UNINSTALL_AFTER_PUBLIC:-}" = "$utc_component" ]; then
+                report_exit "refusal" "remove-failed" "Injected tree uninstall interruption"
+            fi
+            rm -f "$utc_current" || report_exit "refusal" "remove-failed" "Could not remove the $utc_component current pointer"
+            rm -rf -- "${utc_root:?}" || report_exit "refusal" "remove-failed" "Could not remove the $utc_component payload"
+            ;;
+    esac
+    publish_tree_uninstall_receipt "$utc_component"
+    REMOVED_COMPONENTS="${REMOVED_COMPONENTS}${REMOVED_COMPONENTS:+ }${utc_component}"
+    SUCCEEDED_COMPONENTS="${SUCCEEDED_COMPONENTS}${SUCCEEDED_COMPONENTS:+ }${utc_component}"
+}
+
+uninstall_package_component() {
+    upc_component="$1"
+    ATTEMPTED_COMPONENTS="${ATTEMPTED_COMPONENTS}${ATTEMPTED_COMPONENTS:+ }${upc_component}"
+    package_component_authority "$upc_component" removal
+    if [ "$PACKAGE_CLAIM" -eq 0 ]; then
+        [ "$PACKAGE_STATE_PRESENT" -eq 0 ] || report_exit "refusal" "ownership-unknown" "Package state for $upc_component has no ownership receipt"
+        UNCHANGED_COMPONENTS="${UNCHANGED_COMPONENTS}${UNCHANGED_COMPONENTS:+ }${upc_component}"
+        return 0
+    fi
+    package_load_section "$PACKAGE_RECEIPT_FILE" "$upc_component" \
+        || report_exit "refusal" "ownership-unknown" "Package receipt for $upc_component is malformed"
+    upc_name="$PLS_NAME"
+    package_query_current "$upc_name"
+    if [ "$PQUERY_STATE" != "ABSENT" ]; then
+        if [ "$upc_component" = "journal" ]; then
+            if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_ROOT:-}" ]; then upc_journal="${SOLSTONE_FAKE_ROOT}/usr/bin/journal"; else upc_journal="/usr/bin/journal"; fi
+            [ ! -x "$upc_journal" ] || "$upc_journal" setup --clean-uninstall --yes --installer-transaction \
+                || report_exit "refusal" "handler-failed" "journal clean uninstall failed"
+        fi
+        # shellcheck disable=SC2086
+        if ! upc_result=$(printf "REMOVE_PKG %s %s\n" "$PKG_VARIANT" "$upc_name" | $sudo_prefix "$helper_bin" $helper_flags); then
+            package_protocol_failure "$upc_result" "package-remove-failed" "Could not remove package $upc_name"
+        fi
+        [ "$upc_result" = "OK" ] || package_protocol_failure "$upc_result" "package-remove-failed" "Could not remove package $upc_name"
+        package_query_current "$upc_name"
+        [ "$PQUERY_STATE" = "ABSENT" ] || report_exit "refusal" "package-remove-failed" "Package $upc_name remains installed"
+    fi
+    publish_package_uninstall_receipt "$upc_component"
+    REMOVED_COMPONENTS="${REMOVED_COMPONENTS}${REMOVED_COMPONENTS:+ }${upc_component}"
+    SUCCEEDED_COMPONENTS="${SUCCEEDED_COMPONENTS}${SUCCEEDED_COMPONENTS:+ }${upc_component}"
+}
+
+run_uninstall() {
+    manifest_dir="${SCRATCH_DIR}/manifest"
+    for comp in $TREE_SELECTED_COMPONENTS; do
+        uninstall_tree_component "$comp"
+    done
+    if [ -n "$PACKAGE_SELECTED_COMPONENTS" ]; then
+        init_package_helper
+        package_read_receipt
+        for comp in $PACKAGE_SELECTED_COMPONENTS; do
+            uninstall_package_component "$comp"
+        done
+    fi
+    report_exit "success" "uninstalled" "Selected components uninstalled successfully"
+}
+
+main() {
+    parse_args "$@"
+    validate_requested_coordinates
+    detect_arch
+    detect_fetch_tool
+
+    # Setup scratch directory
+    SCRATCH_DIR=$(mktemp -d /var/tmp/solstone-install.XXXXXX 2>/dev/null || mktemp -d /tmp/solstone-install.XXXXXX)
+    chmod 0700 "$SCRATCH_DIR"
+    trap cleanup_scratch 0
+    trap 'cleanup_scratch; exit 128' HUP INT TERM
+    init_awk_parser
+
+    # Resolve the host package variant even when route ownership will be detected later.
+    case "$OPT_ROUTE" in
+        tree|package)
+            if [ -f /etc/debian_version ] || command -v dpkg >/dev/null 2>&1; then
+                PKG_VARIANT="deb"
+            else
+                PKG_VARIANT="rpm"
+            fi
+            ;;
+        deb)
+            PKG_VARIANT="deb"
+            ;;
+        rpm)
+            PKG_VARIANT="rpm"
+            ;;
+        *)
+            report_exit "refusal" "unknown-argument" "Unknown route: $OPT_ROUTE"
+            ;;
+    esac
+
+    # 1. Resolve version
+    if [ -z "$OPT_VERSION" ]; then
+        latest_file="${SCRATCH_DIR}/latest"
+        fetch_file_with_redirect_check "${OPT_ORIGIN}/solstone/${OPT_LANE}/latest" "$latest_file" 64 "latest"
+        validate_latest_file "$latest_file"
+    else
+        RESOLVED_VERSION="$OPT_VERSION"
+    fi
+
+    # 2. Fetch platform manifest & signature
+    manifest_file="${SCRATCH_DIR}/platform.json"
+    manifest_sig="${SCRATCH_DIR}/platform.json.minisig"
+
+    fetch_file_with_redirect_check "${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}/platform.json" "$manifest_file" 4194304 "platform catalogue"
+    fetch_file_with_redirect_check "${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}/platform.json.minisig" "$manifest_sig" 16384 "platform signature"
+
+    # 3. Minisign verification
+    verify_minisign_signature "$manifest_file" "$manifest_sig" "$PLATFORM_PUBKEY"
+
+    # 4. Strict AWK RFC 8785 parser
+    manifest_dir="${SCRATCH_DIR}/manifest"
+    mkdir -p "$manifest_dir"
+
+    awk_stderr="${SCRATCH_DIR}/awk.err"
+    if ! awk -v out_dir="$manifest_dir" -f "${SCRATCH_DIR}/parse_manifest.awk" "$manifest_file" 2>"$awk_stderr"; then
+        awk_err_msg=$(head -n 1 "$awk_stderr" | tr -d '\r\n')
+        case "$awk_err_msg" in
+            *duplicate-key*)
+                report_exit "refusal" "duplicate-key" "Manifest contains duplicate keys ($awk_err_msg)"
+                ;;
+            *)
+                report_exit "refusal" "schema-invalid" "Manifest rejected by RFC 8785 schema whitelist parser ($awk_err_msg)"
+                ;;
+        esac
+    fi
+
+    validate_manifest_identity
+
+    # 5. Check catalogue list mode
+    if [ "$OPT_LIST" -eq 1 ]; then
+        if [ "$OPT_JSON" -eq 1 ]; then
+            printf '{"status":"success","root_code":"list","message":"Catalogue retrieved","lane":"%s","platform_version":"%s","arch":"%s","route":"%s","lock_state":"unlocked","snapshot_consistency":"unlocked","receipt_paths":[],"notices":[],"verification_layers":"%s","components":{"journal":{"version":"%s"},"desktop":{"version":"%s"},"tmux":{"version":"%s"}}}\n' \
+                "$OPT_LANE" "$RESOLVED_VERSION" "$HOST_ARCH" "$OPT_ROUTE" \
+                "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign+digest")" \
+                "$(cat "${manifest_dir}/components/journal/version" 2>/dev/null || echo "")" \
+                "$(cat "${manifest_dir}/components/desktop/version" 2>/dev/null || echo "")" \
+                "$(cat "${manifest_dir}/components/tmux/version" 2>/dev/null || echo "")"
+        else
+            printf "Solstone Platform Catalogue:\n"
+            printf "  - journal: Solstone Journal (role: journal/cli, version: %s)\n" "$(cat "${manifest_dir}/components/journal/version" 2>/dev/null || echo "")"
+            printf "  - desktop: Solstone Desktop (role: desktop, version: %s)\n" "$(cat "${manifest_dir}/components/desktop/version" 2>/dev/null || echo "")"
+            printf "  - tmux: Solstone Tmux Integration (role: tmux, version: %s)\n" "$(cat "${manifest_dir}/components/tmux/version" 2>/dev/null || echo "")"
+        fi
+        cleanup_scratch
+        exit 0
+    fi
+
+    # 6. Resolve component selection. Upgrade without a list selects only
+    # authoritatively recorded components and never opens the menu.
+    if [ -z "$OPT_COMPONENTS" ] && [ "$OPT_UPGRADE" -eq 1 ]; then
+        discover_upgrade_selection
+    elif [ -z "$OPT_COMPONENTS" ]; then
+        interactive_selection_menu
+    fi
+
+    if [ -z "$SELECTED_COMPONENTS" ]; then
+    case "$OPT_COMPONENTS" in
+        all)
+            if [ -d "${manifest_dir}/components/desktop/arches/${HOST_ARCH}" ]; then
+                SELECTED_COMPONENTS="journal desktop tmux"
+            else
+                notice_msg="Solstone Desktop is not available for $HOST_ARCH; installing journal and tmux."
+                log_info "Notice: $notice_msg"
+                OPT_NOTICES_JSON="[\"$notice_msg\"]"
+                SELECTED_COMPONENTS="journal tmux"
+            fi
+            ;;
+        capture)
+            if [ -d "${manifest_dir}/components/desktop/arches/${HOST_ARCH}" ]; then
+                SELECTED_COMPONENTS="cli desktop tmux"
+            else
+                notice_msg="Solstone Desktop is not available for $HOST_ARCH; installing cli and tmux."
+                log_info "Notice: $notice_msg"
+                OPT_NOTICES_JSON="[\"$notice_msg\"]"
+                SELECTED_COMPONENTS="cli tmux"
+            fi
+            ;;
+        *)
+            raw_comps=$(echo "$OPT_COMPONENTS" | tr ',' ' ')
+            has_journal=0
+            has_cli=0
+            for c in $raw_comps; do
+                case "$c" in
+                    journal) has_journal=1 ;;
+                    cli) has_cli=1 ;;
+                    desktop)
+                        if [ ! -d "${manifest_dir}/components/desktop/arches/${HOST_ARCH}" ]; then
+                            report_exit "refusal" "desktop-aarch64" "Solstone Desktop is not supported on $HOST_ARCH"
+                        fi
+                        ;;
+                    tmux) ;;
+                    *)
+                        report_exit "refusal" "unknown-component" "Unrecognized component: $c"
+                        ;;
+                esac
+            done
+            if [ $has_journal -eq 1 ] && [ $has_cli -eq 1 ]; then
+                report_exit "refusal" "source-ambiguous" "Cannot install both journal and cli simultaneously (source ambiguous)"
+            fi
+            SELECTED_COMPONENTS="$raw_comps"
+            ;;
+    esac
+    fi
+
+    # 7. Bind each component to its existing authoritative owner. Upgrade and
+    # uninstall never add a component; a clean install defaults to tree.
+    requested_components="$SELECTED_COMPONENTS"
+    REPORT_COMPONENTS="$requested_components"
+    TREE_SELECTED_COMPONENTS=""
+    PACKAGE_SELECTED_COMPONENTS=""
+    for comp in $requested_components; do
+        require_existing=0
+        if [ "$OPT_UPGRADE" -eq 1 ] || [ "$OPT_UNINSTALL" -eq 1 ]; then require_existing=1; fi
+        if ! resolve_component_route "$comp" "$require_existing"; then
+            if [ "$OPT_UNINSTALL" -eq 1 ]; then
+                UNCHANGED_COMPONENTS="${UNCHANGED_COMPONENTS}${UNCHANGED_COMPONENTS:+ }${comp}"
+            else
+                report_exit "refusal" "not-installed" "Component $comp is not installed; upgrade installs nothing new"
+            fi
+        fi
+    done
+    if [ -n "$TREE_SELECTED_COMPONENTS" ] && [ -n "$PACKAGE_SELECTED_COMPONENTS" ]; then
+        OPT_ROUTE="mixed"
+    elif [ -n "$PACKAGE_SELECTED_COMPONENTS" ]; then
+        OPT_ROUTE="$PKG_VARIANT"
+    else
+        OPT_ROUTE="tree"
+    fi
+
+    # 8. Check if target route variants exist in manifest
+    for comp in $SELECTED_COMPONENTS; do
+        if [ "$comp" = "cli" ]; then
+            c_key="journal"
+        else
+            c_key="$comp"
+        fi
+        check_var="tree"
+        case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) check_var="$PKG_VARIANT" ;; esac
+        if [ ! -d "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${check_var}" ]; then
+            report_exit "refusal" "incomplete-variants" "Variant ${check_var} for ${comp} on ${HOST_ARCH} is missing in manifest"
+        fi
+    done
+
+    # 9. Verify native authority pins even when signature execution is explicitly skipped.
+    for comp in $SELECTED_COMPONENTS; do
+        case "$comp" in
+            journal|cli)
+                c_key="journal"
+                expected_key_id="$JOURNAL_KEY_ID"
+                ;;
+            desktop)
+                c_key="desktop"
+                expected_key_id="$DESKTOP_KEY_ID"
+                ;;
+            tmux)
+                c_key="tmux"
+                expected_key_id="$TMUX_KEY_ID"
+                ;;
+            *)
+                c_key="$comp"
+                expected_key_id=""
+                ;;
+        esac
+
+        check_var="tree"
+        case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) check_var="$PKG_VARIANT" ;; esac
+
+        actual_verifier_id=$(cat "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${check_var}/authority/verifier_id" 2>/dev/null || echo "")
+        expected_verifier_id="minisign:${expected_key_id}"
+        if [ "$actual_verifier_id" != "$expected_verifier_id" ]; then
+            report_exit "refusal" "pin-mismatch" "Native authority verifier_id '$actual_verifier_id' does not match expected pin '$expected_verifier_id' for component $comp"
+        fi
+    done
+
+    # 10. Preflight Journal native authority before dry-run success, locks, or payload work.
+    for comp in $SELECTED_COMPONENTS; do
+        case "$comp" in
+            journal|cli)
+                check_var="tree"
+                case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) check_var="$PKG_VARIANT" ;; esac
+                preflight_journal_authority
+                break
+                ;;
+        esac
+    done
+
+    # 11. Preflight Desktop native authority before dry-run success, locks, or payload work.
+    for comp in $SELECTED_COMPONENTS; do
+        case "$comp" in
+            desktop)
+                check_var="tree"
+                case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) check_var="$PKG_VARIANT" ;; esac
+                preflight_desktop_authority
+                break
+                ;;
+        esac
+    done
+
+    # 12. Preflight Tmux native authority before dry-run success, locks, or payload work.
+    for comp in $SELECTED_COMPONENTS; do
+        case "$comp" in
+            tmux)
+                check_var="tree"
+                case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) check_var="$PKG_VARIANT" ;; esac
+                preflight_tmux_authority
+                break
+                ;;
+        esac
+    done
+
+    # 13. Acquire locks
+    acquire_installer_locks
+
+    # 14. Handle uninstall
+    if [ "$OPT_UNINSTALL" -eq 1 ]; then
+        run_uninstall
+    fi
+
+    # 15. Handle dry-run
+    if [ "$OPT_DRY_RUN" -eq 1 ]; then
+        report_exit "success" "dry-run-completed" "Dry run completed successfully"
+    fi
+
+    # 14. Perform installation
+    SELECTED_COMPONENTS="$TREE_SELECTED_COMPONENTS"
+    if [ -n "$SELECTED_COMPONENTS" ]; then
+        run_tree_install
+        for comp in $SELECTED_COMPONENTS; do
+            case " $UNCHANGED_COMPONENTS " in *" $comp "*) ;; *) SUCCEEDED_COMPONENTS="${SUCCEEDED_COMPONENTS}${SUCCEEDED_COMPONENTS:+ }${comp}" ;; esac
+        done
+    fi
+    SELECTED_COMPONENTS="$PACKAGE_SELECTED_COMPONENTS"
+    if [ -n "$SELECTED_COMPONENTS" ]; then
+        run_package_install
+    fi
+    SELECTED_COMPONENTS="$requested_components"
+
+    report_exit "success" "installed" "All selected components installed successfully"
+}
+
+main "$@"
+}

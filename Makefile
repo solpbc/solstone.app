@@ -1,4 +1,4 @@
-.PHONY: deploy dev install sitemap publish-install-sh
+.PHONY: deploy dev install sitemap publish-install-sh build-platform-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
@@ -16,6 +16,26 @@ install:
 
 # Sibling checkout of solstone-journal; override with `make publish-install-sh JOURNAL_REPO=<path>`.
 JOURNAL_REPO ?= ../solstone-journal
+SOLSTONE_REPO ?= ../solstone
+SOLSTONE_REMOTE ?= origin
+
+# Build the multi-component Linux installer from an exact, clean public main.
+# The generated asset is served separately from the journal-only install.sh.
+build-platform-install-sh:
+	@test -d "$(SOLSTONE_REPO)" || { echo "solstone checkout not found at $(SOLSTONE_REPO); set SOLSTONE_REPO=<path>" >&2; exit 1; }
+	@cd "$(SOLSTONE_REPO)" && git fetch "$(SOLSTONE_REMOTE)" main --quiet
+	@solstone_head="$$(cd "$(SOLSTONE_REPO)" && git rev-parse HEAD)"; \
+	solstone_main="$$(cd "$(SOLSTONE_REPO)" && git rev-parse FETCH_HEAD)"; \
+	if [ "$$solstone_head" != "$$solstone_main" ]; then \
+		echo "solstone at $(SOLSTONE_REPO) is at $$solstone_head, not $(SOLSTONE_REMOTE)/main ($$solstone_main); publishing must come from main" >&2; \
+		exit 1; \
+	fi
+	@if [ -n "$$(cd "$(SOLSTONE_REPO)" && git status --porcelain)" ]; then \
+		echo "solstone checkout at $(SOLSTONE_REPO) has uncommitted changes; refusing to publish" >&2; \
+		exit 1; \
+	fi
+	$(MAKE) -C "$(SOLSTONE_REPO)" build-installer
+	cp "$(SOLSTONE_REPO)/dist/install.sh" public/platform-install.sh
 
 # The authoritative-installer publish step. Republishes
 # solstone-journal's core/distribution/install.sh, from its origin/main tip

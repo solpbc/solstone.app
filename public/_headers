@@ -1,2 +1,5 @@
 /install.sh
   Content-Type: text/plain; charset=utf-8
+
+/platform-install.sh
+  Content-Type: text/plain; charset=utf-8

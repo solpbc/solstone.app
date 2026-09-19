@@ -12,7 +12,7 @@ function makeEnv() {
     ASSETS: {
       async fetch(req) {
         const path = new URL(req.url).pathname;
-        if (path === "/install.sh") {
+        if (path === "/install.sh" || path === "/platform-install.sh") {
           return new Response("#!/bin/sh\necho hi\n", {
             status: 200,
             headers: { "Content-Type": "application/octet-stream" },
@@ -45,6 +45,16 @@ test("HEAD /install.sh is allowed and carries the same content-type override", a
   );
   assert.equal(res.status, 200);
   assert.equal(res.headers.get("content-type"), "text/plain; charset=utf-8");
+});
+
+test("GET /platform-install.sh serves the platform installer as text/plain", async () => {
+  const res = await worker.fetch(
+    new Request("https://solstone.app/platform-install.sh", { method: "GET" }),
+    makeEnv(),
+  );
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("content-type"), "text/plain; charset=utf-8");
+  assert.equal(await res.text(), "#!/bin/sh\necho hi\n");
 });
 
 test("a nonexistent sibling path (the asset missing) still 404s -- never falls back to serving the script", async () => {

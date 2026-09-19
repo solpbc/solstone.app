@@ -332,7 +332,7 @@ export default {
     // `curl ... | sh` would pipe markup into a shell -- the worst possible
     // failure for a piped installer. A missing asset still 404s untouched,
     // so a typo'd sibling path never serves the script.
-    if (url.pathname === "/install.sh") {
+    if (url.pathname === "/install.sh" || url.pathname === "/platform-install.sh") {
       const assetResponse = await env.ASSETS.fetch(assetRequest(url, request));
       if (assetResponse.status === 404) {
         return assetResponse;
