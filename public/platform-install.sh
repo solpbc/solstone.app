@@ -5,7 +5,7 @@
 
 # Solstone POSIX Platform Installer
 
-INSTALLER_REVISION=1
+INSTALLER_REVISION=2
 EMBEDDED_MIN_INSTALLER_REVISION=1
 TEST_SEAM=0
 
@@ -22,6 +22,622 @@ TMUX_KEY_ID="365708FAD9F80092"
 TMUX_PUBKEY="RWSSAPjZ+ghXNvb4ExBLSd59dQMtjqW+xIZcl9MWfpWvjsTws6sBPEZz"
 
 DEFAULT_ORIGIN="https://updates.solstone.app"
+
+init_bundled_runtime() {
+    BUNDLED_RUNTIME="${SCRATCH_DIR}/runtime"
+    mkdir -p "$BUNDLED_RUNTIME/helpers" || report_exit refusal runtime-unavailable "could not stage installer runtime"
+    if ! cat > "$BUNDLED_RUNTIME/helpers/solstone-pkg-helper.sh" <<'SOLSTONE_RUNTIME_FILE_0_END'
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 sol pbc
+
+# Closed-vocabulary privileged package helper for Solstone platform installer.
+# Invoked via sudo -n by the non-root installer when package-route mutation is required.
+
+set -efu
+
+# Default production paths (immutable unless explicitly overridden via CLI flags under test seam)
+LOCK_DIR="/run/lock/solstone-platform"
+ETC_ROOT="/etc"
+FAKE_PKG_DB=""
+FAKE_ROOT=""
+FAKE_JOURNAL_LAUNCHER=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --lock-dir)
+            LOCK_DIR="$2"
+            shift 2
+            ;;
+        --etc-root)
+            ETC_ROOT="$2"
+            shift 2
+            ;;
+        --fake-pkg-db)
+            FAKE_PKG_DB="$2"
+            shift 2
+            ;;
+        --fake-root)
+            FAKE_ROOT="$2"
+            shift 2
+            ;;
+        --fake-journal-launcher)
+            FAKE_JOURNAL_LAUNCHER="$2"
+            shift 2
+            ;;
+        *)
+            echo "ERROR:unknown-flag:$1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+RECEIPT_FILE="${ETC_ROOT}/solstone/install.conf"
+
+# Sanitization helpers: reject metacharacters, escapes, traversal
+validate_name() {
+    name="$1"
+    case "$name" in
+        *[!A-Za-z0-9._-]*)
+            echo "ERROR:invalid-package-name" >&2
+            exit 1
+            ;;
+        "")
+            echo "ERROR:empty-package-name" >&2
+            exit 1
+            ;;
+    esac
+}
+
+validate_path() {
+    target_path="$1"
+    case "$target_path" in
+        /*) ;;
+        *)
+            echo "ERROR:path-not-absolute" >&2
+            exit 1
+            ;;
+    esac
+    case "$target_path" in
+        *..*|*\;*|*\&*|*\|*|*\`*|*\$*|*\(*|*\)*|*\<*|*\>*|*\\*)
+            echo "ERROR:path-unsafe" >&2
+            exit 1
+            ;;
+    esac
+}
+
+acquire_lock() {
+    # Verify no symlink in path components
+    if [ -L "$LOCK_DIR" ]; then
+        echo "ERROR:lock-dir-symlink" >&2
+        exit 1
+    fi
+    mkdir -p "$LOCK_DIR"
+    chmod 0755 "$LOCK_DIR" 2>/dev/null || true
+    LOCK_FILE="${LOCK_DIR}/lock"
+    if [ -L "$LOCK_FILE" ]; then
+        echo "ERROR:lock-file-symlink" >&2
+        exit 1
+    fi
+    # Open lock file on fd 9
+    exec 9>>"$LOCK_FILE"
+    if command -v flock >/dev/null 2>&1; then
+        if ! flock -n 9; then
+            echo "ERROR:package-locked" >&2
+            exit 1
+        fi
+    fi
+}
+
+handle_query_pkg() {
+    pkg_type="$1"
+    pkg_name="$2"
+    validate_name "$pkg_name"
+
+    if [ -n "$FAKE_PKG_DB" ] && [ -d "$FAKE_PKG_DB" ]; then
+        db_file="${FAKE_PKG_DB}/${pkg_type}/${pkg_name}"
+        if [ -f "$db_file" ]; then
+            if ! awk '
+                NR == 1 && NF == 4 && ($1 == "INSTALLED" || $1 == "UNCONFIGURED") && $2 ~ /^[A-Za-z0-9._-]+$/ && $3 ~ /^[^[:space:]]+$/ && $4 ~ /^[A-Za-z0-9._-]+$/ { valid = 1; next }
+                { invalid = 1 }
+                END { exit !(valid && !invalid) }
+            ' "$db_file"; then
+                echo "ERROR:query-malformed"
+                return 1
+            fi
+            cat "$db_file"
+            return 0
+        fi
+        echo "ABSENT"
+        return 0
+    fi
+
+    if [ "$pkg_type" = "deb" ]; then
+        if ! command -v dpkg-query >/dev/null 2>&1; then
+            echo "ERROR:query-unavailable"
+            return 1
+        fi
+        if query_raw=$(dpkg-query -W -f='${Status}\t${Package}\t${Version}\t${Architecture}\n' "$pkg_name" 2>/dev/null); then
+            :
+        else
+            query_status=$?
+            if [ "$query_status" -eq 1 ]; then
+                echo "ABSENT"
+                return 0
+            fi
+            echo "ERROR:query-failed"
+            return 1
+        fi
+        if ! query_out=$(printf '%s\n' "$query_raw" | awk -F '\t' -v wanted="$pkg_name" '
+            NR != 1 || NF != 4 { bad = 1; next }
+            $2 != wanted || $3 == "" || $4 !~ /^[A-Za-z0-9._-]+$/ { bad = 1; next }
+            $1 == "install ok installed" { print "INSTALLED " $2 " " $3 " " $4; seen = 1; next }
+            $1 == "install ok unpacked" || $1 == "install ok half-configured" || $1 == "install ok triggers-awaited" || $1 == "install ok triggers-pending" { print "UNCONFIGURED " $2 " " $3 " " $4; seen = 1; next }
+            $1 == "deinstall ok config-files" { print "CONFIG_FILES " $2 " " $3 " " $4; seen = 1; next }
+            { bad = 1 }
+            END { exit !(seen && !bad) }
+        '); then
+            echo "ERROR:query-malformed"
+            return 1
+        fi
+        printf '%s\n' "$query_out"
+    elif [ "$pkg_type" = "rpm" ]; then
+        if ! command -v rpm >/dev/null 2>&1; then
+            echo "ERROR:query-unavailable"
+            return 1
+        fi
+        if query_raw=$(rpm -q --queryformat '%{NAME}\t%{VERSION}-%{RELEASE}\t%{ARCH}\n' "$pkg_name" 2>/dev/null); then
+            :
+        else
+            query_status=$?
+            if [ "$query_status" -eq 1 ]; then
+                echo "ABSENT"
+                return 0
+            fi
+            echo "ERROR:query-failed"
+            return 1
+        fi
+        if ! query_out=$(printf '%s\n' "$query_raw" | awk -F '\t' -v wanted="$pkg_name" '
+            NR != 1 || NF != 3 { bad = 1; next }
+            $1 != wanted || $2 == "" || $3 !~ /^[A-Za-z0-9._-]+$/ { bad = 1; next }
+            { print "INSTALLED " $1 " " $2 " " $3; seen = 1 }
+            END { exit !(seen && !bad) }
+        '); then
+            echo "ERROR:query-malformed"
+            return 1
+        fi
+        printf '%s\n' "$query_out"
+    else
+        echo "ERROR:unsupported-pkg-type"
+        return 1
+    fi
+}
+
+parse_archive_identity() {
+    # Package placeholders belong to dpkg-deb, not the shell.
+    # shellcheck disable=SC2016
+    case "$1" in
+        deb) dpkg-deb --show --showformat='${Package} ${Version} ${Architecture}\n' "$2" ;;
+        rpm) rpm -qp --queryformat '%{NAME} %{VERSION}-%{RELEASE} %{ARCH}\n' "$2" ;;
+        *) return 1 ;;
+    esac
+}
+
+handle_install_pkg() {
+    pkg_type="$1"
+    archive_path="$2"
+    validate_path "$archive_path"
+
+    if [ ! -f "$archive_path" ]; then
+        echo "ERROR:archive-missing" >&2
+        exit 1
+    fi
+
+    if ! pkg_identity=$(parse_archive_identity "$pkg_type" "$archive_path"); then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    # Deliberate whitespace split of three identity fields; pathname expansion is disabled.
+    # shellcheck disable=SC2086
+    set -- $pkg_identity
+    if [ $# -ne 3 ]; then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    pkg_name="$1"
+    pkg_version="$2"
+    pkg_arch="$3"
+    validate_name "$pkg_name"
+
+    if [ -n "$FAKE_PKG_DB" ] && [ -d "$FAKE_PKG_DB" ]; then
+        mkdir -p "${FAKE_PKG_DB}/${pkg_type}"
+        printf 'INSTALLED %s %s %s\n' "$pkg_name" "$pkg_version" "$pkg_arch" > "${FAKE_PKG_DB}/${pkg_type}/${pkg_name}"
+        if [ "$pkg_name" = "solstone-journal" ] && [ -n "$FAKE_ROOT" ]; then
+            if [ -z "$FAKE_JOURNAL_LAUNCHER" ] || [ ! -x "$FAKE_JOURNAL_LAUNCHER" ]; then
+                echo "ERROR:install-failed"
+                return 1
+            fi
+            fake_journal_dir="${FAKE_ROOT}/usr/bin"
+            if [ -L "$FAKE_ROOT" ] || [ -L "$fake_journal_dir" ] || [ -L "${fake_journal_dir}/journal" ]; then
+                echo "ERROR:install-failed"
+                return 1
+            fi
+            mkdir -p "$fake_journal_dir"
+            cp "$FAKE_JOURNAL_LAUNCHER" "${fake_journal_dir}/journal"
+            chmod 0755 "${fake_journal_dir}/journal"
+        fi
+        echo "$archive_path" >> "${FAKE_PKG_DB}/install.log"
+        if ! installed_identity=$(handle_query_pkg "$pkg_type" "$pkg_name"); then
+            echo "ERROR:install-failed"
+            return 1
+        fi
+        if [ "$installed_identity" != "INSTALLED $pkg_name $pkg_version $pkg_arch" ]; then
+            echo "ERROR:install-failed"
+            return 1
+        fi
+        echo "OK"
+        return 0
+    fi
+
+    if [ "$pkg_type" = "deb" ]; then
+        if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall --no-remove "$archive_path" >&2; then
+            echo "ERROR:install-failed"
+            return 1
+        fi
+    elif [ "$pkg_type" = "rpm" ]; then
+        rpm_action=install
+        existing_identity=$(handle_query_pkg rpm "$pkg_name") || return 1
+        if [ "$existing_identity" = "INSTALLED $pkg_name $pkg_version $pkg_arch" ]; then
+            rpm_action=reinstall
+        fi
+        # The installer verified this local artifact; repository dependency checks remain enabled.
+        if ! dnf -y --setopt=localpkg_gpgcheck=False "$rpm_action" "$archive_path" >&2; then
+            echo "ERROR:install-failed"
+            return 1
+        fi
+    else
+        echo "ERROR:unsupported-pkg-type"
+        return 1
+    fi
+    if ! installed_identity=$(handle_query_pkg "$pkg_type" "$pkg_name"); then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    if [ "$installed_identity" != "INSTALLED $pkg_name $pkg_version $pkg_arch" ]; then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    echo "OK"
+}
+
+handle_remove_pkg() {
+    pkg_type="$1"
+    pkg_name="$2"
+    validate_name "$pkg_name"
+
+    if [ -n "$FAKE_PKG_DB" ] && [ -d "$FAKE_PKG_DB" ]; then
+        if ! rm -f "${FAKE_PKG_DB}/${pkg_type}/${pkg_name}" \
+            || ! printf '%s\n' "$pkg_name" >> "${FAKE_PKG_DB}/remove.log"; then
+            echo "ERROR:remove-failed"
+            return 1
+        fi
+        if [ "$pkg_name" = "solstone-journal" ] && [ -n "$FAKE_ROOT" ]; then
+            if ! rm -f "${FAKE_ROOT}/usr/bin/journal"; then
+                echo "ERROR:remove-failed"
+                return 1
+            fi
+        fi
+        echo "OK"
+        return 0
+    fi
+
+    if [ "$pkg_type" = "deb" ]; then
+        if ! dpkg -r "$pkg_name" >&2; then echo "ERROR:remove-failed"; return 1; fi
+        echo "OK"
+    elif [ "$pkg_type" = "rpm" ]; then
+        if ! rpm -e "$pkg_name" >&2; then echo "ERROR:remove-failed"; return 1; fi
+        echo "OK"
+    else
+        echo "ERROR:unsupported-pkg-type" >&2
+        exit 1
+    fi
+}
+
+handle_write_receipt() {
+    len="$1"
+    case "$len" in
+        ''|*[!0-9]*)
+            echo "ERROR:invalid-length" >&2
+            exit 1
+            ;;
+    esac
+
+    receipt_dir=$(dirname "$RECEIPT_FILE")
+    if [ -L "$receipt_dir" ] || [ -L "$RECEIPT_FILE" ] || [ -d "$RECEIPT_FILE" ] || { [ -e "$RECEIPT_FILE" ] && [ ! -f "$RECEIPT_FILE" ]; }; then
+        echo "ERROR:receipt-dest-invalid"
+        return 1
+    fi
+    if ! mkdir -p "$receipt_dir"; then
+        echo "ERROR:receipt-dest-invalid"
+        return 1
+    fi
+    if ! chmod 0755 "$receipt_dir"; then
+        echo "ERROR:receipt-dest-invalid"
+        return 1
+    fi
+
+    tmp_file="${RECEIPT_FILE}.tmp.$$"
+    if ! head -c "$len" > "$tmp_file"; then
+        rm -f "$tmp_file"
+        echo "ERROR:receipt-truncated"
+        return 1
+    fi
+    actual_len=$(wc -c < "$tmp_file" | tr -d '[:space:]')
+    if [ "$actual_len" != "$len" ]; then
+        rm -f "$tmp_file"
+        echo "ERROR:receipt-truncated"
+        return 1
+    fi
+    if ! chmod 0644 "$tmp_file" || ! mv -T "$tmp_file" "$RECEIPT_FILE"; then
+        rm -f "$tmp_file"
+        echo "ERROR:receipt-dest-invalid"
+        return 1
+    fi
+    echo "OK"
+}
+
+handle_read_receipt() {
+    if [ ! -e "$RECEIPT_FILE" ] && [ ! -L "$RECEIPT_FILE" ]; then
+        return 0
+    fi
+    if [ -L "$RECEIPT_FILE" ] || [ ! -f "$RECEIPT_FILE" ] || ! cat "$RECEIPT_FILE"; then
+        echo "ERROR:receipt-read-failed"
+        return 1
+    fi
+}
+
+# Main command processing loop
+acquire_lock
+
+while IFS= read -r line || [ -n "$line" ]; do
+    [ -z "$line" ] && continue
+    # Reject shell metacharacters in command line
+    case "$line" in
+        *\;*|*\&*|*\|*|*\`*|*\$*|*\(*|*\)*|*\<*|*\>*|*\\*)
+            echo "ERROR:metacharacters-rejected" >&2
+            exit 1
+            ;;
+    esac
+
+    # shellcheck disable=SC2086
+    set -- $line
+    opcode="${1:-}"
+
+    case "$opcode" in
+        PING)
+            if [ $# -ne 1 ]; then
+                echo "ERROR:invalid-ping-operands" >&2
+                exit 1
+            fi
+            echo "PONG"
+            ;;
+        QUERY_PKG)
+            if [ $# -ne 3 ]; then
+                echo "ERROR:invalid-query-operands" >&2
+                exit 1
+            fi
+            handle_query_pkg "$2" "$3"
+            ;;
+        INSTALL_PKG)
+            if [ $# -ne 3 ]; then
+                echo "ERROR:invalid-install-operands" >&2
+                exit 1
+            fi
+            handle_install_pkg "$2" "$3"
+            ;;
+        REMOVE_PKG)
+            if [ $# -ne 3 ]; then
+                echo "ERROR:invalid-remove-operands" >&2
+                exit 1
+            fi
+            handle_remove_pkg "$2" "$3"
+            ;;
+        WRITE_ETC_RECEIPT)
+            if [ $# -ne 2 ]; then
+                echo "ERROR:invalid-write-receipt-operands" >&2
+                exit 1
+            fi
+            handle_write_receipt "$2"
+            ;;
+        READ_ETC_RECEIPT)
+            if [ $# -ne 1 ]; then
+                echo "ERROR:invalid-read-receipt-operands" >&2
+                exit 1
+            fi
+            handle_read_receipt
+            ;;
+        *)
+            echo "ERROR:unknown-opcode:$opcode" >&2
+            exit 1
+            ;;
+    esac
+done
+SOLSTONE_RUNTIME_FILE_0_END
+    then report_exit refusal runtime-unavailable "could not write installer runtime"; fi
+    chmod 0700 "$BUNDLED_RUNTIME/helpers/solstone-pkg-helper.sh" || report_exit refusal runtime-unavailable "could not prepare installer runtime"
+    mkdir -p "$BUNDLED_RUNTIME/handlers/desktop/v1" || report_exit refusal runtime-unavailable "could not stage installer runtime"
+    if ! cat > "$BUNDLED_RUNTIME/handlers/desktop/v1/install-desktop" <<'SOLSTONE_RUNTIME_FILE_1_END'
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 sol pbc
+
+set -eu
+
+PREFIX="${SOLSTONE_INSTALL_PREFIX:-$HOME/.local}"
+BINARY=""
+NO_START=0
+NO_PATH=0
+ROUTE=""
+ROLE=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --prefix) [ "$#" -ge 2 ] || exit 2; PREFIX="$2"; shift 2 ;;
+        --binary) [ "$#" -ge 2 ] || exit 2; BINARY="$2"; shift 2 ;;
+        --route) [ "$#" -ge 2 ] || exit 2; ROUTE="$2"; shift 2 ;;
+        --role) [ "$#" -ge 2 ] || exit 2; ROLE="$2"; shift 2 ;;
+        --no-start) NO_START=1; shift ;;
+        --no-path) NO_PATH=1; shift ;;
+        *) exit 2 ;;
+    esac
+done
+
+case "$ROLE" in desktop|tmux) ;; *) exit 2 ;; esac
+[ "$ROUTE" = "tree" ] && [ -x "$BINARY" ] || exit 2
+
+if [ "$NO_PATH" -eq 0 ]; then
+    CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+    ENV_DIR="${CONFIG_HOME}/solstone"
+    ENV_FILE="${ENV_DIR}/env"
+    if [ -L "$ENV_FILE" ] || { [ -e "$ENV_FILE" ] && [ ! -f "$ENV_FILE" ]; }; then
+        exit 1
+    fi
+    if [ ! -e "$ENV_FILE" ] || grep -q '^### SOLSTONE-PLATFORM-MANAGED: \(desktop\|tmux\|platform\)-v1-path ###$' "$ENV_FILE"; then
+        mkdir -p "$ENV_DIR"
+        cat <<EOF > "$ENV_FILE"
+### SOLSTONE-PLATFORM-MANAGED: platform-v1-path ###
+case ":\${PATH}:" in
+    *:"${PREFIX}/bin":*) ;;
+    *) export PATH="${PREFIX}/bin:\${PATH}" ;;
+esac
+EOF
+        chmod 0644 "$ENV_FILE"
+    fi
+fi
+
+if [ "$NO_START" -eq 0 ]; then
+    "$BINARY" install-service >&2
+fi
+SOLSTONE_RUNTIME_FILE_1_END
+    then report_exit refusal runtime-unavailable "could not write installer runtime"; fi
+    chmod 0700 "$BUNDLED_RUNTIME/handlers/desktop/v1/install-desktop" || report_exit refusal runtime-unavailable "could not prepare installer runtime"
+    mkdir -p "$BUNDLED_RUNTIME/handlers/desktop/v1" || report_exit refusal runtime-unavailable "could not stage installer runtime"
+    if ! cat > "$BUNDLED_RUNTIME/handlers/desktop/v1/uninstall-desktop-service" <<'SOLSTONE_RUNTIME_FILE_2_END'
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 sol pbc
+
+set -eu
+
+PREFIX="${SOLSTONE_INSTALL_PREFIX:-$HOME/.local}"
+BINARY=""
+ROUTE=""
+ROLE=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --prefix) [ "$#" -ge 2 ] || exit 2; PREFIX="$2"; shift 2 ;;
+        --binary) [ "$#" -ge 2 ] || exit 2; BINARY="$2"; shift 2 ;;
+        --route) [ "$#" -ge 2 ] || exit 2; ROUTE="$2"; shift 2 ;;
+        --role) [ "$#" -ge 2 ] || exit 2; ROLE="$2"; shift 2 ;;
+        *) exit 2 ;;
+    esac
+done
+
+case "$ROLE" in desktop) NAME=solstone-linux ;; tmux) NAME=solstone-tmux ;; *) exit 2 ;; esac
+[ -n "$BINARY" ] || BINARY="${PREFIX}/bin/${NAME}"
+[ "$ROUTE" = "tree" ] && [ -x "$BINARY" ] || exit 2
+"$BINARY" uninstall-service >&2
+SOLSTONE_RUNTIME_FILE_2_END
+    then report_exit refusal runtime-unavailable "could not write installer runtime"; fi
+    chmod 0700 "$BUNDLED_RUNTIME/handlers/desktop/v1/uninstall-desktop-service" || report_exit refusal runtime-unavailable "could not prepare installer runtime"
+    mkdir -p "$BUNDLED_RUNTIME/handlers/tmux/v1" || report_exit refusal runtime-unavailable "could not stage installer runtime"
+    if ! cat > "$BUNDLED_RUNTIME/handlers/tmux/v1/install-tmux" <<'SOLSTONE_RUNTIME_FILE_3_END'
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 sol pbc
+
+set -eu
+
+PREFIX="${SOLSTONE_INSTALL_PREFIX:-$HOME/.local}"
+BINARY=""
+NO_START=0
+NO_PATH=0
+ROUTE=""
+ROLE=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --prefix) [ "$#" -ge 2 ] || exit 2; PREFIX="$2"; shift 2 ;;
+        --binary) [ "$#" -ge 2 ] || exit 2; BINARY="$2"; shift 2 ;;
+        --route) [ "$#" -ge 2 ] || exit 2; ROUTE="$2"; shift 2 ;;
+        --role) [ "$#" -ge 2 ] || exit 2; ROLE="$2"; shift 2 ;;
+        --no-start) NO_START=1; shift ;;
+        --no-path) NO_PATH=1; shift ;;
+        *) exit 2 ;;
+    esac
+done
+
+case "$ROLE" in desktop|tmux) ;; *) exit 2 ;; esac
+[ "$ROUTE" = "tree" ] && [ -x "$BINARY" ] || exit 2
+
+if [ "$NO_PATH" -eq 0 ]; then
+    CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+    ENV_DIR="${CONFIG_HOME}/solstone"
+    ENV_FILE="${ENV_DIR}/env"
+    if [ -L "$ENV_FILE" ] || { [ -e "$ENV_FILE" ] && [ ! -f "$ENV_FILE" ]; }; then
+        exit 1
+    fi
+    if [ ! -e "$ENV_FILE" ] || grep -q '^### SOLSTONE-PLATFORM-MANAGED: \(desktop\|tmux\|platform\)-v1-path ###$' "$ENV_FILE"; then
+        mkdir -p "$ENV_DIR"
+        cat <<EOF > "$ENV_FILE"
+### SOLSTONE-PLATFORM-MANAGED: platform-v1-path ###
+case ":\${PATH}:" in
+    *:"${PREFIX}/bin":*) ;;
+    *) export PATH="${PREFIX}/bin:\${PATH}" ;;
+esac
+EOF
+        chmod 0644 "$ENV_FILE"
+    fi
+fi
+
+if [ "$NO_START" -eq 0 ]; then
+    "$BINARY" install-service >&2
+fi
+SOLSTONE_RUNTIME_FILE_3_END
+    then report_exit refusal runtime-unavailable "could not write installer runtime"; fi
+    chmod 0700 "$BUNDLED_RUNTIME/handlers/tmux/v1/install-tmux" || report_exit refusal runtime-unavailable "could not prepare installer runtime"
+    mkdir -p "$BUNDLED_RUNTIME/handlers/tmux/v1" || report_exit refusal runtime-unavailable "could not stage installer runtime"
+    if ! cat > "$BUNDLED_RUNTIME/handlers/tmux/v1/uninstall-tmux-service" <<'SOLSTONE_RUNTIME_FILE_4_END'
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 sol pbc
+
+set -eu
+
+PREFIX="${SOLSTONE_INSTALL_PREFIX:-$HOME/.local}"
+BINARY=""
+ROUTE=""
+ROLE=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --prefix) [ "$#" -ge 2 ] || exit 2; PREFIX="$2"; shift 2 ;;
+        --binary) [ "$#" -ge 2 ] || exit 2; BINARY="$2"; shift 2 ;;
+        --route) [ "$#" -ge 2 ] || exit 2; ROUTE="$2"; shift 2 ;;
+        --role) [ "$#" -ge 2 ] || exit 2; ROLE="$2"; shift 2 ;;
+        *) exit 2 ;;
+    esac
+done
+
+case "$ROLE" in desktop) NAME=solstone-linux ;; tmux) NAME=solstone-tmux ;; *) exit 2 ;; esac
+[ -n "$BINARY" ] || BINARY="${PREFIX}/bin/${NAME}"
+[ "$ROUTE" = "tree" ] && [ -x "$BINARY" ] || exit 2
+"$BINARY" uninstall-service >&2
+SOLSTONE_RUNTIME_FILE_4_END
+    then report_exit refusal runtime-unavailable "could not write installer runtime"; fi
+    chmod 0700 "$BUNDLED_RUNTIME/handlers/tmux/v1/uninstall-tmux-service" || report_exit refusal runtime-unavailable "could not prepare installer runtime"
+}
 
 # Global options
 OPT_COMPONENTS=""
@@ -59,6 +675,10 @@ FETCH_TOOL=""
 TREE_FD=8
 PKG_FD=9
 PACKAGE_HELPER_READY=0
+TREE_TXN_ACTIVE=0
+TREE_CREATED_ROOT=""
+NATIVE_COMMITTED=0
+NATIVE_ATTEMPTED=0
 
 : "${EMBEDDED_MIN_INSTALLER_REVISION}" "${PLATFORM_KEY_ID}" "${JOURNAL_KEY_ID}" "${DESKTOP_KEY_ID}" "${TMUX_KEY_ID}" "${JOURNAL_PUBKEY}" "${DESKTOP_PUBKEY}" "${TMUX_PUBKEY}" "${TREE_FD}" "${PKG_FD}"
 
@@ -80,11 +700,69 @@ cleanup_scratch() {
     fi
 }
 
+json_string() {
+    printf '%s\n' "$1" | LC_ALL=C awk '
+        BEGIN { printf "\""; for (i=1; i<32; i++) controls[sprintf("%c",i)]=i }
+        { if (NR>1) printf "\\n"; for (i=1;i<=length($0);i++) {
+            c=substr($0,i,1)
+            if (c=="\"") printf "\\\""
+            else if (c=="\\") printf "\\\\"
+            else if (c in controls) printf "\\u%04x", controls[c]
+            else printf "%s", c
+        }}
+        END { printf "\"" }
+    '
+}
+
+shell_quote() {
+    printf "'"
+    printf '%s' "$1" | sed "s/'/'\\\\''/g"
+    printf "'"
+}
+
+native_recovery() {
+    nr_role="$1"
+    nr_base="${SCRATCH_DIR}/manifest/components/journal"
+    nr_url=$(cat "$nr_base/provenance/bootstrap/url") || return 1
+    nr_sha=$(cat "$nr_base/provenance/bootstrap/sha256") || return 1
+    nr_version=$(cat "$nr_base/version") || return 1
+    printf 'curl -fsSL %s -o journal-install.sh && ' "$(shell_quote "$nr_url")"
+    printf "printf '%%s  %%s\\n' %s journal-install.sh | sha256sum -c - && " "$(shell_quote "$nr_sha")"
+    printf 'sh journal-install.sh'
+    set -- --prefix "$OPT_PREFIX" --role "$nr_role" --version "$nr_version" --origin "$OPT_ORIGIN" --lane "$OPT_LANE" --upgrade
+    [ "$OPT_NO_START" -eq 0 ] || set -- "$@" --no-start
+    [ "$OPT_NO_PATH" -eq 0 ] || set -- "$@" --no-path
+    [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || set -- "$@" --skip-signature
+    for nr_arg do printf ' %s' "$(shell_quote "$nr_arg")"; done
+}
+
 report_exit() {
     status="$1"
     code="$2"
     message="$3"
-    cleanup_scratch
+    if [ "$status" != success ] && [ "$TREE_TXN_ACTIVE" -eq 1 ]; then
+        TREE_TXN_ACTIVE=0
+        if rollback_tree_handlers; then
+            if [ -n "$TREE_CREATED_ROOT" ]; then
+                rm -rf -- "$TREE_CREATED_ROOT" || { code=rollback-failed; message="$message; could not remove incomplete payload at $TREE_CREATED_ROOT"; }
+            fi
+        else
+            code=rollback-failed
+            message="$message; recovery is incomplete; preserve the payload and receipts for inspection"
+        fi
+    fi
+    if [ "$status" != success ] && [ "$NATIVE_ATTEMPTED" -eq 1 ]; then
+        if [ "$NATIVE_COMMITTED" -eq 1 ]; then
+            message="$message; native installation completed, but platform ownership was not saved"
+        else
+            message="$message; native setup may be incomplete"
+        fi
+        message="$message. preserve the tree and journal data; platform ownership remains unresolved. native recovery: $(native_recovery "$SELECTED_COMPONENTS")"
+    fi
+    operation=install
+    [ "$OPT_UPGRADE" -eq 0 ] || operation=upgrade
+    [ "$OPT_UNINSTALL" -eq 0 ] || operation=uninstall
+    [ "$OPT_LIST" -eq 0 ] || operation=list
     if [ "$OPT_JSON" -eq 1 ]; then
         comp_json=""
         report_components="${REPORT_COMPONENTS:-$SELECTED_COMPONENTS}"
@@ -105,12 +783,16 @@ report_exit() {
                 if [ "$status" != "success" ] && [ "$c_unchanged" -eq 0 ] && [ "$c_succeeded" -eq 0 ]; then
                     c_status="failed"
                     c_phase="failed"
-                    if [ "$OPT_UNINSTALL" -eq 1 ]; then
+                    if [ -n "$ATTEMPTED_COMPONENTS" ]; then
                         case " $ATTEMPTED_COMPONENTS " in
                             *" $comp "*) ;;
                             *) c_status="unattempted"; c_phase="unattempted" ;;
                         esac
                     fi
+                fi
+                if [ "$status" = "success" ] && [ "$OPT_DRY_RUN" -eq 1 ]; then
+                    c_status="planned"
+                    c_phase="planned"
                 fi
                 c_route="$OPT_ROUTE"
                 case " $TREE_SELECTED_COMPONENTS " in *" $comp "*) c_route="tree" ;; esac
@@ -118,7 +800,14 @@ report_exit() {
                 case " $REMOVED_COMPONENTS " in
                     *" $comp "*) c_status="removed"; c_phase="removed" ;;
                 esac
-                c_block="\"$comp\":{\"role\":\"$c_role\",\"status\":\"$c_status\",\"route\":\"$c_route\",\"phase\":\"$c_phase\"}"
+                c_version_json=null
+                if [ "$OPT_UNINSTALL" -eq 0 ] && [ -n "$SCRATCH_DIR" ]; then
+                    c_key="$comp"
+                    [ "$comp" != cli ] || c_key=journal
+                    c_version_file="${SCRATCH_DIR}/manifest/components/${c_key}/version"
+                    [ ! -f "$c_version_file" ] || c_version_json=$(json_string "$(cat "$c_version_file")")
+                fi
+                c_block="\"$comp\":{\"role\":\"$c_role\",\"status\":\"$c_status\",\"route\":\"$c_route\",\"phase\":\"$c_phase\",\"target_version\":$c_version_json}"
                 if [ $first_c -eq 1 ]; then
                     comp_json="$c_block"
                     first_c=0
@@ -131,42 +820,58 @@ report_exit() {
         lock_st="unlocked"
         snap_st="unlocked"
         receipts_json="[]"
-        if [ "$status" = "success" ] && [ "$OPT_DRY_RUN" -eq 0 ]; then
-            lock_st="released"
-            snap_st="converged"
+        if [ "$OPT_DRY_RUN" -eq 0 ]; then
+            if [ "$status" = "success" ]; then lock_st="released"; snap_st="converged"; fi
             r_tree=$(tree_receipt_path)
             r_package=$(package_receipt_path)
             case "$OPT_ROUTE" in
-                tree) [ ! -e "$r_tree" ] || receipts_json="[\"$r_tree\"]" ;;
+                tree) [ ! -e "$r_tree" ] || receipts_json="[$(json_string "$r_tree")]" ;;
                 mixed)
                     if [ -e "$r_tree" ] && [ -e "$r_package" ]; then
-                        receipts_json="[\"$r_tree\",\"$r_package\"]"
+                        receipts_json="[$(json_string "$r_tree"),$(json_string "$r_package")]"
                     elif [ -e "$r_tree" ]; then
-                        receipts_json="[\"$r_tree\"]"
+                        receipts_json="[$(json_string "$r_tree")]"
                     elif [ -e "$r_package" ]; then
-                        receipts_json="[\"$r_package\"]"
+                        receipts_json="[$(json_string "$r_package")]"
                     fi
                     ;;
-                *) [ ! -e "$r_package" ] || receipts_json="[\"$r_package\"]" ;;
+                *) [ ! -e "$r_package" ] || receipts_json="[$(json_string "$r_package")]" ;;
             esac
         fi
 
-        v_layer="minisign+digest"
-        [ "$OPT_SKIP_SIGNATURE" -eq 1 ] && v_layer="digest-matched; signatures skipped"
+        v_layer="${VERIFICATION_LAYERS:-not-completed}"
 
         status_json="$status"
         [ "$status" != "success" ] && status_json="refusal"
 
-        printf '{"status":"%s","root_code":"%s","message":"%s","lane":"%s","platform_version":"%s","arch":"%s","route":"%s","lock_state":"%s","snapshot_consistency":"%s","receipt_paths":%s,"notices":%s,"verification_layers":"%s","components":{%s}}\n' \
-            "$status_json" "$code" "$message" "$OPT_LANE" "${RESOLVED_VERSION:-$OPT_VERSION}" "$HOST_ARCH" "$OPT_ROUTE" "$lock_st" "$snap_st" "$receipts_json" "${OPT_NOTICES_JSON}" "$v_layer" "$comp_json"
+        printf '{"status":%s,"operation":%s,"prefix":%s,"root_code":%s,"message":%s,"lane":%s,"platform_version":%s,"arch":%s,"route":%s,"lock_state":%s,"snapshot_consistency":%s,"receipt_paths":%s,"notices":%s,"verification_layers":%s,"components":{%s}}\n' \
+            "$(json_string "$status_json")" "$(json_string "$operation")" "$(json_string "$OPT_PREFIX")" "$(json_string "$code")" "$(json_string "$message")" "$(json_string "$OPT_LANE")" "$(json_string "${RESOLVED_VERSION:-$OPT_VERSION}")" "$(json_string "$HOST_ARCH")" "$(json_string "$OPT_ROUTE")" "$(json_string "$lock_st")" "$(json_string "$snap_st")" "$receipts_json" "${OPT_NOTICES_JSON}" "$(json_string "$v_layer")" "$comp_json"
     else
-        if [ "$status" = "success" ]; then
-            log_info "Solstone installation completed successfully ($code)."
+        if [ "$status" = "success" ] && [ "$OPT_DRY_RUN" -eq 1 ]; then
+            log_info "preview complete; no changes made."
+        elif [ "$status" = "success" ]; then
+            log_info "$operation complete."
+            if [ "$OPT_UNINSTALL" -eq 0 ]; then
+                for comp in ${REPORT_COMPONENTS:-$SELECTED_COMPONENTS}; do
+                    c_key="$comp"
+                    [ "$comp" != cli ] || c_key=journal
+                    c_version=$(cat "${SCRATCH_DIR}/manifest/components/${c_key}/version" 2>/dev/null || true)
+                    log_info "  $comp $c_version ($OPT_ROUTE)"
+                done
+                case "$OPT_ROUTE" in tree|mixed) log_info "install directory: $OPT_PREFIX" ;; esac
+                if [ "$OPT_NO_START" -eq 1 ]; then
+                    log_info "service setup/start was skipped (--no-start)."
+                fi
+                if [ "$OPT_NO_PATH" -eq 0 ] && [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/solstone/env" ]; then
+                    log_info "to use the apps in this shell: . \"${XDG_CONFIG_HOME:-$HOME/.config}/solstone/env\""
+                fi
+            fi
         else
             log_err "$code: $message"
         fi
     fi
 
+    cleanup_scratch
     if [ "$status" = "success" ]; then
         exit 0
     else
@@ -302,6 +1007,17 @@ is_canonical_version() {
 
 validate_requested_coordinates() {
     validate_origin
+    case "$OPT_PREFIX" in /*) ;; *) report_exit refusal prefix-invalid "--prefix needs an absolute directory" ;; esac
+    case "$OPT_PREFIX" in *'"'*|*\\*|*'$'*|*'`'*|*:*|*/../*|*/..|*/./*|*/.) report_exit refusal prefix-invalid "--prefix contains unsupported shell or path syntax" ;; esac
+    if [ "$(printf '%s' "$OPT_PREFIX" | LC_ALL=C tr -d '[:cntrl:]')" != "$OPT_PREFIX" ]; then
+        report_exit refusal prefix-invalid "--prefix cannot contain control characters"
+    fi
+    if [ "$OPT_UPGRADE" -eq 1 ] && [ "$OPT_UNINSTALL" -eq 1 ]; then
+        report_exit refusal conflicting-options "choose --upgrade or --uninstall"
+    fi
+    if [ "$OPT_LIST" -eq 1 ] && { [ "$OPT_UPGRADE" -eq 1 ] || [ "$OPT_UNINSTALL" -eq 1 ]; }; then
+        report_exit refusal conflicting-options "--list cannot be combined with --upgrade or --uninstall"
+    fi
     case "$OPT_LANE" in
         release|staging|dev) ;;
         *) report_exit "refusal" "lane-invalid" "Invalid release lane: $OPT_LANE" ;;
@@ -435,6 +1151,7 @@ fetch_file_with_redirect_check() {
     response_label="${4:-download}"
 
     validate_url_security "$src_url"
+    log_info "downloading ${src_url##*/}"
     init_authority=$(printf '%s\n' "$src_url" | sed -E 's|^([^:]+://[^/]+).*$|\1|')
 
     hdr_file="${SCRATCH_DIR}/headers.$$"
@@ -1291,7 +2008,9 @@ preflight_tmux_authority() {
     if [ "${#t_exec_sha}" -ne 64 ]; then
         report_exit "refusal" "schema-invalid" "Tmux executable digest is invalid"
     fi
-    if [ "$t_exec_name" != "solstone-tmux" ] || [ "$t_exec_name" != "$t_platform_exec_name" ] || [ "$t_exec_sha" != "$t_platform_exec_sha" ]; then
+    # Package post-processing may change executable bytes; signed package bytes bind that payload.
+    if [ "$t_exec_name" != "solstone-tmux" ] || [ "$t_exec_name" != "$t_platform_exec_name" ] \
+        || { [ "$check_var" = tree ] && [ "$t_exec_sha" != "$t_platform_exec_sha" ]; }; then
         report_exit "refusal" "release-coherence" "Tmux executable identity does not match the selected platform entry"
     fi
 
@@ -1448,8 +2167,7 @@ init_package_helper() {
     if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HELPER:-}" ]; then
         helper_bin="$SOLSTONE_HELPER"
     else
-        helper_bin="/usr/libexec/solstone-pkg-helper.sh"
-        [ ! -f "$helper_bin" ] && helper_bin="${PWD}/helpers/solstone-pkg-helper.sh"
+        helper_bin="${BUNDLED_RUNTIME}/helpers/solstone-pkg-helper.sh"
     fi
     [ -f "$helper_bin" ] || report_exit "refusal" "helper-missing" "Package helper script not found at $helper_bin"
 
@@ -1464,11 +2182,15 @@ init_package_helper() {
 
     sudo_prefix=""
     if [ "$(id -u 2>/dev/null || echo 1000)" -ne 0 ]; then
+        command -v sudo >/dev/null 2>&1 || report_exit refusal privilege-required "package operations need sudo; install it or use the tree route"
+        if [ "$OPT_NON_INTERACTIVE" -eq 0 ] && [ "$OPT_JSON" -eq 0 ] && [ -t 0 ]; then
+            sudo -v || report_exit refusal privilege-required "sudo authentication failed"
+        fi
         sudo_prefix="sudo -n "
     fi
     # shellcheck disable=SC2086
     if ! ping_res=$(printf "PING\n" | $sudo_prefix "$helper_bin" $helper_flags 2>/dev/null); then
-        report_exit "refusal" "privilege-required" "Noninteractive sudo privilege is required for package operations"
+        report_exit "refusal" "privilege-required" "package operations need sudo access; run sudo -v, then retry, or use the tree route"
     fi
     [ "$ping_res" = "PONG" ] || report_exit "refusal" "privilege-required" "Package helper PING failed"
     PACKAGE_HELPER_READY=1
@@ -1722,7 +2444,7 @@ package_query_current() {
         ABSENT)
             [ $# -eq 1 ] || report_exit "refusal" "query-malformed" "Package query returned malformed absence"
             ;;
-        INSTALLED|CONFIG_FILES)
+        INSTALLED|CONFIG_FILES|UNCONFIGURED)
             if [ $# -ne 4 ] || [ "$PQUERY_NAME" != "$pqc_name" ]; then
                 report_exit "refusal" "query-malformed" "Package query returned malformed identity"
             fi
@@ -1747,7 +2469,24 @@ package_fetch_install() {
     fi
 }
 
+package_app_service() {
+    pas_role="$1"
+    pas_action="$2"
+    case "$pas_role" in desktop) pas_name=solstone-linux ;; tmux) pas_name=solstone-tmux ;; *) return 0 ;; esac
+    pas_binary="/usr/bin/$pas_name"
+    if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_ROOT:-}" ]; then
+        pas_binary="${SOLSTONE_FAKE_ROOT}/usr/bin/$pas_name"
+    fi
+    [ -x "$pas_binary" ] || report_exit refusal setup-failed "package-owned launcher $pas_binary is unavailable"
+    "$pas_binary" "$pas_action" >&2 || report_exit refusal setup-failed "$pas_role service operation failed; see diagnostics above"
+}
+
 package_run_setup() {
+    case "$PC_ROLE" in
+        desktop|tmux)
+            [ "$OPT_NO_START" -eq 1 ] || package_app_service "$PC_ROLE" install-service
+            return 0 ;;
+    esac
     [ "$PC_ROLE" = "journal" ] || return 0
     if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_PKG_DB:-}" ]; then
         [ -n "${SOLSTONE_FAKE_ROOT:-}" ] || report_exit "refusal" "setup-failed" "Fake package root is required for journal setup"
@@ -1757,10 +2496,10 @@ package_run_setup() {
     fi
     [ -x "$JOURNAL_LAUNCHER" ] || report_exit "refusal" "setup-failed" "Package-owned journal launcher is unavailable"
     if [ "$OPT_NO_START" -eq 1 ]; then
-        if ! "$JOURNAL_LAUNCHER" setup --yes --installer-transaction --skip-service; then
+        if ! "$JOURNAL_LAUNCHER" setup --yes --installer-transaction --skip-service >&2; then
             report_exit "refusal" "setup-failed" "Journal setup failed"
         fi
-    elif ! "$JOURNAL_LAUNCHER" setup --yes --installer-transaction; then
+    elif ! "$JOURNAL_LAUNCHER" setup --yes --installer-transaction >&2; then
         report_exit "refusal" "setup-failed" "Journal setup failed"
     fi
 }
@@ -1916,7 +2655,7 @@ rollback_tree_handlers() {
         rth_attempted="${SCRATCH_DIR}/handler-rollback/attempted-${rth_component}"
         if [ -f "$rth_attempted" ]; then
             rth_new_binary=$(cat "$rth_attempted")
-            "$rth_new_binary" uninstall-service >/dev/null 2>&1 || rth_failed=1
+            "$rth_new_binary" uninstall-service >&2 || rth_failed=1
         fi
     done
     rollback_tree_pointers || rth_failed=1
@@ -1927,7 +2666,7 @@ rollback_tree_handlers() {
         [ "$(cat "$rth_prior")" = "0" ] || continue
         case "$rth_component" in desktop) rth_name="solstone-linux" ;; tmux) rth_name="solstone-tmux" ;; esac
         rth_old_binary="${OPT_PREFIX}/bin/${rth_name}"
-        if [ ! -x "$rth_old_binary" ] || ! "$rth_old_binary" install-service >/dev/null 2>&1; then
+        if [ ! -x "$rth_old_binary" ] || ! "$rth_old_binary" install-service >&2; then
             rth_failed=1
         fi
     done
@@ -1935,20 +2674,11 @@ rollback_tree_handlers() {
 }
 
 tree_mutation_failure() {
-    tmf_code="$1"
-    tmf_message="$2"
-    if ! rollback_tree_handlers; then
-        report_exit "refusal" "rollback-failed" "$tmf_message; the previous active installation could not be fully restored"
-    fi
-    report_exit "refusal" "$tmf_code" "$tmf_message; the previous active installation was restored"
+    report_exit refusal "$1" "$2"
 }
 
 tree_receipt_failure() {
-    trf_message="$1"
-    if ! rollback_tree_handlers; then
-        report_exit "refusal" "rollback-failed" "$trf_message; the previous active installation could not be fully restored"
-    fi
-    report_exit "refusal" "receipt-write-failed" "$trf_message; the previous active installation was restored"
+    report_exit refusal receipt-write-failed "$1"
 }
 
 handler_state_matches() {
@@ -1964,7 +2694,7 @@ handler_state_matches() {
         cat > "$hs_expected_env" <<EOF
 ### SOLSTONE-PLATFORM-MANAGED: platform-v1-path ###
 case ":\${PATH}:" in
-    *:${OPT_PREFIX}/bin:*) ;;
+    *:"${OPT_PREFIX}/bin":*) ;;
     *) export PATH="${OPT_PREFIX}/bin:\${PATH}" ;;
 esac
 EOF
@@ -2127,7 +2857,7 @@ tree_component_authority() {
         journal|cli)
             tca_native="${OPT_PREFIX}/install-receipt"
             tca_current="${OPT_PREFIX}/current"
-            tca_public="${OPT_PREFIX}/bin/journal"
+            tca_public="${OPT_PREFIX}/current/bin/journal"
             tca_present=0
             for tca_path in "$tca_native" "$tca_current" "$tca_public"; do
                 if [ -e "$tca_path" ] || [ -L "$tca_path" ]; then
@@ -2148,6 +2878,12 @@ tree_component_authority() {
                 [ -L "$tca_current" ] || report_exit "refusal" "ownership-unknown" "journal current pointer is not owned"
                 tca_link=$(readlink "$tca_current") || report_exit "refusal" "ownership-unknown" "journal current pointer is unreadable"
                 case "$tca_link" in versions/*) ;; *) report_exit "refusal" "ownership-unknown" "journal current pointer leaves its owned tree" ;; esac
+                tca_entry=${tca_link#versions/}
+                case "$tca_entry" in ''|.|..|*/*) report_exit refusal ownership-unknown "journal current pointer leaves its owned tree" ;; esac
+                if [ -L "${OPT_PREFIX}/versions" ] || [ -L "${OPT_PREFIX}/${tca_link}" ] \
+                    || [ -L "${OPT_PREFIX}/${tca_link}/bin" ] || [ -L "$tca_public" ]; then
+                    report_exit refusal ownership-unknown "journal payload contains an unsupported symbolic link"
+                fi
                 if [ ! -d "${OPT_PREFIX}/${tca_link}" ] && [ "$tca_mode" != "removal" ]; then
                     report_exit "refusal" "ownership-unknown" "journal current target is missing"
                 fi
@@ -2238,10 +2974,10 @@ package_probe_identity() {
         fi
         # shellcheck disable=SC2046
         set -- $(sed -n '1p' "$ppi_file")
-        if [ "$#" -ne 4 ] || [ "$1" != "INSTALLED" ] || [ "$2" != "$ppi_name" ]; then
+        if [ "$#" -ne 4 ] || { [ "$1" != "INSTALLED" ] && [ "$1" != "UNCONFIGURED" ]; } || [ "$2" != "$ppi_name" ]; then
             report_exit "refusal" "query-malformed" "Package identity for $ppi_name is malformed"
         fi
-        PPROBE_STATE="INSTALLED"
+        PPROBE_STATE="$1"
         PPROBE_VERSION="$3"
         PPROBE_ARCH="$4"
         return 0
@@ -2251,10 +2987,15 @@ package_probe_identity() {
         if ppi_out=$(dpkg-query -W -f='${db:Status-Abbrev} ${Version} ${Architecture}\n' "$ppi_name" 2>/dev/null); then
             # shellcheck disable=SC2086
             set -- $ppi_out
-            if [ "$#" -ne 3 ] || [ "$1" != "ii" ]; then
+            if [ "$#" -ne 3 ]; then
                 report_exit "refusal" "query-malformed" "Package identity for $ppi_name is malformed"
             fi
-            PPROBE_STATE="INSTALLED"
+            case "$1" in
+                ii) PPROBE_STATE=INSTALLED ;;
+                iU|iF|iW|it) PPROBE_STATE=UNCONFIGURED ;;
+                rc) return 0 ;;
+                *) report_exit refusal query-malformed "package state for $ppi_name needs inspection with dpkg --audit" ;;
+            esac
             PPROBE_VERSION="$2"
             PPROBE_ARCH="$3"
         else
@@ -2289,7 +3030,7 @@ package_component_authority() {
         pca_name=$(cat "${manifest_dir}/components/${pca_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/name" 2>/dev/null || true)
         if [ -n "$pca_name" ]; then
             package_probe_identity "$pca_name"
-            [ "$PPROBE_STATE" = "INSTALLED" ] && PACKAGE_STATE_PRESENT=1
+            [ "$PPROBE_STATE" = "ABSENT" ] || PACKAGE_STATE_PRESENT=1
         fi
         return 0
     fi
@@ -2302,7 +3043,7 @@ package_component_authority() {
         pca_name=$(cat "${manifest_dir}/components/${pca_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/name" 2>/dev/null || true)
         if [ -n "$pca_name" ]; then
             package_probe_identity "$pca_name"
-            if [ "$PPROBE_STATE" = "INSTALLED" ]; then
+            if [ "$PPROBE_STATE" != "ABSENT" ]; then
                 PACKAGE_STATE_PRESENT=1
                 package_find_owner "$pca_receipt" "$pca_name" "$PPROBE_VERSION" "$PPROBE_ARCH"
                 [ "$PFO_COUNT" -eq 0 ] || PACKAGE_CLAIM=1
@@ -2321,6 +3062,9 @@ package_component_authority() {
         return 0
     fi
     PACKAGE_STATE_PRESENT=1
+    if [ "$PPROBE_STATE" = UNCONFIGURED ] && [ "$PLS_PHASE" != intended ]; then
+        report_exit refusal ownership-unknown "unconfigured package $PLS_NAME has no matching pending installation; inspect dpkg --audit"
+    fi
     pca_match=0
     if [ "$PPROBE_VERSION" = "$PLS_VERSION" ] && [ "$PPROBE_ARCH" = "$PLS_ARCH" ]; then pca_match=1; fi
     if [ "$PLS_HAS_PRIOR" -eq 1 ] && [ "$PPROBE_VERSION" = "$PLS_PRIOR_VERSION" ] && [ "$PPROBE_ARCH" = "$PLS_PRIOR_ARCH" ]; then pca_match=1; fi
@@ -2372,7 +3116,9 @@ resolve_component_route() {
         if [ "$rcr_package_claim" -eq 1 ]; then append_selected_component PACKAGE_SELECTED_COMPONENTS "$rcr_component"; return 0; fi
     fi
     if [ "$rcr_tree_state" -eq 1 ] || [ "$rcr_package_state" -eq 1 ]; then
-        report_exit "refusal" "ownership-unknown" "Installed state for $rcr_component has no authoritative ownership receipt"
+        recovery="preserve the installed files; platform ownership cannot be established"
+        case "$rcr_component" in journal|cli) recovery="$recovery. use the versioned journal installer named by the signed platform catalogue for native recovery; see INSTALL.md" ;; esac
+        report_exit refusal ownership-unknown "installed state for $rcr_component has no platform receipt; $recovery"
     fi
     if [ "$rcr_require_existing" -eq 1 ]; then
         return 1
@@ -2435,8 +3181,63 @@ discover_upgrade_selection() {
     esac
 }
 
+print_help() {
+    cat <<'SOLSTONE_HELP'
+solstone linux installer
+
+usage: sh install.sh [options]
+
+  --components LIST    journal, cli, desktop, tmux (comma-separated)
+                       all: journal + available apps; capture: cli + available apps
+                       journal and cli are alternative roles for the same download
+  --all                select all available components
+  --upgrade            update only components already owned by this installer
+  --uninstall          remove selected owned software; keep your journal and data
+  --dry-run            verify and preview without changing the installation
+  --list               list the signed release catalogue
+  --prefix DIR         absolute install directory (default: $HOME/.local)
+  --route ROUTE        tree (default), package, deb, or rpm; keep existing ownership
+  --lane LANE          release (default), staging, or dev
+  --version VERSION    select a platform release (default: latest in the lane)
+  --origin URL         download origin (default: https://updates.solstone.app)
+  --no-start           leave service setup/start to you
+  --no-path            leave shell PATH configuration to you
+  --non-interactive    never open the component menu; select components explicitly
+  --yes, -y            accepted for unattended invocations
+  --json               one JSON result on stdout; diagnostics on stderr
+  --skip-signature     explicitly skip signatures; digests are still checked
+  --help, -h           show this help; with --json, return it as JSON
+
+requires: linux, curl or wget, minisign, awk, tar, sha256sum, and flock.
+install minisign from your distribution's package manager before running.
+package installs require sudo access and the distribution's package tools.
+
+examples (after saving https://solstone.app/platform-install.sh as install.sh):
+  sh install.sh --components all
+  sh install.sh --components cli --non-interactive --json
+  sh install.sh --upgrade --dry-run --json
+  sh install.sh --upgrade
+  sh install.sh --components tmux --uninstall --dry-run
+
+without a selection, an interactive terminal shows the component menu.
+existing journal-only installs use https://solstone.app/install.sh --upgrade.
+SOLSTONE_HELP
+}
+
 parse_args() {
+    for arg do [ "$arg" != --json ] || OPT_JSON=1; done
     while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --components=|--lane=|--version=|--route=|--prefix=|--origin=)
+                report_exit refusal missing-value "${1%=} needs a value; see --help"
+                ;;
+            --components|--lane|--version|--route|--prefix|--origin)
+                if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+                    report_exit refusal missing-value "$1 needs a value; see --help"
+                fi
+                case "$2" in -*) report_exit refusal missing-value "$1 needs a value; see --help" ;; esac
+                ;;
+        esac
         case "$1" in
             --components)
                 OPT_COMPONENTS="$2"
@@ -2444,6 +3245,7 @@ parse_args() {
                 ;;
             --components=*)
                 OPT_COMPONENTS="${1#*=}"
+                [ -n "$OPT_COMPONENTS" ] || report_exit refusal missing-value "--components needs a value"
                 shift 1
                 ;;
             --all)
@@ -2533,7 +3335,11 @@ parse_args() {
                 shift 1
                 ;;
             -h|--help)
-                printf "Usage: install.sh [OPTIONS]\n"
+                if [ "$OPT_JSON" -eq 1 ]; then
+                    printf '{"status":"success","root_code":"help","help":%s}\n' "$(json_string "$(print_help)")"
+                else
+                    print_help
+                fi
                 exit 0
                 ;;
             *)
@@ -2545,6 +3351,29 @@ parse_args() {
 }
 
 run_tree_install() {
+    tree_pending="$SELECTED_COMPONENTS"
+    for tree_next in $tree_pending; do
+        SELECTED_COMPONENTS="$tree_next"
+        ATTEMPTED_COMPONENTS="${ATTEMPTED_COMPONENTS}${ATTEMPTED_COMPONENTS:+ }${tree_next}"
+        # Each component owns its receipt and rollback boundary. Earlier success stays usable.
+        rm -rf "${SCRATCH_DIR}/pointer-rollback" "${SCRATCH_DIR}/handler-rollback"
+        TREE_CREATED_ROOT=""
+        NATIVE_COMMITTED=0
+        NATIVE_ATTEMPTED=0
+        run_tree_component
+        TREE_TXN_ACTIVE=0
+        NATIVE_COMMITTED=0
+        NATIVE_ATTEMPTED=0
+        TREE_CREATED_ROOT=""
+        case " $UNCHANGED_COMPONENTS " in
+            *" $tree_next "*) ;;
+            *) SUCCEEDED_COMPONENTS="${SUCCEEDED_COMPONENTS}${SUCCEEDED_COMPONENTS:+ }${tree_next}" ;;
+        esac
+    done
+    SELECTED_COMPONENTS="$tree_pending"
+}
+
+run_tree_component() {
     manifest_dir="${SCRATCH_DIR}/manifest"
     for rti_component in $SELECTED_COMPONENTS; do
         tree_component_authority "$rti_component" complete
@@ -2589,19 +3418,20 @@ run_tree_install() {
 
             # Execute bootstrap
             b_component_version=$(cat "${manifest_dir}/components/journal/version")
-            b_flags="--role $comp --prefix $OPT_PREFIX --origin $OPT_ORIGIN --lane $OPT_LANE --version $b_component_version"
-            [ "$OPT_NO_START" -eq 1 ] && b_flags="$b_flags --no-start"
-            [ "$OPT_NO_PATH" -eq 1 ] && b_flags="$b_flags --no-path"
-            [ "$OPT_SKIP_SIGNATURE" -eq 1 ] && b_flags="$b_flags --skip-signature"
-            [ "$OPT_UPGRADE" -eq 1 ] && b_flags="$b_flags --upgrade"
-            [ "$OPT_DRY_RUN" -eq 1 ] && b_flags="$b_flags --dry-run"
-
-            # shellcheck disable=SC2086
-            if ! "$b_script" $b_flags; then
-                report_exit "refusal" "component-failed" "Journal bootstrap execution failed for $comp"
+            set -- --role "$comp" --prefix "$OPT_PREFIX" --origin "$OPT_ORIGIN" --lane "$OPT_LANE" --version "$b_component_version"
+            [ "$OPT_NO_START" -eq 0 ] || set -- "$@" --no-start
+            [ "$OPT_NO_PATH" -eq 0 ] || set -- "$@" --no-path
+            [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || set -- "$@" --skip-signature
+            [ "$OPT_UPGRADE" -eq 0 ] || set -- "$@" --upgrade
+            NATIVE_ATTEMPTED=1
+            if ! "$b_script" "$@" >&2; then
+                report_exit "refusal" "component-failed" "journal installation failed; see diagnostics above"
             fi
+            NATIVE_COMMITTED=1
+
         else
             # Native tree component (desktop / tmux)
+            TREE_TXN_ACTIVE=1
             if [ "$handler_path_state_recorded" -eq 0 ]; then
                 record_handler_path_state
                 handler_path_state_recorded=1
@@ -2618,21 +3448,20 @@ run_tree_install() {
                 if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HANDLER_ROOT:-}" ]; then
                     h_root="$SOLSTONE_HANDLER_ROOT"
                 else
-                    h_root="/usr/libexec/solstone/handlers"
-                    [ ! -d "$h_root" ] && h_root="${PWD}/handlers"
+                    h_root="${BUNDLED_RUNTIME}/handlers"
                 fi
                 handler_bin="${h_root}/${comp}/v1/${comp_entrypoint}"
                 [ -f "$handler_bin" ] || tree_mutation_failure "handler-missing" "Install handler is missing for $comp"
                 chmod 0755 "$handler_bin" || tree_mutation_failure "handler-failed" "Could not make the $comp install handler executable"
-                h_flags="--prefix $OPT_PREFIX --binary $symlink_target --route tree --role $comp"
-                [ "$OPT_NO_START" -eq 1 ] && h_flags="$h_flags --no-start"
-                [ "$OPT_NO_PATH" -eq 1 ] && h_flags="$h_flags --no-path"
+                set -- --prefix "$OPT_PREFIX" --binary "$symlink_target" --route tree --role "$comp"
+                [ "$OPT_NO_START" -eq 0 ] || set -- "$@" --no-start
+                [ "$OPT_NO_PATH" -eq 0 ] || set -- "$@" --no-path
                 if [ "$OPT_NO_START" -eq 0 ]; then
                     printf '%s\n' "$symlink_target" > "${SCRATCH_DIR}/handler-rollback/attempted-${comp}" \
                         || tree_mutation_failure "handler-failed" "could not stage service rollback for $comp"
                 fi
                 # shellcheck disable=SC2086
-                "$handler_bin" $h_flags \
+                "$handler_bin" "$@" >&2 \
                     || tree_mutation_failure "handler-failed" "Install handler failed for $comp"
                 UNCHANGED_COMPONENTS="${UNCHANGED_COMPONENTS}${UNCHANGED_COMPONENTS:+ }${comp}"
                 continue
@@ -2651,6 +3480,9 @@ run_tree_install() {
             comp_digest12=$(printf "%s" "$comp_archive_sha" | cut -c1-12)
             comp_current_target="${comp_version}-${comp_digest12}"
             comp_dest="${OPT_PREFIX}/opt/solstone/${comp}/${comp_current_target}"
+            if [ ! -e "$comp_root" ] && [ ! -L "$comp_root" ]; then
+                TREE_CREATED_ROOT="$comp_root"
+            fi
             mkdir -p "$comp_dest" || report_exit "refusal" "target-write-failed" "Could not create component destination $comp_dest"
             if ! tar -xzf "$archive_path" -C "$comp_dest"; then
                 report_exit "refusal" "archive-extract-failed" "Could not extract $comp_archive_fn into its content-addressed destination"
@@ -2679,23 +3511,22 @@ run_tree_install() {
             if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HANDLER_ROOT:-}" ]; then
                 h_root="$SOLSTONE_HANDLER_ROOT"
             else
-                h_root="/usr/libexec/solstone/handlers"
-                [ ! -d "$h_root" ] && h_root="${PWD}/handlers"
+                h_root="${BUNDLED_RUNTIME}/handlers"
             fi
             handler_bin="${h_root}/${comp}/v1/${comp_entrypoint}"
             if [ ! -f "$handler_bin" ]; then
                 tree_mutation_failure "handler-missing" "Install handler is missing for $comp"
             fi
             chmod 0755 "$handler_bin" || tree_mutation_failure "handler-failed" "Could not make the $comp install handler executable"
-            h_flags="--prefix $OPT_PREFIX --binary $exec_path --route tree --role $comp"
-            [ "$OPT_NO_START" -eq 1 ] && h_flags="$h_flags --no-start"
-            [ "$OPT_NO_PATH" -eq 1 ] && h_flags="$h_flags --no-path"
+            set -- --prefix "$OPT_PREFIX" --binary "$exec_path" --route tree --role "$comp"
+            [ "$OPT_NO_START" -eq 0 ] || set -- "$@" --no-start
+            [ "$OPT_NO_PATH" -eq 0 ] || set -- "$@" --no-path
             if [ "$OPT_NO_START" -eq 0 ]; then
                 printf '%s\n' "$exec_path" > "${SCRATCH_DIR}/handler-rollback/attempted-${comp}" \
                     || tree_mutation_failure "handler-failed" "could not stage service rollback for $comp"
             fi
             # shellcheck disable=SC2086
-            if ! "$handler_bin" $h_flags; then
+            if ! "$handler_bin" "$@" >&2; then
                 tree_mutation_failure "handler-failed" "Install handler failed for $comp"
             fi
 
@@ -2812,6 +3643,7 @@ run_package_install() {
     package_read_receipt
 
     for comp in $SELECTED_COMPONENTS; do
+        ATTEMPTED_COMPONENTS="${ATTEMPTED_COMPONENTS}${ATTEMPTED_COMPONENTS:+ }${comp}"
         if [ "$comp" = "cli" ]; then
             c_key="journal"
         else
@@ -2866,6 +3698,17 @@ run_package_install() {
             continue
         fi
 
+        if [ "$PQUERY_STATE" = UNCONFIGURED ]; then
+            if ! package_load_section "$PACKAGE_RECEIPT_FILE" "$PC_ROLE" || [ "$PLS_PHASE" != intended ] \
+                || [ "$PLS_NAME" != "$PC_NAME" ] || [ "$PLS_VERSION" != "$PC_VERSION" ] \
+                || [ "$PLS_ARCH" != "$PC_ARCH" ] || [ "$PLS_SHA" != "$PC_SHA" ] || [ "$PLS_BUILD" != "$PC_BUILD" ]; then
+                report_exit refusal ownership-unknown "unconfigured package $PC_NAME does not match the pending installation"
+            fi
+            package_fetch_install
+            package_publish_phase "$PC_ROLE" payload payload
+            package_complete_after_payload
+            continue
+        fi
         [ "$PQUERY_STATE" = "INSTALLED" ] || report_exit "refusal" "query-malformed" "Package query returned an unsupported state"
         if [ "$PQUERY_ARCH" != "$PC_ARCH" ]; then
             report_exit "refusal" "ownership-unknown" "Installed package $PC_NAME has unexpected architecture $PQUERY_ARCH"
@@ -2889,6 +3732,12 @@ run_package_install() {
             complete)
                 if package_owner_matches_target; then
                     UNCHANGED_COMPONENTS="${UNCHANGED_COMPONENTS}${UNCHANGED_COMPONENTS:+ }${PC_ROLE}"
+                    continue
+                fi
+                if [ "$PFO_NAME" = "$PC_NAME" ] && [ "$PFO_VERSION" = "$PC_VERSION" ] \
+                    && [ "$PFO_ARCH" = "$PC_ARCH" ] && [ "$PFO_SHA" = "$PC_SHA" ] && [ "$PFO_BUILD" = "$PC_BUILD" ]; then
+                    package_publish_phase "$PC_ROLE" payload payload
+                    package_complete_after_payload
                     continue
                 fi
                 package_set_prior_from_owner_target
@@ -3011,13 +3860,12 @@ uninstall_tree_component() {
     if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HANDLER_ROOT:-}" ]; then
         utc_handlers="$SOLSTONE_HANDLER_ROOT"
     else
-        utc_handlers="/usr/libexec/solstone/handlers"
-        [ ! -d "$utc_handlers" ] && utc_handlers="${PWD}/handlers"
+        utc_handlers="${BUNDLED_RUNTIME}/handlers"
     fi
     case "$utc_component" in
         journal)
-            utc_journal="${OPT_PREFIX}/bin/journal"
-            if [ -x "$utc_journal" ] && ! "$utc_journal" setup --clean-uninstall --yes --installer-transaction; then
+            utc_journal="${OPT_PREFIX}/current/bin/journal"
+            if [ -x "$utc_journal" ] && ! "$utc_journal" setup --clean-uninstall --yes --installer-transaction >&2; then
                 report_exit "refusal" "handler-failed" "journal clean uninstall failed"
             fi
             ;;
@@ -3031,13 +3879,12 @@ uninstall_tree_component() {
             utc_handler="${utc_handlers}/${utc_component}/v1/uninstall-${utc_component}-service"
             [ -f "$utc_handler" ] || report_exit "refusal" "handler-missing" "Uninstall handler is missing for $utc_component"
             chmod 0755 "$utc_handler" || report_exit "refusal" "handler-failed" "Could not make the $utc_component uninstall handler executable"
-            "$utc_handler" --prefix "$OPT_PREFIX" --binary "$utc_binary" --route tree --role "$utc_component" \
+            "$utc_handler" --prefix "$OPT_PREFIX" --binary "$utc_binary" --route tree --role "$utc_component" >&2 \
                 || report_exit "refusal" "handler-failed" "Uninstall handler failed for $utc_component"
             ;;
     esac
     case "$utc_component" in
         journal|cli)
-            rm -f "${OPT_PREFIX}/bin/journal" || report_exit "refusal" "remove-failed" "Could not remove the journal launcher"
             if [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_TREE_UNINSTALL_AFTER_PUBLIC:-}" = "$utc_component" ]; then
                 report_exit "refusal" "remove-failed" "Injected tree uninstall interruption"
             fi
@@ -3079,16 +3926,19 @@ uninstall_package_component() {
     if [ "$PQUERY_STATE" != "ABSENT" ]; then
         if [ "$upc_component" = "journal" ]; then
             if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_ROOT:-}" ]; then upc_journal="${SOLSTONE_FAKE_ROOT}/usr/bin/journal"; else upc_journal="/usr/bin/journal"; fi
-            [ ! -x "$upc_journal" ] || "$upc_journal" setup --clean-uninstall --yes --installer-transaction \
+            [ ! -x "$upc_journal" ] || "$upc_journal" setup --clean-uninstall --yes --installer-transaction >&2 \
                 || report_exit "refusal" "handler-failed" "journal clean uninstall failed"
         fi
+        case "$upc_component" in
+            desktop|tmux) package_app_service "$upc_component" uninstall-service ;;
+        esac
         # shellcheck disable=SC2086
         if ! upc_result=$(printf "REMOVE_PKG %s %s\n" "$PKG_VARIANT" "$upc_name" | $sudo_prefix "$helper_bin" $helper_flags); then
             package_protocol_failure "$upc_result" "package-remove-failed" "Could not remove package $upc_name"
         fi
         [ "$upc_result" = "OK" ] || package_protocol_failure "$upc_result" "package-remove-failed" "Could not remove package $upc_name"
         package_query_current "$upc_name"
-        [ "$PQUERY_STATE" = "ABSENT" ] || report_exit "refusal" "package-remove-failed" "Package $upc_name remains installed"
+        { [ "$PQUERY_STATE" = "ABSENT" ] || [ "$PQUERY_STATE" = "CONFIG_FILES" ]; } || report_exit "refusal" "package-remove-failed" "Package $upc_name remains installed"
     fi
     publish_package_uninstall_receipt "$upc_component"
     REMOVED_COMPONENTS="${REMOVED_COMPONENTS}${REMOVED_COMPONENTS:+ }${upc_component}"
@@ -3120,7 +3970,7 @@ main() {
     SCRATCH_DIR=$(mktemp -d /var/tmp/solstone-install.XXXXXX 2>/dev/null || mktemp -d /tmp/solstone-install.XXXXXX)
     chmod 0700 "$SCRATCH_DIR"
     trap cleanup_scratch 0
-    trap 'cleanup_scratch; exit 128' HUP INT TERM
+    trap 'TREE_TXN_ACTIVE=0; report_exit refusal interrupted "installation interrupted; preserve installed files and receipts before retrying"' HUP INT TERM
     init_awk_parser
 
     # Resolve the host package variant even when route ownership will be detected later.
@@ -3252,10 +4102,25 @@ main() {
             if [ $has_journal -eq 1 ] && [ $has_cli -eq 1 ]; then
                 report_exit "refusal" "source-ambiguous" "Cannot install both journal and cli simultaneously (source ambiguous)"
             fi
-            SELECTED_COMPONENTS="$raw_comps"
+            SELECTED_COMPONENTS=""
+            for c in $raw_comps; do
+                case " $SELECTED_COMPONENTS " in
+                    *" $c "*) ;;
+                    *) SELECTED_COMPONENTS="${SELECTED_COMPONENTS}${SELECTED_COMPONENTS:+ }$c" ;;
+                esac
+            done
+            [ -n "$SELECTED_COMPONENTS" ] || report_exit refusal missing-value "--components needs a value"
             ;;
     esac
     fi
+
+    case " $SELECTED_COMPONENTS " in
+        *" journal "*|*" cli "*)
+            if [ "$OPT_PREFIX" != "$HOME/.local/solstone-journal" ] && [ -e "$HOME/.local/solstone-journal/install-receipt" ]; then
+                report_exit refusal standalone-install "an existing journal installation uses the journal-only installer; update it with https://solstone.app/install.sh --upgrade"
+            fi
+            ;;
+    esac
 
     # 7. Bind each component to its existing authoritative owner. Upgrade and
     # uninstall never add a component; a clean install defaults to tree.
@@ -3363,26 +4228,38 @@ main() {
         esac
     done
 
-    # 13. Acquire locks
-    acquire_installer_locks
+    VERIFICATION_LAYERS="minisign+digest"
+    [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || VERIFICATION_LAYERS="digest-matched; signatures skipped"
 
-    # 14. Handle uninstall
-    if [ "$OPT_UNINSTALL" -eq 1 ]; then
-        run_uninstall
+    # A preview returns before any lock, helper, or mutation, including removal.
+    if [ "$OPT_DRY_RUN" -eq 1 ]; then
+        report_exit "success" "dry-run-completed" "preview complete; no changes made"
     fi
 
-    # 15. Handle dry-run
-    if [ "$OPT_DRY_RUN" -eq 1 ]; then
-        report_exit "success" "dry-run-completed" "Dry run completed successfully"
+    if [ -n "$PACKAGE_SELECTED_COMPONENTS" ]; then
+        if [ "$TEST_SEAM" -eq 0 ]; then
+            case "$PKG_VARIANT" in deb) package_tools="dpkg-deb dpkg-query apt-get" ;; rpm) package_tools="rpm dnf" ;; esac
+            for package_tool in $package_tools; do
+                command -v "$package_tool" >/dev/null 2>&1 || report_exit refusal missing-package-tool "package route requires $package_tool; install it or use the tree route"
+            done
+            if [ "$(id -u)" -eq 0 ] && [ "$OPT_NO_START" -eq 0 ]; then
+                case " $PACKAGE_SELECTED_COMPONENTS " in
+                    *" journal "*|*" desktop "*|*" tmux "*) report_exit refusal user-session-required "run the installer as the person who will use solstone, or pass --no-start and set up services as that person" ;;
+                esac
+            fi
+        fi
+    fi
+    init_bundled_runtime
+    [ -z "$PACKAGE_SELECTED_COMPONENTS" ] || init_package_helper
+    acquire_installer_locks
+    if [ "$OPT_UNINSTALL" -eq 1 ]; then
+        run_uninstall
     fi
 
     # 14. Perform installation
     SELECTED_COMPONENTS="$TREE_SELECTED_COMPONENTS"
     if [ -n "$SELECTED_COMPONENTS" ]; then
         run_tree_install
-        for comp in $SELECTED_COMPONENTS; do
-            case " $UNCHANGED_COMPONENTS " in *" $comp "*) ;; *) SUCCEEDED_COMPONENTS="${SUCCEEDED_COMPONENTS}${SUCCEEDED_COMPONENTS:+ }${comp}" ;; esac
-        done
     fi
     SELECTED_COMPONENTS="$PACKAGE_SELECTED_COMPONENTS"
     if [ -n "$SELECTED_COMPONENTS" ]; then
