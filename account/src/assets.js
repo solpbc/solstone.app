@@ -1,4 +1,4 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=3';
+export const PORTAL_CSS_HREF = '/portal.css?v=4';
 
 export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet (design-in-code, project #1)
    Applies the services brand canon + the shared design tokens. This is the
@@ -50,6 +50,27 @@ export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet 
   --tag-free-bg:     #EDEFEA;
   --tag-free-ink:    #4F5848;
   --tag-neutral-bg:  #F0ECE2;
+  /* sun-arc time-of-day background */
+  --sunarc-arc-angle: 36deg;
+  --sunarc-bow-ratio: 0.07919;
+  --sunarc-diameter-ratio: 1.6180339887;
+  --sunarc-overshoot: 1;
+  --sunarc-envelope-edge: 0.22;
+  --sunarc-peak-opacity: 0.5;
+  --sunarc-twilight-minutes: 30;
+  --sunarc-ink-mix: 0.90;
+  --sunarc-warm-mix: 0.45;
+  --sunarc-warm-dark: #2B1C12;
+  --sunarc-ink: #1A1A1A;
+  --sunarc-glow-color: #F0B44A;
+  --sunarc-glow-radius-ratio: 1.6;
+  --sunarc-glow-day-alpha: 0.28;
+  --sunarc-glow-night-alpha: 0.35;
+  --sunarc-glow-night-floor: 0.12;
+  --sunarc-glow-mid-stop: 38%;
+  --sunarc-glow-mid-ratio: 0.45;
+  --sunarc-appearance-flip: 0.55;
+  --sunarc-night-ground: #2C2520;
 }
 
 * { box-sizing: border-box; }
@@ -57,7 +78,7 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--cream);
+  background: var(--sunarc-mixed, var(--cream));
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 16px;
@@ -65,11 +86,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 main {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
   padding: 40px 20px 72px;
 }
+
+.sunarc { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.sunarc-glow, .sunarc-sun { position: absolute; pointer-events: none; }
+.sunarc .mark { width: 100%; height: 100%; display: block; }
 
 /* ---- type ---- */
 /* headings are AUTHORED in the lowercase house style — never force-lowercased

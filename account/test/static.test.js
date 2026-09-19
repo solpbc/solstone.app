@@ -66,6 +66,7 @@ describe('static source checks', () => {
       'spp-authorize.js',
       'spp-entitlement.js',
       'stripe.js',
+      'sunarc.js',
       'support-constants.js',
       'support-html.js',
       'support-wire.js',
