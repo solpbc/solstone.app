@@ -522,6 +522,15 @@ export function extractCookieToken(setCookie) {
   return setCookie.match(/^account_session=([^;]*);/)?.[1] || '';
 }
 
+// Inline <script> content (e.g. the sun-arc background's engine, embedded verbatim
+// on every rendered page) is code, not page copy — a variable name can coincidentally
+// contain a banned marketing term (e.g. the `alpha` opacity/blend parameter) with no
+// bearing on what an owner actually reads. Copy-boundary and content assertions over
+// a full rendered page body should scan copy only.
+export function stripScripts(html) {
+  return html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+}
+
 export async function dbDumpText() {
   const tables = [
     'accounts',

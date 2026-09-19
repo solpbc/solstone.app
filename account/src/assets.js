@@ -50,27 +50,32 @@ export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet 
   --tag-free-bg:     #EDEFEA;
   --tag-free-ink:    #4F5848;
   --tag-neutral-bg:  #F0ECE2;
-  /* sun-arc time-of-day background */
+  /* sun-arc time-of-day background — locked 2026-09-19, values verbatim from
+     cmo/brand/sbis/patterns/sun-arc/index.md; --sunarc-night-ground is the
+     two-step OKLab mix of THIS page's own --cream day ground (not the SOT's
+     cream-bright worked example), recomputed and verified against this
+     file's own calculateTwoStepNight so the token stays a true anchor, not
+     an invented placeholder. */
   --sunarc-arc-angle: 36deg;
   --sunarc-bow-ratio: 0.07919;
   --sunarc-diameter-ratio: 1.6180339887;
   --sunarc-overshoot: 1;
   --sunarc-envelope-edge: 0.22;
-  --sunarc-peak-opacity: 0.5;
+  --sunarc-peak-opacity: 0.55;
   --sunarc-twilight-minutes: 30;
   --sunarc-ink-mix: 0.90;
   --sunarc-warm-mix: 0.45;
-  --sunarc-warm-dark: #2B1C12;
+  --sunarc-warm-dark: #2E1906;
   --sunarc-ink: #1A1A1A;
-  --sunarc-glow-color: #F0B44A;
-  --sunarc-glow-radius-ratio: 1.6;
-  --sunarc-glow-day-alpha: 0.28;
-  --sunarc-glow-night-alpha: 0.35;
+  --sunarc-glow-color: #FFCC33;
+  --sunarc-glow-radius-ratio: 1.6180339887;
+  --sunarc-glow-day-alpha: 0.22;
+  --sunarc-glow-night-alpha: 0.40;
   --sunarc-glow-night-floor: 0.12;
   --sunarc-glow-mid-stop: 38%;
   --sunarc-glow-mid-ratio: 0.45;
-  --sunarc-appearance-flip: 0.55;
-  --sunarc-night-ground: #2C2520;
+  --sunarc-appearance-flip: 0.5;
+  --sunarc-night-ground: #2E241B;
 }
 
 * { box-sizing: border-box; }

@@ -19,6 +19,7 @@ import {
   seedAccount,
   seedEntitlement,
   seedSession,
+  stripScripts,
 } from './helpers.js';
 
 // Legal review (2026-07-13): the only admitted use of "premium" is this exact locked
@@ -176,7 +177,7 @@ describe('spp copy boundary', () => {
     ];
 
     for (const [name, body] of surfaces) {
-      const scanBody = stripHref(body)
+      const scanBody = stripScripts(stripHref(body))
         .toLowerCase()
         .replaceAll(CLO_LOCKED_PREMIUM_NEGATION, '');
       for (const phrase of BANNED) {

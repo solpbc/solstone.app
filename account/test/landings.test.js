@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
-import { makeTestEnv, resetDb, rowCount, seedAccount, seedEntitlement, seedSession } from './helpers.js';
+import { makeTestEnv, resetDb, rowCount, seedAccount, seedEntitlement, seedSession, stripScripts } from './helpers.js';
 
 describe('service landing pages', () => {
   beforeEach(async () => {
@@ -105,8 +105,9 @@ describe('service landing pages', () => {
     expect(body).toContain('confidential processing is available to approved scouts. this sign-in is not currently approved.');
     expect(body).toContain('href="/scout">scout</a> to request access.');
     expect(body).toContain('href="/scout">request scout access</a>');
-    expect(body).not.toContain("isn't open yet");
-    expect(body).not.toContain('early access');
+    const copyOnly = stripScripts(body);
+    expect(copyOnly).not.toContain("isn't open yet");
+    expect(copyOnly).not.toContain('early access');
   });
 
   it('keeps the public confidential processing catalog row free of pricing and forbidden claims', async () => {
@@ -143,11 +144,12 @@ describe('service landing pages', () => {
     const beatTitlePositions = beatTitles.map((title) => body.indexOf(`<p class="bt">${title}</p>`));
     expect(beatTitlePositions.every((position) => position >= 0)).toBe(true);
     expect(beatTitlePositions).toEqual([...beatTitlePositions].sort((a, b) => a - b));
+    const scoutCopyOnly = stripScripts(body);
     for (const phrase of ['Gemini', 'key', 'never sees', 'never hears']) {
-      expect(body).not.toContain(phrase);
+      expect(scoutCopyOnly).not.toContain(phrase);
     }
-    expect(body).not.toContain('invite-only');
-    expect(body).not.toContain('alpha');
+    expect(scoutCopyOnly).not.toContain('invite-only');
+    expect(scoutCopyOnly).not.toContain('alpha');
   });
 
   it('renders the scout management page when signed in', async () => {
