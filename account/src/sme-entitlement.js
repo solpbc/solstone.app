@@ -6,13 +6,13 @@ import {
 } from './db.js';
 import { paidSignalFromRow } from './relay-grant.js';
 
-export const SPA_HOSTED_SERVICE = 'spa_hosted';
-export const SPA_CONSENT_DISCLOSURE_VERSION = 'spa-consent-v1';
+export const SME_HOSTED_SERVICE = 'sme_hosted';
+export const SME_CONSENT_DISCLOSURE_VERSION = 'sme-consent-v1';
 
 // A paid service keeps working through a failed payment for the same 14-day grace
 // spb uses (RELAY_GRACE_DAYS), counted from the end of the paid period. This is the
 // only place the connector's lapse timing lives: when the window changes, it changes here.
-export function isSpaEntitledToServe(row, nowSeconds, env) {
+export function isSmeEntitledToServe(row, nowSeconds, env) {
   const grace = Number(env.RELAY_GRACE_DAYS || 14) * 86400;
   if (!row) return false;
   if (row.status === 'active') return true;
@@ -22,15 +22,15 @@ export function isSpaEntitledToServe(row, nowSeconds, env) {
 
 // ctx is unused: caller symmetry with the other reconcilers. The connector has no
 // relay push and no lapse teardown; entitlement is read at mint time.
-export async function reconcileSpaEntitlement(env, accountId, nowMs, ctx, opts = {}) {
+export async function reconcileSmeEntitlement(env, accountId, nowMs, ctx, opts = {}) {
   if (await getActiveDeletionForAccount(env.DB, accountId)) return;
-  const row = await getEntitlement(env.DB, { accountId, service: SPA_HOSTED_SERVICE });
+  const row = await getEntitlement(env.DB, { accountId, service: SME_HOSTED_SERVICE });
   const paid = opts.paid !== undefined ? opts.paid : paidSignalFromRow(row);
 
   if (paid) {
     await upsertEntitlement(env.DB, {
       accountId,
-      service: SPA_HOSTED_SERVICE,
+      service: SME_HOSTED_SERVICE,
       status: paid.status,
       currentPeriodEnd: paid.currentPeriodEnd ?? null,
       source: paid.source,
@@ -43,7 +43,7 @@ export async function reconcileSpaEntitlement(env, accountId, nowMs, ctx, opts =
   if (application?.status === 'approved') {
     await upsertEntitlement(env.DB, {
       accountId,
-      service: SPA_HOSTED_SERVICE,
+      service: SME_HOSTED_SERVICE,
       status: 'active',
       currentPeriodEnd: null,
       source: 'comp',
@@ -54,7 +54,7 @@ export async function reconcileSpaEntitlement(env, accountId, nowMs, ctx, opts =
   }
   await upsertEntitlement(env.DB, {
     accountId,
-    service: SPA_HOSTED_SERVICE,
+    service: SME_HOSTED_SERVICE,
     status: 'lapsed',
     currentPeriodEnd: null,
     source: row?.source ?? 'comp',

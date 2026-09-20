@@ -123,11 +123,11 @@ STRIPE_PRICE_ANNUAL = "price_1TjnJB3ew4P2jFrx820NPkX4"
 STRIPE_PRICE_MONTHLY = "price_1TjnJC3ew4P2jFrxANwt3ya8"
 STRIPE_PRICE_SPB_ANNUAL = "price_1TlGmO3ew4P2jFrxThHBPMB7"
 STRIPE_PRICE_SPB_MONTHLY = "price_1TlGmO3ew4P2jFrxg0DylUaz"
-# spa has one annual price and no monthly variable. Empty until the Stripe price is created;
+# sme has one annual price and no monthly variable. Empty until the Stripe price is created;
 # while empty, checkout fails closed (redirects with ?checkout=invalid) and reaches Stripe
 # not at all. Price ids are non-secret and belong here, in the committed file that a deploy
 # applies in full, rather than set in the dashboard, which a deploy silently wipes.
-STRIPE_PRICE_SPA_ANNUAL = ""
+STRIPE_PRICE_SME_ANNUAL = ""
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"

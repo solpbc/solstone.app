@@ -252,7 +252,7 @@ const TABLES = [
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('consent_acked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'), exported('consent_disclosure_version'),
   ], { deletionOrder: 140, description: 'confidential processing bindings' }),
-  table('spa_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
+  table('sme_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),

@@ -1,6 +1,6 @@
--- migration 0037_spa_service_handoffs
+-- migration 0037_sme_service_handoffs
 -- Broaden service_handoffs.service from CHECK (service IN ('scout','push','spl','spb','spp'))
--- to CHECK (service IN ('scout','push','spl','spb','spp','spa')) for SPA service handoffs.
+-- to CHECK (service IN ('scout','push','spl','spb','spp','sme')) for SME service handoffs.
 --
 -- Partial-apply recovery runbook:
 -- 1. If service_handoffs exists and service_handoffs_new also exists, the migration
@@ -13,7 +13,7 @@
 --        ON service_handoffs(account_id);
 --      CREATE INDEX IF NOT EXISTS idx_service_handoffs_expires_at
 --        ON service_handoffs(expires_at);
--- 3. If service_handoffs already has CHECK (service IN ('scout','push','spl','spb','spp','spa')),
+-- 3. If service_handoffs already has CHECK (service IN ('scout','push','spl','spb','spp','sme')),
 --    rerunning this file is safe: it rebuilds to the same schema and preserves all rows.
 --
 -- Do not add a retention sweep here. TTL-on-read remains the enforcement model.
@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS service_handoffs_new;
 CREATE TABLE service_handoffs_new (
   handoff_hash TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('scout','push','spl','spb','spp','spa')),
+  service TEXT NOT NULL CHECK (service IN ('scout','push','spl','spb','spp','sme')),
   payload_encrypted BLOB NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL CHECK (expires_at > created_at),

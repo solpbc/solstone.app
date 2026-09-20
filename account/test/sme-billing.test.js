@@ -11,9 +11,9 @@ import {
   seedSession,
 } from './helpers.js';
 
-const PATH = '/services/spa';
+const PATH = '/services/sme';
 
-describe('spa checkout and portal', () => {
+describe('sme checkout and portal', () => {
   beforeEach(async () => {
     await resetDb();
     vi.restoreAllMocks();
@@ -24,41 +24,41 @@ describe('spa checkout and portal', () => {
     vi.restoreAllMocks();
   });
 
-  it('creates an annual checkout tagged spa, with its own price and return urls', async () => {
+  it('creates an annual checkout tagged sme, with its own price and return urls', async () => {
     const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'spa-checkout@example.com', testEnv });
+    const account = await seedAccount({ email: 'sme-checkout@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     const { calls } = installStripeFetchMock({
-      'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_spa', url: 'https://checkout.stripe.test/spa-session' }),
+      'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_sme', url: 'https://checkout.stripe.test/sme-session' }),
     });
 
     const first = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual' }), session.cookie);
     expect(first.status).toBe(303);
-    expect(first.headers.get('Location')).toBe('https://checkout.stripe.test/spa-session');
+    expect(first.headers.get('Location')).toBe('https://checkout.stripe.test/sme-session');
     expect(calls).toHaveLength(1);
     expect(calls[0].body.get('mode')).toBe('subscription');
     expect(calls[0].body.get('client_reference_id')).toBe(account.accountId);
-    expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('spa');
+    expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('sme');
     expect(calls[0].body.get('subscription_data[metadata][account_id]')).toBe(account.accountId);
-    expect(calls[0].body.get('line_items[0][price]')).toBe(testEnv.STRIPE_PRICE_SPA_ANNUAL);
+    expect(calls[0].body.get('line_items[0][price]')).toBe(testEnv.STRIPE_PRICE_SME_ANNUAL);
     expect(calls[0].body.get('success_url')).toBe(`https://services.solstone.app${PATH}?checkout=success`);
     expect(calls[0].body.get('cancel_url')).toBe(`https://services.solstone.app${PATH}?checkout=cancel`);
-    expect(calls[0].body.get('customer_email')).toBe('spa-checkout@example.com');
+    expect(calls[0].body.get('customer_email')).toBe('sme-checkout@example.com');
     expect(calls[0].body.get('automatic_tax[enabled]')).toBe('true');
 
     // The one price is annual, so a form that names no plan buys it, and an existing
     // Stripe customer is reused rather than asked for an email again.
-    await seedStripeCustomer(account.accountId, 'cus_spa_existing');
+    await seedStripeCustomer(account.accountId, 'cus_sme_existing');
     const second = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
     expect(second.status).toBe(303);
-    expect(calls[1].body.get('line_items[0][price]')).toBe(testEnv.STRIPE_PRICE_SPA_ANNUAL);
-    expect(calls[1].body.get('customer')).toBe('cus_spa_existing');
+    expect(calls[1].body.get('line_items[0][price]')).toBe(testEnv.STRIPE_PRICE_SME_ANNUAL);
+    expect(calls[1].body.get('customer')).toBe('cus_sme_existing');
     expect(calls[1].body.has('customer_email')).toBe(false);
   });
 
   it('is annual-only: any other plan is refused before Stripe is reached', async () => {
     const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'spa-annual-only@example.com', testEnv });
+    const account = await seedAccount({ email: 'sme-annual-only@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     const { calls } = installStripeFetchMock();
 
@@ -71,8 +71,8 @@ describe('spa checkout and portal', () => {
   });
 
   it('fails closed while the price is unset, which is how the placeholder ships', async () => {
-    const testEnv = { ...makeTestEnv(), STRIPE_PRICE_SPA_ANNUAL: '' };
-    const account = await seedAccount({ email: 'spa-no-price@example.com', testEnv });
+    const testEnv = { ...makeTestEnv(), STRIPE_PRICE_SME_ANNUAL: '' };
+    const account = await seedAccount({ email: 'sme-no-price@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     const { calls } = installStripeFetchMock();
 
@@ -85,7 +85,7 @@ describe('spa checkout and portal', () => {
 
   it('keeps scouts free, and handles guard and error redirects, without reaching Stripe when inappropriate', async () => {
     const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'spa-guards@example.com', testEnv });
+    const account = await seedAccount({ email: 'sme-guards@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     const { calls } = installStripeFetchMock({
       'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_without_url' }),
@@ -103,7 +103,7 @@ describe('spa checkout and portal', () => {
     expect(comped.headers.get('Location')).toBe(`${PATH}?checkout=comped`);
     expect(calls).toHaveLength(1);
 
-    const other = await seedAccount({ email: 'spa-no-email@example.com', testEnv });
+    const other = await seedAccount({ email: 'sme-no-email@example.com', testEnv });
     const otherSession = await seedSession(other.accountId, { testEnv });
     await workerEnv.DB.prepare('UPDATE accounts SET primary_email_id = NULL WHERE id = ?').bind(other.accountId).run();
     const noEmail = await postForm(`${PATH}/checkout`, testEnv, form(), otherSession.cookie);
@@ -114,7 +114,7 @@ describe('spa checkout and portal', () => {
 
   it('enforces origin, csrf and sign-in on checkout and portal', async () => {
     const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'spa-csrf@example.com', testEnv });
+    const account = await seedAccount({ email: 'sme-csrf@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     const { calls } = installStripeFetchMock();
 
@@ -136,21 +136,21 @@ describe('spa checkout and portal', () => {
 
   it('creates portal sessions with the return url and handles missing customers', async () => {
     const testEnv = makeTestEnv();
-    const account = await seedAccount({ email: 'spa-portal@example.com', testEnv });
+    const account = await seedAccount({ email: 'sme-portal@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     const missing = await postForm(`${PATH}/portal`, testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
     expect(missing.status).toBe(303);
     expect(missing.headers.get('Location')).toBe(`${PATH}?billing=missing`);
 
-    await seedStripeCustomer(account.accountId, 'cus_spa_portal');
+    await seedStripeCustomer(account.accountId, 'cus_sme_portal');
     const { calls } = installStripeFetchMock({
-      'POST api.stripe.com/v1/billing_portal/sessions': async () => stripeJson({ id: 'bps_spa', url: 'https://billing.stripe.test/spa-session' }),
+      'POST api.stripe.com/v1/billing_portal/sessions': async () => stripeJson({ id: 'bps_sme', url: 'https://billing.stripe.test/sme-session' }),
     });
     const response = await postForm(`${PATH}/portal`, testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
 
     expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('https://billing.stripe.test/spa-session');
-    expect(calls[0].body.get('customer')).toBe('cus_spa_portal');
+    expect(response.headers.get('Location')).toBe('https://billing.stripe.test/sme-session');
+    expect(calls[0].body.get('customer')).toBe('cus_sme_portal');
     expect(calls[0].body.get('return_url')).toBe(`https://services.solstone.app${PATH}`);
   });
 });

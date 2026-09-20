@@ -20,9 +20,9 @@ const VALID_NONCE = '7'.repeat(52);
 const OTHER_NONCE = '8'.repeat(52);
 const VALID_INSTANCE = '11111111-1111-1111-1111-111111111111';
 const OTHER_INSTANCE = '22222222-2222-2222-2222-222222222222';
-const SPA_SERVICE = 'spa_hosted';
+const SME_SERVICE = 'sme_hosted';
 
-describe('/enable/spa', () => {
+describe('/enable/sme', () => {
   beforeEach(async () => {
     await resetDb();
   });
@@ -34,12 +34,12 @@ describe('/enable/spa', () => {
 
   it('rejects a missing or malformed nonce or instance with the generic error page', async () => {
     const cases = [
-      spaUrl({ nonce: '' }),
-      spaUrl({ nonce: 'bad' }),
-      spaUrl({ instance: '' }),
-      spaUrl({ instance: 'bad' }),
-      `${spaUrl()}&instance=${OTHER_INSTANCE}`,
-      spaUrl({ instance: undefined }),
+      smeUrl({ nonce: '' }),
+      smeUrl({ nonce: 'bad' }),
+      smeUrl({ instance: '' }),
+      smeUrl({ instance: 'bad' }),
+      `${smeUrl()}&instance=${OTHER_INSTANCE}`,
+      smeUrl({ instance: undefined }),
     ];
 
     for (const url of cases) {
@@ -55,14 +55,14 @@ describe('/enable/spa', () => {
   it('redirects signed-out requests through the byte-preserving resume flow', async () => {
     const testEnv = makeTestEnv();
     const query = `?nonce=${VALID_NONCE}&instance=${VALID_INSTANCE}`;
-    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/spa${query}`), testEnv);
+    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/sme${query}`), testEnv);
     const location = new URL(response.headers.get('Location'), 'https://services.solstone.app');
     const resume = await verifyEnableResume(location.searchParams.get('next'), location.searchParams.get('next_sig'), testEnv);
 
     expect(response.status).toBe(303);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(location.pathname).toBe('/');
-    expect(resume).toEqual({ path: '/enable/spa', queryString: query });
+    expect(resume).toEqual({ path: '/enable/sme', queryString: query });
   });
 
   it('renders the consent screen around the mechanism, with hidden fields and a required acknowledgment', async () => {
@@ -70,7 +70,7 @@ describe('/enable/spa', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
 
-    const response = await worker.fetch(new Request(spaUrl(), { headers: { Cookie: session.cookie } }), testEnv);
+    const response = await worker.fetch(new Request(smeUrl(), { headers: { Cookie: session.cookie } }), testEnv);
     const body = await response.text();
 
     expect(response.status).toBe(200);
@@ -91,7 +91,7 @@ describe('/enable/spa', () => {
     expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
     expect(body).toContain('name="action" value="cancel" type="submit" formnovalidate');
-    expect(body).toContain('action="/enable/spa/confirm"');
+    expect(body).toContain('action="/enable/sme/confirm"');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
@@ -100,7 +100,7 @@ describe('/enable/spa', () => {
     expect(body).not.toMatch(/anonymous/i);
     expect(body).not.toContain('$');
     // Showing the screen commits nothing.
-    await expect(rowCount('spa_bindings')).resolves.toBe(0);
+    await expect(rowCount('sme_bindings')).resolves.toBe(0);
     await expect(rowCount('service_handoffs')).resolves.toBe(0);
   });
 
@@ -128,7 +128,7 @@ describe('/enable/spa', () => {
       const response = await worker.fetch(request, testEnv);
       expect(response.status).toBe(400);
     }
-    await expect(rowCount('spa_bindings')).resolves.toBe(0);
+    await expect(rowCount('sme_bindings')).resolves.toBe(0);
     await expect(rowCount('service_handoffs')).resolves.toBe(0);
     await expect(rowCount('entitlements')).resolves.toBe(0);
   });
@@ -144,7 +144,7 @@ describe('/enable/spa', () => {
       expect(response.status).toBe(400);
       expect(await response.text()).toContain("something didn't look right with that link.");
     }
-    await expect(rowCount('spa_bindings')).resolves.toBe(0);
+    await expect(rowCount('sme_bindings')).resolves.toBe(0);
     await expect(rowCount('service_handoffs')).resolves.toBe(0);
     await expect(rowCount('entitlements')).resolves.toBe(0);
   });
@@ -160,16 +160,16 @@ describe('/enable/spa', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('sol pbc approved this journal for an address.');
-    const binding = await spaBindingRow(account.accountId, VALID_INSTANCE);
+    const binding = await smeBindingRow(account.accountId, VALID_INSTANCE);
     expect(binding).toMatchObject({
       account_id: account.accountId,
       instance_id: VALID_INSTANCE,
       consent_acked_at: expect.any(Number),
-      consent_disclosure_version: 'spa-consent-v1',
+      consent_disclosure_version: 'sme-consent-v1',
     });
     expect(binding.consent_acked_at).toBe(binding.last_seen_at);
     const payload = await decryptedHandoff(VALID_NONCE, testEnv);
-    expect(payload).toEqual({ service: 'spa', state: 'approved', approved_at: expect.any(String) });
+    expect(payload).toEqual({ service: 'sme', state: 'approved', approved_at: expect.any(String) });
     expect(new Date(payload.approved_at).toISOString()).toBe(payload.approved_at);
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({ status: 'active', source: 'comp' });
   });
@@ -180,10 +180,10 @@ describe('/enable/spa', () => {
     const session = await seedSession(account.accountId, { testEnv });
     await seedEntitlement({
       accountId: account.accountId,
-      service: SPA_SERVICE,
+      service: SME_SERVICE,
       status: 'active',
       currentPeriodEnd: 1_900_000_000,
-      sourceRef: 'sub_spa_paid',
+      sourceRef: 'sub_sme_paid',
     });
 
     const response = await worker.fetch(confirmRequest({ cookie: session.cookie }), testEnv);
@@ -193,7 +193,7 @@ describe('/enable/spa', () => {
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'active',
       source: 'stripe',
-      source_ref: 'sub_spa_paid',
+      source_ref: 'sub_sme_paid',
       current_period_end: 1_900_000_000,
     });
   });
@@ -208,17 +208,17 @@ describe('/enable/spa', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('a subscription is needed');
-    expect(body).toContain('href="/services/spa"');
+    expect(body).toContain('href="/services/sme"');
     expect(body).toContain('set up a subscription');
     expect(body).not.toMatch(/subscribe/i);
     expect(body).toContain('your permission is saved');
-    await expect(spaBindingRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
-      consent_disclosure_version: 'spa-consent-v1',
+    await expect(smeBindingRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
+      consent_disclosure_version: 'sme-consent-v1',
     });
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({
-      service: 'spa',
+      service: 'sme',
       state: 'needs_subscription',
-      subscribe_url: 'https://services.solstone.app/services/spa',
+      subscribe_url: 'https://services.solstone.app/services/sme',
     });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({ status: 'lapsed' });
   });
@@ -229,7 +229,7 @@ describe('/enable/spa', () => {
     const session = await seedSession(account.accountId, { testEnv });
     await seedEntitlement({
       accountId: account.accountId,
-      service: SPA_SERVICE,
+      service: SME_SERVICE,
       status: 'past_due',
       currentPeriodEnd: Math.floor(Date.now() / 1000) - 15 * 86400,
     });
@@ -251,7 +251,7 @@ describe('/enable/spa', () => {
     await expect(rowCount('mcp_bridge_hostname_ledger')).resolves.toBe(0);
     await expect(rowCount('mcp_bridge_bindings')).resolves.toBe(0);
     await expect(rowCount('spl_bindings')).resolves.toBe(1);
-    await expect(spaBindingRow(account.accountId, OTHER_INSTANCE)).resolves.toBeNull();
+    await expect(smeBindingRow(account.accountId, OTHER_INSTANCE)).resolves.toBeNull();
   });
 
   it('refreshes one binding for a repeated consent rather than adding another', async () => {
@@ -262,7 +262,7 @@ describe('/enable/spa', () => {
     await worker.fetch(confirmRequest({ cookie: session.cookie }), testEnv);
     await worker.fetch(confirmRequest({ cookie: session.cookie, nonce: OTHER_NONCE }), testEnv);
 
-    await expect(rowCount('spa_bindings')).resolves.toBe(1);
+    await expect(rowCount('sme_bindings')).resolves.toBe(1);
     await expect(rowCount('service_handoffs')).resolves.toBe(2);
   });
 
@@ -270,8 +270,8 @@ describe('/enable/spa', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
-    const sentinel = { service: 'spa', state: 'sentinel' };
-    await insertSpaHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: sentinel });
+    const sentinel = { service: 'sme', state: 'sentinel' };
+    await insertSmeHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: sentinel });
 
     const response = await worker.fetch(confirmRequest({ cookie: session.cookie }), testEnv);
 
@@ -285,7 +285,7 @@ describe('/enable/spa', () => {
 
     expect(response.status).toBe(303);
     expect(new URL(response.headers.get('Location'), 'https://services.solstone.app').pathname).toBe('/');
-    await expect(rowCount('spa_bindings')).resolves.toBe(0);
+    await expect(rowCount('sme_bindings')).resolves.toBe(0);
     await expect(rowCount('service_handoffs')).resolves.toBe(0);
   });
 
@@ -303,14 +303,14 @@ describe('/enable/spa', () => {
   });
 });
 
-function spaUrl(overrides = {}) {
+function smeUrl(overrides = {}) {
   const params = new URLSearchParams({
     nonce: VALID_NONCE,
     instance: VALID_INSTANCE,
     ...overrides,
   });
   for (const [key, value] of [...params]) if (value === 'undefined') params.delete(key);
-  return `https://services.solstone.app/enable/spa?${params.toString()}`;
+  return `https://services.solstone.app/enable/sme?${params.toString()}`;
 }
 
 function confirmRequest({
@@ -324,14 +324,14 @@ function confirmRequest({
   const body = new URLSearchParams({ csrf, nonce, action, ...extraForm });
   const headers = { Origin: origin, 'Content-Type': 'application/x-www-form-urlencoded' };
   if (cookie) headers.Cookie = cookie;
-  return new Request('https://services.solstone.app/enable/spa/confirm', { method: 'POST', headers, body });
+  return new Request('https://services.solstone.app/enable/sme/confirm', { method: 'POST', headers, body });
 }
 
 function repeatedInstanceConfirmRequest(cookie) {
   const body = new URLSearchParams({ csrf: TEST_CSRF, nonce: VALID_NONCE, action: 'allow', data_ack: 'yes' });
   body.append('instance', VALID_INSTANCE);
   body.append('instance', OTHER_INSTANCE);
-  return new Request('https://services.solstone.app/enable/spa/confirm', {
+  return new Request('https://services.solstone.app/enable/sme/confirm', {
     method: 'POST',
     headers: { Origin: 'https://services.solstone.app', Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -341,19 +341,19 @@ function repeatedInstanceConfirmRequest(cookie) {
 async function decryptedHandoff(nonce, testEnv) {
   const row = await workerEnv.DB
     .prepare('SELECT payload_encrypted FROM service_handoffs WHERE handoff_hash = ? AND service = ?')
-    .bind(await hashServiceHandoffNonce(nonce, testEnv), 'spa')
+    .bind(await hashServiceHandoffNonce(nonce, testEnv), 'sme')
     .first();
   expect(row).not.toBeNull();
   return JSON.parse(await decryptEmail(row.payload_encrypted, testEnv));
 }
 
-async function insertSpaHandoff({ testEnv, accountId, nonce, payload }) {
+async function insertSmeHandoff({ testEnv, accountId, nonce, payload }) {
   const nowMs = Date.now();
   await workerEnv.DB
     .prepare(
       `INSERT INTO service_handoffs (
          handoff_hash, account_id, service, payload_encrypted, created_at, expires_at
-       ) VALUES (?, ?, 'spa', ?, ?, ?)`
+       ) VALUES (?, ?, 'sme', ?, ?, ?)`
     )
     .bind(
       await hashServiceHandoffNonce(nonce, testEnv),
@@ -365,11 +365,11 @@ async function insertSpaHandoff({ testEnv, accountId, nonce, payload }) {
     .run();
 }
 
-async function spaBindingRow(accountId, instanceId) {
+async function smeBindingRow(accountId, instanceId) {
   return workerEnv.DB
     .prepare(
       `SELECT account_id, instance_id, created_at, last_seen_at, consent_acked_at, consent_disclosure_version
-       FROM spa_bindings
+       FROM sme_bindings
        WHERE account_id = ? AND instance_id = ?`
     )
     .bind(accountId, instanceId)
@@ -379,6 +379,6 @@ async function spaBindingRow(accountId, instanceId) {
 async function entitlementRow(accountId) {
   return workerEnv.DB
     .prepare('SELECT account_id, service, status, current_period_end, source, source_ref FROM entitlements WHERE account_id = ? AND service = ?')
-    .bind(accountId, SPA_SERVICE)
+    .bind(accountId, SME_SERVICE)
     .first();
 }

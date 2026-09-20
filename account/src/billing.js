@@ -25,7 +25,7 @@ import {
   verifyWebhookSignature,
 } from './stripe.js';
 import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-grant.js';
-import { reconcileSpaEntitlement } from './spa-entitlement.js';
+import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
 
 // One reconciler per billed service, keyed by the metadata.service tag checkout stamps.
@@ -34,7 +34,7 @@ import { reconcileSpbEntitlement } from './spb-entitlement.js';
 const SERVICE_RECONCILERS = Object.freeze({
   spl: reconcileSplEntitlement,
   spb: reconcileSpbEntitlement,
-  spa: reconcileSpaEntitlement,
+  sme: reconcileSmeEntitlement,
 });
 
 const SOURCE = 'stripe';

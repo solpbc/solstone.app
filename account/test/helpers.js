@@ -70,7 +70,7 @@ export function makeTestEnv(overrides = {}) {
     STRIPE_PRICE_MONTHLY: overrides.STRIPE_PRICE_MONTHLY || 'price_monthly_test',
     STRIPE_PRICE_SPB_ANNUAL: overrides.STRIPE_PRICE_SPB_ANNUAL || 'price_spb_annual_test',
     STRIPE_PRICE_SPB_MONTHLY: overrides.STRIPE_PRICE_SPB_MONTHLY || 'price_spb_monthly_test',
-    STRIPE_PRICE_SPA_ANNUAL: overrides.STRIPE_PRICE_SPA_ANNUAL || 'price_spa_annual_test',
+    STRIPE_PRICE_SME_ANNUAL: overrides.STRIPE_PRICE_SME_ANNUAL || 'price_sme_annual_test',
     RELAY_GRANT_URL: overrides.RELAY_GRANT_URL || 'https://link.solstone.app',
     RELAY_GRACE_DAYS: overrides.RELAY_GRACE_DAYS || '14',
     RELAY_GRANT_SECRET: overrides.RELAY_GRANT_SECRET || 'test-relay-grant-secret',
@@ -192,7 +192,7 @@ export async function resetDb() {
     'spb_bindings',
     'spb_retired_tokens',
     'spp_bindings',
-    'spa_bindings',
+    'sme_bindings',
     'spb_mint_audit',
     'spp_mint_audit',
     'spb_sweep_audit',
@@ -771,17 +771,17 @@ export async function seedSplBinding({
   return { accountId, instanceId, createdAt, lastSeenAt };
 }
 
-export async function seedSpaBinding({
+export async function seedSmeBinding({
   accountId,
   instanceId = '11111111-1111-1111-1111-111111111111',
   createdAt = Date.now(),
   lastSeenAt = createdAt,
   consentAckedAt = createdAt,
-  consentDisclosureVersion = 'spa-consent-test',
+  consentDisclosureVersion = 'sme-consent-test',
 } = {}) {
   await env.DB
     .prepare(
-      `INSERT INTO spa_bindings (
+      `INSERT INTO sme_bindings (
          account_id, instance_id, created_at, last_seen_at, consent_acked_at, consent_disclosure_version
        ) VALUES (?, ?, ?, ?, ?, ?)`
     )

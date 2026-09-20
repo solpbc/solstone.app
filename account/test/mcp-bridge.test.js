@@ -20,7 +20,7 @@ import {
   rowCount,
   seedAccount,
   seedEntitlement,
-  seedSpaBinding,
+  seedSmeBinding,
   seedSplBinding,
 } from './helpers.js';
 import { generateReachKeyPair, mintHomeReachAssertion } from './reach-helper.js';
@@ -235,7 +235,7 @@ describe('MCP bridge token endpoint', () => {
     expect(await rowCount('mcp_bridge_bindings')).toBe(0);
   });
 
-  it('fails closed for missing or ambiguous SPA bindings, and before D1 for a derived-JID mismatch', async () => {
+  it('fails closed for missing or ambiguous SME bindings, and before D1 for a derived-JID mismatch', async () => {
     const env = makeTestEnv();
     const absent = await validInput();
     await expectError(await fetchBridge(absent, env), 401, 'invalid_token');
@@ -244,7 +244,7 @@ describe('MCP bridge token endpoint', () => {
     const ambiguous = await validInput();
     await seedBoundAccount(env, ambiguous.instance_id, 'ambiguous-one@example.com');
     const other = await seedAccount({ email: 'ambiguous-two@example.com', testEnv: env });
-    await seedSpaBinding({ accountId: other.accountId, instanceId: ambiguous.instance_id });
+    await seedSmeBinding({ accountId: other.accountId, instanceId: ambiguous.instance_id });
     await expectError(await fetchBridge(ambiguous, env), 401, 'invalid_token');
     expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
 
@@ -518,12 +518,12 @@ describe('MCP bridge token endpoint', () => {
       const first = await responseBody(await fetchBridge(input, env));
       expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);
 
-      await seedEntitlement({ accountId: account.accountId, service: 'spa_hosted', status: 'lapsed' });
+      await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', status: 'lapsed' });
       await expectError(await fetchBridge(input, env), 402, 'needs_subscription');
       expect(await rowCount('mcp_bridge_bindings')).toBe(1);
       expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);
 
-      await seedEntitlement({ accountId: account.accountId, service: 'spa_hosted', status: 'active' });
+      await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', status: 'active' });
       const again = await responseBody(await fetchBridge(input, env));
       expect(again.hostname).toBe(first.hostname);
       expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);
@@ -592,13 +592,13 @@ async function validInput({ instanceId = null, scope = 'mcp.bridge.register', he
   };
 }
 
-// An owner who consented for this instance. `entitlement` is the spa_hosted row to
+// An owner who consented for this instance. `entitlement` is the sme_hosted row to
 // seed (null seeds none), so a test states exactly what the gate is looking at.
 async function seedBoundAccount(env, instanceId, email = 'mcp-bridge@example.com', entitlement = {}) {
   const account = await seedAccount({ email, testEnv: env });
-  await seedSpaBinding({ accountId: account.accountId, instanceId });
+  await seedSmeBinding({ accountId: account.accountId, instanceId });
   if (entitlement) {
-    await seedEntitlement({ accountId: account.accountId, service: 'spa_hosted', ...entitlement });
+    await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', ...entitlement });
   }
   return account;
 }

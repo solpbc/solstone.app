@@ -34,8 +34,8 @@ import {
   handleEnableSpbGet,
   handleEnableSplConfirm,
   handleEnableSplGet,
-  handleEnableSpaConfirm,
-  handleEnableSpaGet,
+  handleEnableSmeConfirm,
+  handleEnableSmeGet,
   handleEnableSppConfirm,
   handleEnableSppGet,
   handleHandoffPush,
@@ -73,7 +73,7 @@ import {
   handleSpbCheckout,
   handleSpbPortal,
 } from './spb-billing.js';
-import { handleSpaCheckout, handleSpaPortal } from './spa-billing.js';
+import { handleSmeCheckout, handleSmePortal } from './sme-billing.js';
 import {
   handleAddEmail,
   handleMakeEmailPrimary,
@@ -575,26 +575,26 @@ async function routeRequest(req, env, ctx) {
       if (
         parts.length === 3 &&
         parts[1] === 'enable' &&
-        parts[2] === 'spa' &&
+        parts[2] === 'sme' &&
         req.method === 'GET'
       ) {
-        return handleEnableSpaGet(req, env, ctx);
+        return handleEnableSmeGet(req, env, ctx);
       }
 
       if (
         parts.length === 4 &&
         parts[1] === 'enable' &&
-        parts[2] === 'spa' &&
+        parts[2] === 'sme' &&
         parts[3] === 'confirm' &&
         req.method === 'POST'
       ) {
-        return handleEnableSpaConfirm(req, env, ctx);
+        return handleEnableSmeConfirm(req, env, ctx);
       }
 
       if (
         parts.length === 3 &&
         parts[1] === 'handoff' &&
-        parts[2] === 'spa' &&
+        parts[2] === 'sme' &&
         req.method === 'GET'
       ) {
         return handleHandoffSpa(req, env, ctx);
@@ -603,21 +603,21 @@ async function routeRequest(req, env, ctx) {
       if (
         parts.length === 4 &&
         parts[1] === 'services' &&
-        parts[2] === 'spa' &&
+        parts[2] === 'sme' &&
         parts[3] === 'checkout' &&
         req.method === 'POST'
       ) {
-        return handleSpaCheckout(req, env);
+        return handleSmeCheckout(req, env);
       }
 
       if (
         parts.length === 4 &&
         parts[1] === 'services' &&
-        parts[2] === 'spa' &&
+        parts[2] === 'sme' &&
         parts[3] === 'portal' &&
         req.method === 'POST'
       ) {
-        return handleSpaPortal(req, env);
+        return handleSmePortal(req, env);
       }
 
       if (

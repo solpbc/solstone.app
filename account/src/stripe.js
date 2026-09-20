@@ -8,7 +8,7 @@ const encoder = new TextEncoder();
 // The services a Stripe subscription can be sold as. Checkout stamps one of these on
 // the subscription as metadata.service, and the webhook reconciles by it. Adding a
 // service here without a reconciler in billing.js is caught by test/billing-stripe.test.js.
-export const BILLED_SERVICES = Object.freeze(['spl', 'spb', 'spa']);
+export const BILLED_SERVICES = Object.freeze(['spl', 'spb', 'sme']);
 
 export async function createCheckoutSession(env, {
   accountId,

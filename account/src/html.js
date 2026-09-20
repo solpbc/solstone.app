@@ -3,7 +3,7 @@
 import { PORTAL_CSS_HREF, SUNARC_JS_SRC } from './assets.js';
 import { ENROLL_JS } from './inline/passkey-enroll.js';
 import { LANDING_JS } from './inline/passkey-landing.js';
-import { SPA_SERVICE_PATH } from './spa-service.js';
+import { SME_SERVICE_PATH } from './sme-service.js';
 
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
 const MARK_SVG = '<svg class="mark" viewBox="2.5 2.5 27 27" role="img" aria-label="solstone"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg>'
@@ -570,7 +570,7 @@ export function renderEnableSppError() {
   });
 }
 
-export function renderEnableSpaConsent({ csrf, nonce, instance }) {
+export function renderEnableSmeConsent({ csrf, nonce, instance }) {
   return layout({
     title: 'give this journal an address',
     body: `${brandbar()}
@@ -612,7 +612,7 @@ export function renderEnableSpaConsent({ csrf, nonce, instance }) {
       <div class="gd">turning this back on uses the same address.</div>
     </div>
   </div>
-  <form method="post" action="/enable/spa/confirm">
+  <form method="post" action="/enable/sme/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     <input type="hidden" name="instance" value="${escAttr(instance)}">
@@ -627,19 +627,19 @@ export function renderEnableSpaConsent({ csrf, nonce, instance }) {
   });
 }
 
-export function renderEnableSpaNeedsSubscription() {
+export function renderEnableSmeNeedsSubscription() {
   return layout({
     title: 'a subscription is needed',
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
   <p>sol pbc runs the address for this journal once a subscription is active. your permission is saved, so you won't be asked to allow it again.</p>
-  <a class="btn primary" href="${escAttr(SPA_SERVICE_PATH)}">set up a subscription</a>
+  <a class="btn primary" href="${escAttr(SME_SERVICE_PATH)}">set up a subscription</a>
 </div>`,
   });
 }
 
-export function renderEnableSpaDone() {
+export function renderEnableSmeDone() {
   return layout({
     title: 'this journal is approved for an address',
     body: `${brandbar()}
@@ -650,7 +650,7 @@ export function renderEnableSpaDone() {
   });
 }
 
-export function renderEnableSpaError() {
+export function renderEnableSmeError() {
   return layout({
     title: 'could not give this journal an address',
     body: `${brandbar()}

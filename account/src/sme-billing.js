@@ -10,18 +10,18 @@ import {
   requireSignedInSession,
   signedInRedirect,
 } from './settings.js';
-import { SPA_SERVICE_PATH } from './spa-service.js';
+import { SME_SERVICE_PATH } from './sme-service.js';
 import {
   createCheckoutSession,
   createPortalSession,
 } from './stripe.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
-const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}${SPA_SERVICE_PATH}?checkout=success`;
-const CHECKOUT_CANCEL_URL = `${PUBLIC_ORIGIN}${SPA_SERVICE_PATH}?checkout=cancel`;
-const PORTAL_RETURN_URL = `${PUBLIC_ORIGIN}${SPA_SERVICE_PATH}`;
+const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}${SME_SERVICE_PATH}?checkout=success`;
+const CHECKOUT_CANCEL_URL = `${PUBLIC_ORIGIN}${SME_SERVICE_PATH}?checkout=cancel`;
+const PORTAL_RETURN_URL = `${PUBLIC_ORIGIN}${SME_SERVICE_PATH}`;
 
-export async function handleSpaCheckout(req, env) {
+export async function handleSmeCheckout(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
@@ -31,16 +31,16 @@ export async function handleSpaCheckout(req, env) {
   // Annual only, deliberately: there is one annual price and no monthly one to select,
   // so anything but annual is refused.
   const plan = form.get('plan')?.toString() || 'annual';
-  const priceId = plan === 'annual' ? env.STRIPE_PRICE_SPA_ANNUAL : '';
-  if (!priceId) return signedInRedirect(`${SPA_SERVICE_PATH}?checkout=invalid`);
+  const priceId = plan === 'annual' ? env.STRIPE_PRICE_SME_ANNUAL : '';
+  if (!priceId) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=invalid`);
 
   const accountId = guard.session.account_id;
   const scoutApp = await getScoutApplicationStatusByAccount(env.DB, { accountId });
-  if (scoutApp?.status === 'approved') return signedInRedirect(`${SPA_SERVICE_PATH}?checkout=comped`);
+  if (scoutApp?.status === 'approved') return signedInRedirect(`${SME_SERVICE_PATH}?checkout=comped`);
 
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId });
   const menu = customerRow ? null : await loadMenuContext(env, accountId, guard.nowMs);
-  if (!customerRow && !menu?.email) return signedInRedirect(`${SPA_SERVICE_PATH}?checkout=email`);
+  if (!customerRow && !menu?.email) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=email`);
 
   const checkout = await createCheckoutSession(env, {
     accountId,
@@ -50,13 +50,13 @@ export async function handleSpaCheckout(req, env) {
     successUrl: CHECKOUT_SUCCESS_URL,
     cancelUrl: CHECKOUT_CANCEL_URL,
     idempotencyKey: crypto.randomUUID(),
-    service: 'spa',
+    service: 'sme',
   });
-  if (!checkout?.url) return signedInRedirect(`${SPA_SERVICE_PATH}?checkout=error`);
+  if (!checkout?.url) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=error`);
   return signedInRedirect(checkout.url);
 }
 
-export async function handleSpaPortal(req, env) {
+export async function handleSmePortal(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
@@ -64,12 +64,12 @@ export async function handleSpaPortal(req, env) {
   if (!await validCsrf(form, env)) return noStore(forbidden());
 
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId: guard.session.account_id });
-  if (!customerRow) return signedInRedirect(`${SPA_SERVICE_PATH}?billing=missing`);
+  if (!customerRow) return signedInRedirect(`${SME_SERVICE_PATH}?billing=missing`);
   const portal = await createPortalSession(env, {
     customer: customerRow.stripe_customer_id,
     returnUrl: PORTAL_RETURN_URL,
   });
-  if (!portal?.url) return signedInRedirect(`${SPA_SERVICE_PATH}?billing=error`);
+  if (!portal?.url) return signedInRedirect(`${SME_SERVICE_PATH}?billing=error`);
   return signedInRedirect(portal.url);
 }
 

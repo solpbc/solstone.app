@@ -14,13 +14,13 @@ const OTHER_NONCE = '3'.repeat(52);
 const THIRD_NONCE = '4'.repeat(52);
 const FOURTH_NONCE = '5'.repeat(52);
 const FIFTH_NONCE = '6'.repeat(52);
-const SPA_PAYLOAD = {
-  service: 'spa',
+const SME_PAYLOAD = {
+  service: 'sme',
   state: 'approved',
   approved_at: '2026-01-01T00:00:00.000Z',
 };
 
-describe('/handoff/spa', () => {
+describe('/handoff/sme', () => {
   beforeEach(async () => {
     await resetDb();
   });
@@ -31,7 +31,7 @@ describe('/handoff/spa', () => {
 
   it('rejects malformed nonces without setting cookies or varying by cookie', async () => {
     const response = await worker.fetch(
-      new Request('https://services.solstone.app/handoff/spa?nonce=bad'),
+      new Request('https://services.solstone.app/handoff/sme?nonce=bad'),
       makeTestEnv()
     );
 
@@ -41,19 +41,19 @@ describe('/handoff/spa', () => {
     expect(response.headers.has('Vary')).toBe(false);
   });
 
-  it('atomically consumes an spa handoff once and returns gone after consumption', async () => {
+  it('atomically consumes an sme handoff once and returns gone after consumption', async () => {
     const spy = installConsoleSpy();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
-    await insertHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: SPA_PAYLOAD });
+    await insertHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: SME_PAYLOAD });
     try {
       const first = await worker.fetch(
-        new Request(`https://services.solstone.app/handoff/spa?nonce=${VALID_NONCE}`),
+        new Request(`https://services.solstone.app/handoff/sme?nonce=${VALID_NONCE}`),
         testEnv
       );
       const body = await first.json();
       const second = await worker.fetch(
-        new Request(`https://services.solstone.app/handoff/spa?nonce=${VALID_NONCE}`),
+        new Request(`https://services.solstone.app/handoff/sme?nonce=${VALID_NONCE}`),
         testEnv
       );
 
@@ -61,7 +61,7 @@ describe('/handoff/spa', () => {
       expect(first.headers.get('Cache-Control')).toBe('no-store');
       expect(first.headers.has('Set-Cookie')).toBe(false);
       expect(first.headers.has('Vary')).toBe(false);
-      expect(body).toEqual(SPA_PAYLOAD);
+      expect(body).toEqual(SME_PAYLOAD);
       expect(second.status).toBe(410);
       await expect(second.json()).resolves.toEqual({ error: 'gone' });
       spy.assertNoSecrets([VALID_NONCE]);
@@ -70,22 +70,22 @@ describe('/handoff/spa', () => {
     }
   });
 
-  it('allows only one concurrent poller to consume a ready spa handoff', async () => {
+  it('allows only one concurrent poller to consume a ready sme handoff', async () => {
     const spy = installConsoleSpy();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
-    await insertHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: SPA_PAYLOAD });
+    await insertHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: SME_PAYLOAD });
     try {
       const [first, second] = await Promise.all([
-        worker.fetch(new Request(`https://services.solstone.app/handoff/spa?nonce=${VALID_NONCE}`), testEnv),
-        worker.fetch(new Request(`https://services.solstone.app/handoff/spa?nonce=${VALID_NONCE}`), testEnv),
+        worker.fetch(new Request(`https://services.solstone.app/handoff/sme?nonce=${VALID_NONCE}`), testEnv),
+        worker.fetch(new Request(`https://services.solstone.app/handoff/sme?nonce=${VALID_NONCE}`), testEnv),
       ]);
       const ok = [first, second].filter((response) => response.status === 200);
       const gone = [first, second].filter((response) => response.status === 410);
 
       expect(ok).toHaveLength(1);
       expect(gone).toHaveLength(1);
-      await expect(ok[0].json()).resolves.toEqual(SPA_PAYLOAD);
+      await expect(ok[0].json()).resolves.toEqual(SME_PAYLOAD);
       await expect(gone[0].json()).resolves.toEqual({ error: 'gone' });
       spy.assertNoSecrets([VALID_NONCE]);
     } finally {
@@ -93,10 +93,10 @@ describe('/handoff/spa', () => {
     }
   });
 
-  it('returns 204 after the long-poll budget when no spa handoff exists', async () => {
+  it('returns 204 after the long-poll budget when no sme handoff exists', async () => {
     vi.useFakeTimers();
     const pending = worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spa?nonce=${VALID_NONCE}`),
+      new Request(`https://services.solstone.app/handoff/sme?nonce=${VALID_NONCE}`),
       makeTestEnv()
     );
     await Promise.resolve();
@@ -109,7 +109,7 @@ describe('/handoff/spa', () => {
     expect(response.headers.has('Vary')).toBe(false);
   });
 
-  it('does not serve scout, push, spl, spb, or spp rows through the spa handoff endpoint', async () => {
+  it('does not serve scout, push, spl, spb, or spp rows through the sme handoff endpoint', async () => {
     vi.useFakeTimers();
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
@@ -131,7 +131,7 @@ describe('/handoff/spa', () => {
     }
 
     const pending = rows.map(({ nonce }) => worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spa?nonce=${nonce}`),
+      new Request(`https://services.solstone.app/handoff/sme?nonce=${nonce}`),
       testEnv
     ));
     await Promise.resolve();
@@ -141,18 +141,18 @@ describe('/handoff/spa', () => {
     for (const response of responses) expect(response.status).toBe(204);
   });
 
-  it('ignores cookies when polling spa handoffs', async () => {
+  it('ignores cookies when polling sme handoffs', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
-    await insertHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: SPA_PAYLOAD });
-    await insertHandoff({ testEnv, accountId: account.accountId, nonce: OTHER_NONCE, payload: SPA_PAYLOAD });
+    await insertHandoff({ testEnv, accountId: account.accountId, nonce: VALID_NONCE, payload: SME_PAYLOAD });
+    await insertHandoff({ testEnv, accountId: account.accountId, nonce: OTHER_NONCE, payload: SME_PAYLOAD });
 
     const noCookie = await responseSnapshot(await worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spa?nonce=${VALID_NONCE}`),
+      new Request(`https://services.solstone.app/handoff/sme?nonce=${VALID_NONCE}`),
       testEnv
     ));
     const withCookie = await responseSnapshot(await worker.fetch(
-      new Request(`https://services.solstone.app/handoff/spa?nonce=${OTHER_NONCE}`, {
+      new Request(`https://services.solstone.app/handoff/sme?nonce=${OTHER_NONCE}`, {
         headers: { Cookie: 'account_session=unrelated' },
       }),
       testEnv
@@ -162,7 +162,7 @@ describe('/handoff/spa', () => {
   });
 });
 
-async function insertHandoff({ testEnv, accountId, nonce, payload, service = 'spa' }) {
+async function insertHandoff({ testEnv, accountId, nonce, payload, service = 'sme' }) {
   const nowMs = Date.now();
   await workerEnv.DB
     .prepare(

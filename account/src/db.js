@@ -1421,7 +1421,7 @@ export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
     .run();
 }
 
-export async function upsertSpaBinding(db, {
+export async function upsertSmeBinding(db, {
   accountId,
   instanceId,
   nowMs,
@@ -1430,7 +1430,7 @@ export async function upsertSpaBinding(db, {
 }) {
   await db
     .prepare(
-      `INSERT INTO spa_bindings (
+      `INSERT INTO sme_bindings (
          account_id, instance_id, created_at, last_seen_at,
          consent_acked_at, consent_disclosure_version
        ) VALUES (?, ?, ?, ?, ?, ?)
@@ -1443,9 +1443,9 @@ export async function upsertSpaBinding(db, {
     .run();
 }
 
-export async function findUniqueSpaBindingAccount(db, instanceId) {
+export async function findUniqueSmeBindingAccount(db, instanceId) {
   const { results } = await db
-    .prepare('SELECT account_id FROM spa_bindings WHERE instance_id = ?')
+    .prepare('SELECT account_id FROM sme_bindings WHERE instance_id = ?')
     .bind(instanceId)
     .all();
   if (!results || results.length !== 1) return null;

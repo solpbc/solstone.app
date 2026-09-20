@@ -1,9 +1,9 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import migration from '../migrations/0037_spa_service_handoffs.sql?raw';
+import migration from '../migrations/0037_sme_service_handoffs.sql?raw';
 import { resetDb } from './helpers.js';
 
-describe('migration 0037 spa service handoffs', () => {
+describe('migration 0037 sme service handoffs', () => {
   beforeEach(async () => {
     await resetDb();
     await installScoutPushSplSpbSppServiceHandoffs();
@@ -13,7 +13,7 @@ describe('migration 0037 spa service handoffs', () => {
       .run();
   });
 
-  it('broadens service_handoffs to spa, preserves rows, and recreates indexes idempotently', async () => {
+  it('broadens service_handoffs to sme, preserves rows, and recreates indexes idempotently', async () => {
     const sppRow = {
       handoff_hash: 'spp-hash',
       account_id: 'acct-migration-0037',
@@ -27,10 +27,10 @@ describe('migration 0037 spa service handoffs', () => {
 
     await runMigration();
     await expect(insertHandoff({
-      handoff_hash: 'spa-hash',
+      handoff_hash: 'sme-hash',
       account_id: 'acct-migration-0037',
-      service: 'spa',
-      payload_encrypted: 'spa-payload',
+      service: 'sme',
+      payload_encrypted: 'sme-payload',
       created_at: 4_000,
       expires_at: 5_000,
       consumed_at: null,
@@ -47,23 +47,23 @@ describe('migration 0037 spa service handoffs', () => {
     await expect(handoffRow('spp-hash')).resolves.toEqual(sppRow);
     await expect(indexExists('idx_service_handoffs_account_id')).resolves.toBe(true);
     await expect(indexExists('idx_service_handoffs_expires_at')).resolves.toBe(true);
-    await expect(tableSql()).resolves.toContain("service IN ('scout','push','spl','spb','spp','spa')");
+    await expect(tableSql()).resolves.toContain("service IN ('scout','push','spl','spb','spp','sme')");
 
     await runMigration();
     await expect(insertHandoff({
-      handoff_hash: 'spa-hash-2',
+      handoff_hash: 'sme-hash-2',
       account_id: 'acct-migration-0037',
-      service: 'spa',
-      payload_encrypted: 'spa-payload-2',
+      service: 'sme',
+      payload_encrypted: 'sme-payload-2',
       created_at: 6_000,
       expires_at: 7_000,
       consumed_at: null,
     })).resolves.toBeUndefined();
     await expect(handoffRow('spp-hash')).resolves.toEqual(sppRow);
-    await expect(handoffRow('spa-hash')).resolves.toMatchObject({ service: 'spa' });
+    await expect(handoffRow('sme-hash')).resolves.toMatchObject({ service: 'sme' });
     await expect(indexExists('idx_service_handoffs_account_id')).resolves.toBe(true);
     await expect(indexExists('idx_service_handoffs_expires_at')).resolves.toBe(true);
-    await expect(tableSql()).resolves.toContain("service IN ('scout','push','spl','spb','spp','spa')");
+    await expect(tableSql()).resolves.toContain("service IN ('scout','push','spl','spb','spp','sme')");
   });
 });
 

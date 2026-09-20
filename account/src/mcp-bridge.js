@@ -1,7 +1,7 @@
 import { exportJWK, importJWK, importPKCS8, SignJWT } from 'jose';
 import { base64UrlEncode } from './crypto.js';
 import {
-  findUniqueSpaBindingAccount,
+  findUniqueSmeBindingAccount,
   getActiveDeletionForAccount,
   getEntitlement,
   getMcpBridgeBinding,
@@ -13,7 +13,7 @@ import {
   parseHomeReachCaPubkey,
   verifyHomeReachAssertion,
 } from './reach.js';
-import { SPA_HOSTED_SERVICE, isSpaEntitledToServe } from './spa-entitlement.js';
+import { SME_HOSTED_SERVICE, isSmeEntitledToServe } from './sme-entitlement.js';
 
 const BRIDGE_HOST_SUFFIX = '.solstone.me';
 const BRIDGE_TOKEN_TTL_SECONDS = 600;
@@ -92,7 +92,7 @@ export async function handleMcpBridgeToken(req, env) {
 
   let account;
   try {
-    account = await findUniqueSpaBindingAccount(env.DB, body.instance_id);
+    account = await findUniqueSmeBindingAccount(env.DB, body.instance_id);
   } catch (err) {
     logBridgeTokenFailure('find_binding_account', err);
     return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
@@ -115,9 +115,9 @@ export async function handleMcpBridgeToken(req, env) {
   try {
     const entitlement = await getEntitlement(env.DB, {
       accountId: account.accountId,
-      service: SPA_HOSTED_SERVICE,
+      service: SME_HOSTED_SERVICE,
     });
-    if (!isSpaEntitledToServe(entitlement, Math.floor(Date.now() / 1000), env)) {
+    if (!isSmeEntitledToServe(entitlement, Math.floor(Date.now() / 1000), env)) {
       return json({ error: 'needs_subscription' }, { status: 402 });
     }
   } catch (err) {

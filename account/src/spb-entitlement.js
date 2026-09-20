@@ -7,7 +7,7 @@ import {
   upsertEntitlement,
 } from './db.js';
 import { paidSignalFromRow, reconcileSplEntitlement } from './relay-grant.js';
-import { reconcileSpaEntitlement } from './spa-entitlement.js';
+import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSppEntitlement } from './spp-entitlement.js';
 
 export const SPB_HOSTED_SERVICE = 'spb_hosted';
@@ -69,5 +69,5 @@ export async function reconcileAllServices(env, accountId, nowMs, ctx) {
   await reconcileSplEntitlement(env, accountId, nowMs, ctx);
   await reconcileSpbEntitlement(env, accountId, nowMs, ctx);
   await reconcileSppEntitlement(env, accountId, nowMs, ctx);
-  await reconcileSpaEntitlement(env, accountId, nowMs, ctx);
+  await reconcileSmeEntitlement(env, accountId, nowMs, ctx);
 }

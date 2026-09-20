@@ -1,14 +1,14 @@
 import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import migration from '../migrations/0036_spa_entitlement.sql?raw';
+import migration from '../migrations/0036_sme_entitlement.sql?raw';
 import { resetDb } from './helpers.js';
 
-describe('migration 0036 spa entitlement', () => {
+describe('migration 0036 sme entitlement', () => {
   beforeEach(async () => {
     await resetDb();
-    await workerEnv.DB.prepare('DROP TABLE IF EXISTS spa_bindings').run();
+    await workerEnv.DB.prepare('DROP TABLE IF EXISTS sme_bindings').run();
     await installPost0035Entitlements();
-    for (const id of ['acct-0036-spl', 'acct-0036-spa', 'acct-0036-foo']) {
+    for (const id of ['acct-0036-spl', 'acct-0036-sme', 'acct-0036-foo']) {
       await workerEnv.DB
         .prepare('INSERT INTO accounts (id, primary_email_id, created_at, last_signin_at) VALUES (?, NULL, ?, ?)')
         .bind(id, 1_000, 1_000)
@@ -16,7 +16,7 @@ describe('migration 0036 spa entitlement', () => {
     }
   });
 
-  it('widens entitlement service, preserves rows, creates spa bindings that require consent, and can re-run', async () => {
+  it('widens entitlement service, preserves rows, creates sme bindings that require consent, and can re-run', async () => {
     await insertEntitlement({ accountId: 'acct-0036-spl', service: 'spl_hosted', enabledAt: 1_234 });
 
     await runMigration();
@@ -26,11 +26,11 @@ describe('migration 0036 spa entitlement', () => {
       enabled_at: 1_234,
       source_ref: 'source-ref',
     });
-    await expect(insertEntitlement({ accountId: 'acct-0036-spa', service: 'spa_hosted' })).resolves.toBeUndefined();
+    await expect(insertEntitlement({ accountId: 'acct-0036-sme', service: 'sme_hosted' })).resolves.toBeUndefined();
     await expect(insertEntitlement({ accountId: 'acct-0036-foo', service: 'foo_hosted' })).rejects.toThrow(/CHECK constraint failed/i);
 
-    await expect(tableExists('spa_bindings')).resolves.toBe(true);
-    expect(await tableColumns('spa_bindings')).toEqual([
+    await expect(tableExists('sme_bindings')).resolves.toBe(true);
+    expect(await tableColumns('sme_bindings')).toEqual([
       'account_id',
       'instance_id',
       'created_at',
@@ -38,11 +38,11 @@ describe('migration 0036 spa entitlement', () => {
       'consent_acked_at',
       'consent_disclosure_version',
     ]);
-    await expect(indexExists('idx_spa_bindings_instance_id')).resolves.toBe(true);
-    await expect(insertSpaBinding('acct-0036-spa')).resolves.toBeUndefined();
+    await expect(indexExists('idx_sme_bindings_instance_id')).resolves.toBe(true);
+    await expect(insertSmeBinding('acct-0036-sme')).resolves.toBeUndefined();
     // A binding without a consent record cannot exist.
-    await expect(insertSpaBinding('acct-0036-spl', { consentAckedAt: null })).rejects.toThrow(/NOT NULL constraint failed/i);
-    await expect(insertSpaBinding('acct-0036-spl', { consentDisclosureVersion: null })).rejects.toThrow(/NOT NULL constraint failed/i);
+    await expect(insertSmeBinding('acct-0036-spl', { consentAckedAt: null })).rejects.toThrow(/NOT NULL constraint failed/i);
+    await expect(insertSmeBinding('acct-0036-spl', { consentDisclosureVersion: null })).rejects.toThrow(/NOT NULL constraint failed/i);
 
     await runMigration();
 
@@ -50,15 +50,15 @@ describe('migration 0036 spa entitlement', () => {
       enabled_at: 1_234,
       source_ref: 'source-ref',
     });
-    await expect(entitlementRow('acct-0036-spa', 'spa_hosted')).resolves.toMatchObject({ service: 'spa_hosted' });
-    await expect(spaBindingRow('acct-0036-spa')).resolves.toMatchObject({
+    await expect(entitlementRow('acct-0036-sme', 'sme_hosted')).resolves.toMatchObject({ service: 'sme_hosted' });
+    await expect(smeBindingRow('acct-0036-sme')).resolves.toMatchObject({
       instance_id: 'instance-0036',
       created_at: 3_000,
       last_seen_at: 4_000,
       consent_acked_at: 3_500,
-      consent_disclosure_version: 'spa-consent-fixture',
+      consent_disclosure_version: 'sme-consent-fixture',
     });
-    await expect(indexExists('idx_spa_bindings_instance_id')).resolves.toBe(true);
+    await expect(indexExists('idx_sme_bindings_instance_id')).resolves.toBe(true);
   });
 });
 
@@ -104,13 +104,13 @@ async function insertEntitlement({ accountId, service, enabledAt = 2_345 } = {})
     .run();
 }
 
-async function insertSpaBinding(accountId, {
+async function insertSmeBinding(accountId, {
   consentAckedAt = 3_500,
-  consentDisclosureVersion = 'spa-consent-fixture',
+  consentDisclosureVersion = 'sme-consent-fixture',
 } = {}) {
   await workerEnv.DB
     .prepare(
-      `INSERT INTO spa_bindings (
+      `INSERT INTO sme_bindings (
          account_id, instance_id, created_at, last_seen_at, consent_acked_at, consent_disclosure_version
        ) VALUES (?, ?, ?, ?, ?, ?)`
     )
@@ -129,11 +129,11 @@ async function entitlementRow(accountId, service) {
     .first();
 }
 
-async function spaBindingRow(accountId) {
+async function smeBindingRow(accountId) {
   return workerEnv.DB
     .prepare(
       `SELECT account_id, instance_id, created_at, last_seen_at, consent_acked_at, consent_disclosure_version
-       FROM spa_bindings
+       FROM sme_bindings
        WHERE account_id = ?`
     )
     .bind(accountId)

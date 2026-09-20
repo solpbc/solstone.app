@@ -23,7 +23,7 @@ import {
   seedEntitlement,
   seedScoutApplication,
   seedSession,
-  seedSpaBinding,
+  seedSmeBinding,
   seedSplBinding,
 } from './helpers.js';
 import { installJwksStub, mintToken } from './jwks-helper.js';
@@ -811,8 +811,8 @@ async function seedAllWithSentinels(env, account, tag, instanceId) {
     consentDisclosureVersion: 'v1',
   });
 
-  // 13b. spa_bindings
-  await seedSpaBinding({ accountId: account.accountId, instanceId, createdAt: NOW, lastSeenAt: NOW, consentAckedAt: NOW });
+  // 13b. sme_bindings
+  await seedSmeBinding({ accountId: account.accountId, instanceId, createdAt: NOW, lastSeenAt: NOW, consentAckedAt: NOW });
 
   // 14. spb_mint_audit
   await workerEnv.DB.prepare(

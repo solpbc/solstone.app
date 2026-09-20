@@ -41,7 +41,7 @@ describe('the agent connector: consent, purchase, and the mint', () => {
     await expectMint(home, env, 401, 'invalid_token');
 
     // The owner consents in the browser. They have not subscribed.
-    const consent = await postForm('/enable/spa/confirm', env, session.cookie, {
+    const consent = await postForm('/enable/sme/confirm', env, session.cookie, {
       csrf: TEST_CSRF, nonce: NONCE, action: 'allow', instance: home.instanceId, data_ack: 'yes',
     });
     expect(consent.status).toBe(200);
@@ -52,27 +52,27 @@ describe('the agent connector: consent, purchase, and the mint', () => {
     // The owner buys it. Checkout is tagged for the connector, and the webhook, not the
     // redirect, is what grants it.
     const { calls } = installStripeFetchMock({
-      'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_spa', url: 'https://checkout.stripe.test/spa' }),
-      'GET api.stripe.com/v1/subscriptions/sub_spa': async () => stripeJson({
-        id: 'sub_spa',
+      'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_sme', url: 'https://checkout.stripe.test/sme' }),
+      'GET api.stripe.com/v1/subscriptions/sub_sme': async () => stripeJson({
+        id: 'sub_sme',
         status: 'active',
-        customer: 'cus_spa',
+        customer: 'cus_sme',
         current_period_end: Math.floor(Date.now() / 1000) + 365 * DAY,
-        metadata: { service: 'spa', account_id: account.accountId },
+        metadata: { service: 'sme', account_id: account.accountId },
       }),
     });
-    const checkout = await postForm('/services/spa/checkout', env, session.cookie, { csrf: TEST_CSRF, plan: 'annual' });
+    const checkout = await postForm('/services/sme/checkout', env, session.cookie, { csrf: TEST_CSRF, plan: 'annual' });
     expect(checkout.status).toBe(303);
-    expect(checkout.headers.get('Location')).toBe('https://checkout.stripe.test/spa');
-    expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('spa');
+    expect(checkout.headers.get('Location')).toBe('https://checkout.stripe.test/sme');
+    expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('sme');
     await expectMint(home, env, 402, 'needs_subscription');
 
     await webhook(env, {
       type: 'checkout.session.completed',
-      data: { object: { client_reference_id: account.accountId, customer: 'cus_spa', subscription: 'sub_spa' } },
+      data: { object: { client_reference_id: account.accountId, customer: 'cus_sme', subscription: 'sub_sme' } },
     });
     // The $5 payment granted the connector and nothing else.
-    expect(await entitlement(account.accountId, 'spa_hosted')).toMatchObject({ status: 'active', source: 'stripe' });
+    expect(await entitlement(account.accountId, 'sme_hosted')).toMatchObject({ status: 'active', source: 'stripe' });
     expect(await entitlement(account.accountId, 'spl_hosted')).toBeNull();
     expect(await entitlement(account.accountId, 'spb_hosted')).toBeNull();
 
@@ -84,8 +84,8 @@ describe('the agent connector: consent, purchase, and the mint', () => {
     await webhook(env, {
       type: 'customer.subscription.updated',
       data: { object: {
-        id: 'sub_spa', customer: 'cus_spa', status: 'past_due',
-        current_period_end: Math.floor(Date.now() / 1000) - 15 * DAY, metadata: { service: 'spa' },
+        id: 'sub_sme', customer: 'cus_sme', status: 'past_due',
+        current_period_end: Math.floor(Date.now() / 1000) - 15 * DAY, metadata: { service: 'sme' },
       } },
     });
     await expectMint(home, env, 402, 'needs_subscription');
@@ -95,8 +95,8 @@ describe('the agent connector: consent, purchase, and the mint', () => {
     await webhook(env, {
       type: 'invoice.paid',
       data: { object: {
-        customer: 'cus_spa',
-        parent: { type: 'subscription_details', subscription_details: { subscription: 'sub_spa', metadata: { service: 'spa' } } },
+        customer: 'cus_sme',
+        parent: { type: 'subscription_details', subscription_details: { subscription: 'sub_sme', metadata: { service: 'sme' } } },
       } },
     });
     const again = await expectMint(home, env, 200);
@@ -112,7 +112,7 @@ describe('the agent connector: consent, purchase, and the mint', () => {
     const home = await journalIdentity();
     const { calls } = installStripeFetchMock();
 
-    const consent = await postForm('/enable/spa/confirm', env, session.cookie, {
+    const consent = await postForm('/enable/sme/confirm', env, session.cookie, {
       csrf: TEST_CSRF, nonce: NONCE, action: 'allow', instance: home.instanceId, data_ack: 'yes',
     });
     expect(consent.status).toBe(200);
