@@ -619,7 +619,7 @@ export function renderEnableSmeConsent({ csrf, nonce, instance }) {
       <div class="gd">turning this back on uses the same address.</div>
     </div>
   </div>
-  <form method="post" action="/enable/sme/confirm">
+  <form method="post" action="/enable/solstone-me/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     <input type="hidden" name="instance" value="${escAttr(instance)}">

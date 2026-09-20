@@ -31,21 +31,21 @@ describe('the solstone.me service page and its catalog row', () => {
       const account = await seedAccount({ email: 'unlaunched@example.com', testEnv });
       const session = await seedSession(account.accountId, { testEnv });
 
-      const page = await get('/services/sme', testEnv, session.cookie);
+      const page = await get('/services/solstone-me', testEnv, session.cookie);
       expect(page.status).toBe(404);
 
       const signedOut = await (await get('/', testEnv)).text();
       const signedIn = await (await get('/', testEnv, session.cookie)).text();
       for (const html of [signedOut, signedIn]) {
         expect(visibleText(html)).not.toContain('solstone.me');
-        expect(html).not.toContain('/services/sme');
+        expect(html).not.toContain('/services/solstone-me');
       }
     });
   });
 
   describe('once it is on sale', () => {
     it('sends a signed-out visitor through sign-in', async () => {
-      const response = await get('/services/sme', makeTestEnv());
+      const response = await get('/services/solstone-me', makeTestEnv());
       expect(response.status).toBe(303);
       expect(response.headers.get('Location')).toBe('/');
     });
@@ -55,7 +55,7 @@ describe('the solstone.me service page and its catalog row', () => {
       const account = await seedAccount({ email: 'buyer@example.com', testEnv });
       const session = await seedSession(account.accountId, { testEnv });
 
-      const response = await get('/services/sme', testEnv, session.cookie);
+      const response = await get('/services/solstone-me', testEnv, session.cookie);
       const html = await response.text();
 
       expect(response.status).toBe(200);
@@ -64,7 +64,7 @@ describe('the solstone.me service page and its catalog row', () => {
       // § 14 promises the permanence is shown before any subscription is taken.
       const disclosure = html.indexOf(SME_PERMANENCE_PARTS[0]);
       for (const part of SME_PERMANENCE_PARTS) expect(html).toContain(part);
-      const checkout = html.indexOf('action="/services/sme/checkout"');
+      const checkout = html.indexOf('action="/services/solstone-me/checkout"');
       expect(disclosure).toBeGreaterThan(-1);
       expect(checkout).toBeGreaterThan(disclosure);
       // One annual rung. A monthly price would fall below Stripe's minimum charge.
@@ -91,7 +91,7 @@ describe('the solstone.me service page and its catalog row', () => {
       const session = await seedSession(account.accountId, { testEnv });
       await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', status: 'active', currentPeriodEnd: 1_800_000_000 });
 
-      const html = await (await get('/services/sme', testEnv, session.cookie)).text();
+      const html = await (await get('/services/solstone-me', testEnv, session.cookie)).text();
 
       expect(html).toContain('covered');
       expect(html).toContain('your payment is up to date');
@@ -100,8 +100,8 @@ describe('the solstone.me service page and its catalog row', () => {
       // Coverage is availability, never use: the page does not claim the address is on.
       expect(html).not.toContain('>on<');
       expect(visibleText(html)).not.toMatch(/\b(is|are|it's) on\b/i);
-      expect(html).toContain('action="/services/sme/portal"');
-      expect(html).not.toContain('action="/services/sme/checkout"');
+      expect(html).toContain('action="/services/solstone-me/portal"');
+      expect(html).not.toContain('action="/services/solstone-me/checkout"');
     });
 
     it('says what a covered owner has and where to turn it on, and never invents a paid-through date', async () => {
@@ -110,7 +110,7 @@ describe('the solstone.me service page and its catalog row', () => {
       const session = await seedSession(account.accountId, { testEnv });
       await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', status: 'active', currentPeriodEnd: null });
 
-      const html = await (await get('/services/sme', testEnv, session.cookie)).text();
+      const html = await (await get('/services/solstone-me', testEnv, session.cookie)).text();
 
       expect(html).toContain('turn it on from your journal');
       expect(html).not.toContain('paid through');
@@ -123,13 +123,13 @@ describe('the solstone.me service page and its catalog row', () => {
       const session = await seedSession(account.accountId, { testEnv });
       await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', status: 'active', source: 'comp', currentPeriodEnd: null });
 
-      const html = await (await get('/services/sme', testEnv, session.cookie)).text();
+      const html = await (await get('/services/solstone-me', testEnv, session.cookie)).text();
 
       expect(html).toContain("free while you're an approved scout.");
       // A scout has paid nothing, so nothing here says a payment is up to date.
       expect(html).not.toContain('your payment is up to date');
-      expect(html).not.toContain('action="/services/sme/checkout"');
-      expect(html).not.toContain('action="/services/sme/portal"');
+      expect(html).not.toContain('action="/services/solstone-me/checkout"');
+      expect(html).not.toContain('action="/services/solstone-me/portal"');
     });
 
     it('renders a payment that needs attention with the way to fix it', async () => {
@@ -138,11 +138,11 @@ describe('the solstone.me service page and its catalog row', () => {
       const session = await seedSession(account.accountId, { testEnv });
       await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', status: 'past_due', currentPeriodEnd: 1_800_000_000 });
 
-      const html = await (await get('/services/sme', testEnv, session.cookie)).text();
+      const html = await (await get('/services/solstone-me', testEnv, session.cookie)).text();
 
       expect(html).toContain("your last payment didn't go through. manage billing to fix it.");
       expect(html).toContain('your last payment needs attention');
-      expect(html).toContain('action="/services/sme/portal"');
+      expect(html).toContain('action="/services/solstone-me/portal"');
     });
 
     it('renders the flash for each checkout and billing outcome', async () => {
@@ -161,7 +161,7 @@ describe('the solstone.me service page and its catalog row', () => {
         ['?billing=error', "billing management didn't open. try again."],
       ];
       for (const [query, message] of cases) {
-        const html = await (await get(`/services/sme${query}`, testEnv, session.cookie)).text();
+        const html = await (await get(`/services/solstone-me${query}`, testEnv, session.cookie)).text();
         expect(html, query).toContain(message);
       }
     });
@@ -173,11 +173,11 @@ describe('the solstone.me service page and its catalog row', () => {
       const { calls } = installStripeFetchMock({
         'POST api.stripe.com/v1/checkout/sessions': async () => new Response(JSON.stringify({ id: 'cs_sme', url: 'https://checkout.stripe.test/sme' }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
       });
-      const page = await (await get('/services/sme', testEnv, session.cookie)).text();
+      const page = await (await get('/services/solstone-me', testEnv, session.cookie)).text();
       const csrf = page.match(/name="csrf" value="([^"]+)"/)[1];
       expect(csrf).toBe(TEST_CSRF);
 
-      const response = await worker.fetch(new Request('https://services.solstone.app/services/sme/checkout', {
+      const response = await worker.fetch(new Request('https://services.solstone.app/services/solstone-me/checkout', {
         method: 'POST',
         headers: { Origin: 'https://services.solstone.app', Cookie: session.cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ csrf, plan: 'annual', data_ack: 'yes' }),
@@ -193,15 +193,15 @@ describe('the solstone.me service page and its catalog row', () => {
       const session = await seedSession(account.accountId, { testEnv });
 
       const signedOut = await (await get('/', testEnv)).text();
-      expect(signedOut).toContain('href="/services/sme"');
+      expect(signedOut).toContain('href="/services/solstone-me"');
       expect(signedOut).toContain('an address for your journal, so an agent you already use can read from it.');
       expect(signedOut).toContain('<span class="price">$5<span class="per">/yr</span></span>');
 
       const off = await (await get('/', testEnv, session.cookie)).text();
-      expect(off).toContain('href="/services/sme"');
+      expect(off).toContain('href="/services/solstone-me"');
       await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', status: 'active' });
       const on = await (await get('/', testEnv, session.cookie)).text();
-      const rowOf = (html) => html.slice(html.indexOf('href="/services/sme"'), html.indexOf('href="/notifications"'));
+      const rowOf = (html) => html.slice(html.indexOf('href="/services/solstone-me"'), html.indexOf('href="/notifications"'));
       // Coverage, not use: the catalog cannot know whether the owner turned the address on.
       expect(rowOf(off)).toContain('not covered');
       expect(rowOf(on)).toContain('>covered<');

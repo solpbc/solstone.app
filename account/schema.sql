@@ -458,7 +458,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_spp_bindings_token_hash
   WHERE token_hash IS NOT NULL;
 
 -- sme_bindings: the agent connector's own binding. It is written only by the owner's
--- consent (/enable/sme/confirm) and never derived from spl_bindings, so a row cannot
+-- consent (/enable/solstone-me/confirm) and never derived from spl_bindings, so a row cannot
 -- exist without a consent record. instance_id is indexed because the unauthenticated
 -- POST /reach/mcp/bridge-token resolves the account from it. See migration 0036.
 CREATE TABLE IF NOT EXISTS sme_bindings (

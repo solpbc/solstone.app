@@ -41,7 +41,7 @@ describe('the agent connector: consent, purchase, and the mint', () => {
     await expectMint(home, env, 401, 'invalid_token');
 
     // The owner consents in the browser. They have not subscribed.
-    const consent = await postForm('/enable/sme/confirm', env, session.cookie, {
+    const consent = await postForm('/enable/solstone-me/confirm', env, session.cookie, {
       csrf: TEST_CSRF, nonce: NONCE, action: 'allow', instance: home.instanceId, data_ack: 'yes',
     });
     expect(consent.status).toBe(200);
@@ -61,7 +61,7 @@ describe('the agent connector: consent, purchase, and the mint', () => {
         metadata: { service: 'sme', account_id: account.accountId },
       }),
     });
-    const checkout = await postForm('/services/sme/checkout', env, session.cookie, { csrf: TEST_CSRF, plan: 'annual', data_ack: 'yes' });
+    const checkout = await postForm('/services/solstone-me/checkout', env, session.cookie, { csrf: TEST_CSRF, plan: 'annual', data_ack: 'yes' });
     expect(checkout.status).toBe(303);
     expect(checkout.headers.get('Location')).toBe('https://checkout.stripe.test/sme');
     expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('sme');
@@ -112,7 +112,7 @@ describe('the agent connector: consent, purchase, and the mint', () => {
     const home = await journalIdentity();
     const { calls } = installStripeFetchMock();
 
-    const consent = await postForm('/enable/sme/confirm', env, session.cookie, {
+    const consent = await postForm('/enable/solstone-me/confirm', env, session.cookie, {
       csrf: TEST_CSRF, nonce: NONCE, action: 'allow', instance: home.instanceId, data_ack: 'yes',
     });
     expect(consent.status).toBe(200);
