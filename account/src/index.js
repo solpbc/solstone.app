@@ -578,7 +578,7 @@ async function routeRequest(req, env, ctx) {
       if (
         parts.length === 3 &&
         parts[1] === 'enable' &&
-        parts[2] === 'sme' &&
+        parts[2] === 'solstone-me' &&
         req.method === 'GET'
       ) {
         return handleEnableSmeGet(req, env, ctx);
@@ -587,7 +587,7 @@ async function routeRequest(req, env, ctx) {
       if (
         parts.length === 4 &&
         parts[1] === 'enable' &&
-        parts[2] === 'sme' &&
+        parts[2] === 'solstone-me' &&
         parts[3] === 'confirm' &&
         req.method === 'POST'
       ) {
@@ -597,7 +597,7 @@ async function routeRequest(req, env, ctx) {
       if (
         parts.length === 3 &&
         parts[1] === 'handoff' &&
-        parts[2] === 'sme' &&
+        parts[2] === 'solstone-me' &&
         req.method === 'GET'
       ) {
         return handleHandoffSpa(req, env, ctx);
@@ -606,7 +606,7 @@ async function routeRequest(req, env, ctx) {
       if (
         parts.length === 4 &&
         parts[1] === 'services' &&
-        parts[2] === 'sme' &&
+        parts[2] === 'solstone-me' &&
         parts[3] === 'checkout' &&
         req.method === 'POST'
       ) {
@@ -616,7 +616,7 @@ async function routeRequest(req, env, ctx) {
       if (
         parts.length === 4 &&
         parts[1] === 'services' &&
-        parts[2] === 'sme' &&
+        parts[2] === 'solstone-me' &&
         parts[3] === 'portal' &&
         req.method === 'POST'
       ) {
@@ -703,7 +703,7 @@ async function routeRequest(req, env, ctx) {
         return handleServicesSpb(req, env);
       }
 
-      if (url.pathname === '/services/sme' && req.method === 'GET') {
+      if (url.pathname === '/services/solstone-me' && req.method === 'GET') {
         return handleServicesSme(req, env);
       }
 

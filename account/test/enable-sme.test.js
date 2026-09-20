@@ -22,7 +22,7 @@ const VALID_INSTANCE = '11111111-1111-1111-1111-111111111111';
 const OTHER_INSTANCE = '22222222-2222-2222-2222-222222222222';
 const SME_SERVICE = 'sme_hosted';
 
-describe('/enable/sme', () => {
+describe('/enable/solstone-me', () => {
   beforeEach(async () => {
     await resetDb();
   });
@@ -55,14 +55,14 @@ describe('/enable/sme', () => {
   it('redirects signed-out requests through the byte-preserving resume flow', async () => {
     const testEnv = makeTestEnv();
     const query = `?nonce=${VALID_NONCE}&instance=${VALID_INSTANCE}`;
-    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/sme${query}`), testEnv);
+    const response = await worker.fetch(new Request(`https://services.solstone.app/enable/solstone-me${query}`), testEnv);
     const location = new URL(response.headers.get('Location'), 'https://services.solstone.app');
     const resume = await verifyEnableResume(location.searchParams.get('next'), location.searchParams.get('next_sig'), testEnv);
 
     expect(response.status).toBe(303);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(location.pathname).toBe('/');
-    expect(resume).toEqual({ path: '/enable/sme', queryString: query });
+    expect(resume).toEqual({ path: '/enable/solstone-me', queryString: query });
   });
 
   it('renders the consent screen around the mechanism, with hidden fields and a required acknowledgment', async () => {
@@ -96,7 +96,7 @@ describe('/enable/sme', () => {
     expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
     expect(body).toContain('name="action" value="cancel" type="submit" formnovalidate');
-    expect(body).toContain('action="/enable/sme/confirm"');
+    expect(body).toContain('action="/enable/solstone-me/confirm"');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
@@ -213,7 +213,7 @@ describe('/enable/sme', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('a subscription is needed');
-    expect(body).toContain('href="/services/sme"');
+    expect(body).toContain('href="/services/solstone-me"');
     expect(body).toContain('set up a subscription');
     expect(body).not.toMatch(/subscribe/i);
     expect(body).toContain('your permission is saved');
@@ -223,7 +223,7 @@ describe('/enable/sme', () => {
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({
       service: 'sme',
       state: 'needs_subscription',
-      subscribe_url: 'https://services.solstone.app/services/sme',
+      subscribe_url: 'https://services.solstone.app/services/solstone-me',
     });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({ status: 'lapsed' });
   });
@@ -315,7 +315,7 @@ function smeUrl(overrides = {}) {
     ...overrides,
   });
   for (const [key, value] of [...params]) if (value === 'undefined') params.delete(key);
-  return `https://services.solstone.app/enable/sme?${params.toString()}`;
+  return `https://services.solstone.app/enable/solstone-me?${params.toString()}`;
 }
 
 function confirmRequest({
@@ -329,14 +329,14 @@ function confirmRequest({
   const body = new URLSearchParams({ csrf, nonce, action, ...extraForm });
   const headers = { Origin: origin, 'Content-Type': 'application/x-www-form-urlencoded' };
   if (cookie) headers.Cookie = cookie;
-  return new Request('https://services.solstone.app/enable/sme/confirm', { method: 'POST', headers, body });
+  return new Request('https://services.solstone.app/enable/solstone-me/confirm', { method: 'POST', headers, body });
 }
 
 function repeatedInstanceConfirmRequest(cookie) {
   const body = new URLSearchParams({ csrf: TEST_CSRF, nonce: VALID_NONCE, action: 'allow', data_ack: 'yes' });
   body.append('instance', VALID_INSTANCE);
   body.append('instance', OTHER_INSTANCE);
-  return new Request('https://services.solstone.app/enable/sme/confirm', {
+  return new Request('https://services.solstone.app/enable/solstone-me/confirm', {
     method: 'POST',
     headers: { Origin: 'https://services.solstone.app', Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
     body,

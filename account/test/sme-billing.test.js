@@ -11,7 +11,7 @@ import {
   seedSession,
 } from './helpers.js';
 
-const PATH = '/services/sme';
+const PATH = '/services/solstone-me';
 
 describe('sme checkout and portal', () => {
   beforeEach(async () => {

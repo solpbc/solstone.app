@@ -304,7 +304,7 @@ describe('billing stripe core', () => {
   it.each([
     ['spl', '/billing/checkout', { plan: 'annual' }],
     ['spb', '/services/backup/checkout', { plan: 'annual' }],
-    ['sme', '/services/sme/checkout', { plan: 'annual', data_ack: 'yes' }],
+    ['sme', '/services/solstone-me/checkout', { plan: 'annual', data_ack: 'yes' }],
   ])('%s checkout asks Stripe to collect terms assent only when STRIPE_TERMS_ASSENT is exactly "required"', async (_service, path, fields) => {
     const logged = installConsoleSpy();
     const checkoutFor = async (overrides) => {
