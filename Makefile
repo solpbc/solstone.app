@@ -1,4 +1,4 @@
-.PHONY: deploy dev install sitemap publish-install-sh build-platform-install-sh
+.PHONY: deploy dev install sitemap publish-install-sh check-install-sh-served build-platform-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
@@ -62,6 +62,16 @@ publish-install-sh:
 	wrangler r2 object put solstone-updates/solstone-journal/install.sh \
 		--file public/install.sh --content-type 'text/plain; charset=utf-8' --remote
 	$(MAKE) deploy
+	node scripts/check-install-sh-served.mjs --journal-repo "$(JOURNAL_REPO)" --wait 90
 	@journal_main="$$(cd "$(JOURNAL_REPO)" && git rev-parse origin/main)"; \
 	echo "published install.sh (solstone-journal $$journal_main) to https://solstone.app/install.sh and https://updates.solstone.app/solstone-journal/install.sh"
 	@echo "next: git add public/install.sh && git commit"
+
+# The served-bytes gate: fails unless BOTH served copies of install.sh (the
+# authoritative solstone.app/install.sh and the updates.solstone.app alias) equal
+# solstone-journal's core/distribution/install.sh at origin/main. The failure text
+# names `make publish-install-sh` as the fix. Reachable by name only -- it needs
+# the network and straddles two repos, so it is not part of `deploy`, `npm test`,
+# or any solstone-journal ci/ci-full lane. `publish-install-sh` runs it last.
+check-install-sh-served:
+	node scripts/check-install-sh-served.mjs --journal-repo "$(JOURNAL_REPO)"
