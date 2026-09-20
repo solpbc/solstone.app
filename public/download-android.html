@@ -261,7 +261,7 @@
     <main id="main" tabindex="-1">
         <div class="column">
             <h1>download solstone for android</h1>
-            <p class="lead">this is the signed app, from us, on our own server. it is not in the Play Store, so android treats it as an app from a source it does not recognize, and there are two things you have to allow, then an ordinary install confirm. all three are below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
+            <p class="lead">this is the signed app, from us, on our own server. it is not in the Play Store, so android treats it as an app from a source it does not recognize: there are two things you have to allow, an ordinary install confirm, and a Play Protect scan for any version it has not seen, in that order, below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
         </div>
 
         <div class="primary-action">
@@ -287,14 +287,16 @@
                     the dialog names whatever you opened the file from, which is why this permission is worth understanding: it is granted to <em>one app at a time</em>. downloaded on the phone, that is your browser. copied across from a computer, it is your file manager instead, and the screen says so. tap <em>settings</em>, then turn on <em>allow permission</em> on the <em>install unknown apps</em> screen, then come back and open the file again. allowing one app allows that app and nothing else, and you can turn it off again afterwards.
                 </li>
                 <li>
-                    <strong>then the installer asks once more, and that is the last question.</strong>
+                    <strong>then the installer asks once more.</strong>
                     <span class="os-words"><strong>Install this app?</strong>solstone</span>
-                    it installs. the app itself then asks for nothing until you turn something on. the one thing that can still appear is Play Protect, next.
+                    a new version brings one more screen after this one, and that is the next section. then it installs, and the app itself asks for nothing until you turn something on.
                 </li>
             </ol>
 
             <h3>Play Protect</h3>
-            <p>if your phone has Google Play services, Play Protect scans the file while it installs. on the phone we tested, it scanned and the install went through with nothing more to answer. if it does stop to ask whether to send the app for scanning, or warns you about an app from an unknown developer, that is Play Protect not recognizing us yet rather than a finding about the file.</p>
+            <p>if your phone has Google Play services, Play Protect looks at the file while it installs, and <strong>for a version Play Protect has not seen before it stops and asks</strong>. every release of ours is a file it has not seen before, so expect this one each time you install a newer version:</p>
+            <span class="os-words"><strong>App scan recommended</strong>Play Protect hasn't seen this app before.</span>
+            <p>the two buttons are <em>Scan app</em> and <em>Don't install app</em>. choosing to scan sends the app file to Google. it is the same file everyone on this page downloads. when the scan finds nothing it reads <strong>This app looks safe</strong>, and <em>Install</em> finishes the install. this screen is Play Protect not recognizing us yet rather than a finding about the file: the check that tells you the file is ours is the signature, further down this page, and it is one you can run yourself.</p>
 
             <h3>phones without Google Play services</h3>
             <p>on a de-googled phone there is no Play Protect step, because there is nothing there to run it. the <em>install unknown apps</em> permission in step 2 is android's own and still applies: it is part of android, not part of Google Play. we have not tested this on grapheneos, so we are not going to describe screens we have not seen. if you run one and something on this page is wrong for it, <a href="https://support.solstone.app">tell us</a> and we will fix the page.</p>
