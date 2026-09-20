@@ -1409,16 +1409,33 @@ export async function upsertStripeCustomer(db, { accountId, stripeCustomerId, no
     .run();
 }
 
+// An instance id belongs to one account at a time. A consent for an instance that a different
+// account already holds is refused while that account is active; an account under deletion no
+// longer holds it, and a finished deletion has already removed its binding. `table` is one of
+// the binding tables below and is never request input. Each writer returns whether it wrote.
+function otherActiveBindingSql(table) {
+  return `EXISTS (
+    SELECT 1 FROM ${table} other
+    WHERE other.instance_id = ? AND other.account_id != ?
+      AND NOT EXISTS (
+        SELECT 1 FROM account_deletions d
+        WHERE d.account_id = other.account_id AND d.phase IN ('requested', 'frozen', 'purging')
+      )
+  )`;
+}
+
 export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
-  await db
+  const result = await db
     .prepare(
       `INSERT INTO spl_bindings (account_id, instance_id, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?)
+       SELECT ?, ?, ?, ?
+       WHERE NOT ${otherActiveBindingSql('spl_bindings')}
        ON CONFLICT(account_id, instance_id) DO UPDATE SET
          last_seen_at = excluded.last_seen_at`
     )
-    .bind(accountId, instanceId, nowMs, nowMs)
+    .bind(accountId, instanceId, nowMs, nowMs, instanceId, accountId)
     .run();
+  return result.meta.changes > 0;
 }
 
 export async function upsertSmeBinding(db, {
@@ -1428,19 +1445,21 @@ export async function upsertSmeBinding(db, {
   consentAckedAt,
   consentDisclosureVersion,
 }) {
-  await db
+  const result = await db
     .prepare(
       `INSERT INTO sme_bindings (
          account_id, instance_id, created_at, last_seen_at,
          consent_acked_at, consent_disclosure_version
-       ) VALUES (?, ?, ?, ?, ?, ?)
+       ) SELECT ?, ?, ?, ?, ?, ?
+       WHERE NOT ${otherActiveBindingSql('sme_bindings')}
        ON CONFLICT(account_id, instance_id) DO UPDATE SET
          last_seen_at = excluded.last_seen_at,
          consent_acked_at = excluded.consent_acked_at,
          consent_disclosure_version = excluded.consent_disclosure_version`
     )
-    .bind(accountId, instanceId, nowMs, nowMs, consentAckedAt, consentDisclosureVersion)
+    .bind(accountId, instanceId, nowMs, nowMs, consentAckedAt, consentDisclosureVersion, instanceId, accountId)
     .run();
+  return result.meta.changes > 0;
 }
 
 export async function findUniqueSmeBindingAccount(db, instanceId) {
@@ -1479,18 +1498,20 @@ export async function reserveMcpBridgeBinding(db, { accountId, instanceId, label
 }
 
 export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
-  await db
+  const result = await db
     .prepare(
       `INSERT INTO spb_bindings (
          account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at
-       ) VALUES (?, ?, ?, ?, ?, NULL)
+       ) SELECT ?, ?, ?, ?, ?, NULL
+       WHERE NOT ${otherActiveBindingSql('spb_bindings')}
        ON CONFLICT(account_id, instance_id) DO UPDATE SET
          token_hash = excluded.token_hash,
          last_seen_at = excluded.last_seen_at,
          lapsed_at = NULL`
     )
-    .bind(accountId, instanceId, nowMs, nowMs, tokenHash)
+    .bind(accountId, instanceId, nowMs, nowMs, tokenHash, instanceId, accountId)
     .run();
+  return result.meta.changes > 0;
 }
 
 export async function rotateSpbBindingToken(db, { accountId, instanceId, tokenHash, nowMs }) {
@@ -1523,12 +1544,13 @@ export async function upsertSppBinding(db, {
   consentAckedAt,
   consentDisclosureVersion,
 }) {
-  await db
+  const result = await db
     .prepare(
       `INSERT INTO spp_bindings (
          account_id, instance_id, token_hash, created_at, last_seen_at,
          consent_acked_at, consent_disclosure_version
-       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ) SELECT ?, ?, ?, ?, ?, ?, ?
+       WHERE NOT ${otherActiveBindingSql('spp_bindings')}
        ON CONFLICT(account_id, instance_id) DO UPDATE SET
          token_hash = excluded.token_hash,
          last_seen_at = excluded.last_seen_at,
@@ -1542,9 +1564,12 @@ export async function upsertSppBinding(db, {
       nowMs,
       nowMs,
       consentAckedAt,
-      consentDisclosureVersion
+      consentDisclosureVersion,
+      instanceId,
+      accountId
     )
     .run();
+  return result.meta.changes > 0;
 }
 
 export async function listSplBindings(db, accountId) {

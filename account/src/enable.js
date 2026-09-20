@@ -359,7 +359,9 @@ export async function handleEnableSplConfirm(req, env, ctx) {
 
   const nowMs = Date.now();
   if (instance) {
-    await upsertSplBinding(env.DB, { accountId: session.account_id, instanceId: instance, nowMs });
+    const bound = await upsertSplBinding(env.DB, { accountId: session.account_id, instanceId: instance, nowMs });
+    // This journal is already held by another active sign-in: nothing is bound, granted or pushed.
+    if (!bound) return splError(409);
   }
   await reconcileSplEntitlement(env, session.account_id, nowMs, ctx);
   const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE });
@@ -480,7 +482,9 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
   const accountId = session.account_id;
   const brokerToken = generateSessionToken();
   const tokenHash = await hashWithPepper(brokerToken, env);
-  await upsertSpbBinding(env.DB, { accountId, instanceId: instance, tokenHash, nowMs });
+  const bound = await upsertSpbBinding(env.DB, { accountId, instanceId: instance, tokenHash, nowMs });
+  // This journal is already held by another active sign-in: nothing is bound or issued.
+  if (!bound) return spbError(409);
   await reconcileSpbEntitlement(env, accountId, nowMs, ctx);
   const entitlement = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });
   const entitled = isSpbEntitled(entitlement);
@@ -844,7 +848,7 @@ export async function handleEnableSppConfirm(req, env, ctx) {
 
   const token = generateSessionToken();
   const tokenHash = await hashWithPepper(token, env);
-  await upsertSppBinding(env.DB, {
+  const bound = await upsertSppBinding(env.DB, {
     accountId,
     instanceId: instance,
     tokenHash,
@@ -852,6 +856,8 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     consentAckedAt: nowMs,
     consentDisclosureVersion: SPP_CONSENT_DISCLOSURE_VERSION,
   });
+  // This journal is already held by another active sign-in: nothing is bound or issued.
+  if (!bound) return sppError(409);
   await reconcileSppEntitlement(env, accountId, nowMs, ctx);
   const payload = {
     state: 'approved',
@@ -962,13 +968,15 @@ export async function handleEnableSmeConfirm(req, env, ctx) {
   // The binding records the owner's consent for this journal; it does not depend on
   // payment. Whether this journal can actually connect is the mint's entitlement gate,
   // so an owner who consents before subscribing is not asked again afterward.
-  await upsertSmeBinding(env.DB, {
+  const bound = await upsertSmeBinding(env.DB, {
     accountId,
     instanceId: instance,
     nowMs,
     consentAckedAt: nowMs,
     consentDisclosureVersion: SME_CONSENT_DISCLOSURE_VERSION,
   });
+  // This journal is already held by another active sign-in: nothing is bound or reconciled.
+  if (!bound) return smeError(409);
   await reconcileSmeEntitlement(env, accountId, nowMs, ctx);
   const entitlement = await getEntitlement(env.DB, { accountId, service: SME_HOSTED_SERVICE });
   // The same predicate the mint gates on, so the handoff never says approved for a
