@@ -72,6 +72,7 @@ export function makeTestEnv(overrides = {}) {
     STRIPE_PRICE_SPB_MONTHLY: overrides.STRIPE_PRICE_SPB_MONTHLY || 'price_spb_monthly_test',
     STRIPE_PRICE_SME_ANNUAL: overrides.STRIPE_PRICE_SME_ANNUAL || 'price_sme_annual_test',
     STRIPE_TERMS_ASSENT: overrides.STRIPE_TERMS_ASSENT,
+    COMBINED_TERMS_LIVE: overrides.COMBINED_TERMS_LIVE,
     RELAY_GRANT_URL: overrides.RELAY_GRANT_URL || 'https://link.solstone.app',
     RELAY_GRACE_DAYS: overrides.RELAY_GRACE_DAYS || '14',
     RELAY_GRANT_SECRET: overrides.RELAY_GRANT_SECRET || 'test-relay-grant-secret',

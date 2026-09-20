@@ -20,6 +20,7 @@ const COUNT_KEYS = [
   'spb_retired_tokens',
   'enable_scout_codes',
   'dispatch_tokens_revoked',
+  'service_handoffs_swept',
 ];
 
 export async function runRetention(env, nowMs = Date.now()) {
@@ -118,12 +119,25 @@ export async function runRetention(env, nowMs = Date.now()) {
       cutoff: nowMs - 30 * DAY_MS,
       key: 'dispatch_tokens_revoked',
     },
+    {
+      // TTL-on-read is still the enforcement model (0009_service_handoffs.sql and every
+      // migration since: "do not add a retention sweep here"); this only clears rows already
+      // past that TTL or already consumed, so it changes no read-path behavior. It matters
+      // because a consumed-but-unswept row's encrypted payload can still hold a live spp bearer
+      // credential (service_handoffs holds spl/spb/spp/sme/push/scout handoffs; spp credentials
+      // don't expire on their own).
+      index: 16,
+      sql: 'DELETE FROM service_handoffs WHERE (consumed_at IS NOT NULL AND consumed_at < ?) OR (consumed_at IS NULL AND expires_at < ?)',
+      cutoff: nowMs - 24 * HOUR_MS,
+      key: 'service_handoffs_swept',
+    },
   ];
 
   try {
     for (const statement of statements) {
       statementIndex = statement.index;
-      const result = await db.prepare(statement.sql).bind(statement.cutoff).run();
+      const placeholderCount = statement.sql.split('?').length - 1;
+      const result = await db.prepare(statement.sql).bind(...Array(placeholderCount).fill(statement.cutoff)).run();
       counts[statement.key] = result?.meta?.changes || 0;
     }
     console.warn(JSON.stringify({

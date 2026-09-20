@@ -31,6 +31,7 @@ const COUNT_KEYS = [
   'spb_retired_tokens',
   'enable_scout_codes',
   'dispatch_tokens_revoked',
+  'service_handoffs_swept',
 ];
 
 describe('retention cron', () => {
@@ -219,6 +220,23 @@ describe('retention cron', () => {
       gone: () => rowExists('account_dispatch_tokens', 'token_hash', 'delete-revoked-dispatch-token'),
       kept: () => rowExists('account_dispatch_tokens', 'token_hash', 'keep-revoked-dispatch-token'),
     },
+    {
+      name: 'deletes service_handoffs rows consumed more than 24h ago',
+      key: 'service_handoffs_swept',
+      seed: async () => {
+        await insertAccount('handoff-account', { createdAt: NOW });
+        await insertServiceHandoff('delete-consumed-handoff', 'handoff-account', {
+          expiresAt: NOW + DAY_MS,
+          consumedAt: NOW - 24 * HOUR_MS - 1,
+        });
+        await insertServiceHandoff('keep-consumed-handoff', 'handoff-account', {
+          expiresAt: NOW + DAY_MS,
+          consumedAt: NOW - 24 * HOUR_MS + 1,
+        });
+      },
+      gone: () => rowExists('service_handoffs', 'handoff_hash', 'delete-consumed-handoff'),
+      kept: () => rowExists('service_handoffs', 'handoff_hash', 'keep-consumed-handoff'),
+    },
   ];
 
   for (const testCase of cases) {
@@ -362,6 +380,25 @@ describe('retention cron', () => {
     expect(output).not.toMatch(/\d+\.\d+\.\d+\.\d+/);
     expect(output).not.toMatch(/[0-9a-f]{32,}/);
     expect(output).not.toMatch(/[A-Za-z0-9_-]{32,}/);
+  });
+
+  it('also sweeps handoffs that were never consumed once they are past their TTL', async () => {
+    await insertAccount('handoff-ttl-account', { createdAt: NOW });
+    await insertServiceHandoff('delete-expired-unconsumed-handoff', 'handoff-ttl-account', {
+      createdAt: NOW - 48 * HOUR_MS,
+      expiresAt: NOW - 24 * HOUR_MS - 1,
+      consumedAt: null,
+    });
+    await insertServiceHandoff('keep-live-unconsumed-handoff', 'handoff-ttl-account', {
+      expiresAt: NOW + DAY_MS,
+      consumedAt: null,
+    });
+
+    const payload = await runWithWarnPayload();
+
+    expect(await rowExists('service_handoffs', 'handoff_hash', 'delete-expired-unconsumed-handoff')).toBe(false);
+    expect(await rowExists('service_handoffs', 'handoff_hash', 'keep-live-unconsumed-handoff')).toBe(true);
+    expect(payload.counts.service_handoffs_swept).toBe(1);
   });
 
   it('is wired through the scheduled handler', async () => {
@@ -542,5 +579,20 @@ async function insertDispatchToken(tokenHash, accountId, { createdAt = NOW, revo
   await workerEnv.DB
     .prepare('INSERT INTO account_dispatch_tokens (token_hash, account_id, created_at, revoked_at) VALUES (?, ?, ?, ?)')
     .bind(tokenHash, accountId, createdAt, revokedAt)
+    .run();
+}
+
+async function insertServiceHandoff(handoffHash, accountId, {
+  service = 'spp',
+  createdAt = NOW,
+  expiresAt,
+  consumedAt = null,
+} = {}) {
+  await workerEnv.DB
+    .prepare(
+      `INSERT INTO service_handoffs (handoff_hash, account_id, service, payload_encrypted, created_at, expires_at, consumed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(handoffHash, accountId, service, new Uint8Array([1, 2, 3]), createdAt, expiresAt, consumedAt)
     .run();
 }

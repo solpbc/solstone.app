@@ -114,6 +114,7 @@ import {
   renderScoutLanding,
   renderServicesCatalog,
   renderServicesSpp,
+  renderServicesTerms,
   renderTerms,
   renderTermsIndex,
   renderVerify,
@@ -663,10 +664,22 @@ async function routeRequest(req, env, ctx) {
       }
 
       if (url.pathname === '/legal' && req.method === 'GET') {
+        // Staged for req_eyreyww2, founder-corrected 2026-09-20: the combined Terms publish AT
+        // /terms, replacing the private-network page in place, with no separate permanent path
+        // and no transition period — /legal becomes a 301 to /terms the same moment /terms
+        // changes. Gated off (COMBINED_TERMS_LIVE unset/not "true") until CLO fills the SOT's
+        // one remaining masthead date ([ship date]) and files the deploy follow-up, which flips
+        // this var. Do NOT flip it here.
+        if (env.COMBINED_TERMS_LIVE === 'true') {
+          return redirect('/terms', 301);
+        }
         return html(renderTermsIndex());
       }
 
       if (url.pathname === '/terms' && req.method === 'GET') {
+        if (env.COMBINED_TERMS_LIVE === 'true') {
+          return html(renderServicesTerms());
+        }
         return html(renderTerms());
       }
 
@@ -695,10 +708,16 @@ async function routeRequest(req, env, ctx) {
       }
 
       if (url.pathname === '/services/backup/terms' && req.method === 'GET') {
+        if (env.COMBINED_TERMS_LIVE === 'true') {
+          return redirect('/terms', 301);
+        }
         return html(renderBackupTerms());
       }
 
       if (url.pathname === '/services/processing/terms' && req.method === 'GET') {
+        if (env.COMBINED_TERMS_LIVE === 'true') {
+          return redirect('/terms', 301);
+        }
         return html(renderProcessingTerms());
       }
 

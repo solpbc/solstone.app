@@ -133,6 +133,14 @@ STRIPE_PRICE_SME_ANNUAL = ""
 # Dashboard's public details, so set that first, then change this to "required" and deploy.
 # Left empty, checkout takes no assent and logs stripe_checkout_terms_assent_off each time.
 STRIPE_TERMS_ASSENT = ""
+# /terms serves the combined services Terms (clo/compliance/solstone-services-terms-of-service.md)
+# in place of the private-network-only text, and /legal, /services/backup/terms and
+# /services/processing/terms 301 to /terms, only when this is exactly "true" — all four flip
+# together, no transition period (founder correction, req_eyreyww2, 2026-09-20). The rendered
+# text is staged with its one masthead date unfilled ([ship date]), so this stays empty until
+# CLO fills that date and files the deploy follow-up. Left empty, all four paths keep serving
+# their current per-service text/index.
+COMBINED_TERMS_LIVE = ""
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"

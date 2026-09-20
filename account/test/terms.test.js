@@ -114,6 +114,59 @@ describe('terms page', () => {
     const notificationsBody = await (await get('/notifications', testEnv)).text();
     expect(notificationsBody).toContain('<a href="/legal">terms</a>');
   });
+
+  // The combined services Terms (clo/compliance/solstone-services-terms-of-service.md) are
+  // staged behind COMBINED_TERMS_LIVE (req_eyreyww2, founder-corrected 2026-09-20: /terms is
+  // the permanent path, no transition period) — off by default, so all four paths must keep
+  // their current behavior until CLO fills the one remaining masthead date and flips the switch.
+  it('keeps /terms, /legal, and the two per-service pages on their current text while COMBINED_TERMS_LIVE is unset', async () => {
+    const testEnv = makeTestEnv();
+
+    const termsBody = await (await get('/terms', testEnv)).text();
+    expect(termsBody).toContain('these terms cover');
+    expect(termsBody).not.toContain('solstone services · terms');
+
+    const legalResponse = await get('/legal', testEnv);
+    expect(legalResponse.status).toBe(200);
+    expect(await legalResponse.text()).toContain('each of these covers the single service it names as operated by sol pbc.');
+
+    const backupResponse = await get('/services/backup/terms', testEnv);
+    expect(backupResponse.status).toBe(200);
+
+    const processingResponse = await get('/services/processing/terms', testEnv);
+    expect(processingResponse.status).toBe(200);
+  });
+
+  it('serves the combined services Terms at /terms, and 301s /legal and the two per-service pages there, once COMBINED_TERMS_LIVE is "true"', async () => {
+    const testEnv = makeTestEnv({ COMBINED_TERMS_LIVE: 'true' });
+    const response = await get('/terms', testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(body).toContain('<h1>solstone services · terms</h1>');
+    expect(body).toContain('part one · what applies to everything');
+    expect(body).toContain('part two · each service, one at a time');
+    expect(body).toContain('<hr>');
+    // The one masthead date is staged unfilled; this page is not shippable until CLO fills it.
+    expect(body).toContain('[ship date]');
+    // The generator drops a literal markdown '---' rule, never a visible dash run.
+    expect(body).not.toMatch(/<p>[^<]*---[^<]*<\/p>/);
+    expect(body).not.toMatch(/\*\*/);
+    expect(body).not.toContain('](');
+
+    const legalResponse = await get('/legal', testEnv);
+    expect(legalResponse.status).toBe(301);
+    expect(legalResponse.headers.get('Location')).toBe('/terms');
+
+    const backupResponse = await get('/services/backup/terms', testEnv);
+    expect(backupResponse.status).toBe(301);
+    expect(backupResponse.headers.get('Location')).toBe('/terms');
+
+    const processingResponse = await get('/services/processing/terms', testEnv);
+    expect(processingResponse.status).toBe(301);
+    expect(processingResponse.headers.get('Location')).toBe('/terms');
+  });
 });
 
 async function get(path, testEnv, cookie = '') {
