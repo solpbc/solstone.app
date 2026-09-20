@@ -10,7 +10,8 @@ import {
   makeTestEnv,
   resetDb,
   seedAccount,
-  seedSplBinding,
+  seedEntitlement,
+  seedSpaBinding,
 } from './helpers.js';
 
 const FIXTURE_NOW_MS = 1_700_000_000_000;
@@ -50,7 +51,8 @@ describe('MCP bridge v1 golden fixture', () => {
       cnf_jwk: FIXTURE_CNF_JWK,
     });
     const account = await seedAccount({ email: 'mcp-bridge-fixture@example.com', testEnv: env });
-    await seedSplBinding({ accountId: account.accountId, instanceId });
+    await seedSpaBinding({ accountId: account.accountId, instanceId });
+    await seedEntitlement({ accountId: account.accountId, service: 'spa_hosted' });
     vi.spyOn(crypto, 'getRandomValues').mockImplementation((bytes) => {
       bytes.set([0, 1, 2, 3, 4]);
       return bytes;

@@ -37,6 +37,7 @@ describe('billing webhook relay sync', () => {
         object: {
           id: 'sub_relay',
           customer: 'cus_relay',
+          metadata: { service: 'spl' },
           status: 'active',
           current_period_end: 1_900_000_000,
         },
@@ -66,6 +67,7 @@ describe('billing webhook relay sync', () => {
           object: {
             id: 'sub_relay_fail',
             customer: 'cus_relay_fail',
+            metadata: { service: 'spl' },
             status: 'active',
             current_period_end: 1_900_000_111,
           },

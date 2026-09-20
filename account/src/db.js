@@ -1421,9 +1421,31 @@ export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
     .run();
 }
 
-export async function findUniqueSplBindingAccount(db, instanceId) {
+export async function upsertSpaBinding(db, {
+  accountId,
+  instanceId,
+  nowMs,
+  consentAckedAt,
+  consentDisclosureVersion,
+}) {
+  await db
+    .prepare(
+      `INSERT INTO spa_bindings (
+         account_id, instance_id, created_at, last_seen_at,
+         consent_acked_at, consent_disclosure_version
+       ) VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(account_id, instance_id) DO UPDATE SET
+         last_seen_at = excluded.last_seen_at,
+         consent_acked_at = excluded.consent_acked_at,
+         consent_disclosure_version = excluded.consent_disclosure_version`
+    )
+    .bind(accountId, instanceId, nowMs, nowMs, consentAckedAt, consentDisclosureVersion)
+    .run();
+}
+
+export async function findUniqueSpaBindingAccount(db, instanceId) {
   const { results } = await db
-    .prepare('SELECT account_id FROM spl_bindings WHERE instance_id = ?')
+    .prepare('SELECT account_id FROM spa_bindings WHERE instance_id = ?')
     .bind(instanceId)
     .all();
   if (!results || results.length !== 1) return null;

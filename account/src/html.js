@@ -3,6 +3,7 @@
 import { PORTAL_CSS_HREF } from './assets.js';
 import { ENROLL_JS } from './inline/passkey-enroll.js';
 import { LANDING_JS } from './inline/passkey-landing.js';
+import { SPA_SERVICE_PATH } from './spa-service.js';
 import { SUNARC_JS } from './sunarc.js';
 
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
@@ -564,6 +565,98 @@ export function renderEnableSppError() {
     body: `${brandbar()}
 <div class="card">
   <h1>could not enable confidential processing</h1>
+  <p>something didn't look right with that link.</p>
+  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSpaConsent({ csrf, nonce, instance }) {
+  return layout({
+    title: 'give this journal an address',
+    body: `${brandbar()}
+<h1>give this journal an address</h1>
+<p class="lead">this journal is asking sol pbc to give it an address on the internet, so agents you connect can reach it. an active subscription keeps the address working, and it's complimentary for approved scouts. it stays off until you allow it. here's what that means.</p>
+<div class="card">
+  <div class="grant">
+    <div class="n">1</div>
+    <div>
+      <div class="gt">this request is tied to your sign-in</div>
+      <div class="gd">sol pbc can approve this request for your sign-in, and keeps the address tied to it. no journal content comes with it, only what identifies the request.</div>
+    </div>
+  </div>
+  <div class="grant">
+    <div class="n">2</div>
+    <div>
+      <div class="gt">what an agent gets</div>
+      <div class="gd">an agent you connect can search and read your journal, within what you let it see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.</div>
+    </div>
+  </div>
+  <div class="grant">
+    <div class="n">3</div>
+    <div>
+      <div class="gt">how it reaches your journal</div>
+      <div class="gd">your journal gets an address on the internet. an agent's requests travel encrypted to your journal and are opened only there. sol pbc runs the relay in between. it passes the traffic along and can't read it. sol pbc can see that an agent and your journal met, when, and how much passed. nothing inside.</div>
+    </div>
+  </div>
+  <div class="grant">
+    <div class="n">4</div>
+    <div>
+      <div class="gt">the public record is permanent</div>
+      <div class="gd">the address is eight random characters with nothing of yours in it. because it gets a real certificate, it is written into public certificate logs, and that record is permanent: it stays even if you turn this off, or ask sol pbc to delete everything it holds for you. the record shows that an address existed. it does not say whose.</div>
+    </div>
+  </div>
+  <div class="grant">
+    <div style="flex:none;width:26px"></div>
+    <div>
+      <div class="gt">turning it off keeps the address</div>
+      <div class="gd">turning this back on uses the same address.</div>
+    </div>
+  </div>
+  <form method="post" action="/enable/spa/confirm">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="nonce" value="${escAttr(nonce)}">
+    <input type="hidden" name="instance" value="${escAttr(instance)}">
+    ${ackField('i understand that the public record of this address is permanent, and what sol pbc can and cannot see.')}
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
+    </div>
+  </form>
+</div>
+<p class="disclosure">you can turn it off from the journal anytime. turning it off does not cancel a subscription.</p>`,
+  });
+}
+
+export function renderEnableSpaNeedsSubscription() {
+  return layout({
+    title: 'a subscription is needed',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
+  <p>sol pbc runs the address for this journal once a subscription is active. your permission is saved, so you won't be asked to allow it again.</p>
+  <a class="btn primary" href="${escAttr(SPA_SERVICE_PATH)}">set up a subscription</a>
+</div>`,
+  });
+}
+
+export function renderEnableSpaDone() {
+  return layout({
+    title: 'this journal is approved for an address',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} this journal is approved for an address</h2>
+  <p>sol pbc approved this journal for an address. you can close this tab.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSpaError() {
+  return layout({
+    title: 'could not give this journal an address',
+    body: `${brandbar()}
+<div class="card">
+  <h1>could not give this journal an address</h1>
   <p>something didn't look right with that link.</p>
   <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
 </div>`,

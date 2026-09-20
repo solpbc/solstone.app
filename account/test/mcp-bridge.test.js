@@ -19,6 +19,8 @@ import {
   resetDb,
   rowCount,
   seedAccount,
+  seedEntitlement,
+  seedSpaBinding,
   seedSplBinding,
 } from './helpers.js';
 import { generateReachKeyPair, mintHomeReachAssertion } from './reach-helper.js';
@@ -233,7 +235,7 @@ describe('MCP bridge token endpoint', () => {
     expect(await rowCount('mcp_bridge_bindings')).toBe(0);
   });
 
-  it('fails closed for missing or ambiguous SPL bindings, and before D1 for a derived-JID mismatch', async () => {
+  it('fails closed for missing or ambiguous SPA bindings, and before D1 for a derived-JID mismatch', async () => {
     const env = makeTestEnv();
     const absent = await validInput();
     await expectError(await fetchBridge(absent, env), 401, 'invalid_token');
@@ -242,7 +244,7 @@ describe('MCP bridge token endpoint', () => {
     const ambiguous = await validInput();
     await seedBoundAccount(env, ambiguous.instance_id, 'ambiguous-one@example.com');
     const other = await seedAccount({ email: 'ambiguous-two@example.com', testEnv: env });
-    await seedSplBinding({ accountId: other.accountId, instanceId: ambiguous.instance_id });
+    await seedSpaBinding({ accountId: other.accountId, instanceId: ambiguous.instance_id });
     await expectError(await fetchBridge(ambiguous, env), 401, 'invalid_token');
     expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
 
@@ -419,6 +421,157 @@ describe('MCP bridge token endpoint', () => {
     ]);
     spy.restore();
   });
+
+  describe('the paid-service gate', () => {
+    const NOW_MS = FIXED_NOW_MS;
+    const NOW_SECONDS = Math.floor(NOW_MS / 1000);
+    const DAY = 86400;
+
+    beforeEach(() => {
+      vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
+    });
+
+    // The bound the gate exists to keep: a refusal must leave no trace. The hostname
+    // ledger is permanent and never reuses a label, so one row written on a refused
+    // request is one label burned forever.
+    async function expectRefusedWithoutWriting(input, env, status, error) {
+      const rng = vi.spyOn(crypto, 'getRandomValues');
+      await expectError(await fetchBridge(input, env), status, error);
+      expect(rng).not.toHaveBeenCalled();
+      expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
+      expect(await rowCount('mcp_bridge_bindings')).toBe(0);
+    }
+
+    it('refuses an owner who consented but holds no entitlement, before any label is allocated', async () => {
+      const env = makeTestEnv();
+      const input = await validInput();
+      await seedBoundAccount(env, input.instance_id, 'unpaid@example.com', null);
+      await expectRefusedWithoutWriting(input, env, 402, 'needs_subscription');
+    });
+
+    it('refuses lapsed and canceled entitlements the same way', async () => {
+      for (const status of ['lapsed', 'canceled']) {
+        await resetDb();
+        const env = makeTestEnv();
+        const input = await validInput();
+        await seedBoundAccount(env, input.instance_id, `${status}@example.com`, { status, source: 'stripe' });
+        await expectRefusedWithoutWriting(input, env, 402, 'needs_subscription');
+      }
+    });
+
+    it('does not let another service open the connector: a private-network subscription is not an entitlement', async () => {
+      const env = makeTestEnv();
+      const input = await validInput();
+      const account = await seedBoundAccount(env, input.instance_id, 'other-service@example.com', null);
+      for (const service of ['spl_hosted', 'spb_hosted', 'spp_hosted']) {
+        await seedEntitlement({ accountId: account.accountId, service, status: 'active' });
+      }
+      await expectRefusedWithoutWriting(input, env, 402, 'needs_subscription');
+    });
+
+    it('never reads the private-network binding: an spl-bound, spl-entitled instance gets no token', async () => {
+      const env = makeTestEnv();
+      const input = await validInput();
+      const account = await seedAccount({ email: 'spl-only@example.com', testEnv: env });
+      await seedSplBinding({ accountId: account.accountId, instanceId: input.instance_id });
+      await seedEntitlement({ accountId: account.accountId, service: 'spl_hosted', status: 'active' });
+      await expectRefusedWithoutWriting(input, env, 401, 'invalid_token');
+    });
+
+    it('entitles active paid and complimentary scout rows', async () => {
+      for (const [email, entitlement] of [
+        ['paid@example.com', { status: 'active', source: 'stripe', currentPeriodEnd: NOW_SECONDS + 30 * DAY }],
+        ['scout@example.com', { status: 'active', source: 'comp', currentPeriodEnd: null }],
+      ]) {
+        await resetDb();
+        const env = makeTestEnv();
+        const input = await validInput();
+        await seedBoundAccount(env, input.instance_id, email, entitlement);
+        await expect(responseBody(await fetchBridge(input, env))).resolves.toMatchObject({
+          hostname: expect.stringMatching(/\.solstone\.me$/),
+        });
+      }
+    });
+
+    it('keeps minting through the 14-day payment-failure grace and refuses after it', async () => {
+      const env = makeTestEnv();
+      const within = await validInput();
+      await seedBoundAccount(env, within.instance_id, 'grace-within@example.com', {
+        status: 'past_due', source: 'stripe', currentPeriodEnd: NOW_SECONDS - 13 * DAY,
+      });
+      await expect(responseBody(await fetchBridge(within, env))).resolves.toMatchObject({
+        hostname: expect.stringMatching(/\.solstone\.me$/),
+      });
+
+      await resetDb();
+      const past = await validInput();
+      await seedBoundAccount(env, past.instance_id, 'grace-past@example.com', {
+        status: 'past_due', source: 'stripe', currentPeriodEnd: NOW_SECONDS - 15 * DAY,
+      });
+      await expectRefusedWithoutWriting(past, env, 402, 'needs_subscription');
+    });
+
+    it('a lapse refuses the mint but keeps the hostname, so resubscribing restores the same address', async () => {
+      const env = makeTestEnv();
+      const input = await validInput();
+      const account = await seedBoundAccount(env, input.instance_id, 'resubscribe@example.com');
+      const first = await responseBody(await fetchBridge(input, env));
+      expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);
+
+      await seedEntitlement({ accountId: account.accountId, service: 'spa_hosted', status: 'lapsed' });
+      await expectError(await fetchBridge(input, env), 402, 'needs_subscription');
+      expect(await rowCount('mcp_bridge_bindings')).toBe(1);
+      expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);
+
+      await seedEntitlement({ accountId: account.accountId, service: 'spa_hosted', status: 'active' });
+      const again = await responseBody(await fetchBridge(input, env));
+      expect(again.hostname).toBe(first.hostname);
+      expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);
+    });
+
+    it('returns a typed 503, writing nothing, when the entitlement read fails', async () => {
+      const env = makeTestEnv();
+      const input = await validInput();
+      await seedBoundAccount(env, input.instance_id);
+      const failingEntitlementDb = {
+        prepare: (sql, ...rest) => {
+          if (/FROM entitlements/.test(sql)) throw new Error('D1_ERROR: network connection lost');
+          return env.DB.prepare(sql, ...rest);
+        },
+        batch: (...args) => env.DB.batch(...args),
+      };
+      const rng = vi.spyOn(crypto, 'getRandomValues');
+      await expectError(await fetchBridge(input, makeTestEnv({ DB: failingEntitlementDb })), 503, 'entitlement_lookup_unavailable');
+      expect(rng).not.toHaveBeenCalled();
+      expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
+    });
+
+    it('still refuses an active deletion before the entitlement question is asked', async () => {
+      const env = makeTestEnv();
+      const input = await validInput();
+      const account = await seedBoundAccount(env, input.instance_id, 'deleting-unpaid@example.com', null);
+      await activeDeletion(account.accountId);
+      await expectRefusedWithoutWriting(input, env, 409, 'deletion_in_progress');
+    });
+  });
+
+  describe('the break-glass stop', () => {
+    it('answers 503 before touching D1 or the request body when MCP_BRIDGE_TOKEN_DISABLED is exactly "true"', async () => {
+      const input = await validInput();
+      const response = await fetchBridge(input, makeTestEnv({ DB: throwingDb(), MCP_BRIDGE_TOKEN_DISABLED: 'true' }));
+      await expectError(response, 503, 'bridge_token_disabled');
+    });
+
+    it('ignores every other value, so a stray setting cannot dark the route', async () => {
+      const env = makeTestEnv({ MCP_BRIDGE_TOKEN_DISABLED: 'TRUE' });
+      const input = await validInput();
+      await seedBoundAccount(env, input.instance_id);
+      for (const value of ['TRUE', '1', 'yes', 'false', '']) {
+        const response = await fetchBridge(input, makeTestEnv({ MCP_BRIDGE_TOKEN_DISABLED: value }));
+        expect(response.status).toBe(200);
+      }
+    });
+  });
 });
 
 async function validInput({ instanceId = null, scope = 'mcp.bridge.register', header = {}, claims = {} } = {}) {
@@ -439,9 +592,14 @@ async function validInput({ instanceId = null, scope = 'mcp.bridge.register', he
   };
 }
 
-async function seedBoundAccount(env, instanceId, email = 'mcp-bridge@example.com') {
+// An owner who consented for this instance. `entitlement` is the spa_hosted row to
+// seed (null seeds none), so a test states exactly what the gate is looking at.
+async function seedBoundAccount(env, instanceId, email = 'mcp-bridge@example.com', entitlement = {}) {
   const account = await seedAccount({ email, testEnv: env });
-  await seedSplBinding({ accountId: account.accountId, instanceId });
+  await seedSpaBinding({ accountId: account.accountId, instanceId });
+  if (entitlement) {
+    await seedEntitlement({ accountId: account.accountId, service: 'spa_hosted', ...entitlement });
+  }
   return account;
 }
 

@@ -146,7 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_account_dispatch_tokens_account_id
 CREATE TABLE IF NOT EXISTS service_handoffs (
   handoff_hash TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('scout','push','spl','spb','spp')),
+  service TEXT NOT NULL CHECK (service IN ('scout','push','spl','spb','spp','spa')),
   payload_encrypted BLOB NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL CHECK (expires_at > created_at),
@@ -241,7 +241,7 @@ CREATE INDEX IF NOT EXISTS idx_enable_scout_codes_account_id
 
 CREATE TABLE IF NOT EXISTS entitlements (
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('spl_hosted','spb_hosted','spp_hosted')),
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted','spb_hosted','spp_hosted','spa_hosted')),
   status TEXT NOT NULL CHECK (status IN ('active','past_due','canceled','lapsed')),
   -- current_period_end: Stripe Unix SECONDS, stored verbatim. Never milliseconds.
   -- The spl relay compares its grant window against this value in seconds.
@@ -456,6 +456,23 @@ CREATE INDEX IF NOT EXISTS idx_spp_bindings_account_id ON spp_bindings(account_i
 CREATE UNIQUE INDEX IF NOT EXISTS idx_spp_bindings_token_hash
   ON spp_bindings(token_hash)
   WHERE token_hash IS NOT NULL;
+
+-- spa_bindings: the agent connector's own binding. It is written only by the owner's
+-- consent (/enable/spa/confirm) and never derived from spl_bindings, so a row cannot
+-- exist without a consent record. instance_id is indexed because the unauthenticated
+-- POST /reach/mcp/bridge-token resolves the account from it. See migration 0036.
+CREATE TABLE IF NOT EXISTS spa_bindings (
+  account_id TEXT NOT NULL,
+  instance_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  last_seen_at INTEGER NOT NULL,
+  consent_acked_at INTEGER NOT NULL,
+  consent_disclosure_version TEXT NOT NULL,
+  PRIMARY KEY (account_id, instance_id),
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_spa_bindings_instance_id ON spa_bindings(instance_id);
 
 CREATE TABLE IF NOT EXISTS spb_mint_audit (
   account_id TEXT,

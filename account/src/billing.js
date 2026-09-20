@@ -25,7 +25,17 @@ import {
   verifyWebhookSignature,
 } from './stripe.js';
 import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-grant.js';
+import { reconcileSpaEntitlement } from './spa-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
+
+// One reconciler per billed service, keyed by the metadata.service tag checkout stamps.
+// test/billing-stripe.test.js walks BILLED_SERVICES through the webhook, so a service
+// added there without an entry here fails the gate.
+const SERVICE_RECONCILERS = Object.freeze({
+  spl: reconcileSplEntitlement,
+  spb: reconcileSpbEntitlement,
+  spa: reconcileSpaEntitlement,
+});
 
 const SOURCE = 'stripe';
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
@@ -89,6 +99,7 @@ export async function handleBillingCheckout(req, env) {
     successUrl: CHECKOUT_SUCCESS_URL,
     cancelUrl: CHECKOUT_CANCEL_URL,
     idempotencyKey: crypto.randomUUID(),
+    service: 'spl',
   });
   if (!checkout?.url) return signedInRedirect('/private-network?checkout=error');
   return signedInRedirect(checkout.url);
@@ -167,14 +178,21 @@ async function applyStripeEvent(env, event, nowMs, ctx) {
   }
 }
 
+// The service a Stripe object was sold as. Every checkout this portal creates stamps
+// metadata.service, so an object without a known tag is not one of ours to reconcile:
+// guessing a service here is how one product's payment grants another product's entitlement.
 function serviceTag(metadataHolder) {
-  return metadataHolder?.metadata?.service === 'spb' ? 'spb' : 'spl';
+  const tag = metadataHolder?.metadata?.service;
+  return typeof tag === 'string' && Object.hasOwn(SERVICE_RECONCILERS, tag) ? tag : null;
 }
 
 async function reconcileForService(service, env, accountId, nowMs, ctx, opts) {
+  if (!service) {
+    console.error('stripe_event_service_unknown');
+    return;
+  }
   if (await getActiveDeletionForAccount(env.DB, accountId)) return;
-  if (service === 'spb') return reconcileSpbEntitlement(env, accountId, nowMs, ctx, opts);
-  return reconcileSplEntitlement(env, accountId, nowMs, ctx, opts);
+  return SERVICE_RECONCILERS[service](env, accountId, nowMs, ctx, opts);
 }
 
 async function handleCheckoutCompleted(env, obj, nowMs, ctx) {

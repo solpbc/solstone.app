@@ -158,6 +158,7 @@ describe('deletion access gates', () => {
         status: 'active',
         current_period_end: 1_900_000_000,
         customer: 'cus_control',
+        metadata: { service: 'spl' },
       }),
     });
 

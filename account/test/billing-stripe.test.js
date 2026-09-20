@@ -1,8 +1,8 @@
 import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { createCheckoutSession } from '../src/stripe.js';
-import { TEST_CSRF, installStripeFetchMock, makeTestEnv, resetDb, seedAccount, seedEntitlement, seedScoutApplication, seedSession, signStripeWebhook } from './helpers.js';
+import { BILLED_SERVICES, createCheckoutSession } from '../src/stripe.js';
+import { TEST_CSRF, installConsoleSpy, installStripeFetchMock, makeTestEnv, resetDb, seedAccount, seedEntitlement, seedScoutApplication, seedSession, signStripeWebhook } from './helpers.js';
 
 describe('billing stripe core', () => {
   beforeEach(async () => {
@@ -51,6 +51,7 @@ describe('billing stripe core', () => {
         status: 'active',
         current_period_end: 1_800_000_123,
         customer: 'cus_checkout',
+        metadata: { service: 'spl' },
       }),
     });
 
@@ -91,12 +92,13 @@ describe('billing stripe core', () => {
         status: 'active',
         current_period_end: 1_900_000_000,
         customer: 'cus_mapped',
+        metadata: { service: 'spl' },
       }),
     });
 
     await sendEvent(testEnv, {
       type: 'customer.subscription.updated',
-      data: { object: { id: 'sub_status', customer: 'cus_mapped', status: 'past_due', current_period_end: 1_800_000_000 } },
+      data: { object: { id: 'sub_status', customer: 'cus_mapped', metadata: { service: 'spl' }, status: 'past_due', current_period_end: 1_800_000_000 } },
     });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'past_due',
@@ -106,7 +108,7 @@ describe('billing stripe core', () => {
 
     await sendEvent(testEnv, {
       type: 'customer.subscription.updated',
-      data: { object: { id: 'sub_status', customer: 'cus_mapped', status: 'incomplete', current_period_end: 1_800_000_111 } },
+      data: { object: { id: 'sub_status', customer: 'cus_mapped', metadata: { service: 'spl' }, status: 'incomplete', current_period_end: 1_800_000_111 } },
     });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'past_due',
@@ -115,7 +117,7 @@ describe('billing stripe core', () => {
 
     await sendEvent(testEnv, {
       type: 'customer.subscription.deleted',
-      data: { object: { id: 'sub_status', customer: 'cus_mapped', status: 'canceled', current_period_end: 1_800_000_222 } },
+      data: { object: { id: 'sub_status', customer: 'cus_mapped', metadata: { service: 'spl' }, status: 'canceled', current_period_end: 1_800_000_222 } },
     });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'lapsed',
@@ -136,7 +138,7 @@ describe('billing stripe core', () => {
 
     await sendEvent(testEnv, {
       type: 'invoice.payment_failed',
-      data: { object: { customer: 'cus_mapped', subscription: 'sub_invoice' } },
+      data: { object: { customer: 'cus_mapped', subscription: 'sub_invoice', subscription_details: { metadata: { service: 'spl' } } } },
     });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'past_due',
@@ -144,6 +146,101 @@ describe('billing stripe core', () => {
       source_ref: 'sub_invoice',
     });
     await expect(entitlementRow(account.accountId, 'spb_hosted')).resolves.toBeNull();
+  });
+
+  // What forces a new billed service to be wired: every service checkout can sell is
+  // walked through every event the webhook reconciles, and each must land on its own
+  // entitlement and on no other. A service added to BILLED_SERVICES without a reconciler
+  // fails here, not in production as another product's grant.
+  it.each(BILLED_SERVICES)('reconciles %s events onto its own entitlement and no other', async (service) => {
+    const own = `${service}_hosted`;
+    const others = BILLED_SERVICES.filter((other) => other !== service).map((other) => `${other}_hosted`);
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: `walk-${service}@example.com`, testEnv });
+    await seedStripeCustomer(account.accountId, `cus_walk_${service}`);
+    const subscription = (extra = {}) => ({
+      id: `sub_${service}`,
+      customer: `cus_walk_${service}`,
+      metadata: { service },
+      status: 'active',
+      current_period_end: 1_900_000_000,
+      ...extra,
+    });
+    installStripeFetchMock({
+      [`GET api.stripe.com/v1/subscriptions/sub_${service}`]: async () => stripeJson(subscription()),
+    });
+    const expectOnlyOwn = async (match) => {
+      await expect(entitlementRow(account.accountId, own)).resolves.toMatchObject(match);
+      for (const other of others) await expect(entitlementRow(account.accountId, other)).resolves.toBeNull();
+    };
+
+    await sendEvent(testEnv, {
+      type: 'checkout.session.completed',
+      data: { object: { client_reference_id: account.accountId, customer: `cus_walk_${service}`, subscription: `sub_${service}` } },
+    });
+    await expectOnlyOwn({ status: 'active', source: 'stripe', source_ref: `sub_${service}`, current_period_end: 1_900_000_000 });
+
+    await sendEvent(testEnv, {
+      type: 'customer.subscription.updated',
+      data: { object: subscription({ status: 'past_due', current_period_end: 1_950_000_000 }) },
+    });
+    await expectOnlyOwn({ status: 'past_due', current_period_end: 1_950_000_000 });
+
+    await sendEvent(testEnv, {
+      type: 'invoice.paid',
+      data: { object: { customer: `cus_walk_${service}`, subscription: `sub_${service}` } },
+    });
+    await expectOnlyOwn({ status: 'active', current_period_end: 1_900_000_000 });
+
+    await sendEvent(testEnv, {
+      type: 'invoice.payment_failed',
+      data: { object: { customer: `cus_walk_${service}`, subscription: `sub_${service}`, subscription_details: { metadata: { service } } } },
+    });
+    await expectOnlyOwn({ status: 'past_due' });
+
+    await sendEvent(testEnv, {
+      type: 'customer.subscription.deleted',
+      data: { object: subscription({ status: 'canceled' }) },
+    });
+    await expectOnlyOwn({ status: 'lapsed' });
+  });
+
+  it('grants nothing for a Stripe object that is untagged or carries a tag no service owns', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'unknown-tag@example.com', testEnv });
+    await seedStripeCustomer(account.accountId, 'cus_unknown');
+    const logged = installConsoleSpy();
+    installStripeFetchMock({
+      'GET api.stripe.com/v1/subscriptions/sub_unknown': async () => stripeJson({
+        id: 'sub_unknown', status: 'active', current_period_end: 1_900_000_000, customer: 'cus_unknown',
+      }),
+    });
+
+    for (const metadata of [undefined, {}, { service: '' }, { service: 'spx' }, { service: 'toString' }, { service: 7 }]) {
+      const object = { id: 'sub_unknown', customer: 'cus_unknown', status: 'active', current_period_end: 1_900_000_000, metadata };
+      await sendEvent(testEnv, { type: 'customer.subscription.updated', data: { object } });
+      await sendEvent(testEnv, { type: 'customer.subscription.deleted', data: { object } });
+      await sendEvent(testEnv, {
+        type: 'invoice.payment_failed',
+        data: { object: { customer: 'cus_unknown', subscription: 'sub_unknown', subscription_details: { metadata } } },
+      });
+    }
+    await sendEvent(testEnv, {
+      type: 'invoice.paid',
+      data: { object: { customer: 'cus_unknown', subscription: 'sub_unknown' } },
+    });
+
+    await expect(entitlementCount()).resolves.toBe(0);
+    const unknown = logged.calls.filter(({ level, args }) => level === 'error' && args[0] === 'stripe_event_service_unknown');
+    expect(unknown).toHaveLength(6 * 3 + 1);
+    logged.restore();
+  });
+
+  it('refuses to create a checkout for a service checkout does not sell', async () => {
+    const testEnv = makeTestEnv();
+    const base = { accountId: 'acct', priceId: 'price_x', customer: 'cus_x', customerEmail: '', successUrl: 'https://x.test/ok', cancelUrl: 'https://x.test/no', idempotencyKey: 'key' };
+    await expect(createCheckoutSession(testEnv, { ...base })).rejects.toThrow('billed service');
+    await expect(createCheckoutSession(testEnv, { ...base, service: 'spx' })).rejects.toThrow('billed service');
   });
 
   it('routes spb-tagged invoice payment failures without fetching the subscription', async () => {

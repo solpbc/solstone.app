@@ -26,6 +26,7 @@ import {
   listSpbBindings,
   revokeDevicePriorAndInsertNew,
   rotateSpbBindingToken,
+  upsertSpaBinding,
   upsertSpbBinding,
   upsertSplBinding,
   upsertSppBinding,
@@ -48,6 +49,10 @@ import {
   renderEnableSplConsent,
   renderEnableSplDone,
   renderEnableSplError,
+  renderEnableSpaConsent,
+  renderEnableSpaDone,
+  renderEnableSpaError,
+  renderEnableSpaNeedsSubscription,
   renderEnableSplNeedsSubscription,
   renderEnableSpbConsent,
   renderEnableSpbDone,
@@ -65,6 +70,13 @@ import {
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { SPL_HOSTED_SERVICE, reconcileSplEntitlement } from './relay-grant.js';
 import { clearSessionCookie, getValidSession } from './session.js';
+import {
+  SPA_CONSENT_DISCLOSURE_VERSION,
+  SPA_HOSTED_SERVICE,
+  isSpaEntitledToServe,
+  reconcileSpaEntitlement,
+} from './spa-entitlement.js';
+import { SPA_SERVICE_PATH } from './spa-service.js';
 import { SPB_HOSTED_SERVICE, reconcileSpbEntitlement } from './spb-entitlement.js';
 import { prefixFor } from './spb-broker.js';
 import { mintScopedCredential } from './r2-credential.js';
@@ -80,6 +92,7 @@ const ENABLE_PUSH_PATH = '/enable/push';
 const ENABLE_SPL_PATH = '/enable/spl';
 const ENABLE_SPB_PATH = '/enable/backup';
 const ENABLE_SPP_PATH = '/enable/spp';
+const ENABLE_SPA_PATH = '/enable/spa';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const RESUME_PATH_WHITELIST = new Map([
@@ -87,6 +100,7 @@ const RESUME_PATH_WHITELIST = new Map([
   [ENABLE_SPL_PATH, validateSplResumeParams],
   [ENABLE_SPB_PATH, validateSpbResumeParams],
   [ENABLE_SPP_PATH, validateSppResumeParams],
+  [ENABLE_SPA_PATH, validateSpaResumeParams],
 ]);
 
 export async function registerDeviceForAccount({
@@ -898,6 +912,124 @@ export async function handleHandoffSpp(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
+export async function handleEnableSpaGet(req, env) {
+  const url = new URL(req.url);
+  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return spaError(400);
+  const instance = parseOptionalInstance(url.searchParams);
+  if (!instance) return spaError(400);
+  const resumeQuery = spaResumeQuery(nonce, instance);
+
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPA_PATH, resumeQuery);
+
+  const csrf = await csrfToken(env);
+  return noStoreHtml(renderEnableSpaConsent({ csrf, nonce, instance }));
+}
+
+export async function handleEnableSpaConfirm(req, env, ctx) {
+  if (!originAllowed(req)) return noStoreResponse(forbidden());
+  const form = await readForm(req);
+  if (!form) return spaError(400);
+
+  const nonce = (form.get('nonce')?.toString() || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return spaError(400);
+
+  if ((form.get('action')?.toString() || '') === 'cancel') {
+    return redirect('/', 303, { 'Cache-Control': 'no-store' });
+  }
+
+  const instance = parseOptionalInstance(form);
+  if (!instance) return spaError(400);
+  const resumeQuery = spaResumeQuery(nonce, instance);
+  const session = await getValidSession(req, env, Date.now());
+  if (!session) return signInRedirect(env, ENABLE_SPA_PATH, resumeQuery);
+  const account = await getAccountTransparencyRow(env.DB, session.account_id);
+  if (!account) {
+    return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
+  }
+
+  const csrf = await csrfToken(env);
+  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
+    return spaError(403);
+  }
+
+  // The consent is enforced here, not by the form: no acknowledgement, no binding.
+  if (form.get('data_ack')?.toString() !== 'yes') return spaError(400);
+
+  const nowMs = Date.now();
+  const accountId = session.account_id;
+  // The binding records the owner's consent for this journal; it does not depend on
+  // payment. Whether this journal can actually connect is the mint's entitlement gate,
+  // so an owner who consents before subscribing is not asked again afterward.
+  await upsertSpaBinding(env.DB, {
+    accountId,
+    instanceId: instance,
+    nowMs,
+    consentAckedAt: nowMs,
+    consentDisclosureVersion: SPA_CONSENT_DISCLOSURE_VERSION,
+  });
+  await reconcileSpaEntitlement(env, accountId, nowMs, ctx);
+  const entitlement = await getEntitlement(env.DB, { accountId, service: SPA_HOSTED_SERVICE });
+  // The same predicate the mint gates on, so the handoff never says approved for a
+  // journal the mint will refuse.
+  const entitled = isSpaEntitledToServe(entitlement, Math.floor(nowMs / 1000), env);
+  const payload = entitled
+    ? { service: 'spa', state: 'approved', approved_at: new Date(nowMs).toISOString() }
+    : {
+        service: 'spa',
+        state: 'needs_subscription',
+        subscribe_url: `${new URL(req.url).origin}${SPA_SERVICE_PATH}`,
+      };
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  let inserted;
+  try {
+    const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
+    inserted = await insertServiceHandoff(env.DB, {
+      handoffHash,
+      accountId,
+      service: 'spa',
+      payloadEncrypted,
+      createdAt: nowMs,
+      expiresAt: nowMs + HANDOFF_TTL_MS,
+    });
+  } catch {
+    return spaError(503);
+  }
+  // A duplicate nonce means the outcome was not landed in a handoff; fail closed.
+  if (!inserted.ok) return spaError(503);
+  if (!entitled) return noStoreHtml(renderEnableSpaNeedsSubscription());
+  return noStoreHtml(renderEnableSpaDone());
+}
+
+export async function handleHandoffSpa(req, env) {
+  // Byte-for-byte mirror of handleHandoffSpp with service: 'spa'.
+  const url = new URL(req.url);
+  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
+  if (!NONCE_REGEX.test(nonce)) return handoffJson({ error: 'invalid_request' }, { status: 400 });
+
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  const started = Date.now();
+  while (Date.now() - started <= HANDOFF_POLL_BUDGET_MS) {
+    const nowMs = Date.now();
+    const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spa' });
+    if (consumed) {
+      const plaintext = await decryptEmail(consumed.payload_encrypted, env);
+      return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
+    }
+
+    const status = await findServiceHandoffStatus(env.DB, { handoffHash, service: 'spa' });
+    if (status && (status.consumed_at != null || status.expires_at <= nowMs)) {
+      return handoffJson({ error: 'gone' }, { status: 410 });
+    }
+
+    const elapsed = Date.now() - started;
+    if (elapsed >= HANDOFF_POLL_BUDGET_MS) break;
+    await sleep(Math.min(HANDOFF_POLL_MS, HANDOFF_POLL_BUDGET_MS - elapsed));
+  }
+  return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+}
+
 function parsePushParams(params) {
   const nonce = singleParam(params, 'nonce');
   const deviceToken = singleParam(params, 'device_token');
@@ -951,6 +1083,10 @@ function sppResumeQuery(nonce, instance) {
   const params = new URLSearchParams({ nonce });
   if (instance) params.set('instance', instance);
   return `?${params.toString()}`;
+}
+
+function spaResumeQuery(nonce, instance) {
+  return `?${new URLSearchParams({ nonce, instance }).toString()}`;
 }
 
 function parseOptionalInstance(params) {
@@ -1056,6 +1192,13 @@ function validateSppResumeParams(params) {
   return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
 }
 
+function validateSpaResumeParams(params) {
+  const nonceValues = params.getAll('nonce');
+  const instanceValues = params.getAll('instance');
+  if (nonceValues.length !== 1 || !NONCE_REGEX.test(nonceValues[0])) return false;
+  return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
+}
+
 function pushError(status) {
   return noStoreHtml(renderEnablePushError(), { status });
 }
@@ -1070,6 +1213,10 @@ function spbError(status) {
 
 function sppError(status) {
   return noStoreHtml(renderEnableSppError(), { status });
+}
+
+function spaError(status) {
+  return noStoreHtml(renderEnableSpaError(), { status });
 }
 
 function noStoreHtml(body, init = {}) {

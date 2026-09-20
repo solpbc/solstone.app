@@ -112,6 +112,7 @@ describe('admin owner sign-in projection', () => {
       { service: 'spl_hosted', status: null, source_basis: 'none' },
       { service: 'spb_hosted', status: null, source_basis: 'none' },
       { service: 'spp_hosted', status: null, source_basis: 'none' },
+      { service: 'spa_hosted', status: null, source_basis: 'none' },
     ]);
   });
 
@@ -123,6 +124,7 @@ describe('admin owner sign-in projection', () => {
     await seedEntitlement({ accountId: first.accountId, service: 'spl_hosted', status: 'active', source: 'comp' });
     await seedEntitlement({ accountId: first.accountId, service: 'spb_hosted', status: 'past_due' });
     await seedEntitlement({ accountId: first.accountId, service: 'spp_hosted', status: 'lapsed', source: 'comp' });
+    await seedEntitlement({ accountId: first.accountId, service: 'spa_hosted', status: 'active' });
     await seedEntitlement({ accountId: second.accountId, service: 'spl_hosted', status: 'canceled' });
     await seedEntitlement({ accountId: second.accountId, service: 'spb_hosted', status: 'lapsed' });
 
@@ -130,11 +132,13 @@ describe('admin owner sign-in projection', () => {
       { service: 'spl_hosted', status: 'active', source_basis: 'complimentary' },
       { service: 'spb_hosted', status: 'past_due', source_basis: 'paid' },
       { service: 'spp_hosted', status: 'lapsed', source_basis: 'complimentary' },
+      { service: 'spa_hosted', status: 'active', source_basis: 'paid' },
     ]);
     expect((await adminJson(`/admin/accounts/${second.accountId}`, token, testEnv)).service_entitlements).toEqual([
       { service: 'spl_hosted', status: 'canceled', source_basis: 'paid' },
       { service: 'spb_hosted', status: 'lapsed', source_basis: 'paid' },
       { service: 'spp_hosted', status: null, source_basis: 'none' },
+      { service: 'spa_hosted', status: null, source_basis: 'none' },
     ]);
   });
 
@@ -152,13 +156,14 @@ describe('admin owner sign-in projection', () => {
     const agreeing = await seedAccount({ email: 'warnings-agreeing@example.com', testEnv });
 
     await seedEntitlement({ accountId: approvedPaidSpl.accountId, service: 'spl_hosted', status: 'active' });
-    for (const service of ['spl_hosted', 'spb_hosted', 'spp_hosted']) {
+    for (const service of ['spl_hosted', 'spb_hosted', 'spp_hosted', 'spa_hosted']) {
       await seedEntitlement({ accountId: approvedCompAll.accountId, service, status: 'active', source: 'comp' });
     }
     await seedEntitlement({ accountId: approvedPastDue.accountId, service: 'spl_hosted', status: 'past_due' });
     await seedEntitlement({ accountId: approvedCompLapsed.accountId, service: 'spl_hosted', status: 'lapsed', source: 'comp' });
     await seedEntitlement({ accountId: approvedCompLapsed.accountId, service: 'spb_hosted', status: 'active', source: 'comp' });
     await seedEntitlement({ accountId: approvedCompLapsed.accountId, service: 'spp_hosted', status: 'active', source: 'comp' });
+    await seedEntitlement({ accountId: approvedCompLapsed.accountId, service: 'spa_hosted', status: 'active', source: 'comp' });
     await seedScoutApplication({ accountId: pending.accountId, status: 'pending', applied_at: 5_000 });
     await seedScoutApplication({
       accountId: revoked.accountId,
@@ -175,15 +180,18 @@ describe('admin owner sign-in projection', () => {
       'approved_scout_missing_entitlement:spl_hosted',
       'approved_scout_missing_entitlement:spb_hosted',
       'approved_scout_missing_entitlement:spp_hosted',
+      'approved_scout_missing_entitlement:spa_hosted',
     ]);
     expect((await adminJson(`/admin/accounts/${approvedPaidSpl.accountId}`, token, testEnv)).consistency_warnings).toEqual([
       'approved_scout_missing_entitlement:spb_hosted',
       'approved_scout_missing_entitlement:spp_hosted',
+      'approved_scout_missing_entitlement:spa_hosted',
     ]);
     expect((await adminJson(`/admin/accounts/${approvedCompAll.accountId}`, token, testEnv)).consistency_warnings).toEqual([]);
     expect((await adminJson(`/admin/accounts/${approvedPastDue.accountId}`, token, testEnv)).consistency_warnings).toEqual([
       'approved_scout_missing_entitlement:spb_hosted',
       'approved_scout_missing_entitlement:spp_hosted',
+      'approved_scout_missing_entitlement:spa_hosted',
     ]);
     expect((await adminJson(`/admin/accounts/${approvedCompLapsed.accountId}`, token, testEnv)).consistency_warnings).toEqual([
       'approved_scout_missing_entitlement:spl_hosted',
@@ -207,6 +215,7 @@ describe('admin owner sign-in projection', () => {
     })).toEqual([
       'approved_scout_missing_entitlement:spb_hosted',
       'approved_scout_missing_entitlement:spp_hosted',
+      'approved_scout_missing_entitlement:spa_hosted',
     ]);
     expect(computeConsistencyWarnings('pending', {
       spb_hosted: { status: 'active', source: 'comp' },
@@ -219,6 +228,7 @@ describe('admin owner sign-in projection', () => {
       spl_hosted: { status: 'past_due', source: 'stripe' },
       spb_hosted: { status: 'active', source: 'comp' },
       spp_hosted: { status: 'active', source: 'comp' },
+      spa_hosted: { status: 'active', source: 'comp' },
     })).toEqual([]);
   });
 
@@ -319,7 +329,7 @@ describe('admin owner sign-in projection', () => {
       ...priorDetail
     } = detail;
     expect(scout.status).toBe('absent');
-    expect(serviceEntitlements).toHaveLength(3);
+    expect(serviceEntitlements).toHaveLength(4);
     expect(consistencyWarnings).toEqual([]);
     expect(priorDetail).toEqual({
       account: {

@@ -1,8 +1,9 @@
 import { exportJWK, importJWK, importPKCS8, SignJWT } from 'jose';
 import { base64UrlEncode } from './crypto.js';
 import {
-  findUniqueSplBindingAccount,
+  findUniqueSpaBindingAccount,
   getActiveDeletionForAccount,
+  getEntitlement,
   getMcpBridgeBinding,
   reserveMcpBridgeBinding,
 } from './db.js';
@@ -12,6 +13,7 @@ import {
   parseHomeReachCaPubkey,
   verifyHomeReachAssertion,
 } from './reach.js';
+import { SPA_HOSTED_SERVICE, isSpaEntitledToServe } from './spa-entitlement.js';
 
 const BRIDGE_HOST_SUFFIX = '.solstone.me';
 const BRIDGE_TOKEN_TTL_SECONDS = 600;
@@ -58,6 +60,11 @@ function logBridgeTokenFailure(step, err) {
 }
 
 export async function handleMcpBridgeToken(req, env) {
+  // Break-glass stop, set via `wrangler secret put` only while the route must be dark.
+  // Unset is normal operation; any value other than the exact string "true" is ignored.
+  if (env.MCP_BRIDGE_TOKEN_DISABLED === 'true') {
+    return json({ error: 'bridge_token_disabled' }, { status: 503 });
+  }
   const body = await readJson(req);
   if (!isMcpBridgeRequest(body)) return json({ error: 'invalid_input' }, { status: 400 });
 
@@ -85,7 +92,7 @@ export async function handleMcpBridgeToken(req, env) {
 
   let account;
   try {
-    account = await findUniqueSplBindingAccount(env.DB, body.instance_id);
+    account = await findUniqueSpaBindingAccount(env.DB, body.instance_id);
   } catch (err) {
     logBridgeTokenFailure('find_binding_account', err);
     return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
@@ -99,6 +106,23 @@ export async function handleMcpBridgeToken(req, env) {
   } catch (err) {
     logBridgeTokenFailure('get_active_deletion', err);
     return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
+  }
+
+  // The entitlement gate. It must run before getMcpBridgeBinding, and so before any
+  // label allocation: allocateMcpBridgeLabel writes to mcp_bridge_hostname_ledger, which
+  // is permanent and never reuses a label, so a refusal placed after it would burn a
+  // label on every refused request. Refuse before anything is written.
+  try {
+    const entitlement = await getEntitlement(env.DB, {
+      accountId: account.accountId,
+      service: SPA_HOSTED_SERVICE,
+    });
+    if (!isSpaEntitledToServe(entitlement, Math.floor(Date.now() / 1000), env)) {
+      return json({ error: 'needs_subscription' }, { status: 402 });
+    }
+  } catch (err) {
+    logBridgeTokenFailure('get_entitlement', err);
+    return json({ error: 'entitlement_lookup_unavailable' }, { status: 503 });
   }
 
   let binding;

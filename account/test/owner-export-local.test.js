@@ -23,6 +23,7 @@ import {
   seedEntitlement,
   seedScoutApplication,
   seedSession,
+  seedSpaBinding,
   seedSplBinding,
 } from './helpers.js';
 import { installJwksStub, mintToken } from './jwks-helper.js';
@@ -40,7 +41,7 @@ describe('owner local export collector (AC1–3)', () => {
   });
 
   describe('Sentinels and absolute-deny invariants (AC1)', () => {
-    it('exports all 16 classes with sentinels and strictly leaks zero sensitive or control values', async () => {
+    it('exports all 17 classes with sentinels and strictly leaks zero sensitive or control values', async () => {
       const consoleSpy = installConsoleSpy();
       const env = makeTestEnv();
 
@@ -59,7 +60,7 @@ describe('owner local export collector (AC1–3)', () => {
       expect(result.ok).toBe(true);
       expect(result.completeness).toEqual({
         complete: true,
-        class_count: 16,
+        class_count: 17,
         record_count: expect.any(Number),
       });
 
@@ -809,6 +810,9 @@ async function seedAllWithSentinels(env, account, tag, instanceId) {
     consentAckedAt: NOW,
     consentDisclosureVersion: 'v1',
   });
+
+  // 13b. spa_bindings
+  await seedSpaBinding({ accountId: account.accountId, instanceId, createdAt: NOW, lastSeenAt: NOW, consentAckedAt: NOW });
 
   // 14. spb_mint_audit
   await workerEnv.DB.prepare(

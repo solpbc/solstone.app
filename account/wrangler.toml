@@ -56,6 +56,11 @@ service = "spl-relay"
 # REACH_RELAY_TOKEN_SECRET — HS256 signing secret for minted 24h reach relay tokens (POST /reach/push/relay-token).
 # MCP_BRIDGE_TOKEN_PRIVATE_KEY — Ed25519 PKCS#8 PEM used to sign MCP bridge admission JWTs.
 #
+# MCP bridge token break-glass (set via `wrangler secret put` only when stopping the route):
+# MCP_BRIDGE_TOKEN_DISABLED — exact string "true" makes POST /reach/mcp/bridge-token answer 503
+#   before it reads the request or touches D1. Unset (normal) = the route serves. Other values
+#   do not disable it. Never a [vars] entry.
+#
 # Stripe billing secrets (set via `wrangler secret put`):
 # STRIPE_SECRET_KEY — Stripe restricted secret key for Checkout, Portal, and subscription reads.
 # STRIPE_WEBHOOK_SECRET — Stripe webhook endpoint signing secret.
@@ -118,6 +123,11 @@ STRIPE_PRICE_ANNUAL = "price_1TjnJB3ew4P2jFrx820NPkX4"
 STRIPE_PRICE_MONTHLY = "price_1TjnJC3ew4P2jFrxANwt3ya8"
 STRIPE_PRICE_SPB_ANNUAL = "price_1TlGmO3ew4P2jFrxThHBPMB7"
 STRIPE_PRICE_SPB_MONTHLY = "price_1TlGmO3ew4P2jFrxg0DylUaz"
+# spa has one annual price and no monthly variable. Empty until the Stripe price is created;
+# while empty, checkout fails closed (redirects with ?checkout=invalid) and reaches Stripe
+# not at all. Price ids are non-secret and belong here, in the committed file that a deploy
+# applies in full, rather than set in the dashboard, which a deploy silently wipes.
+STRIPE_PRICE_SPA_ANNUAL = ""
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"

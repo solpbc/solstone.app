@@ -5,6 +5,11 @@ export const STRIPE_API_VERSION = '2024-09-30.acacia';
 const STRIPE_API_BASE = 'https://api.stripe.com/v1';
 const encoder = new TextEncoder();
 
+// The services a Stripe subscription can be sold as. Checkout stamps one of these on
+// the subscription as metadata.service, and the webhook reconciles by it. Adding a
+// service here without a reconciler in billing.js is caught by test/billing-stripe.test.js.
+export const BILLED_SERVICES = Object.freeze(['spl', 'spb', 'spa']);
+
 export async function createCheckoutSession(env, {
   accountId,
   priceId,
@@ -13,9 +18,10 @@ export async function createCheckoutSession(env, {
   successUrl,
   cancelUrl,
   idempotencyKey,
-  service = 'spl',
+  service,
 }) {
   if (!idempotencyKey) throw new Error('stripe checkout requires idempotency key');
+  if (!BILLED_SERVICES.includes(service)) throw new Error('stripe checkout requires a billed service');
   const body = new URLSearchParams();
   body.set('mode', 'subscription');
   body.set('client_reference_id', accountId);

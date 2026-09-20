@@ -24,6 +24,7 @@ import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { SPB_HOSTED_SERVICE, reconcileAllServices } from './spb-entitlement.js';
 import { SESSION_COOKIE } from './session.js';
 import { aaguidLabel, sessionDisplayLabel, truncateIp } from './settings.js';
+import { SPA_HOSTED_SERVICE } from './spa-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { emitSecurityEvent } from './hub.js';
 
@@ -32,7 +33,7 @@ const ISSUER = 'https://solpbc.cloudflareaccess.com';
 const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const IMPERSONATE_TTL_MS = 60 * 60 * 1000;
-const HOSTED_SERVICES = [SPL_HOSTED_SERVICE, SPB_HOSTED_SERVICE, SPP_HOSTED_SERVICE];
+const HOSTED_SERVICES = [SPL_HOSTED_SERVICE, SPB_HOSTED_SERVICE, SPP_HOSTED_SERVICE, SPA_HOSTED_SERVICE];
 const SCOUT_TRANSITION_ATTEMPTS = 3;
 const SCOUT_LIFECYCLE_REASONS = {
   preapprove: {

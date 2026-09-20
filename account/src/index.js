@@ -34,12 +34,15 @@ import {
   handleEnableSpbGet,
   handleEnableSplConfirm,
   handleEnableSplGet,
+  handleEnableSpaConfirm,
+  handleEnableSpaGet,
   handleEnableSppConfirm,
   handleEnableSppGet,
   handleHandoffPush,
   handleHandoffScout,
   handleHandoffSpb,
   handleHandoffSpl,
+  handleHandoffSpa,
   handleHandoffSpp,
   handleScoutStatus,
   verifyEnableResume,
@@ -70,6 +73,7 @@ import {
   handleSpbCheckout,
   handleSpbPortal,
 } from './spb-billing.js';
+import { handleSpaCheckout, handleSpaPortal } from './spa-billing.js';
 import {
   handleAddEmail,
   handleMakeEmailPrimary,
@@ -555,6 +559,54 @@ async function routeRequest(req, env, ctx) {
         req.method === 'GET'
       ) {
         return handleHandoffSpp(req, env, ctx);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'spa' &&
+        req.method === 'GET'
+      ) {
+        return handleEnableSpaGet(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'enable' &&
+        parts[2] === 'spa' &&
+        parts[3] === 'confirm' &&
+        req.method === 'POST'
+      ) {
+        return handleEnableSpaConfirm(req, env, ctx);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'handoff' &&
+        parts[2] === 'spa' &&
+        req.method === 'GET'
+      ) {
+        return handleHandoffSpa(req, env, ctx);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'services' &&
+        parts[2] === 'spa' &&
+        parts[3] === 'checkout' &&
+        req.method === 'POST'
+      ) {
+        return handleSpaCheckout(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'services' &&
+        parts[2] === 'spa' &&
+        parts[3] === 'portal' &&
+        req.method === 'POST'
+      ) {
+        return handleSpaPortal(req, env);
       }
 
       if (
