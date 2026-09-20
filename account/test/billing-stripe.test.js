@@ -198,11 +198,64 @@ describe('billing stripe core', () => {
     });
     await expectOnlyOwn({ status: 'past_due' });
 
+    // The same two events in the shape this account's webhook actually delivers.
+    await sendEvent(testEnv, {
+      type: 'invoice.paid',
+      data: { object: dahliaInvoice({ customer: `cus_walk_${service}`, subscription: `sub_${service}`, service }) },
+    });
+    await expectOnlyOwn({ status: 'active', current_period_end: 1_900_000_000 });
+
+    await sendEvent(testEnv, {
+      type: 'invoice.payment_failed',
+      data: { object: dahliaInvoice({ customer: `cus_walk_${service}`, subscription: `sub_${service}`, service }) },
+    });
+    await expectOnlyOwn({ status: 'past_due' });
+
     await sendEvent(testEnv, {
       type: 'customer.subscription.deleted',
       data: { object: subscription({ status: 'canceled' }) },
     });
     await expectOnlyOwn({ status: 'lapsed' });
+  });
+
+  // The regression the legacy-shape fixtures could never see. Since the webhook endpoint
+  // follows the account default (2026-03-25.dahlia), an invoice carries neither
+  // `subscription` nor `subscription_details`; both live under `parent.subscription_details`.
+  // A handler reading only the legacy fields returns early on invoice.paid and, since the
+  // strict service tag, reconciles nothing on invoice.payment_failed, so a private-network
+  // customer whose card fails would stay `active`. These run the shipped shape and only it.
+  it('revives invoice.paid and keeps invoice.payment_failed working for the shape this account receives', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'dahlia-invoice@example.com', testEnv });
+    await seedStripeCustomer(account.accountId, 'cus_dahlia');
+    await seedEntitlement({
+      accountId: account.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_700_000_000,
+      sourceRef: 'sub_old',
+    });
+    const logged = installConsoleSpy();
+    const { calls } = installStripeFetchMock({
+      'GET api.stripe.com/v1/subscriptions/sub_dahlia': async () => stripeJson({
+        id: 'sub_dahlia', status: 'active', current_period_end: 1_900_000_000, customer: 'cus_dahlia', metadata: { service: 'spl' },
+      }),
+    });
+    const invoice = dahliaInvoice({ customer: 'cus_dahlia', subscription: 'sub_dahlia', service: 'spl' });
+
+    await sendEvent(testEnv, { type: 'invoice.payment_failed', data: { object: invoice } });
+    await expect(entitlementRow(account.accountId)).resolves.toMatchObject({ status: 'past_due' });
+    // The tag came off the invoice itself, so this event costs no Stripe call.
+    expect(calls).toHaveLength(0);
+
+    await sendEvent(testEnv, { type: 'invoice.paid', data: { object: invoice } });
+    await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
+      status: 'active',
+      current_period_end: 1_900_000_000,
+      source_ref: 'sub_dahlia',
+    });
+    expect(calls.filter((call) => call.method === 'GET' && call.url.pathname === '/v1/subscriptions/sub_dahlia')).toHaveLength(1);
+    expect(logged.calls.filter(({ args }) => args[0] === 'stripe_event_service_unknown')).toHaveLength(0);
+    logged.restore();
   });
 
   it('grants nothing for a Stripe object that is untagged or carries a tag no service owns', async () => {
@@ -224,15 +277,23 @@ describe('billing stripe core', () => {
         type: 'invoice.payment_failed',
         data: { object: { customer: 'cus_unknown', subscription: 'sub_unknown', subscription_details: { metadata } } },
       });
+      await sendEvent(testEnv, {
+        type: 'invoice.payment_failed',
+        data: { object: dahliaInvoice({ customer: 'cus_unknown', subscription: 'sub_unknown', metadata }) },
+      });
     }
     await sendEvent(testEnv, {
       type: 'invoice.paid',
       data: { object: { customer: 'cus_unknown', subscription: 'sub_unknown' } },
     });
+    await sendEvent(testEnv, {
+      type: 'invoice.paid',
+      data: { object: dahliaInvoice({ customer: 'cus_unknown', subscription: 'sub_unknown', metadata: {} }) },
+    });
 
     await expect(entitlementCount()).resolves.toBe(0);
     const unknown = logged.calls.filter(({ level, args }) => level === 'error' && args[0] === 'stripe_event_service_unknown');
-    expect(unknown).toHaveLength(6 * 3 + 1);
+    expect(unknown).toHaveLength(6 * 4 + 2);
     logged.restore();
   });
 
@@ -434,6 +495,25 @@ describe('billing stripe core', () => {
     expect(html).not.toContain('action="/billing/portal"');
   });
 });
+
+// An invoice as this account's webhook receives it (2026-03-25.dahlia): the subscription and
+// its metadata sit under `parent.subscription_details`, with no top-level `subscription` or
+// `subscription_details`. Asserting the absence keeps this fixture from quietly drifting back
+// to the legacy shape, which is how the handlers came to read a payload that never arrived.
+function dahliaInvoice({ customer, subscription, service, metadata = { service } }) {
+  const invoice = {
+    id: 'in_dahlia',
+    object: 'invoice',
+    customer,
+    parent: {
+      type: 'subscription_details',
+      subscription_details: { subscription, metadata },
+    },
+  };
+  expect(invoice).not.toHaveProperty('subscription');
+  expect(invoice).not.toHaveProperty('subscription_details');
+  return invoice;
+}
 
 async function sendEvent(testEnv, event) {
   const response = await postWebhook(testEnv, JSON.stringify(event));

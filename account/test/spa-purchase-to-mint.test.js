@@ -91,9 +91,13 @@ describe('the agent connector: consent, purchase, and the mint', () => {
     await expectMint(home, env, 402, 'needs_subscription');
 
     // They pay again: the same address comes back, and no second label was ever spent.
+    // In the shape this account's webhook delivers: the subscription lives under `parent`.
     await webhook(env, {
       type: 'invoice.paid',
-      data: { object: { customer: 'cus_spa', subscription: 'sub_spa' } },
+      data: { object: {
+        customer: 'cus_spa',
+        parent: { type: 'subscription_details', subscription_details: { subscription: 'sub_spa', metadata: { service: 'spa' } } },
+      } },
     });
     const again = await expectMint(home, env, 200);
     expect(again.hostname).toBe(minted.hostname);

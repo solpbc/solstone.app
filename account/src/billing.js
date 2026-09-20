@@ -237,9 +237,23 @@ async function handleSubscriptionDeleted(env, obj, nowMs, ctx) {
   await reconcileForService(serviceTag(obj), env, accountId, nowMs, ctx, { paid: null });
 }
 
+// Where an invoice names its subscription depends on the Stripe API version the webhook
+// endpoint delivers. This account's endpoint follows the account default, 2026-03-25.dahlia,
+// which carries it at invoice.parent.subscription_details ({ subscription, metadata }) and
+// has neither of the legacy fields. The pinned outbound version (see stripe.js) and older
+// payloads carry invoice.subscription and invoice.subscription_details. Read the shape the
+// account receives first and keep the legacy one as a fallback, so a pin change either way is
+// survivable. Both handlers below resolve through here, so neither can drift from the other.
+function invoiceSubscription(invoice) {
+  const parent = invoice?.parent?.subscription_details;
+  const details = parent || invoice?.subscription_details || null;
+  const candidate = parent?.subscription ?? invoice?.subscription;
+  return { subscriptionId: typeof candidate === 'string' ? candidate : '', details };
+}
+
 async function handleInvoicePaid(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
-  const subscriptionId = typeof obj?.subscription === 'string' ? obj.subscription : '';
+  const { subscriptionId } = invoiceSubscription(obj);
   if (!accountRow || !subscriptionId) return;
   const subscription = await getSubscription(env, subscriptionId);
   const accountId = accountRow.account_id;
@@ -257,8 +271,9 @@ async function handleInvoicePaymentFailed(env, obj, nowMs, ctx) {
   const accountRow = await accountForStripeCustomer(env, obj?.customer);
   if (!accountRow) return;
   const accountId = accountRow.account_id;
-  // Stripe copies subscription metadata onto invoice.subscription_details; no extra getSubscription call is made.
-  await reconcileForService(serviceTag(obj.subscription_details), env, accountId, nowMs, ctx, {
+  // The invoice carries the subscription's metadata itself (see invoiceSubscription), so no
+  // extra getSubscription call is made.
+  await reconcileForService(serviceTag(invoiceSubscription(obj).details), env, accountId, nowMs, ctx, {
     paid: {
       status: 'past_due',
       currentPeriodEnd: null,
