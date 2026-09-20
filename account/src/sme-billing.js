@@ -1,25 +1,53 @@
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
+  getEntitlement,
   getScoutApplicationStatusByAccount,
   getStripeCustomerByAccount,
 } from './db.js';
-import { forbidden, originAllowed } from './index.js';
+import { renderNotFound, renderServicesSme } from './html.js';
+import { forbidden, html, originAllowed } from './index.js';
 import {
   loadMenuContext,
   noStore,
   requireSignedInSession,
+  signedInHtml,
   signedInRedirect,
 } from './settings.js';
-import { SME_SERVICE_PATH } from './sme-service.js';
+import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
+import { SME_SERVICE_PATH, smeOnSale } from './sme-service.js';
 import {
   createCheckoutSession,
   createPortalSession,
+  termsAssentRequired,
 } from './stripe.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
 const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}${SME_SERVICE_PATH}?checkout=success`;
 const CHECKOUT_CANCEL_URL = `${PUBLIC_ORIGIN}${SME_SERVICE_PATH}?checkout=cancel`;
 const PORTAL_RETURN_URL = `${PUBLIC_ORIGIN}${SME_SERVICE_PATH}`;
+
+export async function handleServicesSme(req, env) {
+  // Not on sale yet: the page does not exist, exactly as if the route were absent.
+  if (!smeOnSale(env)) return noStore(html(renderNotFound(), { status: 404 }));
+  const guard = await requireSignedInSession(req, env);
+  if (guard instanceof Response) return guard;
+  const { session, nowMs } = guard;
+  const url = new URL(req.url);
+  const [menu, entitlement, csrf] = await Promise.all([
+    loadMenuContext(env, session.account_id, nowMs),
+    getEntitlement(env.DB, { accountId: session.account_id, service: SME_HOSTED_SERVICE }),
+    csrfToken(env),
+  ]);
+  return signedInHtml(renderServicesSme({
+    entitlement,
+    csrf,
+    flash: {
+      checkout: url.searchParams.get('checkout') || '',
+      billing: url.searchParams.get('billing') || '',
+    },
+    menu,
+  }));
+}
 
 export async function handleSmeCheckout(req, env) {
   if (!originAllowed(req)) return noStore(forbidden());
@@ -38,6 +66,10 @@ export async function handleSmeCheckout(req, env) {
   const scoutApp = await getScoutApplicationStatusByAccount(env.DB, { accountId });
   if (scoutApp?.status === 'approved') return signedInRedirect(`${SME_SERVICE_PATH}?checkout=comped`);
 
+  // The permanent public record is disclosed on the page and acknowledged here, before any
+  // subscription is taken. Enforced on the server, not by the form's required attribute.
+  if (form.get('data_ack')?.toString() !== 'yes') return signedInRedirect(`${SME_SERVICE_PATH}?checkout=ack`);
+
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId });
   const menu = customerRow ? null : await loadMenuContext(env, accountId, guard.nowMs);
   if (!customerRow && !menu?.email) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=email`);
@@ -51,6 +83,7 @@ export async function handleSmeCheckout(req, env) {
     cancelUrl: CHECKOUT_CANCEL_URL,
     idempotencyKey: crypto.randomUUID(),
     service: 'sme',
+    termsAssent: termsAssentRequired(env),
   });
   if (!checkout?.url) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=error`);
   return signedInRedirect(checkout.url);

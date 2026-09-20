@@ -61,7 +61,7 @@ describe('the agent connector: consent, purchase, and the mint', () => {
         metadata: { service: 'sme', account_id: account.accountId },
       }),
     });
-    const checkout = await postForm('/services/sme/checkout', env, session.cookie, { csrf: TEST_CSRF, plan: 'annual' });
+    const checkout = await postForm('/services/sme/checkout', env, session.cookie, { csrf: TEST_CSRF, plan: 'annual', data_ack: 'yes' });
     expect(checkout.status).toBe(303);
     expect(checkout.headers.get('Location')).toBe('https://checkout.stripe.test/sme');
     expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('sme');

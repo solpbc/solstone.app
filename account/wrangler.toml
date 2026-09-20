@@ -128,6 +128,11 @@ STRIPE_PRICE_SPB_MONTHLY = "price_1TlGmO3ew4P2jFrxg0DylUaz"
 # not at all. Price ids are non-secret and belong here, in the committed file that a deploy
 # applies in full, rather than set in the dashboard, which a deploy silently wipes.
 STRIPE_PRICE_SME_ANNUAL = ""
+# Checkout collects the customer's agreement to the terms before any charge only when this is
+# exactly "required". Stripe refuses that field until a Terms of Service URL is set in the
+# Dashboard's public details, so set that first, then change this to "required" and deploy.
+# Left empty, checkout takes no assent and logs stripe_checkout_terms_assent_off each time.
+STRIPE_TERMS_ASSENT = ""
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"

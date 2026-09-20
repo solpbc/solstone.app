@@ -7,6 +7,9 @@ import {
 import { paidSignalFromRow } from './relay-grant.js';
 
 export const SME_HOSTED_SERVICE = 'sme_hosted';
+// Identifies the disclosure an owner acknowledged. Nothing has been shown to an owner yet, so
+// the text may still change under this value; once any owner has consented, change the text only
+// together with a new version.
 export const SME_CONSENT_DISCLOSURE_VERSION = 'sme-consent-v1';
 
 // A paid service keeps working through a failed payment for the same 14-day grace

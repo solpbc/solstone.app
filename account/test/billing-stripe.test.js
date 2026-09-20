@@ -297,6 +297,41 @@ describe('billing stripe core', () => {
     logged.restore();
   });
 
+  // The contracts say the customer agrees to the terms with a separate, affirmative step
+  // before any charge. Stripe only collects that step when asked, and only once a terms URL is
+  // set in the Dashboard, so the request field is behind an exact-string switch. This proves
+  // all three checkouts honor it identically, and that nothing but the exact string turns it on.
+  it.each([
+    ['spl', '/billing/checkout', { plan: 'annual' }],
+    ['spb', '/services/backup/checkout', { plan: 'annual' }],
+    ['sme', '/services/sme/checkout', { plan: 'annual', data_ack: 'yes' }],
+  ])('%s checkout asks Stripe to collect terms assent only when STRIPE_TERMS_ASSENT is exactly "required"', async (_service, path, fields) => {
+    const logged = installConsoleSpy();
+    const checkoutFor = async (overrides) => {
+      const testEnv = makeTestEnv(overrides);
+      const account = await seedAccount({ email: `terms-${Math.random().toString(36).slice(2)}@example.com`, testEnv });
+      const session = await seedSession(account.accountId, { testEnv });
+      const { calls } = installStripeFetchMock({
+        'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_terms', url: 'https://checkout.stripe.test/terms' }),
+      });
+      const response = await postForm(path, testEnv, new URLSearchParams({ csrf: TEST_CSRF, ...fields }), session.cookie);
+      expect(response.headers.get('Location')).toBe('https://checkout.stripe.test/terms');
+      return calls[0].body;
+    };
+    const warned = () => logged.calls.filter(({ level, args }) => level === 'warn' && args[0] === 'stripe_checkout_terms_assent_off').length;
+
+    const on = await checkoutFor({ STRIPE_TERMS_ASSENT: 'required' });
+    expect(on.get('consent_collection[terms_of_service]')).toBe('required');
+    expect(warned()).toBe(0);
+
+    for (const value of [undefined, '', 'true', '1', 'REQUIRED', ' required', 'none']) {
+      const off = await checkoutFor({ STRIPE_TERMS_ASSENT: value });
+      expect(off.has('consent_collection[terms_of_service]')).toBe(false);
+    }
+    expect(warned()).toBe(7);
+    logged.restore();
+  });
+
   it('refuses to create a checkout for a service checkout does not sell', async () => {
     const testEnv = makeTestEnv();
     const base = { accountId: 'acct', priceId: 'price_x', customer: 'cus_x', customerEmail: '', successUrl: 'https://x.test/ok', cancelUrl: 'https://x.test/no', idempotencyKey: 'key' };

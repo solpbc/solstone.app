@@ -10,6 +10,17 @@ const encoder = new TextEncoder();
 // service here without a reconciler in billing.js is caught by test/billing-stripe.test.js.
 export const BILLED_SERVICES = Object.freeze(['spl', 'spb', 'sme']);
 
+// Whether Checkout must collect the customer's agreement to the terms before any charge.
+// Stripe refuses `consent_collection[terms_of_service]` unless a terms URL is already set in
+// the Dashboard's public details, so this is an explicit switch and not a default: it is
+// turned on (STRIPE_TERMS_ASSENT = "required", exact string) only after that Dashboard step
+// is done. While it is off, checkout takes no assent and logs that on every checkout.
+export function termsAssentRequired(env) {
+  if (env.STRIPE_TERMS_ASSENT === 'required') return true;
+  console.warn('stripe_checkout_terms_assent_off');
+  return false;
+}
+
 export async function createCheckoutSession(env, {
   accountId,
   priceId,
@@ -19,6 +30,7 @@ export async function createCheckoutSession(env, {
   cancelUrl,
   idempotencyKey,
   service,
+  termsAssent = false,
 }) {
   if (!idempotencyKey) throw new Error('stripe checkout requires idempotency key');
   if (!BILLED_SERVICES.includes(service)) throw new Error('stripe checkout requires a billed service');
@@ -31,6 +43,7 @@ export async function createCheckoutSession(env, {
   body.set('automatic_tax[enabled]', 'true');
   body.set('line_items[0][price]', priceId);
   body.set('line_items[0][quantity]', '1');
+  if (termsAssent) body.set('consent_collection[terms_of_service]', 'required');
   body.set('success_url', successUrl);
   body.set('cancel_url', cancelUrl);
   if (customer) {

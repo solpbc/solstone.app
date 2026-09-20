@@ -22,6 +22,7 @@ import {
   createPortalSession,
   getSubscription,
   subscriptionPeriodEnd,
+  termsAssentRequired,
   verifyWebhookSignature,
 } from './stripe.js';
 import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-grant.js';
@@ -100,6 +101,7 @@ export async function handleBillingCheckout(req, env) {
     cancelUrl: CHECKOUT_CANCEL_URL,
     idempotencyKey: crypto.randomUUID(),
     service: 'spl',
+    termsAssent: termsAssentRequired(env),
   });
   if (!checkout?.url) return signedInRedirect('/private-network?checkout=error');
   return signedInRedirect(checkout.url);

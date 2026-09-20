@@ -32,7 +32,7 @@ describe('sme checkout and portal', () => {
       'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_sme', url: 'https://checkout.stripe.test/sme-session' }),
     });
 
-    const first = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual' }), session.cookie);
+    const first = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual', data_ack: 'yes' }), session.cookie);
     expect(first.status).toBe(303);
     expect(first.headers.get('Location')).toBe('https://checkout.stripe.test/sme-session');
     expect(calls).toHaveLength(1);
@@ -49,11 +49,31 @@ describe('sme checkout and portal', () => {
     // The one price is annual, so a form that names no plan buys it, and an existing
     // Stripe customer is reused rather than asked for an email again.
     await seedStripeCustomer(account.accountId, 'cus_sme_existing');
-    const second = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
+    const second = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF, data_ack: 'yes' }), session.cookie);
     expect(second.status).toBe(303);
     expect(calls[1].body.get('line_items[0][price]')).toBe(testEnv.STRIPE_PRICE_SME_ANNUAL);
     expect(calls[1].body.get('customer')).toBe('cus_sme_existing');
     expect(calls[1].body.has('customer_email')).toBe(false);
+  });
+
+  it('takes no subscription until the owner has acknowledged the permanent record, enforced on the server', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'sme-ack@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const { calls } = installStripeFetchMock({
+      'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_sme', url: 'https://checkout.stripe.test/sme-session' }),
+    });
+
+    for (const fields of [{}, { data_ack: 'no' }, { data_ack: 'on' }, { data_ack: '' }]) {
+      const response = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual', ...fields }), session.cookie);
+      expect(response.status).toBe(303);
+      expect(response.headers.get('Location')).toBe(`${PATH}?checkout=ack`);
+    }
+    expect(calls).toHaveLength(0);
+
+    const acknowledged = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual', data_ack: 'yes' }), session.cookie);
+    expect(acknowledged.headers.get('Location')).toBe('https://checkout.stripe.test/sme-session');
+    expect(calls).toHaveLength(1);
   });
 
   it('is annual-only: any other plan is refused before Stripe is reached', async () => {
@@ -76,7 +96,7 @@ describe('sme checkout and portal', () => {
     const session = await seedSession(account.accountId, { testEnv });
     const { calls } = installStripeFetchMock();
 
-    const response = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual' }), session.cookie);
+    const response = await postForm(`${PATH}/checkout`, testEnv, new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual', data_ack: 'yes' }), session.cookie);
 
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe(`${PATH}?checkout=invalid`);
@@ -90,7 +110,7 @@ describe('sme checkout and portal', () => {
     const { calls } = installStripeFetchMock({
       'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_without_url' }),
     });
-    const form = () => new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual' });
+    const form = () => new URLSearchParams({ csrf: TEST_CSRF, plan: 'annual', data_ack: 'yes' });
 
     const stripeError = await postForm(`${PATH}/checkout`, testEnv, form(), session.cookie);
     expect(stripeError.status).toBe(303);

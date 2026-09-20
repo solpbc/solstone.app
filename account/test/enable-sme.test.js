@@ -80,12 +80,17 @@ describe('/enable/sme', () => {
     expect(body).toContain('sol pbc can approve this request for your sign-in, and keeps the address tied to it. no journal content comes with it, only what identifies the request.');
     expect(body).toContain("an agent you connect can search and read your journal, within what you let it see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.");
     expect(body).toContain("an agent's requests travel encrypted to your journal and are opened only there.");
-    expect(body).toContain("sol pbc can see that an agent and your journal met, when, and how much passed. nothing inside.");
+    expect(body).toContain('sol pbc can see that an agent and your journal met, when, how much passed, and the network addresses of the agent and of the computer your journal lives on. nothing inside.');
     expect(body).toContain('the public record is permanent');
     expect(body).toContain('i understand that the public record of this address is permanent, and what sol pbc can and cannot see.');
     expect(body).toContain('the address is eight random characters with nothing of yours in it.');
     expect(body).toContain('that record is permanent: it stays even if you turn this off, or ask sol pbc to delete everything it holds for you.');
-    expect(body).toContain('the record shows that an address existed. it does not say whose.');
+    expect(body).toContain('the logs add an entry each time a certificate is issued or renewed for the address, and certificates are renewed regularly, so there is usually more than one. each entry shows that an address existed. none of them says whose, though an agent you connect knows the address is yours, and so does sol pbc until you delete your sign-in.');
+    // The reservation outlives the sign-in and is the fact an owner would not predict from
+    // "delete everything it holds", so it sits in the permanence block, never in the ack line.
+    expect(body).toContain('sol pbc also keeps the address reserved, even after you delete your sign-in, so the address is never given to anyone else. the reservation carries no name, sign-in or journal.');
+    const ack = body.match(/<label class="ack">[\s\S]*?<\/label>/)[0];
+    expect(ack).not.toMatch(/reserv/i);
     expect(body).toContain('turning this back on uses the same address.');
     expect(body).toContain('turning it off does not cancel a subscription.');
     expect(body).toContain('<label class="ack">');

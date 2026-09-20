@@ -73,7 +73,9 @@ import {
   handleSpbCheckout,
   handleSpbPortal,
 } from './spb-billing.js';
-import { handleSmeCheckout, handleSmePortal } from './sme-billing.js';
+import { handleServicesSme, handleSmeCheckout, handleSmePortal } from './sme-billing.js';
+import { SME_HOSTED_SERVICE, isSmeEntitledToServe } from './sme-entitlement.js';
+import { smeOnSale } from './sme-service.js';
 import {
   handleAddEmail,
   handleMakeEmailPrimary,
@@ -427,7 +429,7 @@ async function routeRequest(req, env, ctx) {
             headers: NOINDEX,
           });
         }
-        return html(renderServicesCatalog({ signedIn: false }));
+        return html(renderServicesCatalog({ signedIn: false, smeOnSale: smeOnSale(env) }));
       }
 
       if (url.pathname === '/signin/start' && req.method === 'POST') {
@@ -686,6 +688,10 @@ async function routeRequest(req, env, ctx) {
 
       if (url.pathname === '/services/backup' && req.method === 'GET') {
         return handleServicesSpb(req, env);
+      }
+
+      if (url.pathname === '/services/sme' && req.method === 'GET') {
+        return handleServicesSme(req, env);
       }
 
       if (url.pathname === '/services/backup/terms' && req.method === 'GET') {
@@ -1175,21 +1181,24 @@ export default {
 async function handleServicesCatalog(req, env, session) {
   const url = new URL(req.url);
   const now = Date.now();
-  const [menu, hasPasskey, deviceCount, entitlement, spbEntitlement, sppEntitlement] = await Promise.all([
+  const [menu, hasPasskey, deviceCount, entitlement, spbEntitlement, sppEntitlement, smeEntitlement] = await Promise.all([
     loadMenuContext(env, session.account_id, now),
     hasAnyActivePasskey(env.DB, session.account_id),
     countActiveDevices(env.DB, session.account_id),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE }),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPB_HOSTED_SERVICE }),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPP_HOSTED_SERVICE }),
+    getEntitlement(env.DB, { accountId: session.account_id, service: SME_HOSTED_SERVICE }),
   ]);
   const networkActive = entitlement?.status === 'active' || entitlement?.status === 'past_due';
   const backupActive = spbEntitlement?.status === 'active' || spbEntitlement?.status === 'past_due';
   const sppActive = sppEntitlement?.status === 'active';
+  const smeActive = isSmeEntitledToServe(smeEntitlement, Math.floor(now / 1000), env);
   return html(renderServicesCatalog({
     signedIn: true,
     welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
     menu, deviceCount, networkActive, backupActive, sppActive,
+    smeOnSale: smeOnSale(env), smeActive,
   }), { headers: { 'Cache-Control': 'no-store' } });
 }
 

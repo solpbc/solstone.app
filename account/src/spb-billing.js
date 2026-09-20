@@ -16,6 +16,7 @@ import {
 import {
   createCheckoutSession,
   createPortalSession,
+  termsAssentRequired,
 } from './stripe.js';
 import { SPB_HOSTED_SERVICE as SERVICE } from './spb-entitlement.js';
 
@@ -83,6 +84,7 @@ export async function handleSpbCheckout(req, env) {
     cancelUrl: CHECKOUT_CANCEL_URL,
     idempotencyKey: crypto.randomUUID(),
     service: 'spb',
+    termsAssent: termsAssentRequired(env),
   });
   if (!checkout?.url) return signedInRedirect(`${SPB_SERVICE_PATH}?checkout=error`);
   return signedInRedirect(checkout.url);
