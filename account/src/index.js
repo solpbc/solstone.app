@@ -155,6 +155,7 @@ import {
   loadMenuContext,
 } from './settings.js';
 import { FONT_FILES, PORTAL_CSS, fontBytes } from './assets.js';
+import { SUNARC_JS } from './sunarc.js';
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
@@ -378,6 +379,16 @@ async function routeRequest(req, env, ctx) {
         return new Response(PORTAL_CSS, {
           headers: {
             'Content-Type': 'text/css; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600',
+            ...SECURITY_HEADERS,
+          },
+        });
+      }
+
+      if (url.pathname === '/sunarc.js' && req.method === 'GET') {
+        return new Response(SUNARC_JS, {
+          headers: {
+            'Content-Type': 'text/javascript; charset=utf-8',
             'Cache-Control': 'public, max-age=3600',
             ...SECURITY_HEADERS,
           },

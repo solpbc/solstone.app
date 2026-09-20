@@ -1,4 +1,5 @@
 export const PORTAL_CSS_HREF = '/portal.css?v=4';
+export const SUNARC_JS_SRC = '/sunarc.js?v=1';
 
 export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet (design-in-code, project #1)
    Applies the services brand canon + the shared design tokens. This is the

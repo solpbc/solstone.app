@@ -12,9 +12,13 @@ import {
   noaaSolarTime,
   parseColor,
   parseTokens,
+  parseZoneTable,
   rgbToOklab,
+  solarPairFor,
   sunOpacity,
   SUNARC_JS,
+  SUNARC_ZONE_COUNT,
+  SUNARC_ZONE_TABLE,
 } from '../src/sunarc.js';
 
 const portalCssText = PORTAL_CSS;
@@ -50,7 +54,7 @@ function makeTokenReader(overrides = {}) {
 const defaultTokens = parseTokens(makeTokenReader());
 
 describe('sunarc background', () => {
-  it('1. fallback 06:30/19:30: opacity at m=dawn and m=dusk is 0', () => {
+  it('1. rung 3 (06:30/19:30): opacity at m=dawn and m=dusk is 0', () => {
     const rise = 6 * 60 + 30;
     const set = 19 * 60 + 30;
     const tw = defaultTokens.twilightMinutes;
@@ -247,66 +251,136 @@ describe('sunarc background', () => {
     expect(Math.abs(set - expectedSet)).toBeLessThan(1.0);
   });
 
-  it('11. polar hold-or-fallback at the controller: keeps fallback on polar-at-load, and preserves stored pair on subsequent polar result', async () => {
-    // 1. Polar at load: stays fallback 390/1170
-    const doc1 = createMockDoc();
-    const stubPermPolar = {
-      query: async () => ({ state: 'granted' }),
-    };
-    const stubGeoPolar = {
-      getCurrentPosition: (success) => {
-        success({ coords: { latitude: -85.0, longitude: 0 } });
-      },
-    };
-    const controller1 = createSunarcController({
-      document: doc1,
+  it('11. polar day holds the last valid pair instead of falling to 06:30/19:30', () => {
+    const table = parseZoneTable(SUNARC_ZONE_TABLE);
+    const longyearbyen = table['Arctic/Longyearbyen'];
+    const midsummer = new Date(Date.UTC(2026, 5, 21, 12, 0, 0));
+
+    // The day itself has no sunrise at 78 N...
+    expect(noaaSolarTime(midsummer, longyearbyen.lat, longyearbyen.lon, true, 90.833, 2)).toBe(null);
+    // ...and the resolver still produces a real pair, walked back to the last day that had one.
+    const pair = solarPairFor(longyearbyen, midsummer, 2);
+    expect(pair).not.toBe(null);
+    expect(pair.rise).not.toBe(390);
+    expect(pair.set).not.toBe(1170);
+
+    // Same through the controller, driven by the zone identifier alone.
+    const doc = createMockDoc();
+    const controller = createSunarcController({
+      document: doc,
       window: { innerWidth: 1280, innerHeight: 820 },
-      now: () => new Date(Date.UTC(2026, 5, 21, 12, 0, 0)),
-      utcOffsetHours: 0,
+      now: () => midsummer,
+      utcOffsetHours: 2,
+      zoneId: 'Arctic/Longyearbyen',
       getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
-      permissions: stubPermPolar,
-      geolocation: stubGeoPolar,
     });
-    controller1.start();
-    await Promise.resolve();
-    await Promise.resolve();
+    controller.start();
+    expect(controller.getSolarPair().rise).toBeCloseTo(pair.rise, 6);
+    expect(controller.getSolarPair().set).toBeCloseTo(pair.set, 6);
+    controller.stop();
+  });
 
-    expect(controller1.getSolarPair().rise).toBe(390);
-    expect(controller1.getSolarPair().set).toBe(1170);
-    controller1.stop();
+  it('11a. the bundled tzdb table carries the spec\'s worked zone point', () => {
+    const table = parseZoneTable(SUNARC_ZONE_TABLE);
+    expect(SUNARC_ZONE_COUNT).toBe(418);
+    expect(Object.keys(table).length).toBe(418);
+    // Spec section 5 rung 2: "America/Denver -> 39.74 N, 104.98 W".
+    expect(table['America/Denver'].lat).toBeCloseTo(39.74, 2);
+    expect(table['America/Denver'].lon).toBeCloseTo(-104.98, 2);
+    expect(table['Europe/Oslo']).toBeTruthy();
+    expect(table['America/Indiana/Indianapolis']).toBeTruthy();
+    // A legacy alias with no row is rung 3's case.
+    expect(table['US/Mountain']).toBeUndefined();
+  });
 
-    // 2. Denver stored first, then polar location given -> preserves stored Denver pair
-    const doc2 = createMockDoc();
-    let positionCallback = null;
-    const stubGeoDenver = {
-      getCurrentPosition: (success) => {
-        positionCallback = success;
-        success({ coords: { latitude: 39.74, longitude: -104.99 } });
-      },
-    };
-    const controller2 = createSunarcController({
-      document: doc2,
+  it('11b. the system timezone is rung 2: Denver draws the spec\'s worked day, not a fixed default', () => {
+    const doc = createMockDoc();
+    const controller = createSunarcController({
+      document: doc,
       window: { innerWidth: 1280, innerHeight: 820 },
-      now: () => new Date(Date.UTC(2026, 8, 19, 12, 0, 0)),
+      now: () => new Date(2026, 8, 19, 12, 53, 0),
       utcOffsetHours: -6,
+      zoneId: 'America/Denver',
       getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
-      permissions: { query: async () => ({ state: 'granted' }) },
-      geolocation: stubGeoDenver,
     });
-    controller2.start();
-    await Promise.resolve();
-    await Promise.resolve();
+    controller.start();
+    const pair = controller.getSolarPair();
+    expect(Math.abs(pair.rise - (6 * 60 + 44))).toBeLessThan(1.0);
+    expect(Math.abs(pair.set - (19 * 60 + 2))).toBeLessThan(1.0);
 
-    const storedRise = controller2.getSolarPair().rise;
-    const storedSet = controller2.getSolarPair().set;
-    expect(Math.abs(storedRise - (6 * 60 + 44))).toBeLessThan(1.0);
-    expect(Math.abs(storedSet - (19 * 60 + 2))).toBeLessThan(1.0);
+    // Spec section 4's worked table for Denver 2026-09-19: t = 0.499 at 12:53.
+    const time = calculateSunTime(new Date(2026, 8, 19, 12, 53, 0), pair.rise, pair.set, defaultTokens.twilightMinutes);
+    expect(Math.abs(time.t - 0.499)).toBeLessThan(0.002);
+    controller.stop();
+  });
 
-    // Call success with polar coords -> refresh returns null and should keep stored Denver pair
-    positionCallback({ coords: { latitude: -89.5, longitude: 0 } });
-    expect(controller2.getSolarPair().rise).toBe(storedRise);
-    expect(controller2.getSolarPair().set).toBe(storedSet);
-    controller2.stop();
+  it('11c. rung 1 outranks rung 2, and an unknown identifier falls to rung 3', () => {
+    const doc = createMockDoc();
+    const held = createSunarcController({
+      document: doc,
+      window: { innerWidth: 1280, innerHeight: 820 },
+      now: () => new Date(2026, 8, 19, 12, 0, 0),
+      utcOffsetHours: -6,
+      zoneId: 'America/Denver',
+      heldLocation: { lat: -33.87, lon: 151.22 },
+      getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
+    });
+    held.start();
+    const heldPair = held.getSolarPair();
+    expect(Math.abs(heldPair.rise - (6 * 60 + 44))).toBeGreaterThan(1.0);
+    held.stop();
+
+    const unknown = createSunarcController({
+      document: createMockDoc(),
+      window: { innerWidth: 1280, innerHeight: 820 },
+      now: () => new Date(2026, 8, 19, 12, 0, 0),
+      utcOffsetHours: -6,
+      zoneId: 'US/Mountain',
+      getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
+    });
+    unknown.start();
+    expect(unknown.getSolarPair().rise).toBe(390);
+    expect(unknown.getSolarPair().set).toBe(1170);
+    unknown.stop();
+  });
+
+  it('11d. a timezone change recomputes on the next tick', () => {
+    let zone = 'America/Denver';
+    const controller = createSunarcController({
+      document: createMockDoc(),
+      window: { innerWidth: 1280, innerHeight: 820 },
+      now: () => new Date(2026, 8, 19, 12, 0, 0),
+      utcOffsetHours: -6,
+      get zoneId() { return zone; },
+      getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
+    });
+    controller.start();
+    const denver = { ...controller.getSolarPair() };
+    zone = 'Asia/Tokyo';
+    controller.tick();
+    const tokyo = controller.getSolarPair();
+    expect(tokyo.zoneId).toBe('Asia/Tokyo');
+    expect(Math.abs(tokyo.rise - denver.rise)).toBeGreaterThan(1.0);
+    controller.stop();
+  });
+
+  it('11e. a sunset after local midnight is carried into the next day, so dawn precedes dusk', () => {
+    const table = parseZoneTable(SUNARC_ZONE_TABLE);
+    const pair = solarPairFor(table['Atlantic/Reykjavik'], new Date(Date.UTC(2026, 5, 21, 12, 0, 0)), 0);
+    expect(pair.set).toBeGreaterThan(1440);
+    expect(pair.set).toBeGreaterThan(pair.rise);
+
+    // 00:10, which is inside that wrapped dusk twilight, reads as the end of the day rather
+    // than the middle of the night.
+    const tw = defaultTokens.twilightMinutes;
+    const smallHours = calculateSunTime(new Date(2026, 5, 21, 0, 10, 0), pair.rise, pair.set, tw);
+    expect(smallHours.t).toBeGreaterThan(0.9);
+    expect(smallHours.nightAmount).toBeGreaterThan(0);
+    expect(smallHours.nightAmount).toBeLessThan(1);
+
+    // An hour later, past dusk, it is night.
+    const night = calculateSunTime(new Date(2026, 5, 21, 1, 0, 0), pair.rise, pair.set, tw);
+    expect(night.nightAmount).toBe(1);
   });
 
   it('12. appearance signal changes exactly once across dawn twilight and dusk twilight at flip threshold', () => {
@@ -354,13 +428,15 @@ describe('sunarc background', () => {
     expect(duskFlips).toBe(1);
   });
 
-  it('13. full-day sweep with stubbed APIs: no fetch/XHR, no retry loop on hang/error, fallback clock used', async () => {
+  it('13. full-day sweep touches no network and no location API at all', async () => {
     let fetchCalls = 0;
     let xhrCalls = 0;
+    let permissionQueries = 0;
     let getCurrentPositionCalls = 0;
 
     const originalFetch = globalThis.fetch;
     const originalXHR = globalThis.XMLHttpRequest;
+    const originalNavigator = globalThis.navigator;
     globalThis.fetch = () => {
       fetchCalls++;
       return Promise.reject(new Error('no fetch allowed'));
@@ -368,116 +444,57 @@ describe('sunarc background', () => {
     globalThis.XMLHttpRequest = function() {
       xhrCalls++;
     };
+    // Spec section 12: "No network call and no location request attributable to this pattern."
+    // A granted permission is still a request, so the engine must not reach either API.
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: {
+        permissions: { query: async () => { permissionQueries++; return { state: 'granted' }; } },
+        geolocation: { getCurrentPosition: () => { getCurrentPositionCalls++; } },
+      },
+    });
 
     try {
-      // Case A: Permission "prompt" or "denied" -> never call getCurrentPosition or fetch/XHR
-      for (const permState of ['prompt', 'denied']) {
-        getCurrentPositionCalls = 0;
-        const stubGeo = {
-          getCurrentPosition: () => {
-            getCurrentPositionCalls++;
-          },
-        };
-        const stubPerm = {
-          query: async () => ({ state: permState }),
-        };
+      const doc = createMockDoc();
+      let currentMinutes = 0;
+      const controller = createSunarcController({
+        document: doc,
+        window: { innerWidth: 1280, innerHeight: 820 },
+        now: () => new Date(2026, 8, 19, Math.floor(currentMinutes / 60), currentMinutes % 60, 0),
+        utcOffsetHours: -6,
+        zoneId: 'America/Denver',
+        getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
+      });
+      controller.start();
+      await Promise.resolve();
+      await Promise.resolve();
 
-        const doc = createMockDoc();
-        let currentMinutes = 0;
-        const controller = createSunarcController({
-          document: doc,
-          window: { innerWidth: 1280, innerHeight: 820 },
-          now: () => new Date(2026, 8, 19, Math.floor(currentMinutes / 60), currentMinutes % 60, 0),
-          getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
-          permissions: stubPerm,
-          geolocation: stubGeo,
-        });
-        controller.start();
-        await Promise.resolve();
-        await Promise.resolve();
-
-        // Sweep entire day
-        for (let m = 0; m < 1440; m += 15) {
-          currentMinutes = m;
-          controller.tick();
-        }
-
-        expect(getCurrentPositionCalls).toBe(0);
-        expect(fetchCalls).toBe(0);
-        expect(xhrCalls).toBe(0);
-        expect(controller.getSolarPair().rise).toBe(390);
-        expect(controller.getSolarPair().set).toBe(1170);
-        controller.stop();
-      }
-
-      // Case B: Permission "granted" + position that hangs (never calls success/error)
-      {
-        getCurrentPositionCalls = 0;
-        const stubGeoHang = {
-          getCurrentPosition: () => {
-            getCurrentPositionCalls++;
-          },
-        };
-        const doc = createMockDoc();
-        let currentMinutes = 0;
-        const controller = createSunarcController({
-          document: doc,
-          window: { innerWidth: 1280, innerHeight: 820 },
-          now: () => new Date(2026, 8, 19, Math.floor(currentMinutes / 60), currentMinutes % 60, 0),
-          getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
-          permissions: { query: async () => ({ state: 'granted' }) },
-          geolocation: stubGeoHang,
-        });
-        controller.start();
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(getCurrentPositionCalls).toBe(1);
-
-        for (let m = 0; m < 1440; m += 30) {
-          currentMinutes = m;
-          controller.tick();
-        }
-
-        expect(getCurrentPositionCalls).toBe(1); // One shot, no retry loop
-        expect(controller.getSolarPair().rise).toBe(390);
-        expect(controller.getSolarPair().set).toBe(1170);
-        controller.stop();
-      }
-
-      // Case C: Permission "granted" + position that calls error callback
-      {
-        getCurrentPositionCalls = 0;
-        const stubGeoError = {
-          getCurrentPosition: (_success, error) => {
-            getCurrentPositionCalls++;
-            if (error) error(new Error('geo failed'));
-          },
-        };
-        const doc = createMockDoc();
-        const controller = createSunarcController({
-          document: doc,
-          window: { innerWidth: 1280, innerHeight: 820 },
-          now: () => new Date(2026, 8, 19, 12, 0, 0),
-          getComputedStyle: () => ({ getPropertyValue: makeTokenReader() }),
-          permissions: { query: async () => ({ state: 'granted' }) },
-          geolocation: stubGeoError,
-        });
-        controller.start();
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(getCurrentPositionCalls).toBe(1);
+      for (let m = 0; m < 1440; m += 15) {
+        currentMinutes = m;
         controller.tick();
-        expect(getCurrentPositionCalls).toBe(1);
-        expect(controller.getSolarPair().rise).toBe(390);
-        expect(controller.getSolarPair().set).toBe(1170);
-        controller.stop();
       }
+
+      expect(fetchCalls).toBe(0);
+      expect(xhrCalls).toBe(0);
+      expect(permissionQueries).toBe(0);
+      expect(getCurrentPositionCalls).toBe(0);
+      // And the sweep ran on the zone's real times, not the fixed default.
+      expect(controller.getSolarPair().rise).not.toBe(390);
+      controller.stop();
     } finally {
       globalThis.fetch = originalFetch;
       globalThis.XMLHttpRequest = originalXHR;
+      Object.defineProperty(globalThis, 'navigator', { configurable: true, value: originalNavigator });
     }
+  });
+
+  it('13a. the shipped bundle names no location or network API', () => {
+    for (const forbidden of ['navigator', 'getCurrentPosition', 'permissions.query', 'fetch(', 'XMLHttpRequest']) {
+      expect(SUNARC_JS.includes(forbidden)).toBe(false);
+    }
+    // ...and it does carry the bundled zone table, since the table cannot be fetched.
+    expect(SUNARC_JS.includes('America/Adak')).toBe(true);
+    expect(SUNARC_JS.includes(',Denver:3974:-10498,')).toBe(true);
   });
 
   it('14. many resize events inside 250ms debounce window recompute once', () => {
