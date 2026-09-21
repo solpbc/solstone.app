@@ -55,8 +55,22 @@ describe('spb encrypted backup billing', () => {
     const activeHtml = await active.text();
     expect(activeHtml).toContain('payment received. it can take a moment to show up here.');
     expect(activeHtml).toContain('your encrypted backup is on');
-    expect(activeHtml).toContain('renews 2027-01-15');
+    expect(activeHtml).toContain('paid through 2027-01-15');
+    expect(activeHtml).not.toContain('renews');
     expect(activeHtml).toContain('action="/services/backup/portal"');
+
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: SPB_SERVICE,
+      status: 'active',
+      currentPeriodEnd: null,
+    });
+    const missingPeriod = await get('/services/backup', testEnv, session.cookie);
+    const missingPeriodHtml = await missingPeriod.text();
+    expect(missingPeriodHtml).toContain('billed through Stripe.');
+    expect(missingPeriodHtml).not.toContain('paid through');
+    expect(missingPeriodHtml).not.toContain('renews');
+    expect(missingPeriodHtml).not.toContain('1970-01-01');
 
     await seedEntitlement({
       accountId: account.accountId,

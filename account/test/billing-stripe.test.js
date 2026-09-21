@@ -497,7 +497,7 @@ describe('billing stripe core', () => {
     const active = await get('/private-network', testEnv, session.cookie);
     const activeHtml = await active.text();
     expect(activeHtml).toContain('your private network is on');
-    expect(activeHtml).toContain('renews 2027-01-15');
+    expect(activeHtml).toContain('paid through 2027-01-15');
     expect(activeHtml).toContain('manage billing');
 
     await seedEntitlement({ accountId: account.accountId, status: 'past_due', currentPeriodEnd: 1_800_000_000 });

@@ -32,7 +32,7 @@ describe('private network', () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'active-private@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
-    await seedEntitlement({ accountId: account.accountId, status: 'active', enabledAt: ENABLED_AT });
+    await seedEntitlement({ accountId: account.accountId, status: 'active', enabledAt: ENABLED_AT, currentPeriodEnd: 1_800_000_000 });
     await seedDevice({ accountId: account.accountId, lastSeenAt: Date.now() - 60_000 });
     await seedDevice({ accountId: account.accountId, lastSeenAt: Date.now() - 30_000 });
 
@@ -50,8 +50,25 @@ describe('private network', () => {
     expect(body).toContain('manage billing');
     expect(body).toContain('turn off');
     expect(body.match(/action="\/billing\/portal"/g) || []).toHaveLength(2);
-    expect(body).toContain('renews');
+    expect(body).toContain('paid through 2027-01-15');
+    expect(body).not.toContain('renews');
     expect(body).toContain('how it works');
+  });
+
+  it('omits the billing date when an active entitlement has no period end', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'no-period-private@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({ accountId: account.accountId, status: 'active', currentPeriodEnd: null });
+
+    const response = await get('/private-network', testEnv, { Cookie: session.cookie });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('billed through Stripe.');
+    expect(body).not.toContain('paid through');
+    expect(body).not.toContain('renews');
+    expect(body).not.toContain('1970-01-01');
   });
 
   it('omits the enabled segment when enabled_at is null', async () => {

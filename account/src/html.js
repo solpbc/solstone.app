@@ -919,6 +919,7 @@ ${BRANDLOCK}
 export function renderServicesSpl({ entitlement, csrf, flash = {}, menu, deviceCount = 0, lastSeen = null, nowMs }) {
   const flashes = billingFlashMessages(flash);
   const status = entitlement?.status || '';
+  const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const detailParts = [];
   if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
   if (lastSeen != null) detailParts.push(`last seen ${formatRelativeTime(lastSeen, nowMs)}`);
@@ -956,7 +957,7 @@ ${content}`,
   ${billingPortalForm({ csrf })}
   ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger' })}
 </div>
-<p class="disclosure" style="margin-top:24px">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · billed through stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${paidThrough ? `paid through ${esc(paidThrough)} · ` : ''}billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -989,6 +990,7 @@ ${content}`,
 export function renderServicesSpb({ entitlement, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
   const flashes = spbBillingFlashMessages(flash);
   const status = entitlement?.status || '';
+  const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const detailParts = [];
   if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
   detailParts.push('operated by sol pbc');
@@ -1028,7 +1030,7 @@ ${content}`,
       statusLine: onStatusLine,
       content: `${controlGroup}
 ${portalActions}
-<p class="disclosure" style="margin-top:24px">renews ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · billed through Stripe. <a href="/backup">how it works</a> · <a href="/services/backup/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${paidThrough ? `paid through ${esc(paidThrough)} · ` : ''}billed through Stripe. <a href="/backup">how it works</a> · <a href="/services/backup/terms">terms</a></p>`,
     });
   }
 
@@ -2511,8 +2513,9 @@ export function escAttr(value) {
 }
 
 function formatUnixSecondsDate(seconds) {
+  if (seconds == null) return null;
   const value = Number(seconds);
-  if (!Number.isFinite(value)) return '—';
+  if (!Number.isFinite(value)) return null;
   return new Date(value * 1000).toISOString().slice(0, 10);
 }
 
