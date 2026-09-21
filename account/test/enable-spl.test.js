@@ -80,9 +80,9 @@ describe('/enable/spl', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('this journal is asking to enable private network access.');
-    expect(body).toContain('so sol pbc can approve this request. no journal content comes with it, only what identifies the request.');
-    expect(body).toContain("sol pbc records your journal's approval and hands it back. nothing from your journal is sent to sol pbc to do this.");
+    expect(body).toContain('sol pbc received a request to turn on private network for your journal. it stays off until you allow it.');
+    expect(body).toContain("sol pbc can approve it because it's tied to your sign-in. no journal content comes with it, only what identifies the request, and your allowing it is recorded.");
+    expect(body).toContain("sol pbc runs a relay so your journal stays reachable when it's away from your own network.");
     expect(body).not.toContain('taken in alongside you');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
@@ -103,7 +103,7 @@ describe('/enable/spl', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).not.toContain('name="instance"');
-      expect(body).toContain('<a href="/private-network">set up your private network</a>. sol pbc runs the relay for you.');
+      expect(body).toContain('turn on private network');
     }
   });
 
@@ -144,7 +144,7 @@ describe('/enable/spl', () => {
       const second = await worker.fetch(new Request(`https://services.solstone.app/handoff/spl?nonce=${VALID_NONCE}`), testEnv);
 
       expect(response.status).toBe(200);
-      expect(await response.text()).toContain('private network access is approved for this journal. you can close this tab.');
+      expect(await response.text()).toContain('private network is on for your journal. you can close this tab.');
       expect(handoff.status).toBe(200);
       expect(payload).toEqual({
         service: 'spl',
@@ -199,7 +199,7 @@ describe('/enable/spl', () => {
     const binding = await splBindingRow(account.accountId, VALID_INSTANCE);
 
     expect(response.status).toBe(200);
-    expect(body).toContain('set up your private network');
+    expect(body).toContain('set up private network');
     expect(payload).toEqual({
       service: 'spl',
       state: 'needs_subscription',
@@ -233,7 +233,7 @@ describe('/enable/spl', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('private network access is approved for this journal. you can close this tab.');
+    expect(body).toContain('private network is on for your journal. you can close this tab.');
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({ instance_id: VALID_INSTANCE, entitled_until: 1_900_000_000 });
     expect(calls[0].init.headers.Authorization).toBe('Bearer test-relay-grant-secret');

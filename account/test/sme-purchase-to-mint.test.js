@@ -116,7 +116,7 @@ describe('the agent connector: consent, purchase, and the mint', () => {
       csrf: TEST_CSRF, nonce: NONCE, action: 'allow', instance: home.instanceId, data_ack: 'yes',
     });
     expect(consent.status).toBe(200);
-    expect(await consent.text()).toContain('sol pbc approved this journal for an address.');
+    expect(await consent.text()).toContain('solstone.me is on for your journal. you can close this tab.');
     await expectMint(home, env, 200);
     expect(calls).toHaveLength(0);
   });

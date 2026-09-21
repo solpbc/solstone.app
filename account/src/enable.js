@@ -326,9 +326,7 @@ export async function handleEnableSplGet(req, env) {
   if (!session) return signInRedirect(env, ENABLE_SPL_PATH, resumeQuery);
 
   const csrf = await csrfToken(env);
-  const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE });
-  const entitled = isSplEntitled(entitlement);
-  return noStoreHtml(renderEnableSplConsent({ csrf, nonce, instance, entitled }));
+  return noStoreHtml(renderEnableSplConsent({ csrf, nonce, instance }));
 }
 
 export async function handleEnableSplConfirm(req, env, ctx) {
@@ -442,9 +440,7 @@ export async function handleEnableSpbGet(req, env) {
   if (!session) return signInRedirect(env, ENABLE_SPB_PATH, resumeQuery);
 
   const csrf = await csrfToken(env);
-  const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPB_HOSTED_SERVICE });
-  const entitled = isSpbEntitled(entitlement);
-  return noStoreHtml(renderEnableSpbConsent({ csrf, nonce, instance, entitled }));
+  return noStoreHtml(renderEnableSpbConsent({ csrf, nonce, instance }));
 }
 
 export async function handleEnableSpbConfirm(req, env, ctx) {

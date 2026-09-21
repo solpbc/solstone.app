@@ -259,31 +259,89 @@ you got here some other way, you can close this tab.</p>
   });
 }
 
-export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = false }) {
+// === one pattern for every turn-on screen ===
+// records/decisions/260921-cpo-service-turn-on-screens-follow-one-pattern-and-the-sign-in-bound-push-consent-retires.md § 1
+
+// Card 1 is one shared constant on every turn-on screen: the request is tied to the
+// owner's sign-in, no journal content comes with it, and allowing it is recorded.
+const TURN_ON_CARD_1 = `<div class="grant">
+    <div class="n">1</div>
+    <div>
+      <div class="gt">the request is tied to your sign-in</div>
+      <div class="gd">sol pbc can approve it because it's tied to your sign-in. no journal content comes with it, only what identifies the request, and your allowing it is recorded.</div>
+    </div>
+  </div>`;
+
+function turnOnLead(service) {
+  return `sol pbc received a request to turn on ${service} for your journal. it stays off until you allow it.`;
+}
+
+// One shared footer for every turn-on screen: reversibility, the subscription
+// caveat on paid services, the terms link (always /terms, never a redirecting
+// alias), and the privacy-policy anchor for what sol pbc keeps.
+function turnOnFooter({ paid, policyAnchor }) {
+  const subscriptionClause = paid ? " turning it off doesn't cancel a subscription." : '';
+  return `<p class="disclosure">you can turn it off from the journal anytime.${subscriptionClause} by turning this on, you agree to the <a href="/terms">terms</a>. what sol pbc keeps is in the <a href="https://solpbc.org/privacy#${policyAnchor}">privacy policy</a>.</p>`;
+}
+
+function restorePolicyFooter(policyAnchor) {
+  return `<p class="disclosure">what sol pbc keeps is in the <a href="https://solpbc.org/privacy#${policyAnchor}">privacy policy</a>.</p>`;
+}
+
+// The three follow-on templates every turn-on flow shares (rule 8); the service
+// name is the only variable. Restore's own three follow-on pages are its own
+// (rule 7) and stay with renderEnableSpbRestore* below.
+function enableDoneTemplate(service) {
+  return layout({
+    title: `${service} turned on`,
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} ${service} turned on</h2>
+  <p>${service} is on for your journal. you can close this tab.</p>
+</div>`,
+  });
+}
+
+function enableNeedsSubscriptionTemplate({ service, href }) {
+  return layout({
+    title: 'a subscription is needed',
+    body: `${brandbar()}
+<div class="card">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
+  <p>sol pbc turns on ${service} for your journal once a subscription is active. your allow is saved, so you won't be asked again.</p>
+  <a class="btn primary" href="${escAttr(href)}">set up ${service}</a>
+</div>`,
+  });
+}
+
+function enableErrorTemplate(service) {
+  return layout({
+    title: `could not turn on ${service}`,
+    body: `${brandbar()}
+<div class="card">
+  <h1>could not turn on ${service}</h1>
+  <p>something didn't look right with that link.</p>
+  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
+</div>`,
+  });
+}
+
+export function renderEnableSplConsent({ csrf, nonce, instance = '' }) {
   const instanceInput = instance
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
-  const disclosure = entitled
-    ? '<p class="disclosure">you can review or change private network access from the journal anytime.</p>'
-    : '<p class="disclosure"><a href="/private-network">set up your private network</a>. sol pbc runs the relay for you.</p>';
   return layout({
-    title: 'enable private network access',
+    title: 'turn on private network',
     body: `${brandbar()}
-<h1>enable private network access</h1>
-<p class="lead">this journal is asking to enable private network access. two things, and only these two:</p>
+<h1>turn on private network</h1>
+<p class="lead">${turnOnLead('private network')}</p>
 <div class="card">
-  <div class="grant">
-    <div class="n">1</div>
-    <div>
-      <div class="gt">know this request is yours</div>
-      <div class="gd">so sol pbc can approve this request. no journal content comes with it, only what identifies the request.</div>
-    </div>
-  </div>
+  ${TURN_ON_CARD_1}
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">enable private network access</div>
-      <div class="gd">sol pbc records your journal's approval and hands it back. nothing from your journal is sent to sol pbc to do this.</div>
+      <div class="gt">what it does for your journal</div>
+      <div class="gd">sol pbc runs a relay so your journal stays reachable when it's away from your own network. the relay only passes encrypted bytes through: sol pbc can't read what passes through it. on your own network, reaching your journal is always free and doesn't use the relay.</div>
     </div>
   </div>
   <form method="post" action="/enable/spl/confirm">
@@ -296,71 +354,38 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', entitled = 
     </div>
   </form>
 </div>
-${disclosure}
-<p class="disclosure">by turning this on, you agree to the <a href="/terms">terms</a>.</p>`,
+${turnOnFooter({ paid: true, policyAnchor: 'private-network' })}`,
   });
 }
 
 export function renderEnableSplDone() {
-  return layout({
-    title: 'private network access enabled',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} private network access enabled</h2>
-  <p>private network access is approved for this journal. you can close this tab.</p>
-</div>`,
-  });
+  return enableDoneTemplate('private network');
 }
 
 export function renderEnableSplNeedsSubscription() {
-  return layout({
-    title: 'private network needed',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">private network needed</h2>
-  <p>sol pbc runs the relay for your private network before this journal can use it.</p>
-  <a class="btn primary" href="/private-network">set up your private network</a>
-</div>`,
-  });
+  return enableNeedsSubscriptionTemplate({ service: 'private network', href: '/private-network' });
 }
 
 export function renderEnableSplError() {
-  return layout({
-    title: 'could not enable private network access',
-    body: `${brandbar()}
-<div class="card">
-  <h1>could not enable private network access</h1>
-  <p>something didn't look right with that link.</p>
-  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
-</div>`,
-  });
+  return enableErrorTemplate('private network');
 }
 
-export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = false }) {
+export function renderEnableSpbConsent({ csrf, nonce, instance = '' }) {
   const instanceInput = instance
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
-  const disclosure = entitled
-    ? '<p class="disclosure">you can review or change encrypted backup from the journal anytime.</p>'
-    : '<p class="disclosure"><a href="/services/backup">set up encrypted backup</a>. sol pbc runs encrypted backup for you.</p>';
   return layout({
-    title: 'enable encrypted backup',
+    title: 'turn on encrypted backup',
     body: `${brandbar()}
-<h1>enable encrypted backup</h1>
-<p class="lead">sol pbc received a request to enable encrypted backup for your journal. two things, and only these two:</p>
+<h1>turn on encrypted backup</h1>
+<p class="lead">${turnOnLead('encrypted backup')}</p>
 <div class="card">
-  <div class="grant">
-    <div class="n">1</div>
-    <div>
-      <div class="gt">know this request is yours</div>
-      <div class="gd">so sol pbc can approve this request. no journal content comes with it, only what identifies the request.</div>
-    </div>
-  </div>
+  ${TURN_ON_CARD_1}
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">enable encrypted backup</div>
-      <div class="gd">sol pbc starts keeping a copy of your journal, encrypted on your device before it leaves, so only you can read it. restoring it later takes your recovery key, a sign-in here, and encrypted backup still on. sol pbc holds no copy of your recovery key, and cannot open your encrypted copy without that key.</div>
+      <div class="gt">what leaves your device</div>
+      <div class="gd">sol pbc keeps a copy of your journal, encrypted on your device before it leaves, so only you can read it. sol pbc holds no copy of your recovery key and can't open your encrypted copy without it. if you lose it, no one can restore your backup, not even sol pbc.</div>
     </div>
   </div>
   <form method="post" action="/enable/backup/confirm">
@@ -373,32 +398,16 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', entitled = 
     </div>
   </form>
 </div>
-${disclosure}
-<p class="disclosure">by turning this on, you agree to the <a href="/services/backup/terms">terms</a>.</p>`,
+${turnOnFooter({ paid: true, policyAnchor: 'encrypted-backup' })}`,
   });
 }
 
 export function renderEnableSpbDone() {
-  return layout({
-    title: 'encrypted backup enabled',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} encrypted backup enabled</h2>
-  <p>encrypted backup is approved for this journal. you can close this tab.</p>
-</div>`,
-  });
+  return enableDoneTemplate('encrypted backup');
 }
 
 export function renderEnableSpbNeedsSubscription() {
-  return layout({
-    title: 'encrypted backup needed',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">encrypted backup needed</h2>
-  <p>sol pbc runs encrypted backup for you.</p>
-  <a class="btn primary" href="/services/backup">set up encrypted backup</a>
-</div>`,
-  });
+  return enableNeedsSubscriptionTemplate({ service: 'encrypted backup', href: '/services/backup' });
 }
 
 export function renderEnableSpbRestoreConsent({ csrf, nonce, candidates, error = false }) {
@@ -434,16 +443,17 @@ export function renderEnableSpbRestoreConsent({ csrf, nonce, candidates, error =
       <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
     </div>
   </form>
-</div>`,
+</div>
+${restorePolicyFooter('encrypted-backup')}`,
   });
 }
 
 export function renderEnableSpbRestoreNoHostedBackup() {
   return layout({
-    title: "sol pbc isn't holding an encrypted copy under this sign-in",
+    title: "sol pbc isn't holding an encrypted copy under your sign-in",
     body: `${brandbar()}
 <div class="card">
-  <h2>sol pbc isn't holding an encrypted copy under this sign-in</h2>
+  <h2>sol pbc isn't holding an encrypted copy under your sign-in</h2>
   <p>if you have more than one way to sign in, sign out and sign back in the way you did when you set up encrypted backup.</p>
 </div>`,
   });
@@ -473,15 +483,7 @@ export function renderEnableSpbRestoreNeedsSubscription() {
 }
 
 export function renderEnableSpbError() {
-  return layout({
-    title: 'could not enable encrypted backup',
-    body: `${brandbar()}
-<div class="card">
-  <h1>could not enable encrypted backup</h1>
-  <p>something didn't look right with that link.</p>
-  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
-</div>`,
-  });
+  return enableErrorTemplate('encrypted backup');
 }
 
 export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
@@ -489,51 +491,38 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
   return layout({
-    title: 'enable confidential processing',
+    title: 'turn on confidential processing',
     body: `${brandbar()}
-<h1>enable confidential processing</h1>
-<p class="lead">this journal is asking to turn on confidential processing. here's exactly what that means. it stays off until you allow it.</p>
+<h1>turn on confidential processing</h1>
+<p class="lead">${turnOnLead('confidential processing')}</p>
 <div class="card">
-  <div class="grant">
-    <div class="n">1</div>
-    <div>
-      <div class="gt">know this request is yours</div>
-      <div class="gd">so sol pbc can approve this request. no journal content comes with it, only what identifies the request.</div>
-    </div>
-  </div>
+  ${TURN_ON_CARD_1}
   <div class="grant">
     <div class="n">2</div>
     <div>
       <div class="gt">what leaves your device</div>
-      <div class="gd">when confidential processing is on, <a href="/confidential-processing/data">the text and images that go to a model for processing</a> leave your device. when the audio switch is on (its default), your audio recordings for transcription go too. your journal itself never leaves. it stays on your computer. voiceprints and speaker profiles are never created on the service; that work happens on your device and never leaves. what leaves goes to a model sol pbc runs itself: no third-party AI provider is in the path. it's processed and not kept. no content retained, no human review, nothing used to train.</div>
-    </div>
-  </div>
-  <div class="grant">
-    <div style="flex:none;width:26px"></div>
-    <div>
-      <div class="gt">audio has its own switch</div>
-      <div class="gd">"transcribe audio on the service" lives in the journal's thinking app, in the confidential lane. it's on while confidential processing is in use. turn it off any time and it takes effect right away: speech becomes text on your device instead, and text and images continue under this choice.</div>
+      <div class="gd">when confidential processing is on, <a href="/confidential-processing/data">the text and images that go to a model for processing</a> leave your device. when the audio switch is on (its default), your audio recordings for transcription go too. turn it off any time in the journal's thinking app, in the confidential lane, and speech becomes text on your device instead. your journal itself never leaves; it stays on your computer. voiceprints and speaker profiles are never created on the service. it's processed on a model sol pbc runs itself, with no third-party AI provider in the path: no content is retained, no human reviews it, nothing is used to train.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">3</div>
     <div>
       <div class="gt">your journal must verify before it sends</div>
-      <div class="gd">before anything is sent, your journal must verify the service on the other end, and it only sends if that check passes. if it can't verify, it doesn't send, and the solstone app tells you why. the model runs on confidential hardware sol pbc operates, with no third-party AI provider in the path. sol pbc gives your device a credential so only this journal can reach the model. the credential lives on your device, and sol pbc keeps only a hash of it. transcription included: if the check can't pass, your recordings wait on your device. they're never sent anywhere else, and it never quietly does it a different way.</div>
+      <div class="gd">before anything is sent, your journal checks the service on the other end, and only sends if that check passes. if it can't verify, nothing is sent, including recordings waiting to transcribe, and the solstone app tells you why.</div>
     </div>
   </div>
   <form method="post" action="/enable/spp/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     ${instanceInput}
-    ${ackField('i understand what turning this on sends, and that my journal must verify the service before anything is sent.')}
+    ${ackField('i understand what this sends, and that my journal verifies the service before it sends.')}
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
       <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
     </div>
   </form>
 </div>
-<p class="disclosure">confidential processing is available to approved scouts. it stays off until you allow it here, and you can turn it off from the journal anytime. by turning this on, you agree to the <a href="/services/processing/terms">terms</a>.</p>`,
+${turnOnFooter({ paid: false, policyAnchor: 'confidential-processing' })}`,
   });
 }
 
@@ -543,57 +532,39 @@ export function renderEnableSppApprovalRequired() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">scout approval required</h2>
-  <p>confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on a model sol pbc runs itself on confidential hardware sol pbc operates, which keeps nothing: it's processed and not kept, no content retained, no human review, nothing used to train. your journal must verify the service before anything is sent. if it can't verify, it doesn't send. no third-party AI provider is in the path.</p>
-  <p>confidential processing is available to approved scouts. this sign-in is not currently approved, so there is nothing to enable here.</p>
+  <p>confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on a model sol pbc runs itself, which keeps nothing: no content is retained, no human reviews it, nothing is used to train. your journal must verify the service before anything is sent. if it can't verify, nothing is sent. no third-party AI provider is in the path.</p>
+  <p>confidential processing is available to approved scouts. your sign-in is not currently approved, so there is nothing to turn on here.</p>
   <a class="btn primary" href="/scout">request scout access</a>
 </div>`,
   });
 }
 
 export function renderEnableSppDone() {
-  return layout({
-    title: 'confidential processing enabled',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} confidential processing enabled</h2>
-  <p>confidential processing is approved for this journal. you can close this tab.</p>
-</div>`,
-  });
+  return enableDoneTemplate('confidential processing');
 }
 
 export function renderEnableSppError() {
-  return layout({
-    title: 'could not enable confidential processing',
-    body: `${brandbar()}
-<div class="card">
-  <h1>could not enable confidential processing</h1>
-  <p>something didn't look right with that link.</p>
-  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
-</div>`,
-  });
+  return enableErrorTemplate('confidential processing');
 }
 
 // The disclosure that must reach an owner before any subscription is taken, and again where
-// they turn the service on. One string, used by both surfaces, so they cannot drift apart.
+// they turn the service on. One string, used by three surfaces (this consent card,
+// renderServicesSme and renderSmeLanding), so they cannot drift apart. Calmed 2026-09-21
+// per the founder's direction (clo/workspace/founder-review-screencast-260920.md): the
+// certificate-log mechanics are not owner education. The floor is the privacy policy's
+// own sentence: the address's existence stays public for good, which stays below.
 export const SME_PERMANENCE_PARTS = [
-  'the address is eight random characters with nothing of yours in it. because it gets a real certificate, it is written into public certificate logs, and that record is permanent: it stays even if you turn this off, or ask sol pbc to delete everything it holds for you. the logs add an entry each time a certificate is issued or renewed for the address, and certificates are renewed regularly, so there is usually more than one. each entry shows that an address existed. none of them says whose, though an agent you connect knows the address is yours, and so does sol pbc until you delete your sign-in.',
-  'sol pbc also keeps the address reserved, even after you delete your sign-in, so the address is never given to anyone else. the reservation carries no name, sign-in or journal.',
+  "the address is public once it's issued, and stays public for good, even after you turn this off, cancel, or delete your sign-in. it's an identifier, not your data: eight random characters with nothing of yours in it.",
 ];
 
 export function renderEnableSmeConsent({ csrf, nonce, instance }) {
   return layout({
-    title: 'give this journal an address',
+    title: 'turn on solstone.me',
     body: `${brandbar()}
-<h1>give this journal an address</h1>
-<p class="lead">this journal is asking sol pbc to give it an address on the internet, so agents you connect can reach it. an active subscription keeps the address working, and it's complimentary for approved scouts. it stays off until you allow it. here's what that means.</p>
+<h1>turn on solstone.me</h1>
+<p class="lead">${turnOnLead('solstone.me')}</p>
 <div class="card">
-  <div class="grant">
-    <div class="n">1</div>
-    <div>
-      <div class="gt">this request is tied to your sign-in</div>
-      <div class="gd">sol pbc can approve this request for your sign-in, and keeps the address tied to it. no journal content comes with it, only what identifies the request.</div>
-    </div>
-  </div>
+  ${TURN_ON_CARD_1}
   <div class="grant">
     <div class="n">2</div>
     <div>
@@ -604,8 +575,8 @@ export function renderEnableSmeConsent({ csrf, nonce, instance }) {
   <div class="grant">
     <div class="n">3</div>
     <div>
-      <div class="gt">how it reaches your journal</div>
-      <div class="gd">your journal gets an address on the internet. an agent's requests travel encrypted to your journal and are opened only there. sol pbc runs the relay in between. it passes the traffic along and can't read it. sol pbc can see that an agent and your journal met, when, how much passed, and the network addresses of the agent and of the computer your journal lives on. nothing inside.</div>
+      <div class="gt">the relay can't read what passes through it</div>
+      <div class="gd">your journal gets an address on the internet. an agent's requests travel encrypted to your journal and are opened only there. sol pbc runs the relay in between and can't read what passes through it. what sol pbc can see is in the <a href="https://solpbc.org/privacy#solstone-me">privacy policy</a>.</div>
     </div>
   </div>
   <div class="grant">
@@ -613,63 +584,34 @@ export function renderEnableSmeConsent({ csrf, nonce, instance }) {
     <div>
       <div class="gt">the public record is permanent</div>
       ${SME_PERMANENCE_PARTS.map((part, i) => `<div class="gd"${i ? ' style="margin-top:8px"' : ''}>${esc(part)}</div>`).join('')}
-    </div>
-  </div>
-  <div class="grant">
-    <div style="flex:none;width:26px"></div>
-    <div>
-      <div class="gt">turning it off keeps the address</div>
-      <div class="gd">turning this back on uses the same address.</div>
+      <div class="gd" style="margin-top:8px">turning this off keeps the address. turning it back on uses the same one.</div>
     </div>
   </div>
   <form method="post" action="/enable/solstone-me/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     <input type="hidden" name="instance" value="${escAttr(instance)}">
-    ${ackField('i understand that the public record of this address is permanent, and what sol pbc can and cannot see.')}
+    ${ackField('i understand that the public record of this address is permanent.')}
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
       <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
     </div>
   </form>
 </div>
-<p class="disclosure">you can turn it off from the journal anytime. turning it off does not cancel a subscription. by turning this on, you agree to the <a href="/legal">terms</a>.</p>`,
+${turnOnFooter({ paid: true, policyAnchor: 'solstone-me' })}`,
   });
 }
 
 export function renderEnableSmeNeedsSubscription() {
-  return layout({
-    title: 'a subscription is needed',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
-  <p>sol pbc runs the address for this journal once a subscription is active. your permission is saved, so you won't be asked to allow it again.</p>
-  <a class="btn primary" href="${escAttr(SME_SERVICE_PATH)}">set up a subscription</a>
-</div>`,
-  });
+  return enableNeedsSubscriptionTemplate({ service: 'solstone.me', href: SME_SERVICE_PATH });
 }
 
 export function renderEnableSmeDone() {
-  return layout({
-    title: 'this journal is approved for an address',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} this journal is approved for an address</h2>
-  <p>sol pbc approved this journal for an address. you can close this tab.</p>
-</div>`,
-  });
+  return enableDoneTemplate('solstone.me');
 }
 
 export function renderEnableSmeError() {
-  return layout({
-    title: 'could not give this journal an address',
-    body: `${brandbar()}
-<div class="card">
-  <h1>could not give this journal an address</h1>
-  <p>something didn't look right with that link.</p>
-  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
-</div>`,
-  });
+  return enableErrorTemplate('solstone.me');
 }
 
 // === services surfaces ===

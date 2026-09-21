@@ -38,8 +38,9 @@ describe('service landing pages', () => {
     expect(body).toContain('<h1>solstone.me</h1>');
     expect(body).toContain('an address on the internet for your journal, so an agent you already use can read from it');
     expect(body).toContain('the public record is permanent');
-    expect(body).toContain(SME_PERMANENCE_PARTS[0]);
-    expect(body).toContain(SME_PERMANENCE_PARTS[1]);
+    for (const part of SME_PERMANENCE_PARTS) {
+      expect(body).toContain(part);
+    }
     expect(body).toContain('sign in to enable');
     expect(body).toContain('$5');
     expect(body).not.toMatch(/\$[0-9.]+\s*\/\s*month/);

@@ -81,7 +81,7 @@ describe('/enable/backup', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain('sol pbc received a request to enable encrypted backup for your journal. two things, and only these two:');
+    expect(body).toContain('sol pbc received a request to turn on encrypted backup for your journal. it stays off until you allow it.');
     expect(body).toContain('name="csrf" value=');
     expect(body).toContain(`name="nonce" value="${VALID_NONCE}"`);
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
@@ -97,7 +97,7 @@ describe('/enable/backup', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('enable encrypted backup');
+    expect(body).toContain('turn on encrypted backup');
     expect(body).toContain(`name="instance" value="${VALID_INSTANCE}"`);
     expect(body).not.toContain('restore from encrypted backup');
   });
@@ -117,7 +117,7 @@ describe('/enable/backup', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).not.toContain('name="instance"');
-      expect(body).toContain('<a href="/services/backup">set up encrypted backup</a>. sol pbc runs encrypted backup for you.');
+      expect(body).toContain('turn on encrypted backup');
     }
   });
 
@@ -164,7 +164,7 @@ describe('/enable/backup', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('set up encrypted backup');
-    expect(body).toContain('sol pbc runs encrypted backup for you.');
+    expect(body).toContain('your allow is saved');
     expect(payload).toEqual({
       broker_endpoint: 'https://services.solstone.app',
       account_id: account.accountId,
@@ -198,7 +198,7 @@ describe('/enable/backup', () => {
     const binding = await spbBindingRow(account.accountId, VALID_INSTANCE);
 
     expect(response.status).toBe(200);
-    expect(body).toContain('encrypted backup is approved for this journal. you can close this tab.');
+    expect(body).toContain('encrypted backup is on for your journal. you can close this tab.');
     expect(payload).toEqual({
       broker_endpoint: 'https://services.solstone.app',
       account_id: account.accountId,

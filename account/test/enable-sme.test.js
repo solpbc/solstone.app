@@ -75,24 +75,23 @@ describe('/enable/solstone-me', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(body).toContain("this journal is asking sol pbc to give it an address on the internet, so agents you connect can reach it.");
-    expect(body).toContain("an active subscription keeps the address working, and it's complimentary for approved scouts. it stays off until you allow it.");
-    expect(body).toContain('sol pbc can approve this request for your sign-in, and keeps the address tied to it. no journal content comes with it, only what identifies the request.');
+    expect(body).toContain('sol pbc received a request to turn on solstone.me for your journal. it stays off until you allow it.');
+    expect(body).toContain("sol pbc can approve it because it's tied to your sign-in. no journal content comes with it, only what identifies the request, and your allowing it is recorded.");
     expect(body).toContain("an agent you connect can search and read your journal, within what you let it see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.");
     expect(body).toContain("an agent's requests travel encrypted to your journal and are opened only there.");
-    expect(body).toContain('sol pbc can see that an agent and your journal met, when, how much passed, and the network addresses of the agent and of the computer your journal lives on. nothing inside.');
+    expect(body).toContain("sol pbc runs the relay in between and can't read what passes through it.");
+    expect(body).toContain('what sol pbc can see is in the <a href="https://solpbc.org/privacy#solstone-me">privacy policy</a>.');
     expect(body).toContain('the public record is permanent');
-    expect(body).toContain('i understand that the public record of this address is permanent, and what sol pbc can and cannot see.');
-    expect(body).toContain('the address is eight random characters with nothing of yours in it.');
-    expect(body).toContain('that record is permanent: it stays even if you turn this off, or ask sol pbc to delete everything it holds for you.');
-    expect(body).toContain('the logs add an entry each time a certificate is issued or renewed for the address, and certificates are renewed regularly, so there is usually more than one. each entry shows that an address existed. none of them says whose, though an agent you connect knows the address is yours, and so does sol pbc until you delete your sign-in.');
-    // The reservation outlives the sign-in and is the fact an owner would not predict from
-    // "delete everything it holds", so it sits in the permanence block, never in the ack line.
-    expect(body).toContain('sol pbc also keeps the address reserved, even after you delete your sign-in, so the address is never given to anyone else. the reservation carries no name, sign-in or journal.');
+    expect(body).toContain('i understand that the public record of this address is permanent.');
+    expect(body).toContain("the address is public once it's issued, and stays public for good");
+    expect(body).toContain("it's an identifier, not your data: eight random characters with nothing of yours in it.");
+    // The founder-directed calm (2026-09-21) drops the certificate-log mechanics; only the
+    // privacy policy's floor sentence, the address's existence stays public for good, remains.
+    expect(body).not.toMatch(/certificate log/i);
     const ack = body.match(/<label class="ack">[\s\S]*?<\/label>/)[0];
     expect(ack).not.toMatch(/reserv/i);
-    expect(body).toContain('turning this back on uses the same address.');
-    expect(body).toContain('turning it off does not cancel a subscription.');
+    expect(body).toContain('turning this off keeps the address. turning it back on uses the same one.');
+    expect(body).toContain("turning it off doesn't cancel a subscription.");
     expect(body).toContain('<label class="ack">');
     expect(body).toContain('name="data_ack" value="yes" required');
     expect(body).toContain('name="action" value="cancel" type="submit" formnovalidate');
@@ -164,13 +163,13 @@ describe('/enable/solstone-me', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('sol pbc approved this journal for an address.');
+    expect(body).toContain('solstone.me is on for your journal. you can close this tab.');
     const binding = await smeBindingRow(account.accountId, VALID_INSTANCE);
     expect(binding).toMatchObject({
       account_id: account.accountId,
       instance_id: VALID_INSTANCE,
       consent_acked_at: expect.any(Number),
-      consent_disclosure_version: 'sme-consent-v1',
+      consent_disclosure_version: 'sme-consent-v2-pattern',
     });
     expect(binding.consent_acked_at).toBe(binding.last_seen_at);
     const payload = await decryptedHandoff(VALID_NONCE, testEnv);
@@ -214,11 +213,11 @@ describe('/enable/solstone-me', () => {
     expect(response.status).toBe(200);
     expect(body).toContain('a subscription is needed');
     expect(body).toContain('href="/services/solstone-me"');
-    expect(body).toContain('set up a subscription');
+    expect(body).toContain('set up solstone.me');
     expect(body).not.toMatch(/subscribe/i);
-    expect(body).toContain('your permission is saved');
+    expect(body).toContain("your allow is saved, so you won't be asked again.");
     await expect(smeBindingRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
-      consent_disclosure_version: 'sme-consent-v1',
+      consent_disclosure_version: 'sme-consent-v2-pattern',
     });
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({
       service: 'sme',

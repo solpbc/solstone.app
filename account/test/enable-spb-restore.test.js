@@ -81,7 +81,7 @@ describe('/enable/backup?intent=restore', () => {
     for (const [response, nonce] of [[zeroResponse, NONCE_A], [emptyResponse, NONCE_B]]) {
       const body = await response.text();
       expect(response.status).toBe(200);
-      expect(body).toContain("sol pbc isn't holding an encrypted copy under this sign-in");
+      expect(body).toContain("sol pbc isn't holding an encrypted copy under your sign-in");
       expect(body).not.toContain('turn encrypted backup back on');
       await expect(handoffPayload(nonce, testEnv)).resolves.toEqual({ status: 'refused', reason_code: 'no_hosted_backup' });
     }
@@ -102,7 +102,7 @@ describe('/enable/backup?intent=restore', () => {
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
-    expect(firstBody).toContain("sol pbc isn't holding an encrypted copy under this sign-in");
+    expect(firstBody).toContain("sol pbc isn't holding an encrypted copy under your sign-in");
     expect(secondBody).toBe(firstBody);
     await expect(rowCount('service_handoffs')).resolves.toBe(1);
   });
@@ -144,7 +144,7 @@ describe('/enable/backup?intent=restore', () => {
       headers: { Cookie: session.cookie },
     }), testEnv);
 
-    expect(await response.text()).toContain("sol pbc isn't holding an encrypted copy under this sign-in");
+    expect(await response.text()).toContain("sol pbc isn't holding an encrypted copy under your sign-in");
     await expect(handoffPayload(NONCE_A, testEnv)).resolves.toEqual({ status: 'refused', reason_code: 'no_hosted_backup' });
   });
 
