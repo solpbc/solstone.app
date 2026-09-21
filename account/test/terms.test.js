@@ -148,8 +148,10 @@ describe('terms page', () => {
     expect(body).toContain('part one · what applies to everything');
     expect(body).toContain('part two · each service, one at a time');
     expect(body).toContain('<hr>');
-    // The one masthead date is staged unfilled; this page is not shippable until CLO fills it.
-    expect(body).toContain('[ship date]');
+    // The masthead date is filled (req_gtp44yvo, 2026-09-20): CLO marked the text FINAL FOR
+    // DEPLOY at 99ad3924e9, so this page is shippable and no placeholder should remain.
+    expect(body).toContain('effective September 20, 2026');
+    expect(body).not.toContain('[ship date]');
     // The generator drops a literal markdown '---' rule, never a visible dash run.
     expect(body).not.toMatch(/<p>[^<]*---[^<]*<\/p>/);
     expect(body).not.toMatch(/\*\*/);

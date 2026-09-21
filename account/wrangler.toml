@@ -136,11 +136,10 @@ STRIPE_TERMS_ASSENT = ""
 # /terms serves the combined services Terms (clo/compliance/solstone-services-terms-of-service.md)
 # in place of the private-network-only text, and /legal, /services/backup/terms and
 # /services/processing/terms 301 to /terms, only when this is exactly "true" — all four flip
-# together, no transition period (founder correction, req_eyreyww2, 2026-09-20). The rendered
-# text is staged with its one masthead date unfilled ([ship date]), so this stays empty until
-# CLO fills that date and files the deploy follow-up. Left empty, all four paths keep serving
-# their current per-service text/index.
-COMBINED_TERMS_LIVE = ""
+# together, no transition period (founder correction, req_eyreyww2, 2026-09-20). LIVE 2026-09-20
+# (req_gtp44yvo): the SOT's masthead date is filled ("effective September 20, 2026") and CLO
+# marked the text FINAL FOR DEPLOY at 99ad3924e9.
+COMBINED_TERMS_LIVE = "true"
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"
 R2_ACCOUNT_ID = "3f2c1528c7d4d9685819ea9e9e307c92"

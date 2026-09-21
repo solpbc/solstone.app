@@ -664,12 +664,11 @@ async function routeRequest(req, env, ctx) {
       }
 
       if (url.pathname === '/legal' && req.method === 'GET') {
-        // Staged for req_eyreyww2, founder-corrected 2026-09-20: the combined Terms publish AT
-        // /terms, replacing the private-network page in place, with no separate permanent path
-        // and no transition period — /legal becomes a 301 to /terms the same moment /terms
-        // changes. Gated off (COMBINED_TERMS_LIVE unset/not "true") until CLO fills the SOT's
-        // one remaining masthead date ([ship date]) and files the deploy follow-up, which flips
-        // this var. Do NOT flip it here.
+        // req_eyreyww2, founder-corrected 2026-09-20: the combined Terms publish AT /terms,
+        // replacing the private-network page in place, with no separate permanent path and no
+        // transition period — /legal becomes a 301 to /terms the same moment /terms changes.
+        // LIVE 2026-09-20 (req_gtp44yvo): the SOT's masthead date is filled and CLO marked the
+        // text FINAL FOR DEPLOY, so COMBINED_TERMS_LIVE is "true".
         if (env.COMBINED_TERMS_LIVE === 'true') {
           return redirect('/terms', 301);
         }
