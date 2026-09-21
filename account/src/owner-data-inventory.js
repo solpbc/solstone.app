@@ -184,6 +184,12 @@ const TABLES = [
       deletion_treatment: 'direct_owner_purge',
     },
   }),
+  table('subscription_created_claims', 'globally_identifier_free', 'deliberately_retained', 'retained_only', [
+    retained('claim_key', 'peppered digest that suppresses a duplicate send'),
+    retained('created_at', 'milliseconds of the claim; not an expiry'),
+  ], {
+    description: 'at-most-once claims for the identity-free subscription.created signal',
+  }),
   table('mcp_bridge_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), exported('label'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),

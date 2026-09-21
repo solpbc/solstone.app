@@ -90,6 +90,9 @@ service = "spl-relay"
 #   console.warn. Unset = no-op (the console.warn breadcrumb still fires).
 #   NEVER carries raw tokens, credentials, or other secret material.
 # HUB_WEBHOOK_SECRET — shared X-Hub-Secret bearer for the hub webhook ingress.
+# HUB_SUBSCRIPTION_CREATED_URL — optional CXO ingress for one identity-free
+#   subscription.created POST after a paid spl, spb, or sme checkout grant;
+#   reuses HUB_WEBHOOK_SECRET; unset or empty skips the claim and the request.
 #
 # Owner export release gate:
 # OWNER_EXPORT_ENABLED — exact string "true" enables /account/export*.

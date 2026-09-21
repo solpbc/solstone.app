@@ -25,9 +25,10 @@ import {
   verifyWebhookSignature,
 } from './stripe.js';
 import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-grant.js';
-import { maybeSendSubscriptionAck } from './renewal-notices.js';
+import { TAG_TO_HOSTED_SERVICE, maybeSendSubscriptionAck } from './renewal-notices.js';
 import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
+import { notifySubscriptionCreated } from './subscription-created.js';
 
 // One reconciler per billed service, keyed by the metadata.service tag checkout stamps.
 // test/billing-stripe.test.js walks BILLED_SERVICES through the webhook, so a service
@@ -210,6 +211,23 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
       sourceRef: subscription.id,
     },
   });
+  if (tag === 'spl' || tag === 'spb' || tag === 'sme') {
+    const deletion = await getActiveDeletionForAccount(env.DB, accountId);
+    const entitlement = deletion
+      ? null
+      : await getEntitlement(env.DB, { accountId, service: TAG_TO_HOSTED_SERVICE[tag] });
+    if (!deletion && entitlement?.status === 'active' && entitlement?.source === SOURCE) {
+      try {
+        await notifySubscriptionCreated(env, ctx, {
+          service: tag,
+          nowMs,
+          checkoutSessionId: obj.id,
+        });
+      } catch {
+        // Notify failures must not skip the renewal ack.
+      }
+    }
+  }
   await maybeSendSubscriptionAck(env, {
     accountId,
     tag,
