@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
+import { SME_PERMANENCE_PARTS } from '../src/html.js';
 import { makeTestEnv, resetDb, rowCount, seedAccount, seedEntitlement, seedSession, stripScripts } from './helpers.js';
 
 describe('service landing pages', () => {
@@ -27,6 +28,31 @@ describe('service landing pages', () => {
     expect(body).toContain('keep an encrypted copy of your journal somewhere safe');
     expect(body).toContain('sign in to enable');
     expect(body).toContain('$48');
+  });
+
+  it('renders the solstone.me landing page', async () => {
+    const response = await get('/solstone-me', makeTestEnv());
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('<h1>solstone.me</h1>');
+    expect(body).toContain('an address on the internet for your journal, so an agent you already use can read from it');
+    expect(body).toContain('the public record is permanent');
+    expect(body).toContain(SME_PERMANENCE_PARTS[0]);
+    expect(body).toContain(SME_PERMANENCE_PARTS[1]);
+    expect(body).toContain('sign in to enable');
+    expect(body).toContain('$5');
+    expect(body).not.toMatch(/\$[0-9.]+\s*\/\s*month/);
+    expect(body).toContain('you never have to pay us');
+    expect(body).toContain('href="/terms"');
+  });
+
+  it('404s the solstone.me landing page before the price exists', async () => {
+    const testEnv = makeTestEnv({ STRIPE_PRICE_SME_ANNUAL: undefined });
+    testEnv.STRIPE_PRICE_SME_ANNUAL = '';
+    const response = await get('/solstone-me', testEnv);
+
+    expect(response.status).toBe(404);
   });
 
   it('renders the notifications landing page without a CTA button', async () => {

@@ -193,7 +193,7 @@ describe('the solstone.me service page and its catalog row', () => {
       const session = await seedSession(account.accountId, { testEnv });
 
       const signedOut = await (await get('/', testEnv)).text();
-      expect(signedOut).toContain('href="/services/solstone-me"');
+      expect(signedOut).toContain('href="/solstone-me"');
       expect(signedOut).toContain('an address for your journal, so an agent you already use can read from it.');
       expect(signedOut).toContain('<span class="price">$5<span class="per">/yr</span></span>');
 

@@ -114,6 +114,7 @@ import {
   renderScoutLanding,
   renderServicesCatalog,
   renderServicesSpp,
+  renderSmeLanding,
   renderServicesTerms,
   renderTerms,
   renderTermsIndex,
@@ -722,6 +723,11 @@ async function routeRequest(req, env, ctx) {
 
       if (url.pathname === '/backup' && req.method === 'GET') {
         return html(renderBackupLanding());
+      }
+
+      if (url.pathname === '/solstone-me' && req.method === 'GET') {
+        if (!smeOnSale(env)) return html(renderNotFound(), { status: 404 });
+        return html(renderSmeLanding());
       }
 
       if (url.pathname === '/notifications' && req.method === 'GET') {

@@ -685,7 +685,7 @@ ${BRANDLOCK}
 <div class="group">
   ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
-  ${smeOnSale ? row(SME_SERVICE_PATH, IC_GLOBE, 'solstone.me', 'an address for your journal, so an agent you already use can read from it.', '<span class="price">$5<span class="per">/yr</span></span>') : ''}
+  ${smeOnSale ? row('/solstone-me', IC_GLOBE, 'solstone.me', 'an address for your journal, so an agent you already use can read from it.', '<span class="price">$5<span class="per">/yr</span></span>') : ''}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', "notifications reach you when there's something worth a look.", '<span class="tag builtin">built in</span>')}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
@@ -885,6 +885,34 @@ ${BRANDLOCK}
   <p class="free-note" style="margin:14px 0 0">${SCOUT_PROGRAM_COVENANT}</p>
 </div>
 <p class="disclosure"><a href="/legal">terms</a></p>`,
+  });
+}
+
+export function renderSmeLanding() {
+  return layout({
+    title: 'solstone.me',
+    body: brandbarSignin()
+      + `\n<a class="back" href="/">${BACK_SVG} services</a>
+<h1>solstone.me</h1>
+<p class="lead">an address on the internet for your journal, so an agent you already use can read from it: Claude, Codex, goose, or anything else that speaks the Model Context Protocol. you turn it on, you connect an agent, and you choose what that agent may see.</p>
+${BRANDLOCK}
+<div class="card">
+  ${beat(IC_GLOBE, 'an address for your journal', "sol pbc runs the solstone.me relay in between, so your agent can find your journal without you running anything of your own. it's off until you turn it on, and you can turn it off from the journal at any time.")}
+  ${beat(IC_VAULT, 'blind by construction', "your own machine holds the private key and ends the encryption, so the relay can't read a byte of what passes through it. it keeps no record of what happened, only that something did.")}
+  ${beat(IC_NET, 'what an agent gets', "you choose what it may see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.")}
+</div>
+<div class="card">
+  <h2>the public record is permanent</h2>
+  ${SME_PERMANENCE_PARTS.map((part) => `<p>${esc(part)}</p>`).join('\n  ')}
+</div>
+<div class="card">
+  <div class="pricecard">
+    <div><div class="big">$5 <span class="price"><span class="per">/ year</span></span></div><div class="alt">annual only · per journal, not per device</div></div>
+    <a class="btn primary" href="/?signin">sign in to enable</a>
+  </div>
+  <p class="free-note" style="margin:14px 0 0">you never have to pay us. your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were it. a tunnel that only passes the bytes through will say so; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>
+</div>
+<p class="disclosure"><a href="/terms">terms</a></p>`,
   });
 }
 
@@ -1425,7 +1453,7 @@ ${renderDeletionForm({
 })}
 <p>this does not delete a journal, device, or bucket you control. those remain under their own owner-controlled arrangements.</p>
 <p class="notice">if you have paid subscriptions, deleting your sign-in ends every one of them when the 72-hour safety period below ends, with no refund of the unused period. to use what you paid for, cancel from the billing portal instead.</p>
-<p class="notice">if encrypted backup is on, deleting your sign-in deletes the operated backup at once, with no 30-day lapse window. if you've turned on media offload, that backup is the only copy of that media, so restore it to a device first if you want to keep it.</p>
+<p class="notice">if encrypted backup is on, deleting your sign-in deletes the operated backup at once, with no 30-day lapse window. if you've turned on media offload, that backup is the only copy of that media, and it goes too.</p>
 <p class="disclosure">after you confirm, you have 72 hours to cancel before deletion begins. see <a href="https://solpbc.org/privacy#your-rights">what this deletes and what outlasts it</a>.</p>`,
   });
 }
