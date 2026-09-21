@@ -16,7 +16,6 @@ import {
   createSession,
   deleteOtp,
   deleteSession,
-  countActiveDevices,
   findEmailByHash,
   getEntitlement,
   getActiveDeletionForAccount,
@@ -27,8 +26,6 @@ import {
 } from './db.js';
 import { sendOtpEmail } from './email.js';
 import {
-  handleEnablePushConfirm,
-  handleEnablePushGet,
   handleEnableScoutGet,
   handleEnableSpbConfirm,
   handleEnableSpbGet,
@@ -38,7 +35,6 @@ import {
   handleEnableSmeGet,
   handleEnableSppConfirm,
   handleEnableSppGet,
-  handleHandoffPush,
   handleHandoffScout,
   handleHandoffSpb,
   handleHandoffSpl,
@@ -48,14 +44,7 @@ import {
   verifyEnableResume,
 } from './enable.js';
 import {
-  handleDeregisterDevice,
-  handleListDevices,
   handleMintDispatchToken,
-  handlePushDisable,
-  handleRegisterDevice,
-  handleRevokeAllDevices,
-  handleRevokeDevice,
-  handleServicesDevices,
 } from './devices.js';
 import { handlePushDedup, handlePushDispatch } from './push.js';
 import { handleReachRelayToken } from './reach.js';
@@ -213,25 +202,21 @@ const LEGACY_REDIRECTS = [
   { method: 'GET', from: '/settings/emails', to: '/sign-in/emails' },
   { method: 'GET', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
   { method: 'GET', from: '/settings/data', to: '/transparency' },
-  { method: 'GET', from: '/settings/devices', to: '/devices' },
   { method: 'GET', from: '/settings/gemini', to: '/scout' },
   { method: 'GET', from: '/sign-in/data', to: '/transparency' },
   { method: 'GET', from: '/services/scout', to: '/scout' },
-  { method: 'GET', from: '/services/devices', to: '/devices' },
   { method: 'GET', from: '/services/spl', to: '/private-network' },
   // retired service (spc mothballed 2026-07-12) — not a rename; land old links on the catalog
   { method: 'GET', from: '/sealed-container', to: '/' },
   { method: 'POST', from: '/settings/sessions/revoke-others', to: '/sign-in/sessions/revoke-others' },
   { method: 'POST', from: '/settings/emails/add', to: '/sign-in/emails/add' },
   { method: 'POST', from: '/settings/emails/verify', to: '/sign-in/emails/verify' },
-  { method: 'POST', from: '/settings/devices/revoke-all', to: '/devices/revoke-all' },
 ];
 
 const LEGACY_PREFIX_REDIRECTS = [
   { method: 'POST', prefix: '/settings/sessions/', newPrefix: '/sign-in/sessions/' },
   { method: 'POST', prefix: '/settings/passkeys/', newPrefix: '/sign-in/passkeys/' },
   { method: 'POST', prefix: '/settings/emails/', newPrefix: '/sign-in/emails/' },
-  { method: 'POST', prefix: '/settings/devices/', newPrefix: '/devices/' },
 ];
 
 // The one CSRF origin predicate for every signed-in, state-changing POST
@@ -462,34 +447,6 @@ async function routeRequest(req, env, ctx) {
         req.method === 'GET'
       ) {
         return handleHandoffScout(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'enable' &&
-        parts[2] === 'push' &&
-        req.method === 'GET'
-      ) {
-        return handleEnablePushGet(req, env, ctx);
-      }
-
-      if (
-        parts.length === 4 &&
-        parts[1] === 'enable' &&
-        parts[2] === 'push' &&
-        parts[3] === 'confirm' &&
-        req.method === 'POST'
-      ) {
-        return handleEnablePushConfirm(req, env, ctx);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'handoff' &&
-        parts[2] === 'push' &&
-        req.method === 'GET'
-      ) {
-        return handleHandoffPush(req, env, ctx);
       }
 
       if (
@@ -862,14 +819,6 @@ async function routeRequest(req, env, ctx) {
 
       if (
         parts.length === 2 &&
-        parts[1] === 'devices' &&
-        req.method === 'GET'
-      ) {
-        return handleServicesDevices(req, env);
-      }
-
-      if (
-        parts.length === 2 &&
         parts[1] === 'scout' &&
         req.method === 'GET'
       ) {
@@ -890,24 +839,6 @@ async function routeRequest(req, env, ctx) {
 
       if (
         parts.length === 3 &&
-        parts[1] === 'devices' &&
-        parts[2] === 'revoke-all' &&
-        req.method === 'POST'
-      ) {
-        return handleRevokeAllDevices(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'push' &&
-        parts[2] === 'disable' &&
-        req.method === 'POST'
-      ) {
-        return handlePushDisable(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
         parts[1] === 'scout' &&
         parts[2] === 'apply' &&
         req.method === 'POST'
@@ -923,15 +854,6 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handleRevokeSession(req, env, parts[3]);
-      }
-
-      if (
-        parts.length === 4 &&
-        parts[1] === 'devices' &&
-        parts[3] === 'revoke' &&
-        req.method === 'POST'
-      ) {
-        return handleRevokeDevice(req, env, parts[2]);
       }
 
       if (
@@ -1009,35 +931,6 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handleSupportClose(req, env, parts[2]);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'account' &&
-        parts[2] === 'devices' &&
-        req.method === 'GET'
-      ) {
-        return handleListDevices(req, env);
-      }
-
-      if (
-        parts.length === 4 &&
-        parts[1] === 'account' &&
-        parts[2] === 'devices' &&
-        parts[3] === 'register' &&
-        req.method === 'POST'
-      ) {
-        return handleRegisterDevice(req, env);
-      }
-
-      if (
-        parts.length === 4 &&
-        parts[1] === 'account' &&
-        parts[2] === 'devices' &&
-        parts[3] === 'deregister' &&
-        req.method === 'POST'
-      ) {
-        return handleDeregisterDevice(req, env);
       }
 
       if (
@@ -1205,10 +1098,9 @@ export default {
 async function handleServicesCatalog(req, env, session) {
   const url = new URL(req.url);
   const now = Date.now();
-  const [menu, hasPasskey, deviceCount, entitlement, spbEntitlement, sppEntitlement, smeEntitlement] = await Promise.all([
+  const [menu, hasPasskey, entitlement, spbEntitlement, sppEntitlement, smeEntitlement] = await Promise.all([
     loadMenuContext(env, session.account_id, now),
     hasAnyActivePasskey(env.DB, session.account_id),
-    countActiveDevices(env.DB, session.account_id),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE }),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPB_HOSTED_SERVICE }),
     getEntitlement(env.DB, { accountId: session.account_id, service: SPP_HOSTED_SERVICE }),
@@ -1221,7 +1113,7 @@ async function handleServicesCatalog(req, env, session) {
   return html(renderServicesCatalog({
     signedIn: true,
     welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
-    menu, deviceCount, networkActive, backupActive, sppActive,
+    menu, networkActive, backupActive, sppActive,
     smeOnSale: smeOnSale(env), smeActive,
   }), { headers: { 'Cache-Control': 'no-store' } });
 }

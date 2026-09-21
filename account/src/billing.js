@@ -3,7 +3,6 @@ import {
   getAccountByStripeCustomer,
   getActiveDeletionForAccount,
   getEntitlement,
-  getRelayDeviceSignal,
   getScoutApplicationStatusByAccount,
   getStripeCustomerByAccount,
   upsertStripeCustomer,
@@ -49,10 +48,9 @@ export async function handleServicesSpl(req, env) {
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   const url = new URL(req.url);
-  const [menu, entitlement, deviceSignal, csrf] = await Promise.all([
+  const [menu, entitlement, csrf] = await Promise.all([
     loadMenuContext(env, session.account_id, nowMs),
     getEntitlement(env.DB, { accountId: session.account_id, service: SERVICE }),
-    getRelayDeviceSignal(env.DB, session.account_id),
     csrfToken(env),
   ]);
   return signedInHtml(renderServicesSpl({
@@ -63,9 +61,6 @@ export async function handleServicesSpl(req, env) {
       billing: url.searchParams.get('billing') || '',
     },
     menu,
-    deviceCount: deviceSignal.count,
-    lastSeen: deviceSignal.lastSeenAt,
-    nowMs,
   }));
 }
 

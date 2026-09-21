@@ -41,7 +41,7 @@ describe('owner local export collector (AC1–3)', () => {
   });
 
   describe('Sentinels and absolute-deny invariants (AC1)', () => {
-    it('exports all 17 classes with sentinels and strictly leaks zero sensitive or control values', async () => {
+    it('exports all 16 classes with sentinels and strictly leaks zero sensitive or control values', async () => {
       const consoleSpy = installConsoleSpy();
       const env = makeTestEnv();
 
@@ -60,7 +60,7 @@ describe('owner local export collector (AC1–3)', () => {
       expect(result.ok).toBe(true);
       expect(result.completeness).toEqual({
         complete: true,
-        class_count: 17,
+        class_count: 16,
         record_count: expect.any(Number),
       });
 
@@ -127,10 +127,6 @@ describe('owner local export collector (AC1–3)', () => {
         { table: 'passkey_credentials', col: 'counter' },
         { table: 'passkey_credentials', col: 'aaguid' },
         { table: 'passkey_credentials', col: 'transports' },
-        { table: 'account_devices', col: 'push_token' },
-        { table: 'account_devices', col: 'push_token_env' },
-        { table: 'account_devices', col: 'device_pubkey' },
-        { table: 'account_devices', col: 'device_pubkey_alg' },
         { table: 'scout_lifecycle_events', col: 'actor_principal' },
         { table: 'spb_mint_audit', col: 'prefix' },
         { table: 'spb_sweep_audit', col: 'prefix' },
@@ -644,9 +640,6 @@ async function seedAllWithSentinels(env, account, tag, instanceId) {
     publicKeyBlob: `sensitive-pub-key-${tag}`,
     aaguid: `sensitive-aaguid-${tag}`,
     transports: `sensitive-transports-${tag}`,
-    pushToken: `sensitive-push-token-${tag}`,
-    devicePubkey: `sensitive-device-pubkey-${tag}`,
-    devicePubkeyAlg: `sensitive-device-alg-${tag}`,
     actorPrincipal: `sensitive-actor-principal-${tag}`,
     spbMintPrefix: `sensitive-mint-prefix-${tag}`,
     spbSweepPrefix: `sensitive-sweep-prefix-${tag}`,
@@ -726,21 +719,6 @@ async function seedAllWithSentinels(env, account, tag, instanceId) {
     sensitiveSentinels.aaguid,
     JSON.stringify([sensitiveSentinels.transports]),
     publicSentinels.friendlyName,
-    NOW,
-    NOW
-  ).run();
-
-  // 5. account_devices
-  await workerEnv.DB.prepare(
-    `INSERT INTO account_devices (
-       device_id, account_id, platform, push_token, push_token_env, bundle_id, device_label, app_version, device_pubkey, device_pubkey_alg, registered_at, last_seen_at
-     ) VALUES (?, ?, 'ios', ?, 'sandbox', 'app.solstone', 'My iPhone', '1.0.0', ?, ?, ?, ?)`
-  ).bind(
-    `${tag}-device`,
-    account.accountId,
-    sensitiveSentinels.pushToken,
-    sensitiveSentinels.devicePubkey,
-    sensitiveSentinels.devicePubkeyAlg,
     NOW,
     NOW
   ).run();

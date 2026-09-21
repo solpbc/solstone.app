@@ -15,7 +15,6 @@ import {
   seedAccount,
   seedAccountEmail,
   seedCredential,
-  seedDevice,
   seedEntitlement,
   seedSession,
   seedSpbBinding,
@@ -304,7 +303,6 @@ async function seedRepresentative(env, account, tag, instanceId) {
   });
   await seedSession(account.accountId, { nowMs: NOW, testEnv: env });
   await seedCredential({ accountId: account.accountId, credentialId: `${tag}-credential`, createdAt: NOW });
-  await seedDevice({ accountId: account.accountId, deviceId: `${tag}-device`, pushToken: `${tag}-push`, registeredAt: NOW, lastSeenAt: NOW });
   await seedEntitlement({ accountId: account.accountId, service: 'spl_hosted', updatedAt: NOW });
 
   await workerEnv.DB.prepare(

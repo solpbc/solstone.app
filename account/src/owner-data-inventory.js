@@ -116,15 +116,6 @@ const TABLES = [
     omitted('expires_at', 'transient authentication state', 'transient_deletion'),
     omitted('used_at', 'transient authentication state', 'transient_deletion'),
   ], { deletionOrder: 70, description: 'transient passkey challenges' }),
-  table('account_devices', 'account_id', 'direct_owner_purge', 'exportable', [
-    exported('device_id'), omitted('account_id', 'internal owner relation'), exported('platform'),
-    omitted('push_token', 'notification authentication material'), omitted('push_token_env', 'notification routing secret context'),
-    exported('bundle_id'), exported('device_label'), exported('app_version'),
-    omitted('device_pubkey', 'reserved authentication material'), omitted('device_pubkey_alg', 'reserved authentication material'),
-    exported('registered_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-    exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-    exported('revoked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 90, description: 'devices registered for notifications' }),
   table('account_dispatch_tokens', 'account_id', 'direct_owner_purge', 'transient_auth_rate', [
     omitted('token_hash', 'authentication hash'), omitted('account_id', 'internal owner relation'),
     omitted('created_at', 'transient authentication state', 'transient_deletion'),

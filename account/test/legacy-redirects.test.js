@@ -14,11 +14,9 @@ describe('legacy customer-facing redirects', () => {
     ['GET', '/settings', '/sign-in', 302],
     ['GET', '/settings/sessions', '/sign-in/sessions', 302],
     ['GET', '/settings/gemini', '/scout', 302],
-    ['GET', '/settings/devices', '/devices', 302],
     ['GET', '/sign-in/data', '/transparency', 302],
     ['GET', '/settings/data', '/transparency', 302],
     ['GET', '/services/scout', '/scout', 302],
-    ['GET', '/services/devices', '/devices', 302],
     ['GET', '/services/spl', '/private-network', 302],
     ['GET', '/services/spl?checkout=success', '/private-network?checkout=success', 302],
     ['GET', '/sealed-container', '/', 302],
@@ -39,6 +37,21 @@ describe('legacy customer-facing redirects', () => {
     '/settings/gemini/forget',
   ])('POST %s is not a legacy redirect', async (path) => {
     const response = await worker.fetch(legacyRequest('POST', path), makeTestEnv());
+    const body = await response.text();
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Location')).toBe(null);
+    expect(body).toContain('not found');
+    expect(body.length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['GET', '/settings/devices'],
+    ['GET', '/services/devices'],
+    ['POST', '/settings/devices/revoke-all'],
+    ['POST', '/settings/devices/abc/revoke'],
+  ])('%s %s is not a legacy redirect', async (method, path) => {
+    const response = await worker.fetch(legacyRequest(method, path), makeTestEnv());
     const body = await response.text();
 
     expect(response.status).toBe(404);

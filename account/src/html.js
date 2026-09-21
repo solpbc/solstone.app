@@ -197,68 +197,6 @@ export function renderEnableScout() {
   });
 }
 
-export function renderEnablePushConsent({ csrf, nonce, deviceToken, platform, bundleId }) {
-  return layout({
-    title: 'enable notifications',
-    body: `${brandbar()}
-<h1>enable notifications</h1>
-<p class="lead">notifications need permission to reach your device. two things, and only these two:</p>
-<div class="card">
-  <div class="grant">
-    <div class="n">1</div>
-    <div>
-      <div class="gt">know it's you</div>
-      <div class="gd">so your sign-in recognizes your device. nothing from your journal comes with it: no entries, nothing the solstone app has taken in alongside you. just: this is your phone.</div>
-    </div>
-  </div>
-  <div class="grant">
-    <div class="n">2</div>
-    <div>
-      <div class="gt">enable notifications</div>
-      <div class="gd">you will get a short heads-up, never the full thing, to your device when there's something worth your attention. you turn them on or off on each device.</div>
-    </div>
-  </div>
-  <form method="post" action="/enable/push/confirm">
-    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-    <input type="hidden" name="nonce" value="${escAttr(nonce)}">
-    <input type="hidden" name="device_token" value="${escAttr(deviceToken)}">
-    <input type="hidden" name="platform" value="${escAttr(platform)}">
-    <input type="hidden" name="bundle_id" value="${escAttr(bundleId)}">
-    <div class="btn-row" style="margin-top:20px">
-      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
-    </div>
-  </form>
-</div>
-<p class="disclosure">you can see exactly which devices notifications reach, and turn it off, in your services anytime.</p>`,
-  });
-}
-
-export function renderEnablePushDone() {
-  return layout({
-    title: 'notifications enabled',
-    body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} notifications enabled</h2>
-  <p>your phone is connected to notifications. you can close this tab.</p>
-  <a class="btn secondary" href="/devices">manage notifications</a>
-</div>`,
-  });
-}
-
-export function renderEnablePushError() {
-  return layout({
-    title: 'could not enable notifications',
-    body: `${brandbar()}
-<div class="card">
-  <h1>could not enable notifications</h1>
-  <p>something didn't look right with that link.</p>
-  <p>if you got here from your solstone app, try again from the app. if
-you got here some other way, you can close this tab.</p>
-</div>`,
-  });
-}
-
 // === one pattern for every turn-on screen ===
 // records/decisions/260921-cpo-service-turn-on-screens-follow-one-pattern-and-the-sign-in-bound-push-consent-retires.md § 1
 
@@ -616,7 +554,7 @@ export function renderEnableSmeError() {
 
 // === services surfaces ===
 
-export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, deviceCount = 0, networkActive = false, backupActive = false, sppActive = false, smeOnSale = false, smeActive = false } = {}) {
+export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, networkActive = false, backupActive = false, sppActive = false, smeOnSale = false, smeActive = false } = {}) {
   if (!signedIn) {
     return layout({
       title: 'solstone services',
@@ -641,7 +579,7 @@ ${BRANDLOCK}
     : '';
   const networkPill = pill(networkActive ? 'on' : 'off', networkActive ? 'on' : 'off');
   const backupPill = pill(backupActive ? 'on' : 'off', backupActive ? 'on' : 'off');
-  const notifPill = pill(deviceCount > 0 ? 'on' : 'off', deviceCount > 0 ? 'on' : 'off');
+  const notifPill = pill('on', 'on');
   const sppPill = pill(sppActive ? 'on' : 'off', sppActive ? 'available' : 'not available');
   const smePill = pill(smeActive ? 'on' : 'off', smeActive ? 'covered' : 'not covered');
   const welcomePanel = welcome
@@ -669,7 +607,7 @@ ${welcomePanel}
   ${row('/private-network', IC_NET, 'private network', 'your private network: reach your journal from anywhere.', networkPill)}
   ${row('/services/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
   ${smeOnSale ? row(SME_SERVICE_PATH, IC_GLOBE, 'solstone.me', 'an address for your journal, so an agent you already use can read from it.', smePill) : ''}
-  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'notifications reach you when it matters, built in.', notifPill)}
+  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'notifications are built into the app. turn them on or off per device inside the app, not here.', notifPill)}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'confidential processing, off your device on confidential hardware.', sppPill)}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
@@ -858,14 +796,12 @@ ${BRANDLOCK}
   });
 }
 
-export function renderServicesSpl({ entitlement, csrf, flash = {}, menu, deviceCount = 0, lastSeen = null, nowMs }) {
+export function renderServicesSpl({ entitlement, csrf, flash = {}, menu }) {
   const flashes = billingFlashMessages(flash);
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const detailParts = [];
   if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
-  if (lastSeen != null) detailParts.push(`last seen ${formatRelativeTime(lastSeen, nowMs)}`);
-  detailParts.push(`${deviceCount} device${deviceCount === 1 ? '' : 's'} reaching your journal`);
   const statusDetail = detailParts.join(' · ');
   const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;your private network is on';
   const controlGroup = `<div class="group">
@@ -1669,56 +1605,6 @@ export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
 <p class="lead">the devices and phones currently signed in to manage your services. sign any of them out. the current one stays.</p>
 <div class="group">${rowHtml}</div>
 ${revokeOthers}`,
-  });
-}
-
-export function renderServicesDevices({ devices, nowMs, disableFlash = '', menu }) {
-  const revokeAll = devices.length > 0
-    ? `<div class="btn-row" style="margin-bottom:16px"><form method="post" action="/devices/revoke-all">
-  <button class="btn danger" type="submit">revoke all devices</button>
-</form></div>`
-    : '';
-  const notice = disableFlash === 'ok' ? '<p class="notice">notifications turned off for every device.</p>' : '';
-  const emptyState = devices.length === 0
-    ? `<div class="group">
-  <div class="empty">
-    ${IC_PUSH_SVG}
-    <h2>notifications aren't on yet</h2>
-    <p>turn it on from the solstone app on your device. it opens this page so you can confirm, then notifications can reach your devices.</p>
-    <div class="notice" style="text-align:left;max-width:none">in solstone, run <strong>journal services enable push</strong>, or turn it on from the solstone app.</div>
-  </div>
-</div>`
-    : '';
-  const rowHtml = devices.map((row) => {
-    const label = row.device_label || 'unnamed device';
-    const appVersion = row.app_version || '—';
-    const action = `/devices/${escAttr(row.device_id)}/revoke`;
-    const desc = [
-      `platform ${row.platform}`,
-      `bundle ${row.bundle_id}`,
-      `environment ${row.push_token_env}`,
-      `app version ${appVersion}`,
-      `last seen ${formatRelativeTime(row.last_seen_at, nowMs)}`,
-      `registered ${formatDate(row.registered_at)}`,
-    ];
-    return `<div class="row" style="cursor:default">
-  <div class="body">
-    <div class="title">${esc(label)}</div>
-    <div class="desc">${esc(desc.join(' · '))}</div>
-  </div>
-  <div class="trail"><form method="post" action="${action}"><button class="btn danger" type="submit">turn off notifications</button></form></div>
-</div>`;
-  }).join('');
-  const groupHtml = rowHtml ? `<div class="group">${rowHtml}</div>` : '';
-  return layout({
-    title: 'your devices',
-    body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
-<h1>your devices</h1>
-${notice}
-${revokeAll}
-${emptyState}
-${groupHtml}`,
   });
 }
 

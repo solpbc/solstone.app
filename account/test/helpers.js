@@ -203,7 +203,6 @@ export async function resetDb() {
     'enable_scout_codes',
     'service_handoffs',
     'account_dispatch_tokens',
-    'account_devices',
     'passkey_challenges',
     'passkey_credentials',
     'rate_buckets',
@@ -678,55 +677,6 @@ export async function seedCredentialChangeProof({
     passkeyChallenge: `test-fixture-${tokenHash}`,
     verified: true,
   });
-}
-
-export async function seedDevice({
-  deviceId = crypto.randomUUID(),
-  accountId,
-  platform = 'ios',
-  pushToken = `push-${deviceId}`,
-  pushTokenEnv = 'production',
-  bundleId = 'app.solstone.swift',
-  deviceLabel = 'test device',
-  appVersion = '1.0.0',
-  registeredAt = Date.now(),
-  lastSeenAt = registeredAt,
-  revokedAt = null,
-} = {}) {
-  await env.DB
-    .prepare(
-      `INSERT INTO account_devices (
-        device_id, account_id, platform, push_token, push_token_env, bundle_id,
-        device_label, app_version, registered_at, last_seen_at, revoked_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      deviceId,
-      accountId,
-      platform,
-      pushToken,
-      pushTokenEnv,
-      bundleId,
-      deviceLabel,
-      appVersion,
-      registeredAt,
-      lastSeenAt,
-      revokedAt
-    )
-    .run();
-  return {
-    deviceId,
-    accountId,
-    platform,
-    pushToken,
-    pushTokenEnv,
-    bundleId,
-    deviceLabel,
-    appVersion,
-    registeredAt,
-    lastSeenAt,
-    revokedAt,
-  };
 }
 
 export async function seedEntitlement({

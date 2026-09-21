@@ -4,7 +4,6 @@ import {
   makeTestEnv,
   resetDb,
   seedAccount,
-  seedDevice,
   seedEntitlement,
   seedSession,
 } from './helpers.js';
@@ -58,7 +57,6 @@ describe('services catalog', () => {
     const account = await seedAccount({ testEnv });
     await seedEntitlement({ accountId: account.accountId, service: 'spl_hosted', status: 'active' });
     await seedEntitlement({ accountId: account.accountId, service: 'spp_hosted', status: 'active', source: 'comp' });
-    await seedDevice({ accountId: account.accountId });
     const session = await seedSession(account.accountId, { testEnv });
 
     const response = await worker.fetch(catalogRequest(session.cookie), testEnv);

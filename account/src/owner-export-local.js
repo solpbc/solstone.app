@@ -57,11 +57,6 @@ const DENIED_COORDINATES = new Set([
   'passkey_credentials.counter',
   'passkey_credentials.aaguid',
   'passkey_credentials.transports',
-  // account_devices
-  'account_devices.push_token',
-  'account_devices.push_token_env',
-  'account_devices.device_pubkey',
-  'account_devices.device_pubkey_alg',
   // scout_lifecycle_events
   'scout_lifecycle_events.actor_principal',
   // spb / spp
@@ -101,10 +96,6 @@ const DENIED_PUBLIC_NAMES = new Set([
   'counter',
   'aaguid',
   'transports',
-  'push_token',
-  'push_token_env',
-  'device_pubkey',
-  'device_pubkey_alg',
   'actor_principal',
   'prefix',
   'token_hash',

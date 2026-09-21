@@ -13,7 +13,6 @@ import {
   seedAccount,
   seedAccountEmail,
   seedCredential,
-  seedDevice,
   seedEntitlement,
   seedOtp,
   seedSession,
@@ -237,7 +236,6 @@ const accountTables = [
   'sessions',
   'passkey_challenges',
   'passkey_credentials',
-  'account_devices',
   'spb_retired_tokens',
   'spb_mint_audit',
   'spb_sweep_audit',
@@ -269,7 +267,6 @@ async function seedRepresentative(env, account, tag, instanceId) {
     `INSERT INTO passkey_challenges (challenge, account_id, purpose, created_at, expires_at)
      VALUES (?, ?, 'register', ?, ?)`
   ).bind(`${tag}-challenge`, account.accountId, NOW, NOW + 1).run();
-  await seedDevice({ accountId: account.accountId, deviceId: `${tag}-device`, pushToken: `${tag}-push`, registeredAt: NOW, lastSeenAt: NOW });
   await insertDispatchToken(workerEnv.DB, { tokenHash: `${tag}-dispatch`, accountId: account.accountId, nowMs: NOW });
   await insertServiceHandoff(workerEnv.DB, {
     handoffHash: `${tag}-handoff`, accountId: account.accountId, service: 'scout',

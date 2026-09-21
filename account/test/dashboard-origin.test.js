@@ -66,7 +66,6 @@ describe('dashboard origin predicate', () => {
 const GUARDED_ROUTES = [
   { name: 'settings revoke-others', path: '/sign-in/sessions/revoke-others' },
   { name: 'emails add', path: '/sign-in/emails/add' },
-  { name: 'devices revoke-all', path: '/devices/revoke-all' },
 ];
 
 describe('dashboard origin enforcement', () => {

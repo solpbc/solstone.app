@@ -9,22 +9,18 @@ import {
   hashWithPepper,
   timingSafeEqual,
 } from './crypto.js';
-import { mintDispatchToken, resolveBearerAccount } from './dispatch-tokens.js';
+import { resolveBearerAccount } from './dispatch-tokens.js';
 import {
-  bumpDeviceLastSeen,
   consumeServiceHandoff,
-  findDeviceByPushKey,
   findSpbSweepAudit,
   findServiceHandoffStatus,
   getAccountTransparencyRow,
   getEntitlement,
   getScoutApplicationByAccount,
   getScoutApplicationStatusByAccount,
-  insertDevice,
   insertServiceHandoff,
   insertSppMintAudit,
   listSpbBindings,
-  revokeDevicePriorAndInsertNew,
   rotateSpbBindingToken,
   upsertSmeBinding,
   upsertSpbBinding,
@@ -32,19 +28,13 @@ import {
   upsertSppBinding,
 } from './db.js';
 import {
-  BUNDLE_ID_REGEX,
-  DEVICE_TOKEN_REGEX,
   HANDOFF_TTL_MS,
   INSTANCE_ID_REGEX,
   NONCE_REGEX,
-  PUSH_PLATFORM_ALLOWLIST,
 } from './enable-constants.js';
 import { SUPPORT_ID_REGEX } from './support-constants.js';
 import {
   formatDate,
-  renderEnablePushConsent,
-  renderEnablePushDone,
-  renderEnablePushError,
   renderEnableScout,
   renderEnableSplConsent,
   renderEnableSplDone,
@@ -88,7 +78,6 @@ import {
 
 const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
-const ENABLE_PUSH_PATH = '/enable/push';
 const ENABLE_SPL_PATH = '/enable/spl';
 const ENABLE_SPB_PATH = '/enable/backup';
 const ENABLE_SPP_PATH = '/enable/spp';
@@ -96,57 +85,11 @@ const ENABLE_SME_PATH = '/enable/solstone-me';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const RESUME_PATH_WHITELIST = new Map([
-  [ENABLE_PUSH_PATH, validatePushResumeParams],
   [ENABLE_SPL_PATH, validateSplResumeParams],
   [ENABLE_SPB_PATH, validateSpbResumeParams],
   [ENABLE_SPP_PATH, validateSppResumeParams],
   [ENABLE_SME_PATH, validateSmeResumeParams],
 ]);
-
-export async function registerDeviceForAccount({
-  env,
-  accountId,
-  deviceToken,
-  platform,
-  bundleId,
-  pushTokenEnv,
-  deviceLabel = null,
-  appVersion = null,
-  nowMs = Date.now(),
-}) {
-  const existing = await findDeviceByPushKey(env.DB, { pushToken: deviceToken, bundleId, pushTokenEnv });
-  if (existing && existing.account_id === accountId) {
-    try {
-      await bumpDeviceLastSeen(env.DB, { deviceId: existing.device_id, nowMs });
-    } catch {
-      console.error('device_last_seen_bump_failed');
-    }
-    return { deviceId: existing.device_id, createdAt: nowMs, isNewDevice: false };
-  }
-
-  const newDevice = {
-    deviceId: crypto.randomUUID(),
-    accountId,
-    platform,
-    pushToken: deviceToken,
-    pushTokenEnv,
-    bundleId,
-    deviceLabel,
-    appVersion,
-    nowMs,
-  };
-
-  if (existing) {
-    await revokeDevicePriorAndInsertNew(env.DB, {
-      priorDeviceId: existing.device_id,
-      newDevice,
-      nowMs,
-    });
-  } else {
-    await insertDevice(env.DB, newDevice);
-  }
-  return { deviceId: newDevice.deviceId, createdAt: nowMs, isNewDevice: true };
-}
 
 export async function signEnableResume(path, queryString, env) {
   const resume = normalizeResume(path, queryString);
@@ -193,85 +136,6 @@ export async function handleScoutStatus(req, env) {
   });
 }
 
-export async function handleEnablePushGet(req, env) {
-  const url = new URL(req.url);
-  const parsed = parsePushParams(url.searchParams);
-  if (!parsed) return pushError(400);
-
-  const session = await getValidSession(req, env, Date.now());
-  if (!session) return signInRedirect(env, ENABLE_PUSH_PATH, url.search);
-
-  const csrf = await csrfToken(env);
-  return noStoreHtml(renderEnablePushConsent({
-    csrf,
-    nonce: parsed.nonce,
-    deviceToken: parsed.deviceToken,
-    platform: parsed.platform,
-    bundleId: parsed.bundleId,
-  }));
-}
-
-export async function handleEnablePushConfirm(req, env) {
-  if (!originAllowed(req)) return noStoreResponse(forbidden());
-  const form = await readForm(req);
-  if (!form) return pushError(400);
-
-  const parsed = parsePushParams(form);
-  if (!parsed) return pushError(400);
-
-  if ((form.get('action')?.toString() || '') === 'cancel') {
-    return redirect('/', 303, { 'Cache-Control': 'no-store' });
-  }
-
-  const session = await getValidSession(req, env, Date.now());
-  if (!session) return signInRedirect(env, ENABLE_PUSH_PATH, pushQuery(parsed));
-  const account = await getAccountTransparencyRow(env.DB, session.account_id);
-  if (!account) {
-    return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
-  }
-
-  const csrf = await csrfToken(env);
-  if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
-    return pushError(403);
-  }
-
-  const registered = await registerDeviceForAccount({
-    env,
-    accountId: session.account_id,
-    deviceToken: parsed.deviceToken,
-    platform: parsed.platform,
-    bundleId: parsed.bundleId,
-    // L9W hardcoded sandbox per Article 8 disposition in account-push-v1.md § MVP.
-    // Production APNs lands in a future arc with its own covenant pass.
-    pushTokenEnv: 'sandbox',
-  });
-  const dispatch = await mintDispatchToken(env, session.account_id);
-  const payload = {
-    device_id: registered.deviceId,
-    dispatch_token: dispatch.token,
-    account_id: session.account_id,
-    created_at: dispatch.createdAt,
-  };
-  const nowMs = Date.now();
-  const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
-  const handoffHash = await hashServiceHandoffNonce(parsed.nonce, env);
-  let inserted;
-  try {
-    inserted = await insertServiceHandoff(env.DB, {
-      handoffHash,
-      accountId: session.account_id,
-      service: 'push',
-      payloadEncrypted,
-      createdAt: nowMs,
-      expiresAt: nowMs + HANDOFF_TTL_MS,
-    });
-  } catch {
-    return pushError(503);
-  }
-  if (!inserted.ok) return noStoreHtml(renderEnablePushDone());
-  return noStoreHtml(renderEnablePushDone());
-}
-
 export async function handleHandoffScout(req, env) {
   const url = new URL(req.url);
   const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
@@ -286,33 +150,6 @@ export async function handleHandoffScout(req, env) {
   }
 
   return handoffJson({ error: 'gone' }, { status: 410 });
-}
-
-export async function handleHandoffPush(req, env) {
-  const url = new URL(req.url);
-  const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
-  if (!NONCE_REGEX.test(nonce)) return handoffJson({ error: 'invalid_request' }, { status: 400 });
-
-  const handoffHash = await hashServiceHandoffNonce(nonce, env);
-  const started = Date.now();
-  while (Date.now() - started <= HANDOFF_POLL_BUDGET_MS) {
-    const nowMs = Date.now();
-    const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'push' });
-    if (consumed) {
-      const plaintext = await decryptEmail(consumed.payload_encrypted, env);
-      return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
-    }
-
-    const status = await findServiceHandoffStatus(env.DB, { handoffHash, service: 'push' });
-    if (status && (status.consumed_at != null || status.expires_at <= nowMs)) {
-      return handoffJson({ error: 'gone' }, { status: 410 });
-    }
-
-    const elapsed = Date.now() - started;
-    if (elapsed >= HANDOFF_POLL_BUDGET_MS) break;
-    await sleep(Math.min(HANDOFF_POLL_MS, HANDOFF_POLL_BUDGET_MS - elapsed));
-  }
-  return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function handleEnableSplGet(req, env) {
@@ -1034,42 +871,6 @@ export async function handleHandoffSpa(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
-function parsePushParams(params) {
-  const nonce = singleParam(params, 'nonce');
-  const deviceToken = singleParam(params, 'device_token');
-  const platform = singleParam(params, 'platform');
-  const bundleId = singleParam(params, 'bundle_id');
-  if (
-    !nonce ||
-    !deviceToken ||
-    !platform ||
-    !bundleId ||
-    !NONCE_REGEX.test(nonce) ||
-    !DEVICE_TOKEN_REGEX.test(deviceToken) ||
-    !PUSH_PLATFORM_ALLOWLIST.includes(platform) ||
-    !BUNDLE_ID_REGEX.test(bundleId)
-  ) {
-    return null;
-  }
-  return { nonce, deviceToken, platform, bundleId };
-}
-
-function singleParam(params, name) {
-  const values = params.getAll(name);
-  if (values.length !== 1) return null;
-  return values[0]?.toString() || '';
-}
-
-function pushQuery({ nonce, deviceToken, platform, bundleId }) {
-  const params = new URLSearchParams({
-    nonce,
-    device_token: deviceToken,
-    platform,
-    bundle_id: bundleId,
-  });
-  return `?${params.toString()}`;
-}
-
 function splResumeQuery(nonce, instance) {
   const params = new URLSearchParams({ nonce });
   if (instance) params.set('instance', instance);
@@ -1149,25 +950,6 @@ function isSupportResumePath(path) {
   return parts.length === 3 && parts[1] === 'support' && SUPPORT_ID_REGEX.test(parts[2]);
 }
 
-function validatePushResumeParams(params) {
-  const nonceValues = params.getAll('nonce');
-  const deviceTokenValues = params.getAll('device_token');
-  const platformValues = params.getAll('platform');
-  const bundleIdValues = params.getAll('bundle_id');
-  if (
-    nonceValues.length !== 1 ||
-    deviceTokenValues.length !== 1 ||
-    platformValues.length !== 1 ||
-    bundleIdValues.length !== 1
-  ) {
-    return false;
-  }
-  return NONCE_REGEX.test(nonceValues[0]) &&
-    DEVICE_TOKEN_REGEX.test(deviceTokenValues[0]) &&
-    PUSH_PLATFORM_ALLOWLIST.includes(platformValues[0]) &&
-    BUNDLE_ID_REGEX.test(bundleIdValues[0]);
-}
-
 function validateSplResumeParams(params) {
   const nonceValues = params.getAll('nonce');
   const instanceValues = params.getAll('instance');
@@ -1201,10 +983,6 @@ function validateSmeResumeParams(params) {
   const instanceValues = params.getAll('instance');
   if (nonceValues.length !== 1 || !NONCE_REGEX.test(nonceValues[0])) return false;
   return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
-}
-
-function pushError(status) {
-  return noStoreHtml(renderEnablePushError(), { status });
 }
 
 function splError(status) {
