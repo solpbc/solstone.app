@@ -24,7 +24,7 @@ const SERVICES = [
   { name: 'spl', table: 'spl_bindings', path: '/enable/spl/confirm', form: {}, entitlement: 'spl_hosted' },
   { name: 'spb', table: 'spb_bindings', path: '/enable/backup/confirm', form: {}, entitlement: 'spb_hosted' },
   { name: 'spp', table: 'spp_bindings', path: '/enable/spp/confirm', form: { data_ack: 'yes' }, entitlement: 'spp_hosted', scoutOnly: true },
-  { name: 'sme', table: 'sme_bindings', path: '/enable/sme/confirm', form: { data_ack: 'yes' }, entitlement: 'sme_hosted' },
+  { name: 'sme', table: 'sme_bindings', path: '/enable/solstone-me/confirm', form: { data_ack: 'yes' }, entitlement: 'sme_hosted' },
 ];
 
 describe.each(SERVICES)('$name: one account holds an instance at a time', (svc) => {
