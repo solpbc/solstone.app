@@ -462,6 +462,16 @@ test("the real android page does not auto-download, and carries every slot the w
   assert.match(page, /<link rel="canonical" href="https:\/\/solstone\.app\/download\/android">/);
 });
 
+test("the Linux instructions use a journal pair link, not retired setup paths", async () => {
+  const { readFileSync } = await import("node:fs");
+  const page = readFileSync(new URL("../public/download.html", import.meta.url), "utf8");
+
+  assert.match(page, /create a pair link for this device in your journal/);
+  assert.match(page, /solstone-linux setup &lt; pair-link\.txt/);
+  assert.doesNotMatch(page, /setup --server-url/);
+  assert.doesNotMatch(page, /journal observer create/);
+});
+
 test("/download/android never prints a digest it did not read from the origin", async (t) => {
   const realFetch = globalThis.fetch;
   t.after(() => {

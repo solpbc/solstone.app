@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>install on every device · solstone</title>
-    <meta name="description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone for macOS, linux, and tmux: download, or copy the prompt for your coding agent.">
+    <meta name="description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone for mac, linux, and tmux: download, or copy the prompt for your coding agent.">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
@@ -281,18 +281,18 @@
     </header>
     <main id="main" tabindex="-1">
     <div class="page-intro">
-        <h1>install solstone on every device.</h1>
+        <h1>install solstone across your devices.</h1>
         <p>the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on each device you use: download it, or copy the prompt below into your coding agent and it handles the rest.</p>
     </div>
 
-    <p class="early-days"><span class="stage-label">early days.</span> solstone on macOS, linux, and windows is in use today, open source and hands-on. expect rough edges, and we'll fix them together as we go.</p>
+    <p class="early-days"><span class="stage-label">early days.</span> solstone on mac, linux, and windows is in use today, open source and hands-on. expect rough edges, and we'll fix them together as we go.</p>
 
     <div class="cards">
         <div class="card">
-            <h2>solstone on macOS</h2>
-            <p class="subtitle">native macOS app, with screen and audio kept in your journal</p>
+            <h2>solstone on mac</h2>
+            <p class="subtitle">native mac app, with screen and audio kept in your journal</p>
             <ul>
-                <li>what you share from every connected display goes into your journal at 1 FPS</li>
+                <li>what you share from every connected display goes into your journal</li>
                 <li>what you share from system audio and microphone goes into your journal separately</li>
                 <li>runs as a menu bar app, starts at login</li>
             </ul>
@@ -300,11 +300,11 @@
                 <p class="download-clarifier">setting up a new mac? install the solstone app to take in this mac's screen and audio for your journal, the journal to keep what you share, or both. both require Apple Silicon; Intel macs aren't supported.</p>
                 <a href="https://solstone.app/download/macos" class="download-btn">download the solstone app</a>
                 <a href="https://solstone.app/download/journal" class="download-btn">download the journal</a>
-                <p class="download-clarifier">the solstone app takes in what you share with it here; the journal is where it all gets kept. already have a journal on another machine? the solstone app alone connects to it.</p>
+                <p class="download-clarifier">the solstone app takes in what you share with it here; the journal is where it all gets kept. already have a journal on another machine? the solstone app alone pairs with it.</p>
                 <p class="trust-signal">both signed by sol pbc, notarized by Apple. each updates over its own signed channel.</p>
             </div>
             <div class="secondary-action">
-                <button class="copy-btn" data-target="blurb-macos" aria-label="copy for your agent: solstone on macOS install prompt">copy for your agent</button>
+                <button class="copy-btn" data-target="blurb-macos" aria-label="copy for your agent: solstone on mac install prompt">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-macos" class="gh-link">GitHub →</a>
                 <a href="/releases/macos" class="gh-link">release notes →</a>
             </div>
@@ -321,7 +321,6 @@ then read INSTALL.md and follow it.</pre>
             <ul>
                 <li>what you share from every monitor goes into your journal via PipeWire at 1 FPS</li>
                 <li>what you share from microphone and system audio goes into your journal</li>
-                <li>screen and audio pause when you step away, on GNOME, KDE, and X11 sessions</li>
             </ul>
             <p class="trust-signal">verify the signed release manifest before you install. apt and dnf do not check our minisign signature.</p>
             <div class="card-actions">
@@ -356,7 +355,12 @@ solstone-linux setup
 
 solstone-linux needs PipeWire, GStreamer (core, base, good, pipewire, x11), xdg-desktop-portal and xdg-utils on the desktop first. the repo's INSTALL.md lists the exact package names for debian, fedora, arch and openSUSE.
 
-`setup` registers this device with your journal over the local http://localhost:5015 link, so there's no URL to type. if this device reaches your journal directly instead, run `solstone-linux setup --server-url &lt;journal-url&gt;`. (legacy fallback: mint a key on the machine that keeps your journal with `journal observer create &lt;name&gt;` and paste it during setup.)
+create a pair link for this device in your journal and save it as pair-link.txt. then stop the service before pairing, run setup with that link, and start it again:
+
+solstone-linux install-service
+systemctl --user stop solstone-linux
+solstone-linux setup &lt; pair-link.txt
+systemctl --user start solstone-linux
 
 building from source instead? (developers only) clone the repo and follow its INSTALL.md:
 
@@ -412,7 +416,7 @@ scoop install solstone</pre>
     <div class="supplemental">
         <div class="card">
             <h2>+ add your terminal</h2>
-            <p class="subtitle">what's on every active tmux session and pane goes into your journal every 5 seconds. solstone-tmux is a native Rust binary that requires tmux and works alongside the solstone app.</p>
+            <p class="subtitle">what's on every active tmux session and pane goes into your journal. solstone-tmux is a native Rust binary that requires tmux and works alongside the solstone app.</p>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-tmux" aria-label="copy for your agent: solstone-tmux install prompt">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">GitHub →</a>
