@@ -46,8 +46,9 @@ describe('billing webhook relay sync', () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
-    expect(calls).toHaveLength(1);
-    expect(calls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: 1_900_000_000 });
+    const relayCalls = calls.filter((call) => call.url.host === 'link.solstone.app');
+    expect(relayCalls).toHaveLength(1);
+    expect(relayCalls[0].body).toEqual({ instance_id: INSTANCE_ID, entitled_until: 1_900_000_000 });
   });
 
   it('keeps webhook success when relay grant push fails', async () => {

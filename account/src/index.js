@@ -128,6 +128,7 @@ import {
   passkeyRegisterStart,
 } from './passkey.js';
 import { runRetention } from './retention.js';
+import { runRenewalReminders } from './renewal-notices.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { runSpbLapseSweep } from './spb-sweep.js';
 import { runAccountDeletionCoordinator } from './deletion-coordinator.js';
@@ -158,6 +159,7 @@ const EMAIL_DAY_LIMIT = 5;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const SWEEP_CRON = '0 3 * * *';
+const RENEWAL_NOTICE_CRON = '0 4 * * *';
 const DELETION_CRON = '*/15 * * * *';
 
 const SECURITY_HEADERS = {
@@ -1089,6 +1091,8 @@ export default {
       await runAccountDeletionCoordinator(env);
     } else if (event.cron === SWEEP_CRON) {
       await runSpbLapseSweep(env, ctx);
+    } else if (event.cron === RENEWAL_NOTICE_CRON) {
+      await runRenewalReminders(env);
     } else {
       await runRetention(env);
     }

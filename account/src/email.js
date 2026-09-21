@@ -150,3 +150,14 @@ if you didn't request this, you can ignore this email.`;
   });
   return { sent: true, messageId: response?.messageId };
 }
+
+export async function sendRenewalNoticeEmail({ env, address, subject, text, html }) {
+  const response = await env.EMAIL.send({
+    to: address,
+    from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+    subject,
+    text,
+    html,
+  });
+  return { sent: true, messageId: response?.messageId };
+}

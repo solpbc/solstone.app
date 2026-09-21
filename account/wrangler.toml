@@ -160,7 +160,8 @@ SPP_ENGINE_ENDPOINT = "https://processing.solstone.app:9443"
 SPP_ENGINE_MODEL = "Qwen/Qwen3.5-4B"
 
 [triggers]
-crons = ["0 */6 * * *", "0 3 * * *", "*/15 * * * *"]
+# 0 4 * * * is daily on purpose so the 15-day window cannot be missed; empty event.cron still falls through to retention.
+crons = ["0 */6 * * *", "0 3 * * *", "0 4 * * *", "*/15 * * * *"]
 
 [assets]
 directory = "public"

@@ -26,6 +26,7 @@ import { SESSION_COOKIE } from './session.js';
 import { aaguidLabel, sessionDisplayLabel, truncateIp } from './settings.js';
 import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
+import { runRenewalCatchUp, runRenewalOneOff } from './renewal-notices.js';
 import { emitSecurityEvent } from './hub.js';
 
 const JWKS_URL = 'https://solpbc.cloudflareaccess.com/cdn-cgi/access/certs';
@@ -150,6 +151,14 @@ export async function handleAdmin(request, env, url, ctx) {
     }
     if (parts.length === 3 && parts[2] === 'impersonate') {
       return await impersonateAccount(request, env, admin, ctx);
+    }
+    if (parts.length === 4 && parts[2] === 'renewal-notices') {
+      if (parts[3] === 'catch-up' && request.method === 'POST') {
+        return await handleRenewalCatchUpAdmin(request, env);
+      }
+      if (parts[3] === 'one-off' && request.method === 'POST') {
+        return await handleRenewalOneOffAdmin(request, env);
+      }
     }
     if (request.method !== 'GET') {
       return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
@@ -841,3 +850,40 @@ function isEmailLike(value) {
   // Intentional duplicate of index.js isValidEmail to avoid an index.js <-> admin.js import cycle.
   return /.+@.+\..+/.test(value);
 }
+
+async function handleRenewalCatchUpAdmin(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid json' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+  if (!body || body.confirm !== true) {
+    return json({ error: 'confirmation required' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+  const result = await runRenewalCatchUp(env);
+  return json(result, { headers: SECURITY_HEADERS });
+}
+
+async function handleRenewalOneOffAdmin(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid json' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+  if (!body || body.confirm !== true) {
+    return json({ error: 'confirmation required' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+  if (
+    typeof body.subject !== 'string' ||
+    body.subject.length === 0 ||
+    typeof body.body !== 'string' ||
+    body.body.length === 0
+  ) {
+    return json({ error: 'subject and body required' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+  const result = await runRenewalOneOff(env, { subject: body.subject, body: body.body });
+  return json(result, { headers: SECURITY_HEADERS });
+}
+

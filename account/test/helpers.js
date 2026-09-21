@@ -186,6 +186,7 @@ export async function resetDb() {
     'account_deletion_proofs',
     'account_deletions',
     'spb_mint_reservations',
+    'renewal_notices',
     'entitlements',
     'stripe_customers',
     'mcp_bridge_bindings',

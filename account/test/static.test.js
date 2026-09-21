@@ -55,6 +55,7 @@ describe('static source checks', () => {
       'r2-credential.js',
       'reach.js',
       'relay-grant.js',
+      'renewal-notices.js',
       'retention.js',
       's3.js',
       'session.js',

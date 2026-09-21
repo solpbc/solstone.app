@@ -41,7 +41,7 @@ describe('owner local export collector (AC1–3)', () => {
   });
 
   describe('Sentinels and absolute-deny invariants (AC1)', () => {
-    it('exports all 16 classes with sentinels and strictly leaks zero sensitive or control values', async () => {
+    it('exports all exportable classes with sentinels and strictly leaks zero sensitive or control values', async () => {
       const consoleSpy = installConsoleSpy();
       const env = makeTestEnv();
 
@@ -57,16 +57,17 @@ describe('owner local export collector (AC1–3)', () => {
         accountId: owner.accountId,
       });
 
-      expect(result.ok).toBe(true);
-      expect(result.completeness).toEqual({
-        complete: true,
-        class_count: 16,
-        record_count: expect.any(Number),
-      });
-
       const exportableNames = OWNER_DATA_INVENTORY
         .filter((entry) => entry.exportTreatment === 'exportable')
         .map((entry) => entry.name);
+
+      expect(result.ok).toBe(true);
+      expect(result.completeness).toEqual({
+        complete: true,
+        class_count: exportableNames.length,
+        record_count: expect.any(Number),
+      });
+
       expect(result.classes.map((c) => c.name)).toEqual(exportableNames);
 
       const resultJson = JSON.stringify(result);

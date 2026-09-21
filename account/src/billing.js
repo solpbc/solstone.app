@@ -25,6 +25,7 @@ import {
   verifyWebhookSignature,
 } from './stripe.js';
 import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-grant.js';
+import { maybeSendSubscriptionAck } from './renewal-notices.js';
 import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
 
@@ -200,13 +201,21 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   if (await getActiveDeletionForAccount(env.DB, accountId)) return;
   await upsertStripeCustomer(env.DB, { accountId, stripeCustomerId, nowMs });
   const subscription = await getSubscription(env, subscriptionId);
-  await reconcileForService(serviceTag(subscription), env, accountId, nowMs, ctx, {
+  const tag = serviceTag(subscription);
+  await reconcileForService(tag, env, accountId, nowMs, ctx, {
     paid: {
       status: 'active',
       currentPeriodEnd: subscriptionPeriodEnd(subscription),
       source: SOURCE,
       sourceRef: subscription.id,
     },
+  });
+  await maybeSendSubscriptionAck(env, {
+    accountId,
+    tag,
+    status: 'active',
+    sourceRef: subscription.id,
+    subscription,
   });
 }
 
@@ -224,7 +233,16 @@ async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
         source: SOURCE,
         sourceRef: obj?.id || null,
       };
-  await reconcileForService(serviceTag(obj), env, accountId, nowMs, ctx, { paid });
+  const tag = serviceTag(obj);
+  await reconcileForService(tag, env, accountId, nowMs, ctx, { paid });
+  if (status === 'active' && (tag === 'spl' || tag === 'spb' || tag === 'sme') && paid?.sourceRef) {
+    await maybeSendSubscriptionAck(env, {
+      accountId,
+      tag,
+      status,
+      sourceRef: paid.sourceRef,
+    });
+  }
 }
 
 async function handleSubscriptionDeleted(env, obj, nowMs, ctx) {
@@ -254,13 +272,21 @@ async function handleInvoicePaid(env, obj, nowMs, ctx) {
   if (!accountRow || !subscriptionId) return;
   const subscription = await getSubscription(env, subscriptionId);
   const accountId = accountRow.account_id;
-  await reconcileForService(serviceTag(subscription), env, accountId, nowMs, ctx, {
+  const tag = serviceTag(subscription);
+  await reconcileForService(tag, env, accountId, nowMs, ctx, {
     paid: {
       status: 'active',
       currentPeriodEnd: subscriptionPeriodEnd(subscription),
       source: SOURCE,
       sourceRef: subscription.id,
     },
+  });
+  await maybeSendSubscriptionAck(env, {
+    accountId,
+    tag,
+    status: 'active',
+    sourceRef: subscription.id,
+    subscription,
   });
 }
 

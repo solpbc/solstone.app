@@ -1753,3 +1753,122 @@ export async function getDashboardData(db, accountId) {
     .first();
   return row || null;
 }
+
+// --- renewal notices ---
+
+export async function claimRenewalNotice(db, {
+  accountId,
+  kind,
+  service,
+  renewalAt,
+  contentKey,
+  subject,
+  body,
+  nowMs,
+}) {
+  const result = await db
+    .prepare(
+      `INSERT INTO renewal_notices (
+         account_id, kind, service, renewal_at, content_key, subject, body, created_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT DO NOTHING`
+    )
+    .bind(accountId, kind, service, renewalAt, contentKey, subject, body, nowMs)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function deleteRenewalNotice(db, {
+  accountId,
+  kind,
+  service,
+  renewalAt,
+  contentKey,
+}) {
+  await db
+    .prepare(
+      `DELETE FROM renewal_notices
+       WHERE account_id = ? AND kind = ? AND service = ? AND renewal_at = ? AND content_key = ?`
+    )
+    .bind(accountId, kind, service, renewalAt, contentKey)
+    .run();
+}
+
+export async function hasRenewalAck(db, accountId, service) {
+  const row = await db
+    .prepare(
+      `SELECT 1 FROM renewal_notices
+       WHERE account_id = ? AND kind = 'ack' AND service = ? AND renewal_at = 0 AND content_key = ''
+       LIMIT 1`
+    )
+    .bind(accountId, service)
+    .first();
+  return Boolean(row);
+}
+
+export async function selectRenewalCandidatePage(db, { afterAccountId = '', afterService = '', limit = 100 }) {
+  const { results } = await db
+    .prepare(
+      `SELECT account_id, service, source_ref, current_period_end
+       FROM entitlements
+       WHERE status = 'active'
+         AND source = 'stripe'
+         AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')
+         AND source_ref IS NOT NULL
+         AND source_ref != ''
+         AND (account_id > ?1 OR (account_id = ?1 AND service > ?2))
+       ORDER BY account_id ASC, service ASC
+       LIMIT ?3`
+    )
+    .bind(afterAccountId, afterService, limit)
+    .all();
+  return results || [];
+}
+
+export async function selectRenewalCatchUpCandidatePage(db, { afterAccountId = '', afterService = '', limit = 100 }) {
+  const { results } = await db
+    .prepare(
+      `SELECT e.account_id, e.service, e.source_ref, e.current_period_end
+       FROM entitlements e
+       WHERE e.status = 'active'
+         AND e.source = 'stripe'
+         AND e.service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')
+         AND e.source_ref IS NOT NULL
+         AND e.source_ref != ''
+         AND NOT EXISTS (
+           SELECT 1 FROM renewal_notices rn
+           WHERE rn.account_id = e.account_id
+             AND rn.kind = 'ack'
+             AND rn.service = e.service
+             AND rn.renewal_at = 0
+             AND rn.content_key = ''
+         )
+         AND (e.account_id > ?1 OR (e.account_id = ?1 AND e.service > ?2))
+       ORDER BY e.account_id ASC, e.service ASC
+       LIMIT ?3`
+    )
+    .bind(afterAccountId, afterService, limit)
+    .all();
+  return results || [];
+}
+
+export async function selectRenewalOneOffCandidatePage(db, { afterAccountId = '', limit = 100 }) {
+  const { results } = await db
+    .prepare(
+      `SELECT account_id
+       FROM entitlements
+       WHERE status = 'active'
+         AND source = 'stripe'
+         AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')
+         AND source_ref IS NOT NULL
+         AND source_ref != ''
+         AND account_id > ?1
+       GROUP BY account_id
+       ORDER BY account_id ASC
+       LIMIT ?2`
+    )
+    .bind(afterAccountId, limit)
+    .all();
+  return results || [];
+}
+

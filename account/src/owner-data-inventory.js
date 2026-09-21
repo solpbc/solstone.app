@@ -154,6 +154,16 @@ const TABLES = [
     exported('source_ref'), exported('enabled_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('updated_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
   ], { deletionOrder: 170, description: 'service entitlements' }),
+  table('renewal_notices', 'account_id', 'direct_owner_purge', 'exportable', [
+    omitted('account_id', 'internal owner relation'),
+    exported('kind'),
+    exported('service'),
+    exported('renewal_at', 'identity', 'seconds since Unix epoch or sentinel 0'),
+    exported('content_key'),
+    exported('subject'),
+    exported('body'),
+    exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+  ], { deletionOrder: 175, description: 'renewal notices sent to you' }),
   table('stripe_customers', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('stripe_customer_id', 'identity', 'Stripe customer reference'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
