@@ -8,7 +8,7 @@ describe('HEAD requests', () => {
     ['/robots.txt', 200],
     ['/private-network', 200],
     ['/notifications', 200],
-    ['/legal', 200],
+    ['/legal', 301],
     ['/services/spl', 302],
     ['/sealed-container', 302],
   ])('HEAD %s mirrors the GET status with no body', async (path, status) => {

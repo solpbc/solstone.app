@@ -92,8 +92,6 @@ import {
   renderConfidentialProcessingLanding,
   renderError,
   renderBackupLanding,
-  renderBackupTerms,
-  renderProcessingTerms,
   renderForbidden,
   renderGoodbye,
   renderLanding,
@@ -105,8 +103,6 @@ import {
   renderServicesSpp,
   renderSmeLanding,
   renderServicesTerms,
-  renderTerms,
-  renderTermsIndex,
   renderVerify,
   VERIFY_ERROR,
 } from './html.js';
@@ -624,22 +620,11 @@ async function routeRequest(req, env, ctx) {
       }
 
       if (url.pathname === '/legal' && req.method === 'GET') {
-        // req_eyreyww2, founder-corrected 2026-09-20: the combined Terms publish AT /terms,
-        // replacing the private-network page in place, with no separate permanent path and no
-        // transition period — /legal becomes a 301 to /terms the same moment /terms changes.
-        // LIVE 2026-09-20 (req_gtp44yvo): the SOT's masthead date is filled and CLO marked the
-        // text FINAL FOR DEPLOY, so COMBINED_TERMS_LIVE is "true".
-        if (env.COMBINED_TERMS_LIVE === 'true') {
-          return redirect('/terms', 301);
-        }
-        return html(renderTermsIndex());
+        return redirect('/terms', 301);
       }
 
       if (url.pathname === '/terms' && req.method === 'GET') {
-        if (env.COMBINED_TERMS_LIVE === 'true') {
-          return html(renderServicesTerms());
-        }
-        return html(renderTerms());
+        return html(renderServicesTerms());
       }
 
       if (url.pathname === '/private-network' && req.method === 'GET') {
@@ -667,17 +652,11 @@ async function routeRequest(req, env, ctx) {
       }
 
       if (url.pathname === '/services/backup/terms' && req.method === 'GET') {
-        if (env.COMBINED_TERMS_LIVE === 'true') {
-          return redirect('/terms', 301);
-        }
-        return html(renderBackupTerms());
+        return redirect('/terms', 301);
       }
 
       if (url.pathname === '/services/processing/terms' && req.method === 'GET') {
-        if (env.COMBINED_TERMS_LIVE === 'true') {
-          return redirect('/terms', 301);
-        }
-        return html(renderProcessingTerms());
+        return redirect('/terms', 301);
       }
 
       if (url.pathname === '/backup' && req.method === 'GET') {
