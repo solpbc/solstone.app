@@ -1778,6 +1778,40 @@ export async function claimRenewalNotice(db, {
   return result.meta.changes > 0;
 }
 
+export async function claimSubscriptionCreated(db, { claimKey, nowMs }) {
+  let result;
+  try {
+    result = await db
+      .prepare(
+        `INSERT INTO subscription_created_claims (claim_key, created_at)
+         VALUES (?, ?)
+         ON CONFLICT DO NOTHING
+         RETURNING claim_key`
+      )
+      .bind(claimKey, nowMs)
+      .all();
+  } catch {
+    return 'unconfirmed';
+  }
+
+  const changes = result?.meta?.changes;
+  if (typeof changes === 'number' && changes > 0) {
+    return 'established';
+  }
+  if (changes === 0) {
+    return 'duplicate';
+  }
+
+  if (Array.isArray(result?.results) && result.results.length > 0) {
+    await db
+      .prepare('DELETE FROM subscription_created_claims WHERE claim_key = ? AND created_at = ?')
+      .bind(claimKey, nowMs)
+      .run();
+  }
+
+  return 'unconfirmed';
+}
+
 export async function deleteRenewalNotice(db, {
   accountId,
   kind,

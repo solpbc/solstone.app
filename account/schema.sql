@@ -504,3 +504,9 @@ CREATE TABLE IF NOT EXISTS renewal_notices (
   PRIMARY KEY (account_id, kind, service, renewal_at, content_key),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
+
+-- Opaque at-most-once claim: peppered digest plus claim time, no account, no Stripe id, no expiry.
+CREATE TABLE IF NOT EXISTS subscription_created_claims (
+  claim_key TEXT PRIMARY KEY,
+  created_at INTEGER NOT NULL
+);
