@@ -132,6 +132,20 @@
                     </li>
                 </ol>
                 <details>
+                    <summary>prefer the terminal?</summary>
+                    <div class="detail-body">
+                        <p>install both mac apps with one command:</p>
+                        <pre id="macos-commands">curl -fsSL https://solstone.app/install.sh | sh -s -- --components all</pre>
+                        <div class="actions"><button class="copy-btn" data-target="macos-commands" hidden>copy command</button></div>
+                        <p class="copy-message" role="status" id="macos-commands-status"></p>
+                        <p>for just one, replace <code>all</code> with <code>journal</code> or <code>app</code>. the installer verifies the download and puts the app in <code>/Applications</code>. updates stay inside each app.</p>
+                    </div>
+                </details>
+                <details id="macos-migration">
+                    <summary>installed the journal from the terminal before?</summary>
+                    <div class="detail-body"><p>install the journal app, then open it. the journal app adopts an older journal only when it can verify the installation it is taking over. if anything is unclear, it stops and tells you what needs attention. your journal stays where it is. <a href="https://support.solstone.app">contact support</a> if you need a hand.</p></div>
+                </details>
+                <details>
                     <summary>journal on another computer?</summary>
                     <div class="detail-body"><p>in your journal, open <strong>network</strong> and choose <strong>add a device</strong>. copy the pairing link. in the solstone app's journal settings, choose <strong>pair to a journal on another device</strong>, paste the link, and confirm it's your journal.</p></div>
                 </details>

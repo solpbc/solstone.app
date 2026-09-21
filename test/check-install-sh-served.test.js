@@ -10,7 +10,7 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 const SCRIPT = new URL("../scripts/check-install-sh-served.mjs", import.meta.url).pathname;
 
-const installer = (revision) => `#!/bin/sh\nset -eu\nBOOTSTRAP_REVISION=${revision}\necho installing\n`;
+const installer = (revision) => `#!/bin/sh\nset -eu\nINSTALLER_REVISION=${revision}\necho installing\n`;
 const CURRENT = installer(2);
 const STALE = installer(1);
 
@@ -68,7 +68,7 @@ test("exits 1 and names the fix when the authoritative copy is stale", async () 
   });
 });
 
-test("a stale compatibility alias alone is red -- both surfaces are in scope", async () => {
+test("a stale compatibility URL alone is red -- both surfaces are in scope", async () => {
   await withServer({ "/a": CURRENT, "/b": STALE }, async (base) => {
     const r = await gate(CURRENT, [`${base}/a`, `${base}/b`]);
     assert.equal(r.code, 1, r.out);
@@ -124,10 +124,10 @@ test("a crash of the gate itself exits 2, never 1: a crash must not read as BEHI
 });
 
 test("an unreadable source exits 2 rather than comparing against nothing", async () => {
-  const r = await run(process.execPath, [SCRIPT, "--journal-repo", "/nonexistent/solstone-journal", "--url", "http://127.0.0.1:9/x"]).then(
+  const r = await run(process.execPath, [SCRIPT, "--solstone-repo", "/nonexistent/solstone", "--url", "http://127.0.0.1:9/x"]).then(
     () => ({ code: 0 }),
     (err) => ({ code: err.code, out: err.stderr }),
   );
   assert.equal(r.code, 2);
-  assert.match(r.out, /UNMEASURED: could not read core\/distribution\/install\.sh/);
+  assert.match(r.out, /UNMEASURED: could not build the installer from origin\/main/);
 });

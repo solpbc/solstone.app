@@ -4,7 +4,7 @@ description: install and configure solstone, a personal memory platform. the sol
 license: AGPL-3.0-only
 metadata:
   author: sol-pbc
-  version: "1.1"
+  version: "1.2"
   website: https://solstone.app
   repository: https://github.com/solpbc/solstone-journal
 ---
@@ -29,11 +29,13 @@ the guide covers platforms, prerequisites, installation, setup, service verifica
 
 - **repo:** https://github.com/solpbc/solstone-journal
 - **solstone app (mac):** https://github.com/solpbc/solstone-macos
-- **platforms:** linux (x86_64 and aarch64) and macos on apple silicon. the journal does not live on windows. a windows owner needs a mac or linux machine where the journal lives.
-- **requires:** no interpreter and no package manager of its own. on linux, the system OpenMP runtime (`libgomp`) for the default local transcription helper. the signed solstone app is a separate install from the journal.
-- **the two CLIs:** `solstone` and `journal`. one tree puts both on PATH. there is no thin-client package, no `sol` command, and no alias. the solstone app on each device is a separate install.
-- **install the journal:** 2.0.0 is published. its release channel is `updates.solstone.app`, and one command does the whole thing: `curl -fsSL https://solstone.app/install.sh | sh` (or `sh core/distribution/install.sh` from a checkout). that follows the `release` lane, verifies the digest, and installs. debian and fedora can install the `.deb` or `.rpm` instead. then run `journal setup`.
-- **install from archives already on disk:** `sh core/distribution/install.sh --archive solstone-journal-<version>-linux-x86_64.tar.gz --sha256 solstone-journal-<version>-linux-x86_64.sha256 --release solstone-journal-<version>-linux-x86_64.release` (use `macos-arm64` on apple silicon). then `journal setup`.
-- **moving from a pip, uv, or pipx install:** stop the old service (`journal service stop`), uninstall the old Python packages, then install the tree. INSTALL.md has the exact uninstall commands. the two must not both be on PATH.
-- **configure:** open http://localhost:5015 after setup. the first-run wizard handles identity.
+- **platforms:** linux (x86_64 and aarch64) and macos 15 or later on Apple Silicon. the journal does not live on windows. a windows owner needs a mac or linux machine where the journal lives.
+- **linux:** the journal ships as one self-contained tree with no interpreter or package manager of its own. the tree puts `solstone` and `journal` on PATH and needs the system OpenMP runtime (`libgomp`) for the default local transcription helper.
+- **mac:** the journal app is the only supported way to run the journal. it does not install a second command-line runtime, PATH wrapper, or launchd service. the journal app and solstone app are separate apps and each handles its own updates.
+- **install on linux:** `curl -fsSL https://solstone.app/install.sh | sh`, then `journal setup`. the installer verifies the signed release and its digests. Debian and Fedora can install the `.deb` or `.rpm` instead.
+- **install on mac:** `curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal`. use `--components all` to install both mac apps. the installer verifies the signed, notarized bundles and puts them in `/Applications`.
+- **install from archives already on disk:** linux only. use `sh core/distribution/install.sh --archive solstone-journal-<version>-linux-x86_64.tar.gz --sha256 solstone-journal-<version>-linux-x86_64.sha256 --release solstone-journal-<version>-linux-x86_64.release`, then `journal setup`.
+- **moving from a pip, uv, or pipx install on linux:** do not stop or uninstall the old runtime first. install the tree, then let the applicable `journal setup` command recognize and replace the old service and launchers while preserving the journal. INSTALL.md carries the v1.0.22 package exception.
+- **moving from an older command-line install on mac:** install the journal app and open it. the journal app adopts the existing journal only when it can verify the installation it is taking over. if anything is unclear, it stops and tells the owner what needs attention. the journal stays where it is; see https://solstone.app/install#macos-migration.
+- **configure:** on linux, open http://localhost:5015 after setup. on mac, open the journal app and follow first run.
 - **docs:** https://solstone.app/llms.txt

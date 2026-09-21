@@ -1,4 +1,4 @@
-.PHONY: deploy dev install sitemap publish-install-sh check-install-sh-served build-platform-install-sh
+.PHONY: deploy dev install sitemap publish-install-sh check-install-sh-served build-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
@@ -14,14 +14,14 @@ sitemap:
 install:
 	@echo "solstone.app is a static deploy — no install step. use 'make deploy' to ship."
 
-# Sibling checkout of solstone-journal; override with `make publish-install-sh JOURNAL_REPO=<path>`.
-JOURNAL_REPO ?= ../solstone-journal
+# Sibling checkout of the cross-platform installer; override with
+# `make publish-install-sh SOLSTONE_REPO=<path>`.
 SOLSTONE_REPO ?= ../solstone
 SOLSTONE_REMOTE ?= origin
 
-# Build the multi-component Linux installer from an exact, clean public main.
-# The generated asset is served separately from the journal-only install.sh.
-build-platform-install-sh:
+# Build both public installer paths from an exact, clean public main. The
+# platform-install.sh path remains a byte-identical compatibility URL.
+build-install-sh:
 	@test -d "$(SOLSTONE_REPO)" || { echo "solstone checkout not found at $(SOLSTONE_REPO); set SOLSTONE_REPO=<path>" >&2; exit 1; }
 	@cd "$(SOLSTONE_REPO)" && git fetch "$(SOLSTONE_REMOTE)" main --quiet
 	@solstone_head="$$(cd "$(SOLSTONE_REPO)" && git rev-parse HEAD)"; \
@@ -35,43 +35,22 @@ build-platform-install-sh:
 		exit 1; \
 	fi
 	$(MAKE) -C "$(SOLSTONE_REPO)" build-installer
+	cp "$(SOLSTONE_REPO)/dist/install.sh" public/install.sh
 	cp "$(SOLSTONE_REPO)/dist/install.sh" public/platform-install.sh
 
-# The authoritative-installer publish step. Republishes
-# solstone-journal's core/distribution/install.sh, from its origin/main tip
-# only, to both live locations this repo/account own: public/install.sh
-# (served at solstone.app/install.sh) and the updates.solstone.app
-# compatibility alias. This IS the release procedure for install.sh -- a
-# hand-run `wrangler r2 object put` for this file instead of this target is
-# exactly the failure mode (G20) this exists to close. Run this whenever
-# install.sh changes on solstone-journal main, and at every release cut.
-publish-install-sh:
-	@test -d "$(JOURNAL_REPO)" || { echo "solstone-journal checkout not found at $(JOURNAL_REPO); set JOURNAL_REPO=<path>" >&2; exit 1; }
-	@cd "$(JOURNAL_REPO)" && git fetch origin --quiet
-	@journal_head="$$(cd "$(JOURNAL_REPO)" && git rev-parse HEAD)"; \
-	journal_main="$$(cd "$(JOURNAL_REPO)" && git rev-parse origin/main)"; \
-	if [ "$$journal_head" != "$$journal_main" ]; then \
-		echo "solstone-journal at $(JOURNAL_REPO) is at $$journal_head, not origin/main ($$journal_main); publishing must come from main" >&2; \
-		exit 1; \
-	fi
-	@if [ -n "$$(cd "$(JOURNAL_REPO)" && git status --porcelain -- core/distribution/install.sh)" ]; then \
-		echo "core/distribution/install.sh has uncommitted changes in $(JOURNAL_REPO); refusing to publish" >&2; \
-		exit 1; \
-	fi
-	cp "$(JOURNAL_REPO)/core/distribution/install.sh" public/install.sh
-	wrangler r2 object put solstone-updates/solstone-journal/install.sh \
-		--file public/install.sh --content-type 'text/plain; charset=utf-8' --remote
+# The authoritative installer publish step. Both public paths come from the
+# cross-platform installer on solstone main. The Journal bootstrap remains an
+# independent Linux release artifact on updates.solstone.app; this target never
+# republishes it or presents it as a macOS installation path.
+publish-install-sh: build-install-sh
 	$(MAKE) deploy
-	node scripts/check-install-sh-served.mjs --journal-repo "$(JOURNAL_REPO)" --wait 90
-	@journal_main="$$(cd "$(JOURNAL_REPO)" && git rev-parse origin/main)"; \
-	echo "published install.sh (solstone-journal $$journal_main) to https://solstone.app/install.sh and https://updates.solstone.app/solstone-journal/install.sh"
-	@echo "next: git add public/install.sh && git commit"
+	node scripts/check-install-sh-served.mjs --solstone-repo "$(SOLSTONE_REPO)" --wait 90
+	@solstone_main="$$(cd "$(SOLSTONE_REPO)" && git rev-parse FETCH_HEAD)"; \
+	echo "published install.sh (solstone $$solstone_main) to https://solstone.app/install.sh and https://solstone.app/platform-install.sh"
+	@echo "next: git add public/install.sh public/platform-install.sh && git commit"
 
-# The served-bytes gate: fails unless BOTH served copies of install.sh (the
-# authoritative solstone.app/install.sh and the updates.solstone.app alias) equal
-# solstone-journal's core/distribution/install.sh at origin/main. The failure text
-# names `make publish-install-sh` as the fix. Reachable by name only -- it needs
-# the network and straddles two repos, so it is not part of `deploy`, `npm test`,
-# or any solstone-journal ci/ci-full lane. `publish-install-sh` runs it last.
+# The served-bytes gate: fails unless both public paths equal the installer
+# generated from solstone origin/main. It is networked and cross-repo, so it is
+# reachable by name rather than part of the ordinary site test suite.
 check-install-sh-served:
-	node scripts/check-install-sh-served.mjs --journal-repo "$(JOURNAL_REPO)"
+	node scripts/check-install-sh-served.mjs --solstone-repo "$(SOLSTONE_REPO)"

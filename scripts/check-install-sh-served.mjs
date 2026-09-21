@@ -1,20 +1,16 @@
 #!/usr/bin/env node
-// Fail unless every SERVED copy of install.sh equals solstone-journal's
-// core/distribution/install.sh at origin/main. Run via `make check-install-sh-served`;
+// Fail unless every served public installer equals the production installer
+// generated from solstone at origin/main. Run via `make check-install-sh-served`;
 // `make publish-install-sh` runs it last, so a green `wrangler deploy` line is
 // never the whole receipt.
 //
-// Why this exists: the installer is versioned in solstone-journal but served
-// from here, and nothing tied the two together. install.sh went to revision 2
-// while the served copy stayed at revision 1, and every documented install
-// refused the current release. A check that reads only core/distribution/ cannot
-// see that -- the defect is the gap between the source and the served bytes --
-// so this one fetches the served bytes, both of them:
+// Why this exists: the installer is versioned in solstone but served from this
+// repo. This gate measures the actual edge bytes at both supported URLs:
 //
-//   https://solstone.app/install.sh                                (authoritative)
-//   https://updates.solstone.app/solstone-journal/install.sh       (compatibility alias)
+//   https://solstone.app/install.sh                  (authoritative)
+//   https://solstone.app/platform-install.sh         (compatibility URL)
 //
-// Deliberately NOT wired into solstone-journal's ci/ci-full or into `make deploy`:
+// Deliberately NOT wired into solstone's CI or into `make deploy`:
 // it necessarily straddles two repos, so it would fail every build the moment
 // install.sh moves and before anyone can publish. It is a publish gate, reachable
 // by name, like `make check-install-fast` in solstone-journal.
@@ -41,15 +37,14 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const SERVED_URLS = [
   "https://solstone.app/install.sh",
-  "https://updates.solstone.app/solstone-journal/install.sh",
+  "https://solstone.app/platform-install.sh",
 ];
-const SOURCE_PATH = "core/distribution/install.sh";
-const FIX = "cd <solstone.app checkout> && make publish-install-sh   (then: git add public/install.sh && git commit)";
+const FIX = "cd <solstone.app checkout> && make publish-install-sh   (then: git add public/install.sh public/platform-install.sh && git commit)";
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 function revisionOf(bytes) {
-  const m = /^BOOTSTRAP_REVISION=(\d+)\s*$/m.exec(bytes.toString("utf8"));
+  const m = /^(?:INSTALLER|BOOTSTRAP)_REVISION=(\d+)\s*$/m.exec(bytes.toString("utf8"));
   return m ? m[1] : "?";
 }
 
@@ -57,17 +52,20 @@ function describe(bytes) {
   return { digest: sha256(bytes), revision: revisionOf(bytes) };
 }
 
-// The source is what `make publish-install-sh` would publish: origin/main after
-// a fresh fetch, never the working tree or a possibly stale local HEAD.
-function readSource(journalRepo) {
-  execFileSync("git", ["-C", journalRepo, "fetch", "origin", "--quiet"], { stdio: "pipe" });
-  const bytes = execFileSync("git", ["-C", journalRepo, "show", `origin/main:${SOURCE_PATH}`], {
-    maxBuffer: 16 * 1024 * 1024,
-  });
-  const commit = execFileSync("git", ["-C", journalRepo, "rev-parse", "origin/main"], {
+// Build the exact source `make publish-install-sh` would publish. Requiring the
+// checkout itself to equal origin/main keeps local edits out of the authority.
+function readSource(solstoneRepo) {
+  execFileSync("git", ["-C", solstoneRepo, "fetch", "origin", "--quiet"], { stdio: "pipe" });
+  const head = execFileSync("git", ["-C", solstoneRepo, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const commit = execFileSync("git", ["-C", solstoneRepo, "rev-parse", "origin/main"], {
     encoding: "utf8",
   }).trim();
-  return { bytes, label: `solstone-journal origin/main ${commit.slice(0, 12)}` };
+  if (head !== commit) throw new Error(`solstone HEAD ${head} is not origin/main ${commit}`);
+  const dirty = execFileSync("git", ["-C", solstoneRepo, "status", "--porcelain"], { encoding: "utf8" }).trim();
+  if (dirty) throw new Error("solstone checkout has uncommitted changes");
+  execFileSync("make", ["-C", solstoneRepo, "build-installer"], { stdio: "pipe" });
+  const bytes = readFileSync(resolve(solstoneRepo, "dist/install.sh"));
+  return { bytes, label: `solstone origin/main ${commit.slice(0, 12)}` };
 }
 
 async function readServed(url) {
@@ -106,7 +104,7 @@ async function checkInstallShServed({ source, urls, waitSeconds = 0, intervalSec
 function report(source, r) {
   const short = (d) => d.slice(0, 12);
   const lines = [
-    `source  ${source.label}  ${SOURCE_PATH}  revision ${r.want.revision}  sha256 ${short(r.want.digest)}`,
+    `source  ${source.label}  generated installer  revision ${r.want.revision}  sha256 ${short(r.want.digest)}`,
   ];
   for (const s of r.served) {
     if (s.error) lines.push(`served  ${s.url}  UNREAD (${s.error})`);
@@ -130,22 +128,22 @@ function report(source, r) {
 async function main() {
   const { values } = parseArgs({
     options: {
-      "journal-repo": { type: "string" },
+      "solstone-repo": { type: "string" },
       "source-file": { type: "string" }, // test/offline override for the git read
       url: { type: "string", multiple: true }, // test override for the served URLs
       wait: { type: "string", default: "0" },
       interval: { type: "string", default: "5" },
     },
   });
-  const journalRepo = resolve(values["journal-repo"] ?? process.env.JOURNAL_REPO ?? resolve(repoRoot, "../solstone-journal"));
+  const solstoneRepo = resolve(values["solstone-repo"] ?? process.env.SOLSTONE_REPO ?? resolve(repoRoot, "../solstone"));
 
   let source;
   try {
     source = values["source-file"]
       ? { bytes: readFileSync(values["source-file"]), label: values["source-file"] }
-      : readSource(journalRepo);
+      : readSource(solstoneRepo);
   } catch (err) {
-    console.error(`UNMEASURED: could not read ${SOURCE_PATH} at origin/main in ${journalRepo}: ${err.message.split("\n")[0]}`);
+    console.error(`UNMEASURED: could not build the installer from origin/main in ${solstoneRepo}: ${err.message.split("\n")[0]}`);
     console.error("This is not a pass.");
     process.exit(2);
   }
