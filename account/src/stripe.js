@@ -4,6 +4,7 @@ export const STRIPE_API_VERSION = '2024-09-30.acacia';
 
 const STRIPE_API_BASE = 'https://api.stripe.com/v1';
 const encoder = new TextEncoder();
+const CHECKOUT_DISCLOSURE = 'by purchasing this service, you agree to enroll in an automatic renewal contract: it renews automatically at the end of each billing period, until you cancel. cancel anytime: sign in at services.solstone.app, open the service, use the manage billing button, and cancel on the billing page it opens. when you cancel, the service keeps working through the end of the period you have already paid for, then stops.';
 
 // The services a Stripe subscription can be sold as. Checkout stamps one of these on
 // the subscription as metadata.service, and the webhook reconciles by it. Adding a
@@ -43,6 +44,7 @@ export async function createCheckoutSession(env, {
   body.set('automatic_tax[enabled]', 'true');
   body.set('line_items[0][price]', priceId);
   body.set('line_items[0][quantity]', '1');
+  body.set('custom_text[submit][message]', CHECKOUT_DISCLOSURE);
   if (termsAssent) body.set('consent_collection[terms_of_service]', 'required');
   body.set('success_url', successUrl);
   body.set('cancel_url', cancelUrl);

@@ -321,11 +321,13 @@ describe('billing stripe core', () => {
     const warned = () => logged.calls.filter(({ level, args }) => level === 'warn' && args[0] === 'stripe_checkout_terms_assent_off').length;
 
     const on = await checkoutFor({ STRIPE_TERMS_ASSENT: 'required' });
+    expect(on.get('custom_text[submit][message]')).toBe('by purchasing this service, you agree to enroll in an automatic renewal contract: it renews automatically at the end of each billing period, until you cancel. cancel anytime: sign in at services.solstone.app, open the service, use the manage billing button, and cancel on the billing page it opens. when you cancel, the service keeps working through the end of the period you have already paid for, then stops.');
     expect(on.get('consent_collection[terms_of_service]')).toBe('required');
     expect(warned()).toBe(0);
 
     for (const value of [undefined, '', 'true', '1', 'REQUIRED', ' required', 'none']) {
       const off = await checkoutFor({ STRIPE_TERMS_ASSENT: value });
+      expect(off.get('custom_text[submit][message]')).toBe('by purchasing this service, you agree to enroll in an automatic renewal contract: it renews automatically at the end of each billing period, until you cancel. cancel anytime: sign in at services.solstone.app, open the service, use the manage billing button, and cancel on the billing page it opens. when you cancel, the service keeps working through the end of the period you have already paid for, then stops.');
       expect(off.has('consent_collection[terms_of_service]')).toBe(false);
     }
     expect(warned()).toBe(7);
