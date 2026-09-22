@@ -215,7 +215,9 @@ describe('/enable/solstone-me', () => {
     expect(body).toContain('href="/services/solstone-me"');
     expect(body).toContain('set up solstone.me');
     expect(body).not.toMatch(/subscribe/i);
-    expect(body).toContain("your allow is saved, so you won't be asked again.");
+    expect(body).toContain('your consent is saved;');
+    expect(body).toContain('turn solstone.me on again in your journal.');
+    expect(body).not.toMatch(/won't be asked again/i);
     await expect(smeBindingRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
       consent_disclosure_version: 'sme-consent-v2-pattern',
     });

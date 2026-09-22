@@ -164,7 +164,8 @@ describe('/enable/backup', () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('set up encrypted backup');
-    expect(body).toContain('your allow is saved');
+    expect(body).toContain('your consent is saved;');
+    expect(body).toContain('turn encrypted backup on again in your journal.');
     expect(payload).toEqual({
       broker_endpoint: 'https://services.solstone.app',
       account_id: account.accountId,

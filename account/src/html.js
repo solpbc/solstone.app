@@ -246,7 +246,7 @@ function enableNeedsSubscriptionTemplate({ service, href }) {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
-  <p>sol pbc turns on ${service} for your journal once a subscription is active. your allow is saved, so you won't be asked again.</p>
+  <p>${service} needs an active subscription before it can turn on. your consent is saved; set one up, then turn ${service} on again in your journal.</p>
   <a class="btn primary" href="${escAttr(href)}">set up ${service}</a>
 </div>`,
   });
