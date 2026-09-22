@@ -7,6 +7,7 @@ import {
   makeTestEnv,
   resetDb,
   seedAccount,
+  seedEntitlement,
   seedScoutApplication,
   seedSession,
 } from './helpers.js';
@@ -138,7 +139,7 @@ describe('sme checkout and portal', () => {
     const session = await seedSession(account.accountId, { testEnv });
     const { calls } = installStripeFetchMock();
 
-    for (const action of ['checkout', 'portal']) {
+    for (const action of ['checkout', 'portal', 'cancel']) {
       const badCsrf = await postForm(`${PATH}/${action}`, testEnv, new URLSearchParams({ csrf: 'bad', plan: 'annual' }), session.cookie);
       expect(badCsrf.status).toBe(403);
       const badOrigin = await worker.fetch(new Request(`https://services.solstone.app${PATH}/${action}`, {
@@ -172,6 +173,17 @@ describe('sme checkout and portal', () => {
     expect(response.headers.get('Location')).toBe('https://billing.stripe.test/sme-session');
     expect(calls[0].body.get('customer')).toBe('cus_sme_portal');
     expect(calls[0].body.get('return_url')).toBe(`https://services.solstone.app${PATH}`);
+
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: 'sme_hosted',
+      sourceRef: 'sub_sme_only',
+    });
+    const cancel = await postForm(`${PATH}/cancel`, testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
+    expect(cancel.status).toBe(303);
+    expect(calls[1].body.get('flow_data[type]')).toBe('subscription_cancel');
+    expect(calls[1].body.get('flow_data[subscription_cancel][subscription]')).toBe('sub_sme_only');
+    expect(calls[1].body.get('flow_data[after_completion][redirect][return_url]')).toBe(`https://services.solstone.app${PATH}`);
   });
 });
 

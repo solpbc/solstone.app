@@ -28,6 +28,7 @@ export function paidSignalFromRow(row) {
       currentPeriodEnd: row.current_period_end,
       source: row.source,
       sourceRef: row.source_ref,
+      cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
     };
   }
   return null;
@@ -49,6 +50,7 @@ export async function reconcileSplEntitlement(env, accountId, nowMs, ctx, opts =
       currentPeriodEnd: paid.currentPeriodEnd ?? null,
       source: paid.source,
       sourceRef: paid.sourceRef ?? null,
+      cancelAtPeriodEnd: paid.cancelAtPeriodEnd ?? null,
       nowMs,
     });
   } else {
@@ -61,6 +63,7 @@ export async function reconcileSplEntitlement(env, accountId, nowMs, ctx, opts =
         currentPeriodEnd: null,
         source: 'comp',
         sourceRef: null,
+        cancelAtPeriodEnd: false,
         nowMs,
       });
     } else {
@@ -71,6 +74,7 @@ export async function reconcileSplEntitlement(env, accountId, nowMs, ctx, opts =
         currentPeriodEnd: null,
         source: row?.source ?? 'comp',
         sourceRef: null,
+        cancelAtPeriodEnd: false,
         nowMs,
       });
     }

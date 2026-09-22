@@ -121,6 +121,34 @@ export async function handleBillingPortal(req, env) {
   return signedInRedirect(portal.url);
 }
 
+export async function handleBillingCancel(req, env) {
+  if (!originAllowed(req)) return noStore(forbidden());
+  const guard = await requireSignedInSession(req, env);
+  if (guard instanceof Response) return guard;
+  const form = await safeForm(req);
+  if (!await validCsrf(form, env)) return noStore(forbidden());
+
+  const [customerRow, entitlement] = await Promise.all([
+    getStripeCustomerByAccount(env.DB, { accountId: guard.session.account_id }),
+    getEntitlement(env.DB, { accountId: guard.session.account_id, service: SERVICE }),
+  ]);
+  if (!customerRow || entitlement?.source !== SOURCE || !entitlement.source_ref) {
+    return signedInRedirect('/private-network?billing=missing');
+  }
+  let portal;
+  try {
+    portal = await createPortalSession(env, {
+      customer: customerRow.stripe_customer_id,
+      returnUrl: PORTAL_RETURN_URL,
+      subscriptionId: entitlement.source_ref,
+    });
+  } catch {
+    return signedInRedirect('/private-network?billing=error');
+  }
+  if (!portal?.url) return signedInRedirect('/private-network?billing=error');
+  return signedInRedirect(portal.url);
+}
+
 export async function handleBillingReturn(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
@@ -209,6 +237,7 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
       currentPeriodEnd: subscriptionPeriodEnd(subscription),
       source: SOURCE,
       sourceRef: subscription.id,
+      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     },
   });
   if (tag === 'spl' || tag === 'spb' || tag === 'sme') {
@@ -250,6 +279,7 @@ async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
         currentPeriodEnd: subscriptionPeriodEnd(obj),
         source: SOURCE,
         sourceRef: obj?.id || null,
+        cancelAtPeriodEnd: Boolean(obj?.cancel_at_period_end),
       };
   const tag = serviceTag(obj);
   await reconcileForService(tag, env, accountId, nowMs, ctx, { paid });
@@ -297,6 +327,7 @@ async function handleInvoicePaid(env, obj, nowMs, ctx) {
       currentPeriodEnd: subscriptionPeriodEnd(subscription),
       source: SOURCE,
       sourceRef: subscription.id,
+      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     },
   });
   await maybeSendSubscriptionAck(env, {

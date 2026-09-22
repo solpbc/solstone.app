@@ -101,7 +101,28 @@ describe('the solstone.me service page and its catalog row', () => {
       expect(html).not.toContain('>on<');
       expect(visibleText(html)).not.toMatch(/\b(is|are|it's) on\b/i);
       expect(html).toContain('action="/services/solstone-me/portal"');
+      expect(html).toContain('action="/services/solstone-me/cancel"');
+      expect(html).toContain('cancel solstone.me');
       expect(html).not.toContain('action="/services/solstone-me/checkout"');
+    });
+
+    it('shows a pending cancellation date and removes only the cancel door', async () => {
+      const testEnv = makeTestEnv();
+      const account = await seedAccount({ email: 'pending@example.com', testEnv });
+      const session = await seedSession(account.accountId, { testEnv });
+      await seedEntitlement({
+        accountId: account.accountId,
+        service: 'sme_hosted',
+        status: 'active',
+        currentPeriodEnd: 1_800_000_000,
+        cancelAtPeriodEnd: true,
+      });
+
+      const html = await (await get('/services/solstone-me', testEnv, session.cookie)).text();
+
+      expect(html).toContain('your solstone.me coverage is scheduled to end on 2027-01-15');
+      expect(html).toContain('action="/services/solstone-me/portal"');
+      expect(html).not.toContain('action="/services/solstone-me/cancel"');
     });
 
     it('says what a covered owner has and where to turn it on, and never invents a paid-through date', async () => {

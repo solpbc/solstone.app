@@ -151,7 +151,8 @@ const TABLES = [
   table('entitlements', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('service'), exported('status'),
     exported('current_period_end', 'epoch_s_to_iso', 'seconds since Unix epoch'), exported('source'),
-    exported('source_ref'), exported('enabled_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    exported('source_ref'), exported('cancel_at_period_end'),
+    exported('enabled_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('updated_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
   ], { deletionOrder: 170, description: 'service entitlements' }),
   table('renewal_notices', 'account_id', 'direct_owner_purge', 'exportable', [

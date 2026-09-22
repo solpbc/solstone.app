@@ -227,6 +227,7 @@ CREATE TABLE IF NOT EXISTS entitlements (
   -- enabled_at: ms (nowMs), stamped once on first transition to active; never moved.
   enabled_at INTEGER,
   updated_at INTEGER NOT NULL,
+  cancel_at_period_end INTEGER NOT NULL DEFAULT 0 CHECK (cancel_at_period_end IN (0, 1)),
   PRIMARY KEY (account_id, service),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );

@@ -34,6 +34,7 @@ export async function reconcileSpbEntitlement(env, accountId, nowMs, ctx, opts =
       currentPeriodEnd: paid.currentPeriodEnd ?? null,
       source: paid.source,
       sourceRef: paid.sourceRef ?? null,
+      cancelAtPeriodEnd: paid.cancelAtPeriodEnd ?? null,
       nowMs,
     });
     await clearSpbBindingLapsed(env.DB, { accountId });
@@ -47,6 +48,7 @@ export async function reconcileSpbEntitlement(env, accountId, nowMs, ctx, opts =
         currentPeriodEnd: null,
         source: 'comp',
         sourceRef: null,
+        cancelAtPeriodEnd: false,
         nowMs,
       });
       await clearSpbBindingLapsed(env.DB, { accountId });
@@ -58,6 +60,7 @@ export async function reconcileSpbEntitlement(env, accountId, nowMs, ctx, opts =
         currentPeriodEnd: null,
         source: row?.source ?? 'comp',
         sourceRef: null,
+        cancelAtPeriodEnd: false,
         nowMs,
       });
       await markSpbBindingLapsed(env.DB, { accountId, nowMs });

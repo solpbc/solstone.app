@@ -1165,7 +1165,8 @@ export async function setScoutApplicationDataAcked(db, { accountId, nowMs }) {
 export async function getEntitlement(db, { accountId, service }) {
   const row = await db
     .prepare(
-      `SELECT account_id, service, status, current_period_end, source, source_ref, enabled_at, updated_at
+      `SELECT account_id, service, status, current_period_end, source, source_ref,
+              cancel_at_period_end, enabled_at, updated_at
        FROM entitlements
        WHERE account_id = ? AND service = ?`
     )
@@ -1193,24 +1194,39 @@ export async function upsertEntitlement(db, {
   currentPeriodEnd,
   source,
   sourceRef,
+  cancelAtPeriodEnd = null,
   nowMs,
 }) {
   const enabledAt = status === 'active' ? nowMs : null;
   await db
     .prepare(
       `INSERT INTO entitlements (
-         account_id, service, status, current_period_end, source, source_ref, enabled_at, updated_at
-       ) SELECT ?, ?, ?, ?, ?, ?, ?, ?
+         account_id, service, status, current_period_end, source, source_ref,
+         cancel_at_period_end, enabled_at, updated_at
+       ) SELECT ?, ?, ?, ?, ?, ?, COALESCE(?, 0), ?, ?
        WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?)
        ON CONFLICT(account_id, service) DO UPDATE SET
          status = excluded.status,
          current_period_end = COALESCE(excluded.current_period_end, entitlements.current_period_end),
          source = excluded.source,
          source_ref = COALESCE(excluded.source_ref, entitlements.source_ref),
+         cancel_at_period_end = COALESCE(?, entitlements.cancel_at_period_end),
          enabled_at = COALESCE(entitlements.enabled_at, excluded.enabled_at),
          updated_at = excluded.updated_at`
     )
-    .bind(accountId, service, status, currentPeriodEnd, source, sourceRef, enabledAt, nowMs, accountId)
+    .bind(
+      accountId,
+      service,
+      status,
+      currentPeriodEnd,
+      source,
+      sourceRef,
+      cancelAtPeriodEnd == null ? null : Number(Boolean(cancelAtPeriodEnd)),
+      enabledAt,
+      nowMs,
+      accountId,
+      cancelAtPeriodEnd == null ? null : Number(Boolean(cancelAtPeriodEnd))
+    )
     .run();
 }
 
@@ -1905,4 +1921,3 @@ export async function selectRenewalOneOffCandidatePage(db, { afterAccountId = ''
     .all();
   return results || [];
 }
-

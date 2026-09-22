@@ -40,6 +40,7 @@ export async function reconcileSmeEntitlement(env, accountId, nowMs, ctx, opts =
       currentPeriodEnd: paid.currentPeriodEnd ?? null,
       source: paid.source,
       sourceRef: paid.sourceRef ?? null,
+      cancelAtPeriodEnd: paid.cancelAtPeriodEnd ?? null,
       nowMs,
     });
     return;
@@ -53,6 +54,7 @@ export async function reconcileSmeEntitlement(env, accountId, nowMs, ctx, opts =
       currentPeriodEnd: null,
       source: 'comp',
       sourceRef: null,
+      cancelAtPeriodEnd: false,
       nowMs,
     });
     return;
@@ -64,6 +66,7 @@ export async function reconcileSmeEntitlement(env, accountId, nowMs, ctx, opts =
     currentPeriodEnd: null,
     source: row?.source ?? 'comp',
     sourceRef: null,
+    cancelAtPeriodEnd: false,
     nowMs,
   });
 }

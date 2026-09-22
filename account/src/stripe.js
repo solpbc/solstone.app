@@ -62,10 +62,16 @@ export async function createCheckoutSession(env, {
   });
 }
 
-export async function createPortalSession(env, { customer, returnUrl }) {
+export async function createPortalSession(env, { customer, returnUrl, subscriptionId = '' }) {
   const body = new URLSearchParams();
   body.set('customer', customer);
   body.set('return_url', returnUrl);
+  if (subscriptionId) {
+    body.set('flow_data[type]', 'subscription_cancel');
+    body.set('flow_data[subscription_cancel][subscription]', subscriptionId);
+    body.set('flow_data[after_completion][type]', 'redirect');
+    body.set('flow_data[after_completion][redirect][return_url]', returnUrl);
+  }
   return stripeRequest(env, '/billing_portal/sessions', { method: 'POST', body });
 }
 

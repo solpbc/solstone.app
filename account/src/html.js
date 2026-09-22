@@ -800,6 +800,7 @@ export function renderServicesSpl({ entitlement, csrf, flash = {}, menu }) {
   const flashes = billingFlashMessages(flash);
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
+  const cancelPending = Boolean(entitlement?.cancel_at_period_end);
   const detailParts = [];
   if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
   const statusDetail = detailParts.join(' · ');
@@ -831,9 +832,10 @@ ${content}`,
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
+${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>` : ''}
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
-  ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger' })}
+  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' })}
 </div>
 <p class="disclosure" style="margin-top:24px">${paidThrough ? `paid through ${esc(paidThrough)} · ` : ''}billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
@@ -844,11 +846,12 @@ ${content}`,
       statusLine: onStatusLine,
       content: `${controlGroup}
 <p class="notice">your last payment didn't go through. manage billing to keep your private network reachable while you're away. your own network stays free either way.</p>
+${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>` : ''}
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
-  ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger' })}
+  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' })}
 </div>
-<p class="disclosure" style="margin-top:24px">billed through stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -860,7 +863,7 @@ ${content}`,
     ${billingCheckoutRow({ csrf, plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true })}
     ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false })}
   </div>
-  <p class="disclosure">billed securely through stripe. <a href="/terms">terms</a></p>
+  <p class="disclosure">billed securely through Stripe. <a href="/terms">terms</a></p>
 </div>`,
   });
 }
@@ -869,6 +872,7 @@ export function renderServicesSpb({ entitlement, csrf, flash = {}, menu, restore
   const flashes = spbBillingFlashMessages(flash);
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
+  const cancelPending = Boolean(entitlement?.cancel_at_period_end);
   const detailParts = [];
   if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
   detailParts.push('operated by sol pbc');
@@ -879,8 +883,12 @@ export function renderServicesSpb({ entitlement, csrf, flash = {}, menu, restore
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: '/services/backup/portal' })}
-  ${billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/services/backup/portal' })}
+  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/services/backup/cancel' })}
 </div>`;
+  const cancellationNotice = cancelPending
+    ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>`
+    : '';
+  const retentionDisclosure = '<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days. turn it back on within that window and it\'s still there. after 30 days it\'s deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>';
   const page = ({ statusLine = '', content }) => layout({
     title: 'encrypted backup',
     body: `${topbar(menu)}
@@ -907,7 +915,9 @@ ${content}`,
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
+${cancellationNotice}
 ${portalActions}
+${retentionDisclosure}
 <p class="disclosure" style="margin-top:24px">${paidThrough ? `paid through ${esc(paidThrough)} · ` : ''}billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
@@ -917,7 +927,9 @@ ${portalActions}
       statusLine: onStatusLine,
       content: `${controlGroup}
 <p class="notice">your last payment didn't go through. manage billing to keep encrypted backup running. your encrypted copy is safe while you sort this out.</p>
+${cancellationNotice}
 ${portalActions}
+${retentionDisclosure}
 <p class="disclosure" style="margin-top:24px">billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
@@ -930,15 +942,17 @@ ${portalActions}
     ${billingCheckoutRow({ csrf, plan: 'annual', title: '$48 / year', buttonText: 'pay yearly', primary: true, action: '/services/backup/checkout', restoreIntent })}
     ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$4.99 / month', buttonText: 'pay monthly', primary: false, action: '/services/backup/checkout', restoreIntent })}
   </div>
-  <p class="disclosure">billed securely through Stripe. by subscribing, you agree to the <a href="/terms">terms</a>.</p>
+  <p class="disclosure">billed securely through Stripe. by paying, you agree to the <a href="/terms">terms</a>.</p>
 </div>
-${restoreCheckout ? '' : '<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days. turn it back on within that window and it\'s still there. after 30 days it\'s deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>'}`,
+${restoreCheckout ? '' : retentionDisclosure}`,
   });
 }
 
 export function renderServicesSme({ entitlement, csrf, flash = {}, menu }) {
   const flashes = smeBillingFlashMessages(flash);
   const status = entitlement?.status || '';
+  const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
+  const cancelPending = Boolean(entitlement?.cancel_at_period_end);
   const detailParts = [];
   if (entitlement?.enabled_at != null) detailParts.push(`covered since ${formatDate(entitlement.enabled_at)}`);
   detailParts.push('operated by sol pbc', 'turn it on from your journal');
@@ -948,7 +962,11 @@ export function renderServicesSme({ entitlement, csrf, flash = {}, menu }) {
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: `${SME_SERVICE_PATH}/portal` })}
+  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel solstone.me', buttonClass: 'btn danger', action: `${SME_SERVICE_PATH}/cancel` })}
 </div>`;
+  const cancellationNotice = cancelPending
+    ? `<p class="notice">your solstone.me coverage is scheduled to end on ${esc(paidThrough)}. manage billing to keep it.</p>`
+    : '';
   const page = ({ statusLine = '', content }) => layout({
     title: 'solstone.me',
     body: `${topbar(menu)}
@@ -974,8 +992,9 @@ ${content}`,
     return page({
       statusLine: `${coveredPill} &nbsp;your payment is up to date`,
       content: `${controlGroup}
+${cancellationNotice}
 ${portalActions}
-<p class="disclosure" style="margin-top:24px">${Number.isFinite(entitlement.current_period_end) ? `paid through ${esc(formatUnixSecondsDate(entitlement.current_period_end))} · ` : ''}billed through Stripe.</p>`,
+<p class="disclosure" style="margin-top:24px">${Number.isFinite(entitlement.current_period_end) ? `paid through ${esc(paidThrough)} · ` : ''}billed through Stripe.</p>`,
     });
   }
 
@@ -984,6 +1003,7 @@ ${portalActions}
       statusLine: 'your last payment needs attention',
       content: `${controlGroup}
 <p class="notice">your last payment didn't go through. manage billing to fix it.</p>
+${cancellationNotice}
 ${portalActions}
 <p class="disclosure" style="margin-top:24px">billed through Stripe.</p>`,
     });
@@ -1005,7 +1025,7 @@ ${portalActions}
       <button class="btn primary" type="submit">pay yearly</button>
     </div>
   </form>
-  <p class="disclosure">billed securely through Stripe. complimentary for approved scouts. by subscribing, you agree to the <a href="/terms">terms</a>.</p>
+  <p class="disclosure">billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
 </div>
 <p class="disclosure" style="margin-top:24px"><strong>you never have to pay us.</strong> your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were it. a tunnel that only passes the bytes through will say so; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>`,
   });

@@ -52,6 +52,7 @@ import { handleMcpBridgeJwks, handleMcpBridgeToken } from './mcp-bridge.js';
 import { handleBackupCredentials } from './spb-broker.js';
 import {
   handleBillingCheckout,
+  handleBillingCancel,
   handleBillingPortal,
   handleBillingReturn,
   handleServicesSpl,
@@ -60,9 +61,10 @@ import {
 import {
   handleServicesSpb,
   handleSpbCheckout,
+  handleSpbCancel,
   handleSpbPortal,
 } from './spb-billing.js';
-import { handleServicesSme, handleSmeCheckout, handleSmePortal } from './sme-billing.js';
+import { handleServicesSme, handleSmeCancel, handleSmeCheckout, handleSmePortal } from './sme-billing.js';
 import { SME_HOSTED_SERVICE, isSmeEntitledToServe } from './sme-entitlement.js';
 import { smeOnSale } from './sme-service.js';
 import {
@@ -573,6 +575,16 @@ async function routeRequest(req, env, ctx) {
         parts.length === 4 &&
         parts[1] === 'services' &&
         parts[2] === 'solstone-me' &&
+        parts[3] === 'cancel' &&
+        req.method === 'POST'
+      ) {
+        return handleSmeCancel(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'services' &&
+        parts[2] === 'solstone-me' &&
         parts[3] === 'portal' &&
         req.method === 'POST'
       ) {
@@ -1014,6 +1026,16 @@ async function routeRequest(req, env, ctx) {
         parts.length === 4 &&
         parts[1] === 'services' &&
         parts[2] === 'backup' &&
+        parts[3] === 'cancel' &&
+        req.method === 'POST'
+      ) {
+        return handleSpbCancel(req, env);
+      }
+
+      if (
+        parts.length === 4 &&
+        parts[1] === 'services' &&
+        parts[2] === 'backup' &&
         parts[3] === 'portal' &&
         req.method === 'POST'
       ) {
@@ -1027,6 +1049,15 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handleBillingCheckout(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'billing' &&
+        parts[2] === 'cancel' &&
+        req.method === 'POST'
+      ) {
+        return handleBillingCancel(req, env);
       }
 
       if (

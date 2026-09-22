@@ -107,6 +107,34 @@ export async function handleSpbPortal(req, env) {
   return signedInRedirect(portal.url);
 }
 
+export async function handleSpbCancel(req, env) {
+  if (!originAllowed(req)) return noStore(forbidden());
+  const guard = await requireSignedInSession(req, env);
+  if (guard instanceof Response) return guard;
+  const form = await safeForm(req);
+  if (!await validCsrf(form, env)) return noStore(forbidden());
+
+  const [customerRow, entitlement] = await Promise.all([
+    getStripeCustomerByAccount(env.DB, { accountId: guard.session.account_id }),
+    getEntitlement(env.DB, { accountId: guard.session.account_id, service: SERVICE }),
+  ]);
+  if (!customerRow || entitlement?.source !== 'stripe' || !entitlement.source_ref) {
+    return signedInRedirect(`${SPB_SERVICE_PATH}?billing=missing`);
+  }
+  let portal;
+  try {
+    portal = await createPortalSession(env, {
+      customer: customerRow.stripe_customer_id,
+      returnUrl: PORTAL_RETURN_URL,
+      subscriptionId: entitlement.source_ref,
+    });
+  } catch {
+    return signedInRedirect(`${SPB_SERVICE_PATH}?billing=error`);
+  }
+  if (!portal?.url) return signedInRedirect(`${SPB_SERVICE_PATH}?billing=error`);
+  return signedInRedirect(portal.url);
+}
+
 async function csrfToken(env) {
   return hashKey('csrf', 'account', env);
 }

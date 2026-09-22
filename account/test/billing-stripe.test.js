@@ -98,12 +98,13 @@ describe('billing stripe core', () => {
 
     await sendEvent(testEnv, {
       type: 'customer.subscription.updated',
-      data: { object: { id: 'sub_status', customer: 'cus_mapped', metadata: { service: 'spl' }, status: 'past_due', current_period_end: 1_800_000_000 } },
+      data: { object: { id: 'sub_status', customer: 'cus_mapped', metadata: { service: 'spl' }, status: 'past_due', current_period_end: 1_800_000_000, cancel_at_period_end: true } },
     });
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       status: 'past_due',
       current_period_end: 1_800_000_000,
       source_ref: 'sub_status',
+      cancel_at_period_end: 1,
     });
 
     await sendEvent(testEnv, {
@@ -480,6 +481,44 @@ describe('billing stripe core', () => {
     expect(response.headers.get('Location')).toBe('https://billing.stripe.test/session');
     expect(calls[0].body.get('customer')).toBe('cus_portal');
     expect(calls[0].body.get('return_url')).toBe('https://services.solstone.app/private-network');
+    expect(calls[0].body.has('flow_data[type]')).toBe(false);
+  });
+
+  it('opens the private-network cancel flow for only its own subscription', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'cancel-network@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedStripeCustomer(account.accountId, 'cus_cancel_network');
+    await seedEntitlement({ accountId: account.accountId, service: 'spl_hosted', sourceRef: 'sub_network' });
+    await seedEntitlement({ accountId: account.accountId, service: 'spb_hosted', sourceRef: 'sub_backup' });
+    const { calls } = installStripeFetchMock({
+      'POST api.stripe.com/v1/billing_portal/sessions': async () => stripeJson({ id: 'bps_cancel_network', url: 'https://billing.stripe.test/cancel-network' }),
+    });
+
+    const response = await postForm('/billing/cancel', testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('https://billing.stripe.test/cancel-network');
+    expect(calls[0].body.get('flow_data[type]')).toBe('subscription_cancel');
+    expect(calls[0].body.get('flow_data[subscription_cancel][subscription]')).toBe('sub_network');
+    expect(calls[0].body.toString()).not.toContain('sub_backup');
+    expect(calls[0].body.get('flow_data[after_completion][redirect][return_url]')).toBe('https://services.solstone.app/private-network');
+  });
+
+  it('returns to the service page when Stripe refuses a cancel-flow session', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'cancel-network-error@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedStripeCustomer(account.accountId, 'cus_cancel_network_error');
+    await seedEntitlement({ accountId: account.accountId, service: 'spl_hosted', sourceRef: 'sub_network_error' });
+    installStripeFetchMock({
+      'POST api.stripe.com/v1/billing_portal/sessions': async () => stripeJson({ error: {} }, 500),
+    });
+
+    const response = await postForm('/billing/cancel', testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/private-network?billing=error');
   });
 
   it('renders public, subscribe, active, past due, and return states through private network', async () => {
@@ -501,6 +540,7 @@ describe('billing stripe core', () => {
     expect(activeHtml).toContain('your private network is on');
     expect(activeHtml).toContain('paid through 2027-01-15');
     expect(activeHtml).toContain('manage billing');
+    expect(activeHtml).toContain('action="/billing/cancel"');
 
     await seedEntitlement({ accountId: account.accountId, status: 'past_due', currentPeriodEnd: 1_800_000_000 });
     const pastDue = await get('/private-network', testEnv, session.cookie);
@@ -604,7 +644,7 @@ async function seedStripeCustomer(accountId, stripeCustomerId) {
 
 async function entitlementRow(accountId, service = 'spl_hosted') {
   return workerEnv.DB
-    .prepare('SELECT account_id, service, status, current_period_end, source, source_ref, updated_at FROM entitlements WHERE account_id = ? AND service = ?')
+    .prepare('SELECT account_id, service, status, current_period_end, source, source_ref, cancel_at_period_end, updated_at FROM entitlements WHERE account_id = ? AND service = ?')
     .bind(accountId, service)
     .first();
 }

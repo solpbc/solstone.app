@@ -47,10 +47,29 @@ describe('private network', () => {
     expect(body).not.toContain('device reaching your journal');
     expect(body).toContain('manage billing');
     expect(body).toContain('turn off');
-    expect(body.match(/action="\/billing\/portal"/g) || []).toHaveLength(2);
+    expect(body.match(/action="\/billing\/portal"/g) || []).toHaveLength(1);
+    expect(body).toContain('action="/billing/cancel"');
     expect(body).toContain('paid through 2027-01-15');
     expect(body).not.toContain('renews');
     expect(body).toContain('how it works');
+  });
+
+  it('shows a pending cancellation and removes the cancel door', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'pending-private@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({
+      accountId: account.accountId,
+      status: 'active',
+      currentPeriodEnd: 1_800_000_000,
+      cancelAtPeriodEnd: true,
+    });
+
+    const body = await (await get('/private-network', testEnv, { Cookie: session.cookie })).text();
+
+    expect(body).toContain('scheduled to turn off on 2027-01-15');
+    expect(body).toContain('action="/billing/portal"');
+    expect(body).not.toContain('action="/billing/cancel"');
   });
 
   it('omits the billing date when an active entitlement has no period end', async () => {

@@ -58,6 +58,8 @@ describe('spb encrypted backup billing', () => {
     expect(activeHtml).toContain('paid through 2027-01-15');
     expect(activeHtml).not.toContain('renews');
     expect(activeHtml).toContain('action="/services/backup/portal"');
+    expect(activeHtml).toContain('action="/services/backup/cancel"');
+    expect(activeHtml).toContain('if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days.');
 
     await seedEntitlement({
       accountId: account.accountId,
@@ -94,8 +96,29 @@ describe('spb encrypted backup billing', () => {
     const pastDue = await get('/services/backup?checkout=cancel&billing=missing', testEnv, session.cookie);
     const pastDueHtml = await pastDue.text();
     expect(pastDueHtml).toContain("your last payment didn't go through");
+    expect(pastDueHtml).toContain('if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days.');
     expect(pastDueHtml).toContain('no charge made.');
     expect(pastDueHtml).toContain('billing management is available after encrypted backup starts.');
+  });
+
+  it('shows a pending cancellation date and removes only the cancel door', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: 'spb-pending@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: SPB_SERVICE,
+      status: 'active',
+      currentPeriodEnd: 1_800_000_000,
+      cancelAtPeriodEnd: true,
+    });
+
+    const html = await (await get('/services/backup', testEnv, session.cookie)).text();
+
+    expect(html).toContain('scheduled to turn off on 2027-01-15');
+    expect(html).toContain('action="/services/backup/portal"');
+    expect(html).not.toContain('action="/services/backup/cancel"');
+    expect(html).toContain('if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days.');
   });
 
   it('creates checkout sessions with spb prices, metadata, and return urls', async () => {
@@ -181,7 +204,11 @@ describe('spb encrypted backup billing', () => {
       const response = await get('/services/backup?checkout=success&intent=restore', testEnv, session.cookie);
       const body = await response.text();
       expect(body).toContain(notice);
-      expect(body).not.toContain('your journal stays on your device either way');
+      if (entitlement.source === 'stripe') {
+        expect(body).toContain('your journal stays on your device either way');
+      } else {
+        expect(body).not.toContain('your journal stays on your device either way');
+      }
     }
   });
 
@@ -249,6 +276,17 @@ describe('spb encrypted backup billing', () => {
     expect(response.headers.get('Location')).toBe('https://billing.stripe.test/spb-session');
     expect(calls[0].body.get('customer')).toBe('cus_spb_portal');
     expect(calls[0].body.get('return_url')).toBe('https://services.solstone.app/services/backup');
+
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: SPB_SERVICE,
+      sourceRef: 'sub_backup_only',
+    });
+    const cancel = await postForm('/services/backup/cancel', testEnv, new URLSearchParams({ csrf: TEST_CSRF }), session.cookie);
+    expect(cancel.status).toBe(303);
+    expect(calls[1].body.get('flow_data[type]')).toBe('subscription_cancel');
+    expect(calls[1].body.get('flow_data[subscription_cancel][subscription]')).toBe('sub_backup_only');
+    expect(calls[1].body.get('flow_data[after_completion][redirect][return_url]')).toBe('https://services.solstone.app/services/backup');
   });
 });
 
