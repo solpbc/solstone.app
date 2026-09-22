@@ -130,7 +130,7 @@ import { runSpbLapseSweep } from './spb-sweep.js';
 import { runAccountDeletionCoordinator } from './deletion-coordinator.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
-import { handleSppAuthorize } from './spp-authorize.js';
+import { handleSppAuthorize, handleSppAuthorizePublic } from './spp-authorize.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -587,6 +587,17 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handleSppAuthorize(req, env);
+      }
+
+      // G3 / Shape C: additive, sealed-appliance-only route — no engine bearer required.
+      // See handleSppAuthorizePublic's own doc comment in spp-authorize.js.
+      if (
+        parts.length === 3 &&
+        parts[1] === 'spp' &&
+        parts[2] === 'authorize' &&
+        req.method === 'POST'
+      ) {
+        return handleSppAuthorizePublic(req, env);
       }
 
       if (url.pathname === '/passkey/register/start') {
