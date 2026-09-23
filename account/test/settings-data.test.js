@@ -204,6 +204,10 @@ describe('settings transparency data view', () => {
     expect(body).toContain("the relay's record for each of your journals");
     expect(body).toContain('relay access until 2027-01-15');
     expect(body).not.toContain('entitled yes');
+    expect(renderTransparencyRecords({
+      records: { classes: [], failed: [], descriptions: {} },
+      relay: { instances: [{ instance_id: 'ffffffff-1111-2222-3333-444444444444', created_at: '2026-09-23T00:00:00.000Z', rotated_at: null, revoked_at: null, entitled_until: null, entitled: false }], accounting: [] },
+    })).toContain('relay access off');
     expect(body).toContain("the relay's record for this journal couldn't be loaded just now. reload to try again.");
     expect(body).toContain('bbbbbbbb-1111-2222-3333-444444444444');
     expect(body).not.toContain('sha256:');
@@ -375,12 +379,13 @@ describe('settings transparency data view', () => {
       await seedSession(account.accountId, { testEnv });
     }
     // A backup credential history grows without a bound; the page shows its newest rows only.
-    for (let i = 0; i < 500; i++) {
-      await workerEnv.DB.prepare(
-        `INSERT INTO spb_mint_audit (account_id, instance_id, prefix, scope, ttl, outcome, ts)
-         VALUES (?, 'dddddddd-1111-2222-3333-444444444444', 'p', 'backup', 259200, 'minted', ?)`
-      ).bind(account.accountId, 1_700_000_000_000 + i * 1000).run();
-    }
+    // One statement, not 500 round trips: many sequential writes strain the test runtime's
+    // storage bridge ("Network connection lost") without testing anything more.
+    await workerEnv.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 0 UNION ALL SELECT i + 1 FROM n WHERE i < 499)
+       INSERT INTO spb_mint_audit (account_id, instance_id, prefix, scope, ttl, outcome, ts)
+       SELECT ?, 'dddddddd-1111-2222-3333-444444444444', 'p', 'backup', 259200, 'minted', 1700000000000 + i * 1000 FROM n`
+    ).bind(account.accountId).run();
 
     const response = await worker.fetch(settingsRequest('/transparency', { cookie: session.cookie }), testEnv);
     const body = await response.text();

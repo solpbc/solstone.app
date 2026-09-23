@@ -1402,6 +1402,7 @@ const TRANSPARENCY_FIELD_LABELS = {
   actor_kind: 'by',
   reason_code: 'reason',
   entitled_until: 'relay access until',
+  entitled: 'relay access',
   objects_deleted: 'files removed',
   multipart_aborted: 'unfinished uploads cleared',
   ttl: 'valid for',
@@ -1415,7 +1416,7 @@ const TRANSPARENCY_LONG_TEXT = 120;
 function transparencyFieldValue(className, name, value, field, record = {}) {
   if (value == null || value === '') return null;
   const transform = field?.transform;
-  if (className === 'relay' && name === 'entitled' && record.entitled_until) return null;
+  if (className === 'relay' && name === 'entitled') return record.entitled_until ? null : (value ? 'on' : 'off');
   if (typeof value === 'boolean') return value ? 'yes' : 'no';
   if (transform === 'epoch_ms_to_iso' || transform === 'epoch_s_to_iso' || (className === 'relay' && (name.endsWith('_at') || name === 'entitled_until'))) {
     const ms = typeof value === 'number' ? value : Date.parse(value);
