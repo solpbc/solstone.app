@@ -220,7 +220,7 @@ export async function loadMenuContext(env, accountId, nowMs) {
       console.error('menu_decrypt_failed');
     }
   }
-  return { email, lastSignInAt: data?.lastSigninAt ?? null, now: nowMs, decryptOk };
+  return { email, lastSignInAt: data?.lastSigninAt ?? null, now: nowMs, decryptOk, exportEnabled: env?.OWNER_EXPORT_ENABLED === 'true' };
 }
 
 export function signedInHtml(body, init = {}) {

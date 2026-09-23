@@ -26,7 +26,12 @@ const IC_CHIP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="current
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
 const SCOUT_PROGRAM_COVENANT = "confidential processing: no content is retained · no human reviews it · nothing is used to train. your journal must verify the service before anything is sent.";
-const TRANSPARENCY_INTRO = `<p class="intro">everything sol pbc holds for your sign-in is on this page. nothing more. no journal, no behavior, no tracking. we don't have your name, your phone, your address, or where you are: no analytics, no behavioral data, no third-party tracking. these aren't promises, they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
+// The page shows four record classes; the export carries every class the purge reaches, so
+// the signed-in lead points at the download rather than calling the page complete.
+const TRANSPARENCY_LEAD_SIGNED_IN = 'this page shows your sign-in: its emails, passkeys and sessions.';
+const TRANSPARENCY_LEAD_DOWNLOAD = 'the download below adds the other records held with your sign-in, like your services and support requests, and says what it can\'t include.';
+const TRANSPARENCY_LEAD_SIGNED_OUT = 'once you sign in, this page shows your sign-in: its emails, passkeys and sessions.';
+const transparencyIntro = (lead) => `<p class="intro">${lead} we never hold a readable copy of your journal. we don't have your name, your phone, your address, or where you are: no analytics, no behavioral data, no third-party tracking. these aren't promises, they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
   return `<div class="brandbar">${MARK_SVG}<span class="wordmark">solstone</span></div>`;
@@ -59,6 +64,8 @@ export function topbar({ email = null, lastSignInAt = null, now = null, deletion
     ? `<a href="/account/delete">deletion request</a>${deletion.exportAvailable ? '\n      <a href="/account/export">download your data</a>' : ''}`
     : `<a href="/">home</a>
       <a href="/sign-in">manage sign-in</a>`;
+  // <details> never closes on its own when focus or a tap lands elsewhere. pointerdown,
+  // not click: iOS Safari fires no click on a tap over non-interactive content.
   return `<div class="topbar">
   ${home}
   <details class="usermenu">
@@ -70,6 +77,7 @@ export function topbar({ email = null, lastSignInAt = null, now = null, deletion
       <form method="post" action="/signout"><button class="mi signout" type="submit">sign out</button></form>
     </div>
   </details>
+  <script>(function(){var m=document.currentScript.previousElementSibling;document.addEventListener('pointerdown',function(e){if(m.open&&!m.contains(e.target))m.open=false});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&m.open){m.open=false;m.querySelector('summary').focus()}})})();</script>
 </div>`;
 }
 
@@ -628,7 +636,7 @@ ${welcomePanel}
 </div>
 <div class="group" style="margin-top:22px">
   ${row('/sign-in', IC_SESSION_SVG, 'your sign-in', 'sessions, passkeys, and email addresses.', '')}
-  ${row('/transparency', IC_EMPTY_DATA_SVG, 'data transparency', 'everything sol pbc holds for your sign-in.', '')}
+  ${row('/transparency', IC_EMPTY_DATA_SVG, 'data transparency', menu.exportEnabled ? 'what sol pbc holds for your sign-in, with a download.' : 'what sol pbc holds for your sign-in.', '')}
 </div>`,
     afterMain: welcome ? `<script>${ENROLL_JS}</script>` : '',
   });
@@ -1253,7 +1261,7 @@ export function renderTransparency({
       title: 'data transparency',
       body: `${brandbar()}
 <h1>data transparency</h1>
-${TRANSPARENCY_INTRO}
+${transparencyIntro(TRANSPARENCY_LEAD_SIGNED_OUT)}
 <div class="card">
   <div class="empty">
     ${IC_EMPTY_DATA_SVG}
@@ -1290,7 +1298,7 @@ ${TRANSPARENCY_INTRO}
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>data transparency</h1>
-${TRANSPARENCY_INTRO}
+${transparencyIntro(exportEnabled ? `${TRANSPARENCY_LEAD_SIGNED_IN} ${TRANSPARENCY_LEAD_DOWNLOAD}` : TRANSPARENCY_LEAD_SIGNED_IN)}
 ${exportEnabled ? TRANSPARENCY_EXPORT_CARD : ''}
 <p class="section-label">sign-in</p>
 <div class="group">

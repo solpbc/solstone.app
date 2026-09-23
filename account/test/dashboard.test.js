@@ -47,6 +47,19 @@ describe('services catalog rendering', () => {
     expect(body).toContain('<form method="post" action="/signout">');
   });
 
+  it('data transparency points at the download rather than calling itself complete', async () => {
+    const testEnv = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true' });
+    const account = await seedAccount({ email: 'dash@example.com', testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(dashboardRequest(session.cookie, '/transparency'), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('the download below adds the other records held with your sign-in');
+    expect(body).not.toContain('is on this page. nothing more');
+  });
+
   it('renders the welcome passkey panel when requested OR when no passkey is enrolled', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
