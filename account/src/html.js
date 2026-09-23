@@ -1691,7 +1691,7 @@ ${renderDeletionForm({
   error,
   status,
   statusId: 'deletion-request-status',
-  intro: 'this begins deletion of your portal sign-in and services after you confirm ownership.',
+  intro: 'this begins deletion of your sign-in for the services portal and your services after you confirm ownership.',
 })}
 <p>this does not delete a journal, device, or bucket you control. those remain under their own owner-controlled arrangements.</p>
 <p class="notice">if you have paid subscriptions, deleting your sign-in ends every one of them when the 72-hour safety period below ends, with no refund of the unused period. to use what you paid for, cancel from the billing portal instead.</p>
