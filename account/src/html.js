@@ -77,7 +77,7 @@ function beat(ic, t, d) {
   return `<div class="beat">${ic.replace('class="ic"', 'class="ic bi"')}<div><p class="bt">${t}</p><p class="bd">${d}</p></div></div>`;
 }
 
-export function layout({ title, body, afterMain = '' }) {
+export function layout({ title, body, afterMain = '', showFooter = true, mainClass = '' }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -98,7 +98,7 @@ export function layout({ title, body, afterMain = '' }) {
     <div class="sunarc-glow"></div>
     <div class="sunarc-sun">${MARK_SVG}</div>
   </div>
-  <main>${body}${footer()}</main>
+  <main${mainClass ? ` class="${escAttr(mainClass)}"` : ''}>${body}${showFooter ? footer() : ''}</main>
   ${afterMain}
   <script src="${SUNARC_JS_SRC}" defer></script>
 </body>
@@ -1339,6 +1339,7 @@ ${extra}
 export function renderDeletionPage({ menu, error = '', status = '' }) {
   return layout({
     title: 'delete sign-in and your services',
+    mainClass: 'deletion-surface',
     body: `${topbar(menu)}
 <a class="back" href="/transparency">${BACK_SVG} data transparency</a>
 ${renderDeletionForm({
@@ -1363,6 +1364,7 @@ export function renderDeletionProofPage({ menu, purpose, error = '', status = ''
   const actionLabel = purpose === 'cancel' ? 'cancel deletion' : 'confirm deletion request';
   return layout({
     title: purpose === 'cancel' ? 'prove ownership to cancel deletion' : 'prove ownership to delete',
+    mainClass: 'deletion-surface',
     body: `${topbar(menu)}
 <a class="back" href="/account/delete">${BACK_SVG} deletion request</a>
 ${renderDeletionForm({
@@ -1449,6 +1451,7 @@ export function renderDeletionCancelPage({ menu, phase, exportEnabled = false })
   if (phase === 'purging') {
     return layout({
       title: 'deletion in progress',
+      mainClass: 'deletion-surface',
       body: `${topbar(menu)}<h1>deletion in progress</h1><p>the deletion safety period has ended and this request can no longer be cancelled.</p>`,
     });
   }
@@ -1457,6 +1460,7 @@ export function renderDeletionCancelPage({ menu, phase, exportEnabled = false })
     : '';
   return layout({
     title: 'cancel deletion request',
+    mainClass: 'deletion-surface',
     body: `${topbar(menu)}
 ${renderDeletionForm({
   heading: 'cancel deletion request',
@@ -1469,16 +1473,18 @@ ${renderDeletionForm({
   });
 }
 
-export function renderDeletionStatus({ state = 'deletion status unavailable' } = {}) {
+export function renderDeletionStatus({ state = 'deletion status unavailable', canCancel = false } = {}) {
   return layout({
     title: 'deletion status',
-    body: `${brandbar()}<h1>deletion status</h1><p aria-live="polite">${esc(state)}</p>`,
+    body: `<div class="card">${brandbar()}<h1>deletion status</h1><p aria-live="polite">${esc(state)}</p>${canCancel ? '<p><a class="btn danger" href="/account/delete">cancel deletion request</a></p>' : ''}</div>`,
+    showFooter: false,
   });
 }
 
 export function renderDeletionUnavailablePage({ menu } = {}) {
   return layout({
     title: "deletion request can't be confirmed",
+    mainClass: 'deletion-surface',
     body: `${topbar(menu)}
 <div class="card">
   <h1>deletion request can't be confirmed</h1>

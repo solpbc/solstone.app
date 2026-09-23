@@ -573,7 +573,7 @@ export async function bumpDeletionProofAttempts(db, { tokenHash, nowMs, maxAttem
 export async function getDeletionByStatusTokenHash(db, statusTokenHash) {
   const row = await db
     .prepare(
-      `SELECT operation_id, phase, lease_token, next_attempt_at,
+      `SELECT operation_id, account_id, phase, lease_token, cancellation_deadline_at, next_attempt_at,
               backup_empty_verified_at, stripe_purge_state, last_error_code
        FROM account_deletions
        WHERE status_token_hash = ?

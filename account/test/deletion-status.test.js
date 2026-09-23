@@ -2,7 +2,7 @@ import { env as workerEnv } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
-import { makeTestEnv, resetDb } from './helpers.js';
+import { makeTestEnv, resetDb, seedAccount, seedSession } from './helpers.js';
 
 const NEXT_RETRY = Date.parse('2024-12-03T12:00:00.000Z');
 
@@ -75,6 +75,86 @@ describe('deletion status', () => {
     expect(body).toContain('expired link');
     expect(body).not.toContain('deletion status unavailable');
   });
+
+  it('offers cancellation only to the matching signed-in owner while the hold is open', async () => {
+    const env = makeTestEnv();
+    const owner = await seedAccount({ testEnv: env });
+    const other = await seedAccount({ email: 'other@example.com', testEnv: env });
+    const ownerSession = await seedSession(owner.accountId, { testEnv: env });
+    const otherSession = await seedSession(other.accountId, { testEnv: env });
+    await workerEnv.DB.prepare(
+      `INSERT INTO account_deletions (operation_id, account_id, phase, requested_at, cancellation_deadline_at, status_token_hash)
+       VALUES ('hold', ?, 'frozen', ?, ?, ?)`
+    ).bind(owner.accountId, Date.now(), Date.now() + 60_000, await hashWithPepper('status-token', env)).run();
+
+    const statusOnlyResponse = await statusRequest(env);
+    const statusOnlyBody = await statusOnlyResponse.text();
+    expect(statusOnlyResponse.headers.get('Cache-Control')).toBe('no-store');
+    expect(statusOnlyBody).toContain('<div class="card">');
+    expect(statusOnlyBody).not.toContain('href="/account/delete"');
+    expect(statusOnlyBody).not.toContain('href="/transparency"');
+    expect(statusOnlyBody).not.toContain('class="usermenu"');
+    expect(await (await statusRequest(env, otherSession.cookie)).text()).not.toContain('href="/account/delete"');
+    const ownerResponse = await statusRequest(env, ownerSession.cookie);
+    expect(ownerResponse.headers.get('Cache-Control')).toBe('no-store');
+    expect(await ownerResponse.text()).toContain('href="/account/delete">cancel deletion request</a>');
+
+    await workerEnv.DB.prepare("UPDATE account_deletions SET cancellation_deadline_at = 0 WHERE operation_id = 'hold'").run();
+    expect(await (await statusRequest(env, ownerSession.cookie)).text()).not.toContain('href="/account/delete"');
+  });
+
+  it('does not restore signed-in pages from the old session during the hold', async () => {
+    const env = makeTestEnv();
+    env.OWNER_EXPORT_ENABLED = 'true';
+    const owner = await seedAccount({ email: 'deleting@example.com', testEnv: env });
+    const session = await seedSession(owner.accountId, { testEnv: env });
+    await workerEnv.DB.prepare(
+      `INSERT INTO account_deletions (operation_id, account_id, phase, requested_at, cancellation_deadline_at, status_token_hash)
+       VALUES ('hold', ?, 'frozen', ?, ?, ?)`
+    ).bind(owner.accountId, Date.now(), Date.now() + 60_000, await hashWithPepper('status-token', env)).run();
+
+    const signIn = await worker.fetch(new Request('https://services.solstone.app/sign-in', {
+      headers: { Cookie: session.cookie },
+    }), env);
+    expect(signIn.status).toBe(303);
+    expect(signIn.headers.get('Set-Cookie')).toContain('Max-Age=0');
+
+    const transparency = await worker.fetch(new Request('https://services.solstone.app/transparency', {
+      headers: { Cookie: session.cookie },
+    }), env);
+    expect(transparency.headers.get('Cache-Control')).toBe('no-store');
+    const body = await transparency.text();
+    expect(body).not.toContain('deleting@example.com');
+    expect(body).not.toContain('class="usermenu"');
+
+    const statusCookie = 'account_deletion_status=status-token';
+    for (const path of ['/account/delete', '/account/export']) {
+      const response = await worker.fetch(new Request(`https://services.solstone.app${path}`, {
+        headers: { Cookie: statusCookie },
+      }), env);
+      expect(response.status).toBe(303);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+    }
+    const statusOnlyTransparency = await worker.fetch(new Request('https://services.solstone.app/transparency', {
+      headers: { Cookie: statusCookie },
+    }), env);
+    const statusOnlyBody = await statusOnlyTransparency.text();
+    expect(statusOnlyTransparency.headers.get('Cache-Control')).toBe('no-store');
+    expect(statusOnlyBody).not.toContain('deleting@example.com');
+    expect(statusOnlyBody).not.toContain('class="usermenu"');
+  });
+
+  it('shows the canceled verdict on the existing status link', async () => {
+    const env = makeTestEnv();
+    const account = await seedAccount({ testEnv: env });
+    await workerEnv.DB.prepare(
+      `INSERT INTO account_deletions (operation_id, account_id, phase, requested_at, cancellation_deadline_at, status_token_hash)
+       VALUES ('canceled', ?, 'cancelled', 0, 0, ?)`
+    ).bind(account.accountId, await hashWithPepper('status-token', env)).run();
+
+    const response = await statusRequest(env);
+    expect(await response.text()).toContain('deletion request canceled');
+  });
 });
 
 async function deletion(env, {
@@ -98,8 +178,8 @@ async function deletion(env, {
   ).run();
 }
 
-function statusRequest(env) {
+function statusRequest(env, sessionCookie = '') {
   return worker.fetch(new Request('https://services.solstone.app/account/delete/status', {
-    headers: { Cookie: 'account_deletion_status=status-token' },
+    headers: { Cookie: `account_deletion_status=status-token; ${sessionCookie}` },
   }), env);
 }

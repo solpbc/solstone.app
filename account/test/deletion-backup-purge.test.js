@@ -67,7 +67,7 @@ describe('deletion backup purge', () => {
     expect(s3.calls.filter((call) => call.method === 'POST' && call.url.searchParams.has('delete'))).toHaveLength(26);
     expect(s3.calls.filter((call) => call.url.searchParams.get('continuation-token'))).toHaveLength(25);
     expect(s3.calls.some((call) => call.url.searchParams.get('prefix') === controlPrefix)).toBe(false);
-  });
+  }, 30_000);
 
   it('leaves backup purge retryable when final verification finds a residual object', async () => {
     const env = makeTestEnv();

@@ -424,8 +424,17 @@ export async function handleDeletionStatus(req, env) {
     }
     const row = await getDeletionByStatusTokenHash(env.DB, tokenHash);
     if (!row) return signedInHtml(renderDeletionStatus({ state: 'expired link' }), { status: 410 });
-    if (row.phase === 'requested') return signedInHtml(renderDeletionStatus({ state: 'access ended' }));
-    if (row.phase === 'frozen') return signedInHtml(renderDeletionStatus({ state: 'waiting for the safety period' }));
+    if (row.phase === 'requested' || row.phase === 'frozen') {
+      const guard = await requireSignedInSession(req, env);
+      const canCancel = !(guard instanceof Response)
+        && guard.session.account_id === row.account_id
+        && Date.now() < row.cancellation_deadline_at;
+      return signedInHtml(renderDeletionStatus({
+        state: row.phase === 'requested' ? 'access ended' : 'waiting for the safety period',
+        canCancel,
+      }));
+    }
+    if (row.phase === 'cancelled') return signedInHtml(renderDeletionStatus({ state: 'deletion request canceled' }));
     if (row.phase === 'purging') {
       if (row.lease_token) return signedInHtml(renderDeletionStatus({ state: 'deletion in progress' }));
       return signedInHtml(renderDeletionStatus({ state: await deletionDelayedStatus(env, row) }));
