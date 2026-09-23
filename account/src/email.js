@@ -34,7 +34,7 @@ if you didn't request this, you can ignore this email.`;
 export async function sendDeletionProofEmail({ env, address, code, purpose }) {
   const formatted = `${code.slice(0, 3)} ${code.slice(3)}`;
   if (purpose === 'export') {
-    const subject = `confirm your solstone services data download: ${formatted}`;
+    const subject = `confirm your download from solstone services: ${formatted}`;
     const text = `you requested a copy of the data held with your solstone services sign-in.
 
 enter this code to continue:

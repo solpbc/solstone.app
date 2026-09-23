@@ -57,7 +57,7 @@ describe('owner export foundation', () => {
         expect(response.headers.get('location')).toBe('/');
       } else {
         expect(response.status).toBe(200);
-        expect(await response.text()).toContain('download your data');
+        expect(await response.text()).toContain('download what sol pbc holds');
       }
     }
   });
@@ -241,7 +241,7 @@ describe('owner export foundation', () => {
     expect(env.EMAIL.sent.map(({ subject }) => subject)).toEqual([
       "confirm delete your sign-in and services: 123 456",
       'confirm cancel your deletion request: 123 456',
-      'confirm your solstone services data download: 123 456',
+      'confirm your download from solstone services: 123 456',
     ]);
     expect(env.EMAIL.sent[0].text).toContain('this starts a deletion request. you have 72 hours to cancel before deletion begins.');
     expect(env.EMAIL.sent[1].text).toContain('this cancels your deletion request.');

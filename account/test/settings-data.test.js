@@ -103,14 +103,14 @@ describe('settings transparency data view', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('<h2>download your data</h2>');
-    expect(body).toContain('<a class="btn primary block" href="/account/export">download your data</a>');
+    expect(body).toContain('<h2>download what sol pbc holds</h2>');
+    expect(body).toContain('<a class="btn primary block" href="/account/export">download what sol pbc holds</a>');
     expect(body.match(/href="\/account\/export"/g)).toHaveLength(1);
     expect(body.indexOf('href="/account/export"')).toBeLessThan(body.indexOf('<p class="section-label">sign-in</p>'));
 
     const target = await worker.fetch(settingsRequest('/account/export', { cookie: session.cookie }), testEnv);
     expect(target.status).toBe(200);
-    expect(await target.text()).toContain('download your data');
+    expect(await target.text()).toContain('download what sol pbc holds');
   });
 
   it('links export from data transparency only, not from home or manage sign-in', async () => {
@@ -135,7 +135,7 @@ describe('settings transparency data view', () => {
 
     expect(response.status).toBe(200);
     expect(body).not.toContain('href="/account/export"');
-    expect(body).not.toContain('<h2>download your data</h2>');
+    expect(body).not.toContain('<h2>download what sol pbc holds</h2>');
   });
 
   it('shows no export link to a signed-out visitor', async () => {

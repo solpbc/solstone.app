@@ -61,7 +61,7 @@ export function topbar({ email = null, lastSignInAt = null, now = null, deletion
     ? `<span class="home">${MARK_SVG}<span class="wordmark">solstone</span></span>`
     : `<a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a>`;
   const links = deletion
-    ? `<a href="/account/delete">deletion request</a>${deletion.exportAvailable ? '\n      <a href="/account/export">download your data</a>' : ''}`
+    ? `<a href="/account/delete">deletion request</a>${deletion.exportAvailable ? '\n      <a href="/account/export">download what sol pbc holds</a>' : ''}`
     : `<a href="/">home</a>
       <a href="/sign-in">manage sign-in</a>`;
   // <details> never closes on its own when focus or a tap lands elsewhere. pointerdown,
@@ -1240,9 +1240,9 @@ ${errorHtml}
 
 // The one signed-in entry point to /account/export outside a deletion hold.
 const TRANSPARENCY_EXPORT_CARD = `<div class="card">
-  <h2>download your data</h2>
-  <p>download what we hold for your sign-in as one file. we'll email you a code to confirm it's you, and have you confirm with your passkey too, if you have one.</p>
-  <a class="btn primary block" href="/account/export">download your data</a>
+  <h2>download what sol pbc holds</h2>
+  <p>it's one file of what's held for your sign-in. we'll email you a code to confirm it's you, and have you confirm with your passkey too, if you have one.</p>
+  <a class="btn primary block" href="/account/export">download what sol pbc holds</a>
 </div>`;
 
 export function renderTransparency({
@@ -1435,30 +1435,30 @@ export function renderExportPage({ menu, error = '', status = '' }) {
     ? `<a class="back" href="/account/delete">${BACK_SVG} deletion request</a>`
     : `<a class="back" href="/transparency">${BACK_SVG} data transparency</a>`;
   return layout({
-    title: 'download your data',
+    title: 'download what sol pbc holds',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 ${back}
 ${renderDeletionForm({
-  heading: 'download your data',
+  heading: 'download what sol pbc holds',
   action: '/account/export/proof/otp',
   submitLabel: 'send a confirmation code',
   error,
   status,
   statusId: 'export-request-status',
-  intro: "confirm it's you before downloading your data. if a service section can't be reached, the file will mark that section incomplete.",
+  intro: "confirm it's you first. if a service section can't be reached, the file will mark that section incomplete.",
 })}`,
   });
 }
 
 export function renderExportProofPage({ menu, error = '', status = '' }) {
   return layout({
-    title: 'confirm your data download',
+    title: 'confirm your download',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
-<a class="back" href="/account/export">${BACK_SVG} data download</a>
+<a class="back" href="/account/export">${BACK_SVG} download what sol pbc holds</a>
 ${renderDeletionForm({
-  heading: 'confirm your data download',
+  heading: 'confirm your download',
   action: '/account/export/proof/otp/verify',
   submitLabel: 'verify code',
   error,
@@ -1474,7 +1474,7 @@ ${renderDeletionForm({
 ${renderDeletionForm({
   heading: 'passkey verification',
   action: '/account/export',
-  submitLabel: 'download my data',
+  submitLabel: 'download the file',
   status: '',
   statusId: 'export-passkey-status',
   intro: 'if you have an active passkey, you must also verify it before continuing.',
@@ -1484,7 +1484,7 @@ ${exportPasskeyScript()}`,
   });
 }
 
-export const DELETION_EXPORT_PROMPT_LINK = 'download your data before this completes';
+export const DELETION_EXPORT_PROMPT_LINK = 'download what sol pbc holds before this completes';
 
 export function renderDeletionCancelPage({ menu, phase, exportEnabled = false }) {
   if (phase === 'purging') {
