@@ -408,7 +408,7 @@ async function routeRequest(req, env, ctx) {
           return handleServicesCatalog(req, env, session);
         }
         if (getSessionToken(req)) {
-          return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
+          return redirect(`/${url.search}`, 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
         }
         if (resume || url.searchParams.has('signin')) {
           const csrf = await csrfToken(env);
