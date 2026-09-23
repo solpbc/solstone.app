@@ -48,7 +48,7 @@ describe('public portal assets', () => {
   });
 
   it('serves the versioned portal css href through the same route', async () => {
-    expect(PORTAL_CSS_HREF).toBe('/portal.css?v=5');
+    expect(PORTAL_CSS_HREF).toBe('/portal.css?v=6');
     expect(PORTAL_CSS_HREF).not.toBe('/portal.css');
 
     const response = await worker.fetch(new Request(`https://services.solstone.app${PORTAL_CSS_HREF}`), makeTestEnv());

@@ -96,7 +96,7 @@ main {
   margin: 0 auto;
   padding: 40px 20px 72px;
 }
-:root[data-appearance="dark"] main.deletion-surface {
+:root[data-appearance="dark"] main {
   background: var(--cream);
   border-radius: var(--radius);
 }

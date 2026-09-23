@@ -1,4 +1,4 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=5';
+export const PORTAL_CSS_HREF = '/portal.css?v=6';
 export const SUNARC_JS_SRC = '/sunarc.js?v=1';
 
 export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet (design-in-code, project #1)
@@ -99,7 +99,7 @@ main {
   margin: 0 auto;
   padding: 40px 20px 72px;
 }
-:root[data-appearance="dark"] main.deletion-surface {
+:root[data-appearance="dark"] main {
   background: var(--cream);
   border-radius: var(--radius);
 }

@@ -53,6 +53,14 @@ function makeTokenReader(overrides = {}) {
 
 const defaultTokens = parseTokens(makeTokenReader());
 
+describe('night text surface', () => {
+  it('places portal text on cream while keeping service cards on white', () => {
+    expect(portalCssText).toMatch(/:root\[data-appearance="dark"\]\s+main\s*\{\s*background:\s*var\(--cream\);\s*border-radius:\s*var\(--radius\);\s*\}/);
+    expect(portalCssText).toMatch(/\.group\s*\{\s*background:\s*var\(--paper\);/);
+    expect(portalCssText).toMatch(/\.card\s*\{\s*background:\s*var\(--paper\);/);
+  });
+});
+
 describe('sunarc background', () => {
   it('1. rung 3 (06:30/19:30): opacity at m=dawn and m=dusk is 0', () => {
     const rise = 6 * 60 + 30;
