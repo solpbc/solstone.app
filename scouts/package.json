@@ -8,9 +8,5 @@
     "deploy": "wrangler deploy",
     "schema": "wrangler d1 execute scouts-portal --file=schema.sql --remote",
     "schema:local": "wrangler d1 execute scouts-portal --file=schema.sql --local"
-  },
-  "dependencies": {
-    "@simplewebauthn/server": "^13.3.0",
-    "jose": "^6.0.11"
   }
 }
