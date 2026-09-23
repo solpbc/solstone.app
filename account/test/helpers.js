@@ -180,7 +180,7 @@ export function makeFakeKv() {
 }
 
 export async function resetDb() {
-  for (const table of [
+  const drops = [
     'account_deletion_completions',
     'account_deletion_service_ops',
     'account_deletion_proofs',
@@ -212,17 +212,19 @@ export async function resetDb() {
     'sessions',
     'account_emails',
     'accounts',
-  ]) {
-    await env.DB.prepare(`DROP TABLE IF EXISTS ${table}`).run();
-  }
+  ].map((table) => env.DB.prepare(`DROP TABLE IF EXISTS ${table}`));
+  await env.DB.batch(drops);
   // Tests apply the checked-in schema text directly so schema.sql remains the source of truth.
   const executableSchema = schema
     .split('\n')
     .filter((line) => !line.trim().startsWith('--'))
     .join('\n');
-  for (const statement of executableSchema.split(';').map((part) => part.trim()).filter(Boolean)) {
-    await env.DB.prepare(statement).run();
-  }
+  const creates = executableSchema
+    .split(';')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((statement) => env.DB.prepare(statement));
+  await env.DB.batch(creates);
 }
 
 export function stubTurnstile(success = true) {

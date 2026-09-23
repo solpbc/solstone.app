@@ -1,7 +1,7 @@
 import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
-import { hashWithPepper } from '../src/crypto.js';
+import { hashKey, hashWithPepper } from '../src/crypto.js';
 import {
   emailAddRequest,
   fetchWithCtx,
@@ -243,13 +243,7 @@ describe('settings emails list and add flow', () => {
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     await seedCredentialChangeProof({ accountId: account.accountId, sessionIdHash: session.idHash, testEnv });
-    for (let i = 0; i < 10; i++) {
-      await fetchWithCtx(
-        worker,
-        emailAddRequest({ address: `cap-${i}@example.com`, cookie: session.cookie }),
-        testEnv
-      );
-    }
+    await seedRateBucket(await hashKey('add_email_per_day', account.accountId, testEnv), 10, Date.now());
 
     const beforeSendCount = testEnv.EMAIL.sent.length;
     const collisionSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -308,13 +302,7 @@ describe('settings emails list and add flow', () => {
       },
       async () => {
         const setup = await setupAccount({ email: 'snapshot-cap@example.com' });
-        for (let i = 0; i < 10; i++) {
-          await fetchWithCtx(
-            worker,
-            emailAddRequest({ address: `snapshot-cap-${i}@example.com`, cookie: setup.session.cookie }),
-            setup.testEnv
-          );
-        }
+        await seedRateBucket(await hashKey('add_email_per_day', setup.account.accountId, setup.testEnv), 10, Date.now());
         return setup;
       },
     ];
@@ -583,4 +571,11 @@ async function collisionSnapshotForAddress(address) {
     testEnv
   );
   return responseSnapshot(response);
+}
+
+async function seedRateBucket(key, count, windowStart) {
+  await workerEnv.DB
+    .prepare('INSERT INTO rate_buckets (key, count, window_start) VALUES (?, ?, ?)')
+    .bind(key, count, windowStart)
+    .run();
 }
