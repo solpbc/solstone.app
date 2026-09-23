@@ -151,6 +151,10 @@ describe('settings transparency data view', () => {
     expect(calls.some((call) => call.includes(`"kind":"ip"`))).toBe(true);
     expect(calls.join('\n')).not.toContain('bad@example.com');
     expect(calls.join('\n')).not.toContain('not-valid-ciphertext');
+    expect(calls.join('\n')).not.toContain('row_id');
+    expect(calls.every((call) => /"row_ref":"[A-Za-z0-9_-]{43}"/.test(call))).toBe(true);
+    expect(calls.join('\n')).not.toContain(String(badEmail.id));
+    expect(calls.join('\n')).not.toContain(badSession.idHash);
   });
 
   it('does not log PII during a normal transparency render', async () => {

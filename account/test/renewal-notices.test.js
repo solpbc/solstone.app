@@ -1,6 +1,7 @@
 import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import { hashWithPepper } from '../src/crypto.js';
 import {
   addCalendarMonths,
   addCalendarYears,
@@ -1287,7 +1288,9 @@ sol pbc`;
       expect(warnCall).toBeDefined();
       const parsed = JSON.parse(warnCall.args[0]);
       expect(parsed.reason).toBe('no_email');
-      expect(parsed.account_id).toBe(badAccount.accountId);
+      expect(parsed.account_id).toBeUndefined();
+      expect(parsed.account_ref).toBe(await hashWithPepper(`hub:account:${badAccount.accountId}`, testEnv));
+      expect(warnCall.args[0]).not.toContain(badAccount.accountId);
 
       const badRow = await workerEnv.DB.prepare('SELECT * FROM renewal_notices WHERE account_id = ?')
         .bind(badAccount.accountId)
@@ -1485,6 +1488,9 @@ sol pbc`;
 
       const errCall = consoleSpy.calls.find((c) => c.level === 'error' && c.args[0].includes('renewal_notice_send_failed'));
       expect(errCall).toBeDefined();
+      expect(JSON.parse(errCall.args[0]).account_id).toBeUndefined();
+      expect(JSON.parse(errCall.args[0]).account_ref).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(consoleSpy.calls.map((c) => c.args[0]).join('\n')).not.toContain(failAccount.accountId);
 
       // Second run with failure resolved
       shouldFail = false;

@@ -1,4 +1,4 @@
-import { decryptEmail } from './crypto.js';
+import { decryptEmail, hashWithPepper } from './crypto.js';
 import {
   claimRenewalNotice,
   deleteRenewalNotice,
@@ -225,11 +225,17 @@ export function renderOneOffHtml(body) {
   return `<!DOCTYPE html>\n<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">\n  ${paragraphs}\n</body></html>`;
 }
 
-function logSkip({ kind, accountId, service, renewalAt, reason }) {
+// A peppered ref, never the raw id: every console line is Logpush-retained for 90 days
+// and outlives an owner's deletion (same scheme as admin.js, 2026-09-12).
+function accountRef(env, accountId) {
+  return hashWithPepper(`hub:account:${accountId}`, env);
+}
+
+async function logSkip(env, { kind, accountId, service, renewalAt, reason }) {
   console.warn(JSON.stringify({
     event: 'renewal_notice_skipped',
     kind,
-    account_id: accountId,
+    account_ref: await accountRef(env, accountId),
     ...(service ? { service } : {}),
     ...(renewalAt != null && renewalAt > 0 ? { renewal_at: renewalAt } : {}),
     reason,
@@ -237,22 +243,22 @@ function logSkip({ kind, accountId, service, renewalAt, reason }) {
   }));
 }
 
-function logSendFailed({ kind, accountId, service, renewalAt }) {
+async function logSendFailed(env, { kind, accountId, service, renewalAt }) {
   console.error(JSON.stringify({
     event: 'renewal_notice_send_failed',
     kind,
-    account_id: accountId,
+    account_ref: await accountRef(env, accountId),
     ...(service ? { service } : {}),
     ...(renewalAt != null && renewalAt > 0 ? { renewal_at: renewalAt } : {}),
     ts: Date.now(),
   }));
 }
 
-function logSent({ kind, accountId, service, renewalAt }) {
+async function logSent(env, { kind, accountId, service, renewalAt }) {
   console.warn(JSON.stringify({
     event: 'renewal_notice_sent',
     kind,
-    account_id: accountId,
+    account_ref: await accountRef(env, accountId),
     ...(service ? { service } : {}),
     ...(renewalAt != null && renewalAt > 0 ? { renewal_at: renewalAt } : {}),
     ts: Date.now(),
@@ -285,13 +291,13 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
 
     const deletion = await getActiveDeletionForAccount(env.DB, accountId);
     if (deletion) {
-      logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'deletion' });
+      await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'deletion' });
       return;
     }
 
     const address = await resolvePrimaryAddress(env, accountId);
     if (!address) {
-      logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'no_email' });
+      await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'no_email' });
       return;
     }
 
@@ -300,14 +306,14 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       try {
         sub = await getSubscription(env, sourceRef);
       } catch {
-        logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+        await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
         return;
       }
     }
 
     const parsed = validateSubscription(sub);
     if (!parsed) {
-      logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+      await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
       return;
     }
 
@@ -318,7 +324,7 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       unitAmount: parsed.unitAmount,
     });
     if (!rendered) {
-      logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+      await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
       return;
     }
 
@@ -350,11 +356,11 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
         renewalAt: 0,
         contentKey: '',
       });
-      logSendFailed({ kind: 'ack', accountId, service: hostedService });
+      await logSendFailed(env, { kind: 'ack', accountId, service: hostedService });
       return;
     }
 
-    logSent({ kind: 'ack', accountId, service: hostedService });
+    await logSent(env, { kind: 'ack', accountId, service: hostedService });
   } catch {
     // catch own errors so caller always finishes cleanly
   }
@@ -375,13 +381,13 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
       try {
         const deletion = await getActiveDeletionForAccount(env.DB, accountId);
         if (deletion) {
-          logSkip({ kind: 'reminder', accountId, service: hostedService, reason: 'deletion' });
+          await logSkip(env, { kind: 'reminder', accountId, service: hostedService, reason: 'deletion' });
           continue;
         }
 
         const address = await resolvePrimaryAddress(env, accountId);
         if (!address) {
-          logSkip({ kind: 'reminder', accountId, service: hostedService, reason: 'no_email' });
+          await logSkip(env, { kind: 'reminder', accountId, service: hostedService, reason: 'no_email' });
           continue;
         }
 
@@ -389,13 +395,13 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
         try {
           sub = await getSubscription(env, sourceRef);
         } catch {
-          logSkip({ kind: 'reminder', accountId, service: hostedService, reason: 'stripe_unusable' });
+          await logSkip(env, { kind: 'reminder', accountId, service: hostedService, reason: 'stripe_unusable' });
           continue;
         }
 
         const parsed = validateSubscription(sub);
         if (!parsed) {
-          logSkip({ kind: 'reminder', accountId, service: hostedService, reason: 'stripe_unusable' });
+          await logSkip(env, { kind: 'reminder', accountId, service: hostedService, reason: 'stripe_unusable' });
           continue;
         }
 
@@ -417,7 +423,7 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
           renewalSeconds: renewal,
         });
         if (!rendered) {
-          logSkip({ kind: 'reminder', accountId, service: hostedService, renewalAt: renewal, reason: 'stripe_unusable' });
+          await logSkip(env, { kind: 'reminder', accountId, service: hostedService, renewalAt: renewal, reason: 'stripe_unusable' });
           continue;
         }
 
@@ -449,11 +455,11 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
             renewalAt: renewal,
             contentKey: '',
           });
-          logSendFailed({ kind: 'reminder', accountId, service: hostedService, renewalAt: renewal });
+          await logSendFailed(env, { kind: 'reminder', accountId, service: hostedService, renewalAt: renewal });
           continue;
         }
 
-        logSent({ kind: 'reminder', accountId, service: hostedService, renewalAt: renewal });
+        await logSent(env, { kind: 'reminder', accountId, service: hostedService, renewalAt: renewal });
       } catch {
         // Continue processing other candidates
       }
@@ -482,14 +488,14 @@ export async function runRenewalCatchUp(env, nowMs = Date.now()) {
       try {
         const deletion = await getActiveDeletionForAccount(env.DB, accountId);
         if (deletion) {
-          logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'deletion' });
+          await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'deletion' });
           skipped += 1;
           continue;
         }
 
         const address = await resolvePrimaryAddress(env, accountId);
         if (!address) {
-          logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'no_email' });
+          await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'no_email' });
           skipped += 1;
           continue;
         }
@@ -498,14 +504,14 @@ export async function runRenewalCatchUp(env, nowMs = Date.now()) {
         try {
           sub = await getSubscription(env, sourceRef);
         } catch {
-          logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+          await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
           skipped += 1;
           continue;
         }
 
         const parsed = validateSubscription(sub);
         if (!parsed) {
-          logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+          await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
           skipped += 1;
           continue;
         }
@@ -517,7 +523,7 @@ export async function runRenewalCatchUp(env, nowMs = Date.now()) {
           unitAmount: parsed.unitAmount,
         });
         if (!rendered) {
-          logSkip({ kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+          await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
           skipped += 1;
           continue;
         }
@@ -550,12 +556,12 @@ export async function runRenewalCatchUp(env, nowMs = Date.now()) {
             renewalAt: 0,
             contentKey: '',
           });
-          logSendFailed({ kind: 'ack', accountId, service: hostedService });
+          await logSendFailed(env, { kind: 'ack', accountId, service: hostedService });
           skipped += 1;
           continue;
         }
 
-        logSent({ kind: 'ack', accountId, service: hostedService });
+        await logSent(env, { kind: 'ack', accountId, service: hostedService });
         sent += 1;
       } catch {
         skipped += 1;
@@ -588,14 +594,14 @@ export async function runRenewalOneOff(env, { subject, body, nowMs = Date.now() 
       try {
         const deletion = await getActiveDeletionForAccount(env.DB, accountId);
         if (deletion) {
-          logSkip({ kind: 'oneoff', accountId, reason: 'deletion' });
+          await logSkip(env, { kind: 'oneoff', accountId, reason: 'deletion' });
           skipped += 1;
           continue;
         }
 
         const address = await resolvePrimaryAddress(env, accountId);
         if (!address) {
-          logSkip({ kind: 'oneoff', accountId, reason: 'no_email' });
+          await logSkip(env, { kind: 'oneoff', accountId, reason: 'no_email' });
           skipped += 1;
           continue;
         }
@@ -628,12 +634,12 @@ export async function runRenewalOneOff(env, { subject, body, nowMs = Date.now() 
             renewalAt: 0,
             contentKey,
           });
-          logSendFailed({ kind: 'oneoff', accountId });
+          await logSendFailed(env, { kind: 'oneoff', accountId });
           skipped += 1;
           continue;
         }
 
-        logSent({ kind: 'oneoff', accountId });
+        await logSent(env, { kind: 'oneoff', accountId });
         sent += 1;
       } catch {
         skipped += 1;

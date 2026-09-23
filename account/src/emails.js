@@ -311,8 +311,10 @@ async function logAddCollision(env, actorAccountId, nowMs) {
   console.warn(JSON.stringify({ event: 'add_addr_collision', account_ref, ts: nowMs }));
 }
 
-function logTransparencyDecryptFailed(rowId, kind) {
-  console.warn(JSON.stringify({ event: 'transparency_decrypt_failed', row_id: rowId, kind }));
+// Peppered, not raw: this line is Logpush-retained for 90 days.
+async function logTransparencyDecryptFailed(env, rowId, kind) {
+  const rowRef = await hashWithPepper(`transparency:row:${rowId}`, env);
+  console.warn(JSON.stringify({ event: 'transparency_decrypt_failed', row_ref: rowRef, kind }));
 }
 
 async function emailViewRow(row, env, nowMs) {
@@ -334,7 +336,7 @@ async function transparencyEmailRow(row, env) {
   try {
     address = await decryptEmail(row.address_encrypted, env);
   } catch {
-    logTransparencyDecryptFailed(row.id, DECRYPT_KIND_ADDRESS);
+    await logTransparencyDecryptFailed(env, row.id, DECRYPT_KIND_ADDRESS);
   }
   return {
     address,
@@ -351,7 +353,7 @@ async function transparencySessionRow(row, env) {
       ipLabel = truncateIp(await decryptEmail(row.last_ip_encrypted, env));
     } catch {
       ipLabel = '<decrypt failed>';
-      logTransparencyDecryptFailed(row.id_hash, DECRYPT_KIND_IP);
+      await logTransparencyDecryptFailed(env, row.id_hash, DECRYPT_KIND_IP);
     }
   }
   return {
