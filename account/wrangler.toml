@@ -64,7 +64,7 @@ service = "spl-relay"
 # Stripe billing secrets (set via `wrangler secret put`):
 # STRIPE_SECRET_KEY — Stripe restricted secret key for Checkout, Portal, and subscription reads.
 # STRIPE_WEBHOOK_SECRET — Stripe webhook endpoint signing secret.
-# Create the Stripe webhook endpoint on API version 2024-09-30.acacia.
+# The live Stripe webhook endpoint is pinned to API version 2026-03-25.dahlia.
 #
 # Relay grant:
 # RELAY_GRANT_SECRET — shared secret for relay grant calls, set via `wrangler secret put`.

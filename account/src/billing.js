@@ -301,7 +301,7 @@ async function handleSubscriptionDeleted(env, obj, nowMs, ctx) {
 }
 
 // Where an invoice names its subscription depends on the Stripe API version the webhook
-// endpoint delivers. This account's endpoint follows the account default, 2026-03-25.dahlia,
+// endpoint delivers. This account's live endpoint is pinned to 2026-03-25.dahlia,
 // which carries it at invoice.parent.subscription_details ({ subscription, metadata }) and
 // has neither of the legacy fields. The pinned outbound version (see stripe.js) and older
 // payloads carry invoice.subscription and invoice.subscription_details. Read the shape the
