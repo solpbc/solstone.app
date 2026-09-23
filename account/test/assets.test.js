@@ -26,7 +26,7 @@ describe('public portal assets', () => {
     // The engine is ~29KB assembled. Inlined it was 96% of the transparency view's own 50KB
     // budget before this arc added the zone table, and four suites' page-body assertions were
     // scanning engine source.
-    expect(SUNARC_JS_SRC).toBe('/sunarc.js?v=1');
+    expect(SUNARC_JS_SRC).toBe('/sunarc.js?v=2');
 
     for (const path of ['/sunarc.js', SUNARC_JS_SRC]) {
       const response = await worker.fetch(new Request(`https://services.solstone.app${path}`), makeTestEnv());
@@ -48,7 +48,7 @@ describe('public portal assets', () => {
   });
 
   it('serves the versioned portal css href through the same route', async () => {
-    expect(PORTAL_CSS_HREF).toBe('/portal.css?v=6');
+    expect(PORTAL_CSS_HREF).toBe('/portal.css?v=7');
     expect(PORTAL_CSS_HREF).not.toBe('/portal.css');
 
     const response = await worker.fetch(new Request(`https://services.solstone.app${PORTAL_CSS_HREF}`), makeTestEnv());

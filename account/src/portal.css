@@ -48,32 +48,36 @@
   --tag-free-bg:     #EDEFEA;
   --tag-free-ink:    #4F5848;
   --tag-neutral-bg:  #F0ECE2;
-  /* sun-arc time-of-day background — locked 2026-09-19, values verbatim from
-     cmo/brand/sbis/patterns/sun-arc/index.md; --sunarc-night-ground is the
-     two-step OKLab mix of THIS page's own --cream day ground (not the SOT's
-     cream-bright worked example), recomputed and verified against this
-     file's own calculateTwoStepNight so the token stays a true anchor, not
-     an invented placeholder. */
+  /* sun-arc time-of-day background — locked 2026-09-19, amended 2026-09-23 (the day in
+     both appearances); values verbatim from cmo/brand/sbis/patterns/sun-arc/index.md
+     §§ 2, 4a, 6, 7, 8a and vpx/design-system/tokens.md § the sun, all day. The
+     appearance is the owner's prefers-color-scheme, never the clock. § 6: this page's
+     own --cream (tile cream) is its light day ground; the light night and true dark and
+     the whole dark row are the spec's table. */
   --sunarc-arc-angle: 36deg;
   --sunarc-bow-ratio: 0.07919;
   --sunarc-diameter-ratio: 1.6180339887;
   --sunarc-overshoot: 1;
   --sunarc-envelope-edge: 0.22;
   --sunarc-peak-opacity: 0.55;
+  --sunarc-peak-opacity-dark: 0.20;
   --sunarc-twilight-minutes: 30;
-  --sunarc-ink-mix: 0.90;
-  --sunarc-warm-mix: 0.45;
-  --sunarc-warm-dark: #2E1906;
-  --sunarc-ink: #1A1A1A;
+  --sunarc-ground-light-night: #E9DECC;
+  --sunarc-ground-light-deep: #D7C9B0;
+  --sunarc-ground-dark-day: #392E26;
+  --sunarc-ground-dark-night: #2E241C;
+  --sunarc-ground-dark-deep: #281E17;
   --sunarc-glow-color: #FFCC33;
   --sunarc-glow-radius-ratio: 1.6180339887;
   --sunarc-glow-day-alpha: 0.22;
-  --sunarc-glow-night-alpha: 0.40;
-  --sunarc-glow-night-floor: 0.12;
   --sunarc-glow-mid-stop: 38%;
   --sunarc-glow-mid-ratio: 0.45;
-  --sunarc-appearance-flip: 0.5;
-  --sunarc-night-ground: #2E241B;
+  --sunarc-twilight-radius-ratio: 2.6180339887;
+  --sunarc-twilight-alpha-dark: 0.62;
+  --sunarc-twilight-alpha-light: 0.95;
+  --sunarc-twilight-sink: 0.10;
+  --sunarc-true-dark-min: 180;
+  --sunarc-sunrise: #FFF3CF;
 }
 
 * { box-sizing: border-box; }
@@ -96,13 +100,21 @@ main {
   margin: 0 auto;
   padding: 40px 20px 72px;
 }
-:root[data-appearance="dark"] main {
-  background: var(--cream);
+/* § 8: the content sits on its own paper over the sun arc, in either appearance.
+   Light: tile cream at 75%, so the sun reads through it by day and ink-faint text
+   still clears 4.5:1 over the true-dark ground. Dark: solid cream, because the
+   portal's content colours are tuned for cream (a dark re-theme is its own pass). */
+main {
+  background: rgb(252 243 228 / 0.75);
   border-radius: var(--radius);
+}
+@media (prefers-color-scheme: dark) {
+  body { background: var(--sunarc-mixed, var(--sunarc-ground-dark-day)); }
+  main { background: var(--cream); }
 }
 
 .sunarc { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.sunarc-glow, .sunarc-sun { position: absolute; pointer-events: none; }
+.sunarc-twilight, .sunarc-glow, .sunarc-sun { position: absolute; pointer-events: none; }
 .sunarc .mark { width: 100%; height: 100%; display: block; }
 
 /* ---- type ---- */

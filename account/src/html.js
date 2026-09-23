@@ -119,6 +119,7 @@ export function layout({ title, body, afterMain = '', showFooter = true, mainCla
 </head>
 <body>
   <div class="sunarc" id="sunarc" aria-hidden="true">
+    <div class="sunarc-twilight"></div>
     <div class="sunarc-glow"></div>
     <div class="sunarc-sun">${MARK_SVG}</div>
   </div>
@@ -146,7 +147,7 @@ export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "si
     ${resumeHtml}
     <label for="email">email</label>
     <input id="email" type="email" name="email" autocomplete="email webauthn" required placeholder="you@example.com" maxlength="254">
-    <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}"></div>
+    <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}" data-theme="light"></div>
     <button class="btn primary block" type="submit">continue</button>
   </form>
 </div>

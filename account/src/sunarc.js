@@ -112,6 +112,8 @@ export function oklabToRgb(L, a, b) {
 }
 
 export function mixOklab(c1, c2, t) {
+  if (t <= 0) return [c1[0], c1[1], c1[2]];
+  if (t >= 1) return [c2[0], c2[1], c2[2]];
   const lab1 = rgbToOklab(c1[0], c1[1], c1[2]);
   const lab2 = rgbToOklab(c2[0], c2[1], c2[2]);
   const lab = [
@@ -166,16 +168,6 @@ export function formatRgba(rgb, alpha) {
   return 'rgba(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ', ' + (Math.round(clampedA * 10000) / 10000) + ')';
 }
 
-export function calculateTwoStepNight(dayRgb, inkRgb, warmDarkRgb, inkMix, warmMix) {
-  const step1 = mixOklab(dayRgb, inkRgb, inkMix);
-  return mixOklab(step1, warmDarkRgb, warmMix);
-}
-
-export function calculateMixedGround(dayRgb, inkRgb, warmDarkRgb, inkMix, warmMix, nightAmount) {
-  const fullNightRgb = calculateTwoStepNight(dayRgb, inkRgb, warmDarkRgb, inkMix, warmMix);
-  return mixOklab(dayRgb, fullNightRgb, nightAmount);
-}
-
 export function parseTokens(styleReader) {
   function getProp(name) {
     return styleReader(name);
@@ -194,78 +186,41 @@ export function parseTokens(styleReader) {
     return parseColor(val);
   }
 
-  const arcAngle = parseNum('--sunarc-arc-angle');
-  const bowRatio = parseNum('--sunarc-bow-ratio');
-  const diameterRatio = parseNum('--sunarc-diameter-ratio');
-  const overshoot = parseNum('--sunarc-overshoot');
-  const envelopeEdge = parseNum('--sunarc-envelope-edge');
-  const peakOpacity = parseNum('--sunarc-peak-opacity');
-  const twilightMinutes = parseNum('--sunarc-twilight-minutes');
-  const inkMix = parseNum('--sunarc-ink-mix');
-  const warmMix = parseNum('--sunarc-warm-mix');
-  const glowRadiusRatio = parseNum('--sunarc-glow-radius-ratio');
-  const glowDayAlpha = parseNum('--sunarc-glow-day-alpha');
-  const glowNightAlpha = parseNum('--sunarc-glow-night-alpha');
-  const glowNightFloor = parseNum('--sunarc-glow-night-floor');
-  const glowMidStop = parseNum('--sunarc-glow-mid-stop');
-  const glowMidRatio = parseNum('--sunarc-glow-mid-ratio');
-  const appearanceFlip = parseNum('--sunarc-appearance-flip');
-
-  const warmDark = parseCol('--sunarc-warm-dark');
-  const ink = parseCol('--sunarc-ink');
-  const glowColor = parseCol('--sunarc-glow-color');
-  const nightGround = parseCol('--sunarc-night-ground');
-  const cream = parseCol('--cream');
-
-  if (
-    arcAngle == null ||
-    bowRatio == null ||
-    diameterRatio == null ||
-    overshoot == null ||
-    envelopeEdge == null ||
-    peakOpacity == null ||
-    twilightMinutes == null ||
-    inkMix == null ||
-    warmMix == null ||
-    glowRadiusRatio == null ||
-    glowDayAlpha == null ||
-    glowNightAlpha == null ||
-    glowNightFloor == null ||
-    glowMidStop == null ||
-    glowMidRatio == null ||
-    appearanceFlip == null ||
-    warmDark == null ||
-    ink == null ||
-    glowColor == null ||
-    nightGround == null ||
-    cream == null
-  ) {
-    return null;
-  }
-
-  return {
-    arcAngle,
-    bowRatio,
-    diameterRatio,
-    overshoot,
-    envelopeEdge,
-    peakOpacity,
-    twilightMinutes,
-    inkMix,
-    warmMix,
-    glowRadiusRatio,
-    glowDayAlpha,
-    glowNightAlpha,
-    glowNightFloor,
-    glowMidStop,
-    glowMidRatio,
-    appearanceFlip,
-    warmDark,
-    ink,
-    glowColor,
-    nightGround,
-    cream,
+  const out = {
+    arcAngle: parseNum('--sunarc-arc-angle'),
+    bowRatio: parseNum('--sunarc-bow-ratio'),
+    diameterRatio: parseNum('--sunarc-diameter-ratio'),
+    overshoot: parseNum('--sunarc-overshoot'),
+    envelopeEdge: parseNum('--sunarc-envelope-edge'),
+    peakOpacity: parseNum('--sunarc-peak-opacity'),
+    peakOpacityDark: parseNum('--sunarc-peak-opacity-dark'),
+    twilightMinutes: parseNum('--sunarc-twilight-minutes'),
+    glowRadiusRatio: parseNum('--sunarc-glow-radius-ratio'),
+    glowDayAlpha: parseNum('--sunarc-glow-day-alpha'),
+    glowMidStop: parseNum('--sunarc-glow-mid-stop'),
+    glowMidRatio: parseNum('--sunarc-glow-mid-ratio'),
+    twilightRadiusRatio: parseNum('--sunarc-twilight-radius-ratio'),
+    twilightAlphaDark: parseNum('--sunarc-twilight-alpha-dark'),
+    twilightAlphaLight: parseNum('--sunarc-twilight-alpha-light'),
+    twilightSink: parseNum('--sunarc-twilight-sink'),
+    trueDarkMinutes: parseNum('--sunarc-true-dark-min'),
+    glowColor: parseCol('--sunarc-glow-color'),
+    orange: parseCol('--orange'),
+    sunrise: parseCol('--sunarc-sunrise'),
+    // § 6: the page's own ground (tile cream) is the light day ground; night and true dark are the table's.
+    groundLightDay: parseCol('--cream'),
+    groundLightNight: parseCol('--sunarc-ground-light-night'),
+    groundLightDeep: parseCol('--sunarc-ground-light-deep'),
+    groundDarkDay: parseCol('--sunarc-ground-dark-day'),
+    groundDarkNight: parseCol('--sunarc-ground-dark-night'),
+    groundDarkDeep: parseCol('--sunarc-ground-dark-deep'),
   };
+
+  const keys = Object.keys(out);
+  for (let i = 0; i < keys.length; i += 1) {
+    if (out[keys[i]] == null) return null;
+  }
+  return out;
 }
 
 export function noaaSolarTime(date, lat, lon, isSunrise, zenith, utcOffsetHours) {
@@ -336,7 +291,11 @@ export function solarPairFor(coords, date, utcOffsetHours) {
   return null;
 }
 
-export function calculateSunTime(now, riseMin, setMin, twMin) {
+export function calculateSunTime(now, riseMin, sunsetMin, twMin) {
+  // One extended minute axis (spec section 4a): a sunset after local midnight, wrapped below
+  // sunrise, is carried past 1440, and a clock minute before that carried dusk is read on the
+  // same axis.
+  const setMin = sunsetMin < riseMin ? sunsetMin + 1440 : sunsetMin;
   const hours = now.getHours();
   const minutes = now.getMinutes();
   const seconds = now.getSeconds();
@@ -346,7 +305,11 @@ export function calculateSunTime(now, riseMin, setMin, twMin) {
   const dusk = setMin + twMin;
   // When dusk lands after local midnight, the small hours belong to the day that is still
   // ending, not to the one about to start.
-  const m = dusk > 1440 && clock < dusk - 1440 ? clock + 1440 : clock;
+  // The mirror: a sunrise before 00:30 puts dawn before midnight, so the last clock minutes of
+  // the day belong to tomorrow's dawn.
+  let m = clock;
+  if (dusk > 1440 && clock < dusk - 1440) m = clock + 1440;
+  else if (dawn < 0 && clock >= dawn + 1440) m = clock - 1440;
 
   const t = (m - dawn) / (dusk - dawn);
 
@@ -461,42 +424,111 @@ export function calculateArcGeometry(w, h, diameterRatio, bowRatio, overshoot, a
   };
 }
 
-export function calculateGlow(t, edge, nightAmount, q, sunX, sunY, ptA, ptB, R, tokens) {
-  const radius = tokens.glowRadiusRatio * R;
-  let alpha = 0;
-  let gx = sunX;
-  let gy = sunY;
+// A radial glow on a 2r x 2r box. `closest-side` puts the gradient's 100% stop exactly on the box's
+// inscribed circle; a size-less `circle` would default to farthest-corner, reach r * sqrt(2) and be
+// cut off square by the box.
+export function radialBackground(rgb, alpha, tokens) {
+  return 'radial-gradient(circle closest-side at center, ' + formatRgba(rgb, alpha) + ' 0%, ' +
+    formatRgba(rgb, alpha * tokens.glowMidRatio) + ' ' + tokens.glowMidStop + '%, ' + formatRgba(rgb, 0) + ' 100%)';
+}
 
-  if (nightAmount < 1) {
-    const env = envelope(t, edge);
-    alpha = tokens.glowDayAlpha * env * (1 - nightAmount);
-    gx = sunX;
-    gy = sunY;
-  } else {
-    if (q < 0.5) {
-      gx = ptB.x;
-      gy = ptB.y;
-    } else {
-      gx = ptA.x;
-      gy = ptA.y;
-    }
-    const k = q < 0.5 ? 1 - 2 * q : 2 * q - 1;
-    alpha = tokens.glowNightFloor + (tokens.glowNightAlpha - tokens.glowNightFloor) * Math.pow(k, 1.6);
-  }
-
-  alpha = Math.max(0, Math.min(1, alpha));
-  const c0 = formatRgba(tokens.glowColor, alpha);
-  const cMid = formatRgba(tokens.glowColor, alpha * tokens.glowMidRatio);
-  const c100 = formatRgba(tokens.glowColor, 0);
-  const background =
-    'radial-gradient(circle at center, ' + c0 + ' 0%, ' + cMid + ' ' + tokens.glowMidStop + '%, ' + c100 + ' 100%)';
-
+// § 7 the day halo: gold, radius phi * R, on the sun, 0.22 * env * (1 - night).
+export function calculateHalo(t, edge, nightAmount, sunX, sunY, R, tokens) {
+  const env = envelope(t, edge);
+  const alpha = Math.max(0, Math.min(1, tokens.glowDayAlpha * env * (1 - nightAmount)));
   return {
-    x: gx,
-    y: gy,
-    radius,
+    x: sunX,
+    y: sunY,
+    radius: tokens.glowRadiusRatio * R,
     alpha,
-    background,
+    background: radialBackground(tokens.glowColor, alpha, tokens),
+  };
+}
+
+// § 4a the twilight weight: holds through the early evening, then eases to 0 at the window's edge.
+export function twilightEase(x) {
+  const c = Math.max(0, Math.min(1, x));
+  return Math.pow(1 - c * c, 1.5);
+}
+
+// § 4a the twilight weight w and the hidden sun's parameter te (a port of SUNARC.twilight). m, dawn and
+// dusk come from calculateSunTime, on its one extended minute axis. True dark is centred on the midpoint
+// of dusk and the next dawn and lasts max(0, min(deepMin, night - 120)) minutes (SUNARC.deepHalf), so the
+// glow always keeps an hour to ease out and an hour to ease in, and a white night has no true dark.
+export function twilightWeight(m, dawn, dusk, env, t, deepMin, sink) {
+  if (m >= dawn && m <= dusk) return { w: 1 - env, te: t, x: 0, phase: 'day' };
+  const span = ((dawn - dusk) % 1440 + 1440) % 1440;
+  const ms = ((m - dusk) % 1440 + 1440) % 1440;
+  const mid = span / 2;
+  const half = Math.max(0, Math.min(deepMin, span - 120)) / 2;
+  const dS = mid - half;
+  const dE = mid + half;
+  if (ms <= dS && dS > 0) {
+    const x = ms / dS;
+    return { w: twilightEase(x), te: 1 + sink * x, x: x, phase: 'evening' };
+  }
+  if (ms >= dE && span > dE) {
+    const x = (span - ms) / (span - dE);
+    return { w: twilightEase(x), te: -sink * x, x: x, phase: 'before dawn' };
+  }
+  return { w: 0, te: ms < mid ? 1 + sink : -sink, x: 1, phase: 'true dark' };
+}
+
+// § 6 the ground: the owner's appearance picks the row; day -> night across the twilights, night -> true
+// dark by 1 - w. OKLab throughout.
+export function calculateGround(appearance, tokens, nightAmount, w) {
+  const dark = appearance === 'dark';
+  const day = dark ? tokens.groundDarkDay : tokens.groundLightDay;
+  const night = dark ? tokens.groundDarkNight : tokens.groundLightNight;
+  const deep = dark ? tokens.groundDarkDeep : tokens.groundLightDeep;
+  return mixOklab(mixOklab(day, night, nightAmount), deep, nightAmount * (1 - w));
+}
+
+// § 7 the twilight glow: radius phi^2 * R on P(te); gold -> orange on dark, #FFF3CF -> gold on light.
+export function calculateTwilightGlow(tw, appearance, x, y, R, tokens) {
+  const dark = appearance === 'dark';
+  const alpha = tw.w > 0.001
+    ? Math.max(0, Math.min(1, (dark ? tokens.twilightAlphaDark : tokens.twilightAlphaLight) * tw.w))
+    : 0;
+  const rgb = dark
+    ? mixOklab(tokens.glowColor, tokens.orange, 0.3 + 0.5 * tw.x)
+    : mixOklab(tokens.sunrise, tokens.glowColor, 0.45 + 0.25 * tw.x);
+  return {
+    x,
+    y,
+    radius: tokens.twilightRadiusRatio * R,
+    alpha,
+    rgb,
+    color: formatHex(rgb),
+    background: radialBackground(rgb, alpha, tokens),
+  };
+}
+
+// One frame, the portal's SUNARC.both(): (clock, sunrise, sunset, the owner's appearance, viewport) ->
+// ground, sun, halo, twilight glow. Pure. The appearance is an input; nothing here derives it.
+export function calculateFrame(now, rise, set, appearance, vp, tokens) {
+  const dark = appearance === 'dark';
+  const time = calculateSunTime(now, rise, set, tokens.twilightMinutes);
+  const env = envelope(time.t, tokens.envelopeEdge);
+  const tw = twilightWeight(time.m, time.dawn, time.dusk, env, time.t, tokens.trueDarkMinutes, tokens.twilightSink);
+  const groundRgb = calculateGround(appearance, tokens, time.nightAmount, tw.w);
+  const tc = Math.max(0, Math.min(1, time.t));
+  const geom = calculateArcGeometry(vp.w, vp.h, tokens.diameterRatio, tokens.bowRatio, tokens.overshoot, tokens.arcAngle, tc);
+  const opacity = sunOpacity(time.t, tokens.envelopeEdge, dark ? tokens.peakOpacityDark : tokens.peakOpacity, time.nightAmount);
+  const halo = calculateHalo(time.t, tokens.envelopeEdge, time.nightAmount, geom.x, geom.y, geom.r, tokens);
+  const hidden = calculateArcGeometry(vp.w, vp.h, tokens.diameterRatio, tokens.bowRatio, tokens.overshoot, tokens.arcAngle, tw.te);
+  const twilightGlow = calculateTwilightGlow(tw, appearance, hidden.x, hidden.y, geom.r, tokens);
+  return {
+    appearance,
+    time,
+    env,
+    twilight: tw,
+    groundRgb,
+    ground: formatHex(groundRgb),
+    geom,
+    opacity,
+    halo,
+    twilightGlow,
   };
 }
 
@@ -509,6 +541,7 @@ export function createSunarcController(deps) {
   const clearTimeout = deps.clearTimeout;
   const setInterval = deps.setInterval;
   const clearInterval = deps.clearInterval;
+  const matchMedia = deps.matchMedia || null;
   // § 5 rung 1 — a location the app already holds of its own accord. This surface holds none,
   // so nothing passes it; it exists so a surface that genuinely holds one can feed it in
   // without re-plumbing. The engine asks the device for a position nowhere: § 12 accepts no
@@ -523,6 +556,7 @@ export function createSunarcController(deps) {
   let solarPair = { rise: FALLBACK_RISE, set: FALLBACK_SET, lastDateKey: null, zoneId: null };
   let resizeTimer = null;
   let intervalId = null;
+  let lastFrame = null;
 
   function dateKeyOf(d) {
     return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
@@ -554,12 +588,43 @@ export function createSunarcController(deps) {
     };
   }
 
+  // § 6 / § 10: the appearance is the owner's system setting, read live. The pattern never sets it.
+  let schemeList = null;
+  function colorSchemeList() {
+    if (!schemeList && typeof matchMedia === 'function') {
+      try {
+        schemeList = matchMedia('(prefers-color-scheme: dark)');
+      } catch (_) {
+        schemeList = null;
+      }
+    }
+    return schemeList;
+  }
+
+  function currentAppearance() {
+    const list = colorSchemeList();
+    return list && list.matches ? 'dark' : 'light';
+  }
+
+  function placeGlow(el, g) {
+    if (!el) return;
+    el.style.opacity = String(g.alpha > 0 ? 1 : 0);
+    if (g.alpha > 0) {
+      el.style.left = g.x - g.radius + 'px';
+      el.style.top = g.y - g.radius + 'px';
+      el.style.width = g.radius * 2 + 'px';
+      el.style.height = g.radius * 2 + 'px';
+      el.style.background = g.background;
+    }
+  }
+
   function tick() {
     if (!document) return;
     const container = document.getElementById('sunarc');
     if (!container) return;
     const sun = container.querySelector('.sunarc-sun');
     const glow = container.querySelector('.sunarc-glow');
+    const twilight = container.querySelector('.sunarc-twilight');
 
     const curDate = now();
 
@@ -575,83 +640,30 @@ export function createSunarcController(deps) {
     if (!tokens) {
       if (sun) sun.style.opacity = '0';
       if (glow) glow.style.opacity = '0';
-      if (document.documentElement) {
-        if (document.documentElement.style && typeof document.documentElement.style.removeProperty === 'function') {
-          document.documentElement.style.removeProperty('--sunarc-mixed');
-        }
-        if (typeof document.documentElement.removeAttribute === 'function') {
-          document.documentElement.removeAttribute('data-appearance');
-        }
+      if (twilight) twilight.style.opacity = '0';
+      if (document.documentElement && document.documentElement.style &&
+        typeof document.documentElement.style.removeProperty === 'function') {
+        document.documentElement.style.removeProperty('--sunarc-mixed');
       }
       return;
     }
 
-    const timeInfo = calculateSunTime(curDate, solarPair.rise, solarPair.set, tokens.twilightMinutes);
-    const mixedGroundRgb = calculateMixedGround(
-      tokens.cream,
-      tokens.ink,
-      tokens.warmDark,
-      tokens.inkMix,
-      tokens.warmMix,
-      timeInfo.nightAmount
-    );
-    const mixedGroundHex = formatHex(mixedGroundRgb);
-    document.documentElement.style.setProperty('--sunarc-mixed', mixedGroundHex);
-
-    const mixedOklab = rgbToOklab(mixedGroundRgb[0], mixedGroundRgb[1], mixedGroundRgb[2]);
-    const app = mixedOklab[0] < tokens.appearanceFlip ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-appearance', app);
-
     const vp = deps.viewport ? deps.viewport() : { w: window ? window.innerWidth : 800, h: window ? window.innerHeight : 600 };
-    const geom = calculateArcGeometry(
-      vp.w,
-      vp.h,
-      tokens.diameterRatio,
-      tokens.bowRatio,
-      tokens.overshoot,
-      tokens.arcAngle,
-      timeInfo.t
-    );
-
-    const op =
-      timeInfo.t >= -0.02 && timeInfo.t <= 1.02
-        ? sunOpacity(timeInfo.t, tokens.envelopeEdge, tokens.peakOpacity, timeInfo.nightAmount)
-        : 0;
+    const frame = calculateFrame(curDate, solarPair.rise, solarPair.set, currentAppearance(), vp, tokens);
+    document.documentElement.style.setProperty('--sunarc-mixed', frame.ground);
 
     if (sun) {
-      sun.style.opacity = String(op);
-      if (op > 0) {
-        sun.style.left = geom.x - geom.r + 'px';
-        sun.style.top = geom.y - geom.r + 'px';
-        sun.style.width = geom.diam + 'px';
-        sun.style.height = geom.diam + 'px';
+      sun.style.opacity = String(frame.opacity);
+      if (frame.opacity > 0) {
+        sun.style.left = frame.geom.x - frame.geom.r + 'px';
+        sun.style.top = frame.geom.y - frame.geom.r + 'px';
+        sun.style.width = frame.geom.diam + 'px';
+        sun.style.height = frame.geom.diam + 'px';
       }
     }
-
-    const glowInfo = calculateGlow(
-      timeInfo.t,
-      tokens.envelopeEdge,
-      timeInfo.nightAmount,
-      timeInfo.q,
-      geom.x,
-      geom.y,
-      { x: geom.ax, y: geom.ay },
-      { x: geom.bx, y: geom.by },
-      geom.r,
-      tokens
-    );
-
-    if (glow) {
-      glow.style.opacity = String(glowInfo.alpha > 0 ? 1 : 0);
-      if (glowInfo.alpha > 0) {
-        const gw = glowInfo.radius * 2;
-        glow.style.left = glowInfo.x - glowInfo.radius + 'px';
-        glow.style.top = glowInfo.y - glowInfo.radius + 'px';
-        glow.style.width = gw + 'px';
-        glow.style.height = gw + 'px';
-        glow.style.background = glowInfo.background;
-      }
-    }
+    placeGlow(twilight, frame.twilightGlow);
+    placeGlow(glow, frame.halo);
+    lastFrame = frame;
   }
 
   function onResize() {
@@ -680,6 +692,9 @@ export function createSunarcController(deps) {
       if (document && typeof document.addEventListener === 'function') {
         document.addEventListener('visibilitychange', onVisibilityChange);
       }
+      const list = colorSchemeList();
+      if (list && typeof list.addEventListener === 'function') list.addEventListener('change', tick);
+      else if (list && typeof list.addListener === 'function') list.addListener(tick);
       return this;
     },
     stop: function() {
@@ -691,10 +706,16 @@ export function createSunarcController(deps) {
       if (document && typeof document.removeEventListener === 'function') {
         document.removeEventListener('visibilitychange', onVisibilityChange);
       }
+      const list = colorSchemeList();
+      if (list && typeof list.removeEventListener === 'function') list.removeEventListener('change', tick);
+      else if (list && typeof list.removeListener === 'function') list.removeListener(tick);
     },
     tick: tick,
     getSolarPair: function() {
       return solarPair;
+    },
+    getFrame: function() {
+      return lastFrame;
     },
   };
 }
@@ -721,8 +742,6 @@ ${mixOklab.toString()}
 ${parseColor.toString()}
 ${formatHex.toString()}
 ${formatRgba.toString()}
-${calculateTwoStepNight.toString()}
-${calculateMixedGround.toString()}
 ${parseTokens.toString()}
 ${noaaSolarTime.toString()}
 ${solarPairFor.toString()}
@@ -730,7 +749,13 @@ ${calculateSunTime.toString()}
 ${envelope.toString()}
 ${sunOpacity.toString()}
 ${calculateArcGeometry.toString()}
-${calculateGlow.toString()}
+${radialBackground.toString()}
+${calculateHalo.toString()}
+${twilightEase.toString()}
+${twilightWeight.toString()}
+${calculateGround.toString()}
+${calculateTwilightGlow.toString()}
+${calculateFrame.toString()}
 ${createSunarcController.toString()}
 createSunarcController({
   window: window,
@@ -741,6 +766,7 @@ createSunarcController({
   setTimeout: window.setTimeout.bind(window),
   clearTimeout: window.clearTimeout.bind(window),
   setInterval: window.setInterval.bind(window),
-  clearInterval: window.clearInterval.bind(window)
+  clearInterval: window.clearInterval.bind(window),
+  matchMedia: typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null
 }).start();
 })();`;
