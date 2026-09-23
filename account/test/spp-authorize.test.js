@@ -196,6 +196,108 @@ describe('POST /internal/spp/authorize', () => {
   });
 });
 
+// G3 / Shape C (CSO-cleared): the sealed appliance publishes no engine secret, so this
+// route runs the identical owner-credential predicate with no service-bearer check at
+// all. See handleSppAuthorizePublic's doc comment in ../src/spp-authorize.js and
+// cso/completed/260922-g3-gate-review-the-portal-authorizer-credential-mechanism-fo.md
+// in the extro repo.
+describe('POST /spp/authorize (G3 Shape C, no engine bearer)', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('authorizes an active binding with no Authorization header at all', async () => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+
+    const response = await authorizePublic(testEnv, { headers: {} });
+
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe('');
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it.each([
+    ['no Authorization header', {}],
+    ['a garbage bearer', { Authorization: 'Bearer not-even-shaped-right' }],
+    ['a random 256-bit-looking bearer', { Authorization: 'Bearer ' + 'a'.repeat(64) }],
+    ['the old engine secret (now meaningless here)', { Authorization: 'Bearer test-spp-engine-auth-secret' }],
+  ])('reaches the identical 204 regardless of the bearer — %s', async (_label, headers) => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+
+    const response = await authorizePublic(testEnv, { headers });
+
+    expect(response.status).toBe(204);
+  });
+
+  it('fails closed for a missing or unknown entitlement credential, same as the internal route', async () => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+
+    const missing = await authorizePublic(testEnv, { token: '' });
+    expect(missing.status).toBe(401);
+
+    const unknown = await authorizePublic(testEnv, { token: 'unknown-token' });
+    expect(unknown.status).toBe(401);
+  });
+
+  it('rejects a real binding whose entitlement is no longer active', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedActiveBinding(testEnv);
+    await seedEntitlement({
+      accountId: account.accountId,
+      service: 'spp_hosted',
+      status: 'lapsed',
+      source: 'comp',
+      currentPeriodEnd: null,
+    });
+
+    const response = await authorizePublic(testEnv);
+
+    expect(response.status).toBe(401);
+  });
+
+  it('uses event names distinct from the internal route, so the two are never confused in logs', async () => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+    const lines = [];
+    const realWarn = console.warn;
+    console.warn = (...args) => lines.push(args);
+
+    try {
+      await authorizePublic(testEnv, { token: 'unknown-token' });
+    } finally {
+      console.warn = realWarn;
+    }
+
+    expect(lines).toEqual([['spp_authorize_public_refused_entitlement']]);
+  });
+
+  it('fails closed with 503 and a bounded reason code when the entitlement lookup throws', async () => {
+    const testEnv = makeTestEnv({
+      DB: {
+        prepare() {
+          throw Object.assign(new Error('D1_ERROR: Network connection lost.'), { name: 'Error' });
+        },
+      },
+    });
+    const lines = [];
+    const realError = console.error;
+    console.error = (...args) => lines.push(args);
+
+    let response;
+    try {
+      response = await authorizePublic(testEnv);
+    } finally {
+      console.error = realError;
+    }
+
+    expect(response.status).toBe(503);
+    expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'd1', 'network_lost']]);
+  });
+});
+
 // Drives one authorize call whose first D1 read throws `message`, and returns the
 // console.error lines it produced alongside the response.
 async function captureFailure(message) {
@@ -264,6 +366,18 @@ function authorize(testEnv, { headers = engineHeaders(), token = TOKEN } = {}) {
   if (token) requestHeaders.set('X-Sol-Entitlement', token);
   return worker.fetch(
     new Request('https://services.solstone.app/internal/spp/authorize', {
+      method: 'POST',
+      headers: requestHeaders,
+    }),
+    testEnv
+  );
+}
+
+function authorizePublic(testEnv, { headers = {}, token = TOKEN } = {}) {
+  const requestHeaders = new Headers(headers);
+  if (token) requestHeaders.set('X-Sol-Entitlement', token);
+  return worker.fetch(
+    new Request('https://services.solstone.app/spp/authorize', {
       method: 'POST',
       headers: requestHeaders,
     }),

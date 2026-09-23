@@ -81,49 +81,83 @@ export async function handleSppAuthorize(req, env) {
       return empty(401);
     }
 
-    const entitlementCredential = req.headers.get('X-Sol-Entitlement') || '';
-    if (!entitlementCredential || entitlementCredential.length > 4096) {
-      console.warn('spp_authorize_refused_entitlement');
-      return empty(401);
-    }
-
-    const tokenHash = await hashWithPepper(entitlementCredential, env);
-    const binding = await withD1RetryOnce(() => findSppBindingByTokenHash(env.DB, tokenHash));
-    if (!binding) {
-      console.warn('spp_authorize_refused_entitlement');
-      return empty(401);
-    }
-    if (await withD1RetryOnce(() => getActiveDeletionForAccount(env.DB, binding.account_id))) {
-      console.warn('spp_authorize_refused_deletion');
-      return empty(401);
-    }
-
-    const entitlement = await withD1RetryOnce(() =>
-      getEntitlement(env.DB, {
-        accountId: binding.account_id,
-        service: SPP_HOSTED_SERVICE,
-      })
-    );
-    if (!isSppEntitledToServe(entitlement, Math.floor(Date.now() / 1000), env)) {
-      console.warn('spp_authorize_refused_entitlement');
-      return empty(401);
-    }
-
-    return empty(204);
+    return await authorizeByOwnerCredential(req, env, {
+      refused: 'spp_authorize_refused_entitlement',
+      refusedDeletion: 'spp_authorize_refused_deletion',
+      failed: 'spp_authorize_failed',
+    });
   } catch (err) {
-    // Bounded reason code only — never the raw message. The three D1 reads above
-    // (binding lookup, deletion check, entitlement lookup) are the only calls here
-    // that can fail transiently, and a D1 fault surfaces as a generic Error, so the
-    // name alone cannot distinguish it. Each read already gets one retry
-    // (withD1RetryOnce) before a failure can reach here, so a 503 out of this
-    // branch means both attempts failed, or the fault wasn't retry-eligible.
-    const name = typeof err?.name === 'string' && err.name ? err.name : 'unknown';
-    const message = String(err?.message || '');
-    const kind = message.includes('D1_ERROR') ? 'd1' : 'other';
-    const reason = kind === 'd1' ? d1Reason(message) : 'n/a';
-    console.error('spp_authorize_failed', name, kind, reason);
-    return empty(503);
+    return failed(err, 'spp_authorize_failed');
   }
+}
+
+// G3 / Shape C (CSO-cleared, see cso/completed/260922-g3-gate-review-the-portal-authorizer-
+// credential-mechanism-fo.md and records/decisions/260922-cso-spp-g3-the-sealed-engine-carries-
+// no-portal-credential.md): the sealed appliance publishes no engine-side secret, so the engine
+// cannot present one. This route runs the identical owner-credential predicate as
+// handleSppAuthorize above with NO service-bearer check at all — reachable by anyone, exactly
+// like curling it with the real engine's own bearer already was in practice (the bearer never
+// protected an owner; only X-Sol-Entitlement does). It is additive: the sealed appliance's
+// gateway is the only intended caller, spp-engine-01 keeps using /internal/spp/authorize
+// unchanged until the founder-gated cutover, and this route uses distinct event names so its
+// traffic is never confused with the internal route's in logs or alerting.
+export async function handleSppAuthorizePublic(req, env) {
+  try {
+    return await authorizeByOwnerCredential(req, env, {
+      refused: 'spp_authorize_public_refused_entitlement',
+      refusedDeletion: 'spp_authorize_public_refused_deletion',
+      failed: 'spp_authorize_public_failed',
+    });
+  } catch (err) {
+    return failed(err, 'spp_authorize_public_failed');
+  }
+}
+
+async function authorizeByOwnerCredential(req, env, events) {
+  const entitlementCredential = req.headers.get('X-Sol-Entitlement') || '';
+  if (!entitlementCredential || entitlementCredential.length > 4096) {
+    console.warn(events.refused);
+    return empty(401);
+  }
+
+  const tokenHash = await hashWithPepper(entitlementCredential, env);
+  const binding = await withD1RetryOnce(() => findSppBindingByTokenHash(env.DB, tokenHash));
+  if (!binding) {
+    console.warn(events.refused);
+    return empty(401);
+  }
+  if (await withD1RetryOnce(() => getActiveDeletionForAccount(env.DB, binding.account_id))) {
+    console.warn(events.refusedDeletion);
+    return empty(401);
+  }
+
+  const entitlement = await withD1RetryOnce(() =>
+    getEntitlement(env.DB, {
+      accountId: binding.account_id,
+      service: SPP_HOSTED_SERVICE,
+    })
+  );
+  if (!isSppEntitledToServe(entitlement, Math.floor(Date.now() / 1000), env)) {
+    console.warn(events.refused);
+    return empty(401);
+  }
+
+  return empty(204);
+}
+
+function failed(err, eventName) {
+  // Bounded reason code only — never the raw message. The three D1 reads in
+  // authorizeByOwnerCredential (binding lookup, deletion check, entitlement lookup) are the
+  // only calls that can fail transiently, and a D1 fault surfaces as a generic Error, so the
+  // name alone cannot distinguish it. Each read already gets one retry (withD1RetryOnce) before
+  // a failure can reach here, so a 503 out of this branch means both attempts failed, or the
+  // fault wasn't retry-eligible.
+  const name = typeof err?.name === 'string' && err.name ? err.name : 'unknown';
+  const message = String(err?.message || '');
+  const kind = message.includes('D1_ERROR') ? 'd1' : 'other';
+  const reason = kind === 'd1' ? d1Reason(message) : 'n/a';
+  console.error(eventName, name, kind, reason);
+  return empty(503);
 }
 
 function bearer(value) {
