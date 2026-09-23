@@ -42,7 +42,10 @@ describe('navigation from deletion pages during an active deletion', () => {
     expect(clearsSession(landing)).toBe(true);
     // /transparency keeps the cookie but shows only the signed-out variant.
     const transparency = await worker.fetch(get('/transparency', await freshCookie(env, owner)), env);
-    expect(await transparency.text()).not.toContain('hold@example.com');
+    const transparencyBody = await transparency.text();
+    expect(transparencyBody).not.toContain('hold@example.com');
+    // Its signed-in download card is not shown there either; the deletion menu carries export.
+    expect(transparencyBody).not.toContain('href="/account/export"');
   });
 
   it('a fresh sign-in during the hold lands on a page whose every link keeps the session', async () => {

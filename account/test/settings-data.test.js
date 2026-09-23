@@ -94,6 +94,60 @@ describe('settings transparency data view', () => {
     expect(body).not.toContain("what we don't have");
   });
 
+  it('puts a download-your-data card above the records when export is enabled, and its link opens', async () => {
+    const testEnv = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true' });
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(settingsRequest('/transparency', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('<h2>download your data</h2>');
+    expect(body).toContain('<a class="btn primary block" href="/account/export">download your data</a>');
+    expect(body.match(/href="\/account\/export"/g)).toHaveLength(1);
+    expect(body.indexOf('href="/account/export"')).toBeLessThan(body.indexOf('<p class="section-label">sign-in</p>'));
+
+    const target = await worker.fetch(settingsRequest('/account/export', { cookie: session.cookie }), testEnv);
+    expect(target.status).toBe(200);
+    expect(await target.text()).toContain('download your data');
+  });
+
+  it('links export from data transparency only, not from home or manage sign-in', async () => {
+    const testEnv = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true' });
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    for (const path of ['/', '/sign-in']) {
+      const response = await worker.fetch(settingsRequest(path, { cookie: session.cookie }), testEnv);
+      expect(response.status).toBe(200);
+      expect(await response.text()).not.toContain('href="/account/export"');
+    }
+  });
+
+  it('shows no export link when export is not enabled', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(settingsRequest('/transparency', { cookie: session.cookie }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).not.toContain('href="/account/export"');
+    expect(body).not.toContain('<h2>download your data</h2>');
+  });
+
+  it('shows no export link to a signed-out visitor', async () => {
+    const testEnv = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true' });
+
+    const response = await worker.fetch(settingsRequest('/transparency', { cookie: '' }), testEnv);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).not.toContain('href="/account/export"');
+  });
+
   it('renders anonymous transparency without a signed-in menu', async () => {
     const testEnv = makeTestEnv();
 

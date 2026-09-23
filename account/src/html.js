@@ -1230,6 +1230,13 @@ ${errorHtml}
 
 // === transparency / data ===
 
+// The one signed-in entry point to /account/export outside a deletion hold.
+const TRANSPARENCY_EXPORT_CARD = `<div class="card">
+  <h2>download your data</h2>
+  <p>download what we hold for your sign-in as one file. we'll email you a code to confirm it's you, and have you confirm with your passkey too, if you have one.</p>
+  <a class="btn primary block" href="/account/export">download your data</a>
+</div>`;
+
 export function renderTransparency({
   signedIn = true,
   accountId,
@@ -1239,6 +1246,7 @@ export function renderTransparency({
   passkeys,
   sessions,
   menu,
+  exportEnabled = false,
 }) {
   if (!signedIn) {
     return layout({
@@ -1283,6 +1291,7 @@ ${TRANSPARENCY_INTRO}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>data transparency</h1>
 ${TRANSPARENCY_INTRO}
+${exportEnabled ? TRANSPARENCY_EXPORT_CARD : ''}
 <p class="section-label">sign-in</p>
 <div class="group">
   <div class="row" style="cursor:default"><div class="body">

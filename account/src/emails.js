@@ -288,6 +288,7 @@ export async function handleTransparency(req, env) {
     passkeys,
     sessions,
     menu,
+    exportEnabled: env.OWNER_EXPORT_ENABLED === 'true',
   }));
 }
 
