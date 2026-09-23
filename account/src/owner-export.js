@@ -2,6 +2,7 @@ import { decryptEmail } from './crypto.js';
 import { consumeFreshExportProofs, listAccountEmails, requireFreshProof } from './db.js';
 import {
   finishPasskeyProof,
+  loadDeletionMenuContext,
   startEmailProof,
   startPasskeyProof,
   strictDeletionOriginAllowed,
@@ -13,7 +14,7 @@ import { collectOwnerLocalExport } from './owner-export-local.js';
 import { ownerExportNotFound } from './owner-export-path.js';
 import { collectOwnerRelayExport, relayExpectedInstanceIds } from './owner-export-relay.js';
 import { collectOwnerSupportExport } from './owner-export-support.js';
-import { loadMenuContext, requireSignedInSession, signedInHtml } from './settings.js';
+import { requireSignedInSession, signedInHtml } from './settings.js';
 
 const PURPOSE = 'export';
 export const EXPORT_SERVICE_UNAVAILABLE = 'service unavailable';
@@ -31,7 +32,7 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
   if (url.pathname === '/account/export' && req.method === 'GET') {
     const guard = await requireSignedInSession(req, env);
     if (guard instanceof Response) return guard;
-    const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+    const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
     return signedInHtml(renderExportPage({ menu }));
   }
 
@@ -138,7 +139,7 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
       console.error('owner export email verification could not start');
       return refusal(500, "email verification couldn't start");
     }
-    const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+    const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
     return signedInHtml(renderExportProofPage({ menu, status: 'code sent' }));
   }
 
@@ -159,7 +160,7 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
       if (error?.message === 'proof_rate_limited') return refusal(429, 'too many verification attempts; try again later');
       throw error;
     }
-    const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+    const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
     return signedInHtml(renderExportProofPage({
       menu,
       status: result.ok ? 'email verified' : '',

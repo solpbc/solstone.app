@@ -15,6 +15,7 @@ import {
   consumeProofsAndCancelDeletionRequest,
   consumeProofsAndCreateDeletionRequest,
   createDeletionProof,
+  deletionIsCancellable,
   getActiveDeletionForAccount,
   getCompletionVerifier,
   getDeletionByStatusTokenHash,
@@ -217,13 +218,34 @@ export async function captureDeletionSnapshotForAccount(env, accountId, operatio
   });
 }
 
+// Display context for the top bar on deletion and export pages. While a deletion
+// is active the session is confined to /account/delete* and, in requested/frozen,
+// the export carve-out (getValidSession; export also needs OWNER_EXPORT_ENABLED).
+// The renderer uses this only to leave out links that would end the session;
+// it grants nothing.
+export function withDeletionMenu(menu, active, env) {
+  if (!active) return { ...menu, deletion: null };
+  const exportAvailable = env?.OWNER_EXPORT_ENABLED === 'true'
+    && (active.phase === 'requested' || active.phase === 'frozen');
+  return { ...menu, deletion: { phase: active.phase, exportAvailable } };
+}
+
+export async function loadDeletionMenuContext(env, accountId, nowMs) {
+  const [menu, active] = await Promise.all([
+    loadMenuContext(env, accountId, nowMs),
+    getActiveDeletionForAccount(env.DB, accountId),
+  ]);
+  return withDeletionMenu(menu, active, env);
+}
+
 export async function handleAccountDeletionPage(req, env) {
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
-  const [menu, active] = await Promise.all([
+  const [baseMenu, active] = await Promise.all([
     loadMenuContext(env, guard.session.account_id, guard.nowMs),
     getActiveDeletionForAccount(env.DB, guard.session.account_id),
   ]);
+  const menu = withDeletionMenu(baseMenu, active, env);
   if (active) {
     const exportEnabled = env?.OWNER_EXPORT_ENABLED === 'true';
     return signedInHtml(renderDeletionCancelPage({ menu, phase: active.phase, exportEnabled }));
@@ -247,7 +269,7 @@ export async function handleDeletionOtpStart(req, env) {
     if (error?.message === 'proof_rate_limited') return refusal(429, 'too many proof attempts; try again later');
     return refusal(400, 'a verified email is required to continue');
   }
-  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+  const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
   return signedInHtml(renderDeletionProofPage({ menu, purpose, status: 'code sent' }));
 }
 
@@ -270,7 +292,7 @@ export async function handleDeletionOtpVerify(req, env) {
     if (error?.message === 'proof_rate_limited') return refusal(429, 'too many proof attempts; try again later');
     throw error;
   }
-  const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+  const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
   return signedInHtml(renderDeletionProofPage({
     menu,
     purpose,
@@ -331,7 +353,7 @@ export async function handleDeletionConfirm(req, env) {
     purpose: 'delete',
   });
   if (!fresh.otpVerified || !fresh.passkeyVerified) {
-    const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+    const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
     return signedInHtml(renderDeletionProofPage({
       menu,
       purpose: 'delete',
@@ -342,7 +364,7 @@ export async function handleDeletionConfirm(req, env) {
   }
   const readiness = await checkDeletionReadiness(env);
   if (!readiness.ok) {
-    const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+    const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
     return signedInHtml(renderDeletionUnavailablePage({ menu }), { status: 503 });
   }
   const requestedAt = Date.now();
@@ -393,7 +415,7 @@ export async function handleDeletionCancel(req, env) {
     purpose: 'cancel',
   });
   if (!fresh.otpVerified || !fresh.passkeyVerified) {
-    const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
+    const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
     return signedInHtml(renderDeletionProofPage({
       menu,
       purpose: 'cancel',
@@ -426,12 +448,16 @@ export async function handleDeletionStatus(req, env) {
     if (!row) return signedInHtml(renderDeletionStatus({ state: 'expired link' }), { status: 410 });
     if (row.phase === 'requested' || row.phase === 'frozen') {
       const guard = await requireSignedInSession(req, env);
+      const nowMs = Date.now();
       const canCancel = !(guard instanceof Response)
         && guard.session.account_id === row.account_id
-        && Date.now() < row.cancellation_deadline_at;
+        && nowMs < row.cancellation_deadline_at;
       return signedInHtml(renderDeletionStatus({
         state: row.phase === 'requested' ? 'access ended' : 'waiting for the safety period',
         canCancel,
+        // Display only: point a receipt-only viewer at sign-in, which during a
+        // cancellable hold lands on /account/delete (index.js, passkey.js).
+        canSignInToCancel: !canCancel && deletionIsCancellable(row, nowMs),
       }));
     }
     if (row.phase === 'cancelled') return signedInHtml(renderDeletionStatus({ state: 'deletion request canceled' }));

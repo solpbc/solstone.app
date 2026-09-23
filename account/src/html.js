@@ -32,25 +32,40 @@ function brandbar() {
   return `<div class="brandbar">${MARK_SVG}<span class="wordmark">solstone</span></div>`;
 }
 
-function footer() {
-  return `<footer class="footer"><a href="/transparency">data transparency</a><a href="/support">support</a><a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
+// During an active deletion, a session only reaches /account/delete* and, while
+// the hold is open, the export carve-out (getValidSession). Portal links that
+// need an ordinary session would sign the owner out on arrival, so deletion
+// pages leave out the footer links to /transparency and /support.
+function footer({ deletionActive = false } = {}) {
+  const portalLinks = deletionActive ? '' : '<a href="/transparency">data transparency</a><a href="/support">support</a>';
+  return `<footer class="footer">${portalLinks}<a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
 }
 
-export function topbar({ email = null, lastSignInAt = null, now = null } = {}) {
+// `deletion` is display context from loadDeletionMenuContext: present only while
+// the account has an active deletion. The menu then offers only what that
+// confined session can still open, and the wordmark is not a link to /, which
+// would end the session.
+export function topbar({ email = null, lastSignInAt = null, now = null, deletion = null } = {}) {
   const trimmedEmail = typeof email === 'string' ? email.trim() : '';
   const hasEmail = trimmedEmail.length > 0;
   const avatar = hasEmail ? esc(trimmedEmail[0] || '·') : '·';
   const head = hasEmail
     ? `<div class="head"><div class="lbl">signed in as</div><div class="who">${esc(trimmedEmail)}</div><div class="seen">last sign-in ${esc(formatRelativeTime(lastSignInAt, now))}</div></div>`
     : '';
+  const home = deletion
+    ? `<span class="home">${MARK_SVG}<span class="wordmark">solstone</span></span>`
+    : `<a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a>`;
+  const links = deletion
+    ? `<a href="/account/delete">deletion request</a>${deletion.exportAvailable ? '\n      <a href="/account/export">download your data</a>' : ''}`
+    : `<a href="/">home</a>
+      <a href="/sign-in">manage sign-in</a>`;
   return `<div class="topbar">
-  <a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a>
+  ${home}
   <details class="usermenu">
     <summary aria-label="menu"><span class="avatar">${avatar}</span>${CARET_SVG}</summary>
     <div class="menu" role="menu">
       ${head}
-      <a href="/">home</a>
-      <a href="/sign-in">manage sign-in</a>
+      ${links}
       <div class="sep"></div>
       <form method="post" action="/signout"><button class="mi signout" type="submit">sign out</button></form>
     </div>
@@ -77,7 +92,7 @@ function beat(ic, t, d) {
   return `<div class="beat">${ic.replace('class="ic"', 'class="ic bi"')}<div><p class="bt">${t}</p><p class="bd">${d}</p></div></div>`;
 }
 
-export function layout({ title, body, afterMain = '', showFooter = true, mainClass = '' }) {
+export function layout({ title, body, afterMain = '', showFooter = true, mainClass = '', deletionActive = false }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -98,7 +113,7 @@ export function layout({ title, body, afterMain = '', showFooter = true, mainCla
     <div class="sunarc-glow"></div>
     <div class="sunarc-sun">${MARK_SVG}</div>
   </div>
-  <main${mainClass ? ` class="${escAttr(mainClass)}"` : ''}>${body}${showFooter ? footer() : ''}</main>
+  <main${mainClass ? ` class="${escAttr(mainClass)}"` : ''}>${body}${showFooter ? footer({ deletionActive }) : ''}</main>
   ${afterMain}
   <script src="${SUNARC_JS_SRC}" defer></script>
 </body>
@@ -1340,6 +1355,7 @@ export function renderDeletionPage({ menu, error = '', status = '' }) {
   return layout({
     title: 'delete sign-in and your services',
     mainClass: 'deletion-surface',
+    deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 <a class="back" href="/transparency">${BACK_SVG} data transparency</a>
 ${renderDeletionForm({
@@ -1365,6 +1381,7 @@ export function renderDeletionProofPage({ menu, purpose, error = '', status = ''
   return layout({
     title: purpose === 'cancel' ? 'prove ownership to cancel deletion' : 'prove ownership to delete',
     mainClass: 'deletion-surface',
+    deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 <a class="back" href="/account/delete">${BACK_SVG} deletion request</a>
 ${renderDeletionForm({
@@ -1397,10 +1414,14 @@ ${deletionPasskeyScript()}`,
 }
 
 export function renderExportPage({ menu, error = '', status = '' }) {
+  const back = menu?.deletion
+    ? `<a class="back" href="/account/delete">${BACK_SVG} deletion request</a>`
+    : `<a class="back" href="/transparency">${BACK_SVG} data transparency</a>`;
   return layout({
     title: 'download your data',
+    deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
-<a class="back" href="/transparency">${BACK_SVG} data transparency</a>
+${back}
 ${renderDeletionForm({
   heading: 'download your data',
   action: '/account/export/proof/otp',
@@ -1416,6 +1437,7 @@ ${renderDeletionForm({
 export function renderExportProofPage({ menu, error = '', status = '' }) {
   return layout({
     title: 'confirm your data download',
+    deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 <a class="back" href="/account/export">${BACK_SVG} data download</a>
 ${renderDeletionForm({
@@ -1452,6 +1474,7 @@ export function renderDeletionCancelPage({ menu, phase, exportEnabled = false })
     return layout({
       title: 'deletion in progress',
       mainClass: 'deletion-surface',
+      deletionActive: Boolean(menu?.deletion),
       body: `${topbar(menu)}<h1>deletion in progress</h1><p>the deletion safety period has ended and this request can no longer be cancelled.</p>`,
     });
   }
@@ -1461,6 +1484,7 @@ export function renderDeletionCancelPage({ menu, phase, exportEnabled = false })
   return layout({
     title: 'cancel deletion request',
     mainClass: 'deletion-surface',
+    deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 ${renderDeletionForm({
   heading: 'cancel deletion request',
@@ -1473,10 +1497,21 @@ ${renderDeletionForm({
   });
 }
 
-export function renderDeletionStatus({ state = 'deletion status unavailable', canCancel = false } = {}) {
+export const DELETION_STATUS_SIGN_IN_LINE = 'you can still cancel before the safety period ends. sign in again, then confirm with a fresh code, and your passkey if you set one up.';
+export const DELETION_STATUS_SIGN_IN_LINK = 'sign in to cancel';
+
+// canSignInToCancel: the hold is still cancellable but this viewer holds only the
+// receipt (or a session that cannot cancel). A fresh sign-in during the hold lands
+// on /account/delete, where cancelling asks for its own fresh proof.
+export function renderDeletionStatus({ state = 'deletion status unavailable', canCancel = false, canSignInToCancel = false } = {}) {
+  const action = canCancel
+    ? '<p><a class="btn danger" href="/account/delete">cancel deletion request</a></p>'
+    : canSignInToCancel
+      ? `<p>${esc(DELETION_STATUS_SIGN_IN_LINE)}</p><p><a class="btn primary" href="/?signin">${esc(DELETION_STATUS_SIGN_IN_LINK)}</a></p>`
+      : '';
   return layout({
     title: 'deletion status',
-    body: `<div class="card">${brandbar()}<h1>deletion status</h1><p aria-live="polite">${esc(state)}</p>${canCancel ? '<p><a class="btn danger" href="/account/delete">cancel deletion request</a></p>' : ''}</div>`,
+    body: `<div class="card">${brandbar()}<h1>deletion status</h1><p aria-live="polite">${esc(state)}</p>${action}</div>`,
     showFooter: false,
   });
 }
@@ -1485,6 +1520,7 @@ export function renderDeletionUnavailablePage({ menu } = {}) {
   return layout({
     title: "deletion request can't be confirmed",
     mainClass: 'deletion-surface',
+    deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 <div class="card">
   <h1>deletion request can't be confirmed</h1>
