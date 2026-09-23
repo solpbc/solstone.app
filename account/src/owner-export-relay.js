@@ -144,6 +144,7 @@ export async function collectOwnerRelayExport({
   env,
   instanceIds = [],
   clock = defaultClock,
+  deadlineMs = RELAY_EXPORT_DEADLINE_MS,
 }) {
   const sortedIds = [...(instanceIds || [])].sort();
   if (sortedIds.length === 0) {
@@ -159,9 +160,9 @@ export async function collectOwnerRelayExport({
   }
 
   const startedAt = clock.now();
-  const deadlineAt = startedAt + RELAY_EXPORT_DEADLINE_MS;
+  const deadlineAt = startedAt + deadlineMs;
   const abortController = new AbortController();
-  const timer = clock.abortAfter ? clock.abortAfter(RELAY_EXPORT_DEADLINE_MS, abortController) : null;
+  const timer = clock.abortAfter ? clock.abortAfter(deadlineMs, abortController) : null;
   let deadlineGraceTimer = null;
   let deadlineListener;
   const deadlineReached = new Promise((resolve) => {

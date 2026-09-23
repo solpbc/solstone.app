@@ -6,7 +6,10 @@ import {
   hashWithPepper,
   normalizeCode,
 } from './crypto.js';
-import { rateBucketFamily } from './owner-data-inventory.js';
+import { OWNER_DATA_INVENTORY, rateBucketFamily } from './owner-data-inventory.js';
+import { collectOwnerLocalExport } from './owner-export-local.js';
+import { smeOnSale } from './sme-service.js';
+import { collectOwnerRelayExport, relayExpectedInstanceIds } from './owner-export-relay.js';
 import {
   bumpAccountEmailVerificationAttempts,
   bumpRateBucket,
@@ -270,12 +273,27 @@ export async function handleTransparency(req, env) {
 
   const accountId = session.account_id;
   const menu = await loadMenuContext(env, accountId, nowMs);
-  const [account, emailRows, passkeyRows, sessionRows] = await Promise.all([
+  const [account, emailRows, passkeyRows, sessionRows, records] = await Promise.all([
     getAccountTransparencyRow(env.DB, accountId),
     listAccountEmails(env.DB, accountId),
     listTransparencyPasskeys(env.DB, accountId),
     listTransparencySessions(env.DB, accountId),
+    collectTransparencyRecords(env, accountId),
   ]);
+  const relay = records.failed.some((name) => RELAY_SOURCE_CLASSES.has(name))
+    ? null
+    : await collectOwnerRelayExport({
+      env,
+      instanceIds: relayInstanceIds(records.classes),
+      deadlineMs: TRANSPARENCY_RELAY_DEADLINE_MS,
+    });
+  if (records.failed.length || relay?.accounting?.length) {
+    console.warn(JSON.stringify({
+      event: 'transparency_records_partial',
+      failed: records.failed,
+      relay_misses: (relay?.accounting || []).map((item) => item.reason),
+    }));
+  }
   const emails = await Promise.all(emailRows.map((row) => transparencyEmailRow(row, env)));
   const sessions = await Promise.all(sessionRows.map((row) => transparencySessionRow(row, env)));
   const passkeys = passkeyRows.map(transparencyPasskeyRow);
@@ -289,7 +307,38 @@ export async function handleTransparency(req, env) {
     sessions,
     menu,
     exportEnabled: env.OWNER_EXPORT_ENABLED === 'true',
+    records,
+    relay,
+    smeOnSale: smeOnSale(env),
   }));
+}
+
+// The four sign-in classes render from the page's own tolerant queries (a row that fails to
+// decrypt is marked, not fatal). Every other class the download carries is read with the
+// download's own collector, one class per call and all at once, so one unreadable class is
+// named on the page instead of hiding the rest.
+const TRANSPARENCY_SIGN_IN_CLASSES = new Set(['accounts', 'account_emails', 'sessions', 'passkey_credentials']);
+const TRANSPARENCY_RECORD_INVENTORY = OWNER_DATA_INVENTORY
+  .filter((entry) => entry.exportTreatment === 'exportable' && !TRANSPARENCY_SIGN_IN_CLASSES.has(entry.name));
+const RELAY_SOURCE_CLASSES = new Set(['spl_bindings', 'spp_bindings']);
+// A page load, not a download the owner asked for: the relay gets a page-sized budget.
+const TRANSPARENCY_RELAY_DEADLINE_MS = 3_000;
+
+async function collectTransparencyRecords(env, accountId) {
+  const results = await Promise.all(TRANSPARENCY_RECORD_INVENTORY.map(async (entry) => {
+    const one = await collectOwnerLocalExport({ db: env.DB, env, accountId, inventory: [entry] });
+    return one.ok ? { cls: one.classes[0] } : { failed: entry.name, error: one.error };
+  }));
+  return {
+    classes: results.filter((r) => r.cls).map((r) => r.cls),
+    failed: results.filter((r) => r.failed).map((r) => r.failed),
+    descriptions: Object.fromEntries(TRANSPARENCY_RECORD_INVENTORY.map((entry) => [entry.name, entry.description])),
+  };
+}
+
+function relayInstanceIds(classes) {
+  const ids = (name) => (classes.find((c) => c.name === name)?.records || []).map((r) => r.instance_id).filter(Boolean);
+  return relayExpectedInstanceIds(ids('spl_bindings'), ids('spp_bindings'));
 }
 
 async function renderEmailsPage(env, session, nowMs, {
@@ -370,8 +419,6 @@ async function transparencySessionRow(row, env) {
 function transparencyPasskeyRow(row) {
   return {
     name: passkeyLabel(row.friendly_name, row.aaguid),
-    aaguid: row.aaguid || '—',
-    credentialId: row.credential_id,
     createdAt: row.created_at,
     lastUsedAt: row.last_used_at,
     revokedAt: row.revoked_at,

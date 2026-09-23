@@ -58,6 +58,8 @@ function table(name, association, deletion, exportTreatment, columns, options = 
   };
 }
 
+// A table's `description` is owner-facing copy: the download prints it for each class and the
+// data transparency page uses it as the section label. Edit it as product copy (voice-checked).
 const TABLES = [
   table('accounts', 'account_primary_key', 'direct_owner_purge', 'exportable', [
     exported('id', 'identity', 'stable identifier', 'account_id'),
@@ -141,7 +143,7 @@ const TABLES = [
     exported('action'), exported('from_status'), exported('to_status'), exported('actor_kind'),
     omitted('actor_principal', 'operator, service, or internal owner identifier', 'non_owner_identity'),
     exported('reason_code'), exported('occurred_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 190, description: 'scout application history' }),
+  ], { deletionOrder: 190, description: 'the history of your scout status' }),
   table('enable_scout_codes', 'account_id', 'direct_owner_purge', 'transient_auth_rate', [
     omitted('code_hash', 'authentication hash'), omitted('nonce_hash', 'authentication hash'),
     omitted('account_id', 'internal owner relation'), omitted('created_at', 'transient authentication state', 'transient_deletion'),
@@ -154,7 +156,7 @@ const TABLES = [
     exported('source_ref'), exported('cancel_at_period_end'),
     exported('enabled_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('updated_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 170, description: 'service entitlements' }),
+  ], { deletionOrder: 170, description: 'your services and their status' }),
   table('renewal_notices', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'),
     exported('kind'),
@@ -168,12 +170,12 @@ const TABLES = [
   table('stripe_customers', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('stripe_customer_id', 'identity', 'Stripe customer reference'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 180, description: 'local Stripe customer reference' }),
+  ], { deletionOrder: 180, description: 'your customer reference at Stripe, our payment processor' }),
   table('spl_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 150, description: 'private network instance bindings' }),
+  ], { deletionOrder: 150, description: 'journals connected to private network' }),
   table('mcp_bridge_hostname_ledger', 'globally_identifier_free', 'deliberately_retained', 'retained_only', [
     retained('label', 'permanent hostname reservation with no account join after deletion'),
     retained('created_at', 'reservation creation time remains with the permanent label'),
@@ -194,14 +196,14 @@ const TABLES = [
   table('mcp_bridge_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), exported('label'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 160, description: 'live MCP hostname bindings' }),
+  ], { deletionOrder: 160, description: 'the solstone.me address held for each journal' }),
   table('spb_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     omitted('token_hash', 'broker authentication hash'),
     exported('lapsed_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-  ], { deletionOrder: 130, description: 'encrypted backup bindings' }),
+  ], { deletionOrder: 130, description: 'journals connected to encrypted backup' }),
   table('spb_retired_tokens', 'account_id', 'direct_owner_purge', 'transient_auth_rate', [
     omitted('token_hash', 'retired broker authentication hash'), omitted('account_id', 'internal owner relation'),
     omitted('instance_id', 'retired authentication coordinate'), omitted('retired_at', 'transient authentication state', 'transient_deletion'),
@@ -259,27 +261,27 @@ const TABLES = [
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('consent_acked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'), exported('consent_disclosure_version'),
-  ], { deletionOrder: 140, description: 'confidential processing bindings' }),
+  ], { deletionOrder: 140, description: 'journals connected to confidential processing, and when you consented for each' }),
   table('sme_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('consent_acked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'), exported('consent_disclosure_version'),
-  ], { deletionOrder: 155, description: 'journal address consent bindings' }),
+  ], { deletionOrder: 155, description: 'journals connected to solstone.me, and when you consented for each' }),
   table('spb_mint_audit', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), omitted('prefix', 'broker storage coordinate'),
     exported('scope'), exported('ttl', 'identity', 'seconds'), exported('outcome'),
     exported('ts', 'epoch_ms_to_iso', 'milliseconds since Unix epoch', 'occurred_at'),
-  ], { deletionOrder: 110, description: 'encrypted backup credential history' }),
+  ], { deletionOrder: 110, description: 'each time a journal asked for backup access, and whether it was given' }),
   table('spp_mint_audit', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), exported('scope'), exported('outcome'),
     exported('ts', 'epoch_ms_to_iso', 'milliseconds since Unix epoch', 'occurred_at'),
-  ], { deletionOrder: 120, description: 'confidential processing authorization history' }),
+  ], { deletionOrder: 120, description: 'each time a journal asked for confidential processing, and whether it was given' }),
   table('spb_sweep_audit', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), omitted('prefix', 'broker storage coordinate'),
     exported('objects_deleted'), exported('multipart_aborted'),
     exported('ts', 'epoch_ms_to_iso', 'milliseconds since Unix epoch', 'occurred_at'),
-  ], { deletionOrder: 125, description: 'encrypted backup cleanup history' }),
+  ], { deletionOrder: 125, description: 'backups deleted after encrypted backup ended' }),
 ];
 
 export const RATE_BUCKET_FAMILIES = deepFreeze([

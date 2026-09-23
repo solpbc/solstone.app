@@ -7,6 +7,7 @@ import {
   makeTestEnv,
   resetDb,
   seedAccount,
+  seedSplBinding,
   seedOtp,
   seedSession,
   verifyRequest,
@@ -24,8 +25,10 @@ describe('navigation from deletion pages during an active deletion', () => {
   beforeEach(resetDb);
 
   it('measures the ordinary menu targets: each one ends a confined session', async () => {
-    const env = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true' });
+    let relayCalls = 0;
+    const env = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true', RELAY: { async fetch() { relayCalls += 1; return new Response('{}', { status: 500 }); } } });
     const owner = await seedAccount({ email: 'hold@example.com', testEnv: env });
+    await seedSplBinding({ accountId: owner.accountId, instanceId: 'eeeeeeee-1111-2222-3333-444444444444' });
     await deletion(env, owner.accountId, 'frozen');
 
     for (const path of ['/', '/sign-in']) {
@@ -43,6 +46,8 @@ describe('navigation from deletion pages during an active deletion', () => {
     // /transparency keeps the cookie but shows only the signed-out variant.
     const transparency = await worker.fetch(get('/transparency', await freshCookie(env, owner)), env);
     const transparencyBody = await transparency.text();
+    // The hold session sees the signed-out page: no record is read and the relay is never asked.
+    expect(relayCalls).toBe(0);
     expect(transparencyBody).not.toContain('hold@example.com');
     // Its signed-in download card is not shown there either; the deletion menu carries export.
     expect(transparencyBody).not.toContain('href="/account/export"');

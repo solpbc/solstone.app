@@ -47,7 +47,7 @@ describe('services catalog rendering', () => {
     expect(body).toContain('<form method="post" action="/signout">');
   });
 
-  it('data transparency points at the download rather than calling itself complete', async () => {
+  it('data transparency claims kinds of record, and points at the download and support page for the rest', async () => {
     const testEnv = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true' });
     const account = await seedAccount({ email: 'dash@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -56,8 +56,10 @@ describe('services catalog rendering', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('the download below adds the other records held with your sign-in');
-    expect(body).not.toContain('is on this page. nothing more');
+    expect(body).toContain('this page lists every kind of record sol pbc keeps for your sign-in.');
+    expect(body).toContain('the download below carries each of them, support requests included, and leaves out your full IP address, full browser details, and the keys, codes and short-lived checks that secure your sign-in.');
+    expect(body).not.toContain('in full');
+    expect(body).not.toMatch(/everything sol pbc holds for your sign-in is on this page/);
   });
 
   it('renders the welcome passkey panel when requested OR when no passkey is enrolled', async () => {

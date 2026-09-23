@@ -26,11 +26,12 @@ const IC_CHIP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="current
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
 const SCOUT_PROGRAM_COVENANT = "confidential processing: no content is retained · no human reviews it · nothing is used to train. your journal must verify the service before anything is sent.";
-// The page shows four record classes; the export carries every class the purge reaches, so
-// the signed-in lead points at the download rather than calling the page complete.
-const TRANSPARENCY_LEAD_SIGNED_IN = 'this page shows your sign-in: its emails, passkeys and sessions.';
-const TRANSPARENCY_LEAD_DOWNLOAD = 'the download below adds the other records held with your sign-in, like your services and support requests, and says what it can\'t include.';
-const TRANSPARENCY_LEAD_SIGNED_OUT = 'once you sign in, this page shows your sign-in: its emails, passkeys and sessions.';
+// The signed-in page lists every class the download carries (see handleTransparency), newest
+// rows first and long histories shortened, so the lead claims kinds of record, not every row;
+// support requests live on /support and the lead points there.
+const TRANSPARENCY_LEAD_SIGNED_IN = 'this page lists every kind of record sol pbc keeps for your sign-in.';
+const TRANSPARENCY_LEAD_DOWNLOAD = 'the download below carries each of them, support requests included, and leaves out your full IP address, full browser details, and the keys, codes and short-lived checks that secure your sign-in.';
+const TRANSPARENCY_LEAD_SIGNED_OUT = 'once you sign in, this page lists every kind of record sol pbc keeps for your sign-in.';
 const transparencyIntro = (lead) => `<p class="intro">${lead} we never hold a readable copy of your journal. we don't have your name, your phone, your address, or where you are: no analytics, no behavioral data, no third-party tracking. these aren't promises, they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
@@ -1255,6 +1256,9 @@ export function renderTransparency({
   sessions,
   menu,
   exportEnabled = false,
+  records = null,
+  relay = null,
+  smeOnSale = false,
 }) {
   if (!signedIn) {
     return layout({
@@ -1283,7 +1287,6 @@ ${transparencyIntro(TRANSPARENCY_LEAD_SIGNED_OUT)}
     return `<div class="row" style="cursor:default"><div class="body">
   <div class="title">${esc(row.name)}</div>
   <div class="desc">created ${esc(formatDate(row.createdAt))} · last used ${esc(row.lastUsedAt == null ? 'never used' : formatDate(row.lastUsedAt))} · ${esc(status)}</div>
-  <div class="meta">credential ${esc(row.credentialId)} · aaguid ${esc(row.aaguid || '—')}</div>
 </div></div>`;
   }).join('');
   const sessionHtml = sessions.map((row) => {
@@ -1300,21 +1303,239 @@ ${transparencyIntro(TRANSPARENCY_LEAD_SIGNED_OUT)}
 <h1>data transparency</h1>
 ${transparencyIntro(exportEnabled ? `${TRANSPARENCY_LEAD_SIGNED_IN} ${TRANSPARENCY_LEAD_DOWNLOAD}` : TRANSPARENCY_LEAD_SIGNED_IN)}
 ${exportEnabled ? TRANSPARENCY_EXPORT_CARD : ''}
-<p class="section-label">sign-in</p>
+<h2 style="margin-top:34px">sign-in · <a href="/sign-in" aria-label="manage sign-in" style="${TRANSPARENCY_LINK_STYLE}">manage</a></h2>
+<h3 class="section-label">sign-in id</h3>
 <div class="group">
   <div class="row" style="cursor:default"><div class="body">
     <div class="meta" style="margin:0">id</div><div class="title" style="font-size:.84rem;font-family:ui-monospace,Menlo,monospace;font-weight:400">${esc(accountId)}</div>
     <div class="desc">created ${esc(formatDate(accountCreatedAt))} · last sign-in ${esc(lastSigninAt == null ? '—' : formatRelativeTime(lastSigninAt, Date.now()))}</div>
   </div></div>
 </div>
-<p class="section-label">emails</p>
+<h3 class="section-label">emails · <a href="/sign-in/emails" aria-label="manage emails">manage</a></h3>
 <div class="group">${emailHtml}</div>
-<p class="section-label">passkeys</p>
+<h3 class="section-label">passkeys · <a href="/sign-in/passkeys" aria-label="manage passkeys">manage</a></h3>
 ${passkeyHtml ? `<div class="group">${passkeyHtml}</div>` : '<p>no passkeys.</p>'}
-<p class="section-label">sessions</p>
+<h3 class="section-label">sessions · <a href="/sign-in/sessions" aria-label="manage sessions">manage</a></h3>
 ${sessionHtml ? `<div class="group">${sessionHtml}</div>` : '<p>no sessions.</p>'}
-<p><a class="btn danger" href="/account/delete">delete sign-in and your services</a></p>`,
+${renderTransparencyRecords({ records, relay, smeOnSale, exportEnabled })}
+${exportEnabled ? '<p style="margin-top:28px"><a class="btn secondary block" href="/account/export">download what sol pbc holds</a></p>' : ''}
+<p style="margin-top:28px"><a class="btn danger" href="/account/delete">delete sign-in and your services</a></p>`,
   });
+}
+
+// === transparency: every record beyond the sign-in ===
+//
+// Renders the classes handleTransparency collects with the download's own collector. A class
+// named in no group still renders under "other records", and every exported field renders, so
+// a class or column added to the inventory reaches this page without an edit here.
+
+const TRANSPARENCY_GROUPS = [
+  { heading: 'services and billing', classes: ['entitlements', 'renewal_notices', 'stripe_customers'] },
+  { heading: 'private network', href: '/private-network', classes: ['spl_bindings'] },
+  { heading: 'private network relay', classes: [], relay: true },
+  { heading: 'encrypted backup', href: '/services/backup', classes: ['spb_bindings', 'spb_mint_audit', 'spb_sweep_audit'] },
+  { heading: 'confidential processing', href: '/confidential-processing', classes: ['spp_bindings', 'spp_mint_audit'] },
+  { heading: 'solstone.me', href: SME_SERVICE_PATH, hrefWhen: 'smeOnSale', classes: ['sme_bindings', 'mcp_bridge_bindings'] },
+  { heading: 'scout', href: '/scout', classes: ['scout_applications', 'scout_lifecycle_events'] },
+];
+
+// #A15F17 is the AA-contrast orange for normal-size link text on cream (vpx tokens).
+const TRANSPARENCY_LINK_STYLE = 'font-weight:400;color:#A15F17';
+const TRANSPARENCY_MONO = 'font-size:.84rem;font-family:ui-monospace,Menlo,monospace;font-weight:400;overflow-wrap:anywhere';
+const TRANSPARENCY_UNAVAILABLE = "these couldn't be loaded just now. reload to try again.";
+
+const TRANSPARENCY_SERVICE_NAMES = {
+  spl_hosted: 'private network',
+  spb_hosted: 'encrypted backup',
+  spp_hosted: 'confidential processing',
+  sme_hosted: 'solstone.me',
+};
+const TRANSPARENCY_SOURCE_NAMES = { comp: 'free as a scout', stripe: 'paid', apple: 'paid through the App Store', google: 'paid through Google Play' };
+const TRANSPARENCY_NOTICE_KINDS = { ack: 'confirmation', catch_up: 'catch-up notice', reminder: 'renewal reminder', oneoff: 'one-off notice' };
+const TRANSPARENCY_ACTORS = { owner: 'you', operator: 'sol pbc', service: 'solstone services' };
+// The refusals recorded against a sign-in; the others happen before the journal is identified.
+const TRANSPARENCY_REFUSALS = { refused_entitlement: "refused (the service wasn't on)", refused_scope: 'refused (not an allowed kind of access)' };
+
+// The field a row leads with; a class not listed leads with its first field.
+const TRANSPARENCY_TITLE_FIELD = {
+  entitlements: 'service',
+  renewal_notices: 'subject',
+  stripe_customers: 'stripe_customer_id',
+  scout_applications: 'status',
+  scout_lifecycle_events: 'to_status',
+  spb_mint_audit: 'outcome',
+  spp_mint_audit: 'outcome',
+  spb_sweep_audit: 'occurred_at',
+  mcp_bridge_bindings: 'label',
+};
+
+// Free text the owner wrote, or a message we sent them: its own line, quoted or disclosed.
+const TRANSPARENCY_OWN_LINE_FIELDS = new Set(['use_case']);
+
+const TRANSPARENCY_FIELD_LABELS = {
+  instance_id: 'journal',
+  created_at: 'created',
+  updated_at: 'updated',
+  last_seen_at: 'last seen',
+  lapsed_at: 'lapsed',
+  revoked_at: 'revoked',
+  rotated_at: 'rotated',
+  consent_acked_at: 'consent given',
+  consent_disclosure_version: 'consent text version',
+  occurred_at: 'on',
+  current_period_end: 'paid through',
+  cancel_at_period_end: 'turns off at period end',
+  enabled_at: 'turned on',
+  source: '',
+  source_ref: 'reference',
+  renewal_at: 'renews',
+  content_key: 'notice version',
+  body: 'the full message we sent',
+  use_case: "what you told us you'd use it for",
+  data_acked_at: 'data terms accepted',
+  applied_at: 'applied',
+  approved_at: 'approved',
+  correlation_id: 'event id',
+  kind: 'type',
+  from_status: 'from',
+  to_status: 'to',
+  actor_kind: 'by',
+  reason_code: 'reason',
+  entitled_until: 'relay access until',
+  objects_deleted: 'files removed',
+  multipart_aborted: 'unfinished uploads cleared',
+  ttl: 'valid for',
+  stripe_customer_id: 'Stripe customer',
+  label: 'address',
+};
+
+const TRANSPARENCY_SHOW_NEWEST = 20;
+const TRANSPARENCY_LONG_TEXT = 120;
+
+function transparencyFieldValue(className, name, value, field, record = {}) {
+  if (value == null || value === '') return null;
+  const transform = field?.transform;
+  if (className === 'relay' && name === 'entitled' && record.entitled_until) return null;
+  if (typeof value === 'boolean') return value ? 'yes' : 'no';
+  if (transform === 'epoch_ms_to_iso' || transform === 'epoch_s_to_iso' || (className === 'relay' && (name.endsWith('_at') || name === 'entitled_until'))) {
+    const ms = typeof value === 'number' ? value : Date.parse(value);
+    return formatDate(ms);
+  }
+  if (name === 'renewal_at') return typeof value === 'number' && value > 0 ? formatDate(value * 1000) : null;
+  if (name === 'cancel_at_period_end') return value ? 'yes' : null;
+  if (name === 'ttl' && typeof value === 'number') return `${Math.round(value / 3600)} hours`;
+  if (name === 'service' && TRANSPARENCY_SERVICE_NAMES[value]) return TRANSPARENCY_SERVICE_NAMES[value];
+  // "paid" beside "paid through <date>" says it twice; the date alone carries it.
+  if (name === 'source' && value !== 'comp' && record.current_period_end) return null;
+  if (name === 'source' && TRANSPARENCY_SOURCE_NAMES[value]) return TRANSPARENCY_SOURCE_NAMES[value];
+  if (name === 'kind' && TRANSPARENCY_NOTICE_KINDS[value]) return TRANSPARENCY_NOTICE_KINDS[value];
+  if (name === 'actor_kind' && TRANSPARENCY_ACTORS[value]) return TRANSPARENCY_ACTORS[value];
+  if (name === 'outcome') {
+    const text = String(value);
+    if (text === 'minted') return 'given';
+    if (text.startsWith('refused_')) return TRANSPARENCY_REFUSALS[text] || 'refused';
+    return text.replaceAll('_', ' ');
+  }
+  if (name === 'label' && className === 'mcp_bridge_bindings') return `${value}.solstone.me`;
+  if (name === 'reason_code') return String(value).replaceAll('_', ' ');
+  if (name === 'sequence' && className === 'scout_lifecycle_events') return null;
+  return String(value);
+}
+
+function transparencyFieldLabel(name) {
+  return TRANSPARENCY_FIELD_LABELS[name] ?? name.replaceAll('_', ' ');
+}
+
+function transparencyRecordRow(className, record, fields) {
+  const names = Object.keys(fields || record);
+  const titleName = TRANSPARENCY_TITLE_FIELD[className] || names[0];
+  const title = transparencyFieldValue(className, titleName, record[titleName], fields?.[titleName], record) ?? '—';
+  const parts = [];
+  const extra = [];
+  for (const name of names) {
+    if (name === titleName) continue;
+    const value = transparencyFieldValue(className, name, record[name], fields?.[name], record);
+    if (value == null) continue;
+    const label = esc(transparencyFieldLabel(name));
+    if (TRANSPARENCY_OWN_LINE_FIELDS.has(name)) {
+      extra.push(`<p class="meta" style="margin:6px 0 0">${label}: "${esc(value)}"</p>`);
+    } else if (value.length > TRANSPARENCY_LONG_TEXT) {
+      extra.push(`<details><summary style="cursor:pointer;padding:12px 0">${label}</summary><p style="white-space:pre-wrap">${esc(value)}</p></details>`);
+    } else {
+      // A label and a short value stay together; an id may wrap anywhere on a narrow screen.
+      parts.push(name === 'instance_id'
+        ? `${label} <span style="${TRANSPARENCY_MONO}">${esc(value)}</span>`
+        : `<span style="white-space:nowrap">${label ? `${label} ` : ''}${esc(value)}</span>`);
+    }
+  }
+  const mono = titleName === 'instance_id' || titleName === 'stripe_customer_id';
+  const kicker = titleName === 'instance_id' ? '<div class="meta" style="margin:0">journal</div>' : '';
+  return `<div class="row" style="cursor:default"><div class="body">
+  ${kicker}<div class="title"${mono ? ` style="${TRANSPARENCY_MONO}"` : ''}>${esc(title)}</div>
+  ${parts.length ? `<div class="desc">${parts.join(' · ')}</div>` : ''}${extra.join('')}
+</div></div>`;
+}
+
+function transparencyRecordList(className, records, fields, exportEnabled) {
+  if (!records.length) return '<p class="meta" style="margin:0 2px">none held.</p>';
+  // The collector returns rows oldest first (insertion order); the page leads with the newest.
+  const newest = records.slice(-TRANSPARENCY_SHOW_NEWEST).reverse();
+  const rows = `<div class="group">${newest.map((r) => transparencyRecordRow(className, r, fields)).join('')}</div>`;
+  if (records.length <= TRANSPARENCY_SHOW_NEWEST) return rows;
+  const rest = exportEnabled ? ` all ${records.length} are in <a href="/account/export">the download</a>.` : '';
+  return `${rows}
+<p class="meta" style="margin:6px 2px 0">newest ${TRANSPARENCY_SHOW_NEWEST} of ${records.length} shown.${rest}</p>`;
+}
+
+function transparencyClassBlock(cls, exportEnabled) {
+  return `<h3 class="section-label">${esc(cls.description)}</h3>
+${transparencyRecordList(cls.name, cls.records || [], cls.fields || {}, exportEnabled)}`;
+}
+
+function transparencyRelayBlock(relay) {
+  const label = '<h3 class="section-label">the relay\'s record for each of your journals</h3>';
+  if (!relay) return `${label}\n<p class="meta" style="margin:0 2px">${TRANSPARENCY_UNAVAILABLE}</p>`;
+  const instances = relay.instances || [];
+  const accounting = relay.accounting || [];
+  if (!instances.length && !accounting.length) return `${label}\n<p class="meta" style="margin:0 2px">none held.</p>`;
+  const rows = instances.map((i) => transparencyRecordRow('relay', i, Object.fromEntries(Object.keys(i).map((k) => [k, {}])))).join('')
+    + accounting.map((a) => `<div class="row" style="cursor:default"><div class="body">
+  <div class="meta" style="margin:0">journal</div><div class="title" style="${TRANSPARENCY_MONO}">${esc(a.instance_id)}</div>
+  <div class="desc">the relay's record for this journal couldn't be loaded just now. reload to try again.</div>
+</div></div>`).join('');
+  return `${label}\n<div class="group">${rows}</div>`;
+}
+
+export function renderTransparencyRecords({ records, relay = null, smeOnSale = false, exportEnabled = false }) {
+  const byName = new Map((records?.classes || []).map((cls) => [cls.name, cls]));
+  const failed = new Set(records?.failed || []);
+  const descriptions = records?.descriptions || {};
+  const placed = new Set();
+  const flags = { smeOnSale };
+  const block = (name) => {
+    placed.add(name);
+    if (byName.has(name)) return transparencyClassBlock(byName.get(name), exportEnabled);
+    return `<h3 class="section-label">${esc(descriptions[name] || name.replaceAll('_', ' '))}</h3>
+<p class="meta" style="margin:0 2px">${TRANSPARENCY_UNAVAILABLE}</p>`;
+  };
+  const known = (name) => byName.has(name) || failed.has(name);
+  const sections = TRANSPARENCY_GROUPS.map((group) => {
+    const blocks = group.classes.filter(known).map(block);
+    if (group.relay) blocks.push(transparencyRelayBlock(relay));
+    if (!blocks.length) return '';
+    const link = group.href && (!group.hrefWhen || flags[group.hrefWhen])
+      ? ` · <a href="${escAttr(group.href)}" aria-label="manage ${escAttr(group.heading)}" style="${TRANSPARENCY_LINK_STYLE}">manage</a>` : '';
+    return `<h2 style="margin-top:34px">${esc(group.heading)}${link}</h2>
+${blocks.join('\n')}`;
+  }).filter(Boolean);
+  const others = [...byName.keys(), ...failed].filter((name) => !placed.has(name));
+  if (others.length) {
+    sections.push(`<h2 style="margin-top:34px">other records</h2>
+${others.map(block).join('\n')}`);
+  }
+  sections.push(`<h2 style="margin-top:34px">support requests</h2>
+<p>your support requests are held by the support service, which sol pbc runs separately, and shown on <a href="/support" style="${TRANSPARENCY_LINK_STYLE}">your support page</a>.</p>`);
+  return sections.join('\n');
 }
 
 // Shared owner-deletion form structure. Keeping validation, labelling, and live
