@@ -90,8 +90,11 @@ describe('settings transparency data view', () => {
 
     expect(body).toContain('<title>data transparency</title>');
     expect(body).toContain('<h1>data transparency</h1>');
-    expect(body).toContain('your name, your phone, your address, or where you are');
-    expect(body).toContain("these aren't promises, they're structural commitments under");
+    // The boundary, not an absolute: what Stripe holds and the network address we keep are
+    // stated as facts, and only Article 8's commitments sit under the Article 8 sentence.
+    expect(body).not.toContain('your name, your phone, your address, or where you are');
+    expect(body).toContain("we don't collect a phone number");
+    expect(body).toContain("that isn't a promise, it's a structural commitment under");
     expect(body).toContain('Article 8 of our articles of incorporation');
     expect(body).toContain('Article III of the bylaws');
     expect(body).toContain('href="https://solpbc.org/articles#s8-3"');

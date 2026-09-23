@@ -20,6 +20,7 @@ describe('static source checks', () => {
     expect(sourceFiles).toEqual([
       'admin.js',
       'assets.js',
+      'billing-page.js',
       'billing.js',
       'credential-change.js',
       'crypto.js',

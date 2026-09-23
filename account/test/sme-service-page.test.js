@@ -90,13 +90,16 @@ describe('the solstone.me service page and its catalog row', () => {
       const account = await seedAccount({ email: 'paid@example.com', testEnv });
       const session = await seedSession(account.accountId, { testEnv });
       await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted', status: 'active', currentPeriodEnd: 1_800_000_000 });
+      installStripeFetchMock({
+      'GET api.stripe.com/v1/subscriptions/sub_seeded': async () => new Response(JSON.stringify({ object: 'subscription', items: { data: [{ quantity: 1, price: { unit_amount: 500, currency: 'usd', recurring: { interval: 'year' } } }] } })),
+    });
 
       const html = await (await get('/services/solstone-me', testEnv, session.cookie)).text();
 
       expect(html).toContain('covered');
       expect(html).toContain('your payment is up to date');
-      expect(html).toContain('paid through 2027-01-15');
-      expect(html).not.toContain('renews');
+      expect(html).toContain('renews on 2027-01-15 at $5, plus any sales tax');
+      expect(html).not.toContain('paid through');
       // Coverage is availability, never use: the page does not claim the address is on.
       expect(html).not.toContain('>on<');
       expect(visibleText(html)).not.toMatch(/\b(is|are|it's) on\b/i);

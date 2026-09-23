@@ -59,6 +59,7 @@ import {
   handleServicesSpl,
   handleStripeWebhook,
 } from './billing.js';
+import { handleBilling, handleBillingManage } from './billing-page.js';
 import {
   handleServicesSpb,
   handleSpbCheckout,
@@ -1041,6 +1042,19 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handleSpbPortal(req, env);
+      }
+
+      if (parts.length === 2 && parts[1] === 'billing' && req.method === 'GET') {
+        return handleBilling(req, env);
+      }
+
+      if (
+        parts.length === 3 &&
+        parts[1] === 'billing' &&
+        parts[2] === 'manage' &&
+        req.method === 'POST'
+      ) {
+        return handleBillingManage(req, env);
       }
 
       if (

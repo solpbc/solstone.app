@@ -535,10 +535,13 @@ describe('billing stripe core', () => {
     expect(await subscribe.text()).toContain('pay yearly');
 
     await seedEntitlement({ accountId: account.accountId, status: 'active', currentPeriodEnd: 1_800_000_000 });
+    installStripeFetchMock({
+      'GET api.stripe.com/v1/subscriptions/sub_seeded': async () => new Response(JSON.stringify({ object: 'subscription', items: { data: [{ quantity: 1, price: { unit_amount: 2000, currency: 'usd', recurring: { interval: 'year' } } }] } })),
+    });
     const active = await get('/private-network', testEnv, session.cookie);
     const activeHtml = await active.text();
     expect(activeHtml).toContain('your private network is on');
-    expect(activeHtml).toContain('paid through 2027-01-15');
+    expect(activeHtml).toContain('renews on 2027-01-15 at $20, plus any sales tax');
     expect(activeHtml).toContain('manage billing');
     expect(activeHtml).toContain('action="/billing/cancel"');
 

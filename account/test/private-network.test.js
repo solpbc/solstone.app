@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { getEntitlement, upsertEntitlement } from '../src/db.js';
 import {
@@ -7,6 +7,7 @@ import {
   seedAccount,
   seedEntitlement,
   seedSession,
+  installStripeFetchMock,
 } from './helpers.js';
 
 const SERVICE = 'spl_hosted';
@@ -15,6 +16,10 @@ const ENABLED_AT = Date.UTC(2026, 0, 2);
 describe('private network', () => {
   beforeEach(async () => {
     await resetDb();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders the public landing when signed out', async () => {
@@ -32,6 +37,9 @@ describe('private network', () => {
     const account = await seedAccount({ email: 'active-private@example.com', testEnv });
     const session = await seedSession(account.accountId, { testEnv });
     await seedEntitlement({ accountId: account.accountId, status: 'active', enabledAt: ENABLED_AT, currentPeriodEnd: 1_800_000_000 });
+    installStripeFetchMock({
+      'GET api.stripe.com/v1/subscriptions/sub_seeded': async () => new Response(JSON.stringify({ object: 'subscription', items: { data: [{ quantity: 1, price: { unit_amount: 2000, currency: 'usd', recurring: { interval: 'year' } } }] } })),
+    });
 
     const response = await get('/private-network', testEnv, { Cookie: session.cookie });
     const body = await response.text();
@@ -49,8 +57,9 @@ describe('private network', () => {
     expect(body).toContain('turn off');
     expect(body.match(/action="\/billing\/portal"/g) || []).toHaveLength(1);
     expect(body).toContain('action="/billing/cancel"');
-    expect(body).toContain('paid through 2027-01-15');
-    expect(body).not.toContain('renews');
+    // A subscription set to renew says when, and at what price (read live, never stored).
+    expect(body).toContain('renews on 2027-01-15 at $20, plus any sales tax · billed through Stripe.');
+    expect(body).not.toContain('paid through');
     expect(body).toContain('how it works');
   });
 

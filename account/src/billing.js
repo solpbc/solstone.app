@@ -1,3 +1,4 @@
+import { renewalPlan } from './billing-page.js';
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
   getAccountByStripeCustomer,
@@ -57,6 +58,7 @@ export async function handleServicesSpl(req, env) {
   ]);
   return signedInHtml(renderServicesSpl({
     entitlement,
+    plan: await renewalPlan(env, entitlement),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',

@@ -32,7 +32,7 @@ export function ownerExportNotIncluded() {
     {
       code: 'stripe_side_records',
       local_export: 'included_customer_reference',
-      description: 'billing records held by Stripe are not included; this file includes the Stripe customer reference held with your sign-in',
+      description: 'your receipts and past charges are held by Stripe and are not included; see and download them in Stripe\'s billing portal: open it with the manage billing button at services.solstone.app/billing. this file includes the Stripe customer reference held with your sign-in',
     },
     {
       code: 'anonymous_no_email_support',

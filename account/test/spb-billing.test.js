@@ -51,12 +51,15 @@ describe('spb encrypted backup billing', () => {
       status: 'active',
       currentPeriodEnd: 1_800_000_000,
     });
+    installStripeFetchMock({
+      'GET api.stripe.com/v1/subscriptions/sub_seeded': async () => new Response(JSON.stringify({ object: 'subscription', items: { data: [{ quantity: 1, price: { unit_amount: 4800, currency: 'usd', recurring: { interval: 'year' } } }] } })),
+    });
     const active = await get('/services/backup?checkout=success', testEnv, session.cookie);
     const activeHtml = await active.text();
     expect(activeHtml).toContain('payment received. it can take a moment to show up here.');
     expect(activeHtml).toContain('your encrypted backup is on');
-    expect(activeHtml).toContain('paid through 2027-01-15');
-    expect(activeHtml).not.toContain('renews');
+    expect(activeHtml).toContain('renews on 2027-01-15 at $48, plus any sales tax');
+    expect(activeHtml).not.toContain('paid through');
     expect(activeHtml).toContain('action="/services/backup/portal"');
     expect(activeHtml).toContain('action="/services/backup/cancel"');
     expect(activeHtml).toContain('if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days.');

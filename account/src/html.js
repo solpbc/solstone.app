@@ -19,6 +19,7 @@ const IC_SESSION_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="
 const IC_PASSKEY_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="14" r="3.4"/><path d="M10.6 11.4 19 3M16 6l2 2M14 8l1.6 1.6"/></svg>';
 const IC_EMAIL_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/></svg>';
 const IC_EMPTY_DATA_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="6.5" ry="3"/><path d="M5.5 6v8c0 1.7 2.9 3 6.5 3 .9 0 1.8-.1 2.6-.3"/><path d="M18.5 6v5.5"/><path d="M5.5 10c0 1.7 2.9 3 6.5 3 1.7 0 3.2-.3 4.4-.8"/><path d="M17 15l4 4M21 15l-4 4"/></svg>';
+const IC_BILLING_SVG = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z"/><path d="M9 8.5h6M9 11.5h6M9 14.5h3.5"/></svg>';
 const IC_NET = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.4"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M6.6 7.4 10 10.4M17.4 7.4 14 10.4M6.6 16.6 10 13.6M17.4 16.6 14 13.6"/></svg>';
 const IC_BACKUP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>';
 const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 12v3"/></svg>';
@@ -32,7 +33,10 @@ const SCOUT_PROGRAM_COVENANT = "confidential processing: no content is retained 
 const TRANSPARENCY_LEAD_SIGNED_IN = 'this page lists every kind of record sol pbc keeps for your sign-in.';
 const TRANSPARENCY_LEAD_DOWNLOAD = 'the download below carries each of them, support requests included, and leaves out your full IP address, full browser details, and the keys, codes and short-lived checks that secure your sign-in.';
 const TRANSPARENCY_LEAD_SIGNED_OUT = 'once you sign in, this page lists every kind of record sol pbc keeps for your sign-in.';
-const transparencyIntro = (lead) => `<p class="intro">${lead} we never hold a readable copy of your journal. we don't have your name, your phone, your address, or where you are: no analytics, no behavioral data, no third-party tracking. these aren't promises, they're structural commitments under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
+// Only what Article 8 and bylaws Article III commit sits under their sentence. What Stripe holds and
+// the network address we keep are facts about this service, stated before it, never covenants.
+const transparencyIntro = (lead) => `<p class="intro" style="margin-bottom:12px">${lead} we never hold a readable copy of your journal, and we don't collect a phone number. we keep the network address each of your sessions came from, encrypted, and this page shows it shortened. if you pay for a service, Stripe holds your card, the name on it and your billing address. to answer a billing question, an operator can see the card's brand, its last four digits, the name and the billing address in Stripe's own dashboard. our systems never fetch or store any of it.</p>
+<p class="intro">no analytics, no behavioral data, no third-party tracking: that isn't a promise, it's a structural commitment under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
 
 function brandbar() {
   return `<div class="brandbar">${MARK_SVG}<span class="wordmark">solstone</span></div>`;
@@ -638,6 +642,7 @@ ${welcomePanel}
 </div>
 <div class="group" style="margin-top:22px">
   ${row('/sign-in', IC_SESSION_SVG, 'your sign-in', 'sessions, passkeys, and email addresses.', '')}
+  ${row('/billing', IC_BILLING_SVG, 'billing', 'what you pay for, and when it renews.', '')}
   ${row('/transparency', IC_EMPTY_DATA_SVG, 'data transparency', menu.exportEnabled ? 'what sol pbc holds for your sign-in, with a download.' : 'what sol pbc holds for your sign-in.', '')}
 </div>`,
     afterMain: welcome ? `<script>${ENROLL_JS}</script>` : '',
@@ -821,7 +826,7 @@ ${BRANDLOCK}
   });
 }
 
-export function renderServicesSpl({ entitlement, csrf, flash = {}, menu }) {
+export function renderServicesSpl({ entitlement, plan = null, csrf, flash = {}, menu }) {
   const flashes = billingFlashMessages(flash);
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -862,7 +867,7 @@ ${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)
   ${billingPortalForm({ csrf })}
   ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' })}
 </div>
-<p class="disclosure" style="margin-top:24px">${paidThrough ? `paid through ${esc(paidThrough)} · ` : ''}billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -893,7 +898,7 @@ ${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)
   });
 }
 
-export function renderServicesSpb({ entitlement, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
+export function renderServicesSpb({ entitlement, plan = null, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
   const flashes = spbBillingFlashMessages(flash);
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -943,7 +948,7 @@ ${content}`,
 ${cancellationNotice}
 ${portalActions}
 ${retentionDisclosure}
-<p class="disclosure" style="margin-top:24px">${paidThrough ? `paid through ${esc(paidThrough)} · ` : ''}billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
 
@@ -973,7 +978,7 @@ ${restoreCheckout ? '' : retentionDisclosure}`,
   });
 }
 
-export function renderServicesSme({ entitlement, csrf, flash = {}, menu }) {
+export function renderServicesSme({ entitlement, plan = null, csrf, flash = {}, menu }) {
   const flashes = smeBillingFlashMessages(flash);
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -1019,7 +1024,7 @@ ${content}`,
       content: `${controlGroup}
 ${cancellationNotice}
 ${portalActions}
-<p class="disclosure" style="margin-top:24px">${Number.isFinite(entitlement.current_period_end) ? `paid through ${esc(paidThrough)} · ` : ''}billed through Stripe.</p>`,
+<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe.</p>`,
     });
   }
 
@@ -1088,6 +1093,86 @@ ${content}`,
   ${beat(IC_CHIP, 'the thinking leaves', 'confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
 </div>
 <p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/terms">terms</a></p>`,
+  });
+}
+
+// === billing ===
+
+// One state per paid service, or null when the service has no place on the billing page:
+// never subscribed, or a scout row that has ended.
+export function billingEntryState(entitlement) {
+  if (!entitlement) return null;
+  if (entitlement.source === 'comp') return entitlement.status === 'active' ? 'scout' : null;
+  if (entitlement.source !== 'stripe') return null;
+  if (entitlement.status === 'past_due') return 'past_due';
+  if (entitlement.status === 'active') return entitlement.cancel_at_period_end ? 'stopping' : 'renews';
+  if (entitlement.status === 'lapsed' || entitlement.status === 'canceled') return 'stopped';
+  return null;
+}
+
+// What keeps working through a failed payment, as each service page says it.
+const BILLING_PAST_DUE = {
+  spl_hosted: "the last payment didn't go through. reaching your journal on your own network stays free either way. manage billing to fix it.",
+  spb_hosted: "the last payment didn't go through. manage billing to fix it. if the subscription ends, sol pbc keeps your encrypted copy for 30 days.",
+  sme_hosted: "the last payment didn't go through. your address stays reserved for you either way. manage billing to fix it.",
+};
+
+function billingStateLine({ service, entitlement, state, plan }, nowSeconds) {
+  const date = formatUnixSecondsDate(entitlement.current_period_end);
+  if (state === 'scout') return "free while you're an approved scout";
+  if (state === 'past_due') return BILLING_PAST_DUE[service];
+  if (state === 'stopping') {
+    return date ? `scheduled to stop on ${date}. manage billing to keep it.` : 'scheduled to stop at the end of the paid period. manage billing to keep it.';
+  }
+  if (state === 'stopped') {
+    return date && entitlement.current_period_end <= nowSeconds ? `stopped on ${date}` : 'stopped';
+  }
+  if (!date) return plan ? `renews automatically at ${formatPlanPrice(plan)}, plus any sales tax` : 'renews automatically';
+  return plan ? `renews on ${date} at ${formatPlanPrice(plan)}, plus any sales tax` : `renews on ${date}. the price didn't load; manage billing to see it.`;
+}
+
+function billingTrail({ state, plan }) {
+  if (state === 'scout') return '<span class="tag free">scout</span>';
+  if (state === 'stopped') return pill('off', 'stopped');
+  if (!plan) return '';
+  return `<span class="price">${formatPlanPrice(plan)}<span class="per">/${plan.interval === 'year' ? 'yr' : 'mo'}</span></span>`;
+}
+
+const BILLING_ICONS = { spl_hosted: IC_NET, spb_hosted: IC_BACKUP, sme_hosted: IC_GLOBE };
+
+export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, nowSeconds }) {
+  const flashes = [];
+  if (flash.billing === 'missing') flashes.push("billing management opens once you've paid for a service.");
+  if (flash.billing === 'error') flashes.push("billing management didn't open. try again.");
+  const list = entries.length
+    ? `<div class="group">
+  ${entries.map((entry) => row(escAttr(entry.href), BILLING_ICONS[entry.service], esc(entry.name), esc(billingStateLine(entry, nowSeconds)), billingTrail(entry))).join('\n  ')}
+</div>`
+    : `<div class="card">
+  <div class="empty">
+    ${IC_BILLING_SVG}
+    <h2>you don't pay for anything</h2>
+    <p>no paid service is on your sign-in, so nothing renews. every service is optional, and each paid one shows its price before you pay.</p>
+    <a class="btn primary" href="/">see the services</a>
+  </div>
+</div>`;
+  const manage = hasCustomer
+    ? `<div class="card" style="margin-top:22px">
+  <p>Stripe holds your card, your receipts and past charges, and your billing email and address. the button below opens them there and brings you back here.</p>
+  ${billingPortalForm({ csrf, action: '/billing/manage' })}
+</div>`
+    : '';
+  return layout({
+    title: 'billing',
+    body: `${topbar(menu)}
+<a class="back" href="/">${BACK_SVG} your services</a>
+${flashes.map((message) => `<p class="notice">${esc(message)}</p>`).join('')}
+<div class="pagehead">
+  <h1>billing</h1>
+</div>
+<p class="intro">the services you pay sol pbc for, what each one costs, and when it renews.</p>
+${list}
+${manage}`,
   });
 }
 
@@ -2324,6 +2409,22 @@ function billingCheckoutRow({ csrf, plan, title, buttonText, primary, action = '
     <button class="${buttonClass}" type="submit">${esc(buttonText)}</button>
   </form></div>
 </div>`;
+}
+
+// "$20" or "$2.49": Stripe's unit amount in cents, as the renewal notices print it.
+function formatPlanPrice(plan) {
+  const cents = plan.unitAmount;
+  return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
+}
+
+// The lead of a service page's billing line: when it renews and at what price, or, once it is
+// set to stop, how far it is paid.
+function renewalLead({ paidThrough, cancelPending, plan }) {
+  if (!paidThrough) return '';
+  if (cancelPending) return `paid through ${esc(paidThrough)} · `;
+  return plan
+    ? `renews on ${esc(paidThrough)} at ${formatPlanPrice(plan)}, plus any sales tax · `
+    : `renews on ${esc(paidThrough)} · `;
 }
 
 function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary', action = '/billing/portal' }) {

@@ -79,6 +79,31 @@ export async function getSubscription(env, subscriptionId) {
   return stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: 'GET' });
 }
 
+// A subscription's price and interval. These are read live when a page renders and never
+// stored: the privacy policy's list of what we keep says when a subscription renews, not
+// what it costs. A subscription object carries no card or billing-address data.
+export function subscriptionPlan(sub) {
+  const items = sub?.items?.data;
+  if (!Array.isArray(items) || items.length !== 1 || items[0].quantity !== 1) return null;
+  const price = items[0].price;
+  const unitAmount = price?.unit_amount;
+  const interval = price?.recurring?.interval;
+  if (!Number.isInteger(unitAmount) || unitAmount <= 0 || price.currency !== 'usd') return null;
+  if (interval !== 'year' && interval !== 'month') return null;
+  return { unitAmount, interval };
+}
+
+// null when the plan can't be read, so a page renders without a price rather than failing.
+export async function readSubscriptionPlan(env, subscriptionId) {
+  if (!subscriptionId) return null;
+  try {
+    return subscriptionPlan(await getSubscription(env, subscriptionId));
+  } catch {
+    console.warn('stripe_plan_read_failed');
+    return null;
+  }
+}
+
 export async function verifyWebhookSignature(rawBody, sigHeader, secret, nowSeconds) {
   if (!rawBody || !sigHeader || !secret) return false;
   const parsed = parseStripeSignature(sigHeader);

@@ -1,3 +1,4 @@
+import { renewalPlan } from './billing-page.js';
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
   getEntitlement,
@@ -40,6 +41,7 @@ export async function handleServicesSme(req, env) {
   ]);
   return signedInHtml(renderServicesSme({
     entitlement,
+    plan: await renewalPlan(env, entitlement),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',
