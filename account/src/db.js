@@ -447,6 +447,14 @@ export async function getActiveDeletionForAccount(db, accountId) {
   return row || null;
 }
 
+// A deletion the owner can still cancel: accepted, not yet purging, and inside
+// its safety period. A fresh sign-in may reach the cancellation route only then.
+export function deletionIsCancellable(deletion, nowMs) {
+  return Boolean(deletion)
+    && (deletion.phase === 'requested' || deletion.phase === 'frozen')
+    && nowMs < deletion.cancellation_deadline_at;
+}
+
 export async function createDeletionProof(db, {
   tokenHash,
   accountId,

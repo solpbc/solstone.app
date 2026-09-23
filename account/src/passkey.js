@@ -14,6 +14,7 @@ import {
   CREDENTIAL_CHANGE_PURPOSE,
   getDashboardData,
   getActiveDeletionForAccount,
+  deletionIsCancellable,
   getPasskeyCredential,
   getPasskeyUserHandle,
   getRateBucketCount,
@@ -244,7 +245,10 @@ export async function passkeyAuthFinish(req, env) {
     }
     const credentialRow = await getPasskeyCredential(env.DB, credentialId);
     if (!credentialRow) return fail('passkey_auth_finish_not_found', 401, 'sign-in failed');
-    if (await getActiveDeletionForAccount(env.DB, credentialRow.account_id)) {
+    // Same rule as email sign-in: inside the safety period the session exists
+    // only to reach cancellation (see getValidSession); past it, refuse.
+    const deletion = await getActiveDeletionForAccount(env.DB, credentialRow.account_id);
+    if (deletion && !deletionIsCancellable(deletion, nowMs)) {
       return fail('passkey_auth_finish_deletion', 401, 'sign-in failed');
     }
 
@@ -270,10 +274,10 @@ export async function passkeyAuthFinish(req, env) {
     const sessionToken = generateSessionToken();
     const idHash = await hashWithPepper(sessionToken, env);
     await createSession(env.DB, { idHash, accountId: credentialRow.account_id, nowMs });
-    let redirect = '/';
+    let redirect = deletion ? '/account/delete' : '/';
     const next = body?.next;
     const nextSig = body?.next_sig;
-    if (next && nextSig) {
+    if (!deletion && next && nextSig) {
       const resume = await verifyEnableResume(next, nextSig, env);
       if (resume) redirect = `${resume.path}${resume.queryString}`;
     }

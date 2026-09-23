@@ -210,7 +210,7 @@ describe('deletion access gates', () => {
     }
   });
 
-  it('refuses OTP sign-in for an active-deletion account without minting a session', async () => {
+  it('refuses OTP sign-in for a deletion past its safety period without minting a session', async () => {
     const env = makeTestEnv();
     const account = await seedAccount({ email: 'signin-deleting@example.com', testEnv: env });
     const otp = await seedOtp({ email: 'signin-deleting@example.com', options: { code: '123456' } });

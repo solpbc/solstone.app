@@ -127,6 +127,43 @@ describe('passkey authentication', () => {
     expect(response.headers.get('Set-Cookie')).toMatch(SESSION_COOKIE_RE);
   });
 
+  it('signs in to the cancellation page during a deletion safety period and refuses after it', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ testEnv });
+    await seedCredential({
+      accountId: account.accountId,
+      credentialId: 'deleting-credential-id',
+      userHandle: 'deleting-user-handle',
+    });
+    await workerEnv.DB.prepare(
+      `INSERT INTO account_deletions (operation_id, account_id, phase, requested_at, cancellation_deadline_at, status_token_hash)
+       VALUES ('passkey-hold', ?, 'frozen', ?, ?, 'status')`
+    ).bind(account.accountId, Date.now(), Date.now() + 60_000).run();
+    await seedPasskeyChallenge({ challenge: 'hold-auth', purpose: 'authenticate' });
+    const { next, nextSig } = await signEnableResume('/enable/spl', `?nonce=${VALID_NONCE}`, testEnv);
+
+    const held = await worker.fetch(passkeyRequest('/passkey/auth/finish', {
+      body: {
+        response: authResponse('hold-auth', 'deleting-credential-id', 'deleting-user-handle'),
+        next,
+        next_sig: nextSig,
+      },
+    }), testEnv);
+    expect(held.status).toBe(200);
+    expect(await held.json()).toEqual({ ok: true, redirect: '/account/delete' });
+    expect(held.headers.get('Set-Cookie')).toMatch(SESSION_COOKIE_RE);
+
+    await workerEnv.DB.prepare("UPDATE account_deletions SET cancellation_deadline_at = ? WHERE operation_id = 'passkey-hold'")
+      .bind(Date.now() - 1).run();
+    await seedPasskeyChallenge({ challenge: 'late-auth', purpose: 'authenticate' });
+    const late = await worker.fetch(passkeyRequest('/passkey/auth/finish', {
+      body: { response: authResponse('late-auth', 'deleting-credential-id', 'deleting-user-handle') },
+    }), testEnv);
+    expect(late.status).toBe(401);
+    expect(late.headers.get('Set-Cookie')).toBeNull();
+    expect(await rowCount('sessions')).toBe(1);
+  });
+
   it('uses / when no resume is present', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });

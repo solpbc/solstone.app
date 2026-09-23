@@ -19,6 +19,7 @@ import {
   findEmailByHash,
   getEntitlement,
   getActiveDeletionForAccount,
+  deletionIsCancellable,
   hasAnyActivePasskey,
   matchOtp,
   upsertOtp,
@@ -1294,7 +1295,12 @@ async function handleSigninVerifyPost(req, env) {
         addressLowerHash: emailLowerHash,
         nowMs,
       })).accountId;
-  if (await getActiveDeletionForAccount(env.DB, accountId)) {
+  // During the safety period a fresh sign-in is how an owner who lost the
+  // original session reaches cancellation. getValidSession confines that
+  // session to the deletion routes and export, and cancelling still needs its
+  // own fresh proof. Past the deadline, sign-in stays refused.
+  const deletion = await getActiveDeletionForAccount(env.DB, accountId);
+  if (deletion && !deletionIsCancellable(deletion, nowMs)) {
     return html(renderVerify({ email: emailLower, error: VERIFY_ERROR, csrf, next: resume?.next || '', nextSig: resume?.nextSig || '' }));
   }
   await updateAccountLastSignin(env.DB, accountId, nowMs);
@@ -1302,6 +1308,9 @@ async function handleSigninVerifyPost(req, env) {
   const sessionToken = generateSessionToken();
   const idHash = await hashWithPepper(sessionToken, env);
   await createSession(env.DB, { idHash, accountId, nowMs });
+  if (deletion) {
+    return redirect('/account/delete', 303, { 'Set-Cookie': sessionCookie(sessionToken), 'Cache-Control': 'no-store' });
+  }
   // The OTP just verified is live proof of email control; seed a
   // credential-change proof from it so a first-run passkey enrollment (the
   // welcome panel, seconds from here) needs no second code. req_oopzclpx.
