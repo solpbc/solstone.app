@@ -12,6 +12,7 @@ import {
   seedAccount,
   seedEntitlement,
   seedSmeBinding,
+  V1_MCP_BRIDGE_ADDRESS,
 } from './helpers.js';
 
 const FIXTURE_NOW_MS = 1_700_000_000_000;
@@ -39,7 +40,7 @@ describe('MCP bridge v1 golden fixture', () => {
     const env = makeTestEnv({
       MCP_BRIDGE_TOKEN_KID: 'mcp-bridge-fixture-v1',
       MCP_BRIDGE_ID: 'mcp-bridge-fixture',
-      MCP_BRIDGE_ADDRESSES: '20.186.92.169',
+      MCP_BRIDGE_ADDRESSES: V1_MCP_BRIDGE_ADDRESS,
     });
     const ca = await parseHomeReachCaPubkey(FIXTURE_CA_PUBLIC_KEY);
     if (!ca) throw new Error('fixture CA public key must be valid P-256 SPKI');

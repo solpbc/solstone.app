@@ -22,6 +22,7 @@ import {
   seedEntitlement,
   seedSmeBinding,
   seedSplBinding,
+  V1_MCP_BRIDGE_ADDRESS,
 } from './helpers.js';
 import { generateReachKeyPair, mintHomeReachAssertion } from './reach-helper.js';
 
@@ -66,7 +67,7 @@ describe('MCP bridge token endpoint', () => {
     expect(body.instance_id).toBe(input.instance_id);
     expect(body.hostname).toMatch(/^[a-z2-7]{8}\.solstone\.me$/);
     expect(body.bridge_id).toBe(env.MCP_BRIDGE_ID);
-    expect(body.bridge_addresses).toEqual(['20.186.92.169']);
+    expect(body.bridge_addresses).toEqual([V1_MCP_BRIDGE_ADDRESS]);
     expect(body.bridge_id).not.toBe(input.bridge_id);
     expect(body.bridge_addresses).not.toEqual(input.bridge_addresses);
     expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);

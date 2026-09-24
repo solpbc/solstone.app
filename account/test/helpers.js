@@ -25,6 +25,13 @@ export const TEST_MCP_BRIDGE_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 MC4CAQAwBQYDK2VwBCIEIOZeehJsGxLUU0xa0IlPfLiJ+EX148IB8mccKtbcZNCJ
 -----END PRIVATE KEY-----`;
 
+// The production v1 bridge address, pinned on purpose. The v1 wire contract
+// names the live *.solstone.me bridge, and the journal's admission accepts only
+// a public address (every documentation range is denied), so a placeholder
+// would be refused there. It is public in DNS. test-fixtures/mcp_bridge_v1.json
+// carries the same address, byte-pinned by the journal's provenance test.
+export const V1_MCP_BRIDGE_ADDRESS = '20.186.92.169';
+
 export function makeTestEnv(overrides = {}) {
   const sent = [];
   const emailBinding = {
@@ -62,7 +69,7 @@ export function makeTestEnv(overrides = {}) {
     MCP_BRIDGE_TOKEN_PRIVATE_KEY: overrides.MCP_BRIDGE_TOKEN_PRIVATE_KEY ?? TEST_MCP_BRIDGE_PRIVATE_KEY,
     MCP_BRIDGE_TOKEN_KID: overrides.MCP_BRIDGE_TOKEN_KID ?? 'test-mcp-bridge-kid',
     MCP_BRIDGE_ID: overrides.MCP_BRIDGE_ID ?? 'test-mcp-bridge',
-    MCP_BRIDGE_ADDRESSES: overrides.MCP_BRIDGE_ADDRESSES ?? '20.186.92.169',
+    MCP_BRIDGE_ADDRESSES: overrides.MCP_BRIDGE_ADDRESSES ?? V1_MCP_BRIDGE_ADDRESS,
     MCP_BRIDGE_TOKEN_DISABLED: overrides.MCP_BRIDGE_TOKEN_DISABLED,
     STRIPE_SECRET_KEY: overrides.STRIPE_SECRET_KEY || 'sk_test_account_portal',
     STRIPE_WEBHOOK_SECRET: overrides.STRIPE_WEBHOOK_SECRET || 'whsec_account_portal',
