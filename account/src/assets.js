@@ -1,19 +1,15 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=7';
-export const SUNARC_JS_SRC = '/sunarc.js?v=2';
+export const PORTAL_CSS_HREF = '/portal.css?v=8';
+export const SUNARC_JS_SRC = '/sunarc.js?v=3';
 
-export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet (design-in-code, project #1)
-   Applies the services brand canon + the shared design tokens. This is the
-   REFERENCE implementation of the web token canon: the :root below mirrors the
-   consumable token stylesheet from the design system (the
-   consumable SOT) byte-for-byte — verified 2026-06-15. Do NOT diverge a value
-   here; change tokens.md → re-derive tokens.css → mirror it here. (Full
-   <link>-import of the shared file is deferred to a deliberate account deploy —
-   this is a billing/auth worker, so we don't rewire its asset pipeline for a
-   no-op refactor.)
-   Warm, trust-first, the macOS System Settings →
-   iCloud register: each service is a row with an honest line + an on/off state.
-   a11y: sol orange #E8913A is DECORATION-ONLY (carries no text); all orange text
-   uses the accessible #B06A1A token; primary buttons are dark-ink-on-orange (7.13:1). */
+export const PORTAL_CSS = `/* services.solstone.app — the account portal's own tokens.
+   Derived from the design-system palette under the names this portal uses
+   (--sunarc-arc-angle, --sunarc-twilight-minutes, tile cream). The root
+   marketing tokens are a different surface; this file does not mirror them.
+   Appearance follows prefers-color-scheme only. There is no in-app switch.
+   Normal-size orange text uses --orange-text-aa. --orange-ink stays for large
+   text (.hero-tag), the beat icons, and the focus border.
+   Primary buttons are --ink-on-brand on --orange (7.08:1).
+   The light day ground is --sunarc-ground-light-day. --cream is paint. */
 
 @font-face {
   font-family: "Comfortaa";
@@ -27,6 +23,7 @@ export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet 
 }
 
 :root {
+  color-scheme: light dark;
   --cream:        #FCF3E4;  /* page bg (surface.cream) */
   --cream-bright: #FEFCF8;  /* elevated card / input bg (surface.cream.bright) */
   --paper:        #FFFFFF;  /* grouped-list rows */
@@ -36,27 +33,50 @@ export const PORTAL_CSS = `/* services.solstone.app — VPX redesign stylesheet 
   --hairline:     #ECE3D0;  /* warm divider/border */
   --hairline-2:   #E2D7BF;  /* stronger warm border */
   --orange:       #E8913A;  /* sol.orange — DECORATION ONLY (no text on it unless dark-ink) */
-  --orange-ink:   #B06A1A;  /* sol.orange.accessible — links + orange text on light */
+  --orange-ink:   #B06A1A;  /* large text, beat icons, and the focus border */
   --orange-wash:  #FBEFDD;  /* soft orange tint for on-pills / accents */
   --danger:       #9F2D2D;  /* destructive text (5.9:1 on light) */
   --focus:        #B06A1A;
-  /* type — mirrors tokens.css; @font-face for Comfortaa+Inter is self-hosted above */
+  --orange-text-aa: #A15F17; /* normal-size orange text; 4.58:1 on --cream, 4.92:1 on --cream-bright, 5.04:1 on --paper */
+  --ink-on-brand: #1A1A1A; /* text on --orange (7.08:1) and --gold (11.55:1); same in both appearances */
+  --panel: rgb(254 252 248 / 0.90); /* content sheet; 90% cream-bright */
+  --danger-wash: #FBF1F1; /* .error fill and the danger hovers */
+  --error-ink: #7d2525; /* 8.76:1 on --danger-wash */
+  --success: #3F9D6A;
+  --success-ink: #166534;
+  --success-wash: #E7F1E9;
+  --warn: #C99A2E;
+  --warn-ink: #7C4A0C;
+  --warn-wash: #FBF1D6;
+  --gold: #FFCC33;
+  /* type — Comfortaa and Inter are self-hosted above */
   --font-display: "Comfortaa", ui-rounded, "Trebuchet MS", system-ui, sans-serif;
   --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono:    ui-monospace, "SF Mono", Menlo, monospace;
   --radius:       14px;
   --radius-sm:    9px;
   /* tag tokens — pending CMO palette ratification */
-  --tag-builtin-ink: #8A5314;
+  --tag-builtin-ink: #8A5314; /* 5.56:1 on --orange-wash */
   --tag-free-bg:     #EDEFEA;
-  --tag-free-ink:    #4F5848;
-  --tag-neutral-bg:  #F0ECE2;
+  --tag-free-ink:    #4F5848; /* 6.43:1 on --tag-free-bg */
+  --tag-neutral-bg:  #F0ECE2; /* --ink-faint is 4.93:1 */
+  --hover-fill: #FBF6EC; /* menu and secondary hover; --ink is 16.16:1 */
+  --row-hover: #FDFBF6; /* --ink is 16.83:1 */
+  --orange-hover: #E9963F; /* primary hover; --ink-on-brand is 7.38:1 */
+  --danger-line: #E2C4C4; /* decorative; 1.47:1 on --danger-wash */
+  --mark-faint: #C9BFA8; /* decorative chevron and empty icon; 1.66:1 on --cream */
+  --pill-dot: #C2B89F; /* decorative; 1.67:1 on --tag-neutral-bg */
+  --track-off: #D8CFBC; /* decorative off track; 1.51:1 on --cream-bright */
+  --knob: #FFFFFF; /* decorative; dark is the specified #FCF3E4, not --paper and not light --ink */
+  --shadow-menu: rgba(60, 45, 25, 0.16); /* decorative */
+  --shadow-raise: rgba(90, 70, 40, 0.04); /* decorative */
+  --shadow-knob: rgba(0, 0, 0, 0.25); /* decorative */
   /* sun-arc time-of-day background — locked 2026-09-19, amended 2026-09-23 (the day in
-     both appearances); values verbatim from cmo/brand/sbis/patterns/sun-arc/index.md
-     §§ 2, 4a, 6, 7, 8a and vpx/design-system/tokens.md § the sun, all day. The
-     appearance is the owner's prefers-color-scheme, never the clock. § 6: this page's
-     own --cream (tile cream) is its light day ground; the light night and true dark and
-     the whole dark row are the spec's table. */
+     both appearances). The appearance is the owner's prefers-color-scheme, never the
+     clock. The light day ground is --sunarc-ground-light-day (this page's tile cream).
+     --cream is portal paint and flips with the appearance, so the engine does not read
+     it. Light night, true dark, and the whole dark row are the spec's table. */
+  --sunarc-ground-light-day: #FCF3E4;
   --sunarc-arc-angle: 36deg;
   --sunarc-bow-ratio: 0.07919;
   --sunarc-diameter-ratio: 1.6180339887;
@@ -103,17 +123,51 @@ main {
   margin: 0 auto;
   padding: 40px 20px 72px;
 }
-/* § 8: the content sits on its own paper over the sun arc, in either appearance.
-   Light: tile cream at 75%, so the sun reads through it by day and ink-faint text
-   still clears 4.5:1 over the true-dark ground. Dark: solid cream, because the
-   portal's content colours are tuned for cream (a dark re-theme is its own pass). */
+/* The content sheet is --panel over the sun arc in either appearance.
+   Light is 90% cream-bright. Dark is 90% of the dark cream. */
 main {
-  background: rgb(252 243 228 / 0.75);
+  background: var(--panel);
   border-radius: var(--radius);
 }
 @media (prefers-color-scheme: dark) {
+  :root {
+    --cream: #221C19;
+    --cream-bright: #2B231C;
+    --paper: #332820;
+    --panel: rgb(34 28 25 / 0.90);
+    --ink: #FCF3E4;
+    --ink-soft: #D0C6B8;
+    --ink-faint: #B0A699;
+    --hairline: #484038;
+    --hairline-2: #514840;
+    --orange-text-aa: #F2A451;
+    --orange-ink: #F2A451;
+    --focus: #F2A451;
+    --orange-wash: #493524;
+    --danger: #D7998C;
+    --danger-wash: #3F271F;
+    --error-ink: #DFAB9D; /* 6.87:1 on --danger-wash; OKLab mix of --danger and --ink at 0.2 */
+    --success-ink: #7AB58B;
+    --success-wash: #333729;
+    --warn-ink: #CEA245;
+    --warn-wash: #443622;
+    --tag-builtin-ink: #F5B472; /* 6.41:1 on --orange-wash; OKLab mix of --orange-text-aa and --ink at 0.2 */
+    --tag-free-bg: #2A2820; /* 9.65:1 with --tag-free-ink; OKLab mix of --cream and --success-wash at 0.45 */
+    --tag-free-ink: #C2D7BB; /* 9.65:1 on --tag-free-bg; OKLab mix of --ink and --success-ink at 0.45 */
+    --tag-neutral-bg: #3B3129; /* --ink-faint is 5.29:1; OKLab mix of --paper and --hairline at 0.4 */
+    --hover-fill: #3C2D22; /* --ink is 12.00:1; OKLab mix of --paper and --orange-wash at 0.4 */
+    --row-hover: #3D332B; /* --ink is 11.18:1; OKLab mix of --paper and --hairline-2 at 0.35 */
+    --orange-hover: #EC9A3A; /* --ink-on-brand is 7.67:1; OKLab mix of --orange and --gold at 0.15 */
+    --danger-line: #93665B; /* decorative; 2.82:1 on --danger-wash; OKLab mix of --danger and --danger-wash at 0.42 */
+    --mark-faint: #7E756A; /* decorative; 3.17:1 on --paper; OKLab mix of --ink-faint and --hairline at 0.46 */
+    --pill-dot: #8E8579; /* decorative; 3.49:1 on --tag-neutral-bg; OKLab mix of --ink-faint and --hairline-2 at 0.34 */
+    --track-off: #4C443C; /* decorative; 1.50:1 on --paper; OKLab mix of --hairline and --hairline-2 at 0.5 */
+    --knob: #FCF3E4; /* decorative; the specified dark ink, so the knob stays light */
+    --shadow-menu: rgba(28, 26, 26, 0.16); /* decorative; OKLab mix of --ink-on-brand and --cream at 0.22 */
+    --shadow-raise: rgba(29, 27, 26, 0.04); /* decorative; OKLab mix of --ink-on-brand and --cream at 0.38 */
+    --shadow-knob: rgba(27, 26, 26, 0.25); /* decorative; OKLab mix of --ink-on-brand and --cream at 0.12 */
+  }
   body { background: var(--sunarc-mixed, var(--sunarc-ground-dark-day)); }
-  main { background: var(--cream); }
 }
 
 .sunarc { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
@@ -139,7 +193,7 @@ h2 {
   color: var(--ink);
 }
 p { margin: 0 0 14px; color: var(--ink-soft); }
-a { color: var(--orange-ink); text-decoration: none; }
+a { color: var(--orange-text-aa); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .meta { color: var(--ink-faint); font-size: 0.88rem; margin: 0 0 4px; }
 .section-label {
@@ -186,17 +240,17 @@ a:hover { text-decoration: underline; }
 .usermenu > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .avatar {
   width: 32px; height: 32px; border-radius: 50%; flex: none;
-  background: var(--orange-wash); color: #8A5314;
+  background: var(--orange-wash); color: var(--tag-builtin-ink);
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 0.95rem; font-family: var(--font-display);
 }
 .usermenu .caret { width: 11px; height: 7px; color: var(--ink-faint); }
-.usermenu[open] > summary { border-color: var(--hairline-2); background: #fff; }
+.usermenu[open] > summary { border-color: var(--hairline-2); background: var(--paper); }
 .menu {
   position: absolute; right: 0; top: calc(100% + 8px); z-index: 20;
   width: 264px; max-width: calc(100vw - 32px);
-  background: #fff; border: 1px solid var(--hairline-2); border-radius: var(--radius);
-  box-shadow: 0 8px 28px rgba(60, 45, 25, 0.16); padding: 6px; overflow: hidden;
+  background: var(--paper); border: 1px solid var(--hairline-2); border-radius: var(--radius);
+  box-shadow: 0 8px 28px var(--shadow-menu); padding: 6px; overflow: hidden;
 }
 .menu .head { padding: 10px 12px 12px; border-bottom: 1px solid var(--hairline); margin-bottom: 6px; }
 .menu .head .lbl { font-size: 0.74rem; color: var(--ink-faint); letter-spacing: 0.04em; }
@@ -208,11 +262,11 @@ a:hover { text-decoration: underline; }
   color: var(--ink); font: inherit; font-size: 0.95rem; background: none; border: 0;
   cursor: pointer; text-align: left; min-height: 44px;
 }
-.menu a:hover, .menu button.mi:hover { background: #FBF6EC; text-decoration: none; }
+.menu a:hover, .menu button.mi:hover { background: var(--hover-fill); text-decoration: none; }
 .menu .ext { color: var(--ink-faint); width: 12px; height: 12px; }
 .menu .sep { height: 1px; background: var(--hairline); margin: 6px 4px; }
 .menu .signout { color: var(--danger); }
-.menu .signout:hover { background: #FBF1F1; }
+.menu .signout:hover { background: var(--danger-wash); }
 .pagehead { margin-bottom: 18px; }
 .signed-in { color: var(--ink-faint); font-size: 0.9rem; margin: 0; }
 .signed-in strong { color: var(--ink-soft); font-weight: 600; }
@@ -227,7 +281,7 @@ a:hover { text-decoration: underline; }
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(90, 70, 40, 0.04);
+  box-shadow: 0 1px 2px var(--shadow-raise);
 }
 .group + .group { margin-top: 14px; }
 
@@ -239,13 +293,13 @@ a:hover { text-decoration: underline; }
   min-height: 64px;
 }
 .row + .row { border-top: 1px solid var(--hairline); }
-a.row:hover { background: #FDFBF6; text-decoration: none; }
+a.row:hover { background: var(--row-hover); text-decoration: none; }
 .row .ic { width: 30px; height: 30px; flex: none; color: var(--ink-soft); }
 .row .body { flex: 1 1 auto; min-width: 0; }
 .row .title { font-weight: 600; color: var(--ink); font-size: 1rem; }
 .row .desc { color: var(--ink-faint); font-size: 0.875rem; line-height: 1.4; margin-top: 1px; }
 .row .trail { flex: none; display: flex; align-items: center; gap: 10px; }
-.row .chevron { width: 8px; height: 14px; color: #C9BFA8; flex: none; }
+.row .chevron { width: 8px; height: 14px; color: var(--mark-faint); flex: none; }
 /* external-destination row: a quiet ↗ after the title, signalling the link
    leaves this portal (e.g. the scout page's "what's new" → solstone.app). */
 .row .title .ext { width: 11px; height: 11px; color: var(--ink-faint); margin-left: 3px; vertical-align: -1px; }
@@ -256,11 +310,11 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
   font-size: 0.8rem; font-weight: 600; padding: 3px 10px; border-radius: 999px;
   white-space: nowrap;
 }
-.pill.on  { background: var(--orange-wash); color: #8A5314; }  /* darker orange-brown: 5.56:1 on the wash */
-.pill.off { background: #F0ECE2; color: var(--ink-faint); }
+.pill.on  { background: var(--orange-wash); color: var(--tag-builtin-ink); }
+.pill.off { background: var(--tag-neutral-bg); color: var(--ink-faint); }
 .pill .dot { width: 7px; height: 7px; border-radius: 50%; }
 .pill.on .dot  { background: var(--orange); }
-.pill.off .dot { background: #C2B89F; }
+.pill.off .dot { background: var(--pill-dot); }
 
 /* catalog + service-page components (services-sitemap revamp, part 1) */
 .price { font-family:var(--font-body); font-weight:600; font-size:.92rem; color:var(--ink); white-space:nowrap; }
@@ -269,7 +323,7 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 .tag.builtin { background:var(--orange-wash); color:var(--tag-builtin-ink); }      /* was #8A5314 */
 .tag.free { background:var(--tag-free-bg); color:var(--tag-free-ink); }             /* was #EDEFEA / #4F5848 */
 .tag.soon { background:var(--tag-neutral-bg); color:var(--ink-faint); }            /* was #F0ECE2 */
-.brandlock { display:flex; align-items:center; gap:8px; color:var(--orange-ink); font-size:.95rem; margin:0 0 18px; }
+.brandlock { display:flex; align-items:center; gap:8px; color:var(--orange-text-aa); font-size:.95rem; margin:0 0 18px; }
 .brandlock .dot { width:7px; height:7px; border-radius:50%; background:var(--orange); flex:none; }
 .hero-tag { font-family:var(--font-display); font-weight:700; font-size:1.18rem; color:var(--orange-ink); margin:2px 0 14px; }
 .beat { display:flex; align-items:flex-start; gap:13px; padding:16px 0; border-top:1px solid var(--hairline); }
@@ -290,11 +344,11 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
 .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
 .switch .track {
   position: absolute; inset: 0; border-radius: 999px;
-  background: #D8CFBC; transition: background .15s;
+  background: var(--track-off); transition: background .15s;
 }
 .switch .knob {
   position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
-  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s;
+  background: var(--knob); box-shadow: 0 1px 2px var(--shadow-knob); transition: transform .15s;
 }
 .switch input:checked + .track { background: var(--orange); }
 .switch input:checked + .track + .knob { transform: translateX(18px); }
@@ -307,12 +361,12 @@ a.row:hover { background: #FDFBF6; text-decoration: none; }
   font: inherit; font-weight: 600; cursor: pointer; border: 1px solid transparent;
   text-decoration: none;
 }
-.btn.primary  { background: var(--orange); color: var(--ink); border-color: var(--orange); }
-.btn.primary:hover { background: #E9963F; filter: brightness(1.02); }
+.btn.primary  { background: var(--orange); color: var(--ink-on-brand); border-color: var(--orange); }
+.btn.primary:hover { background: var(--orange-hover); filter: brightness(1.02); }
 .btn.secondary { background: transparent; color: var(--ink); border-color: var(--hairline-2); }
-.btn.secondary:hover { background: #FBF6EC; text-decoration: none; }
-.btn.danger { background: transparent; color: var(--danger); border-color: #E2C4C4; }
-.btn.danger:hover { background: #FBF1F1; text-decoration: none; }
+.btn.secondary:hover { background: var(--hover-fill); text-decoration: none; }
+.btn.danger { background: transparent; color: var(--danger); border-color: var(--danger-line); }
+.btn.danger:hover { background: var(--danger-wash); text-decoration: none; }
 .btn.block { width: 100%; }
 .btn[disabled] { opacity: .55; cursor: not-allowed; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
@@ -345,24 +399,23 @@ input.code {
   color: var(--ink-soft); font-size: 0.92rem;
 }
 .notice:empty { background: transparent; border: 0; padding: 0; margin: 0; }
-.notice.warn { background: #FBF1E8; }
 .error {
-  background: #FBF1F1; border-left: 3px solid var(--danger);
+  background: var(--danger-wash); border-left: 3px solid var(--danger);
   border-radius: var(--radius-sm); padding: 12px 14px; margin: 0 0 16px;
-  color: #7d2525; font-size: 0.92rem;
+  color: var(--error-ink); font-size: 0.92rem;
 }
 .disclosure { color: var(--ink-faint); font-size: 0.86rem; margin-top: 22px; }
 
 /* empty state: icon + heading + desc + action */
 .empty { text-align: center; padding: 30px 18px; color: var(--ink-faint); }
-.empty .ic { width: 38px; height: 38px; margin: 0 auto 12px; color: #C9BFA8; display: block; }
+.empty .ic { width: 38px; height: 38px; margin: 0 auto 12px; color: var(--mark-faint); display: block; }
 .empty h2 { color: var(--ink-soft); }
 .empty p { color: var(--ink-faint); margin: 0 auto 16px; max-width: 36ch; }
 
 /* card (single panel, e.g. consent) */
 .card {
   background: var(--paper); border: 1px solid var(--hairline);
-  border-radius: var(--radius); padding: 22px; box-shadow: 0 1px 2px rgba(90,70,40,.04);
+  border-radius: var(--radius); padding: 22px; box-shadow: 0 1px 2px var(--shadow-raise);
 }
 
 /* grant blocks (consent) */
@@ -370,7 +423,7 @@ input.code {
 .grant + .grant { border-top: 1px solid var(--hairline); }
 .grant .n {
   flex: none; width: 26px; height: 26px; border-radius: 50%;
-  background: var(--orange-wash); color: var(--orange-ink);
+  background: var(--orange-wash); color: var(--tag-builtin-ink);
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 0.9rem;
 }
@@ -383,7 +436,7 @@ input.code {
   display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center;
 }
 .footer a { color: var(--ink-faint); font-size: 0.86rem; display: inline-flex; align-items: center; gap: 5px; }
-.footer a:hover { color: var(--orange-ink); }
+.footer a:hover { color: var(--orange-text-aa); }
 .footer .ext { width: 11px; height: 11px; }
 
 /* nav (sub-pages) */

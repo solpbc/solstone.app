@@ -207,8 +207,8 @@ export function parseTokens(styleReader) {
     glowColor: parseCol('--sunarc-glow-color'),
     orange: parseCol('--orange'),
     sunrise: parseCol('--sunarc-sunrise'),
-    // § 6: the page's own ground (tile cream) is the light day ground; night and true dark are the table's.
-    groundLightDay: parseCol('--cream'),
+    // The light day ground is --sunarc-ground-light-day. --cream flips with appearance and is not an engine token.
+    groundLightDay: parseCol('--sunarc-ground-light-day'),
     groundLightNight: parseCol('--sunarc-ground-light-night'),
     groundLightDeep: parseCol('--sunarc-ground-light-deep'),
     groundDarkDay: parseCol('--sunarc-ground-dark-day'),

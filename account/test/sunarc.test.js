@@ -50,17 +50,33 @@ function makeTokenReader(overrides = {}) {
 
 const defaultTokens = parseTokens(makeTokenReader());
 
+function braceBlock(css, start) {
+  const open = css.indexOf('{', start);
+  if (open < 0) return null;
+  let depth = 0;
+  for (let i = open; i < css.length; i += 1) {
+    if (css[i] === '{') depth += 1;
+    else if (css[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return css.slice(open + 1, i);
+    }
+  }
+  return null;
+}
+
 describe('content container (spec section 8)', () => {
   it('puts the content on its own paper in both appearances, keyed on the system setting, never an attribute', () => {
-    // Light: tile cream at 75%, so the sun reads through by day and faint text clears AA at true dark.
-    expect(portalCssText).toMatch(/\nmain\s*\{\s*background:\s*rgb\(252 243 228 \/ 0\.75\);\s*border-radius:\s*var\(--radius\);\s*\}/);
-    // Dark: solid cream, and the pre-script body fallback is the dark day ground, not a cream flash.
-    const dark = portalCssText.match(/@media \(prefers-color-scheme: dark\)\s*\{([\s\S]*?)\n\}/);
+    const darkAt = portalCssText.indexOf('@media (prefers-color-scheme: dark)');
+    expect(darkAt).toBeGreaterThan(0);
+    expect(portalCssText.slice(0, darkAt)).toMatch(/color-scheme:\s*light dark/);
+    expect(portalCssText).toMatch(/\nmain\s*\{[^}]*background:\s*var\(--panel\);/);
+    expect(portalCssText).not.toContain('rgb(252 243 228 / 0.75)');
+    const dark = braceBlock(portalCssText, darkAt);
     expect(dark).not.toBeNull();
-    expect(dark[1]).toMatch(/main\s*\{\s*background:\s*var\(--cream\);\s*\}/);
-    expect(dark[1]).toMatch(/body\s*\{\s*background:\s*var\(--sunarc-mixed,\s*var\(--sunarc-ground-dark-day\)\);\s*\}/);
+    expect(dark).not.toMatch(/main\s*\{[^}]*background:\s*var\(--cream\)/);
+    expect(dark).toMatch(/body\s*\{\s*background:\s*var\(--sunarc-mixed,\s*var\(--sunarc-ground-dark-day\)\);\s*\}/);
     expect(portalCssText).not.toContain('[data-appearance');
-    // Service cards keep their own white fill.
+    // Service cards keep their own paper fill.
     expect(portalCssText).toMatch(/\.group\s*\{\s*background:\s*var\(--paper\);/);
     expect(portalCssText).toMatch(/\.card\s*\{\s*background:\s*var\(--paper\);/);
   });
@@ -484,7 +500,7 @@ describe('sunarc background', () => {
     const brokenNumReader = makeTokenReader({ '--sunarc-diameter-ratio': 'invalid-not-a-number' });
     const brokenColorReader = makeTokenReader({ '--sunarc-glow-color': 'not-a-valid-hex' });
     const brokenGroundReader = makeTokenReader({ '--sunarc-ground-dark-night': 'not-a-valid-hex' });
-    const brokenCreamReader = makeTokenReader({ '--cream': 'not-a-valid-hex' });
+    const brokenCreamReader = makeTokenReader({ '--sunarc-ground-light-day': 'not-a-valid-hex' });
     const missingTwilightReader = makeTokenReader({ '--sunarc-twilight-alpha-light': undefined });
 
     expect(parseTokens(brokenNumReader)).toBeNull();
@@ -599,7 +615,7 @@ describe('sun arc in both appearances (spec sections 4a, 6, 7, 8a, 12)', () => {
   const SET = 1135.65;
   const VP = { w: 393, h: 852 };
   // The table's light day ground is surface cream; this page's own is tile cream (section 6).
-  const specTokens = parseTokens(makeTokenReader({ '--cream': '#FEFCF8' }));
+  const specTokens = parseTokens(makeTokenReader({ '--sunarc-ground-light-day': '#FEFCF8' }));
 
   function at(h, m) {
     return new Date(2026, 8, 23, h, m, 0);
@@ -770,7 +786,7 @@ describe('sun arc in both appearances (spec sections 4a, 6, 7, 8a, 12)', () => {
         utcOffsetHours: -6,
         zoneId: 'America/Denver',
         matchMedia: media.matchMedia,
-        getComputedStyle: () => ({ getPropertyValue: makeTokenReader({ '--cream': '#FEFCF8' }) }),
+        getComputedStyle: () => ({ getPropertyValue: makeTokenReader({ '--sunarc-ground-light-day': '#FEFCF8' }) }),
       });
       controller.start();
       // Dark at start: the first tick draws the dark row, with no change event needed.
@@ -789,6 +805,25 @@ describe('sun arc in both appearances (spec sections 4a, 6, 7, 8a, 12)', () => {
       controller.stop();
       expect(media.listeners.size).toBe(0);
     }
+  });
+
+  it('keeps the light day ground when --cream has flipped', () => {
+    const doc = createMockDoc();
+    const media = createMockMedia(false);
+    const controller = createSunarcController({
+      document: doc,
+      window: { innerWidth: 393, innerHeight: 852 },
+      viewport: () => VP,
+      now: () => at(13, 0),
+      utcOffsetHours: -6,
+      zoneId: 'America/Denver',
+      matchMedia: media.matchMedia,
+      getComputedStyle: () => ({ getPropertyValue: makeTokenReader({ '--cream': '#221C19' }) }),
+    });
+    controller.start();
+    expect(controller.getFrame().appearance).toBe('light');
+    expect(doc.documentElement.style.properties.get('--sunarc-mixed')).toBe('#FCF3E4');
+    controller.stop();
   });
 
   it('the twilight glow changes colour with the appearance on the same event', () => {

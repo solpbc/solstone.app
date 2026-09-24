@@ -171,3 +171,97 @@ function listJsFiles(dir, root = dir) {
   }
   return files;
 }
+
+function stripColourComments(text) {
+  const withoutBlocks = text.replace(/\/\*[\s\S]*?\*\//g, '');
+  return withoutBlocks.replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
+
+function exemptRootCustomProps(text) {
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    const idx = text.indexOf(':root', i);
+    if (idx < 0) {
+      out += text.slice(i);
+      break;
+    }
+    const before = idx > 0 ? text[idx - 1] : '';
+    if (/[\w-]/.test(before)) {
+      out += text.slice(i, idx + 5);
+      i = idx + 5;
+      continue;
+    }
+    const open = text.indexOf('{', idx);
+    if (open < 0 || text.slice(idx + 5, open).trim() !== '') {
+      out += text.slice(i, idx + 5);
+      i = idx + 5;
+      continue;
+    }
+    let depth = 0;
+    let j = open;
+    for (; j < text.length; j += 1) {
+      if (text[j] === '{') depth += 1;
+      else if (text[j] === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          j += 1;
+          break;
+        }
+      }
+    }
+    const block = text.slice(open, j);
+    const stripped = block.replace(/(^|[{;}])(\s*)--[\w-]+\s*:[^;]*/g, '$1$2');
+    out += text.slice(i, open) + stripped;
+    i = j;
+  }
+  return out;
+}
+
+function allowMarkSvg(text) {
+  return text.replace(/const MARK_SVG = '[\s\S]*?';/, (literal) => literal
+    .replace('fill="#FFCC33"', 'fill=""')
+    .replace('stroke="#E8913A"', 'stroke=""'));
+}
+
+function colourLiterals(text) {
+  const prepared = allowMarkSvg(exemptRootCustomProps(stripColourComments(text)));
+  const hits = [];
+  const patterns = [
+    /(?<![A-Za-z0-9])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})(?![0-9a-fA-F])/g,
+    /(?:rgba?|hsla?)\(\s*[0-9.]/gi,
+    /(?<![\w-])(?:white|black)(?![\w-])/gi,
+  ];
+  for (const pattern of patterns) {
+    for (const match of prepared.matchAll(pattern)) hits.push(match[0]);
+  }
+  return hits;
+}
+
+describe('portal colour literals', () => {
+  const colourFiles = [
+    join(srcDir, 'portal.css'),
+    join(srcDir, 'assets.js'),
+    join(srcDir, 'html.js'),
+    join(srcDir, 'support-html.js'),
+    ...readdirSync(join(srcDir, 'inline'))
+      .filter((name) => name.endsWith('.js'))
+      .map((name) => join(srcDir, 'inline', name)),
+  ];
+
+  it('finds none in the portal content files', () => {
+    const hits = colourFiles.flatMap((file) => colourLiterals(readFileSync(file, 'utf8')).map((hit) => `${relative(srcDir, file)}: ${hit}`));
+    expect(hits).toEqual([]);
+  });
+
+  it('flags literals in strings and passes the exemptions', () => {
+    expect(colourLiterals('const s = "color:#A15F17";')).not.toEqual([]);
+    expect(colourLiterals('const svg = \'<svg stroke="#B06A1A"></svg>\';')).not.toEqual([]);
+    expect(colourLiterals(':root { --x: #A15F17; }')).toEqual([]);
+    expect(colourLiterals(':root { --a: #111111; --b: rgb(1, 2, 3); }')).toEqual([]);
+    expect(colourLiterals('white-space:nowrap')).toEqual([]);
+    expect(colourLiterals('white-space:pre-wrap')).toEqual([]);
+    expect(colourLiterals('see https://example.com for docs')).toEqual([]);
+    expect(colourLiterals('style="--x:#A15F17;color:var(--x)"')).not.toEqual([]);
+  });
+});

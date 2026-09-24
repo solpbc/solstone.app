@@ -25,7 +25,7 @@ const IC_BACKUP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="curre
 const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 12v3"/></svg>';
 const IC_CHIP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/></svg>';
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
-const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B06A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.2l2.6 2.6L16 9"/></svg>';
+const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--orange-ink)"><circle cx="12" cy="12" r="9.5" stroke="currentColor"/><path d="M8 12.2l2.6 2.6L16 9" stroke="currentColor"/></svg>';
 const SCOUT_PROGRAM_COVENANT = "confidential processing: no content is retained · no human reviews it · nothing is used to train. your journal must verify the service before anything is sent.";
 // The signed-in page lists every class the download carries (see handleTransparency), newest
 // rows first and long histories shortened, so the lead claims kinds of record, not every row;
@@ -89,7 +89,7 @@ export function topbar({ email = null, lastSignInAt = null, now = null, deletion
 const BRANDLOCK = `<p class="brandlock"><span class="dot"></span>your journal is always private, only yours.</p>`;
 
 function brandbarSignin() {
-  return `<div class="topbar"><a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a><a href="/?signin" style="color:var(--orange-ink);font-weight:600;text-decoration:none">sign in</a></div>`;
+  return `<div class="topbar"><a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a><a href="/?signin" style="color:var(--orange-text-aa);font-weight:600;text-decoration:none">sign in</a></div>`;
 }
 
 function row(href, ic, title, desc, trail) {
@@ -151,7 +151,7 @@ export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "si
     ${resumeHtml}
     <label for="email">email</label>
     <input id="email" type="email" name="email" autocomplete="email webauthn" required placeholder="you@example.com" maxlength="254">
-    <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}" data-theme="light"></div>
+    <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}" data-theme="auto"></div>
     <button class="btn primary block" type="submit">continue</button>
   </form>
 </div>
@@ -1425,8 +1425,8 @@ const TRANSPARENCY_GROUPS = [
   { heading: 'scout', href: '/scout', classes: ['scout_applications', 'scout_lifecycle_events'] },
 ];
 
-// #A15F17 is the AA-contrast orange for normal-size link text on cream (vpx tokens).
-const TRANSPARENCY_LINK_STYLE = 'font-weight:400;color:#A15F17';
+// Normal-size orange link text. --orange-text-aa clears 4.5:1 on cream.
+const TRANSPARENCY_LINK_STYLE = 'font-weight:400;color:var(--orange-text-aa)';
 const TRANSPARENCY_MONO = 'font-size:.84rem;font-family:ui-monospace,Menlo,monospace;font-weight:400;overflow-wrap:anywhere';
 const TRANSPARENCY_UNAVAILABLE = "these couldn't be loaded just now. reload to try again.";
 
