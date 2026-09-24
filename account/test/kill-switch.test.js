@@ -156,12 +156,13 @@ async function collisionSnapshotFor(address) {
     verifiedAt: Date.now(),
     testEnv,
   });
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
   const { response } = await fetchWithCtx(
     worker,
     emailAddRequest({ address, cookie: session.cookie }),
     testEnv
   );
+  warn.mockRestore();
   return responseSnapshot(response);
 }
 

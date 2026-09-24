@@ -14,7 +14,7 @@ describe('migration 0035 account deletion proofs credential-change purpose', () 
   beforeEach(async () => {
     await resetDb();
     const { results } = await workerEnv.DB.prepare(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND substr(name, 1, 4) != '_cf_'"
     ).all();
     for (const { name } of results) await workerEnv.DB.prepare(`DROP TABLE ${name}`).run();
   });

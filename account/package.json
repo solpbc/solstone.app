@@ -3,14 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node scripts/run-worker-tests.mjs && vitest run --config vitest.static.config.js",
+    "test": "vitest run && vitest run --config vitest.static.config.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.5.41",
-    "vitest": "^2.1.9",
-    "wrangler": "^3.100.0"
+    "@cloudflare/vitest-plugin": "^1.2.5",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.138.0"
   },
   "dependencies": {
     "@simplewebauthn/server": "^13.3.3",

@@ -13,7 +13,7 @@ describe('owner data inventory', () => {
 
   it('covers every canonical table and column exactly once with a closed treatment', async () => {
     const { results } = await workerEnv.DB.prepare(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND substr(name, 1, 4) != '_cf_' ORDER BY name"
     ).all();
     const actualTables = results.map(({ name }) => name);
     const inventoryTables = OWNER_DATA_INVENTORY.map(({ name }) => name).sort();

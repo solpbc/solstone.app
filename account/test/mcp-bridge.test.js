@@ -439,6 +439,7 @@ describe('MCP bridge token endpoint', () => {
       const rng = vi.spyOn(crypto, 'getRandomValues');
       await expectError(await fetchBridge(input, env), status, error);
       expect(rng).not.toHaveBeenCalled();
+      rng.mockRestore();
       expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
       expect(await rowCount('mcp_bridge_bindings')).toBe(0);
     }

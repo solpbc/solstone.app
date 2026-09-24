@@ -45,7 +45,7 @@ describe('schema.sql mirrors the replayed migrations', () => {
 
 async function dropEverything() {
   const { results } = await workerEnv.DB.prepare(
-    "SELECT name, type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND type IN ('table', 'view')"
+    "SELECT name, type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND substr(name, 1, 4) != '_cf_' AND type IN ('table', 'view')"
   ).all();
   for (const { name, type } of results) await workerEnv.DB.prepare(`DROP ${type.toUpperCase()} IF EXISTS "${name}"`).run();
 }
@@ -63,7 +63,7 @@ async function shape() {
   const tables = {};
   const indexes = {};
   const { results: objects } = await workerEnv.DB.prepare(
-    "SELECT name, type, tbl_name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND type IN ('table', 'index') ORDER BY type, name"
+    "SELECT name, type, tbl_name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND substr(name, 1, 4) != '_cf_' AND type IN ('table', 'index') ORDER BY type, name"
   ).all();
   for (const object of objects) {
     if (object.type === 'table') {

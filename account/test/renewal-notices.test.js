@@ -1217,7 +1217,7 @@ sol pbc`;
       expect(email0.text).toBe('Here is a <b>bold</b> statement & a note.\n\nSecond paragraph.');
       expect(email0.html).toContain('&lt;b&gt;bold&lt;/b&gt; statement &amp; a note.');
       expect(email0.html).toContain('<p>Second paragraph.</p>');
-    });
+    }, 20_000);
 
     // 9. Catch-up skips account with null primary_email_id
     it('9. Catch-up skips account whose primary_email_id is null and logs reason no_email', async () => {
