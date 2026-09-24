@@ -189,8 +189,9 @@ function installBackupS3State(testEnv, {
       }
       if (method === 'POST' && url.searchParams.has('delete')) {
         const keys = Array.from(bodyText.matchAll(/<Key>([\s\S]*?)<\/Key>/g), (match) => match[1]);
+        const deleted = new Set(keys);
         for (const [prefix, current] of objectState.entries()) {
-          objectState.set(prefix, current.filter((key) => !keys.includes(key)));
+          objectState.set(prefix, current.filter((key) => !deleted.has(key)));
         }
         return xmlResponse(`<DeleteResult>${keys.map((key) => `<Deleted><Key>${key}</Key></Deleted>`).join('')}</DeleteResult>`);
       }
