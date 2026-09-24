@@ -1,8 +1,12 @@
 import { cloudflareTest } from '@cloudflare/vitest-plugin';
 import { defineConfig } from 'vitest/config';
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
+
+// Miniflare keeps test D1 in SQLite under the OS temp dir and syncs it on every query,
+// reads included. The storage is thrown away after each run, so on Linux keep it in memory.
+if (process.platform === 'linux' && existsSync('/dev/shm')) process.env.TMPDIR = '/dev/shm';
 
 const fixtureWriterUrl = await startFixtureWriter();
 
