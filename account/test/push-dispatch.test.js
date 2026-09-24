@@ -392,7 +392,9 @@ describe('push dispatch endpoint', () => {
     ['a missing envelope', () => { const d = inlineDevice('push-1'); delete d.envelope; return d; }],
     ['a non-hex token', () => ({ ...inlineDevice('push-1'), token: 'not-hex-token' })],
     ['an uppercase hex token', () => ({ ...inlineDevice('push-1'), token: 'ABCDEF' })],
-    ['an overlong token', () => ({ ...inlineDevice('push-1'), token: 'a'.repeat(201) })],
+    ['an overlong token', () => ({ ...inlineDevice('push-1'), token: 'a'.repeat(202) })],
+    ['an odd-length token', () => ({ ...inlineDevice('push-1'), token: 'a'.repeat(17) })],
+    ['a too-short token', () => ({ ...inlineDevice('push-1'), token: 'ab'.repeat(7) })],
     ['an unknown environment', () => inlineDevice('push-1', { environment: 'development' })],
     ['a short envelope', () => inlineDevice('push-1', { envelope: sealedEnvelope(1).slice(0, ENVELOPE_CHARS - 4) })],
     ['a long envelope', () => inlineDevice('push-1', { envelope: sealedEnvelope(1) + 'AAAA' })],
@@ -503,9 +505,10 @@ function validDispatchBody(overrides = {}) {
   };
 }
 
-// APNs tokens are lowercase hex; tests name them readably and encode the name.
+// APNs tokens are lowercase hex; tests name them readably and encode the name,
+// padded to the 8-byte minimum the relay accepts.
 function tok(name) {
-  return Buffer.from(name, 'utf8').toString('hex');
+  return Buffer.from(name.padEnd(8, '.'), 'utf8').toString('hex');
 }
 
 // A well-formed envelope: version byte, then filler of the sealed length.

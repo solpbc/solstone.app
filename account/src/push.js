@@ -206,7 +206,9 @@ async function readJsonObject(req) {
 
 const DISPATCH_BODY_KEYS = ['devices'];
 const DEVICE_KEYS = ['envelope', 'environment', 'token'];
-const APNS_TOKEN_PATTERN = /^[0-9a-f]{1,200}$/;
+// APNs device tokens are bytes: even-length lowercase hex, 16..200 characters.
+// The journal validates registrations with the same rule.
+const APNS_TOKEN_PATTERN = /^(?:[0-9a-f]{2}){8,100}$/;
 const ENVELOPE_PATTERN = new RegExp(`^[A-Za-z0-9_-]{${ENVELOPE_CHARS}}$`);
 
 function hasExactKeys(value, keys) {
