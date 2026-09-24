@@ -14,7 +14,7 @@ export async function handlePushDispatch(req, env) {
   const devices = input.devices;
 
   if (devices.length === 0) {
-    return json({ ok: true, sent: 0, failed: 0, revoked: 0, revoked_tokens: [], failures: [] });
+    return json({ results: [] });
   }
 
   let jwt;
@@ -108,21 +108,23 @@ export function buildAlertPayload(envelope) {
   };
 }
 
+// Returns exactly one result per input device, in input order, so the caller
+// never has to infer an outcome from a device's absence.
 export async function fanOutSends(env, jwt, devices, payloadFor, headersFor) {
   requireApnsConfig(env);
+  const results = new Array(devices.length);
   const firstResults = await Promise.allSettled(
-    devices.map((device, index) => sendForIndex(env, jwt, devices, payloadFor, headersFor, index, false))
+    devices.map((device) => sendOne(env, jwt, device, payloadFor, headersFor))
   );
   const expiredIndices = [];
-  const outcomes = [];
-  for (const result of firstResults) {
-    const outcome = settledOutcome(result);
+  firstResults.forEach((settled, index) => {
+    const outcome = settledOutcome(settled);
     if (outcome.kind === 'expired') {
-      expiredIndices.push(outcome.index);
+      expiredIndices.push(index);
     } else {
-      outcomes.push(outcome);
+      results[index] = outcome;
     }
-  }
+  });
 
   if (expiredIndices.length > 0) {
     let freshJwt = null;
@@ -134,61 +136,38 @@ export async function fanOutSends(env, jwt, devices, payloadFor, headersFor) {
     }
     if (freshJwt) {
       const retryResults = await Promise.allSettled(
-        expiredIndices.map((index) => sendForIndex(env, freshJwt, devices, payloadFor, headersFor, index, true))
+        expiredIndices.map((index) => sendOne(env, freshJwt, devices[index], payloadFor, headersFor))
       );
-      for (const result of retryResults) outcomes.push(settledOutcome(result));
+      retryResults.forEach((settled, position) => {
+        const outcome = settledOutcome(settled);
+        results[expiredIndices[position]] =
+          outcome.kind === 'expired' ? { kind: 'failed', reason: outcome.reason } : outcome;
+      });
     } else {
       for (const index of expiredIndices) {
-        outcomes.push({
-          index,
-          token: devices[index]?.token || '',
-          kind: 'failed',
-          reason: 'jwt_mint_failed',
-        });
+        results[index] = { kind: 'failed', reason: 'jwt_mint_failed' };
       }
     }
   }
 
-  return aggregateOutcomes(outcomes);
-}
-
-function settledOutcome(result) {
-  if (result.status === 'fulfilled') return result.value;
   return {
-    index: -1,
-    token: '',
-    kind: 'failed',
-    reason: 'send_failed',
+    results: results.map((outcome, index) => resultFor(devices[index].token, outcome)),
   };
 }
 
-async function sendForIndex(env, jwt, devices, payloadFor, headersFor, index, retried) {
-  const device = devices[index];
-  const outcome = await apnsSend(env, jwt, device, payloadFor(device), headersFor(jwt, device));
-  if (outcome.kind === 'expired' && retried) {
-    return { ...outcome, kind: 'failed' };
-  }
-  return { index, ...outcome };
+function settledOutcome(settled) {
+  if (settled.status === 'fulfilled') return settled.value;
+  return { kind: 'failed', reason: 'send_failed' };
 }
 
-function aggregateOutcomes(outcomes) {
-  let sent = 0;
-  let failed = 0;
-  let revoked = 0;
-  const revoked_tokens = [];
-  const failures = [];
-  for (const outcome of outcomes) {
-    if (outcome.kind === 'sent') {
-      sent += 1;
-    } else if (outcome.kind === 'revoked') {
-      revoked += 1;
-      revoked_tokens.push(outcome.token);
-    } else {
-      failed += 1;
-      failures.push({ token: outcome.token, reason: outcome.reason || 'send_failed' });
-    }
-  }
-  return { ok: failed === 0, sent, failed, revoked, revoked_tokens, failures };
+function sendOne(env, jwt, device, payloadFor, headersFor) {
+  return apnsSend(env, jwt, device, payloadFor(device), headersFor(jwt, device));
+}
+
+function resultFor(token, outcome) {
+  if (outcome.kind === 'sent') return { token, outcome: 'sent' };
+  if (outcome.kind === 'revoked') return { token, outcome: 'revoked', reason: outcome.reason || 'unregistered' };
+  return { token, outcome: 'failed', reason: outcome.reason || 'send_failed' };
 }
 
 async function readJsonObject(req) {

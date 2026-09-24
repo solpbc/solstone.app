@@ -37,14 +37,7 @@ describe('push dispatch endpoint', () => {
       }),
     }), testEnv);
 
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 2,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
+    expect(await response.json()).toEqual({ results: [{ token: tok('push-a'), outcome: 'sent' }, { token: tok('push-b'), outcome: 'sent' }] });
     expect(calls).toHaveLength(2);
     expect(calls.map(({ url }) => url.host)).toEqual(['api.push.apple.com', 'api.push.apple.com']);
     expect(calls.map(({ url }) => url.pathname)).toEqual([`/3/device/${tok('push-a')}`, `/3/device/${tok('push-b')}`]);
@@ -103,14 +96,7 @@ describe('push dispatch endpoint', () => {
     const text = await response.text();
 
     expect(response.status).toBe(200);
-    expect(JSON.parse(text)).toEqual({
-      ok: true,
-      sent: 1,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
+    expect(JSON.parse(text)).toEqual({ results: [{ token: tok('push-1'), outcome: 'sent' }] });
     expect(text).not.toContain(instanceId);
     expect(calls).toHaveLength(1);
   });
@@ -164,14 +150,7 @@ describe('push dispatch endpoint', () => {
       }),
     }), testEnv);
 
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 2,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
+    expect(await response.json()).toEqual({ results: [{ token: tok('prod-token'), outcome: 'sent' }, { token: tok('sandbox-token'), outcome: 'sent' }] });
     expect(calls.map(({ url }) => url.host).sort()).toEqual([
       'api.push.apple.com',
       'api.sandbox.push.apple.com',
@@ -191,14 +170,7 @@ describe('push dispatch endpoint', () => {
       }),
     }), testEnv);
 
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 0,
-      failed: 0,
-      revoked: 1,
-      revoked_tokens: [tok('revoked-push-token')],
-      failures: [],
-    });
+    expect(await response.json()).toEqual({ results: [{ token: tok('revoked-push-token'), outcome: 'revoked', reason: 'Unregistered' }] });
   });
 
   it('retains the token on 400 BadDeviceToken instead of revoking it', async () => {
@@ -215,14 +187,7 @@ describe('push dispatch endpoint', () => {
       }),
     }), testEnv);
 
-    expect(await response.json()).toEqual({
-      ok: false,
-      sent: 0,
-      failed: 1,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [{ token: tok('bad-device-token'), reason: 'BadDeviceToken' }],
-    });
+    expect(await response.json()).toEqual({ results: [{ token: tok('bad-device-token'), outcome: 'failed', reason: 'BadDeviceToken' }] });
     expect(spy.calls).toContainEqual({
       level: 'warn',
       args: ['apns_send_failed', { status: 400, reason: 'BadDeviceToken' }],
@@ -244,14 +209,7 @@ describe('push dispatch endpoint', () => {
       }),
     }), testEnv);
 
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 0,
-      failed: 0,
-      revoked: 1,
-      revoked_tokens: [tok('stale-410-token')],
-      failures: [],
-    });
+    expect(await response.json()).toEqual({ results: [{ token: tok('stale-410-token'), outcome: 'revoked', reason: 'BadDeviceToken' }] });
   });
 
   it('deletes cached JWT once and retries all ExpiredProviderToken sends with one fresh JWT', async () => {
@@ -275,14 +233,7 @@ describe('push dispatch endpoint', () => {
       }),
     }), testEnv);
 
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 3,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
+    expect(await response.json()).toEqual({ results: [{ token: tok('push-a'), outcome: 'sent' }, { token: tok('push-b'), outcome: 'sent' }, { token: tok('push-c'), outcome: 'sent' }] });
     expect(calls).toHaveLength(6);
     expect(kv.deletes).toEqual([apnsJwtCacheKey(testEnv)]);
     expect(kv.puts).toHaveLength(2);
@@ -299,16 +250,34 @@ describe('push dispatch endpoint', () => {
       body: validDispatchBody({ devices: [] }),
     }), testEnv);
 
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 0,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
+    expect(await response.json()).toEqual({ results: [] });
     expect(kv.puts).toEqual([]);
     expect(calls).toHaveLength(0);
+  });
+
+  it('returns one result per device in input order, including a send that throws', async () => {
+    const testEnv = apnsEnv();
+    installApnsFetchMock({
+      'POST api.push.apple.com': async ({ url }) => {
+        if (url.pathname.endsWith(tok('push-b'))) throw new Error('socket hang up');
+        return new Response('{}', { status: 200 });
+      },
+    });
+
+    const response = await worker.fetch(dispatchRequest({
+      token: await relayToken(testEnv),
+      body: validDispatchBody({
+        devices: [inlineDevice('push-a'), inlineDevice('push-b'), inlineDevice('push-c')],
+      }),
+    }), testEnv);
+
+    expect(await response.json()).toEqual({
+      results: [
+        { token: tok('push-a'), outcome: 'sent' },
+        { token: tok('push-b'), outcome: 'failed', reason: 'fetch_failed' },
+        { token: tok('push-c'), outcome: 'sent' },
+      ],
+    });
   });
 
   it('builds a fixed alert around the envelope and carries nothing else', () => {
