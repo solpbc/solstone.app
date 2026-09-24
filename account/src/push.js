@@ -25,45 +25,12 @@ export async function handlePushDispatch(req, env) {
     return json({ error: 'server_error' }, { status: 500 });
   }
 
-  const payload = buildAlertPayload(input);
   const result = await fanOutSends(
     env,
     jwt,
     devices,
-    payload,
-    (activeJwt) => dispatchHeadersFor(env, activeJwt, input)
-  );
-  return json(result);
-}
-
-export async function handlePushDedup(req, env) {
-  const auth = await authorizeRelay(req, env);
-  if (auth instanceof Response) return auth;
-  const body = await readJsonObject(req);
-  if (body instanceof Response) return body;
-  const input = validateDedupBody(body);
-  if (input instanceof Response) return input;
-  const devices = input.devices;
-
-  if (devices.length === 0) {
-    return json({ ok: true, sent: 0, failed: 0, revoked: 0, revoked_tokens: [], failures: [] });
-  }
-
-  let jwt;
-  try {
-    jwt = await cachedApnsJwt(env);
-  } catch {
-    console.warn('apns_jwt_mint_failed');
-    return json({ error: 'server_error' }, { status: 500 });
-  }
-
-  const payload = buildSilentPayload(input);
-  const result = await fanOutSends(
-    env,
-    jwt,
-    devices,
-    payload,
-    (activeJwt) => dedupHeadersFor(env, activeJwt, input)
+    (device) => buildAlertPayload(device.envelope),
+    (activeJwt) => dispatchHeadersFor(env, activeJwt)
   );
   return json(result);
 }
@@ -117,38 +84,34 @@ export function apnsJwtCacheKey(env) {
   return `apns_jwt:${env.APNS_KEY_ID}:v1`;
 }
 
-export function buildAlertPayload({ title, summary, aps_category, action, request_id, category }) {
+// The alert text is fixed and identical for every notification to every
+// owner: it is what the phone shows if its notification service extension
+// cannot open the envelope. Everything the owner reads arrives inside the
+// envelope, which this service cannot decrypt.
+export const FIXED_ALERT_TITLE = 'solstone';
+export const FIXED_ALERT_BODY = 'you have a new notification.';
+
+// 0x01 || nonce(12) || ciphertext(1024) || tag(16)
+export const ENVELOPE_BYTES = 1053;
+export const ENVELOPE_CHARS = 1404;
+export const MAX_DISPATCH_DEVICES = 16;
+const APNS_EXPIRATION_SECONDS = 24 * 60 * 60;
+
+export function buildAlertPayload(envelope) {
   return {
     aps: {
-      alert: { title, body: summary },
-      category: aps_category,
+      alert: { title: FIXED_ALERT_TITLE, body: FIXED_ALERT_BODY },
       sound: 'default',
       'mutable-content': 1,
-      'content-available': 1,
     },
-    data: { action, request_id, category },
+    e: envelope,
   };
 }
 
-export function buildSilentPayload({ request_id, action }) {
-  return {
-    aps: { 'mutable-content': 1, 'content-available': 1 },
-    data: { action, request_id },
-  };
-}
-
-export function buildAlertCollapseId({ kind, request_id }) {
-  return `${kind}:${request_id}`;
-}
-
-export function buildSilentCollapseId({ kind, request_id, action }) {
-  return `${kind}:${request_id}:${action}`;
-}
-
-export async function fanOutSends(env, jwt, devices, payload, headersFor) {
+export async function fanOutSends(env, jwt, devices, payloadFor, headersFor) {
   requireApnsConfig(env);
   const firstResults = await Promise.allSettled(
-    devices.map((device, index) => sendForIndex(env, jwt, devices, payload, headersFor, index, false))
+    devices.map((device, index) => sendForIndex(env, jwt, devices, payloadFor, headersFor, index, false))
   );
   const expiredIndices = [];
   const outcomes = [];
@@ -171,7 +134,7 @@ export async function fanOutSends(env, jwt, devices, payload, headersFor) {
     }
     if (freshJwt) {
       const retryResults = await Promise.allSettled(
-        expiredIndices.map((index) => sendForIndex(env, freshJwt, devices, payload, headersFor, index, true))
+        expiredIndices.map((index) => sendForIndex(env, freshJwt, devices, payloadFor, headersFor, index, true))
       );
       for (const result of retryResults) outcomes.push(settledOutcome(result));
     } else {
@@ -199,9 +162,9 @@ function settledOutcome(result) {
   };
 }
 
-async function sendForIndex(env, jwt, devices, payload, headersFor, index, retried) {
+async function sendForIndex(env, jwt, devices, payloadFor, headersFor, index, retried) {
   const device = devices[index];
-  const outcome = await apnsSend(env, jwt, device, payload, headersFor(jwt, device));
+  const outcome = await apnsSend(env, jwt, device, payloadFor(device), headersFor(jwt, device));
   if (outcome.kind === 'expired' && retried) {
     return { ...outcome, kind: 'failed' };
   }
@@ -241,70 +204,51 @@ async function readJsonObject(req) {
   return body;
 }
 
-function nonEmptyTrimmed(value) {
-  return typeof value === 'string' ? value.trim() : '';
+const DISPATCH_BODY_KEYS = ['devices'];
+const DEVICE_KEYS = ['envelope', 'environment', 'token'];
+const APNS_TOKEN_PATTERN = /^[0-9a-f]{1,200}$/;
+const ENVELOPE_PATTERN = new RegExp(`^[A-Za-z0-9_-]{${ENVELOPE_CHARS}}$`);
+
+function hasExactKeys(value, keys) {
+  const present = Object.keys(value).sort();
+  return present.length === keys.length && present.every((key, index) => key === keys[index]);
 }
 
-function validateDispatchBody(body) {
-  const summary = typeof body.summary === 'string' ? body.summary : null;
-  const title = typeof body.title === 'string' ? body.title : null;
-  const category = typeof body.category === 'string' ? body.category : null;
-  const requestId = nonEmptyTrimmed(body.request_id);
-  const apsCategory = nonEmptyTrimmed(body.aps_category);
-  const action = nonEmptyTrimmed(body.action);
-  const kind = nonEmptyTrimmed(body.kind);
-  if (
-    !summary || !summary.trim() ||
-    !title || !title.trim() ||
-    category === null ||
-    !requestId || !apsCategory || !action || !kind
-  ) {
-    return json({ error: 'invalid_input' }, { status: 400 });
-  }
-  if (encoder.encode(summary).byteLength > 80 || encoder.encode(title).byteLength > 80) {
-    return json({ error: 'invalid_input' }, { status: 400 });
-  }
-  const devices = validateDevices(body);
-  if (devices === null) {
-    return json({ error: 'invalid_input' }, { status: 400 });
-  }
-  return {
-    summary,
-    title,
-    category,
-    request_id: requestId,
-    aps_category: apsCategory,
-    action,
-    kind,
-    devices,
-  };
-}
-
-function validateDedupBody(body) {
-  const requestId = nonEmptyTrimmed(body.request_id);
-  const action = nonEmptyTrimmed(body.action);
-  const kind = nonEmptyTrimmed(body.kind);
-  if (!requestId || !action || !kind) {
-    return json({ error: 'invalid_input' }, { status: 400 });
-  }
-  const devices = validateDevices(body);
-  if (devices === null) {
-    return json({ error: 'invalid_input' }, { status: 400 });
-  }
-  return { request_id: requestId, action, kind, devices };
-}
-
-function validateDevices(body) {
-  if (!Array.isArray(body.devices)) return null;
+// The request carries no field that can hold readable text: a push token,
+// its APNs environment, and a fixed-size sealed envelope per device.
+export function validateDispatchBody(body) {
+  if (!hasExactKeys(body, DISPATCH_BODY_KEYS)) return invalidInput();
+  if (!Array.isArray(body.devices) || body.devices.length > MAX_DISPATCH_DEVICES) return invalidInput();
   const devices = [];
   for (const d of body.devices) {
-    if (!d || typeof d !== 'object') return null;
-    const token = typeof d.token === 'string' ? d.token : '';
-    const bundleId = typeof d.bundle_id === 'string' ? d.bundle_id : null;
-    if (!token || bundleId === null || !['sandbox', 'production'].includes(d.environment)) return null;
-    devices.push({ token, bundle_id: bundleId, environment: d.environment });
+    if (!d || typeof d !== 'object' || Array.isArray(d) || !hasExactKeys(d, DEVICE_KEYS)) return invalidInput();
+    if (typeof d.token !== 'string' || !APNS_TOKEN_PATTERN.test(d.token)) return invalidInput();
+    if (!['sandbox', 'production'].includes(d.environment)) return invalidInput();
+    if (!isSealedEnvelope(d.envelope)) return invalidInput();
+    devices.push({ token: d.token, environment: d.environment, envelope: d.envelope });
   }
-  return devices;
+  return { devices };
+}
+
+export function isSealedEnvelope(value) {
+  if (typeof value !== 'string' || !ENVELOPE_PATTERN.test(value)) return false;
+  const bytes = base64UrlDecode(value);
+  return bytes !== null && bytes.byteLength === ENVELOPE_BYTES && bytes[0] === 0x01;
+}
+
+function base64UrlDecode(value) {
+  try {
+    const binary = atob(value.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+function invalidInput() {
+  return json({ error: 'invalid_input' }, { status: 400 });
 }
 
 function requireApnsConfig(env) {
@@ -367,26 +311,14 @@ function isRevocableStatus(status) {
   return status === 410;
 }
 
-function dispatchHeadersFor(env, jwt, input) {
+function dispatchHeadersFor(env, jwt) {
   requireApnsConfig(env);
   return {
     'apns-id': crypto.randomUUID(),
     'apns-topic': env.APNS_BUNDLE_ID,
     'apns-push-type': 'alert',
     'apns-priority': '10',
-    'apns-collapse-id': buildAlertCollapseId(input),
-    authorization: `bearer ${jwt}`,
-  };
-}
-
-function dedupHeadersFor(env, jwt, input) {
-  requireApnsConfig(env);
-  return {
-    'apns-id': crypto.randomUUID(),
-    'apns-topic': env.APNS_BUNDLE_ID,
-    'apns-push-type': 'background',
-    'apns-priority': '5',
-    'apns-collapse-id': buildSilentCollapseId(input),
+    'apns-expiration': String(Math.floor(Date.now() / 1000) + APNS_EXPIRATION_SECONDS),
     authorization: `bearer ${jwt}`,
   };
 }

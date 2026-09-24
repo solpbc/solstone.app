@@ -15,6 +15,7 @@ describe('retired push registration routes', () => {
     ['POST', '/devices/revoke-all'],
     ['POST', '/devices/abc/revoke'],
     ['POST', '/push/disable'],
+    ['POST', '/push/dedup'],
     ['GET', '/account/devices'],
     ['POST', '/account/devices/register'],
     ['POST', '/account/devices/deregister'],

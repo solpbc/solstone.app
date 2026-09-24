@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import {
+  ENVELOPE_BYTES,
+  ENVELOPE_CHARS,
+  FIXED_ALERT_BODY,
+  FIXED_ALERT_TITLE,
+  MAX_DISPATCH_DEVICES,
   apnsJwtCacheKey,
-  buildAlertCollapseId,
   buildAlertPayload,
 } from '../src/push.js';
 import { mintReachRelayToken } from '../src/reach.js';
@@ -43,7 +47,7 @@ describe('push dispatch endpoint', () => {
     });
     expect(calls).toHaveLength(2);
     expect(calls.map(({ url }) => url.host)).toEqual(['api.push.apple.com', 'api.push.apple.com']);
-    expect(calls.map(({ url }) => url.pathname)).toEqual(['/3/device/push-a', '/3/device/push-b']);
+    expect(calls.map(({ url }) => url.pathname)).toEqual([`/3/device/${tok('push-a')}`, `/3/device/${tok('push-b')}`]);
   });
 
   it('rejects missing bearer without APNs fetch', async () => {
@@ -192,7 +196,7 @@ describe('push dispatch endpoint', () => {
       sent: 0,
       failed: 0,
       revoked: 1,
-      revoked_tokens: ['revoked-push-token'],
+      revoked_tokens: [tok('revoked-push-token')],
       failures: [],
     });
   });
@@ -217,13 +221,13 @@ describe('push dispatch endpoint', () => {
       failed: 1,
       revoked: 0,
       revoked_tokens: [],
-      failures: [{ token: 'bad-device-token', reason: 'BadDeviceToken' }],
+      failures: [{ token: tok('bad-device-token'), reason: 'BadDeviceToken' }],
     });
     expect(spy.calls).toContainEqual({
       level: 'warn',
       args: ['apns_send_failed', { status: 400, reason: 'BadDeviceToken' }],
     });
-    spy.assertNoSecrets(['bad-device-token']);
+    spy.assertNoSecrets([tok('bad-device-token')]);
     spy.restore();
   });
 
@@ -245,7 +249,7 @@ describe('push dispatch endpoint', () => {
       sent: 0,
       failed: 0,
       revoked: 1,
-      revoked_tokens: ['stale-410-token'],
+      revoked_tokens: [tok('stale-410-token')],
       failures: [],
     });
   });
@@ -284,38 +288,6 @@ describe('push dispatch endpoint', () => {
     expect(kv.puts).toHaveLength(2);
   });
 
-  it('rejects summary over 80 UTF-8 bytes', async () => {
-    const { calls } = installApnsFetchMock({});
-    const testEnv = apnsEnv();
-
-    const response = await worker.fetch(dispatchRequest({
-      token: await relayToken(testEnv),
-      body: validDispatchBody({ summary: `${'a'.repeat(79)}🙂` }),
-    }), testEnv);
-
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'invalid_input' });
-    expect(calls).toHaveLength(0);
-  });
-
-  it('accepts summary exactly 80 bytes', async () => {
-    const testEnv = apnsEnv();
-    installApnsOk();
-
-    const response = await worker.fetch(dispatchRequest({
-      token: await relayToken(testEnv),
-      body: validDispatchBody({ summary: 'a'.repeat(80), devices: [inlineDevice('push-80')] }),
-    }), testEnv);
-
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 1,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
-  });
 
   it('accepts an empty devices array without minting a JWT or fetching APNs', async () => {
     const kv = makeFakeKv();
@@ -339,36 +311,44 @@ describe('push dispatch endpoint', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('sends the exact alert payload shape', () => {
-    const payload = buildAlertPayload({
-      title: 'Journal update',
-      summary: 'Needs a reply',
-      aps_category: 'SOLSTONE_JOURNAL_STATE',
-      action: 'open_journal',
-      request_id: 'req-1',
-      category: 'notice',
-    });
+  it('builds a fixed alert around the envelope and carries nothing else', () => {
+    const envelope = sealedEnvelope(7);
+    const payload = buildAlertPayload(envelope);
 
-    expect(Object.keys(payload).sort()).toEqual(['aps', 'data']);
-    expect(payload.aps).toEqual({
-      alert: { title: 'Journal update', body: 'Needs a reply' },
-      category: 'SOLSTONE_JOURNAL_STATE',
-      sound: 'default',
-      'mutable-content': 1,
-      'content-available': 1,
-    });
-    expect(payload.data).toEqual({
-      action: 'open_journal',
-      request_id: 'req-1',
-      category: 'notice',
+    expect(payload).toEqual({
+      aps: {
+        alert: { title: FIXED_ALERT_TITLE, body: FIXED_ALERT_BODY },
+        sound: 'default',
+        'mutable-content': 1,
+      },
+      e: envelope,
     });
   });
 
-  it('builds the collapse id from kind and request_id', () => {
-    expect(buildAlertCollapseId({ kind: 'journal_state', request_id: 'req-1' })).toBe('journal_state:req-1');
+  it('sends each device its own envelope under the fixed alert', async () => {
+    const testEnv = apnsEnv();
+    const { calls } = installApnsOk();
+    const first = sealedEnvelope(1);
+    const second = sealedEnvelope(2);
+
+    const response = await worker.fetch(dispatchRequest({
+      token: await relayToken(testEnv),
+      body: validDispatchBody({
+        devices: [inlineDevice('push-a', { envelope: first }), inlineDevice('push-b', { envelope: second })],
+      }),
+    }), testEnv);
+
+    expect(response.status).toBe(200);
+    const byPath = Object.fromEntries(calls.map(({ url, init }) => [url.pathname, JSON.parse(init.body)]));
+    expect(byPath[`/3/device/${tok('push-a')}`].e).toBe(first);
+    expect(byPath[`/3/device/${tok('push-b')}`].e).toBe(second);
+    for (const payload of Object.values(byPath)) {
+      expect(payload.aps.alert).toEqual({ title: FIXED_ALERT_TITLE, body: FIXED_ALERT_BODY });
+      expect(Object.keys(payload).sort()).toEqual(['aps', 'e']);
+    }
   });
 
-  it('sets APNs alert headers', async () => {
+  it('sets APNs alert headers with an expiry and no collapse id', async () => {
     const testEnv = apnsEnv();
     let capturedHeaders;
     installApnsFetchMock({
@@ -377,6 +357,7 @@ describe('push dispatch endpoint', () => {
         return new Response('{}', { status: 200 });
       },
     });
+    const before = Math.floor(Date.now() / 1000);
 
     await worker.fetch(dispatchRequest({
       token: await relayToken(testEnv),
@@ -386,186 +367,55 @@ describe('push dispatch endpoint', () => {
     expect(capturedHeaders.get('apns-topic')).toBe(testEnv.APNS_BUNDLE_ID);
     expect(capturedHeaders.get('apns-push-type')).toBe('alert');
     expect(capturedHeaders.get('apns-priority')).toBe('10');
-    expect(capturedHeaders.get('apns-collapse-id')).toBe(buildAlertCollapseId({ kind: 'journal_state', request_id: 'req-1' }));
+    expect(capturedHeaders.get('apns-collapse-id')).toBeNull();
+    const expiration = Number(capturedHeaders.get('apns-expiration'));
+    expect(expiration).toBeGreaterThanOrEqual(before + 24 * 60 * 60);
+    expect(expiration).toBeLessThanOrEqual(before + 24 * 60 * 60 + 5);
     expect(capturedHeaders.get('authorization')).toMatch(/^bearer .+\..+\..+$/);
     expect(capturedHeaders.get('apns-id')).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it.each(['title', 'action', 'kind'])('rejects missing %s', async (field) => {
-    await expectDispatchValidationError(validDispatchBody({ [field]: undefined }));
+  it.each([
+    ['a readable text field', { title: 'Journal update' }],
+    ['a summary field', { summary: 'Needs a reply' }],
+    ['any unknown top-level key', { kind: 'journal_state' }],
+  ])('refuses %s', async (_label, extra) => {
+    await expectDispatchValidationError({ ...validDispatchBody(), ...extra });
   });
 
-  it('rejects a body that has category but no aps_category', async () => {
-    await expectDispatchValidationError(validDispatchBody({ aps_category: undefined }));
+  it('refuses a body without devices', async () => {
+    await expectDispatchValidationError({});
   });
 
   it.each([
-    ['title', ''],
-    ['title', '  '],
-    ['aps_category', ''],
-    ['aps_category', '  '],
-    ['action', ''],
-    ['action', '  '],
-    ['kind', ''],
-    ['kind', '  '],
-  ])('rejects %s %j', async (field, value) => {
-    await expectDispatchValidationError(validDispatchBody({ [field]: value }));
+    ['an unknown device key', () => inlineDevice('push-1', { bundle_id: 'app.solstone.swift' })],
+    ['a missing envelope', () => { const d = inlineDevice('push-1'); delete d.envelope; return d; }],
+    ['a non-hex token', () => ({ ...inlineDevice('push-1'), token: 'not-hex-token' })],
+    ['an uppercase hex token', () => ({ ...inlineDevice('push-1'), token: 'ABCDEF' })],
+    ['an overlong token', () => ({ ...inlineDevice('push-1'), token: 'a'.repeat(201) })],
+    ['an unknown environment', () => inlineDevice('push-1', { environment: 'development' })],
+    ['a short envelope', () => inlineDevice('push-1', { envelope: sealedEnvelope(1).slice(0, ENVELOPE_CHARS - 4) })],
+    ['a long envelope', () => inlineDevice('push-1', { envelope: sealedEnvelope(1) + 'AAAA' })],
+    ['standard base64 characters', () => inlineDevice('push-1', { envelope: '+' + sealedEnvelope(1).slice(1) })],
+    ['whitespace inside the envelope', () => inlineDevice('push-1', { envelope: ' ' + sealedEnvelope(1).slice(1) })],
+    ['a wrong version byte', () => inlineDevice('push-1', { envelope: sealedEnvelope(1, 0x02) })],
+    ['a non-object device', () => 'push-1'],
+  ])('refuses a device with %s', async (_label, device) => {
+    await expectDispatchValidationError(validDispatchBody({ devices: [device()] }));
   });
 
-  it('accepts empty-string category as a contract lock', async () => {
-    const testEnv = apnsEnv({ DB: throwingDb() });
-    const { calls } = installApnsOk();
+  it(`refuses more than ${MAX_DISPATCH_DEVICES} devices and accepts exactly ${MAX_DISPATCH_DEVICES}`, async () => {
+    const many = (n) => Array.from({ length: n }, (_, i) => inlineDevice(`push-${i}`));
+    await expectDispatchValidationError(validDispatchBody({ devices: many(MAX_DISPATCH_DEVICES + 1) }));
 
+    const testEnv = apnsEnv();
+    const { calls } = installApnsOk();
     const response = await worker.fetch(dispatchRequest({
       token: await relayToken(testEnv),
-      body: validDispatchBody({ category: '', devices: [inlineDevice('empty-cat')] }),
+      body: validDispatchBody({ devices: many(MAX_DISPATCH_DEVICES) }),
     }), testEnv);
-
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 1,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
-    expect(JSON.parse(calls[0].init.body).data.category).toBe('');
-  });
-
-  it('accepts title of exactly 80 UTF-8 bytes and emits it', async () => {
-    const title = 'a'.repeat(80);
-    const testEnv = apnsEnv({ DB: throwingDb() });
-    const { calls } = installApnsOk();
-
-    const response = await worker.fetch(dispatchRequest({
-      token: await relayToken(testEnv),
-      body: validDispatchBody({ title, devices: [inlineDevice('title-80')] }),
-    }), testEnv);
-
-    expect(response.status).toBe(200);
-    expect(JSON.parse(calls[0].init.body).aps.alert.title).toBe(title);
-  });
-
-  it('rejects title of exactly 81 UTF-8 bytes', async () => {
-    await expectDispatchValidationError(validDispatchBody({ title: 'a'.repeat(81) }));
-  });
-
-  it('emits title raw including surrounding whitespace', async () => {
-    const title = '  Journal update  ';
-    const testEnv = apnsEnv({ DB: throwingDb() });
-    const { calls } = installApnsOk();
-
-    await worker.fetch(dispatchRequest({
-      token: await relayToken(testEnv),
-      body: validDispatchBody({ title, devices: [inlineDevice('title-raw')] }),
-    }), testEnv);
-
-    expect(JSON.parse(calls[0].init.body).aps.alert.title).toBe(title);
-  });
-
-  it('trims kind before building the collapse id', async () => {
-    const testEnv = apnsEnv({ DB: throwingDb() });
-    const { calls } = installApnsOk();
-
-    await worker.fetch(dispatchRequest({
-      token: await relayToken(testEnv),
-      body: validDispatchBody({ kind: '  journal_state  ', devices: [inlineDevice('trim-kind')] }),
-    }), testEnv);
-
-    expect(new Headers(calls[0].init.headers).get('apns-collapse-id')).toBe('journal_state:req-1');
-  });
-
-  it('sends the caller-supplied alert payload and collapse id', async () => {
-    const testEnv = apnsEnv({ DB: throwingDb() });
-    const { calls } = installApnsOk();
-
-    const response = await worker.fetch(dispatchRequest({
-      token: await relayToken(testEnv),
-      body: validDispatchBody({ devices: [inlineDevice('payload-token')] }),
-    }), testEnv);
-
-    expect(await response.json()).toEqual({
-      ok: true,
-      sent: 1,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
-    expect(JSON.parse(calls[0].init.body)).toEqual({
-      aps: {
-        alert: { title: 'Journal update', body: 'Needs a reply' },
-        category: 'SOLSTONE_JOURNAL_STATE',
-        sound: 'default',
-        'mutable-content': 1,
-        'content-available': 1,
-      },
-      data: { action: 'open_journal', request_id: 'req-1', category: 'notice' },
-    });
-    expect(JSON.parse(calls[0].init.body).data).not.toHaveProperty('kind');
-    expect(new Headers(calls[0].init.headers).get('apns-collapse-id')).toBe(
-      buildAlertCollapseId({ kind: 'journal_state', request_id: 'req-1' })
-    );
-  });
-
-  it('varies the dispatch collapse id with request_id', async () => {
-    const testEnv = apnsEnv({ DB: throwingDb() });
-    const { calls } = installApnsOk();
-    const token = await relayToken(testEnv);
-
-    const first = await worker.fetch(dispatchRequest({
-      token,
-      body: validDispatchBody({ devices: [inlineDevice('var-1')] }),
-    }), testEnv);
-    const second = await worker.fetch(dispatchRequest({
-      token,
-      body: validDispatchBody({ request_id: 'req-2', devices: [inlineDevice('var-2')] }),
-    }), testEnv);
-
-    expect(await first.json()).toEqual({
-      ok: true,
-      sent: 1,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
-    expect(await second.json()).toEqual({
-      ok: true,
-      sent: 1,
-      failed: 0,
-      revoked: 0,
-      revoked_tokens: [],
-      failures: [],
-    });
-    const ids = calls.map(({ init }) => new Headers(init.headers).get('apns-collapse-id'));
-    expect(ids[0]).toBe('journal_state:req-1');
-    expect(ids[1]).toBe('journal_state:req-2');
-    expect(ids[0]).not.toBe(ids[1]);
-  });
-
-  it('relays a second distinct identity without an allowlist', async () => {
-    const testEnv = apnsEnv({ DB: throwingDb() });
-    const { calls } = installApnsOk();
-
-    const response = await worker.fetch(dispatchRequest({
-      token: await relayToken(testEnv),
-      body: validDispatchBody({
-        title: 'Backup complete',
-        aps_category: 'SOLSTONE_BACKUP_EVENT',
-        action: 'open_backup',
-        kind: 'backup_event',
-        devices: [inlineDevice('backup-token')],
-      }),
-    }), testEnv);
-
-    expect(response.status).toBe(200);
-    const payload = JSON.parse(calls[0].init.body);
-    expect(payload.aps.alert.title).toBe('Backup complete');
-    expect(payload.aps.category).toBe('SOLSTONE_BACKUP_EVENT');
-    expect(payload.data.action).toBe('open_backup');
-    expect(new Headers(calls[0].init.headers).get('apns-collapse-id')).toBe('backup_event:req-1');
+    expect(calls).toHaveLength(MAX_DISPATCH_DEVICES);
   });
 
   it('does not log PEM, JWT, signature, or push tokens', async () => {
@@ -584,7 +434,7 @@ describe('push dispatch endpoint', () => {
       body: validDispatchBody({ devices: [inlineDevice('secret-push-token')] }),
     }), testEnv);
 
-    spy.assertNoSecrets([TEST_APNS_P8_PEM, jwt, jwt.split('.')[2], 'secret-push-token']);
+    spy.assertNoSecrets([TEST_APNS_P8_PEM, jwt, jwt.split('.')[2], tok('secret-push-token')]);
     spy.restore();
   });
 
@@ -648,23 +498,29 @@ function dispatchRequest({ token = null, body = validDispatchBody(), rawAuth = f
 
 function validDispatchBody(overrides = {}) {
   return {
-    title: 'Journal update',
-    summary: 'Needs a reply',
-    category: 'notice',
-    aps_category: 'SOLSTONE_JOURNAL_STATE',
-    action: 'open_journal',
-    kind: 'journal_state',
-    request_id: 'req-1',
     devices: [inlineDevice('push-1')],
     ...overrides,
   };
 }
 
-function inlineDevice(token, overrides = {}) {
+// APNs tokens are lowercase hex; tests name them readably and encode the name.
+function tok(name) {
+  return Buffer.from(name, 'utf8').toString('hex');
+}
+
+// A well-formed envelope: version byte, then filler of the sealed length.
+// The relay cannot and does not check the ciphertext, only its shape.
+function sealedEnvelope(fill, version = 0x01) {
+  const bytes = new Uint8Array(ENVELOPE_BYTES).fill(fill);
+  bytes[0] = version;
+  return Buffer.from(bytes).toString('base64url');
+}
+
+function inlineDevice(name, overrides = {}) {
   return {
-    token,
-    bundle_id: 'app.solstone.swift',
+    token: tok(name),
     environment: 'production',
+    envelope: sealedEnvelope(1),
     ...overrides,
   };
 }

@@ -47,7 +47,7 @@ import {
 import {
   handleMintDispatchToken,
 } from './devices.js';
-import { handlePushDedup, handlePushDispatch } from './push.js';
+import { handlePushDispatch } from './push.js';
 import { handleReachRelayToken } from './reach.js';
 import { handleMcpBridgeJwks, handleMcpBridgeToken } from './mcp-bridge.js';
 import { handleBackupCredentials } from './spb-broker.js';
@@ -965,15 +965,6 @@ async function routeRequest(req, env, ctx) {
         req.method === 'POST'
       ) {
         return handlePushDispatch(req, env);
-      }
-
-      if (
-        parts.length === 3 &&
-        parts[1] === 'push' &&
-        parts[2] === 'dedup' &&
-        req.method === 'POST'
-      ) {
-        return handlePushDedup(req, env);
       }
 
       if (
