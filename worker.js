@@ -3,6 +3,7 @@ import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseChangelogItems, parseGitH
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
 const JOURNAL_MACOS_APPCAST_URL = "https://updates.solstone.app/journal-macos/appcast.xml";
 const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win.json";
+const JOURNAL_WIN_FEED_URL = "https://updates.solstone.app/solstone-journal/release/windows/releases.win.json";
 const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/release";
 const JOURNAL_CHANGELOG_URL = "https://updates.solstone.app/solstone-journal/CHANGELOG.md";
 const LINUX_CHANGELOG_URL = "https://updates.solstone.app/solstone-linux/CHANGELOG.md";
@@ -54,6 +55,27 @@ async function latestWindowsSetupUrl() {
     const version = String(asset?.Version ?? "").trim();
     if (!version) return null;
     return `https://updates.solstone.app/solstone-windows/solstone-setup-${version}.exe`;
+  } catch {
+    return null;
+  }
+}
+
+// The Windows journal is its own per-user Velopack product with its own feed,
+// separate from the solstone app for windows. The newest Full asset names the
+// version; the Setup is published beside it under the journal's artifact name.
+// Only a plain x.y.z version is accepted, so the feed can never steer this
+// redirect anywhere but that one prefix.
+async function latestJournalWindowsSetupUrl() {
+  try {
+    const res = await fetch(JOURNAL_WIN_FEED_URL, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return null;
+    const feed = await res.json();
+    const asset = feed?.Assets?.find((a) => a?.Type === "Full");
+    const version = String(asset?.Version ?? "").trim();
+    if (!/^\d+\.\d+\.\d+$/.test(version)) return null;
+    return `https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64-setup.exe`;
   } catch {
     return null;
   }
@@ -195,6 +217,19 @@ export default {
         });
       }
       return Response.redirect(dmgUrl, 302);
+    }
+
+    // Windows journal installer permalink: resolve the current version from
+    // the journal's own Windows feed and 302 to the versioned Setup on R2.
+    if (url.pathname === "/download/journal/windows/latest") {
+      const setupUrl = await latestJournalWindowsSetupUrl();
+      if (!setupUrl) {
+        return new Response("Latest journal download for windows is temporarily unavailable. Try again shortly.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+        });
+      }
+      return Response.redirect(setupUrl, 302);
     }
 
     // Human-shareable URL: /download/journal mirrors /download/macos — an HTML

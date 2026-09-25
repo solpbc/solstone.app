@@ -97,7 +97,7 @@
             <span class="connection" aria-hidden="true">→</span>
             <section class="overview-part journal">
                 <h2>your journal</h2>
-                <p>keeps it organized and searchable on your mac or linux computer.</p>
+                <p>keeps it organized and searchable on your mac, windows or linux computer.</p>
             </section>
         </div>
         <p class="overview-note">start on one computer. connect more devices to the same journal whenever you're ready.</p>
@@ -177,26 +177,41 @@ journal setup</pre>
 
             <section class="platform-panel" id="windows" aria-labelledby="windows-heading">
                 <h3 id="windows-heading">on your windows computer</h3>
-                <p class="requirements">the windows app connects to a journal on a mac or linux computer. the journal doesn't run on windows yet.</p>
-                <p>have a journal ready? install the solstone app, then connect it to your journal and choose what you share.</p>
-                <div class="actions"><a class="action" href="/download/windows">get the windows app</a></div>
-                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
+                <p class="requirements">windows 11 on Intel/AMD (x64). no administrator access needed. the journal installer is about 1.1 GB.</p>
+                <p class="existing">already have a journal? <a href="#windows-app">just install the solstone app</a> and connect it to your existing journal.</p>
+                <ol class="steps">
+                    <li>
+                        <h4>set up your journal</h4>
+                        <p>download and run the journal installer. then open a new terminal window and run:</p>
+                        <pre id="windows-commands">journal setup</pre>
+                        <div class="actions"><button class="copy-btn" data-target="windows-commands" hidden>copy command</button></div>
+                        <p class="copy-message" role="status" id="windows-commands-status"></p>
+                        <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
+                        <div class="actions"><a class="action" href="/download/journal/windows/latest">get the journal for windows</a></div>
+                    </li>
+                    <li id="windows-app">
+                        <h4>connect the solstone app</h4>
+                        <p>install the solstone app, then connect it to your journal and choose what you share.</p>
+                        <div class="actions"><a class="action" href="/download/windows">get the windows app</a></div>
+                    </li>
+                </ol>
+                <div class="references"><a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md">journal setup help</a></div>
             </section>
 
             <section class="platform-panel" id="ios" aria-labelledby="ios-heading">
                 <h3 id="ios-heading">on your iphone or ipad</h3>
                 <p class="requirements">ios 26 or later. available in beta through TestFlight.</p>
-                <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
+                <p>connect the app to a journal on your mac, windows or linux computer. your journal stays on that computer.</p>
                 <div class="actions"><a class="action" href="https://testflight.apple.com/join/Ms9sywVj">join the iphone / ipad beta</a></div>
-                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a><a href="/beta">about the beta</a></div>
+                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#windows">set up on windows</a><a href="#linux">set up on linux</a><a href="/beta">about the beta</a></div>
             </section>
 
             <section class="platform-panel" id="android" aria-labelledby="android-heading">
                 <h3 id="android-heading">on your android phone</h3>
                 <p class="requirements">beta. installed directly, outside the Play Store; updates are manual.</p>
-                <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
+                <p>connect the app to a journal on your mac, windows or linux computer. your journal stays on that computer.</p>
                 <div class="actions"><a class="action" href="/download/android">get the android app</a></div>
-                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
+                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#windows">set up on windows</a><a href="#linux">set up on linux</a></div>
             </section>
 
             <section class="platform-panel" id="tmux" aria-labelledby="tmux-heading">

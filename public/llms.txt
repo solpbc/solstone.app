@@ -1,6 +1,6 @@
 # solstone
 
-> solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours. open source, made by sol pbc. the journal lives on linux, and in the journal app on Apple Silicon macs running macos 15 or later. the journal does not live on windows. a windows owner needs a mac or linux machine where the journal lives. on linux, the journal ships as one self-contained tree with the `solstone` and `journal` commands; install it with `curl -fsSL https://solstone.app/install.sh | sh`, then run `journal setup`. on mac, the journal app is the only supported journal runtime; install it with `curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal`, or use `--components all` for both mac apps. the installer verifies each release before installing. the two mac apps update themselves.
+> solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours. open source, made by sol pbc. the journal lives on linux, and in the journal app on Apple Silicon macs running macos 15 or later. on windows 11 (x64), the journal is its own per-user install: download https://solstone.app/download/journal/windows/latest, run it, then run `journal setup` in a new terminal window. on linux, the journal ships as one self-contained tree with the `solstone` and `journal` commands; install it with `curl -fsSL https://solstone.app/install.sh | sh`, then run `journal setup`. on mac, the journal app is the only supported journal runtime; install it with `curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal`, or use `--components all` for both mac apps. the installer verifies each release before installing. the two mac apps update themselves.
 
 your journal holds transcripts, people and projects, meetings, a knowledge graph, and daily insights. it is a folder of dated directories. your journal has full-text search, transcript browsing, and calendar views.
 
@@ -10,7 +10,7 @@ the project is maintained by sol pbc (https://solpbc.org), a colorado public ben
 
 - [Get started](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md): install guide for a coding agent and human working together
 - [README](https://github.com/solpbc/solstone-journal/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
-- [Install the solstone app on your devices](https://solstone.app/download): the solstone app for macos, linux, and windows. tmux is a separate install. pick your platform and copy the prompt for your agent. a windows owner needs a mac or linux machine where the journal lives.
+- [Install the solstone app on your devices](https://solstone.app/download): the solstone app for macos, linux, and windows. tmux is a separate install. pick your platform and copy the prompt for your agent.
 - [Journal structure](https://github.com/solpbc/solstone-journal/blob/main/docs/JOURNAL.md): Data model and daily directory layout
 - [AI providers](https://github.com/solpbc/solstone-journal/blob/main/docs/PROVIDERS.md): provider setup
 - [Web interface](https://github.com/solpbc/solstone-journal/blob/main/docs/CONVEY.md): the web UI for browsing the journal

@@ -543,3 +543,36 @@ test("/download/android omits the size rather than guessing when the HEAD fails"
   assert.match(html, /"solstone-android-2\.1\.0\.apk" from updates\.solstone\.app anyway\?/);
   assert.match(html, new RegExp(`<code class="fingerprint">${ANDROID_DIGEST}</code>`));
 });
+
+const JOURNAL_WINDOWS_UNAVAILABLE = "Latest journal download for windows is temporarily unavailable. Try again shortly.";
+
+test("/download/journal/windows/latest 302s to the versioned journal Setup from its own feed", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  globalThis.fetch = async (url) => {
+    assert.equal(String(url), "https://updates.solstone.app/solstone-journal/release/windows/releases.win.json");
+    return new Response(JSON.stringify({ Assets: [{ PackageId: "SolstoneJournal", Version: "2.0.19", Type: "Full" }] }), { status: 200 });
+  };
+  const res = await fetchDownload("/download/journal/windows/latest");
+  assert.equal(res.status, 302);
+  assert.equal(
+    res.headers.get("location"),
+    "https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-2.0.19-windows-x86_64-setup.exe",
+  );
+});
+
+test("/download/journal/windows/latest refuses an unreadable feed or an unexpected version", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  for (const feed of [null, { Assets: [] }, { Assets: [{ Type: "Full", Version: "../../x" }] }, { Assets: [{ Type: "Full", Version: "2.0.19-rc.1" }] }]) {
+    globalThis.fetch = async () => (feed === null ? new Response("", { status: 500 }) : new Response(JSON.stringify(feed), { status: 200 }));
+    const res = await fetchDownload("/download/journal/windows/latest");
+    assert.equal(res.status, 503);
+    assert.equal(await res.text(), JOURNAL_WINDOWS_UNAVAILABLE);
+    assert.equal(res.headers.get("cache-control"), "no-store");
+  }
+});
