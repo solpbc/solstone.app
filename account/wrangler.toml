@@ -12,10 +12,13 @@ workers_dev = false
 
 routes = [{ pattern = "services.solstone.app", custom_domain = true }]
 
-# The push relay stays silent: no Logpush, no Workers Logs, no tail consumers.
-# Pinned here so a deploy or a dashboard change cannot quietly turn logging on.
-# Turning any of it on is a data-handling change that needs a legal review first.
-logpush = false
+# Logpush carries this worker's security audit trail (admin impersonation and
+# similar events, peppered refs only) to a dedicated R2 bucket with a 90-day
+# expiry. The Logpush job drops request URLs, and the push relay writes only APNs
+# failure status codes. Workers Logs and tail consumers stay off. Pinned here so a
+# deploy or a dashboard change cannot quietly flip either; changing what this
+# worker logs is a data-handling change that needs a legal review first.
+logpush = true
 
 [observability]
 enabled = false
