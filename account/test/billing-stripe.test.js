@@ -335,6 +335,26 @@ describe('billing stripe core', () => {
     logged.restore();
   });
 
+  // Stripe answers a refused checkout with an HTTP error, and the owner must land back on the
+  // service page with the error flash, not on a bare 500 from the worker.
+  it.each([
+    ['spl', '/billing/checkout', { plan: 'annual' }, '/private-network?checkout=error'],
+    ['spb', '/services/backup/checkout', { plan: 'annual' }, '/services/backup?checkout=error'],
+    ['sme', '/services/solstone-me/checkout', { plan: 'annual', data_ack: 'yes' }, '/services/solstone-me?checkout=error'],
+  ])('%s checkout returns to the service page when Stripe refuses the session', async (_service, path, fields, location) => {
+    const testEnv = makeTestEnv();
+    const account = await seedAccount({ email: `refused-${Math.random().toString(36).slice(2)}@example.com`, testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    installStripeFetchMock({
+      'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ error: { message: 'refused' } }, 400),
+    });
+
+    const response = await postForm(path, testEnv, new URLSearchParams({ csrf: TEST_CSRF, ...fields }), session.cookie);
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe(location);
+  });
+
   it('refuses to create a checkout for a service checkout does not sell', async () => {
     const testEnv = makeTestEnv();
     const base = { accountId: 'acct', priceId: 'price_x', customer: 'cus_x', customerEmail: '', successUrl: 'https://x.test/ok', cancelUrl: 'https://x.test/no', idempotencyKey: 'key' };

@@ -76,17 +76,22 @@ export async function handleSmeCheckout(req, env) {
   const menu = customerRow ? null : await loadMenuContext(env, accountId, guard.nowMs);
   if (!customerRow && !menu?.email) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=email`);
 
-  const checkout = await createCheckoutSession(env, {
-    accountId,
-    priceId,
-    customer: customerRow?.stripe_customer_id || '',
-    customerEmail: customerRow ? '' : menu.email,
-    successUrl: CHECKOUT_SUCCESS_URL,
-    cancelUrl: CHECKOUT_CANCEL_URL,
-    idempotencyKey: crypto.randomUUID(),
-    service: 'sme',
-    termsAssent: termsAssentRequired(env),
-  });
+  let checkout;
+  try {
+    checkout = await createCheckoutSession(env, {
+      accountId,
+      priceId,
+      customer: customerRow?.stripe_customer_id || '',
+      customerEmail: customerRow ? '' : menu.email,
+      successUrl: CHECKOUT_SUCCESS_URL,
+      cancelUrl: CHECKOUT_CANCEL_URL,
+      idempotencyKey: crypto.randomUUID(),
+      service: 'sme',
+      termsAssent: termsAssentRequired(env),
+    });
+  } catch {
+    return signedInRedirect(`${SME_SERVICE_PATH}?checkout=error`);
+  }
   if (!checkout?.url) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=error`);
   return signedInRedirect(checkout.url);
 }
