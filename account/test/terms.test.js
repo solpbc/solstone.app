@@ -24,7 +24,7 @@ describe('terms page', () => {
     expect(body).toContain('part one · what applies to everything');
     expect(body).toContain('part two · each service, one at a time');
     expect(body).toContain('<hr>');
-    expect(body).toContain('effective September 20, 2026');
+    expect(body).toContain('effective September 24, 2026');
     expect(body).not.toContain('[ship date]');
     expect(body).not.toMatch(/<p>[^<]*---[^<]*<\/p>/);
     expect(body).not.toMatch(/\*\*/);
