@@ -11,7 +11,7 @@ export const SME_HOSTED_SERVICE = 'sme_hosted';
 // new version; the bump only records which text was acknowledged, and asks no existing owner
 // to consent again.
 // v2: turn-on-screens-one-pattern card text + calmed SME_PERMANENCE_PARTS
-// (records/decisions/260921-cpo-service-turn-on-screens-follow-one-pattern-and-the-sign-in-bound-push-consent-retires.md § 1, § 5).
+// (the one-pattern turn-on screens adopted 2026-09-21 with operator approval).
 export const SME_CONSENT_DISCLOSURE_VERSION = 'sme-consent-v2-pattern';
 
 // A paid service keeps working through a failed payment for the same 14-day grace

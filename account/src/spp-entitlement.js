@@ -1,7 +1,7 @@
 import { getActiveDeletionForAccount, getScoutApplicationStatusByAccount, upsertEntitlement } from './db.js';
 
 export const SPP_HOSTED_SERVICE = 'spp_hosted';
-// v3: turn-on-screens-one-pattern card text (records/decisions/260921-cpo-service-turn-on-screens-follow-one-pattern-and-the-sign-in-bound-push-consent-retires.md § 1).
+// v3: turn-on-screens-one-pattern card text (adopted 2026-09-21 with operator approval).
 export const SPP_CONSENT_DISCLOSURE_VERSION = 'spp-consent-v3-pattern';
 
 export function isSppEntitledToServe(row, nowSeconds, env) {

@@ -85,7 +85,7 @@ describe('/enable/solstone-me', () => {
     expect(body).toContain('i understand that the public record of this address is permanent.');
     expect(body).toContain("the address is public once it's issued, and stays public for good");
     expect(body).toContain("it's an identifier, not your data: eight random characters with nothing of yours in it.");
-    // The founder-directed calm (2026-09-21) drops the certificate-log mechanics; only the
+    // The operator-approved calm (2026-09-21) drops the certificate-log mechanics; only the
     // privacy policy's floor sentence, the address's existence stays public for good, remains.
     expect(body).not.toMatch(/certificate log/i);
     const ack = body.match(/<label class="ack">[\s\S]*?<\/label>/)[0];

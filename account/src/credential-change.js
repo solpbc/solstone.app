@@ -1,5 +1,5 @@
-// Step-up proof ceremony for passkey/email changes at services.solstone.app
-// (req_oopzclpx). A checked, non-consuming freshness window over the same
+// Step-up proof ceremony for passkey/email changes at services.solstone.app.
+// A checked, non-consuming freshness window over the same
 // account_deletion_proofs table deletion/export already use, purpose
 // 'credential-change': a verified OTP proof (plus a passkey proof whenever
 // the account already has an active passkey) issued within the last
@@ -50,7 +50,7 @@ function safeNext(value) {
 
 // Read-only check every credential-mutating route calls before its actual
 // mutation. Never consumes the proof — a fresh window licenses more than one
-// action, on purpose (CSO recommendation, req_oopzclpx outcome).
+// action, on purpose (a security-review recommendation).
 export async function requireFreshCredentialChangeProof(env, { accountId, sessionIdHash }) {
   return requireFreshProof(env.DB, {
     accountId,

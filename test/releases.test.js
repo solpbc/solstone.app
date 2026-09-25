@@ -597,7 +597,7 @@ test("renderReleasesPage renders the ios stream from github releases with an act
 
 test("an empty stream falls back to the shared unavailable message once a stream has shipped releases", () => {
   // iOS has cut releases now, so an empty fetch means the feed failed, not "never released yet" —
-  // the stale never-released override was removed (req_dqffsaix item 1).
+  // the stale never-released override was removed.
   assert.equal(RELEASE_PAGE_CONFIGS.ios.emptyBody, undefined);
   const iosEmpty = renderReleasesPage([], RELEASE_PAGE_CONFIGS.ios);
   assert.match(iosEmpty, /temporarily unavailable/);

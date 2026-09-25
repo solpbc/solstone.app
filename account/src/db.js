@@ -525,7 +525,7 @@ export async function getLatestDeletionProof(db, {
 // The fresh-proof rule, in one place: a verified, unconsumed, unexpired OTP
 // proof for this session and purpose, plus a passkey proof whenever the
 // account has an active passkey. Moved here from deletion.js (2026-09-17,
-// req_oopzclpx) so passkey.js/emails.js/settings.js can call it for the
+// with the credential-change step-up) so passkey.js/emails.js/settings.js can call it for the
 // credential-change purpose without a circular import back through
 // deletion.js (which imports from passkey.js). Every purpose (delete, cancel,
 // export, credential-change) pre-checks here. delete/cancel/export additionally

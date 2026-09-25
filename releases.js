@@ -368,7 +368,7 @@ export function parseGitHubReleaseItems(releases) {
 }
 
 // Parse a Keep-a-Changelog CHANGELOG.md (mirrored to the release origin
-// alongside binaries — see records/decisions/260907-*) into the shared item
+// alongside binaries) into the shared item
 // shape. Every historical GitHub release body was already lifted verbatim
 // from one of these sections, so the same downstream renderer (stripped
 // heading -> renderNotesMarkdown) applies unchanged; this function just does

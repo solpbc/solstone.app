@@ -147,7 +147,7 @@ STRIPE_PRICE_SME_ANNUAL = "price_1UHxl93ew4P2jFrxQzHXMaxH"
 # Dashboard's public details, so set that first, then change this to "required" and deploy.
 # Left empty, checkout takes no assent and logs stripe_checkout_terms_assent_off each time.
 STRIPE_TERMS_ASSENT = "required"
-# /terms serves the combined services Terms (clo/compliance/solstone-services-terms-of-service.md).
+# /terms serves the combined services Terms of Service.
 # /legal, /services/backup/terms, and /services/processing/terms permanently redirect there.
 RELAY_GRANT_URL = "https://link.solstone.app"
 RELAY_GRACE_DAYS = "14"

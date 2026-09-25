@@ -91,15 +91,14 @@ export async function handleSppAuthorize(req, env) {
   }
 }
 
-// G3 / Shape C (CSO-cleared, see cso/completed/260922-g3-gate-review-the-portal-authorizer-
-// credential-mechanism-fo.md and records/decisions/260922-cso-spp-g3-the-sealed-engine-carries-
-// no-portal-credential.md): the sealed appliance publishes no engine-side secret, so the engine
+// G3 / Shape C (security-reviewed 2026-09-22: the sealed engine carries no portal
+// credential): the sealed appliance publishes no engine-side secret, so the engine
 // cannot present one. This route runs the identical owner-credential predicate as
 // handleSppAuthorize above with NO service-bearer check at all — reachable by anyone, exactly
 // like curling it with the real engine's own bearer already was in practice (the bearer never
 // protected an owner; only X-Sol-Entitlement does). It is additive: the sealed appliance's
 // gateway is the only intended caller, spp-engine-01 keeps using /internal/spp/authorize
-// unchanged until the founder-gated cutover, and this route uses distinct event names so its
+// unchanged until the operator-approved cutover, and this route uses distinct event names so its
 // traffic is never confused with the internal route's in logs or alerting.
 export async function handleSppAuthorizePublic(req, env) {
   try {

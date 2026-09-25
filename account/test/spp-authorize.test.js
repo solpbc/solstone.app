@@ -198,9 +198,7 @@ describe('POST /internal/spp/authorize', () => {
 
 // G3 / Shape C (CSO-cleared): the sealed appliance publishes no engine secret, so this
 // route runs the identical owner-credential predicate with no service-bearer check at
-// all. See handleSppAuthorizePublic's doc comment in ../src/spp-authorize.js and
-// cso/completed/260922-g3-gate-review-the-portal-authorizer-credential-mechanism-fo.md
-// in the extro repo.
+// all. See handleSppAuthorizePublic's doc comment in ../src/spp-authorize.js.
 describe('POST /spp/authorize (G3 Shape C, no engine bearer)', () => {
   beforeEach(async () => {
     await resetDb();

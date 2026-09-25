@@ -1318,7 +1318,7 @@ async function handleSigninVerifyPost(req, env) {
   }
   // The OTP just verified is live proof of email control; seed a
   // credential-change proof from it so a first-run passkey enrollment (the
-  // welcome panel, seconds from here) needs no second code. req_oopzclpx.
+  // welcome panel, seconds from here) needs no second code.
   await seedCredentialChangeProofFromSignIn(env, { accountId, sessionIdHash: idHash, nowMs });
   const location = resume ? `${resume.path}${resume.queryString}` : (isNew ? '/?welcome=1' : '/');
   return redirect(location, 303, {

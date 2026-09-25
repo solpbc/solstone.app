@@ -346,7 +346,7 @@ function methodAndOriginGuard(req, env, tagBase) {
 
 // Every passkey add (start + finish) additionally requires a fresh
 // credential-change proof — closes the gap a stolen session cookie could
-// otherwise exploit (req_oopzclpx). The refusal below is deliberately
+// otherwise exploit. The refusal below is deliberately
 // distinct in body and step_up_required from the plain {error:'invalid
 // request'}/{error:'sign-in required'} shapes above it, so a live check
 // never confuses an origin/session refusal with a missing-fresh-proof one.
