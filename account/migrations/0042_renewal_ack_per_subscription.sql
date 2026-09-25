@@ -8,8 +8,11 @@
 -- SQLite cannot alter a CHECK constraint in place, so the table is rebuilt with every
 -- row carried over unchanged. Nothing references renewal_notices, so dropping the old
 -- table breaks no foreign key.
+--
+-- Partial-apply recovery: rerunning is safe until the DROP has run. If the old table is
+-- gone and renewal_notices_next remains, run only the final RENAME.
 
-CREATE TABLE renewal_notices_next (
+CREATE TABLE IF NOT EXISTS renewal_notices_next (
   account_id TEXT NOT NULL,
   kind TEXT NOT NULL CHECK (kind IN ('ack', 'reminder', 'oneoff')),
   service TEXT NOT NULL CHECK (
@@ -32,7 +35,7 @@ CREATE TABLE renewal_notices_next (
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
-INSERT INTO renewal_notices_next (
+INSERT OR IGNORE INTO renewal_notices_next (
   account_id, kind, service, renewal_at, content_key, subject, body, created_at
 )
 SELECT account_id, kind, service, renewal_at, content_key, subject, body, created_at
