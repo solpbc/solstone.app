@@ -12,6 +12,14 @@ workers_dev = false
 
 routes = [{ pattern = "services.solstone.app", custom_domain = true }]
 
+# The push relay stays silent: no Logpush, no Workers Logs, no tail consumers.
+# Pinned here so a deploy or a dashboard change cannot quietly turn logging on.
+# Turning any of it on is a data-handling change that needs a legal review first.
+logpush = false
+
+[observability]
+enabled = false
+
 [[d1_databases]]
 binding = "DB"
 database_name = "account-portal"

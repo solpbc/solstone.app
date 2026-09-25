@@ -112,6 +112,14 @@ describe('static source checks', () => {
     expect(toml).not.toContain(['support', 'worker'].join('-'));
   });
 
+  it('keeps the relay silent: no logpush, observability, or tail consumers', () => {
+    const toml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'wrangler.toml'), 'utf8');
+
+    expect(toml).toMatch(/^logpush = false$/m);
+    expect(toml).toMatch(/^\[observability\]\nenabled = false$/m);
+    expect(toml).not.toMatch(/^\s*(?:logpush\s*=\s*true|tail_consumers|\[\[tail_consumers\]\]|\[observability\.)/m);
+  });
+
   it('keeps embedded portal css in sync with the source file', () => {
     expect(portalCss).toBe(PORTAL_CSS);
   });
