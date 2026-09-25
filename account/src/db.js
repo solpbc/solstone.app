@@ -1935,22 +1935,52 @@ export async function selectRenewalOneOffCandidatePage(db, { afterAccountId = ''
 
 // A withdrawal claims its subscription once. A second submission for the same subscription,
 // whether a double press or a retry after a failed Stripe call, finds the first row.
-export async function claimSubscriptionWithdrawal(db, { subscriptionRef, accountId, service, purchasedAt, nowMs }) {
+export async function claimSubscriptionWithdrawal(db, { subscriptionRef, accountId, service, purchasedAt, addressEncrypted, nowMs }) {
   await db
     .prepare(
-      `INSERT INTO subscription_withdrawals (subscription_ref, account_id, service, purchased_at, submitted_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO subscription_withdrawals (
+         subscription_ref, account_id, service, purchased_at, submitted_at, acknowledgement_address_encrypted
+       ) VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT DO NOTHING`
     )
-    .bind(subscriptionRef, accountId, service, purchasedAt, nowMs)
+    .bind(subscriptionRef, accountId, service, purchasedAt, nowMs, addressEncrypted)
     .run();
   return getSubscriptionWithdrawal(db, { subscriptionRef });
+}
+
+// A repeat submission before the acknowledgement has gone out may change where it goes.
+export async function setSubscriptionWithdrawalAddress(db, { subscriptionRef, addressEncrypted }) {
+  await db
+    .prepare(
+      `UPDATE subscription_withdrawals SET acknowledgement_address_encrypted = ?
+       WHERE subscription_ref = ? AND acknowledged_at IS NULL`
+    )
+    .bind(addressEncrypted, subscriptionRef)
+    .run();
+}
+
+export async function setSubscriptionWithdrawalAmount(db, { subscriptionRef, amountPaid }) {
+  await db
+    .prepare('UPDATE subscription_withdrawals SET amount_paid = ? WHERE subscription_ref = ? AND amount_paid IS NULL')
+    .bind(amountPaid, subscriptionRef)
+    .run();
+}
+
+export async function clearSubscriptionWithdrawalAddress(db, { subscriptionRef, acknowledgedAt }) {
+  await db
+    .prepare(
+      `UPDATE subscription_withdrawals SET acknowledgement_address_encrypted = NULL
+       WHERE subscription_ref = ? AND acknowledged_at = ?`
+    )
+    .bind(subscriptionRef, acknowledgedAt)
+    .run();
 }
 
 export async function getSubscriptionWithdrawal(db, { subscriptionRef }) {
   return db
     .prepare(
-      `SELECT subscription_ref, account_id, service, purchased_at, submitted_at, completed_at, acknowledged_at
+      `SELECT subscription_ref, account_id, service, purchased_at, submitted_at, completed_at, acknowledged_at,
+              amount_paid, acknowledgement_address_encrypted
        FROM subscription_withdrawals
        WHERE subscription_ref = ?`
     )
@@ -1985,7 +2015,8 @@ export async function releaseSubscriptionWithdrawalAck(db, { subscriptionRef, no
 export async function selectUnfinishedSubscriptionWithdrawals(db, { submittedAfterMs, limit = 50 }) {
   const { results } = await db
     .prepare(
-      `SELECT subscription_ref, account_id, service, purchased_at, submitted_at, completed_at, acknowledged_at
+      `SELECT subscription_ref, account_id, service, purchased_at, submitted_at, completed_at, acknowledged_at,
+              amount_paid, acknowledgement_address_encrypted
        FROM subscription_withdrawals
        WHERE (completed_at IS NULL OR acknowledged_at IS NULL) AND submitted_at > ?
        ORDER BY submitted_at ASC

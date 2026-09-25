@@ -8,7 +8,7 @@ const CHECKOUT_DISCLOSURE = 'by purchasing this service, you agree to enroll in 
 
 // PLACEHOLDER pending the approved withdrawal wording. It is appended to the renewal
 // disclosure above, which stays exactly as it is, and only while the withdrawal door is on.
-export const CHECKOUT_WITHDRAWAL_DISCLOSURE = 'you can withdraw from this contract within 14 days of buying it, for a full refund: sign in at services.solstone.app, open the service or billing, and use withdraw from contract here. the service starts as soon as you pay, because you asked for that on the service page.';
+export const CHECKOUT_WITHDRAWAL_DISCLOSURE = 'you can also withdraw within 14 days, for a full refund, wherever you live: for 14 days after the day you buy, sign in at services.solstone.app and use "withdraw from contract here" on the service page or the billing page, then confirm, or email support@solstone.app saying you withdraw. a withdrawal sent within the 14 days counts. the service stops that day and we refund everything you paid for it. a renewal does not start a new 14 days. the withdrawal form and the details are in the terms: services.solstone.app/terms#withdrawal.';
 
 // Stripe caps custom_text[submit][message] at 1,200 characters.
 export const CHECKOUT_SUBMIT_TEXT_LIMIT = 1200;

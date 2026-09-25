@@ -513,7 +513,7 @@ CREATE TABLE IF NOT EXISTS subscription_created_claims (
   created_at INTEGER NOT NULL
 );
 
--- One withdrawal per subscription, within 14 days of buying it (see migration 0043).
+-- One withdrawal per subscription, within 14 days of buying it (see migrations 0043, 0044).
 CREATE TABLE IF NOT EXISTS subscription_withdrawals (
   subscription_ref TEXT PRIMARY KEY CHECK (substr(subscription_ref, 1, 4) = 'sub_' AND length(subscription_ref) > 4),
   account_id TEXT NOT NULL,
@@ -522,6 +522,8 @@ CREATE TABLE IF NOT EXISTS subscription_withdrawals (
   submitted_at INTEGER NOT NULL,
   completed_at INTEGER,
   acknowledged_at INTEGER,
+  amount_paid INTEGER,
+  acknowledgement_address_encrypted TEXT,
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 

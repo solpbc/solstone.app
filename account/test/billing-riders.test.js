@@ -2,6 +2,7 @@ import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { renderLegalNotice, runRenewalReminders } from '../src/renewal-notices.js';
+import { withdrawalUntil } from '../src/withdrawal-rules.js';
 import {
   TEST_CSRF,
   installConsoleSpy,
@@ -63,17 +64,19 @@ describe('billing riders', () => {
       const base = { kind: 'ack', service: 'spl_hosted', interval: 'year', unitAmount: 2000 };
       const off = renderLegalNotice(base);
       const purchasedAt = 1_760_000_000;
-      const on = renderLegalNotice({ ...base, withdrawal: { purchasedAt, until: purchasedAt + 14 * DAY } });
+      const on = renderLegalNotice({ ...base, withdrawal: { purchasedAt, until: withdrawalUntil(purchasedAt) } });
       expect(off.text).not.toContain('withdraw');
-      expect(on.text).toContain('you can withdraw within 14 days, for a full refund.');
-      expect(on.text).toContain('until 2025-10-23');
-      expect(on.text).toContain('bought on 2025-10-09');
-      // Removing the one inserted paragraph gives back the locked text exactly.
+      expect(on.text).toContain('you can also withdraw within 14 days, for a full refund. until October 24, 2025, 08:53 UTC,');
+      expect(on.text).toContain('ordered on: October 9, 2025');
+      expect(on.text).toContain('use withdraw from contract here on the private network page');
+      // Removing the inserted paragraph and form gives back the locked text exactly.
       const paragraphs = on.text.split('\n\n');
-      const inserted = paragraphs.findIndex((p) => p.startsWith('you can withdraw within 14 days'));
-      paragraphs.splice(inserted, 1);
+      const first = paragraphs.findIndex((p) => p.startsWith('you can also withdraw within 14 days'));
+      const last = paragraphs.findIndex((p) => p === 'date: ______');
+      paragraphs.splice(first, last - first + 1);
       expect(paragraphs.join('\n\n')).toBe(off.text);
-      expect(on.html).toContain('<strong>you can withdraw within 14 days, for a full refund.</strong>');
+      expect(on.html).toContain('<strong>you can also withdraw within 14 days, for a full refund.</strong>');
+      expect(on.html).toContain('<em>withdraw from contract here</em>');
       expect(on.html).not.toContain('](');
     });
   });
