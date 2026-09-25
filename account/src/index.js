@@ -60,6 +60,7 @@ import {
   handleStripeWebhook,
 } from './billing.js';
 import { handleBilling, handleBillingManage } from './billing-page.js';
+import { handleWithdrawalConfirm, handleWithdrawalPage, runWithdrawalRecovery } from './withdrawal.js';
 import {
   handleServicesSpb,
   handleSpbCheckout,
@@ -1039,6 +1040,11 @@ async function routeRequest(req, env, ctx) {
         return handleBilling(req, env);
       }
 
+      if (parts.length === 4 && parts[1] === 'billing' && parts[2] === 'withdraw') {
+        if (req.method === 'GET') return handleWithdrawalPage(req, env, parts[3]);
+        if (req.method === 'POST') return handleWithdrawalConfirm(req, env, ctx, parts[3]);
+      }
+
       if (
         parts.length === 3 &&
         parts[1] === 'billing' &&
@@ -1116,6 +1122,7 @@ export default {
   async scheduled(event, env, ctx) {
     if (event.cron === DELETION_CRON) {
       await runAccountDeletionCoordinator(env);
+      await runWithdrawalRecovery(env, ctx);
     } else if (event.cron === SWEEP_CRON) {
       await runSpbLapseSweep(env, ctx);
     } else if (event.cron === RENEWAL_NOTICE_CRON) {

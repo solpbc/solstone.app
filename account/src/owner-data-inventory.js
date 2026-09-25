@@ -167,6 +167,15 @@ const TABLES = [
     exported('body'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
   ], { deletionOrder: 175, description: 'renewal notices sent to you' }),
+  table('subscription_withdrawals', 'account_id', 'direct_owner_purge', 'exportable', [
+    exported('subscription_ref', 'identity', 'Stripe subscription reference'),
+    omitted('account_id', 'internal owner relation'),
+    exported('service'),
+    exported('purchased_at', 'epoch_s_to_iso', 'seconds since Unix epoch'),
+    exported('submitted_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    exported('completed_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    exported('acknowledged_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+  ], { deletionOrder: 176, description: 'subscriptions you withdrew from within 14 days' }),
   table('stripe_customers', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('stripe_customer_id', 'identity', 'Stripe customer reference'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),

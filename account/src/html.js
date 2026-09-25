@@ -825,8 +825,8 @@ ${BRANDLOCK}
   });
 }
 
-export function renderServicesSpl({ entitlement, plan = null, csrf, flash = {}, menu }) {
-  const flashes = billingFlashMessages(flash);
+export function renderServicesSpl({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu }) {
+  const flashes = billingFlashMessages(flash) + withdrawalFlashMessages(flash, 'private network');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const cancelPending = Boolean(entitlement?.cancel_at_period_end);
@@ -866,6 +866,7 @@ ${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)
   ${billingPortalForm({ csrf })}
   ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' })}
 </div>
+${withdrawalDoor(withdrawal)}
 <p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
@@ -880,6 +881,7 @@ ${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)
   ${billingPortalForm({ csrf })}
   ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' })}
 </div>
+${withdrawalDoor(withdrawal)}
 <p class="disclosure" style="margin-top:24px">billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
     });
   }
@@ -888,17 +890,17 @@ ${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)
     content: `<p class="lead">sol pbc runs a blind relay so your devices stay reachable when they're asleep or away from home.</p>
 <div class="card">
   <p>you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
-  <div class="group">
-    ${billingCheckoutRow({ csrf, plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true })}
-    ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false })}
-  </div>
+  ${checkoutGroup({ csrf, startNowBox, rows: [
+    { plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true },
+    { plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false },
+  ] })}
   <p class="disclosure">billed securely through Stripe. <a href="/terms">terms</a></p>
 </div>`,
   });
 }
 
-export function renderServicesSpb({ entitlement, plan = null, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
-  const flashes = spbBillingFlashMessages(flash);
+export function renderServicesSpb({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
+  const flashes = spbBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'encrypted backup');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const cancelPending = Boolean(entitlement?.cancel_at_period_end);
@@ -946,6 +948,7 @@ ${content}`,
       content: `${controlGroup}
 ${cancellationNotice}
 ${portalActions}
+${withdrawalDoor(withdrawal)}
 ${retentionDisclosure}
 <p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
     });
@@ -958,6 +961,7 @@ ${retentionDisclosure}
 <p class="notice">your last payment didn't go through. manage billing to keep encrypted backup running. your encrypted copy is safe while you sort this out.</p>
 ${cancellationNotice}
 ${portalActions}
+${withdrawalDoor(withdrawal)}
 ${retentionDisclosure}
 <p class="disclosure" style="margin-top:24px">billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
     });
@@ -967,18 +971,18 @@ ${retentionDisclosure}
     content: `<p class="lead">sol pbc keeps an encrypted copy of your journal for you. it's encrypted on your device before it leaves, so only you can read it.</p>
 <div class="card">
   <p>turn on encrypted backup</p>
-  <div class="group">
-    ${billingCheckoutRow({ csrf, plan: 'annual', title: '$48 / year', buttonText: 'pay yearly', primary: true, action: '/services/backup/checkout', restoreIntent })}
-    ${billingCheckoutRow({ csrf, plan: 'monthly', title: '$4.99 / month', buttonText: 'pay monthly', primary: false, action: '/services/backup/checkout', restoreIntent })}
-  </div>
+  ${checkoutGroup({ csrf, startNowBox, action: '/services/backup/checkout', restoreIntent, rows: [
+    { plan: 'annual', title: '$48 / year', buttonText: 'pay yearly', primary: true },
+    { plan: 'monthly', title: '$4.99 / month', buttonText: 'pay monthly', primary: false },
+  ] })}
   <p class="disclosure">billed securely through Stripe. by paying, you agree to the <a href="/terms">terms</a>.</p>
 </div>
 ${restoreCheckout ? '' : retentionDisclosure}`,
   });
 }
 
-export function renderServicesSme({ entitlement, plan = null, csrf, flash = {}, menu }) {
-  const flashes = smeBillingFlashMessages(flash);
+export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu }) {
+  const flashes = smeBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'solstone.me');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const cancelPending = Boolean(entitlement?.cancel_at_period_end);
@@ -1023,6 +1027,7 @@ ${content}`,
       content: `${controlGroup}
 ${cancellationNotice}
 ${portalActions}
+${withdrawalDoor(withdrawal)}
 <p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe.</p>`,
     });
   }
@@ -1034,6 +1039,7 @@ ${portalActions}
 <p class="notice">your last payment didn't go through. manage billing to fix it.</p>
 ${cancellationNotice}
 ${portalActions}
+${withdrawalDoor(withdrawal)}
 <p class="disclosure" style="margin-top:24px">billed through Stripe.</p>`,
     });
   }
@@ -1050,6 +1056,7 @@ ${portalActions}
     <input type="hidden" name="plan" value="annual">
     <p><strong>$5 / year</strong></p>
     ${ackField('i understand that the public record of this address is permanent.')}
+    ${startNowBox ? startNowField() : ''}
     <div class="btn-row" style="margin-top:16px">
       <button class="btn primary" type="submit">pay yearly</button>
     </div>
@@ -1126,8 +1133,8 @@ function billingStateLine({ service, entitlement, state, plan }, nowSeconds) {
   if (state === 'stopped') {
     return date && entitlement.current_period_end <= nowSeconds ? `stopped on ${date}` : 'stopped';
   }
-  if (!date) return plan ? `renews automatically at ${formatPlanPrice(plan)}, plus any sales tax` : 'renews automatically';
-  return plan ? `renews on ${date} at ${formatPlanPrice(plan)}, plus any sales tax` : `renews on ${date}. the price didn't load; manage billing to see it.`;
+  if (!date) return plan ? `renews automatically at ${formatPlanPrice(plan)}, ${taxWords(plan)}` : 'renews automatically';
+  return plan ? `renews on ${date} at ${formatPlanPrice(plan)}, ${taxWords(plan)}` : `renews on ${date}. the price didn't load; manage billing to see it.`;
 }
 
 function billingTrail({ state, plan }) {
@@ -1143,10 +1150,13 @@ export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, no
   const flashes = [];
   if (flash.billing === 'missing') flashes.push("billing management opens once you've paid for a service.");
   if (flash.billing === 'error') flashes.push("billing management didn't open. try again.");
+  const doors = entries.filter((entry) => entry.withdrawal)
+    .map((entry) => withdrawalDoor(entry.withdrawal, { serviceName: entry.name, service: entry.service }))
+    .join('\n');
   const list = entries.length
     ? `<div class="group">
   ${entries.map((entry) => row(escAttr(entry.href), BILLING_ICONS[entry.service], esc(entry.name), esc(billingStateLine(entry, nowSeconds)), billingTrail(entry))).join('\n  ')}
-</div>`
+</div>${doors ? `\n${doors}` : ''}`
     : `<div class="card">
   <div class="empty">
     ${IC_BILLING_SVG}
@@ -1415,7 +1425,7 @@ ${exportEnabled ? '<p style="margin-top:28px"><a class="btn secondary block" hre
 // a class or column added to the inventory reaches this page without an edit here.
 
 const TRANSPARENCY_GROUPS = [
-  { heading: 'services and billing', classes: ['entitlements', 'renewal_notices', 'stripe_customers'] },
+  { heading: 'services and billing', classes: ['entitlements', 'renewal_notices', 'subscription_withdrawals', 'stripe_customers'] },
   { heading: 'private network', href: '/private-network', classes: ['spl_bindings'] },
   { heading: 'private network relay', classes: [], relay: true },
   { heading: 'encrypted backup', href: '/services/backup', classes: ['spb_bindings', 'spb_mint_audit', 'spb_sweep_audit'] },
@@ -1445,6 +1455,7 @@ const TRANSPARENCY_REFUSALS = { refused_entitlement: "refused (the service wasn'
 const TRANSPARENCY_TITLE_FIELD = {
   entitlements: 'service',
   renewal_notices: 'subject',
+  subscription_withdrawals: 'service',
   stripe_customers: 'stripe_customer_id',
   scout_applications: 'status',
   scout_lifecycle_events: 'to_status',
@@ -2422,8 +2433,138 @@ function renewalLead({ paidThrough, cancelPending, plan }) {
   if (!paidThrough) return '';
   if (cancelPending) return `paid through ${esc(paidThrough)} · `;
   return plan
-    ? `renews on ${esc(paidThrough)} at ${formatPlanPrice(plan)}, plus any sales tax · `
+    ? `renews on ${esc(paidThrough)} at ${formatPlanPrice(plan)}, ${taxWords(plan)} · `
     : `renews on ${esc(paidThrough)} · `;
+}
+
+// A price set with tax included says so; one set before that says tax may be added.
+function taxWords(plan) {
+  return plan.taxIncluded ? 'tax included' : 'plus any sales tax';
+}
+
+// The checkout choices of a service page. With the withdrawal door on, the plans share one
+// form carrying the unticked "start my service now" box, each plan its own submit button;
+// with it off, each plan is its own form, as before.
+function checkoutGroup({ csrf, rows, startNowBox = false, action = '/billing/checkout', restoreIntent = false }) {
+  if (!startNowBox) {
+    return `<div class="group">
+    ${rows.map((r) => billingCheckoutRow({ csrf, ...r, action, restoreIntent })).join('\n    ')}
+  </div>`;
+  }
+  return `<form method="post" action="${escAttr(action)}">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    ${restoreIntent ? '<input type="hidden" name="intent" value="restore">' : ''}
+    <div class="group">
+    ${rows.map((r) => `<div class="row" style="cursor:default">
+  <div class="body">
+    <div class="title">${esc(r.title)}</div>
+  </div>
+  <div class="trail"><button class="${r.primary ? 'btn primary' : 'btn secondary'}" type="submit" name="plan" value="${escAttr(r.plan)}">${esc(r.buttonText)}</button></div>
+</div>`).join('\n    ')}
+    </div>
+    ${startNowField()}
+  </form>`;
+}
+
+// PLACEHOLDER copy, pending the approved wording: the door, its confirm button, the box and the
+// page and email around them. Nothing here renders while the withdrawal door is off.
+export const WITHDRAWAL_DOOR_LABEL = 'withdraw from contract here';
+export const WITHDRAWAL_CONFIRM_LABEL = 'confirm withdrawal';
+export const START_NOW_LABEL = 'start my service now. if i withdraw within 14 days, i still get back everything i paid.';
+export const BACKUP_WITHDRAWAL_RETENTION = "if you withdraw, sol pbc keeps your encrypted copy for 30 days, as it does when you turn encrypted backup off. after 30 days it's deleted. your journal stays on your device either way.";
+
+function startNowField() {
+  return `<label class="ack">
+      <input type="checkbox" name="start_now" value="yes" required>
+      <span>${esc(START_NOW_LABEL)}</span>
+    </label>`;
+}
+
+function withdrawalDoor(withdrawal, { serviceName = '', service = '' } = {}) {
+  if (!withdrawal) return '';
+  const until = formatUnixSecondsDate(withdrawal.until);
+  const what = serviceName ? `${serviceName}: ` : '';
+  const lead = until
+    ? `${what}you can withdraw until ${until} and get back everything you paid for it.`
+    : `${what}you can withdraw within 14 days of buying it and get back everything you paid for it.`;
+  return `<div class="card" style="margin-top:16px">
+  <p>${esc(lead)}</p>
+  ${service === 'spb_hosted' ? `<p class="disclosure">${esc(BACKUP_WITHDRAWAL_RETENTION)}</p>` : ''}
+  <a class="btn secondary" href="${escAttr(withdrawal.path)}">${esc(WITHDRAWAL_DOOR_LABEL)}</a>
+</div>`;
+}
+
+function withdrawalFlashMessages(flash, serviceName) {
+  const messages = [];
+  if (flash.checkout === 'start_now') messages.push('tick start my service now to continue.');
+  if (flash.withdrawal === 'done') messages.push(`you've withdrawn. ${serviceName} has ended, everything you paid for it is being refunded, and we've emailed you an acknowledgement.`);
+  if (flash.withdrawal === 'done_unsent') messages.push(`you've withdrawn. ${serviceName} has ended and everything you paid for it is being refunded. the acknowledgement email hasn't sent yet; we'll keep trying.`);
+  if (flash.withdrawal === 'missing') messages.push('there is no subscription here to withdraw from.');
+  return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
+}
+
+// The owner's own withdrawal page. It names who is signed in, which subscription, and where
+// the acknowledgement goes, all already known from the sign-in, and has one confirm button.
+export function renderWithdrawal({ def, menu, csrf, address, flash = '', state, submittedAt = null, purchasedAt = null, until = null, plan = null }) {
+  const notices = [];
+  if (flash === 'error') notices.push("the withdrawal didn't finish. nothing more is needed from you to keep your place: try again below, and if it keeps failing we'll finish it for you.");
+  if (flash === 'closed') notices.push('the 14 days to withdraw from this subscription have ended.');
+  const back = `<a class="back" href="${escAttr(def.path)}">${BACK_SVG} ${esc(def.name)}</a>`;
+  const who = menu?.email ? `<p class="signed-in">signed in as ${esc(menu.email)}</p>` : '';
+  const page = (content) => layout({
+    title: 'withdraw from contract',
+    body: `${topbar(menu)}
+${back}
+${notices.map((message) => `<p class="notice">${esc(message)}</p>`).join('')}
+<div class="pagehead">
+  <h1>withdraw from contract</h1>
+  ${who}
+</div>
+${content}`,
+  });
+  const confirmForm = `<form method="post" action="${escAttr(`/billing/withdraw/${def.slug}`)}">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn danger" type="submit">${esc(WITHDRAWAL_CONFIRM_LABEL)}</button>
+    </div>
+  </form>`;
+  const ackLine = address
+    ? `<p>we'll email the acknowledgement to ${esc(address)}.</p>`
+    : "<p>there's no email address on your sign-in to send the acknowledgement to. add one first under sign-in and emails.</p>";
+  const retention = def.service === 'spb_hosted' ? `<p class="disclosure">${esc(BACKUP_WITHDRAWAL_RETENTION)}</p>` : '';
+
+  if (state === 'none') {
+    return page(`<p class="lead">there is no paid ${esc(def.name)} subscription on this sign-in to withdraw from.</p>`);
+  }
+  if (state === 'closed') {
+    const date = formatUnixSecondsDate(until);
+    return page(`<p class="lead">the 14 days to withdraw from this ${esc(def.name)} subscription ended${date ? ` on ${esc(date)}` : ''}. you can still cancel it from the service page; it then keeps working through the period you've paid for.</p>`);
+  }
+  if (state === 'unavailable') {
+    return page(`<p class="lead">your subscription details didn't load, so this page can't confirm the withdrawal yet. reload to try again.</p>`);
+  }
+  if (state === 'pending') {
+    return page(`<div class="card">
+  <p>you asked to withdraw from ${esc(def.name)} on ${esc(formatDateTimeUtc(submittedAt))}. it hasn't finished yet.</p>
+  ${ackLine}
+  ${retention}
+  ${confirmForm}
+</div>`);
+  }
+  const price = plan ? ` (${formatPlanPrice(plan)} / ${plan.interval})` : '';
+  return page(`<div class="card">
+  <p><strong>${esc(def.name)}</strong>${esc(price)}, bought on ${esc(formatUnixSecondsDate(purchasedAt) || '')}.</p>
+  <p>you can withdraw until ${esc(formatUnixSecondsDate(until) || '')}. withdrawing ends ${esc(def.name)} now and refunds everything you paid for it, in full.</p>
+  ${ackLine}
+  ${retention}
+  ${confirmForm}
+</div>`);
+}
+
+export function formatDateTimeUtc(tsMs) {
+  const ts = Number(tsMs);
+  if (!Number.isFinite(ts)) return '';
+  return `${new Date(ts).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 }
 
 function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary', action = '/billing/portal' }) {

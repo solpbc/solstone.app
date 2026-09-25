@@ -6,6 +6,17 @@ const STRIPE_API_BASE = 'https://api.stripe.com/v1';
 const encoder = new TextEncoder();
 const CHECKOUT_DISCLOSURE = 'by purchasing this service, you agree to enroll in an automatic renewal contract: it renews automatically at the end of each billing period, until you cancel. cancel anytime: sign in at services.solstone.app, open the service, use the manage billing button, and cancel on the billing page it opens. when you cancel, the service keeps working through the end of the period you have already paid for, then stops.';
 
+// PLACEHOLDER pending the approved withdrawal wording. It is appended to the renewal
+// disclosure above, which stays exactly as it is, and only while the withdrawal door is on.
+export const CHECKOUT_WITHDRAWAL_DISCLOSURE = 'you can withdraw from this contract within 14 days of buying it, for a full refund: sign in at services.solstone.app, open the service or billing, and use withdraw from contract here. the service starts as soon as you pay, because you asked for that on the service page.';
+
+// Stripe caps custom_text[submit][message] at 1,200 characters.
+export const CHECKOUT_SUBMIT_TEXT_LIMIT = 1200;
+
+export function checkoutDisclosure({ withdrawal = false } = {}) {
+  return withdrawal ? `${CHECKOUT_DISCLOSURE} ${CHECKOUT_WITHDRAWAL_DISCLOSURE}` : CHECKOUT_DISCLOSURE;
+}
+
 // The services a Stripe subscription can be sold as. Checkout stamps one of these on
 // the subscription as metadata.service, and the webhook reconciles by it. Adding a
 // service here without a reconciler in billing.js is caught by test/billing-stripe.test.js.
@@ -32,6 +43,8 @@ export async function createCheckoutSession(env, {
   idempotencyKey,
   service,
   termsAssent = false,
+  withdrawal = false,
+  startNowRequestedAt = '',
 }) {
   if (!idempotencyKey) throw new Error('stripe checkout requires idempotency key');
   if (!BILLED_SERVICES.includes(service)) throw new Error('stripe checkout requires a billed service');
@@ -44,7 +57,10 @@ export async function createCheckoutSession(env, {
   body.set('automatic_tax[enabled]', 'true');
   body.set('line_items[0][price]', priceId);
   body.set('line_items[0][quantity]', '1');
-  body.set('custom_text[submit][message]', CHECKOUT_DISCLOSURE);
+  body.set('custom_text[submit][message]', checkoutDisclosure({ withdrawal }));
+  // The owner's express request to start the service inside the withdrawal period, and when
+  // they made it, travels with the subscription it is for.
+  if (startNowRequestedAt) body.set('subscription_data[metadata][start_now_requested_at]', startNowRequestedAt);
   if (termsAssent) body.set('consent_collection[terms_of_service]', 'required');
   body.set('success_url', successUrl);
   body.set('cancel_url', cancelUrl);
@@ -90,7 +106,7 @@ export function subscriptionPlan(sub) {
   const interval = price?.recurring?.interval;
   if (!Number.isInteger(unitAmount) || unitAmount <= 0 || price.currency !== 'usd') return null;
   if (interval !== 'year' && interval !== 'month') return null;
-  return { unitAmount, interval };
+  return { unitAmount, interval, taxIncluded: price.tax_behavior === 'inclusive' };
 }
 
 // null when the plan can't be read, so a page renders without a price rather than failing.
@@ -120,6 +136,50 @@ export async function verifyWebhookSignature(rawBody, sigHeader, secret, nowSeco
   const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(signedPayload));
   const expected = hexEncode(new Uint8Array(signature));
   return parsed.signatures.some((actual) => timingSafeEqual(expected, actual));
+}
+
+// When a subscription was bought, in Unix seconds: the start of the withdrawal period.
+export function subscriptionPurchasedAt(sub) {
+  const start = sub?.start_date ?? sub?.created;
+  return Number.isInteger(start) && start > 0 ? start : null;
+}
+
+// The paid invoices of one subscription. At the pinned API version an invoice names the
+// charge that paid it, which is what a refund is made against.
+export async function listPaidSubscriptionInvoices(env, subscriptionId) {
+  const query = new URLSearchParams({ subscription: subscriptionId, status: 'paid', limit: '100' });
+  const list = await stripeRequest(env, `/invoices?${query}`, { method: 'GET' });
+  return Array.isArray(list?.data) ? list.data : [];
+}
+
+// A full refund of one charge. The idempotency key and Stripe's own refusal to refund a
+// charge twice both make a repeat of this call refund nothing more.
+export async function refundChargeInFull(env, { chargeId, subscriptionId }) {
+  const body = new URLSearchParams();
+  body.set('charge', chargeId);
+  body.set('reason', 'requested_by_customer');
+  body.set('metadata[subscription]', subscriptionId);
+  body.set('metadata[withdrawal]', 'true');
+  try {
+    return await stripeRequest(env, '/refunds', {
+      method: 'POST',
+      body,
+      idempotencyKey: `withdrawal-refund-${chargeId}`,
+    });
+  } catch (error) {
+    if (error?.code === 'charge_already_refunded') return { already: true };
+    throw error;
+  }
+}
+
+// Ends a subscription now. Stripe's defaults are the ones wanted: no proration and no final
+// invoice. This is only the withdrawal path; an ordinary cancel goes through the billing portal
+// and ends at the period's end.
+export async function cancelSubscriptionNow(env, subscriptionId) {
+  return stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    method: 'DELETE',
+    idempotencyKey: `withdrawal-cancel-${subscriptionId}`,
+  });
 }
 
 export function subscriptionPeriodEnd(sub) {
@@ -153,7 +213,13 @@ async function stripeRequest(env, path, { method, body = null, idempotencyKey = 
   }
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
   const response = await fetch(`${STRIPE_API_BASE}${path}`, init);
-  if (!response.ok) throw new Error(`stripe request failed: ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`stripe request failed: ${response.status}`);
+    error.status = response.status;
+    const detail = await response.json().catch(() => null);
+    if (typeof detail?.error?.code === 'string') error.code = detail.error.code;
+    throw error;
+  }
   return response.json();
 }
 

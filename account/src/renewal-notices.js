@@ -11,10 +11,12 @@ import {
   selectRenewalOneOffCandidatePage,
 } from './db.js';
 import { sendRenewalNoticeEmail } from './email.js';
+import { BACKUP_WITHDRAWAL_RETENTION, formatDateTimeUtc } from './html.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { getSubscription, subscriptionPeriodEnd } from './stripe.js';
+import { WITHDRAWAL_PERIOD_SECONDS, withdrawalOn } from './withdrawal-rules.js';
 
 export const TAG_TO_HOSTED_SERVICE = Object.freeze({
   spl: SPL_HOSTED_SERVICE,
@@ -43,6 +45,13 @@ const L1_BODY_TEMPLATE = `you just subscribed to **{{service}}**. here's what th
 questions: support@solstone.app.
 
 sol pbc`;
+
+// PLACEHOLDER pending the approved withdrawal wording and model form. Inserted into the
+// written confirmation, just before its closing lines, only while the withdrawal door is on;
+// nothing else in the confirmation changes.
+const L1_WITHDRAWAL_PARAGRAPH = `**you can withdraw within 14 days, for a full refund.** until {{withdrawal_until}}, you can withdraw from this contract and get back everything you paid for it. sign in at [services.solstone.app](https://services.solstone.app), open {{service}} or billing, and use withdraw from contract here. you can also tell us by email at support@solstone.app, for example: "i withdraw from my contract for {{service}}, bought on {{purchase_date}}." either way, {{service}} ends when you withdraw.`;
+
+const L1_CLOSING = `questions: support@solstone.app.`;
 
 const CATCH_UP_BODY_TEMPLATE = `you're subscribed to **{{service}}**, and this is the written confirmation Colorado's automatic-renewal law entitles you to. we're sending it now because the send path didn't exist when you first subscribed; every new subscriber gets this right after checkout from here on. keep it. it doesn't expire, and it isn't the only copy: the current terms are always at [services.solstone.app/terms](https://services.solstone.app/terms).
 
@@ -151,7 +160,7 @@ export function validateSubscription(sub) {
   };
 }
 
-export function renderLegalNotice({ kind, service, interval, unitAmount, renewalSeconds }) {
+export function renderLegalNotice({ kind, service, interval, unitAmount, renewalSeconds, withdrawal = null }) {
   const serviceName = SERVICE_HUMAN_NAMES[service];
   if (!serviceName) return null;
   const price = formatPrice(unitAmount);
@@ -182,6 +191,15 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
   if (kind === 'ack' || kind === 'catch_up') {
     templateWithInterval = selectInterval(bodyTemplate, interval);
     if (!templateWithInterval) return null;
+  }
+  if (kind === 'ack' && withdrawal) {
+    if (!Number.isInteger(withdrawal.purchasedAt) || !Number.isInteger(withdrawal.until)) return null;
+    templateWithInterval = templateWithInterval.replace(
+      `\n\n${L1_CLOSING}`,
+      `\n\n${L1_WITHDRAWAL_PARAGRAPH}\n\n${L1_CLOSING}`,
+    )
+      .replaceAll('{{withdrawal_until}}', formatRenewalDate(withdrawal.until))
+      .replaceAll('{{purchase_date}}', formatRenewalDate(withdrawal.purchasedAt));
   }
 
   const rawBody = templateWithInterval
@@ -218,6 +236,23 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
   const html = `<!DOCTYPE html>\n<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">\n  ${htmlParagraphs.join('\n  ')}\n</body></html>`;
 
   return { subject, text, html };
+}
+
+// PLACEHOLDER copy, pending the approved wording.
+// The acknowledgement email: what was withdrawn, and when the withdrawal was submitted.
+export function renderWithdrawalAck({ serviceName, service, purchasedAt, submittedAtMs }) {
+  const bought = Number.isInteger(purchasedAt) ? formatRenewalDate(purchasedAt) : '';
+  const submitted = formatDateTimeUtc(submittedAtMs);
+  const subject = `your ${serviceName} subscription: withdrawal received`;
+  const paragraphs = [
+    `we received your withdrawal from your ${serviceName} subscription, bought on ${bought}. you submitted it on ${submitted}.`,
+    `${serviceName} has ended, and everything you paid for it is being refunded in full to the card you paid with. a refund usually shows up within 5 to 10 business days.`,
+    ...(service === 'spb_hosted' ? [BACKUP_WITHDRAWAL_RETENTION] : []),
+    'questions: support@solstone.app.',
+    'sol pbc',
+  ];
+  const text = paragraphs.join('\n\n');
+  return { subject, text, html: renderOneOffHtml(text) };
 }
 
 export function renderOneOffHtml(body) {
@@ -265,7 +300,7 @@ async function logSent(env, { kind, accountId, service, renewalAt }) {
   }));
 }
 
-async function resolvePrimaryAddress(env, accountId) {
+export async function resolvePrimaryAddress(env, accountId) {
   const dashData = await getDashboardData(env.DB, accountId);
   if (!dashData?.addressEncrypted) return null;
   try {
@@ -286,7 +321,28 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
     const ent = await getEntitlement(env.DB, { accountId, service: hostedService });
     if (!ent || ent.status !== 'active' || ent.source !== 'stripe' || !ent.source_ref) return;
 
-    const alreadyAcked = await hasRenewalAck(env.DB, accountId, hostedService);
+    // The confirmation is per subscription, so which subscription (and when it started) is
+    // read before deciding whether it has already gone out.
+    let sub = subscription;
+    if (!sub) {
+      try {
+        sub = await getSubscription(env, sourceRef);
+      } catch {
+        await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+        return;
+      }
+    }
+
+    const parsed = validateSubscription(sub);
+    if (!parsed || sub.id !== sourceRef) {
+      await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+      return;
+    }
+
+    const alreadyAcked = await hasRenewalAck(env.DB, accountId, hostedService, {
+      subscriptionRef: sourceRef,
+      startedAtSeconds: parsed.startDate,
+    });
     if (alreadyAcked) return;
 
     const deletion = await getActiveDeletionForAccount(env.DB, accountId);
@@ -301,27 +357,14 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       return;
     }
 
-    let sub = subscription;
-    if (!sub) {
-      try {
-        sub = await getSubscription(env, sourceRef);
-      } catch {
-        await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
-        return;
-      }
-    }
-
-    const parsed = validateSubscription(sub);
-    if (!parsed) {
-      await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
-      return;
-    }
-
     const rendered = renderLegalNotice({
       kind: 'ack',
       service: hostedService,
       interval: parsed.interval,
       unitAmount: parsed.unitAmount,
+      withdrawal: withdrawalOn(env)
+        ? { purchasedAt: parsed.startDate, until: parsed.startDate + WITHDRAWAL_PERIOD_SECONDS }
+        : null,
     });
     if (!rendered) {
       await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
@@ -333,7 +376,7 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       kind: 'ack',
       service: hostedService,
       renewalAt: 0,
-      contentKey: '',
+      contentKey: sourceRef,
       subject: rendered.subject,
       body: rendered.text,
       nowMs: Date.now(),
@@ -354,7 +397,7 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
         kind: 'ack',
         service: hostedService,
         renewalAt: 0,
-        contentKey: '',
+        contentKey: sourceRef,
       });
       await logSendFailed(env, { kind: 'ack', accountId, service: hostedService });
       return;
@@ -402,6 +445,12 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
         const parsed = validateSubscription(sub);
         if (!parsed) {
           await logSkip(env, { kind: 'reminder', accountId, service: hostedService, reason: 'stripe_unusable' });
+          continue;
+        }
+
+        // A subscription set to end is not going to renew, so it gets no notice saying it will.
+        if (sub.cancel_at_period_end || sub.cancel_at != null) {
+          await logSkip(env, { kind: 'reminder', accountId, service: hostedService, reason: 'cancel_pending' });
           continue;
         }
 

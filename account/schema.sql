@@ -496,7 +496,8 @@ CREATE TABLE IF NOT EXISTS renewal_notices (
     OR (kind IN ('ack', 'oneoff') AND renewal_at = 0)
   ),
   content_key TEXT NOT NULL CHECK (
-    (kind IN ('ack', 'reminder') AND content_key = '')
+    (kind = 'reminder' AND content_key = '')
+    OR (kind = 'ack' AND (content_key = '' OR (substr(content_key, 1, 4) = 'sub_' AND length(content_key) > 4)))
     OR (kind = 'oneoff' AND length(content_key) = 64)
   ),
   subject TEXT NOT NULL,
@@ -511,3 +512,18 @@ CREATE TABLE IF NOT EXISTS subscription_created_claims (
   claim_key TEXT PRIMARY KEY,
   created_at INTEGER NOT NULL
 );
+
+-- One withdrawal per subscription, within 14 days of buying it (see migration 0043).
+CREATE TABLE IF NOT EXISTS subscription_withdrawals (
+  subscription_ref TEXT PRIMARY KEY CHECK (substr(subscription_ref, 1, 4) = 'sub_' AND length(subscription_ref) > 4),
+  account_id TEXT NOT NULL,
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')),
+  purchased_at INTEGER NOT NULL,
+  submitted_at INTEGER NOT NULL,
+  completed_at INTEGER,
+  acknowledged_at INTEGER,
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscription_withdrawals_account_id
+  ON subscription_withdrawals(account_id);
