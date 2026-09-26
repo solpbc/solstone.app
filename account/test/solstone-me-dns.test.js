@@ -825,11 +825,28 @@ describe('solstone.me DNS management & ACME pin', () => {
       const env = dnsEnv();
       const home = await generateReachKeyPair();
       const account = await seedBoundAccount(env, home.instanceId);
+
+      // A pinned, verified address for URI1.
+      const warm = await fetchBridge(await validDnsInput({
+        home,
+        claims: { acme_account_uri: VALID_ACME_URI_1 },
+      }), env);
+      expect(warm.status).toBe(200);
+
+      // Drift the CAA's TTL and age the verification past the re-verify window,
+      // so R1 takes the write path with an in-place patch of the same CAA record.
+      const caa = fakeZone.getRecords().find((r) => r.type === 'CAA');
+      caa.ttl = 300;
+      const later = Date.now() + 6 * 3600 * 1000 + 1000;
+      vi.spyOn(Date, 'now').mockReturnValue(later);
+
       const input1 = await validDnsInput({
         home,
         claims: { acme_account_uri: VALID_ACME_URI_1 },
       });
 
+      // While R1's batch is in flight, its lease is stolen and R2 replaces the pin
+      // to URI2, patching the same CAA record; R1's stale patch then lands last.
       fakeZone.beforeBatch(async () => {
         await workerEnv.DB.prepare(`
           UPDATE mcp_bridge_bindings
@@ -860,12 +877,13 @@ describe('solstone.me DNS management & ACME pin', () => {
       expect(rowAfterR1.dns_lease_generation).toBeGreaterThan(1);
       expect(rowAfterR1.dns_lease_expires_at).toBeNull();
 
-      // Zone CAA data.value contains URI1 (R1's batch landed last)
-      const caaAfterR1 = fakeZone.getRecords().findLast((r) => r.type === 'CAA');
-      expect(caaAfterR1.data.value).toContain(`accounturi=${VALID_ACME_URI_1}`);
+      // Zone CAA data.value contains URI1 (R1's stale patch landed last)
+      const caasAfterR1 = fakeZone.getRecords().filter((r) => r.type === 'CAA');
+      expect(caasAfterR1).toHaveLength(1);
+      expect(caasAfterR1[0].data.value).toContain(`accounturi=${VALID_ACME_URI_1}`);
 
       // Advance Date.now by 60_000 and request URI2 with no replace claim
-      const futureNow = Date.now() + 60_000;
+      const futureNow = later + 60_000;
       vi.spyOn(Date, 'now').mockReturnValue(futureNow);
       fakeZone.fetchSpy.mockClear();
 

@@ -41,6 +41,9 @@ const LABEL_MAX_ATTEMPTS = 8;
 const BASE32 = 'abcdefghijklmnopqrstuvwxyz234567';
 const ACME_URI_RE = /^https:\/\/(acme-v02|acme-staging-v02)\.api\.letsencrypt\.org\/acme\/acct\/[0-9]{1,20}$/;
 
+// Bounded D1 failure taxonomy, mirrored from spp-authorize.js's `d1Reason` —
+// see that file for the full rationale. Duplicated rather than imported to keep
+// this handler's failure paths independent of spp-authorize.js's module graph.
 const D1_REASONS = [
   ['network connection lost', 'network_lost'],
   ['storage caused object to be reset', 'storage_reset'],
@@ -61,6 +64,13 @@ function d1Reason(message) {
   return 'unclassified';
 }
 
+// Content-free failure log for a caught bridge-token error: bounded reason code
+// only, never the raw message (a D1 message can embed a bound parameter). Each
+// `catch` below returns a distinct 503 body identifying which step failed; this
+// adds the classification that lets a recurrence be diagnosed from operational
+// logs instead of only distinguishing "some step failed" (2026-09-10/11
+// solstone.app zone-5xx spike — every catch here was bare, so the live-window
+// capture could confirm requests were failing but not which branch or why).
 function logBridgeTokenFailure(step, err) {
   const name = typeof err?.name === 'string' && err.name ? err.name : 'unknown';
   const message = String(err?.message || '');
@@ -70,6 +80,8 @@ function logBridgeTokenFailure(step, err) {
 }
 
 export async function handleMcpBridgeToken(req, env, ctx) {
+  // Break-glass stop, set via `wrangler secret put` only while the route must be dark.
+  // Unset is normal operation; any value other than the exact string "true" is ignored.
   if (env.MCP_BRIDGE_TOKEN_DISABLED === 'true') {
     return json({ error: 'bridge_token_disabled' }, { status: 503 });
   }

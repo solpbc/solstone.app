@@ -250,5 +250,10 @@ export function planLabelBatch(records, { hostname, accountUri, addresses }) {
     deletes.push({ id: rec.id });
   }
 
+  // Post A records before a new CAA: a CAA alone at the label stops the zone's
+  // wildcard from answering A there, and batch changes reach the edge one
+  // record at a time.
+  posts.sort((a, b) => (a.type === 'A' ? 0 : 1) - (b.type === 'A' ? 0 : 1));
+
   return { deletes, patches, posts };
 }

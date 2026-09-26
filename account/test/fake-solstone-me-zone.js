@@ -122,6 +122,20 @@ export function installFakeSolstoneMeZone({
         });
       }
 
+      // Cloudflare applies a batch in one transaction: all or nothing. Work on
+      // a copy and only replace the zone's records when every step succeeds.
+      const committed = records;
+      records = committed.map((r) => ({ ...r, data: r.data ? { ...r.data } : r.data }));
+      const refuse = (message) => {
+        records = committed;
+        return new Response(JSON.stringify({
+          success: false,
+          errors: [{ code: 1004, message }],
+          messages: [],
+          result: null,
+        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      };
+
       // 1. Deletes
       if (Array.isArray(body.deletes)) {
         const deleteIds = new Set(body.deletes.map((d) => d.id));
@@ -160,14 +174,7 @@ export function installFakeSolstoneMeZone({
           // Refuse A record beside CNAME
           if (post.type === 'A') {
             const hasCname = records.some((r) => r.name === post.name && r.type === 'CNAME');
-            if (hasCname) {
-              return new Response(JSON.stringify({
-                success: false,
-                errors: [{ code: 1004, message: 'CNAME and A record conflict' }],
-                messages: [],
-                result: null,
-              }), { status: 400, headers: { 'Content-Type': 'application/json' } });
-            }
+            if (hasCname) return refuse('CNAME and A record conflict');
           }
           // Refuse identical duplicate post
           const duplicate = records.some((r) =>
@@ -176,14 +183,7 @@ export function installFakeSolstoneMeZone({
             r.content === post.content &&
             JSON.stringify(r.data || null) === JSON.stringify(post.data || null)
           );
-          if (duplicate) {
-            return new Response(JSON.stringify({
-              success: false,
-              errors: [{ code: 1004, message: 'Duplicate record' }],
-              messages: [],
-              result: null,
-            }), { status: 400, headers: { 'Content-Type': 'application/json' } });
-          }
+          if (duplicate) return refuse('Duplicate record');
 
           const newRec = {
             id: `rec_${nextId++}`,
