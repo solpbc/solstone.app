@@ -902,7 +902,7 @@ ${withdrawalDoor(withdrawal)}
     content: `<p class="lead">sol pbc runs a blind relay so your devices stay reachable when they're asleep or away from home.</p>
 <div class="card">
   <p>you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
-  ${checkoutGroup({ csrf, startNowBox, serviceName: 'private network', rows: [
+  ${checkoutGroup({ csrf, startNowBox, rows: [
     { plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true },
     { plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false },
   ] })}
@@ -983,7 +983,7 @@ ${retentionDisclosure}
     content: `<p class="lead">sol pbc keeps an encrypted copy of your journal for you. it's encrypted on your device before it leaves, so only you can read it.</p>
 <div class="card">
   <p>turn on encrypted backup</p>
-  ${checkoutGroup({ csrf, startNowBox, serviceName: 'encrypted backup', action: '/services/backup/checkout', restoreIntent, rows: [
+  ${checkoutGroup({ csrf, startNowBox, action: '/services/backup/checkout', restoreIntent, rows: [
     { plan: 'annual', title: '$48 / year', buttonText: 'pay yearly', primary: true },
     { plan: 'monthly', title: '$4.99 / month', buttonText: 'pay monthly', primary: false },
   ] })}
@@ -1072,7 +1072,7 @@ ${withdrawalDoor(withdrawal)}
     <input type="hidden" name="plan" value="annual">
     <p><strong>$5 / year</strong></p>
     ${ackField('i understand that the public record of this address is permanent.')}
-    ${startNowBox ? startNowField('solstone.me') : ''}
+    ${startNowBox ? startNowField() : ''}
     <div class="btn-row" style="margin-top:16px">
       <button class="btn primary" type="submit">pay yearly</button>
     </div>
@@ -1444,7 +1444,7 @@ ${exportEnabled ? '<p style="margin-top:28px"><a class="btn secondary block" hre
 // a class or column added to the inventory reaches this page without an edit here.
 
 const TRANSPARENCY_GROUPS = [
-  { heading: 'services and billing', classes: ['entitlements', 'renewal_notices', 'subscription_withdrawals', 'stripe_customers'] },
+  { heading: 'services and billing', classes: ['entitlements', 'renewal_notices', 'subscription_withdrawals', 'subscription_start_requests', 'stripe_customers'] },
   { heading: 'private network', href: '/private-network', classes: ['spl_bindings'] },
   { heading: 'private network relay', classes: [], relay: true },
   { heading: 'encrypted backup', href: '/services/backup', classes: ['spb_bindings', 'spb_mint_audit', 'spb_sweep_audit'] },
@@ -1475,6 +1475,7 @@ const TRANSPARENCY_TITLE_FIELD = {
   entitlements: 'service',
   renewal_notices: 'subject',
   subscription_withdrawals: 'service',
+  subscription_start_requests: 'service',
   stripe_customers: 'stripe_customer_id',
   scout_applications: 'status',
   scout_lifecycle_events: 'to_status',
@@ -2464,7 +2465,7 @@ function taxWords(plan) {
 // The checkout choices of a service page. With the withdrawal door on, the plans share one
 // form carrying the unticked "start my service now" box, each plan its own submit button;
 // with it off, each plan is its own form, as before.
-function checkoutGroup({ csrf, rows, serviceName, startNowBox = false, action = '/billing/checkout', restoreIntent = false }) {
+function checkoutGroup({ csrf, rows, startNowBox = false, action = '/billing/checkout', restoreIntent = false }) {
   if (!startNowBox) {
     return `<div class="group">
     ${rows.map((r) => billingCheckoutRow({ csrf, ...r, action, restoreIntent })).join('\n    ')}
@@ -2473,7 +2474,7 @@ function checkoutGroup({ csrf, rows, serviceName, startNowBox = false, action = 
   return `<form method="post" action="${escAttr(action)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     ${restoreIntent ? '<input type="hidden" name="intent" value="restore">' : ''}
-    ${startNowField(serviceName)}
+    ${startNowField()}
     <div class="group">
     ${rows.map((r) => `<div class="row" style="cursor:default">
   <div class="body">
@@ -2491,21 +2492,22 @@ export const WITHDRAWAL_DOOR_LABEL = 'withdraw from contract here';
 export const WITHDRAWAL_CONFIRM_LABEL = 'confirm withdrawal';
 export const BACKUP_WITHDRAWAL_RETENTION = 'we keep your encrypted backup copy for 30 days, then delete it. if you offloaded media into it, that copy is the only one.';
 const START_NOW_LEAD = 'start my service now.';
-const START_NOW_BODY = "I'm asking sol pbc to start {{service}} as soon as I've paid, inside my 14 days to withdraw. I can still withdraw in those 14 days for a full refund.";
+const START_NOW_BODY = "I'm asking sol pbc to start this service as soon as I've paid, inside my 14 days to withdraw. I can still withdraw in those 14 days for a full refund.";
 
-function startNowField(serviceName) {
+function startNowField() {
   return `<label class="ack">
       <input type="checkbox" name="start_now" value="yes" required>
-      <span><strong>${esc(START_NOW_LEAD)}</strong> ${esc(START_NOW_BODY.replaceAll('{{service}}', serviceName))}</span>
+      <span><strong>${esc(START_NOW_LEAD)}</strong> ${esc(START_NOW_BODY)}</span>
     </label>`;
 }
 
+// The door. It restates the rule with its date only while that can't read as already passed.
 function withdrawalDoor(withdrawal, { serviceName = '', service = '' } = {}) {
   if (!withdrawal) return '';
   const what = serviceName ? `${serviceName}: ` : '';
-  const lead = withdrawal.until != null
-    ? `${what}you can withdraw until ${formatMomentUtc(withdrawal.until)}, for a full refund.`
-    : `${what}you can withdraw within 14 days of buying it, for a full refund.`;
+  const lead = withdrawal.purchasedAt != null
+    ? `${what}you can withdraw until the end of the 14th day after ${formatLongDate(withdrawal.purchasedAt)}, for a full refund.`
+    : `${what}you can still withdraw here, for a full refund.`;
   return `<div class="card" style="margin-top:16px">
   <p>${esc(lead)}</p>
   ${service === 'spb_hosted' ? `<p class="disclosure">${esc(BACKUP_WITHDRAWAL_RETENTION)}</p>` : ''}
@@ -2516,68 +2518,61 @@ function withdrawalDoor(withdrawal, { serviceName = '', service = '' } = {}) {
 function withdrawalFlashMessages(flash, serviceName) {
   const messages = [];
   if (flash.checkout === 'start_now') messages.push('tick start my service now to continue.');
-  if (flash.withdrawal === 'done') messages.push(`you've withdrawn. ${serviceName} has ended, everything you paid for it is being refunded, and we've emailed you an acknowledgement.`);
-  if (flash.withdrawal === 'done_unsent') messages.push(`you've withdrawn. ${serviceName} has ended and everything you paid for it is being refunded. the acknowledgement email hasn't sent yet; we'll keep trying.`);
+  if (flash.withdrawal === 'done') messages.push(`we received your withdrawal. ${serviceName} has stopped and won't renew, we're refunding everything you paid for it, and we've emailed you the acknowledgement.`);
+  if (flash.withdrawal === 'done_unsent') messages.push(`we received your withdrawal. ${serviceName} has stopped and won't renew, and we're refunding everything you paid for it. the acknowledgement email hasn't gone out yet; we'll keep trying.`);
   if (flash.withdrawal === 'missing') messages.push('there is no subscription here to withdraw from.');
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
-// The owner's own withdrawal page: the three things the owner gives or confirms (their name, the
-// contract, where the acknowledgement goes), the sign-in filling in the last two, one line on what
-// happens, and one confirm button. Nothing else goes on it.
-export function renderWithdrawal({ def, menu, csrf, address, flash = '', state, submittedAt = null, purchasedAt = null, until = null, plan = null }) {
-  const notices = [];
-  if (flash === 'error') notices.push("the withdrawal didn't finish. try again below; if it keeps failing, we'll finish it for you.");
-  if (flash === 'closed') notices.push('the 14 days to withdraw from this subscription have ended.');
-  if (flash === 'email') notices.push('enter an email address to send the confirmation to.');
+// The owner's own withdrawal page: who is signed in, the subscription, where the acknowledgement
+// goes (all read-only, already known from the sign-in), one line on what happens, and one confirm
+// button. Nothing else goes on it.
+export function renderWithdrawal({ def, menu, csrf, primaryEmail, state, submittedAt = null, purchasedAt = null, ruleShown = false, plan = null, statement = '' }) {
   const title = `withdraw from your ${def.name} subscription`;
   const page = (content) => layout({
     title,
     body: `${topbar(menu)}
 <a class="back" href="${escAttr(def.path)}">${BACK_SVG} back</a>
-${notices.map((message) => `<p class="notice">${esc(message)}</p>`).join('')}
 <div class="pagehead">
   <h1>${esc(title)}</h1>
 </div>
 ${content}`,
   });
   const retention = def.service === 'spb_hosted' ? `<p class="disclosure">${esc(BACKUP_WITHDRAWAL_RETENTION)}</p>` : '';
-  const confirmForm = ({ subscription, lead }) => `<form method="post" action="${escAttr(`/billing/withdraw/${def.slug}`)}">
-    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-    <label for="withdraw-name">your name</label>
-    <input id="withdraw-name" type="text" name="name" maxlength="200" autocomplete="name">
-    <label for="withdraw-subscription">subscription</label>
-    <input id="withdraw-subscription" type="text" value="${escAttr(subscription)}" readonly>
-    <label for="withdraw-email">send the confirmation to</label>
-    <input id="withdraw-email" type="email" name="email" value="${escAttr(address || '')}" required autocomplete="email" maxlength="254">
-    <p>${esc(lead)}</p>
-    ${retention}
-    <div class="btn-row" style="margin-top:16px">
-      <button class="btn danger" type="submit">${esc(WITHDRAWAL_CONFIRM_LABEL)}</button>
-    </div>
-  </form>`;
+  const submitted = submittedAt != null ? formatMomentUtc(Math.floor(submittedAt / 1000)) : '';
 
   if (state === 'none') {
     return page(`<p class="lead">there is no paid ${esc(def.name)} subscription on this sign-in to withdraw from.</p>`);
   }
-  if (state === 'closed') {
-    return page(`<p class="lead">the 14 days to withdraw from this ${esc(def.name)} subscription ended${until != null ? ` on ${esc(formatMomentUtc(until))}` : ''}. you can still cancel it from the service page; it then keeps working through the period you've paid for.</p>`);
+  if (state === 'finishing') {
+    return page(`<p class="lead">${esc(`we received your withdrawal on ${submitted} and we're finishing it. you don't need to do anything.`)}</p>`);
+  }
+  if (state === 'failed') {
+    return page(`<p class="lead">${esc(`we received your withdrawal on ${submitted}. finishing it hit a problem on our side; we'll keep trying, and you don't need to do anything.`)}</p>`);
   }
   if (state === 'unavailable') {
-    return page(`<p class="lead">your subscription details didn't load, so this page can't take the withdrawal yet. reload to try again.</p>`);
+    return page(`<p class="lead">${esc("your subscription details didn't load, so this page can't take the withdrawal right now. reload to try again, or email support@solstone.app saying you withdraw; a withdrawal sent within your 14 days counts.")}</p>`);
   }
-  if (state === 'pending') {
-    return page(`<div class="card">
-  <p>you withdrew from ${esc(def.name)} on ${esc(formatMomentUtc(Math.floor(submittedAt / 1000)))}, and it hasn't finished yet. we'll finish it for you; confirming again finishes it now.</p>
-  ${confirmForm({ subscription: def.name, lead: `withdrawing ends ${def.name} today and refunds everything you paid for this subscription.` })}
-</div>`);
+  if (state === 'closed') {
+    return page(`<p class="lead">${esc(`the 14 days to withdraw from this ${def.name} subscription, bought on ${formatLongDate(purchasedAt)}, are over. you can still cancel it from the service page, and it keeps working through the period you've paid for.`)}</p>`);
   }
-  const priced = plan ? `, ${formatPlanPrice(plan)} every ${plan.interval}` : '';
+  if (!primaryEmail) {
+    return page(`<p class="lead">${esc('this sign-in has no email address to send the acknowledgement to. add one under sign-in and emails, or email support@solstone.app saying you withdraw; a withdrawal sent within your 14 days counts.')}</p>`);
+  }
+  const lead = `if you withdraw, ${def.name} stops today and we refund everything you paid for this subscription.${ruleShown ? ` you have until the end of the 14th day after ${formatLongDate(purchasedAt)}.` : ''}`;
   return page(`<div class="card">
-  ${confirmForm({
-    subscription: `${def.name}${priced}, bought on ${formatLongDate(purchasedAt)}`,
-    lead: `withdrawing ends ${def.name} today and refunds everything you paid for this subscription. you have until ${formatMomentUtc(until)}.`,
-  })}
+  <p class="signed-in">${esc(`signed in as ${primaryEmail}`)}</p>
+  <p>${esc(`subscription: ${def.name}, ${formatPlanPrice(plan)} every ${plan.interval}, bought on ${formatLongDate(purchasedAt)}`)}</p>
+  <p>${esc(`we'll send the acknowledgement to ${primaryEmail}`)}</p>
+  <p>${esc(lead)}</p>
+  ${retention}
+  <form method="post" action="${escAttr(`/billing/withdraw/${def.slug}`)}">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="statement" value="${escAttr(statement)}">
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn danger" type="submit">${esc(WITHDRAWAL_CONFIRM_LABEL)}</button>
+    </div>
+  </form>
 </div>`);
 }
 

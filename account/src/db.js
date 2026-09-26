@@ -1934,58 +1934,49 @@ export async function selectRenewalOneOffCandidatePage(db, { afterAccountId = ''
 }
 
 // A withdrawal claims its subscription once. A second submission for the same subscription,
-// whether a double press or a retry after a failed Stripe call, finds the first row.
-export async function claimSubscriptionWithdrawal(db, { subscriptionRef, accountId, service, purchasedAt, addressEncrypted, nowMs }) {
+// whether a double press or a retry, finds the first row.
+export async function claimSubscriptionWithdrawal(db, { subscriptionRef, accountId, service, purchasedAt, nowMs }) {
   await db
     .prepare(
-      `INSERT INTO subscription_withdrawals (
-         subscription_ref, account_id, service, purchased_at, submitted_at, acknowledgement_address_encrypted
-       ) VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO subscription_withdrawals (subscription_ref, account_id, service, purchased_at, submitted_at)
+       VALUES (?, ?, ?, ?, ?)
        ON CONFLICT DO NOTHING`
     )
-    .bind(subscriptionRef, accountId, service, purchasedAt, nowMs, addressEncrypted)
+    .bind(subscriptionRef, accountId, service, purchasedAt, nowMs)
     .run();
   return getSubscriptionWithdrawal(db, { subscriptionRef });
 }
 
-// A repeat submission before the acknowledgement has gone out may change where it goes.
-export async function setSubscriptionWithdrawalAddress(db, { subscriptionRef, addressEncrypted }) {
-  await db
-    .prepare(
-      `UPDATE subscription_withdrawals SET acknowledgement_address_encrypted = ?
-       WHERE subscription_ref = ? AND acknowledged_at IS NULL`
-    )
-    .bind(addressEncrypted, subscriptionRef)
-    .run();
-}
-
-export async function setSubscriptionWithdrawalAmount(db, { subscriptionRef, amountPaid }) {
-  await db
-    .prepare('UPDATE subscription_withdrawals SET amount_paid = ? WHERE subscription_ref = ? AND amount_paid IS NULL')
-    .bind(amountPaid, subscriptionRef)
-    .run();
-}
-
-export async function clearSubscriptionWithdrawalAddress(db, { subscriptionRef, acknowledgedAt }) {
-  await db
-    .prepare(
-      `UPDATE subscription_withdrawals SET acknowledgement_address_encrypted = NULL
-       WHERE subscription_ref = ? AND acknowledged_at = ?`
-    )
-    .bind(subscriptionRef, acknowledgedAt)
-    .run();
-}
+const WITHDRAWAL_COLUMNS = `subscription_ref, account_id, service, purchased_at, submitted_at, completed_at,
+              acknowledged_at, failure_alerted_at, stuck_alerted_at`;
 
 export async function getSubscriptionWithdrawal(db, { subscriptionRef }) {
   return db
-    .prepare(
-      `SELECT subscription_ref, account_id, service, purchased_at, submitted_at, completed_at, acknowledged_at,
-              amount_paid, acknowledgement_address_encrypted
-       FROM subscription_withdrawals
-       WHERE subscription_ref = ?`
-    )
+    .prepare(`SELECT ${WITHDRAWAL_COLUMNS} FROM subscription_withdrawals WHERE subscription_ref = ?`)
     .bind(subscriptionRef)
     .first();
+}
+
+// The newest withdrawal on this sign-in and service that has not finished: the one its page
+// reports on, after the entitlement it withdrew from has already lapsed.
+export async function getUnfinishedWithdrawalFor(db, { accountId, service }) {
+  return db
+    .prepare(
+      `SELECT ${WITHDRAWAL_COLUMNS} FROM subscription_withdrawals
+       WHERE account_id = ? AND service = ? AND (completed_at IS NULL OR acknowledged_at IS NULL)
+       ORDER BY submitted_at DESC LIMIT 1`
+    )
+    .bind(accountId, service)
+    .first();
+}
+
+export async function isSubscriptionWithdrawn(db, subscriptionRef) {
+  if (typeof subscriptionRef !== 'string' || !subscriptionRef) return false;
+  const row = await db
+    .prepare('SELECT 1 FROM subscription_withdrawals WHERE subscription_ref = ?')
+    .bind(subscriptionRef)
+    .first();
+  return Boolean(row);
 }
 
 export async function markSubscriptionWithdrawalCompleted(db, { subscriptionRef, nowMs }) {
@@ -2011,13 +2002,29 @@ export async function releaseSubscriptionWithdrawalAck(db, { subscriptionRef, no
     .run();
 }
 
+// Claims one of the two person-alerts (`failure_alerted_at` or `stuck_alerted_at`); true once.
+export async function claimSubscriptionWithdrawalAlert(db, { subscriptionRef, column, nowMs }) {
+  if (column !== 'failure_alerted_at' && column !== 'stuck_alerted_at') throw new Error('unknown withdrawal alert');
+  const result = await db
+    .prepare(`UPDATE subscription_withdrawals SET ${column} = ? WHERE subscription_ref = ? AND ${column} IS NULL`)
+    .bind(nowMs, subscriptionRef)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function releaseSubscriptionWithdrawalAlert(db, { subscriptionRef, column, nowMs }) {
+  if (column !== 'failure_alerted_at' && column !== 'stuck_alerted_at') throw new Error('unknown withdrawal alert');
+  await db
+    .prepare(`UPDATE subscription_withdrawals SET ${column} = NULL WHERE subscription_ref = ? AND ${column} = ?`)
+    .bind(subscriptionRef, nowMs)
+    .run();
+}
+
 // Withdrawals still owed a refund, a cancellation or an acknowledgement, oldest first.
 export async function selectUnfinishedSubscriptionWithdrawals(db, { submittedAfterMs, limit = 50 }) {
   const { results } = await db
     .prepare(
-      `SELECT subscription_ref, account_id, service, purchased_at, submitted_at, completed_at, acknowledged_at,
-              amount_paid, acknowledgement_address_encrypted
-       FROM subscription_withdrawals
+      `SELECT ${WITHDRAWAL_COLUMNS} FROM subscription_withdrawals
        WHERE (completed_at IS NULL OR acknowledged_at IS NULL) AND submitted_at > ?
        ORDER BY submitted_at ASC
        LIMIT ?`
@@ -2025,4 +2032,27 @@ export async function selectUnfinishedSubscriptionWithdrawals(db, { submittedAft
     .bind(submittedAfterMs, limit)
     .all();
   return results || [];
+}
+
+// The "start my service now" request, recorded when checkout is created and tied to the
+// subscription when that checkout completes.
+export async function recordSubscriptionStartRequest(db, { checkoutSessionRef, accountId, service, requestedAt }) {
+  await db
+    .prepare(
+      `INSERT INTO subscription_start_requests (checkout_session_ref, account_id, service, requested_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT DO NOTHING`
+    )
+    .bind(checkoutSessionRef, accountId, service, requestedAt)
+    .run();
+}
+
+export async function attachSubscriptionStartRequest(db, { checkoutSessionRef, accountId, subscriptionRef }) {
+  await db
+    .prepare(
+      `UPDATE subscription_start_requests SET subscription_ref = ?
+       WHERE checkout_session_ref = ? AND account_id = ? AND subscription_ref IS NULL`
+    )
+    .bind(subscriptionRef, checkoutSessionRef, accountId)
+    .run();
 }

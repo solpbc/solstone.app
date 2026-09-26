@@ -3,6 +3,7 @@ import {
   getEntitlement,
   getScoutApplicationStatusByAccount,
   getStripeCustomerByAccount,
+  recordSubscriptionStartRequest,
 } from './db.js';
 import { renderNotFound, renderServicesSme } from './html.js';
 import { forbidden, html, originAllowed } from './index.js';
@@ -95,12 +96,25 @@ export async function handleSmeCheckout(req, env) {
       service: 'sme',
       termsAssent: termsAssentRequired(env),
       withdrawal: startNow.withdrawal,
-      startNowRequestedAt: startNow.requestedAt,
     });
   } catch {
     return signedInRedirect(`${SME_SERVICE_PATH}?checkout=error`);
   }
   if (!checkout?.url) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=error`);
+  if (startNow.requestedAt != null) {
+    // The start-now request is kept with us, keyed by the checkout it rode, and tied to the
+    // subscription when that checkout completes.
+    try {
+      await recordSubscriptionStartRequest(env.DB, {
+        checkoutSessionRef: checkout.id,
+        accountId,
+        service: SME_HOSTED_SERVICE,
+        requestedAt: startNow.requestedAt,
+      });
+    } catch {
+      return signedInRedirect(`${SME_SERVICE_PATH}?checkout=error`);
+    }
+  }
   return signedInRedirect(checkout.url);
 }
 

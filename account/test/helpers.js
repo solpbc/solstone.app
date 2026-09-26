@@ -196,6 +196,7 @@ export async function resetDb() {
     'spb_mint_reservations',
     'subscription_created_claims',
     'subscription_withdrawals',
+    'subscription_start_requests',
     'renewal_notices',
     'entitlements',
     'stripe_customers',

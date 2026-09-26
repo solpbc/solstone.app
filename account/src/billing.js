@@ -1,10 +1,13 @@
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
+  attachSubscriptionStartRequest,
   getAccountByStripeCustomer,
   getActiveDeletionForAccount,
   getEntitlement,
   getScoutApplicationStatusByAccount,
   getStripeCustomerByAccount,
+  isSubscriptionWithdrawn,
+  recordSubscriptionStartRequest,
   upsertStripeCustomer,
 } from './db.js';
 import { renderBillingReturn, renderServicesSpl } from './html.js';
@@ -110,12 +113,25 @@ export async function handleBillingCheckout(req, env) {
       service: 'spl',
       termsAssent: termsAssentRequired(env),
       withdrawal: startNow.withdrawal,
-      startNowRequestedAt: startNow.requestedAt,
     });
   } catch {
     return signedInRedirect('/private-network?checkout=error');
   }
   if (!checkout?.url) return signedInRedirect('/private-network?checkout=error');
+  if (startNow.requestedAt != null) {
+    // The start-now request is kept with us, keyed by the checkout it rode, and tied to the
+    // subscription when that checkout completes.
+    try {
+      await recordSubscriptionStartRequest(env.DB, {
+        checkoutSessionRef: checkout.id,
+        accountId,
+        service: SERVICE,
+        requestedAt: startNow.requestedAt,
+      });
+    } catch {
+      return signedInRedirect('/private-network?checkout=error');
+    }
+  }
   return signedInRedirect(checkout.url);
 }
 
@@ -239,6 +255,15 @@ export async function reconcileForService(service, env, accountId, nowMs, ctx, o
     return;
   }
   if (await getActiveDeletionForAccount(env.DB, accountId)) return;
+  // A subscription the owner withdrew from stays ended, whatever Stripe reports before its
+  // cancel lands: the withdrawal ended the service when it was recorded.
+  // Only while the entitlement is still that subscription's: an owner who subscribed again has a
+  // new one, which a late event about the old one must not touch.
+  if (opts?.paid?.sourceRef && await isSubscriptionWithdrawn(env.DB, opts.paid.sourceRef)) {
+    const entitlement = await getEntitlement(env.DB, { accountId, service: TAG_TO_HOSTED_SERVICE[service] });
+    if (entitlement?.source_ref !== opts.paid.sourceRef) return;
+    return SERVICE_RECONCILERS[service](env, accountId, nowMs, ctx, { ...opts, paid: null });
+  }
   return SERVICE_RECONCILERS[service](env, accountId, nowMs, ctx, opts);
 }
 
@@ -249,6 +274,9 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   if (!accountId || !stripeCustomerId || !subscriptionId) return;
   if (await getActiveDeletionForAccount(env.DB, accountId)) return;
   await upsertStripeCustomer(env.DB, { accountId, stripeCustomerId, nowMs });
+  if (typeof obj?.id === 'string' && obj.id) {
+    await attachSubscriptionStartRequest(env.DB, { checkoutSessionRef: obj.id, accountId, subscriptionRef: subscriptionId });
+  }
   const subscription = await getSubscription(env, subscriptionId);
   const tag = serviceTag(subscription);
   await reconcileForService(tag, env, accountId, nowMs, ctx, {

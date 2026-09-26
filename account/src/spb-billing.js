@@ -3,6 +3,7 @@ import {
   getEntitlement,
   getScoutApplicationStatusByAccount,
   getStripeCustomerByAccount,
+  recordSubscriptionStartRequest,
 } from './db.js';
 import { renderServicesSpb } from './html.js';
 import { forbidden, originAllowed } from './index.js';
@@ -96,12 +97,25 @@ export async function handleSpbCheckout(req, env) {
       service: 'spb',
       termsAssent: termsAssentRequired(env),
       withdrawal: startNow.withdrawal,
-      startNowRequestedAt: startNow.requestedAt,
     });
   } catch {
     return signedInRedirect(`${SPB_SERVICE_PATH}?checkout=error`);
   }
   if (!checkout?.url) return signedInRedirect(`${SPB_SERVICE_PATH}?checkout=error`);
+  if (startNow.requestedAt != null) {
+    // The start-now request is kept with us, keyed by the checkout it rode, and tied to the
+    // subscription when that checkout completes.
+    try {
+      await recordSubscriptionStartRequest(env.DB, {
+        checkoutSessionRef: checkout.id,
+        accountId,
+        service: SERVICE,
+        requestedAt: startNow.requestedAt,
+      });
+    } catch {
+      return signedInRedirect(`${SPB_SERVICE_PATH}?checkout=error`);
+    }
+  }
   return signedInRedirect(checkout.url);
 }
 
