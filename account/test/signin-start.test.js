@@ -49,7 +49,7 @@ describe('/signin/start', () => {
 
     expect(message.subject).toMatch(/^your sol pbc sign-in code: \d{3} \d{3}$/);
     expect(message.from).toBe('solstone services <services@solstone.app>');
-    expect(message).not.toHaveProperty('Reply-To');
+    expect(message.replyTo).toBe('support@solstone.app');
     expect(message).not.toHaveProperty('List-Unsubscribe');
     expect(message.text).toMatch(/10 minute/i);
     expect(message.html).toContain('#E8913A');
