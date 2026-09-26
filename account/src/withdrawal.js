@@ -320,7 +320,9 @@ async function sendAcknowledgement(env, record, plan, nowMs) {
 
 // A withdrawal that could not be finished reaches a person: once at its first failed finish, and
 // once more if the refund still hasn't landed after 48 hours, well inside the 14 days the refund
-// is owed in. The mail names the subscription, so it can be finished by hand in Stripe.
+// is owed in. The mail carries only the service and the error code, nothing about the owner: it
+// lands in a mailbox that outlasts a deletion. The person finds the withdrawal in our own
+// database, where it is deleted with the sign-in.
 async function alertPerson(env, record, column, detail, nowMs) {
   const subscriptionRef = record.subscription_ref;
   if (!await claimSubscriptionWithdrawalAlert(env.DB, { subscriptionRef, column, nowMs })) return;
@@ -330,10 +332,9 @@ async function alertPerson(env, record, column, detail, nowMs) {
     ? `a withdrawal is still unrefunded after 48 hours: ${serviceName}`
     : `a withdrawal needs a person: ${serviceName}`;
   const text = [
-    `a ${serviceName} withdrawal was recorded ${new Date(record.submitted_at).toISOString()}, and the refund or the end of its Stripe subscription has not gone through.`,
-    `subscription: ${subscriptionRef}`,
+    `a ${serviceName} withdrawal has been recorded, and its refund or the end of its Stripe subscription has not gone through.`,
     `last error: ${detail.code || detail.status || 'unknown'}`,
-    'the service already ended and the owner has their acknowledgement. the schedule retries every 15 minutes; if Stripe keeps refusing, refund every paid invoice of this subscription in full and cancel it now in the Stripe Dashboard. the refund is owed within 14 days of the withdrawal.',
+    'the service already ended and the owner has their acknowledgement. the schedule retries every 15 minutes. find the withdrawal in the services database: subscription_withdrawals, where completed_at is empty. if Stripe keeps refusing, refund every paid invoice of that subscription in full and cancel it now in the Stripe Dashboard. the refund is owed within 14 days of the withdrawal.',
   ].join('\n\n');
   try {
     await sendRenewalNoticeEmail({ env, address: ALERT_ADDRESS, subject, text, html: `<pre>${text.replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</pre>` });

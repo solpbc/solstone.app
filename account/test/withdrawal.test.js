@@ -274,7 +274,9 @@ describe('withdrawal from a paid subscription within 14 days', () => {
       expect(ack.subject).toBe('you withdrew from your private network subscription');
       expect(alert.to).toBe('support@solstone.app');
       expect(alert.subject).toBe('a withdrawal needs a person: private network');
-      expect(alert.text).toContain('subscription: sub_w1');
+      // Only the service and the error code: nothing that identifies the owner or their subscription.
+      expect(alert.text).not.toMatch(/sub_|cus_|subscriber@|20\d\d-\d\d-\d\d/);
+      expect(alert.text).toContain('last error: ');
       expect(await (await get('/billing/withdraw/private-network?withdrawal=error', testEnv, session.cookie)).text())
         .toContain("finishing it hit a problem on our side; we'll keep trying, and you don't need to do anything.");
       expect(await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text()).toContain("and we're finishing it. you don't need to do anything.");
