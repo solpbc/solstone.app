@@ -1,8 +1,11 @@
 // OTP transactional email via Cloudflare Email Workers send_email binding.
-// FROM: services@solstone.app (display: "solstone services"). No Reply-To, no List-Unsubscribe.
+// FROM: services@solstone.app (display: "solstone services"). No List-Unsubscribe.
+// services@ has no inbound route, so every send carries Reply-To support@solstone.app:
+// a reply reaches the support mailbox, as the privacy policy says it does.
 
 const FROM_ADDRESS = 'services@solstone.app';
 const FROM_NAME = 'solstone services';
+const REPLY_TO = 'support@solstone.app';
 
 export async function sendOtpEmail({ env, address, code }) {
   const formatted = `${code.slice(0, 3)} ${code.slice(3)}`;
@@ -24,6 +27,7 @@ if you didn't request this, you can ignore this email.`;
   const response = await env.EMAIL.send({
     to: address,
     from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+    replyTo: REPLY_TO,
     subject,
     text,
     html,
@@ -55,6 +59,7 @@ if you did not request this, you can ignore this email.`;
     const response = await env.EMAIL.send({
       to: address,
       from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+      replyTo: REPLY_TO,
       subject,
       text,
       html,
@@ -83,6 +88,7 @@ if you did not request this, you can ignore this email.`;
     const response = await env.EMAIL.send({
       to: address,
       from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+      replyTo: REPLY_TO,
       subject,
       text,
       html,
@@ -117,6 +123,7 @@ if you did not request this, you can ignore this email.`;
   const response = await env.EMAIL.send({
     to: address,
     from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+    replyTo: REPLY_TO,
     subject,
     text,
     html,
@@ -144,6 +151,7 @@ if you didn't request this, you can ignore this email.`;
   const response = await env.EMAIL.send({
     to: address,
     from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+    replyTo: REPLY_TO,
     subject,
     text,
     html,
@@ -155,6 +163,7 @@ export async function sendRenewalNoticeEmail({ env, address, subject, text, html
   const response = await env.EMAIL.send({
     to: address,
     from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+    replyTo: REPLY_TO,
     subject,
     text,
     html,
