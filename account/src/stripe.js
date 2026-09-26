@@ -149,13 +149,12 @@ export async function listPaidSubscriptionInvoices(env, subscriptionId) {
 }
 
 // A full refund of one charge. The idempotency key and Stripe's own refusal to refund a
-// charge twice both make a repeat of this call refund nothing more.
-export async function refundChargeInFull(env, { chargeId, subscriptionId }) {
+// charge twice both make a repeat of this call refund nothing more. Nothing is sent beyond
+// the charge and Stripe's own reason code: the refund is already tied to its charge.
+export async function refundChargeInFull(env, { chargeId }) {
   const body = new URLSearchParams();
   body.set('charge', chargeId);
   body.set('reason', 'requested_by_customer');
-  body.set('metadata[subscription]', subscriptionId);
-  body.set('metadata[withdrawal]', 'true');
   try {
     return await stripeRequest(env, '/refunds', {
       method: 'POST',

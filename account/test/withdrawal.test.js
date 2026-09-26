@@ -337,6 +337,29 @@ describe('withdrawal from a paid subscription within 14 days', () => {
       }
     });
 
+    it('refunds nothing, and alerts a person, when Stripe\'s purchase time differs from the one the page showed', async () => {
+      const testEnv = makeTestEnv(ON);
+      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
+      const statement = await pageStatement(testEnv, session, NOW_S - DAY);
+      const stripe = fakeStripe({ purchasedAt: NOW_S - 2 * DAY });
+      const response = await post('/billing/withdraw/private-network', testEnv, form({ statement }), session.cookie);
+      expect(response.headers.get('Location')).toBe('/billing/withdraw/private-network?withdrawal=error');
+      expect(stripe.refundAttempts).toBe(0);
+      expect(stripe.cancels).toHaveLength(0);
+      expect(testEnv.EMAIL.sent.map((m) => m.to)).toEqual(['subscriber@example.com', 'support@solstone.app']);
+    });
+
+    it('sends Stripe nothing with a refund but the charge and its reason code', async () => {
+      const testEnv = makeTestEnv(ON);
+      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
+      fakeStripe({ purchasedAt: NOW_S - DAY });
+      const statement = await pageStatement(testEnv, session);
+      const spy = vi.mocked(globalThis.fetch);
+      await post('/billing/withdraw/private-network', testEnv, form({ statement }), session.cookie);
+      const refund = spy.mock.calls.find(([url, init]) => String(url).endsWith('/v1/refunds') && init?.method === 'POST');
+      expect([...new URLSearchParams(refund[1].body).keys()].sort()).toEqual(['charge', 'reason']);
+    });
+
     it('leaves an ordinary cancel exactly as it was', async () => {
       const testEnv = makeTestEnv(ON);
       const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });

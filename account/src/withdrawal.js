@@ -243,7 +243,9 @@ export async function completeWithdrawal(env, ctx, record, { nowMs = Date.now(),
     try {
       sub = sub || await getSubscription(env, subscriptionRef);
       const customer = await getStripeCustomerByAccount(env.DB, { accountId: record.account_id });
-      if (sub?.id !== subscriptionRef || !customer || sub.customer !== customer.stripe_customer_id || sub.metadata?.service !== def.tag) {
+      // Ownership, the service, and the purchase time the page showed, all as Stripe records them.
+      if (sub?.id !== subscriptionRef || !customer || sub.customer !== customer.stripe_customer_id || sub.metadata?.service !== def.tag
+        || subscriptionPurchasedAt(sub) !== record.purchased_at) {
         const error = new Error('withdrawal subscription does not match the sign-in');
         error.code = 'withdrawal_mismatch';
         throw error;
@@ -283,7 +285,7 @@ async function refundSubscriptionInFull(env, subscriptionRef, invoices) {
       error.code = 'withdrawal_no_charge';
       throw error;
     }
-    await refundChargeInFull(env, { chargeId: invoice.charge, subscriptionId: subscriptionRef });
+    await refundChargeInFull(env, { chargeId: invoice.charge });
   }
 }
 
