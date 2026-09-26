@@ -133,20 +133,24 @@ TURNSTILE_SITE_KEY = "0x4AAAAAADPn7-wnLZnFjshK"
 CF_ACCESS_AUD = "a48343311f9157cfb056e5aa70878dc8aab4962769a8e1743486b6a884054104"
 EMAIL_PATH_DISABLED = "false"
 SIGNUP_DISABLED = "false"
-STRIPE_PRICE_ANNUAL = "price_1TjnJB3ew4P2jFrx820NPkX4"
-STRIPE_PRICE_MONTHLY = "price_1TjnJC3ew4P2jFrxANwt3ya8"
-STRIPE_PRICE_SPB_ANNUAL = "price_1TlGmO3ew4P2jFrxThHBPMB7"
-STRIPE_PRICE_SPB_MONTHLY = "price_1TlGmO3ew4P2jFrxg0DylUaz"
+STRIPE_PRICE_ANNUAL = "price_1UJlck3ew4P2jFrxpvBItInB"
+STRIPE_PRICE_MONTHLY = "price_1UJlcl3ew4P2jFrxUwS54CT1"
+STRIPE_PRICE_SPB_ANNUAL = "price_1UJlcl3ew4P2jFrxjpfcmlsO"
+STRIPE_PRICE_SPB_MONTHLY = "price_1UJlcl3ew4P2jFrxtuVhPRtk"
 # sme has one annual price and no monthly variable. Empty until the Stripe price is created;
 # while empty, checkout fails closed (redirects with ?checkout=invalid) and reaches Stripe
 # not at all. Price ids are non-secret and belong here, in the committed file that a deploy
 # applies in full, rather than set in the dashboard, which a deploy silently wipes.
-STRIPE_PRICE_SME_ANNUAL = "price_1UHxl93ew4P2jFrxQzHXMaxH"
+STRIPE_PRICE_SME_ANNUAL = "price_1UJlcm3ew4P2jFrx8CtPttMM"
 # Checkout collects the customer's agreement to the terms before any charge only when this is
 # exactly "required". Stripe refuses that field until a Terms of Service URL is set in the
 # Dashboard's public details, so set that first, then change this to "required" and deploy.
 # Left empty, checkout takes no assent and logs stripe_checkout_terms_assent_off each time.
 STRIPE_TERMS_ASSENT = "required"
+# The 14-day withdraw door, the start-now box and the withdrawal disclosures, all on one switch
+# (src/withdrawal-rules.js). "on" since 2026-09-26, with the Terms F6 text and the tax-included
+# prices; anything else turns them all off and the withdraw routes answer 404.
+WITHDRAWAL_DOOR = "on"
 # /terms serves the combined services Terms of Service.
 # /legal, /services/backup/terms, and /services/processing/terms permanently redirect there.
 RELAY_GRANT_URL = "https://link.solstone.app"
