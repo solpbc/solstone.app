@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { base64UrlEncode } from '../src/crypto.js';
 import { labelFromRandomBytes } from '../src/mcp-bridge.js';
+import { installFakeSolstoneMeZone } from './fake-solstone-me-zone.js';
 import {
   fetchWithCtx,
   installConsoleSpy,
@@ -29,7 +30,11 @@ import { generateReachKeyPair, mintHomeReachAssertion } from './reach-helper.js'
 const FIXED_NOW_MS = 1_700_000_000_000;
 
 describe('MCP bridge token endpoint', () => {
-  beforeEach(resetDb);
+  let fakeZone;
+  beforeEach(async () => {
+    await resetDb();
+    fakeZone = installFakeSolstoneMeZone();
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -147,11 +152,14 @@ describe('MCP bridge token endpoint', () => {
       fetchBridge(input, env),
       fetchBridge(input, env),
     ]);
-    const leftBody = await responseBody(left);
-    const rightBody = await responseBody(right);
+    const statuses = [left.status, right.status].sort();
+    expect(statuses).toEqual([200, 503]);
+    const okResponse = left.status === 200 ? left : right;
+    const okBody = await okResponse.json();
+    const subsequent = await fetchBridge(input, env);
+    const subsequentBody = await responseBody(subsequent);
 
-    expect(leftBody.hostname).toBe(rightBody.hostname);
-    expect(state.calls).toBe(2);
+    expect(subsequentBody.hostname).toBe(okBody.hostname);
     expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(1);
     expect(await rowCount('mcp_bridge_bindings')).toBe(1);
   });
@@ -238,32 +246,36 @@ describe('MCP bridge token endpoint', () => {
 
   it('fails closed for missing or ambiguous SME bindings, and before D1 for a derived-JID mismatch', async () => {
     const env = makeTestEnv();
-    const absent = await validInput();
+    const absent = await validInput({ omitAcmeAccountUri: true });
     await expectError(await fetchBridge(absent, env), 401, 'invalid_token');
     expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
 
-    const ambiguous = await validInput();
+    const ambiguous = await validInput({ omitAcmeAccountUri: true });
     await seedBoundAccount(env, ambiguous.instance_id, 'ambiguous-one@example.com');
     const other = await seedAccount({ email: 'ambiguous-two@example.com', testEnv: env });
     await seedSmeBinding({ accountId: other.accountId, instanceId: ambiguous.instance_id });
     await expectError(await fetchBridge(ambiguous, env), 401, 'invalid_token');
     expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
 
-    const bound = await validInput();
+    const bound = await validInput({ omitAcmeAccountUri: true });
     await seedBoundAccount(env, bound.instance_id, 'bound@example.com');
-    const unbound = await validInput({ instanceId: bound.instance_id });
+    const unbound = await validInput({ instanceId: bound.instance_id, omitAcmeAccountUri: true });
     await expectError(await fetchBridge(unbound, makeTestEnv({ DB: throwingDb() })), 401, 'invalid_token');
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
   });
 
   it('gates active deletion before allocation and permits the control account', async () => {
     const env = makeTestEnv();
-    const deleting = await validInput();
+    const deleting = await validInput({ omitAcmeAccountUri: true });
     const deletingAccount = await seedBoundAccount(env, deleting.instance_id, 'deleting@example.com');
     await activeDeletion(deletingAccount.accountId);
     const rng = vi.spyOn(crypto, 'getRandomValues');
     await expectError(await fetchBridge(deleting, env), 409, 'deletion_in_progress');
     expect(rng).not.toHaveBeenCalled();
     expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
 
     const control = await validInput();
     await seedBoundAccount(env, control.instance_id, 'control@example.com');
@@ -298,10 +310,11 @@ describe('MCP bridge token endpoint', () => {
 
   it('rejects both directions of reach assertion scope confusion', async () => {
     const env = makeTestEnv({ DB: throwingDb() });
-    const pushScope = await validInput({ scope: 'push.relay.enroll' });
+    const pushScope = await validInput({ scope: 'push.relay.enroll', omitAcmeAccountUri: true });
     await expectError(await fetchBridge(pushScope, env), 401, 'invalid_token');
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
 
-    const mcpScope = await validInput();
+    const mcpScope = await validInput({ omitAcmeAccountUri: true });
     const response = await worker.fetch(new Request('https://services.solstone.app/reach/push/relay-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -320,7 +333,7 @@ describe('MCP bridge token endpoint', () => {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{',
     }), env), 400, 'invalid_input');
 
-    const valid = await validInput();
+    const valid = await validInput({ omitAcmeAccountUri: true });
     const cases = [
       { ...valid, ca_pubkey: `${valid.ca_pubkey}\n` },
       { ...valid, cnf_jwk: { ...valid.cnf_jwk, x: `${valid.cnf_jwk.x}=` } },
@@ -335,11 +348,12 @@ describe('MCP bridge token endpoint', () => {
     ];
     for (const input of cases) await expectError(await fetchBridge(input, env), 400, 'invalid_input');
     await expectError(await fetchBridge({ ...valid, instance_id: '00000000-0000-8000-8000-000000000000' }, env), 401, 'invalid_token');
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
   });
 
   it('rejects wrong request types, non-P-256 keys, and every home-reach assertion boundary', async () => {
     const env = makeTestEnv({ DB: throwingDb() });
-    const valid = await validInput();
+    const valid = await validInput({ omitAcmeAccountUri: true });
     const missingCnf = { ...valid };
     delete missingCnf.cnf_jwk;
     for (const body of [
@@ -357,22 +371,23 @@ describe('MCP bridge token endpoint', () => {
 
     const now = Math.floor(Date.now() / 1000);
     const assertionCases = [
-      await validInput({ header: { typ: 'other' } }),
-      await validInput({ claims: { iss: 'home:other' } }),
-      await validInput({ claims: { aud: 'other' } }),
-      await validInput({ claims: { instance_id: 'other' } }),
-      await validInput({ claims: { exp: now - 1 } }),
-      await validInput({ claims: { iat: now + 120, exp: now + 240 } }),
+      await validInput({ header: { typ: 'other' }, omitAcmeAccountUri: true }),
+      await validInput({ claims: { iss: 'home:other' }, omitAcmeAccountUri: true }),
+      await validInput({ claims: { aud: 'other' }, omitAcmeAccountUri: true }),
+      await validInput({ claims: { instance_id: 'other' }, omitAcmeAccountUri: true }),
+      await validInput({ claims: { exp: now - 1 }, omitAcmeAccountUri: true }),
+      await validInput({ claims: { iat: now + 120, exp: now + 240 }, omitAcmeAccountUri: true }),
     ];
-    const badSignature = await validInput();
+    const badSignature = await validInput({ omitAcmeAccountUri: true });
     const [header, payload, signature] = badSignature.assertion.split('.');
     badSignature.assertion = `${header}.${payload}.${signature[0] === 'a' ? 'b' : 'a'}${signature.slice(1)}`;
     assertionCases.push(badSignature);
     for (const body of assertionCases) await expectError(await fetchBridge(body, env), 401, 'invalid_token');
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
   });
 
   it('returns typed no-store 503s for configuration, D1, assignment, signing, and JWKS failures', async () => {
-    const input = await validInput();
+    const inputNoUri = await validInput({ omitAcmeAccountUri: true });
     for (const overrides of [
       { MCP_BRIDGE_TOKEN_PRIVATE_KEY: '' },
       { MCP_BRIDGE_TOKEN_PRIVATE_KEY: 'not a private key' },
@@ -381,10 +396,13 @@ describe('MCP bridge token endpoint', () => {
       { MCP_BRIDGE_ADDRESSES: '' },
       { MCP_BRIDGE_ADDRESSES: 'not-an-address' },
     ]) {
-      await expectError(await fetchBridge(input, makeTestEnv(overrides)), 503, 'bridge_configuration_unavailable');
+      await expectError(await fetchBridge(inputNoUri, makeTestEnv(overrides)), 503, 'bridge_configuration_unavailable');
     }
-    await expectError(await fetchBridge(input, makeTestEnv({ DB: throwingDb() })), 503, 'binding_lookup_unavailable');
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
+    await expectError(await fetchBridge(inputNoUri, makeTestEnv({ DB: throwingDb() })), 503, 'binding_lookup_unavailable');
+    expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
 
+    const input = await validInput();
     const env = makeTestEnv();
     await seedBoundAccount(env, input.instance_id);
     const failingBatchDb = {
@@ -436,17 +454,19 @@ describe('MCP bridge token endpoint', () => {
     // ledger is permanent and never reuses a label, so one row written on a refused
     // request is one label burned forever.
     async function expectRefusedWithoutWriting(input, env, status, error) {
+      const initialCalls = fakeZone.fetchSpy.mock.calls.length;
       const rng = vi.spyOn(crypto, 'getRandomValues');
       await expectError(await fetchBridge(input, env), status, error);
       expect(rng).not.toHaveBeenCalled();
       rng.mockRestore();
       expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
       expect(await rowCount('mcp_bridge_bindings')).toBe(0);
+      expect(fakeZone.fetchSpy).toHaveBeenCalledTimes(initialCalls);
     }
 
     it('refuses an owner who consented but holds no entitlement, before any label is allocated', async () => {
       const env = makeTestEnv();
-      const input = await validInput();
+      const input = await validInput({ omitAcmeAccountUri: true });
       await seedBoundAccount(env, input.instance_id, 'unpaid@example.com', null);
       await expectRefusedWithoutWriting(input, env, 402, 'needs_subscription');
     });
@@ -455,7 +475,7 @@ describe('MCP bridge token endpoint', () => {
       for (const status of ['lapsed', 'canceled']) {
         await resetDb();
         const env = makeTestEnv();
-        const input = await validInput();
+        const input = await validInput({ omitAcmeAccountUri: true });
         await seedBoundAccount(env, input.instance_id, `${status}@example.com`, { status, source: 'stripe' });
         await expectRefusedWithoutWriting(input, env, 402, 'needs_subscription');
       }
@@ -463,7 +483,7 @@ describe('MCP bridge token endpoint', () => {
 
     it('does not let another service open the connector: a private-network subscription is not an entitlement', async () => {
       const env = makeTestEnv();
-      const input = await validInput();
+      const input = await validInput({ omitAcmeAccountUri: true });
       const account = await seedBoundAccount(env, input.instance_id, 'other-service@example.com', null);
       for (const service of ['spl_hosted', 'spb_hosted', 'spp_hosted']) {
         await seedEntitlement({ accountId: account.accountId, service, status: 'active' });
@@ -473,7 +493,7 @@ describe('MCP bridge token endpoint', () => {
 
     it('never reads the private-network binding: an spl-bound, spl-entitled instance gets no token', async () => {
       const env = makeTestEnv();
-      const input = await validInput();
+      const input = await validInput({ omitAcmeAccountUri: true });
       const account = await seedAccount({ email: 'spl-only@example.com', testEnv: env });
       await seedSplBinding({ accountId: account.accountId, instanceId: input.instance_id });
       await seedEntitlement({ accountId: account.accountId, service: 'spl_hosted', status: 'active' });
@@ -506,7 +526,7 @@ describe('MCP bridge token endpoint', () => {
       });
 
       await resetDb();
-      const past = await validInput();
+      const past = await validInput({ omitAcmeAccountUri: true });
       await seedBoundAccount(env, past.instance_id, 'grace-past@example.com', {
         status: 'past_due', source: 'stripe', currentPeriodEnd: NOW_SECONDS - 15 * DAY,
       });
@@ -533,7 +553,7 @@ describe('MCP bridge token endpoint', () => {
 
     it('returns a typed 503, writing nothing, when the entitlement read fails', async () => {
       const env = makeTestEnv();
-      const input = await validInput();
+      const input = await validInput({ omitAcmeAccountUri: true });
       await seedBoundAccount(env, input.instance_id);
       const failingEntitlementDb = {
         prepare: (sql, ...rest) => {
@@ -546,11 +566,12 @@ describe('MCP bridge token endpoint', () => {
       await expectError(await fetchBridge(input, makeTestEnv({ DB: failingEntitlementDb })), 503, 'entitlement_lookup_unavailable');
       expect(rng).not.toHaveBeenCalled();
       expect(await rowCount('mcp_bridge_hostname_ledger')).toBe(0);
+      expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
     });
 
     it('still refuses an active deletion before the entitlement question is asked', async () => {
       const env = makeTestEnv();
-      const input = await validInput();
+      const input = await validInput({ omitAcmeAccountUri: true });
       const account = await seedBoundAccount(env, input.instance_id, 'deleting-unpaid@example.com', null);
       await activeDeletion(account.accountId);
       await expectRefusedWithoutWriting(input, env, 409, 'deletion_in_progress');
@@ -559,9 +580,10 @@ describe('MCP bridge token endpoint', () => {
 
   describe('the break-glass stop', () => {
     it('answers 503 before touching D1 or the request body when MCP_BRIDGE_TOKEN_DISABLED is exactly "true"', async () => {
-      const input = await validInput();
+      const input = await validInput({ omitAcmeAccountUri: true });
       const response = await fetchBridge(input, makeTestEnv({ DB: throwingDb(), MCP_BRIDGE_TOKEN_DISABLED: 'true' }));
       await expectError(response, 503, 'bridge_token_disabled');
+      expect(fakeZone.fetchSpy).not.toHaveBeenCalled();
     });
 
     it('ignores every other value, so a stray setting cannot dark the route', async () => {
@@ -576,18 +598,25 @@ describe('MCP bridge token endpoint', () => {
   });
 });
 
-async function validInput({ instanceId = null, scope = 'mcp.bridge.register', header = {}, claims = {} } = {}) {
+async function validInput({ instanceId = null, scope = 'mcp.bridge.register', header = {}, claims = {}, omitAcmeAccountUri = false } = {}) {
   const home = await generateReachKeyPair();
   const assertionInstanceId = instanceId || home.instanceId;
   const { publicKey } = await generateKeyPair('EdDSA', { crv: 'Ed25519', extractable: true });
   const cnf_jwk = await exportJWK(publicKey);
+  const assertionClaims = {
+    scope,
+    ...claims,
+  };
+  if (!omitAcmeAccountUri && !Object.hasOwn(claims, 'acme_account_uri')) {
+    assertionClaims.acme_account_uri = 'https://acme-v02.api.letsencrypt.org/acme/acct/123456';
+  }
   return {
     instance_id: assertionInstanceId,
     assertion: await mintHomeReachAssertion({
       instanceId: assertionInstanceId,
       privateKey: home.privateKey,
       header,
-      claims: { scope, ...claims },
+      claims: assertionClaims,
     }),
     ca_pubkey: home.publicKeyPem,
     cnf_jwk,
@@ -606,11 +635,16 @@ async function seedBoundAccount(env, instanceId, email = 'mcp-bridge@example.com
 }
 
 async function fetchBridge(body, env) {
+  const testEnv = {
+    ...env,
+    SOLSTONE_ME_ZONE_ID: env.SOLSTONE_ME_ZONE_ID ?? 'test-solstone-me-zone-id',
+    SOLSTONE_ME_DNS_API_TOKEN: env.SOLSTONE_ME_DNS_API_TOKEN ?? 'test-solstone-me-dns-token',
+  };
   const { response } = await fetchWithCtx(worker, new Request('https://services.solstone.app/reach/mcp/bridge-token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }), env);
+  }), testEnv);
   return response;
 }
 

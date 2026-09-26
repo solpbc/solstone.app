@@ -116,23 +116,27 @@ export async function verifyReachRelayToken(token, env) {
 }
 
 export async function verifyHomeReachAssertion(assertion, key, spkiBytes, instanceId, scope) {
+  return (await readHomeReachAssertion(assertion, key, spkiBytes, instanceId, scope)) !== null;
+}
+
+export async function readHomeReachAssertion(assertion, key, spkiBytes, instanceId, scope) {
   try {
-    if (await deriveJournalIdFromSpki(spkiBytes) !== instanceId) return false;
+    if (await deriveJournalIdFromSpki(spkiBytes) !== instanceId) return null;
 
     const parts = assertion.split('.');
-    if (parts.length !== 3) return false;
+    if (parts.length !== 3) return null;
 
     const header = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[0])));
-    if (header.alg !== 'ES256' || header.typ !== 'home-reach') return false;
+    if (header.alg !== 'ES256' || header.typ !== 'home-reach') return null;
 
     const claims = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[1])));
     const now = Math.floor(Date.now() / 1000);
-    if (claims.iss !== `home:${instanceId}`) return false;
-    if (claims.aud !== 'solstone-reach') return false;
-    if (claims.scope !== scope) return false;
-    if (claims.instance_id !== instanceId) return false;
-    if (typeof claims.exp !== 'number' || claims.exp <= now) return false;
-    if (typeof claims.iat !== 'number' || claims.iat > now + 60 || claims.exp <= claims.iat) return false;
+    if (claims.iss !== `home:${instanceId}`) return null;
+    if (claims.aud !== 'solstone-reach') return null;
+    if (claims.scope !== scope) return null;
+    if (claims.instance_id !== instanceId) return null;
+    if (typeof claims.exp !== 'number' || claims.exp <= now) return null;
+    if (typeof claims.iat !== 'number' || claims.iat > now + 60 || claims.exp <= claims.iat) return null;
 
     const sigBytes = base64UrlDecode(parts[2]);
     const ok = await crypto.subtle.verify(
@@ -141,9 +145,9 @@ export async function verifyHomeReachAssertion(assertion, key, spkiBytes, instan
       sigBytes,
       encoder.encode(`${parts[0]}.${parts[1]}`)
     );
-    return ok === true;
+    return ok === true ? claims : null;
   } catch {
-    return false;
+    return null;
   }
 }
 

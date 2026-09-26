@@ -1,29 +1,46 @@
 import { exportJWK, importJWK, importPKCS8, SignJWT } from 'jose';
 import { base64UrlEncode } from './crypto.js';
 import {
+  clearSmeJournalUpdateRefused,
+  claimSolstoneMeDnsCapacityAlert,
+  commitMcpBridgeProvisionalVerification,
+  confirmRefreshMcpBridgeVerification,
   findUniqueSmeBindingAccount,
   getActiveDeletionForAccount,
   getEntitlement,
   getMcpBridgeBinding,
+  releaseMcpBridgeDnsLease,
+  replaceMcpBridgePin,
   reserveMcpBridgeBinding,
+  setMcpBridgeFirstPin,
+  stampSmeJournalUpdateRefused,
+  takeMcpBridgeDnsLease,
 } from './db.js';
+import { emitSecurityEvent } from './hub.js';
 import { json } from './index.js';
 import {
   MCP_BRIDGE_REGISTER_SCOPE,
   parseHomeReachCaPubkey,
-  verifyHomeReachAssertion,
+  readHomeReachAssertion,
 } from './reach.js';
 import { SME_HOSTED_SERVICE, isSmeEntitledToServe } from './sme-entitlement.js';
+import {
+  applyLabelBatch,
+  countZoneRecords,
+  labelRecordsMatch,
+  listLabelRecords,
+  planLabelBatch,
+  readDnsRecordCeiling,
+  solstoneMeDnsReady,
+} from './solstone-me-dns.js';
 
 const BRIDGE_HOST_SUFFIX = '.solstone.me';
 const BRIDGE_TOKEN_TTL_SECONDS = 600;
 const LABEL_BYTES = 5;
 const LABEL_MAX_ATTEMPTS = 8;
 const BASE32 = 'abcdefghijklmnopqrstuvwxyz234567';
+const ACME_URI_RE = /^https:\/\/(acme-v02|acme-staging-v02)\.api\.letsencrypt\.org\/acme\/acct\/[0-9]{1,20}$/;
 
-// Bounded D1 failure taxonomy, mirrored from spp-authorize.js's `d1Reason` —
-// see that file for the full rationale. Duplicated rather than imported to keep
-// this handler's failure paths independent of spp-authorize.js's module graph.
 const D1_REASONS = [
   ['network connection lost', 'network_lost'],
   ['storage caused object to be reset', 'storage_reset'],
@@ -44,13 +61,6 @@ function d1Reason(message) {
   return 'unclassified';
 }
 
-// Content-free failure log for a caught bridge-token error: bounded reason code
-// only, never the raw message (a D1 message can embed a bound parameter). Each
-// `catch` below returns a distinct 503 body identifying which step failed; this
-// adds the classification that lets a recurrence be diagnosed from operational
-// logs instead of only distinguishing "some step failed" (2026-09-10/11
-// solstone.app zone-5xx spike — every catch here was bare, so the live-window
-// capture could confirm requests were failing but not which branch or why).
 function logBridgeTokenFailure(step, err) {
   const name = typeof err?.name === 'string' && err.name ? err.name : 'unknown';
   const message = String(err?.message || '');
@@ -59,9 +69,7 @@ function logBridgeTokenFailure(step, err) {
   console.error('mcp_bridge_token_failed', step, name, kind, reason);
 }
 
-export async function handleMcpBridgeToken(req, env) {
-  // Break-glass stop, set via `wrangler secret put` only while the route must be dark.
-  // Unset is normal operation; any value other than the exact string "true" is ignored.
+export async function handleMcpBridgeToken(req, env, ctx) {
   if (env.MCP_BRIDGE_TOKEN_DISABLED === 'true') {
     return json({ error: 'bridge_token_disabled' }, { status: 503 });
   }
@@ -70,14 +78,32 @@ export async function handleMcpBridgeToken(req, env) {
 
   const ca = await parseHomeReachCaPubkey(body.ca_pubkey);
   if (!ca) return json({ error: 'invalid_input' }, { status: 400 });
-  const assertionValid = await verifyHomeReachAssertion(
+
+  const claims = await readHomeReachAssertion(
     body.assertion,
     ca.key,
     ca.spkiBytes,
     body.instance_id,
     MCP_BRIDGE_REGISTER_SCOPE
   );
-  if (!assertionValid) return json({ error: 'invalid_token' }, { status: 401 });
+  if (!claims) return json({ error: 'invalid_token' }, { status: 401 });
+
+  if (claims.exp - claims.iat > 300) {
+    return json({ error: 'invalid_token' }, { status: 401 });
+  }
+
+  const requestAccountUri = claims.acme_account_uri;
+  if (requestAccountUri !== undefined) {
+    if (typeof requestAccountUri !== 'string' || !ACME_URI_RE.test(requestAccountUri)) {
+      return json({ error: 'invalid_input' }, { status: 400 });
+    }
+  }
+
+  const replaceClaim = claims.acme_account_replace;
+  if (replaceClaim !== undefined && typeof replaceClaim !== 'boolean') {
+    return json({ error: 'invalid_input' }, { status: 400 });
+  }
+  const isReplace = replaceClaim === true;
 
   const cnfJwk = await validateMcpBridgePublicJwk(body.cnf_jwk);
   if (!cnfJwk) return json({ error: 'invalid_input' }, { status: 400 });
@@ -125,6 +151,35 @@ export async function handleMcpBridgeToken(req, env) {
     return json({ error: 'entitlement_lookup_unavailable' }, { status: 503 });
   }
 
+  if (!requestAccountUri) {
+    let stamped;
+    try {
+      stamped = await stampSmeJournalUpdateRefused(env.DB, {
+        accountId: account.accountId,
+        instanceId: body.instance_id,
+        nowMs: Date.now(),
+      });
+    } catch (err) {
+      logBridgeTokenFailure('stamp_journal_update_refused', err);
+      return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
+    }
+    if (!stamped) {
+      logBridgeTokenFailure('stamp_journal_update_refused', new Error('no rows updated'));
+      return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
+    }
+    return json({ error: 'journal_update_required' }, { status: 426 });
+  }
+
+  try {
+    await clearSmeJournalUpdateRefused(env.DB, {
+      accountId: account.accountId,
+      instanceId: body.instance_id,
+    });
+  } catch (err) {
+    logBridgeTokenFailure('clear_journal_update_refused', err);
+    return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
+  }
+
   let binding;
   try {
     binding = await getMcpBridgeBinding(env.DB, {
@@ -144,19 +199,321 @@ export async function handleMcpBridgeToken(req, env) {
         instanceId: body.instance_id,
         nowMs: Date.now(),
       });
+      binding = await getMcpBridgeBinding(env.DB, {
+        accountId: account.accountId,
+        instanceId: body.instance_id,
+      });
     } catch (err) {
       logBridgeTokenFailure('allocate_label', err);
       return json({ error: 'hostname_assignment_unavailable' }, { status: 503 });
     }
   }
 
+  // Pin decision
+  if (!binding.acme_account_uri) {
+    try {
+      const ok = await setMcpBridgeFirstPin(env.DB, {
+        accountId: account.accountId,
+        instanceId: body.instance_id,
+        accountUri: requestAccountUri,
+        nowMs: Date.now(),
+      });
+      if (!ok) {
+        binding = await getMcpBridgeBinding(env.DB, {
+          accountId: account.accountId,
+          instanceId: body.instance_id,
+        });
+        if (binding?.acme_account_uri !== requestAccountUri) {
+          return json({ error: 'acme_account_changed' }, { status: 409 });
+        }
+      } else {
+        binding.acme_account_uri = requestAccountUri;
+        binding.acme_account_pinned_at = Date.now();
+      }
+    } catch (err) {
+      logBridgeTokenFailure('set_bridge_pin', err);
+      return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
+    }
+  } else if (binding.acme_account_uri !== requestAccountUri) {
+    if (!isReplace) {
+      return json({ error: 'acme_account_changed' }, { status: 409 });
+    }
+    try {
+      const ok = await replaceMcpBridgePin(env.DB, {
+        accountId: account.accountId,
+        instanceId: body.instance_id,
+        newAccountUri: requestAccountUri,
+        oldAccountUri: binding.acme_account_uri,
+        nowMs: Date.now(),
+      });
+      if (!ok) {
+        binding = await getMcpBridgeBinding(env.DB, {
+          accountId: account.accountId,
+          instanceId: body.instance_id,
+        });
+        if (binding?.acme_account_uri !== requestAccountUri) {
+          return json({ error: 'acme_account_changed' }, { status: 409 });
+        }
+      } else {
+        binding.acme_account_uri = requestAccountUri;
+        binding.acme_account_replaced_at = Date.now();
+      }
+    } catch (err) {
+      logBridgeTokenFailure('replace_bridge_pin', err);
+      return json({ error: 'binding_lookup_unavailable' }, { status: 503 });
+    }
+  }
+
+  const hostname = `${label}${BRIDGE_HOST_SUFFIX}`;
+  const sortedAddresses = [...signing.addresses].sort();
+  const canonicalAddressesJson = JSON.stringify(sortedAddresses);
+
+  // Fast path check
+  const now = Date.now();
+  const verifiedAge = typeof binding.dns_verified_at === 'number' ? now - binding.dns_verified_at : Infinity;
+  const verifiedUriMatches = binding.dns_verified_uri === binding.acme_account_uri && binding.dns_verified_uri === requestAccountUri;
+  const verifiedAddressesMatches = binding.dns_verified_addresses === canonicalAddressesJson;
+
+  const isFastPath =
+    verifiedUriMatches &&
+    verifiedAddressesMatches &&
+    verifiedAge < 6 * 3600 * 1000 &&
+    (binding.dns_verification_state === 'confirmed' ||
+      (binding.dns_verification_state === 'provisional' && verifiedAge < 60 * 1000));
+
+  if (isFastPath) {
+    return mintAndReturnResponse(signing, body.instance_id, hostname, cnfJwk, binding.acme_account_replaced_at);
+  }
+
+  // Re-verify check
+  const isReVerifyCandidate =
+    verifiedUriMatches &&
+    verifiedAddressesMatches &&
+    (binding.dns_verification_state === 'confirmed' || binding.dns_verification_state === 'provisional');
+
+  if (isReVerifyCandidate) {
+    if (!solstoneMeDnsReady(env)) {
+      console.error('mcp_bridge_dns_failed', 'not_configured');
+      return mintAndReturnResponse(signing, body.instance_id, hostname, cnfJwk, binding.acme_account_replaced_at);
+    }
+    const listRes = await listLabelRecords(env, hostname);
+    if (!listRes.ok) {
+      console.error('mcp_bridge_dns_failed', listRes.reason);
+      return mintAndReturnResponse(signing, body.instance_id, hostname, cnfJwk, binding.acme_account_replaced_at);
+    }
+    if (labelRecordsMatch(listRes.records, { hostname, accountUri: binding.acme_account_uri, addresses: signing.addresses })) {
+      try {
+        await confirmRefreshMcpBridgeVerification(env.DB, {
+          accountId: account.accountId,
+          instanceId: body.instance_id,
+          leaseGeneration: binding.dns_lease_generation,
+          verifiedUri: binding.dns_verified_uri,
+          verifiedAddressesJson: binding.dns_verified_addresses,
+          nowMs: Date.now(),
+        });
+      } catch {
+        // ignore error
+      }
+      const fresh = await getMcpBridgeBinding(env.DB, { accountId: account.accountId, instanceId: body.instance_id });
+      if (fresh?.acme_account_uri !== requestAccountUri) {
+        return json({ error: 'acme_account_changed' }, { status: 409 });
+      }
+      if (
+        fresh?.dns_verification_state &&
+        fresh.dns_verified_uri === requestAccountUri &&
+        fresh.dns_verified_addresses === canonicalAddressesJson &&
+        (fresh.dns_lease_expires_at === null || fresh.dns_lease_expires_at <= Date.now())
+      ) {
+        return mintAndReturnResponse(signing, body.instance_id, hostname, cnfJwk, fresh.acme_account_replaced_at);
+      }
+      console.error('mcp_bridge_dns_failed', 'lease_held');
+      return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+    }
+    // If mismatch, fall through to write path
+  }
+
+  // Write path
+  const ceiling = readDnsRecordCeiling(env);
+  if (!solstoneMeDnsReady(env) || ceiling === null) {
+    console.error('mcp_bridge_dns_failed', 'not_configured');
+    return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+  }
+
+  const lease = await takeMcpBridgeDnsLease(env.DB, {
+    accountId: account.accountId,
+    instanceId: body.instance_id,
+    nowMs: Date.now(),
+  });
+  if (!lease.ok) {
+    console.error('mcp_bridge_dns_failed', 'lease_held');
+    return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+  }
+
+  async function safeRelease() {
+    try {
+      await releaseMcpBridgeDnsLease(env.DB, {
+        accountId: account.accountId,
+        instanceId: body.instance_id,
+        leaseGeneration: lease.generation,
+      });
+    } catch {}
+  }
+
+  let currentBinding = await getMcpBridgeBinding(env.DB, { accountId: account.accountId, instanceId: body.instance_id });
+  let currentNow = Date.now();
+  if (
+    currentBinding?.dns_lease_generation !== lease.generation ||
+    typeof currentBinding?.dns_lease_expires_at !== 'number' ||
+    currentBinding.dns_lease_expires_at - currentNow < 10000
+  ) {
+    console.error('mcp_bridge_dns_failed', 'lease_expired');
+    await safeRelease();
+    return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+  }
+
+  const listRes = await listLabelRecords(env, hostname);
+  if (!listRes.ok) {
+    console.error('mcp_bridge_dns_failed', listRes.reason);
+    await safeRelease();
+    return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+  }
+
+  currentBinding = await getMcpBridgeBinding(env.DB, { accountId: account.accountId, instanceId: body.instance_id });
+  currentNow = Date.now();
+  if (
+    currentBinding?.dns_lease_generation !== lease.generation ||
+    typeof currentBinding?.dns_lease_expires_at !== 'number' ||
+    currentBinding.dns_lease_expires_at - currentNow < 10000
+  ) {
+    console.error('mcp_bridge_dns_failed', 'lease_expired');
+    await safeRelease();
+    return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+  }
+
+  const targetPinUri = currentBinding.acme_account_uri;
+  if (!targetPinUri) {
+    console.error('mcp_bridge_dns_failed', 'pin_missing');
+    await safeRelease();
+    return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+  }
+
+  if (listRes.records.length === 0) {
+    const countRes = await countZoneRecords(env);
+    if (!countRes.ok) {
+      console.error('mcp_bridge_dns_failed', countRes.reason);
+      await safeRelease();
+      return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+    }
+    const distinctAddressCount = new Set(signing.addresses).size;
+    if (countRes.totalCount + 1 + distinctAddressCount > ceiling) {
+      console.error('mcp_bridge_dns_capacity', countRes.totalCount);
+      try {
+        const claimed = await claimSolstoneMeDnsCapacityAlert(env.DB, { nowMs: Date.now() });
+        if (claimed) {
+          emitSecurityEvent(env, ctx, {
+            office: 'cto',
+            type: 'solstone_me_dns_capacity',
+            record_count: countRes.totalCount,
+          });
+        }
+      } catch {}
+      await safeRelease();
+      return json({ error: 'hostname_capacity' }, { status: 503 });
+    }
+  }
+
+  const plan = planLabelBatch(listRes.records, {
+    hostname,
+    accountUri: targetPinUri,
+    addresses: signing.addresses,
+  });
+
+  if (plan !== null) {
+    currentBinding = await getMcpBridgeBinding(env.DB, { accountId: account.accountId, instanceId: body.instance_id });
+    currentNow = Date.now();
+    if (
+      currentBinding?.dns_lease_generation !== lease.generation ||
+      typeof currentBinding?.dns_lease_expires_at !== 'number' ||
+      currentBinding.dns_lease_expires_at - currentNow < 10000
+    ) {
+      console.error('mcp_bridge_dns_failed', 'lease_expired');
+      await safeRelease();
+      return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+    }
+
+    const batchRes = await applyLabelBatch(env, plan);
+    if (!batchRes.ok) {
+      console.error('mcp_bridge_dns_failed', batchRes.reason);
+      await safeRelease();
+      return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+    }
+
+    currentBinding = await getMcpBridgeBinding(env.DB, { accountId: account.accountId, instanceId: body.instance_id });
+    currentNow = Date.now();
+    if (
+      currentBinding?.dns_lease_generation !== lease.generation ||
+      typeof currentBinding?.dns_lease_expires_at !== 'number' ||
+      currentBinding.dns_lease_expires_at - currentNow < 10000
+    ) {
+      console.error('mcp_bridge_dns_failed', 'lease_expired');
+      await safeRelease();
+      return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+    }
+
+    const readbackRes = await listLabelRecords(env, hostname);
+    if (!readbackRes.ok) {
+      console.error('mcp_bridge_dns_failed', readbackRes.reason);
+      await safeRelease();
+      return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+    }
+
+    if (!labelRecordsMatch(readbackRes.records, { hostname, accountUri: targetPinUri, addresses: signing.addresses })) {
+      console.error('mcp_bridge_dns_failed', 'readback_mismatch');
+      await safeRelease();
+      return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+    }
+  }
+
+  let commitOk = false;
+  try {
+    commitOk = await commitMcpBridgeProvisionalVerification(env.DB, {
+      accountId: account.accountId,
+      instanceId: body.instance_id,
+      leaseGeneration: lease.generation,
+      verifiedUri: targetPinUri,
+      verifiedAddressesJson: canonicalAddressesJson,
+      nowMs: Date.now(),
+    });
+  } catch (err) {
+    logBridgeTokenFailure('commit_provisional_verification', err);
+  }
+
+  if (!commitOk) {
+    await safeRelease();
+    currentBinding = await getMcpBridgeBinding(env.DB, { accountId: account.accountId, instanceId: body.instance_id });
+    if (currentBinding?.acme_account_uri === requestAccountUri) {
+      console.error('mcp_bridge_dns_failed', 'commit_failed');
+      return json({ error: 'hostname_records_unavailable' }, { status: 503 });
+    } else {
+      return json({ error: 'acme_account_changed' }, { status: 409 });
+    }
+  }
+
+  if (targetPinUri !== requestAccountUri) {
+    return json({ error: 'acme_account_changed' }, { status: 409 });
+  }
+
+  currentBinding = await getMcpBridgeBinding(env.DB, { accountId: account.accountId, instanceId: body.instance_id });
+  return mintAndReturnResponse(signing, body.instance_id, hostname, cnfJwk, currentBinding?.acme_account_replaced_at);
+}
+
+async function mintAndReturnResponse(signing, instanceId, hostname, cnfJwk, acmeAccountReplacedAt) {
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + BRIDGE_TOKEN_TTL_SECONDS;
-  const hostname = `${label}${BRIDGE_HOST_SUFFIX}`;
   let token;
   try {
     token = await mintMcpBridgeToken(signing, {
-      instanceId: body.instance_id,
+      instanceId,
       hostname,
       cnfJwk,
       iat,
@@ -165,16 +522,20 @@ export async function handleMcpBridgeToken(req, env) {
     logBridgeTokenFailure('mint_token', err);
     return json({ error: 'token_mint_unavailable' }, { status: 503 });
   }
-  return json({
+  const res = {
     token,
     token_type: 'Bearer',
     expires_in: BRIDGE_TOKEN_TTL_SECONDS,
     expires_at: new Date(exp * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'),
-    instance_id: body.instance_id,
+    instance_id: instanceId,
     hostname,
     bridge_id: signing.bridgeId,
     bridge_addresses: signing.addresses,
-  });
+  };
+  if (typeof acmeAccountReplacedAt === 'number') {
+    res.acme_account_replaced_at = new Date(Math.floor(acmeAccountReplacedAt / 1000) * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  }
+  return json(res);
 }
 
 export async function handleMcpBridgeJwks(_req, env) {

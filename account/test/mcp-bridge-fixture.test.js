@@ -1,7 +1,7 @@
 import { env as workerEnv } from 'cloudflare:test';
-import { decodeProtectedHeader, importJWK, jwtVerify } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import fixtureText from '../test-fixtures/mcp_bridge_v1.json?raw';
+import v1FixtureText from '../test-fixtures/mcp_bridge_v1.json?raw';
+import v2FixtureText from '../test-fixtures/mcp_bridge_v2.json?raw';
 import worker from '../src/index.js';
 import { deriveJournalIdFromSpki } from '../src/crypto.js';
 import { parseHomeReachCaPubkey } from '../src/reach.js';
@@ -14,18 +14,37 @@ import {
   seedSmeBinding,
   V1_MCP_BRIDGE_ADDRESS,
 } from './helpers.js';
+import { installFakeSolstoneMeZone } from './fake-solstone-me-zone.js';
 
+const V1_SHA256 = '6563b737522de561b62a00a93e5a083f5cfa56608bd45ea1bc388c0ee395c956';
 const FIXTURE_NOW_MS = 1_700_000_000_000;
-const FIXTURE_CA_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDqAw0i9YxRG5/1DAZ1eLejZJuTcq
-Pjxbfiv6klgXm9nk08MUGpdn/Cgw5Fc0/lI39DF1GiyQ9AewtkawyxUDIQ==
+
+const V2_CA_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQWlKYw5U0BTp/TLsowvmpKeLBzg9
+bu+9FzYqScH+EVXR2+GHE0xZoSOR242MK4NX7h+sp/kGyDpkBKWfT3zBsA==
 -----END PUBLIC KEY-----`;
-const FIXTURE_CNF_JWK = {
+
+// The P-256 private key below is frozen for regeneration only — tests do not call sign.
+// eslint-disable-next-line no-unused-vars
+const V2_CA_PRIVATE_KEY_FOR_REGENERATION = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg18tnFyg3ipmfVpDS
+Tv6lvM0nLVKOM63PoGjHJjIdkLmhRANCAARBaUpjDlTQFOn9MuyjC+akp4sHOD1u
+770XNipJwf4RVdHb4YcTTFmhI5HbjYwrg1fuH6yn+QbIOmQEpZ9PfMGw
+-----END PRIVATE KEY-----`;
+
+const V2_CNF_JWK = {
   kty: 'OKP',
   crv: 'Ed25519',
   x: 'AsjOOYUMUDDGYVvf2a02SDEXab1H9W3Zvc4WXzymL4c',
 };
-const FIXTURE_ASSERTION = 'eyJhbGciOiJFUzI1NiIsInR5cCI6ImhvbWUtcmVhY2gifQ.eyJpc3MiOiJob21lOjg0ODhhZTY0LWI1OTItODBhMy05N2M2LTQ5MGU5OTVkYWE4NSIsImF1ZCI6InNvbHN0b25lLXJlYWNoIiwic2NvcGUiOiJtY3AuYnJpZGdlLnJlZ2lzdGVyIiwiaW5zdGFuY2VfaWQiOiI4NDg4YWU2NC1iNTkyLTgwYTMtOTdjNi00OTBlOTk1ZGFhODUiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMDI0MH0.Dob8pebaDSM80usXouCFraOrgzORGXDPQWzZgHLz1lIspj_C10nEF2lQJjbMn-RYgBDOTY-N7jlRB07tae2JSQ';
+
+const V2_PIN_ASSERTION = 'eyJhbGciOiJFUzI1NiIsInR5cCI6ImhvbWUtcmVhY2gifQ.eyJpc3MiOiJob21lOjVmODQzZjkxLTVmY2QtOGE1YS05YzhiLTUwMDlkZWJkOGQwMCIsImF1ZCI6InNvbHN0b25lLXJlYWNoIiwic2NvcGUiOiJtY3AuYnJpZGdlLnJlZ2lzdGVyIiwiaW5zdGFuY2VfaWQiOiI1Zjg0M2Y5MS01ZmNkLThhNWEtOWM4Yi01MDA5ZGViZDhkMDAiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMDI0MCwiYWNtZV9hY2NvdW50X3VyaSI6Imh0dHBzOi8vYWNtZS12MDIuYXBpLmxldHNlbmNyeXB0Lm9yZy9hY21lL2FjY3QvMTIzNDU2In0.FV6Sspl31a7e0HMwRQhK8nTDoOPbRCR8FLSBNAMMh7Nv5Xc_4s9I6cyEQ7P9wKRLcbv-KKF3x_ajRABPeR4tBw';
+
+const V2_REPLACE_ASSERTION = 'eyJhbGciOiJFUzI1NiIsInR5cCI6ImhvbWUtcmVhY2gifQ.eyJpc3MiOiJob21lOjVmODQzZjkxLTVmY2QtOGE1YS05YzhiLTUwMDlkZWJkOGQwMCIsImF1ZCI6InNvbHN0b25lLXJlYWNoIiwic2NvcGUiOiJtY3AuYnJpZGdlLnJlZ2lzdGVyIiwiaW5zdGFuY2VfaWQiOiI1Zjg0M2Y5MS01ZmNkLThhNWEtOWM4Yi01MDA5ZGViZDhkMDAiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMDI0MCwiYWNtZV9hY2NvdW50X3VyaSI6Imh0dHBzOi8vYWNtZS12MDIuYXBpLmxldHNlbmNyeXB0Lm9yZy9hY21lL2FjY3QvMDAwNzg5IiwiYWNtZV9hY2NvdW50X3JlcGxhY2UiOnRydWV9.1LASqdvvlq-cK6Tv6A6qGCT0MqcodecT3W3ZXYSlttNMRaVTTB11dfuEkygOSdd-JSm_g34W1acNUFBKumIpVg';
+
+const V2_OTHER_ASSERTION = 'eyJhbGciOiJFUzI1NiIsInR5cCI6ImhvbWUtcmVhY2gifQ.eyJpc3MiOiJob21lOjVmODQzZjkxLTVmY2QtOGE1YS05YzhiLTUwMDlkZWJkOGQwMCIsImF1ZCI6InNvbHN0b25lLXJlYWNoIiwic2NvcGUiOiJtY3AuYnJpZGdlLnJlZ2lzdGVyIiwiaW5zdGFuY2VfaWQiOiI1Zjg0M2Y5MS01ZmNkLThhNWEtOWM4Yi01MDA5ZGViZDhkMDAiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMDI0MCwiYWNtZV9hY2NvdW50X3VyaSI6Imh0dHBzOi8vYWNtZS12MDIuYXBpLmxldHNlbmNyeXB0Lm9yZy9hY21lL2FjY3QvMDAwNzg5In0.qiGfeA7mR9DF6kqXNHZfJ9SKm4v-i07UZM3B9Jfi_uzaX0eiQDOPJLM_HkJ-DbRMl1VFQ5MF5iyAdCUHPrQ55A';
+
+const V2_NO_URI_ASSERTION = 'eyJhbGciOiJFUzI1NiIsInR5cCI6ImhvbWUtcmVhY2gifQ.eyJpc3MiOiJob21lOjVmODQzZjkxLTVmY2QtOGE1YS05YzhiLTUwMDlkZWJkOGQwMCIsImF1ZCI6InNvbHN0b25lLXJlYWNoIiwic2NvcGUiOiJtY3AuYnJpZGdlLnJlZ2lzdGVyIiwiaW5zdGFuY2VfaWQiOiI1Zjg0M2Y5MS01ZmNkLThhNWEtOWM4Yi01MDA5ZGViZDhkMDAiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMDI0MH0.f2x_CD3Qn8PudlYFR__z9esVjYqJjy-uBSM6qJmveFtQThKgnfOLhvBXxpESFXv84S_1stQq5hc50I-5PX6syA';
 
 describe('MCP bridge v1 golden fixture', () => {
   beforeEach(resetDb);
@@ -35,88 +54,144 @@ describe('MCP bridge v1 golden fixture', () => {
     vi.unstubAllGlobals();
   });
 
-  it('reproduces the real Worker request, response, and JWKS bytes', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(FIXTURE_NOW_MS);
+  it('pins the byte SHA-256 and replays the v1 request to 426 journal_update_required', async () => {
+    const encoder = new TextEncoder();
+    const digestBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(v1FixtureText)));
+    const digestHex = Array.from(digestBytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+    expect(digestHex).toBe(V1_SHA256);
+
+    const v1Artifact = JSON.parse(v1FixtureText);
     const env = makeTestEnv({
       MCP_BRIDGE_TOKEN_KID: 'mcp-bridge-fixture-v1',
       MCP_BRIDGE_ID: 'mcp-bridge-fixture',
       MCP_BRIDGE_ADDRESSES: V1_MCP_BRIDGE_ADDRESS,
     });
-    const ca = await parseHomeReachCaPubkey(FIXTURE_CA_PUBLIC_KEY);
-    if (!ca) throw new Error('fixture CA public key must be valid P-256 SPKI');
-    const instanceId = await deriveJournalIdFromSpki(ca.spkiBytes);
-    const rawRequest = JSON.stringify({
-      instance_id: instanceId,
-      assertion: FIXTURE_ASSERTION,
-      ca_pubkey: FIXTURE_CA_PUBLIC_KEY,
-      cnf_jwk: FIXTURE_CNF_JWK,
-    });
-    const account = await seedAccount({ email: 'mcp-bridge-fixture@example.com', testEnv: env });
-    await seedSmeBinding({ accountId: account.accountId, instanceId });
+    vi.spyOn(Date, 'now').mockReturnValue(FIXTURE_NOW_MS);
+    const parsedBody = JSON.parse(v1Artifact.request.body);
+    const account = await seedAccount({ email: 'mcp-bridge-v1-replay@example.com', testEnv: env });
+    await seedSmeBinding({ accountId: account.accountId, instanceId: parsedBody.instance_id });
     await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted' });
+
+    const { response } = await fetchWithCtx(worker, new Request(v1Artifact.request.url, {
+      method: v1Artifact.request.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: v1Artifact.request.body,
+    }), env);
+
+    const bodyJson = await response.json();
+    console.log('v1 replay returned:', response.status, bodyJson);
+    expect(response.status).toBe(426);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(bodyJson).toEqual({ error: 'journal_update_required' });
+  });
+});
+
+describe('MCP bridge v2 golden fixture', () => {
+  let fakeZone;
+  beforeEach(async () => {
+    await resetDb();
+    fakeZone = installFakeSolstoneMeZone({ zoneId: 'test-zone-id' });
+  });
+
+  afterEach(() => {
+    fakeZone?.restore();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('reproduces every v2 golden case byte for byte', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(FIXTURE_NOW_MS);
     vi.spyOn(crypto, 'getRandomValues').mockImplementation((bytes) => {
       bytes.set([0, 1, 2, 3, 4]);
       return bytes;
     });
 
-    const { response } = await fetchWithCtx(worker, new Request('https://services.solstone.app/reach/mcp/bridge-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: rawRequest,
-    }), env);
-    const { response: jwksResponse } = await fetchWithCtx(
-      worker,
-      new Request('https://services.solstone.app/.well-known/jwks.json'),
-      env,
-    );
-    const artifact = {
-      version: 1,
-      request: {
+    const env = makeTestEnv({
+      MCP_BRIDGE_TOKEN_KID: 'mcp-bridge-fixture-v2',
+      MCP_BRIDGE_ID: 'mcp-bridge-fixture',
+      MCP_BRIDGE_ADDRESSES: V1_MCP_BRIDGE_ADDRESS,
+      SOLSTONE_ME_ZONE_ID: 'test-zone-id',
+      SOLSTONE_ME_DNS_API_TOKEN: 'test-dns-token',
+    });
+
+    const ca = await parseHomeReachCaPubkey(V2_CA_PUBLIC_KEY);
+    const instanceId = await deriveJournalIdFromSpki(ca.spkiBytes);
+    const account = await seedAccount({ email: 'mcp-bridge-v2-fixture@example.com', testEnv: env });
+    await seedSmeBinding({ accountId: account.accountId, instanceId });
+    await seedEntitlement({ accountId: account.accountId, service: 'sme_hosted' });
+
+    const cases = [];
+
+    async function executeCase(name, assertion, envOverrides = {}) {
+      const requestEnv = { ...env, ...envOverrides };
+      const rawBody = JSON.stringify({
+        instance_id: instanceId,
+        assertion,
+        ca_pubkey: V2_CA_PUBLIC_KEY,
+        cnf_jwk: V2_CNF_JWK,
+      });
+      const req = new Request('https://services.solstone.app/reach/mcp/bridge-token', {
         method: 'POST',
-        url: 'https://services.solstone.app/reach/mcp/bridge-token',
-        body: rawRequest,
-      },
-      response: {
-        status: response.status,
-        cache_control: response.headers.get('Cache-Control'),
-        body: JSON.parse(await response.text()),
-      },
-      jwks: {
-        status: jwksResponse.status,
-        cache_control: jwksResponse.headers.get('Cache-Control'),
-        body: JSON.parse(await jwksResponse.text()),
-      },
+        headers: { 'Content-Type': 'application/json' },
+        body: rawBody,
+      });
+      const { response } = await fetchWithCtx(worker, req, requestEnv);
+      const text = await response.text();
+      cases.push({
+        name,
+        request: {
+          method: 'POST',
+          url: 'https://services.solstone.app/reach/mcp/bridge-token',
+          body: rawBody,
+        },
+        response: {
+          status: response.status,
+          cache_control: response.headers.get('Cache-Control'),
+          body_text: text,
+        },
+      });
+      return { status: response.status, text };
+    }
+
+    // 1. first_pin
+    await executeCase('first_pin', V2_PIN_ASSERTION);
+
+    // 2. acme_account_changed (other assertion against pinned 123456)
+    await executeCase('acme_account_changed', V2_OTHER_ASSERTION);
+
+    // 3. replace (replace assertion changing pin to 000789)
+    await executeCase('replace', V2_REPLACE_ASSERTION);
+
+    // 4. journal_update_required
+    await executeCase('journal_update_required', V2_NO_URI_ASSERTION);
+
+    // Reset verification state so case 5 and 6 exercise write-path configuration errors
+    await workerEnv.DB.prepare(
+      'UPDATE mcp_bridge_bindings SET dns_verification_state = NULL, dns_verified_at = NULL WHERE account_id = ?'
+    ).bind(account.accountId).run();
+
+    // 5. hostname_records_unavailable
+    await executeCase('hostname_records_unavailable', V2_REPLACE_ASSERTION, {
+      SOLSTONE_ME_DNS_API_TOKEN: '',
+    });
+
+    await workerEnv.DB.prepare(
+      'UPDATE mcp_bridge_bindings SET dns_verification_state = NULL, dns_verified_at = NULL WHERE account_id = ?'
+    ).bind(account.accountId).run();
+
+    // 6. hostname_capacity
+    await executeCase('hostname_capacity', V2_REPLACE_ASSERTION, {
+      SOLSTONE_ME_DNS_RECORD_CEILING: '0',
+    });
+
+    const artifact = {
+      version: 2,
+      clock_ms: FIXTURE_NOW_MS,
+      ca_pubkey: V2_CA_PUBLIC_KEY,
+      cnf_jwk: V2_CNF_JWK,
+      cases,
     };
-    const fixtureToken = artifact.response.body.token;
-    const fixturePublicKey = await importJWK(artifact.jwks.body.keys[0], 'EdDSA');
-    const verified = await jwtVerify(fixtureToken, fixturePublicKey, {
-      issuer: 'services.solstone.app',
-      audience: env.MCP_BRIDGE_ID,
-      algorithms: ['EdDSA'],
-      typ: 'JWT',
-      currentDate: new Date(FIXTURE_NOW_MS),
-    });
-    expect(decodeProtectedHeader(fixtureToken)).toEqual({
-      alg: 'EdDSA', typ: 'JWT', kid: env.MCP_BRIDGE_TOKEN_KID,
-    });
-    expect(Object.keys(verified.payload).sort()).toEqual([
-      'aud', 'cnf', 'exp', 'hostname', 'iat', 'iss', 'sub',
-    ]);
-    expect(Object.keys(artifact.response.body)).toEqual([
-      'token',
-      'token_type',
-      'expires_in',
-      'expires_at',
-      'instance_id',
-      'hostname',
-      'bridge_id',
-      'bridge_addresses',
-    ]);
-    expect(verified.payload.cnf).toEqual({ jwk: FIXTURE_CNF_JWK });
-    expect(verified.payload.exp - verified.payload.iat).toBe(600);
-    expect(artifact.response.body.expires_at).toBe(
-      new Date(verified.payload.exp * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'),
-    );
+
     const bytes = `${JSON.stringify(artifact, null, 2)}\n`;
 
     if (workerEnv.MCP_BRIDGE_FIXTURE_WRITE === '1') {
@@ -126,7 +201,7 @@ describe('MCP bridge v1 golden fixture', () => {
       });
       expect(write.status).toBe(204);
     } else {
-      expect(bytes).toBe(fixtureText);
+      expect(bytes).toBe(v2FixtureText);
     }
   });
 });

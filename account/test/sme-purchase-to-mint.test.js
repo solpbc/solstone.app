@@ -2,6 +2,7 @@ import { env as workerEnv } from 'cloudflare:test';
 import { exportJWK, generateKeyPair } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import { installFakeSolstoneMeZone } from './fake-solstone-me-zone.js';
 import {
   TEST_CSRF,
   fetchWithCtx,
@@ -24,7 +25,10 @@ const DAY = 86400;
 // The lane's completion claim, walked through the real worker end to end: an owner
 // could buy this, and an account that has not could not mint.
 describe('the agent connector: consent, purchase, and the mint', () => {
-  beforeEach(resetDb);
+  beforeEach(async () => {
+    await resetDb();
+    installFakeSolstoneMeZone();
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -32,7 +36,10 @@ describe('the agent connector: consent, purchase, and the mint', () => {
   });
 
   it('refuses until the owner has both consented and paid, then mints, and a lapse refuses again without losing the address', async () => {
-    const env = makeTestEnv();
+    const env = makeTestEnv({
+      SOLSTONE_ME_ZONE_ID: 'test-solstone-me-zone-id',
+      SOLSTONE_ME_DNS_API_TOKEN: 'test-solstone-me-dns-token',
+    });
     const account = await seedAccount({ email: 'buyer@example.com', testEnv: env });
     const session = await seedSession(account.accountId, { testEnv: env });
     const home = await journalIdentity();
@@ -61,6 +68,7 @@ describe('the agent connector: consent, purchase, and the mint', () => {
         metadata: { service: 'sme', account_id: account.accountId },
       }),
     });
+    installFakeSolstoneMeZone();
     const checkout = await postForm('/services/solstone-me/checkout', env, session.cookie, { csrf: TEST_CSRF, plan: 'annual', data_ack: 'yes' });
     expect(checkout.status).toBe(303);
     expect(checkout.headers.get('Location')).toBe('https://checkout.stripe.test/sme');
@@ -105,12 +113,16 @@ describe('the agent connector: consent, purchase, and the mint', () => {
   });
 
   it('mints for an approved scout with no payment, and no Stripe call is made', async () => {
-    const env = makeTestEnv();
+    const env = makeTestEnv({
+      SOLSTONE_ME_ZONE_ID: 'test-solstone-me-zone-id',
+      SOLSTONE_ME_DNS_API_TOKEN: 'test-solstone-me-dns-token',
+    });
     const account = await seedAccount({ email: 'scout@example.com', testEnv: env });
     const session = await seedSession(account.accountId, { testEnv: env });
     await seedScoutApplication({ accountId: account.accountId, status: 'approved', approved_at: 1_000 });
     const home = await journalIdentity();
     const { calls } = installStripeFetchMock();
+    installFakeSolstoneMeZone();
 
     const consent = await postForm('/enable/solstone-me/confirm', env, session.cookie, {
       csrf: TEST_CSRF, nonce: NONCE, action: 'allow', instance: home.instanceId, data_ack: 'yes',
@@ -146,7 +158,10 @@ async function journalIdentity() {
       assertion: await mintHomeReachAssertion({
         instanceId: home.instanceId,
         privateKey: home.privateKey,
-        claims: { scope: 'mcp.bridge.register' },
+        claims: {
+          scope: 'mcp.bridge.register',
+          acme_account_uri: 'https://acme-v02.api.letsencrypt.org/acme/acct/123456',
+        },
       }),
       ca_pubkey: home.publicKeyPem,
       cnf_jwk: await exportJWK(publicKey),

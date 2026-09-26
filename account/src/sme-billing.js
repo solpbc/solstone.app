@@ -2,6 +2,7 @@ import { hashKey, timingSafeEqual } from './crypto.js';
 import {
   getEntitlement,
   getScoutApplicationStatusByAccount,
+  getSmeJournalUpdateRefusedByAccount,
   getStripeCustomerByAccount,
   recordSubscriptionStartRequest,
 } from './db.js';
@@ -36,11 +37,15 @@ export async function handleServicesSme(req, env) {
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   const url = new URL(req.url);
-  const [menu, entitlement, csrf] = await Promise.all([
+  const [menu, entitlement, csrf, refusedRows] = await Promise.all([
     loadMenuContext(env, session.account_id, nowMs),
     getEntitlement(env.DB, { accountId: session.account_id, service: SME_HOSTED_SERVICE }),
     csrfToken(env),
+    getSmeJournalUpdateRefusedByAccount(env.DB, session.account_id),
   ]);
+  const journalUpdateNotice = Array.isArray(refusedRows) && refusedRows.some(
+    (refusedAt) => typeof refusedAt === 'number' && refusedAt > nowMs - 7 * 86400000
+  );
   return signedInHtml(renderServicesSme({
     entitlement,
     ...await billingView(env, entitlement),
@@ -52,6 +57,7 @@ export async function handleServicesSme(req, env) {
       withdrawal: url.searchParams.get('withdrawal') || '',
     },
     menu,
+    journalUpdateNotice,
   }));
 }
 

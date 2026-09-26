@@ -265,6 +265,15 @@ CREATE TABLE IF NOT EXISTS mcp_bridge_bindings (
   instance_id TEXT NOT NULL,
   label TEXT NOT NULL UNIQUE,
   created_at INTEGER NOT NULL,
+  acme_account_uri TEXT,
+  acme_account_pinned_at INTEGER,
+  acme_account_replaced_at INTEGER,
+  dns_lease_generation INTEGER,
+  dns_lease_expires_at INTEGER,
+  dns_verification_state TEXT,
+  dns_verified_at INTEGER,
+  dns_verified_uri TEXT,
+  dns_verified_addresses TEXT,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
   FOREIGN KEY (label) REFERENCES mcp_bridge_hostname_ledger(label)
@@ -445,6 +454,7 @@ CREATE TABLE IF NOT EXISTS sme_bindings (
   last_seen_at INTEGER NOT NULL,
   consent_acked_at INTEGER NOT NULL,
   consent_disclosure_version TEXT NOT NULL,
+  journal_update_refused_at INTEGER,
   PRIMARY KEY (account_id, instance_id),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
@@ -542,3 +552,8 @@ CREATE TABLE IF NOT EXISTS subscription_start_requests (
 
 CREATE INDEX IF NOT EXISTS idx_subscription_start_requests_account_id
   ON subscription_start_requests(account_id);
+
+CREATE TABLE IF NOT EXISTS solstone_me_dns_capacity_alerts (
+  slot TEXT PRIMARY KEY CHECK (slot = 'capacity'),
+  alerted_at INTEGER NOT NULL
+);

@@ -101,6 +101,9 @@ export function makeTestEnv(overrides = {}) {
     SPP_ENGINE_ENDPOINT: overrides.SPP_ENGINE_ENDPOINT ?? 'https://processing.solstone.app',
     SPP_ENGINE_MODEL: overrides.SPP_ENGINE_MODEL ?? 'Qwen/Qwen3.5-4B',
     SPP_ENGINE_AUTH_SECRET: overrides.SPP_ENGINE_AUTH_SECRET ?? 'test-spp-engine-auth-secret',
+    SOLSTONE_ME_ZONE_ID: overrides.SOLSTONE_ME_ZONE_ID,
+    SOLSTONE_ME_DNS_API_TOKEN: overrides.SOLSTONE_ME_DNS_API_TOKEN,
+    SOLSTONE_ME_DNS_RECORD_CEILING: overrides.SOLSTONE_ME_DNS_RECORD_CEILING,
     RELAY: Object.prototype.hasOwnProperty.call(overrides, 'RELAY')
       ? overrides.RELAY
       : makeDefaultPurgeBinding('relay', overrides),
@@ -195,6 +198,7 @@ export async function resetDb() {
     'account_deletions',
     'spb_mint_reservations',
     'subscription_created_claims',
+    'solstone_me_dns_capacity_alerts',
     'subscription_withdrawals',
     'subscription_start_requests',
     'renewal_notices',

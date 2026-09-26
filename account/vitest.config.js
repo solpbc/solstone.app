@@ -69,7 +69,7 @@ async function startFixtureWriter() {
     }
     const chunks = [];
     for await (const chunk of request) chunks.push(chunk);
-    writeFileSync(new URL('./test-fixtures/mcp_bridge_v1.json', import.meta.url), Buffer.concat(chunks));
+    writeFileSync(new URL('./test-fixtures/mcp_bridge_v2.json', import.meta.url), Buffer.concat(chunks));
     response.once('finish', () => server.close());
     response.writeHead(204).end();
   });

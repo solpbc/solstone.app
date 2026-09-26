@@ -1339,13 +1339,173 @@ export async function findUniqueSmeBindingAccount(db, instanceId) {
 export async function getMcpBridgeBinding(db, { accountId, instanceId }) {
   const row = await db
     .prepare(
-      `SELECT label
+      `SELECT label, acme_account_uri, acme_account_pinned_at, acme_account_replaced_at,
+              dns_lease_generation, dns_lease_expires_at, dns_verification_state,
+              dns_verified_at, dns_verified_uri, dns_verified_addresses
        FROM mcp_bridge_bindings
        WHERE account_id = ? AND instance_id = ?`
     )
     .bind(accountId, instanceId)
     .first();
   return row || null;
+}
+
+export async function stampSmeJournalUpdateRefused(db, { accountId, instanceId, nowMs }) {
+  const result = await db
+    .prepare(
+      `UPDATE sme_bindings
+       SET journal_update_refused_at = ?
+       WHERE account_id = ? AND instance_id = ?`
+    )
+    .bind(nowMs, accountId, instanceId)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function clearSmeJournalUpdateRefused(db, { accountId, instanceId }) {
+  const result = await db
+    .prepare(
+      `UPDATE sme_bindings
+       SET journal_update_refused_at = NULL
+       WHERE account_id = ? AND instance_id = ? AND journal_update_refused_at IS NOT NULL`
+    )
+    .bind(accountId, instanceId)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function getSmeJournalUpdateRefusedByAccount(db, accountId) {
+  const { results } = await db
+    .prepare('SELECT journal_update_refused_at FROM sme_bindings WHERE account_id = ? AND journal_update_refused_at IS NOT NULL')
+    .bind(accountId)
+    .all();
+  return (results || []).map((row) => row.journal_update_refused_at);
+}
+
+export async function setMcpBridgeFirstPin(db, { accountId, instanceId, accountUri, nowMs }) {
+  const result = await db
+    .prepare(
+      `UPDATE mcp_bridge_bindings
+       SET acme_account_uri = ?,
+           acme_account_pinned_at = ?
+       WHERE account_id = ? AND instance_id = ? AND acme_account_uri IS NULL`
+    )
+    .bind(accountUri, nowMs, accountId, instanceId)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function replaceMcpBridgePin(db, { accountId, instanceId, newAccountUri, oldAccountUri, nowMs }) {
+  const result = await db
+    .prepare(
+      `UPDATE mcp_bridge_bindings
+       SET acme_account_uri = ?,
+           acme_account_replaced_at = ?
+       WHERE account_id = ? AND instance_id = ? AND acme_account_uri = ?`
+    )
+    .bind(newAccountUri, nowMs, accountId, instanceId, oldAccountUri)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function takeMcpBridgeDnsLease(db, { accountId, instanceId, nowMs, leaseDurationMs = 30000 }) {
+  const leaseExpiresAt = nowMs + leaseDurationMs;
+  const result = await db
+    .prepare(
+      `UPDATE mcp_bridge_bindings
+       SET dns_lease_generation = COALESCE(dns_lease_generation, 0) + 1,
+           dns_lease_expires_at = ?,
+           dns_verification_state = NULL,
+           dns_verified_at = NULL,
+           dns_verified_uri = NULL,
+           dns_verified_addresses = NULL
+       WHERE account_id = ?
+         AND instance_id = ?
+         AND (dns_lease_expires_at IS NULL OR dns_lease_expires_at <= ?)
+       RETURNING dns_lease_generation, dns_lease_expires_at, acme_account_uri`
+    )
+    .bind(leaseExpiresAt, accountId, instanceId, nowMs)
+    .all();
+
+  const changes = result?.meta?.changes;
+  if (typeof changes === 'number' && changes > 0 && Array.isArray(result?.results) && result.results.length > 0) {
+    const row = result.results[0];
+    return {
+      ok: true,
+      generation: row.dns_lease_generation,
+      expiresAt: row.dns_lease_expires_at,
+      acmeAccountUri: row.acme_account_uri,
+    };
+  }
+  return { ok: false };
+}
+
+export async function releaseMcpBridgeDnsLease(db, { accountId, instanceId, leaseGeneration }) {
+  const result = await db
+    .prepare(
+      `UPDATE mcp_bridge_bindings
+       SET dns_lease_expires_at = NULL
+       WHERE account_id = ?
+         AND instance_id = ?
+         AND dns_lease_generation = ?`
+    )
+    .bind(accountId, instanceId, leaseGeneration)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function commitMcpBridgeProvisionalVerification(db, { accountId, instanceId, leaseGeneration, verifiedUri, verifiedAddressesJson, nowMs }) {
+  const result = await db
+    .prepare(
+      `UPDATE mcp_bridge_bindings
+       SET dns_verification_state = 'provisional',
+           dns_verified_at = ?,
+           dns_verified_uri = ?,
+           dns_verified_addresses = ?,
+           dns_lease_expires_at = NULL
+       WHERE account_id = ?
+         AND instance_id = ?
+         AND dns_lease_generation = ?
+         AND acme_account_uri = ?`
+    )
+    .bind(nowMs, verifiedUri, verifiedAddressesJson, accountId, instanceId, leaseGeneration, verifiedUri)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function confirmRefreshMcpBridgeVerification(db, { accountId, instanceId, leaseGeneration, verifiedUri, verifiedAddressesJson, nowMs }) {
+  const result = await db
+    .prepare(
+      `UPDATE mcp_bridge_bindings
+       SET dns_verification_state = 'confirmed',
+           dns_verified_at = ?
+       WHERE account_id = ?
+         AND instance_id = ?
+         AND dns_lease_generation = ?
+         AND dns_verified_uri = ?
+         AND dns_verified_addresses = ?
+         AND acme_account_uri = ?`
+    )
+    .bind(nowMs, accountId, instanceId, leaseGeneration, verifiedUri, verifiedAddressesJson, verifiedUri)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function claimSolstoneMeDnsCapacityAlert(db, { nowMs }) {
+  try {
+    const result = await db
+      .prepare(
+        `INSERT INTO solstone_me_dns_capacity_alerts (slot, alerted_at)
+         VALUES ('capacity', ?)
+         ON CONFLICT(slot) DO UPDATE SET alerted_at = excluded.alerted_at
+         WHERE solstone_me_dns_capacity_alerts.alerted_at <= ?`
+      )
+      .bind(nowMs, nowMs - 86400000)
+      .run();
+    return typeof result?.meta?.changes === 'number' && result.meta.changes > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function reserveMcpBridgeBinding(db, { accountId, instanceId, label, nowMs }) {

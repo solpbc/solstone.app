@@ -122,6 +122,15 @@ describe('reach relay token endpoint', () => {
     await expectError(response, 401, 'invalid_token');
   });
 
+  it('accepts assertion lifetime greater than 300s for push relay tokens', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const payload = await validReachPayload({ claims: { iat: now - 10, exp: now + 3600 } });
+
+    const response = await worker.fetch(reachRequest(payload), reachEnv({ DB: throwingDb() }));
+
+    expect(response.status).toBe(200);
+  });
+
   it('rejects bad assertion signature as invalid token', async () => {
     const good = await generateReachKeyPair();
     const bad = await generateReachKeyPair();

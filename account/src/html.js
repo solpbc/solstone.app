@@ -982,8 +982,13 @@ ${restoreCheckout ? '' : retentionDisclosure}`,
   });
 }
 
-export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu }) {
+export const SME_JOURNAL_UPDATE_NOTICE = 'Your journal needs an update before it can use your solstone.me address. Update the solstone app on the computer your journal runs on, and your address will turn on by itself.';
+
+export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu, journalUpdateNotice = false }) {
   const flashes = smeBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'solstone.me');
+  const updateNotice = journalUpdateNotice
+    ? `<p class="notice" data-notice="sme-journal-update">${esc(SME_JOURNAL_UPDATE_NOTICE)}</p>`
+    : '';
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const cancelPending = Boolean(entitlement?.cancel_at_period_end);
@@ -1006,6 +1011,7 @@ export function renderServicesSme({ entitlement, plan = null, withdrawal = null,
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
 ${flashes}
+${updateNotice}
 <div class="pagehead">
   <h1>solstone.me</h1>
   <p class="meta">operated by sol pbc</p>
@@ -1506,6 +1512,10 @@ const TRANSPARENCY_FIELD_LABELS = {
   ttl: 'valid for',
   stripe_customer_id: 'Stripe customer',
   label: 'address',
+  acme_account_uri: "Let's Encrypt account",
+  acme_account_pinned_at: 'pinned',
+  acme_account_replaced_at: 'account replaced',
+  journal_update_refused_at: 'update refused',
 };
 
 const TRANSPARENCY_SHOW_NEWEST = 20;

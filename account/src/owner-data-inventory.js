@@ -211,9 +211,24 @@ const TABLES = [
   ], {
     description: 'at-most-once claims for the identity-free subscription.created signal',
   }),
+  table('solstone_me_dns_capacity_alerts', 'globally_identifier_free', 'deliberately_retained', 'retained_only', [
+    retained('slot', 'single capacity slot with no account id, instance id, or label'),
+    retained('alerted_at', 'timestamp of last capacity alert with no account id, instance id, or label'),
+  ], {
+    description: 'at-most-once alerts for solstone.me DNS capacity limits',
+  }),
   table('mcp_bridge_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), exported('label'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    exported('acme_account_uri', 'identity'),
+    exported('acme_account_pinned_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    exported('acme_account_replaced_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    omitted('dns_lease_generation', 'transient DNS lease state'),
+    omitted('dns_lease_expires_at', 'transient DNS lease state'),
+    omitted('dns_verification_state', 'operational DNS verification state'),
+    omitted('dns_verified_at', 'operational DNS verification state'),
+    omitted('dns_verified_uri', 'operational DNS verification state'),
+    omitted('dns_verified_addresses', 'operational DNS verification state'),
   ], { deletionOrder: 160, description: 'the solstone.me address held for each journal' }),
   table('spb_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'),
@@ -285,6 +300,7 @@ const TABLES = [
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_seen_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('consent_acked_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'), exported('consent_disclosure_version'),
+    exported('journal_update_refused_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
   ], { deletionOrder: 155, description: 'journals connected to solstone.me, and when you consented for each' }),
   table('spb_mint_audit', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'), omitted('prefix', 'broker storage coordinate'),

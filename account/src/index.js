@@ -985,7 +985,7 @@ async function routeRequest(req, env, ctx) {
         parts[3] === 'bridge-token' &&
         req.method === 'POST'
       ) {
-        return handleMcpBridgeToken(req, env);
+        return handleMcpBridgeToken(req, env, ctx);
       }
 
       if (

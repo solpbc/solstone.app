@@ -72,6 +72,10 @@ service = "spl-relay"
 #   before it reads the request or touches D1. Unset (normal) = the route serves. Other values
 #   do not disable it. Never a [vars] entry.
 #
+# solstone.me DNS management secrets (set via `wrangler secret put`):
+# SOLSTONE_ME_ZONE_ID — Cloudflare zone id for solstone.me; DNS-edit on this zone only, never [vars].
+# SOLSTONE_ME_DNS_API_TOKEN — scoped Cloudflare API token with Zone.DNS edit permissions for solstone.me only, never [vars].
+#
 # Stripe billing secrets (set via `wrangler secret put`):
 # STRIPE_SECRET_KEY — Stripe restricted secret key for Checkout, Portal, and subscription reads.
 # STRIPE_WEBHOOK_SECRET — Stripe webhook endpoint signing secret.
@@ -129,6 +133,7 @@ remote = true
 # MCP_BRIDGE_TOKEN_KID — public signing-key identifier exposed in /.well-known/jwks.json.
 # MCP_BRIDGE_ID — bridge audience identifier for MCP admission JWTs.
 # MCP_BRIDGE_ADDRESSES — comma-separated bridge IP addresses; v1 is 20.186.92.169.
+# SOLSTONE_ME_DNS_RECORD_CEILING — optional non-secret positive integer safety ceiling for total records in the zone; unset or empty means 190.
 TURNSTILE_SITE_KEY = "0x4AAAAAADPn7-wnLZnFjshK"
 CF_ACCESS_AUD = "a48343311f9157cfb056e5aa70878dc8aab4962769a8e1743486b6a884054104"
 EMAIL_PATH_DISABLED = "false"

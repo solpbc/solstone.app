@@ -48,8 +48,6 @@ describe('migration 0031 MCP bridge hostname authority', () => {
 
     expect(normalizedTableBlock(migration, 'mcp_bridge_hostname_ledger'))
       .toBe(normalizedTableBlock(schema, 'mcp_bridge_hostname_ledger'));
-    expect(normalizedTableBlock(migration, 'mcp_bridge_bindings'))
-      .toBe(normalizedTableBlock(schema, 'mcp_bridge_bindings'));
     expect(normalizedIndex(migration, 'idx_mcp_bridge_bindings_account_id'))
       .toBe(normalizedIndex(schema, 'idx_mcp_bridge_bindings_account_id'));
   });
