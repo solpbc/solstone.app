@@ -67,6 +67,9 @@ describe('the solstone.me service page and its catalog row', () => {
       const checkout = html.indexOf('action="/services/solstone-me/checkout"');
       expect(disclosure).toBeGreaterThan(-1);
       expect(checkout).toBeGreaterThan(disclosure);
+      const relayLimit = html.indexOf('whoever controls that route or machine could obtain another valid certificate and change the route to read a future connection');
+      expect(relayLimit).toBeGreaterThan(disclosure);
+      expect(relayLimit).toBeLessThan(checkout);
       // One annual rung. A monthly price would fall below Stripe's minimum charge.
       expect(html).toContain('$5 / year');
       expect(html).toContain('name="plan" value="annual"');
@@ -78,8 +81,12 @@ describe('the solstone.me service page and its catalog row', () => {
       expect(html).not.toMatch(/month/i);
       expect(html).toContain('complimentary for approved scouts');
       // The always-free alternative is stated, with its warning.
-      expect(html).toContain('you never have to pay us.');
-      expect(html).toContain('some free tunnels decrypt your traffic in order to move it.');
+      expect(html).toContain('<h2>connect without solstone.me</h2>');
+      expect(html).toContain('you never have to pay us to connect an agent on the same computer as your journal.');
+      expect(html).toContain('as of september 25, 2026, no released journal does.');
+      expect(html).toContain('whoever runs one can read what your agent reads, and can reuse your agent\'s key to reach your journal as though they were it.');
+      expect(html).toContain('whoever runs its public machine could still get another valid certificate and change the route.');
+      expect(html).toContain('publish the DNS record the journal shows to narrow who can get a valid certificate.');
       // The backstage code never reaches an owner's eyes.
       expect(visibleText(html)).not.toMatch(/\bsme\b/i);
       expect(visibleText(html)).not.toMatch(/subscribe/i);

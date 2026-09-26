@@ -78,9 +78,11 @@ describe('/enable/solstone-me', () => {
     expect(body).toContain('sol pbc received a request to turn on solstone.me for your journal. it stays off until you allow it.');
     expect(body).toContain("sol pbc can approve it because it's tied to your sign-in. no journal content comes with it, only what identifies the request, and your allowing it is recorded.");
     expect(body).toContain("an agent you connect can search and read your journal, within what you let it see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.");
-    expect(body).toContain("an agent's requests travel encrypted to your journal and are opened only there.");
-    expect(body).toContain("sol pbc runs the relay in between and can't read what passes through it.");
-    expect(body).toContain('what sol pbc can see is in the <a href="https://solpbc.org/privacy#solstone-me">privacy policy</a>.');
+    expect(body).toContain('the solstone.me relay currently forwards encrypted bytes and keeps no record of the traffic.');
+    expect(body).toContain('sol pbc can see the network addresses, when a connection happens, and how much moved.');
+    expect(body).toContain("whoever controls that route or machine could obtain another valid certificate and change the route to read a future connection, including an agent's key.");
+    expect(body).toContain('anyone holding that key can read what that agent may see until you disconnect the agent or revoke its key.');
+    expect(body).toContain('details are in the <a href="https://solpbc.org/privacy#solstone-me">privacy policy</a>.');
     expect(body).toContain('the public record is permanent');
     expect(body).toContain('i understand that the public record of this address is permanent.');
     expect(body).toContain("the address is public once it's issued, and stays public for good");
