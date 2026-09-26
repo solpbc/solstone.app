@@ -277,6 +277,12 @@ describe('withdrawal from a paid subscription within 14 days', () => {
       // Only the service and the error code: nothing that identifies the owner or their subscription.
       expect(alert.text).not.toMatch(/sub_|cus_|subscriber@|20\d\d-\d\d-\d\d/);
       expect(alert.text).toContain('last error: ');
+      // What it carries instead is the lookup, and run as written it finds this withdrawal.
+      const lookup = alert.text.match(/^npx wrangler d1 execute account-portal --remote --command "(.+)"$/m)[1];
+      const { results } = await workerEnv.DB.prepare(lookup).all();
+      expect(results).toHaveLength(1);
+      expect(results[0].subscription_ref).toBe('sub_w1');
+      expect(results[0].stripe_customer_id).toBe('cus_w1');
       expect(await (await get('/billing/withdraw/private-network?withdrawal=error', testEnv, session.cookie)).text())
         .toContain("finishing it hit a problem on our side; we'll keep trying, and you don't need to do anything.");
       expect(await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text()).toContain("and we're finishing it. you don't need to do anything.");
@@ -295,6 +301,7 @@ describe('withdrawal from a paid subscription within 14 days', () => {
       expect(stripe.refunds).toHaveLength(1);
       expect(stripe.cancels).toHaveLength(1);
       expect((await workerEnv.DB.prepare('SELECT completed_at FROM subscription_withdrawals').first()).completed_at).not.toBeNull();
+      expect((await workerEnv.DB.prepare(lookup).all()).results).toHaveLength(0);
       expect(testEnv.EMAIL.sent).toHaveLength(3);
     });
 

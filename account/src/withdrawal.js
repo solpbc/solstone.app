@@ -321,8 +321,16 @@ async function sendAcknowledgement(env, record, plan, nowMs) {
 // A withdrawal that could not be finished reaches a person: once at its first failed finish, and
 // once more if the refund still hasn't landed after 48 hours, well inside the 14 days the refund
 // is owed in. The mail carries only the service and the error code, nothing about the owner: it
-// lands in a mailbox that outlasts a deletion. The person finds the withdrawal in our own
-// database, where it is deleted with the sign-in.
+// lands in a mailbox that outlasts a deletion. So it carries the lookup instead: the query that
+// finds the withdrawal in our own database, where it is deleted with the sign-in, and what to do
+// with each row it returns.
+function withdrawalLookupCommand(service) {
+  return 'npx wrangler d1 execute account-portal --remote --command "'
+    + 'SELECT w.subscription_ref, w.submitted_at, c.stripe_customer_id FROM subscription_withdrawals w '
+    + 'LEFT JOIN stripe_customers c ON c.account_id = w.account_id '
+    + `WHERE w.completed_at IS NULL AND w.service = '${service}' ORDER BY w.submitted_at"`;
+}
+
 async function alertPerson(env, record, column, detail, nowMs) {
   const subscriptionRef = record.subscription_ref;
   if (!await claimSubscriptionWithdrawalAlert(env.DB, { subscriptionRef, column, nowMs })) return;
@@ -334,7 +342,14 @@ async function alertPerson(env, record, column, detail, nowMs) {
   const text = [
     `a ${serviceName} withdrawal has been recorded, and its refund or the end of its Stripe subscription has not gone through.`,
     `last error: ${detail.code || detail.status || 'unknown'}`,
-    'the service already ended and the owner has their acknowledgement. the schedule retries every 15 minutes. find the withdrawal in the services database: subscription_withdrawals, where completed_at is empty. if Stripe keeps refusing, refund every paid invoice of that subscription in full and cancel it now in the Stripe Dashboard. the refund is owed within 14 days of the withdrawal.',
+    'the service already ended and the owner has their acknowledgement. the schedule retries every 15 minutes, for 30 days. this mail carries nothing about the owner, so find the withdrawal with this lookup, run from solstone.app/account:',
+    withdrawalLookupCommand(record.service),
+    [
+      'each row is an unfinished withdrawal from this service. submitted_at is in milliseconds, and the refund is owed within 14 days of it. for each row:',
+      "1. open the row's subscription_ref in the Stripe Dashboard, and check that the subscription's customer is the row's stripe_customer_id. if it isn't, or the last error is withdrawal_mismatch, refund nothing until you know why.",
+      '2. otherwise, if the schedule keeps failing, refund every paid invoice of that subscription in full in the Stripe Dashboard, and cancel the subscription now.',
+      "3. the schedule then usually finds the refunds and the cancel already done, and marks the row finished on its next pass. if the row is still unfinished an hour later, or is more than 30 days old, finish it by hand with the same wrangler command, running: UPDATE subscription_withdrawals SET completed_at = <now, in milliseconds> WHERE subscription_ref = '<the row's subscription_ref>'",
+    ].join('\n'),
   ].join('\n\n');
   try {
     await sendRenewalNoticeEmail({ env, address: ALERT_ADDRESS, subject, text, html: `<pre>${text.replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</pre>` });
