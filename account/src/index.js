@@ -133,6 +133,7 @@ import { runRenewalReminders } from './renewal-notices.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { runSpbLapseSweep } from './spb-sweep.js';
 import { runAccountDeletionCoordinator } from './deletion-coordinator.js';
+import { runSolstoneMeOrphanDnsSweep } from './solstone-me-dns-sweep.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { handleSppAuthorize, handleSppAuthorizePublic } from './spp-authorize.js';
@@ -1123,6 +1124,7 @@ export default {
     if (event.cron === DELETION_CRON) {
       await runAccountDeletionCoordinator(env);
       await runWithdrawalRecovery(env, ctx);
+      await runSolstoneMeOrphanDnsSweep(env);
     } else if (event.cron === SWEEP_CRON) {
       await runSpbLapseSweep(env, ctx);
     } else if (event.cron === RENEWAL_NOTICE_CRON) {

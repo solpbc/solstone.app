@@ -229,7 +229,7 @@ const TABLES = [
     omitted('dns_verified_at', 'operational DNS verification state'),
     omitted('dns_verified_uri', 'operational DNS verification state'),
     omitted('dns_verified_addresses', 'operational DNS verification state'),
-  ], { deletionOrder: 160, description: 'the solstone.me address held for each journal' }),
+  ], { deletionOrder: 160, description: 'the solstone.me address held for each journal, with the public dns copy removed by the sweep within the 15-minute scheduled interval after deletion' }),
   table('spb_bindings', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('instance_id'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),

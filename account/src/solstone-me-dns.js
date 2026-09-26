@@ -52,6 +52,61 @@ export async function listLabelRecords(env, hostname) {
   }
 }
 
+export async function listZoneRecords(env) {
+  if (!solstoneMeDnsReady(env)) {
+    return { ok: false, reason: 'not_configured' };
+  }
+  const zoneId = env.SOLSTONE_ME_ZONE_ID;
+  const token = env.SOLSTONE_ME_DNS_API_TOKEN;
+  const allRecords = [];
+  let page = 1;
+  let expectedTotalCount = null;
+
+  try {
+    for (;;) {
+      const url = `${CLOUDFLARE_API_BASE}/zones/${encodeURIComponent(zoneId)}/dns_records?per_page=100&page=${page}`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(DNS_FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) return { ok: false, reason: 'list_failed' };
+      const data = await res.json();
+      if (!data || data.success !== true || !Array.isArray(data.result) || !data.result_info) {
+        return { ok: false, reason: 'list_failed' };
+      }
+      const totalPages = data.result_info.total_pages;
+      if (typeof totalPages !== 'number' || !Number.isInteger(totalPages) || totalPages < 1 || totalPages > 10000) {
+        return { ok: false, reason: 'list_failed' };
+      }
+      const totalCount = data.result_info.total_count;
+      if (typeof totalCount !== 'number' || !Number.isInteger(totalCount) || totalCount < 0) {
+        return { ok: false, reason: 'list_failed' };
+      }
+      if (expectedTotalCount === null) {
+        expectedTotalCount = totalCount;
+      } else if (expectedTotalCount !== totalCount) {
+        return { ok: false, reason: 'list_incomplete' };
+      }
+      allRecords.push(...data.result);
+      if (page >= totalPages) break;
+      page++;
+    }
+    if (allRecords.length !== expectedTotalCount) {
+      return { ok: false, reason: 'list_incomplete' };
+    }
+    return { ok: true, records: allRecords };
+  } catch (err) {
+    if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
+      return { ok: false, reason: 'timeout' };
+    }
+    return { ok: false, reason: 'list_failed' };
+  }
+}
+
 export async function countZoneRecords(env) {
   const zoneId = env.SOLSTONE_ME_ZONE_ID;
   const token = env.SOLSTONE_ME_DNS_API_TOKEN;

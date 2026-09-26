@@ -1350,6 +1350,28 @@ export async function getMcpBridgeBinding(db, { accountId, instanceId }) {
   return row || null;
 }
 
+export async function listMcpBridgeBindingLabels(db) {
+  const { results } = await db
+    .prepare('SELECT label FROM mcp_bridge_bindings')
+    .all();
+  return (results || []).map((row) => row.label);
+}
+
+export async function listMcpBridgeHostnameLedgerLabels(db) {
+  const { results } = await db
+    .prepare('SELECT label FROM mcp_bridge_hostname_ledger')
+    .all();
+  return (results || []).map((row) => row.label);
+}
+
+export async function getMcpBridgeBindingLabel(db, label) {
+  const row = await db
+    .prepare('SELECT label FROM mcp_bridge_bindings WHERE label = ?')
+    .bind(label)
+    .first();
+  return row?.label ?? null;
+}
+
 export async function stampSmeJournalUpdateRefused(db, { accountId, instanceId, nowMs }) {
   const result = await db
     .prepare(

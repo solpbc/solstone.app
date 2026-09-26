@@ -7,6 +7,7 @@ import {
   countZoneRecords,
   labelRecordsMatch,
   listLabelRecords,
+  listZoneRecords,
   planLabelBatch,
   readDnsRecordCeiling,
   solstoneMeDnsReady,
@@ -1307,6 +1308,74 @@ describe('solstone.me DNS management & ACME pin', () => {
 
       spy.assertNoSecrets([secretToken]);
       spy.restore();
+    });
+  });
+
+  describe('listZoneRecords', () => {
+    it('returns not_configured without calling fetch when env credentials are missing', async () => {
+      const fetchSpy = vi.fn();
+      vi.stubGlobal('fetch', fetchSpy);
+      const res = await listZoneRecords({});
+      expect(res).toEqual({ ok: false, reason: 'not_configured' });
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('fetches all pages and returns collected records when total_count matches', async () => {
+      const page1Records = Array.from({ length: 100 }, (_, i) => ({ id: `rec_${i + 1}`, name: `host${i + 1}.solstone.me`, type: 'A' }));
+      const page2Records = Array.from({ length: 50 }, (_, i) => ({ id: `rec_${100 + i + 1}`, name: `host${100 + i + 1}.solstone.me`, type: 'A' }));
+      const calledUrls = [];
+
+      vi.stubGlobal('fetch', vi.fn(async (url) => {
+        calledUrls.push(url.toString());
+        const u = new URL(url);
+        const page = u.searchParams.get('page');
+        expect(u.searchParams.get('per_page')).toBe('100');
+        expect(u.searchParams.get('name')).toBeNull();
+
+        if (page === '1') {
+          return new Response(JSON.stringify({
+            success: true,
+            result: page1Records,
+            result_info: { page: 1, per_page: 100, count: 100, total_count: 150, total_pages: 2 },
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        if (page === '2') {
+          return new Response(JSON.stringify({
+            success: true,
+            result: page2Records,
+            result_info: { page: 2, per_page: 100, count: 50, total_count: 150, total_pages: 2 },
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response('Not found', { status: 404 });
+      }));
+
+      const env = dnsEnv();
+      const res = await listZoneRecords(env);
+
+      expect(calledUrls).toHaveLength(2);
+      expect(calledUrls[0]).toContain('page=1');
+      expect(calledUrls[1]).toContain('page=2');
+      expect(res.ok).toBe(true);
+      expect(res.records).toHaveLength(150);
+      expect(res.records).toEqual([...page1Records, ...page2Records]);
+    });
+
+    it('returns list_incomplete without records when collected count does not match total_count', async () => {
+      const page1Records = Array.from({ length: 50 }, (_, i) => ({ id: `rec_${i + 1}`, name: `host${i + 1}.solstone.me`, type: 'A' }));
+
+      vi.stubGlobal('fetch', vi.fn(async () => {
+        return new Response(JSON.stringify({
+          success: true,
+          result: page1Records,
+          result_info: { page: 1, per_page: 100, count: 50, total_count: 60, total_pages: 1 },
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }));
+
+      const env = dnsEnv();
+      const res = await listZoneRecords(env);
+
+      expect(res).toEqual({ ok: false, reason: 'list_incomplete' });
+      expect(res.records).toBeUndefined();
     });
   });
 });

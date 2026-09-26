@@ -64,6 +64,7 @@ describe('static source checks', () => {
       'sme-billing.js',
       'sme-entitlement.js',
       'sme-service.js',
+      'solstone-me-dns-sweep.js',
       'solstone-me-dns.js',
       'spb-billing.js',
       'spb-broker.js',
