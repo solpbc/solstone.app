@@ -77,6 +77,8 @@ describe('static source checks', () => {
       'support-html.js',
       'support-wire.js',
       'support.js',
+      'withdrawal-rules.js',
+      'withdrawal.js',
     ]);
   });
 
@@ -132,7 +134,7 @@ describe('static source checks', () => {
 
     expect(checkboxInputs.length).toBeGreaterThan(0);
     for (const input of checkboxInputs) {
-      expect(input).toMatch(/name="(?:data_ack|confirmation)" value="(?:yes|remove_details)" required/);
+      expect(input).toMatch(/name="(?:data_ack|confirmation|start_now)" value="(?:yes|remove_details)" required/);
       expect(input).not.toMatch(/\bstyle\s*=/);
     }
     expect(ackInputs).toEqual(checkboxInputs);

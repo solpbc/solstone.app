@@ -1852,14 +1852,18 @@ export async function deleteRenewalNotice(db, {
     .run();
 }
 
-export async function hasRenewalAck(db, accountId, service) {
+// Whether this subscription's written confirmation has gone out. An ack row names its
+// subscription; a row from before that (content_key = '') covers any subscription that had
+// already started when it was sent, and none bought after it.
+export async function hasRenewalAck(db, accountId, service, { subscriptionRef, startedAtSeconds }) {
   const row = await db
     .prepare(
       `SELECT 1 FROM renewal_notices
-       WHERE account_id = ? AND kind = 'ack' AND service = ? AND renewal_at = 0 AND content_key = ''
+       WHERE account_id = ? AND kind = 'ack' AND service = ? AND renewal_at = 0
+         AND (content_key = ? OR (content_key = '' AND created_at >= ?))
        LIMIT 1`
     )
-    .bind(accountId, service)
+    .bind(accountId, service, subscriptionRef, startedAtSeconds * 1000)
     .first();
   return Boolean(row);
 }
@@ -1899,7 +1903,6 @@ export async function selectRenewalCatchUpCandidatePage(db, { afterAccountId = '
              AND rn.kind = 'ack'
              AND rn.service = e.service
              AND rn.renewal_at = 0
-             AND rn.content_key = ''
          )
          AND (e.account_id > ?1 OR (e.account_id = ?1 AND e.service > ?2))
        ORDER BY e.account_id ASC, e.service ASC
@@ -1926,6 +1929,100 @@ export async function selectRenewalOneOffCandidatePage(db, { afterAccountId = ''
        LIMIT ?2`
     )
     .bind(afterAccountId, limit)
+    .all();
+  return results || [];
+}
+
+// A withdrawal claims its subscription once. A second submission for the same subscription,
+// whether a double press or a retry after a failed Stripe call, finds the first row.
+export async function claimSubscriptionWithdrawal(db, { subscriptionRef, accountId, service, purchasedAt, addressEncrypted, nowMs }) {
+  await db
+    .prepare(
+      `INSERT INTO subscription_withdrawals (
+         subscription_ref, account_id, service, purchased_at, submitted_at, acknowledgement_address_encrypted
+       ) VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT DO NOTHING`
+    )
+    .bind(subscriptionRef, accountId, service, purchasedAt, nowMs, addressEncrypted)
+    .run();
+  return getSubscriptionWithdrawal(db, { subscriptionRef });
+}
+
+// A repeat submission before the acknowledgement has gone out may change where it goes.
+export async function setSubscriptionWithdrawalAddress(db, { subscriptionRef, addressEncrypted }) {
+  await db
+    .prepare(
+      `UPDATE subscription_withdrawals SET acknowledgement_address_encrypted = ?
+       WHERE subscription_ref = ? AND acknowledged_at IS NULL`
+    )
+    .bind(addressEncrypted, subscriptionRef)
+    .run();
+}
+
+export async function setSubscriptionWithdrawalAmount(db, { subscriptionRef, amountPaid }) {
+  await db
+    .prepare('UPDATE subscription_withdrawals SET amount_paid = ? WHERE subscription_ref = ? AND amount_paid IS NULL')
+    .bind(amountPaid, subscriptionRef)
+    .run();
+}
+
+export async function clearSubscriptionWithdrawalAddress(db, { subscriptionRef, acknowledgedAt }) {
+  await db
+    .prepare(
+      `UPDATE subscription_withdrawals SET acknowledgement_address_encrypted = NULL
+       WHERE subscription_ref = ? AND acknowledged_at = ?`
+    )
+    .bind(subscriptionRef, acknowledgedAt)
+    .run();
+}
+
+export async function getSubscriptionWithdrawal(db, { subscriptionRef }) {
+  return db
+    .prepare(
+      `SELECT subscription_ref, account_id, service, purchased_at, submitted_at, completed_at, acknowledged_at,
+              amount_paid, acknowledgement_address_encrypted
+       FROM subscription_withdrawals
+       WHERE subscription_ref = ?`
+    )
+    .bind(subscriptionRef)
+    .first();
+}
+
+export async function markSubscriptionWithdrawalCompleted(db, { subscriptionRef, nowMs }) {
+  await db
+    .prepare('UPDATE subscription_withdrawals SET completed_at = ? WHERE subscription_ref = ? AND completed_at IS NULL')
+    .bind(nowMs, subscriptionRef)
+    .run();
+}
+
+// Claims the acknowledgement send; the caller releases the claim if the send fails.
+export async function claimSubscriptionWithdrawalAck(db, { subscriptionRef, nowMs }) {
+  const result = await db
+    .prepare('UPDATE subscription_withdrawals SET acknowledged_at = ? WHERE subscription_ref = ? AND acknowledged_at IS NULL')
+    .bind(nowMs, subscriptionRef)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function releaseSubscriptionWithdrawalAck(db, { subscriptionRef, nowMs }) {
+  await db
+    .prepare('UPDATE subscription_withdrawals SET acknowledged_at = NULL WHERE subscription_ref = ? AND acknowledged_at = ?')
+    .bind(subscriptionRef, nowMs)
+    .run();
+}
+
+// Withdrawals still owed a refund, a cancellation or an acknowledgement, oldest first.
+export async function selectUnfinishedSubscriptionWithdrawals(db, { submittedAfterMs, limit = 50 }) {
+  const { results } = await db
+    .prepare(
+      `SELECT subscription_ref, account_id, service, purchased_at, submitted_at, completed_at, acknowledged_at,
+              amount_paid, acknowledgement_address_encrypted
+       FROM subscription_withdrawals
+       WHERE (completed_at IS NULL OR acknowledged_at IS NULL) AND submitted_at > ?
+       ORDER BY submitted_at ASC
+       LIMIT ?`
+    )
+    .bind(submittedAfterMs, limit)
     .all();
   return results || [];
 }

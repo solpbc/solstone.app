@@ -1,4 +1,3 @@
-import { renewalPlan } from './billing-page.js';
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
   getEntitlement,
@@ -21,6 +20,8 @@ import {
   createPortalSession,
   termsAssentRequired,
 } from './stripe.js';
+import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
+import { billingView } from './withdrawal.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
 const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}${SME_SERVICE_PATH}?checkout=success`;
@@ -41,11 +42,13 @@ export async function handleServicesSme(req, env) {
   ]);
   return signedInHtml(renderServicesSme({
     entitlement,
-    plan: await renewalPlan(env, entitlement),
+    ...await billingView(env, entitlement),
+    startNowBox: withdrawalOn(env),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',
       billing: url.searchParams.get('billing') || '',
+      withdrawal: url.searchParams.get('withdrawal') || '',
     },
     menu,
   }));
@@ -72,6 +75,9 @@ export async function handleSmeCheckout(req, env) {
   // subscription is taken. Enforced on the server, not by the form's required attribute.
   if (form.get('data_ack')?.toString() !== 'yes') return signedInRedirect(`${SME_SERVICE_PATH}?checkout=ack`);
 
+  const startNow = startNowRequest(env, form);
+  if (startNow.refused) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=start_now`);
+
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId });
   const menu = customerRow ? null : await loadMenuContext(env, accountId, guard.nowMs);
   if (!customerRow && !menu?.email) return signedInRedirect(`${SME_SERVICE_PATH}?checkout=email`);
@@ -88,6 +94,8 @@ export async function handleSmeCheckout(req, env) {
       idempotencyKey: crypto.randomUUID(),
       service: 'sme',
       termsAssent: termsAssentRequired(env),
+      withdrawal: startNow.withdrawal,
+      startNowRequestedAt: startNow.requestedAt,
     });
   } catch {
     return signedInRedirect(`${SME_SERVICE_PATH}?checkout=error`);
@@ -105,10 +113,15 @@ export async function handleSmePortal(req, env) {
 
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId: guard.session.account_id });
   if (!customerRow) return signedInRedirect(`${SME_SERVICE_PATH}?billing=missing`);
-  const portal = await createPortalSession(env, {
-    customer: customerRow.stripe_customer_id,
-    returnUrl: PORTAL_RETURN_URL,
-  });
+  let portal;
+  try {
+    portal = await createPortalSession(env, {
+      customer: customerRow.stripe_customer_id,
+      returnUrl: PORTAL_RETURN_URL,
+    });
+  } catch {
+    return signedInRedirect(`${SME_SERVICE_PATH}?billing=error`);
+  }
   if (!portal?.url) return signedInRedirect(`${SME_SERVICE_PATH}?billing=error`);
   return signedInRedirect(portal.url);
 }

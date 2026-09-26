@@ -1,4 +1,3 @@
-import { renewalPlan } from './billing-page.js';
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
   getAccountByStripeCustomer,
@@ -30,6 +29,8 @@ import { TAG_TO_HOSTED_SERVICE, maybeSendSubscriptionAck } from './renewal-notic
 import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
 import { notifySubscriptionCreated } from './subscription-created.js';
+import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
+import { billingView } from './withdrawal.js';
 
 // One reconciler per billed service, keyed by the metadata.service tag checkout stamps.
 // test/billing-stripe.test.js walks BILLED_SERVICES through the webhook, so a service
@@ -58,11 +59,13 @@ export async function handleServicesSpl(req, env) {
   ]);
   return signedInHtml(renderServicesSpl({
     entitlement,
-    plan: await renewalPlan(env, entitlement),
+    ...await billingView(env, entitlement),
+    startNowBox: withdrawalOn(env),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',
       billing: url.searchParams.get('billing') || '',
+      withdrawal: url.searchParams.get('withdrawal') || '',
     },
     menu,
   }));
@@ -87,6 +90,9 @@ export async function handleBillingCheckout(req, env) {
   const scoutApp = await getScoutApplicationStatusByAccount(env.DB, { accountId });
   if (scoutApp?.status === 'approved') return signedInRedirect('/private-network?checkout=comped');
 
+  const startNow = startNowRequest(env, form);
+  if (startNow.refused) return signedInRedirect('/private-network?checkout=start_now');
+
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId });
   const menu = customerRow ? null : await loadMenuContext(env, accountId, guard.nowMs);
   if (!customerRow && !menu?.email) return signedInRedirect('/private-network?checkout=email');
@@ -103,6 +109,8 @@ export async function handleBillingCheckout(req, env) {
       idempotencyKey: crypto.randomUUID(),
       service: 'spl',
       termsAssent: termsAssentRequired(env),
+      withdrawal: startNow.withdrawal,
+      startNowRequestedAt: startNow.requestedAt,
     });
   } catch {
     return signedInRedirect('/private-network?checkout=error');
@@ -120,10 +128,15 @@ export async function handleBillingPortal(req, env) {
 
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId: guard.session.account_id });
   if (!customerRow) return signedInRedirect('/private-network?billing=missing');
-  const portal = await createPortalSession(env, {
-    customer: customerRow.stripe_customer_id,
-    returnUrl: PORTAL_RETURN_URL,
-  });
+  let portal;
+  try {
+    portal = await createPortalSession(env, {
+      customer: customerRow.stripe_customer_id,
+      returnUrl: PORTAL_RETURN_URL,
+    });
+  } catch {
+    return signedInRedirect('/private-network?billing=error');
+  }
   if (!portal?.url) return signedInRedirect('/private-network?billing=error');
   return signedInRedirect(portal.url);
 }
@@ -220,7 +233,7 @@ function serviceTag(metadataHolder) {
   return typeof tag === 'string' && Object.hasOwn(SERVICE_RECONCILERS, tag) ? tag : null;
 }
 
-async function reconcileForService(service, env, accountId, nowMs, ctx, opts) {
+export async function reconcileForService(service, env, accountId, nowMs, ctx, opts) {
   if (!service) {
     console.error('stripe_event_service_unknown');
     return;
@@ -296,6 +309,7 @@ async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
       tag,
       status,
       sourceRef: paid.sourceRef,
+      subscription: obj,
     });
   }
 }

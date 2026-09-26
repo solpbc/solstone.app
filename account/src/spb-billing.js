@@ -1,4 +1,3 @@
-import { renewalPlan } from './billing-page.js';
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
   getEntitlement,
@@ -19,6 +18,8 @@ import {
   createPortalSession,
   termsAssentRequired,
 } from './stripe.js';
+import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
+import { billingView } from './withdrawal.js';
 import { SPB_HOSTED_SERVICE as SERVICE } from './spb-entitlement.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
@@ -41,11 +42,13 @@ export async function handleServicesSpb(req, env) {
   ]);
   return signedInHtml(renderServicesSpb({
     entitlement,
-    plan: await renewalPlan(env, entitlement),
+    ...await billingView(env, entitlement),
+    startNowBox: withdrawalOn(env),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',
       billing: url.searchParams.get('billing') || '',
+      withdrawal: url.searchParams.get('withdrawal') || '',
     },
     menu,
     restoreIntent,
@@ -73,6 +76,9 @@ export async function handleSpbCheckout(req, env) {
   const scoutApp = await getScoutApplicationStatusByAccount(env.DB, { accountId });
   if (scoutApp?.status === 'approved') return signedInRedirect(`${SPB_SERVICE_PATH}?checkout=comped`);
 
+  const startNow = startNowRequest(env, form);
+  if (startNow.refused) return signedInRedirect(`${SPB_SERVICE_PATH}?checkout=start_now`);
+
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId });
   const menu = customerRow ? null : await loadMenuContext(env, accountId, guard.nowMs);
   if (!customerRow && !menu?.email) return signedInRedirect(`${SPB_SERVICE_PATH}?checkout=email`);
@@ -89,6 +95,8 @@ export async function handleSpbCheckout(req, env) {
       idempotencyKey: crypto.randomUUID(),
       service: 'spb',
       termsAssent: termsAssentRequired(env),
+      withdrawal: startNow.withdrawal,
+      startNowRequestedAt: startNow.requestedAt,
     });
   } catch {
     return signedInRedirect(`${SPB_SERVICE_PATH}?checkout=error`);
@@ -106,10 +114,15 @@ export async function handleSpbPortal(req, env) {
 
   const customerRow = await getStripeCustomerByAccount(env.DB, { accountId: guard.session.account_id });
   if (!customerRow) return signedInRedirect(`${SPB_SERVICE_PATH}?billing=missing`);
-  const portal = await createPortalSession(env, {
-    customer: customerRow.stripe_customer_id,
-    returnUrl: PORTAL_RETURN_URL,
-  });
+  let portal;
+  try {
+    portal = await createPortalSession(env, {
+      customer: customerRow.stripe_customer_id,
+      returnUrl: PORTAL_RETURN_URL,
+    });
+  } catch {
+    return signedInRedirect(`${SPB_SERVICE_PATH}?billing=error`);
+  }
   if (!portal?.url) return signedInRedirect(`${SPB_SERVICE_PATH}?billing=error`);
   return signedInRedirect(portal.url);
 }

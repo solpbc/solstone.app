@@ -19,6 +19,7 @@ import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { createPortalSession, readSubscriptionPlan } from './stripe.js';
+import { billingEntryView } from './withdrawal.js';
 
 const BILLING_PATH = '/billing';
 const PORTAL_RETURN_URL = `https://services.solstone.app${BILLING_PATH}`;
@@ -51,12 +52,16 @@ export async function handleBilling(req, env) {
     csrfToken(env),
     ...BILLING_SERVICES.map(({ service }) => getEntitlement(env.DB, { accountId, service })),
   ]);
+  const nowSeconds = Math.floor(nowMs / 1000);
   const entries = await Promise.all(BILLING_SERVICES.map(async (def, index) => {
     const entitlement = entitlements[index];
     const state = billingEntryState(entitlement);
     if (!state) return null;
-    const plan = PRICED_STATES.has(state) ? await readSubscriptionPlan(env, entitlement.source_ref) : null;
-    return { ...def, entitlement, state, plan };
+    const { plan, withdrawal } = await billingEntryView(env, entitlement, {
+      priced: PRICED_STATES.has(state),
+      readPlan: readSubscriptionPlan,
+    }, nowSeconds);
+    return { ...def, entitlement, state, plan, withdrawal };
   }));
   const url = new URL(req.url);
   return signedInHtml(renderBilling({
@@ -65,7 +70,7 @@ export async function handleBilling(req, env) {
     csrf,
     flash: { billing: url.searchParams.get('billing') || '' },
     menu,
-    nowSeconds: Math.floor(nowMs / 1000),
+    nowSeconds,
   }));
 }
 

@@ -15,6 +15,7 @@ import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { getSubscription, subscriptionPeriodEnd } from './stripe.js';
+import { formatLongDate, formatMomentUtc, withdrawalOn, withdrawalUntil } from './withdrawal-rules.js';
 
 export const TAG_TO_HOSTED_SERVICE = Object.freeze({
   spl: SPL_HOSTED_SERVICE,
@@ -43,6 +44,23 @@ const L1_BODY_TEMPLATE = `you just subscribed to **{{service}}**. here's what th
 questions: support@solstone.app.
 
 sol pbc`;
+
+// PLACEHOLDER pending the approved withdrawal wording: the drafted words and model form. Inserted
+// into the written confirmation after the canceling paragraph and before its closing lines, only
+// while the withdrawal door is on; nothing else in the confirmation changes.
+const L1_WITHDRAWAL_BLOCK = [
+  `**you can also withdraw within 14 days, for a full refund.** until {{withdraw_by}}, you can withdraw from this subscription wherever you live, even if you've started using {{service}}. sign in at [services.solstone.app](https://services.solstone.app) and use *withdraw from contract here* on the {{service}} page or the billing page, then confirm. or email support@solstone.app saying you withdraw; you can use the form below, but you don't have to. a withdrawal you send by then counts, even if it reaches us later. withdrawing ends {{service}} that day, and we refund everything you paid for it within 14 days, to the card you paid with. this happens once, counted from this purchase; a renewal doesn't start a new 14 days.`,
+  `**withdrawal form** (fill this in and send it only if you want to withdraw):`,
+  `to: sol pbc, 16095 East 109th Place, Commerce City, CO 80022, United States · support@solstone.app`,
+  `I hereby give notice that I withdraw from my contract for the provision of the following service: {{service}}`,
+  `ordered on: {{purchase_date}}`,
+  `name: ______`,
+  `address: ______`,
+  `signature (only if you send this on paper): ______`,
+  `date: ______`,
+].join('\n\n');
+
+const L1_CLOSING = `questions: support@solstone.app.`;
 
 const CATCH_UP_BODY_TEMPLATE = `you're subscribed to **{{service}}**, and this is the written confirmation Colorado's automatic-renewal law entitles you to. we're sending it now because the send path didn't exist when you first subscribed; every new subscriber gets this right after checkout from here on. keep it. it doesn't expire, and it isn't the only copy: the current terms are always at [services.solstone.app/terms](https://services.solstone.app/terms).
 
@@ -151,7 +169,34 @@ export function validateSubscription(sub) {
   };
 }
 
-export function renderLegalNotice({ kind, service, interval, unitAmount, renewalSeconds }) {
+// The notices' small markdown: **bold**, *italic*, and links to services.solstone.app (the root
+// or the terms). Plain text drops the marks and keeps a link's address; HTML escapes and marks up.
+function renderMarkdownEmail(rawBody) {
+  const plainParagraphs = rawBody.split('\n\n').map((para) => {
+    let p = para.replaceAll('**', '');
+    p = p.replaceAll(/\*([^*\n]+)\*/g, '$1');
+    p = p.replaceAll(/\[([^\]]+)\]\((https:\/\/[^\)]+)\)/g, '$2');
+    return p.trim();
+  });
+  const text = plainParagraphs.join('\n\n');
+
+  const htmlParagraphs = rawBody.split('\n\n').map((para) => {
+    let p = esc(para);
+    // Convert escaped markdown link [services.solstone.app/terms](https://services.solstone.app/terms)
+    p = p.replaceAll(
+      /\[(services\.solstone\.app(?:\/terms)?)\]\((https:\/\/services\.solstone\.app(?:\/terms)?)\)/g,
+      '<a href="$2">$1</a>'
+    );
+    // Convert **span** to <strong>span</strong>, then *span* to <em>span</em>
+    p = p.replaceAll(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    p = p.replaceAll(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    return `<p>${p}</p>`;
+  });
+  const html = `<!DOCTYPE html>\n<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">\n  ${htmlParagraphs.join('\n  ')}\n</body></html>`;
+  return { text, html };
+}
+
+export function renderLegalNotice({ kind, service, interval, unitAmount, renewalSeconds, withdrawal = null }) {
   const serviceName = SERVICE_HUMAN_NAMES[service];
   if (!serviceName) return null;
   const price = formatPrice(unitAmount);
@@ -183,6 +228,15 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
     templateWithInterval = selectInterval(bodyTemplate, interval);
     if (!templateWithInterval) return null;
   }
+  if (kind === 'ack' && withdrawal) {
+    if (!Number.isInteger(withdrawal.purchasedAt) || !Number.isInteger(withdrawal.until)) return null;
+    templateWithInterval = templateWithInterval.replace(
+      `\n\n${L1_CLOSING}`,
+      `\n\n${L1_WITHDRAWAL_BLOCK}\n\n${L1_CLOSING}`,
+    )
+      .replaceAll('{{withdraw_by}}', formatMomentUtc(withdrawal.until))
+      .replaceAll('{{purchase_date}}', formatLongDate(withdrawal.purchasedAt));
+  }
 
   const rawBody = templateWithInterval
     .replaceAll('{{service}}', serviceName)
@@ -192,32 +246,61 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
 
   if (/\{\{[a-z_]+\}\}/.test(rawBody) || /\{\{[a-z_]+\}\}/.test(subject)) return null;
 
-  // Plain-text transformations:
-  // - Drop **
-  // - Replace markdown links [label](url) with URL only
-  // - Paragraphs separated by one blank line
-  const plainParagraphs = rawBody.split('\n\n').map((para) => {
-    let p = para.replaceAll('**', '');
-    p = p.replaceAll(/\[([^\]]+)\]\((https:\/\/[^\)]+)\)/g, '$2');
-    return p.trim();
-  });
-  const text = plainParagraphs.join('\n\n');
-
-  // HTML transformations:
-  const htmlParagraphs = rawBody.split('\n\n').map((para) => {
-    let p = esc(para);
-    // Convert escaped markdown link [services.solstone.app/terms](https://services.solstone.app/terms)
-    p = p.replaceAll(
-      /\[(services\.solstone\.app(?:\/terms)?)\]\((https:\/\/services\.solstone\.app(?:\/terms)?)\)/g,
-      '<a href="$2">$1</a>'
-    );
-    // Convert **span** to <strong>span</strong>
-    p = p.replaceAll(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    return `<p>${p}</p>`;
-  });
-  const html = `<!DOCTYPE html>\n<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">\n  ${htmlParagraphs.join('\n  ')}\n</body></html>`;
-
+  const { text, html } = renderMarkdownEmail(rawBody);
   return { subject, text, html };
+}
+
+// PLACEHOLDER pending the approved wording: the drafted acknowledgement. It goes out when the
+// owner confirms, and says what they sent, which subscription, who sent it, when, and what now.
+const WITHDRAWAL_ACK_SUBJECT = 'you withdrew from your {{service}} subscription';
+const WITHDRAWAL_ACK_BODY = [
+  "we received your withdrawal. keep this email: it's your record of it.",
+  '**what you sent us.** "I withdraw from my contract for {{service}}."',
+  '**the subscription.** {{service}}, {{price}} every {{interval}}, bought on {{purchase_date}}.',
+  '**from.** [NAME]{{name}}, [/NAME]signed in as {{sign_in_email}}, with this confirmation sent to {{email}}.',
+  '**sent.** {{submitted_at}} (UTC).',
+  "**what happens now.** {{service}} has stopped, and it won't renew. we're refunding {{amount_paid}}, everything you paid for this subscription, to the card you paid with, within 14 days; your bank may take a few more days to show it.[BACKUP] we keep your encrypted backup copy for 30 days from today, then delete it for good. subscribe again within those 30 days and it's still there. if you offloaded media into it, that copy is the only one.[/BACKUP][SME] your solstone.me address stays reserved for you, and subscribing again gives you the same one.[/SME]",
+  'questions: support@solstone.app.',
+  'sol pbc',
+].join('\n\n');
+
+function keepBlock(template, tag, keep) {
+  return keep
+    ? template.replace(`[${tag}]`, '').replace(`[/${tag}]`, '')
+    : template.replace(new RegExp(`\\[${tag}\\][\\s\\S]*?\\[/${tag}\\]`), '');
+}
+
+// null when a value the acknowledgement must state is missing, so nothing half-filled is sent.
+export function renderWithdrawalAck({ service, interval, unitAmount, amountPaid, purchasedAt, submittedAtMs, name = '', signInEmail, email }) {
+  const serviceName = SERVICE_HUMAN_NAMES[service];
+  const price = formatPrice(unitAmount);
+  const paid = amountPaid === 0 ? '$0' : formatPrice(amountPaid);
+  if (!serviceName || !price || !paid || (interval !== 'year' && interval !== 'month') || !signInEmail || !email) return null;
+  let body = keepBlock(WITHDRAWAL_ACK_BODY, 'NAME', Boolean(name));
+  body = keepBlock(body, 'BACKUP', service === SPB_HOSTED_SERVICE);
+  body = keepBlock(body, 'SME', service === SME_HOSTED_SERVICE);
+  const submitted = formatMomentUtc(Math.floor(submittedAtMs / 1000)).replace(/ UTC$/, '');
+  const values = {
+    service: serviceName,
+    price,
+    interval,
+    purchase_date: formatLongDate(purchasedAt),
+    name,
+    sign_in_email: signInEmail,
+    email,
+    submitted_at: submitted,
+    amount_paid: paid,
+  };
+  // One pass, so an owner-typed value is never read as a placeholder or a mark.
+  const raw = body.replaceAll(/\{\{([a-z_]+)\}\}/g, (match, key) => (key in values ? `\u0000${key}\u0000` : match));
+  if (/\{\{[a-z_]+\}\}/.test(raw) || !values.purchase_date || !values.submitted_at) return null;
+  const { text, html } = renderMarkdownEmail(raw);
+  const fill = (out, escape) => out.replaceAll(/\u0000([a-z_]+)\u0000/g, (m, key) => (escape ? esc(values[key]) : values[key]));
+  return {
+    subject: WITHDRAWAL_ACK_SUBJECT.replaceAll('{{service}}', serviceName),
+    text: fill(text, false),
+    html: fill(html, true),
+  };
 }
 
 export function renderOneOffHtml(body) {
@@ -265,7 +348,7 @@ async function logSent(env, { kind, accountId, service, renewalAt }) {
   }));
 }
 
-async function resolvePrimaryAddress(env, accountId) {
+export async function resolvePrimaryAddress(env, accountId) {
   const dashData = await getDashboardData(env.DB, accountId);
   if (!dashData?.addressEncrypted) return null;
   try {
@@ -286,7 +369,28 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
     const ent = await getEntitlement(env.DB, { accountId, service: hostedService });
     if (!ent || ent.status !== 'active' || ent.source !== 'stripe' || !ent.source_ref) return;
 
-    const alreadyAcked = await hasRenewalAck(env.DB, accountId, hostedService);
+    // The confirmation is per subscription, so which subscription (and when it started) is
+    // read before deciding whether it has already gone out.
+    let sub = subscription;
+    if (!sub) {
+      try {
+        sub = await getSubscription(env, sourceRef);
+      } catch {
+        await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+        return;
+      }
+    }
+
+    const parsed = validateSubscription(sub);
+    if (!parsed || sub.id !== sourceRef) {
+      await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+      return;
+    }
+
+    const alreadyAcked = await hasRenewalAck(env.DB, accountId, hostedService, {
+      subscriptionRef: sourceRef,
+      startedAtSeconds: parsed.startDate,
+    });
     if (alreadyAcked) return;
 
     const deletion = await getActiveDeletionForAccount(env.DB, accountId);
@@ -301,27 +405,14 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       return;
     }
 
-    let sub = subscription;
-    if (!sub) {
-      try {
-        sub = await getSubscription(env, sourceRef);
-      } catch {
-        await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
-        return;
-      }
-    }
-
-    const parsed = validateSubscription(sub);
-    if (!parsed) {
-      await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
-      return;
-    }
-
     const rendered = renderLegalNotice({
       kind: 'ack',
       service: hostedService,
       interval: parsed.interval,
       unitAmount: parsed.unitAmount,
+      withdrawal: withdrawalOn(env)
+        ? { purchasedAt: parsed.startDate, until: withdrawalUntil(parsed.startDate) }
+        : null,
     });
     if (!rendered) {
       await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
@@ -333,7 +424,7 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       kind: 'ack',
       service: hostedService,
       renewalAt: 0,
-      contentKey: '',
+      contentKey: sourceRef,
       subject: rendered.subject,
       body: rendered.text,
       nowMs: Date.now(),
@@ -354,7 +445,7 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
         kind: 'ack',
         service: hostedService,
         renewalAt: 0,
-        contentKey: '',
+        contentKey: sourceRef,
       });
       await logSendFailed(env, { kind: 'ack', accountId, service: hostedService });
       return;
@@ -402,6 +493,12 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
         const parsed = validateSubscription(sub);
         if (!parsed) {
           await logSkip(env, { kind: 'reminder', accountId, service: hostedService, reason: 'stripe_unusable' });
+          continue;
+        }
+
+        // A subscription set to end is not going to renew, so it gets no notice saying it will.
+        if (sub.cancel_at_period_end || sub.cancel_at != null) {
+          await logSkip(env, { kind: 'reminder', accountId, service: hostedService, reason: 'cancel_pending' });
           continue;
         }
 
