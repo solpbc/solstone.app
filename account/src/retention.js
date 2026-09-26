@@ -21,6 +21,7 @@ const COUNT_KEYS = [
   'enable_scout_codes',
   'dispatch_tokens_revoked',
   'service_handoffs_swept',
+  'start_requests_unattached',
 ];
 
 export async function runRetention(env, nowMs = Date.now()) {
@@ -130,6 +131,14 @@ export async function runRetention(env, nowMs = Date.now()) {
       sql: 'DELETE FROM service_handoffs WHERE (consumed_at IS NOT NULL AND consumed_at < ?) OR (consumed_at IS NULL AND expires_at < ?)',
       cutoff: nowMs - 24 * HOUR_MS,
       key: 'service_handoffs_swept',
+    },
+    {
+      // A "start my service now" request whose checkout never completed started nothing, and
+      // Stripe expires a checkout after a day.
+      index: 17,
+      sql: 'DELETE FROM subscription_start_requests WHERE subscription_ref IS NULL AND requested_at < ?',
+      cutoff: nowMs - 2 * DAY_MS,
+      key: 'start_requests_unattached',
     },
   ];
 

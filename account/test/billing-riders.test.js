@@ -2,7 +2,6 @@ import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { renderLegalNotice, runRenewalReminders } from '../src/renewal-notices.js';
-import { withdrawalUntil } from '../src/withdrawal-rules.js';
 import {
   TEST_CSRF,
   installConsoleSpy,
@@ -64,19 +63,20 @@ describe('billing riders', () => {
       const base = { kind: 'ack', service: 'spl_hosted', interval: 'year', unitAmount: 2000 };
       const off = renderLegalNotice(base);
       const purchasedAt = 1_760_000_000;
-      const on = renderLegalNotice({ ...base, withdrawal: { purchasedAt, until: withdrawalUntil(purchasedAt) } });
+      const on = renderLegalNotice({ ...base, withdrawal: { purchasedAt } });
       expect(off.text).not.toContain('withdraw');
-      expect(on.text).toContain('you can also withdraw within 14 days, for a full refund. until October 24, 2025, 08:53 UTC,');
+      expect(on.text).toContain('you can also withdraw, for a full refund. until the end of the 14th day after October 9, 2025, you can withdraw');
       expect(on.text).toContain('ordered on: October 9, 2025');
-      expect(on.text).toContain('use withdraw from contract here on the private network page');
+      expect(on.text).toContain('use withdraw from contract here on your private network page there or at https://services.solstone.app/billing, then confirm.');
       // Removing the inserted paragraph and form gives back the locked text exactly.
       const paragraphs = on.text.split('\n\n');
-      const first = paragraphs.findIndex((p) => p.startsWith('you can also withdraw within 14 days'));
+      const first = paragraphs.findIndex((p) => p.startsWith('you can also withdraw, for a full refund.'));
       const last = paragraphs.findIndex((p) => p === 'date: ______');
       paragraphs.splice(first, last - first + 1);
       expect(paragraphs.join('\n\n')).toBe(off.text);
-      expect(on.html).toContain('<strong>you can also withdraw within 14 days, for a full refund.</strong>');
+      expect(on.html).toContain('<strong>you can also withdraw, for a full refund.</strong>');
       expect(on.html).toContain('<em>withdraw from contract here</em>');
+      expect(on.html).toContain('<a href="https://services.solstone.app/billing">services.solstone.app/billing</a>');
       expect(on.html).not.toContain('](');
     });
   });

@@ -15,7 +15,7 @@ import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { getSubscription, subscriptionPeriodEnd } from './stripe.js';
-import { formatLongDate, formatMomentUtc, withdrawalOn, withdrawalUntil } from './withdrawal-rules.js';
+import { formatLongDate, formatMomentUtc, withdrawalOn } from './withdrawal-rules.js';
 
 export const TAG_TO_HOSTED_SERVICE = Object.freeze({
   spl: SPL_HOSTED_SERVICE,
@@ -49,7 +49,7 @@ sol pbc`;
 // into the written confirmation after the canceling paragraph and before its closing lines, only
 // while the withdrawal door is on; nothing else in the confirmation changes.
 const L1_WITHDRAWAL_BLOCK = [
-  `**you can also withdraw within 14 days, for a full refund.** until {{withdraw_by}}, you can withdraw from this subscription wherever you live, even if you've started using {{service}}. sign in at [services.solstone.app](https://services.solstone.app) and use *withdraw from contract here* on the {{service}} page or the billing page, then confirm. or email support@solstone.app saying you withdraw; you can use the form below, but you don't have to. a withdrawal you send by then counts, even if it reaches us later. withdrawing ends {{service}} that day, and we refund everything you paid for it within 14 days, to the card you paid with. this happens once, counted from this purchase; a renewal doesn't start a new 14 days.`,
+  `**you can also withdraw, for a full refund.** until the end of the 14th day after {{purchase_date}}, you can withdraw from this subscription wherever you live, even if you've started using {{service}}. sign in at [services.solstone.app](https://services.solstone.app) and use *withdraw from contract here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), then confirm. or email support@solstone.app saying you withdraw; you can use the form below, but you don't have to. a withdrawal you send by then counts, even if it reaches us later. withdrawing ends {{service}} that day, and we refund everything you paid for this subscription within 14 days of your withdrawal, the same way you paid. you get this once, counted from this purchase; a renewal doesn't start a new one.`,
   `**withdrawal form** (fill this in and send it only if you want to withdraw):`,
   `to: sol pbc, 16095 East 109th Place, Commerce City, CO 80022, United States · support@solstone.app`,
   `I hereby give notice that I withdraw from my contract for the provision of the following service: {{service}}`,
@@ -184,7 +184,7 @@ function renderMarkdownEmail(rawBody) {
     let p = esc(para);
     // Convert escaped markdown link [services.solstone.app/terms](https://services.solstone.app/terms)
     p = p.replaceAll(
-      /\[(services\.solstone\.app(?:\/terms)?)\]\((https:\/\/services\.solstone\.app(?:\/terms)?)\)/g,
+      /\[(services\.solstone\.app(?:\/terms|\/billing)?)\]\((https:\/\/services\.solstone\.app(?:\/terms|\/billing)?)\)/g,
       '<a href="$2">$1</a>'
     );
     // Convert **span** to <strong>span</strong>, then *span* to <em>span</em>
@@ -229,12 +229,11 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
     if (!templateWithInterval) return null;
   }
   if (kind === 'ack' && withdrawal) {
-    if (!Number.isInteger(withdrawal.purchasedAt) || !Number.isInteger(withdrawal.until)) return null;
+    if (!Number.isInteger(withdrawal.purchasedAt)) return null;
     templateWithInterval = templateWithInterval.replace(
       `\n\n${L1_CLOSING}`,
       `\n\n${L1_WITHDRAWAL_BLOCK}\n\n${L1_CLOSING}`,
     )
-      .replaceAll('{{withdraw_by}}', formatMomentUtc(withdrawal.until))
       .replaceAll('{{purchase_date}}', formatLongDate(withdrawal.purchasedAt));
   }
 
@@ -250,16 +249,17 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
   return { subject, text, html };
 }
 
-// PLACEHOLDER pending the approved wording: the drafted acknowledgement. It goes out when the
-// owner confirms, and says what they sent, which subscription, who sent it, when, and what now.
+// PLACEHOLDER pending the approved wording: the drafted acknowledgement. It goes out as soon as
+// the withdrawal is recorded, before and apart from any Stripe call, so it names no amount and
+// speaks of the refund in the future tense.
 const WITHDRAWAL_ACK_SUBJECT = 'you withdrew from your {{service}} subscription';
 const WITHDRAWAL_ACK_BODY = [
   "we received your withdrawal. keep this email: it's your record of it.",
-  '**what you sent us.** "I withdraw from my contract for {{service}}."',
+  '**what you sent us.** a withdrawal from your {{service}} subscription.',
   '**the subscription.** {{service}}, {{price}} every {{interval}}, bought on {{purchase_date}}.',
-  '**from.** [NAME]{{name}}, [/NAME]signed in as {{sign_in_email}}, with this confirmation sent to {{email}}.',
-  '**sent.** {{submitted_at}} (UTC).',
-  "**what happens now.** {{service}} has stopped, and it won't renew. we're refunding {{amount_paid}}, everything you paid for this subscription, to the card you paid with, within 14 days; your bank may take a few more days to show it.[BACKUP] we keep your encrypted backup copy for 30 days from today, then delete it for good. subscribe again within those 30 days and it's still there. if you offloaded media into it, that copy is the only one.[/BACKUP][SME] your solstone.me address stays reserved for you, and subscribing again gives you the same one.[/SME]",
+  '**from.** signed in as {{primary_email}}, and this confirmation is sent there.',
+  '**sent.** {{submitted_at}}.',
+  "**what happens now.** {{service}} stops today and won't renew, and we're refunding everything you paid for this subscription, the same way you paid, within 14 days; your bank may take a few more days to show it.[BACKUP] we keep your encrypted backup copy for 30 days from today, then delete it for good. if you offloaded media into it, that copy is the only one, and subscribing again within those 30 days is the way to keep it.[/BACKUP][SME] your solstone.me address stays reserved for you, and subscribing again gives you the same one.[/SME]",
   'questions: support@solstone.app.',
   'sol pbc',
 ].join('\n\n');
@@ -271,29 +271,24 @@ function keepBlock(template, tag, keep) {
 }
 
 // null when a value the acknowledgement must state is missing, so nothing half-filled is sent.
-export function renderWithdrawalAck({ service, interval, unitAmount, amountPaid, purchasedAt, submittedAtMs, name = '', signInEmail, email }) {
+export function renderWithdrawalAck({ service, interval, unitAmount, purchasedAt, submittedAtMs, primaryEmail }) {
   const serviceName = SERVICE_HUMAN_NAMES[service];
   const price = formatPrice(unitAmount);
-  const paid = amountPaid === 0 ? '$0' : formatPrice(amountPaid);
-  if (!serviceName || !price || !paid || (interval !== 'year' && interval !== 'month') || !signInEmail || !email) return null;
-  let body = keepBlock(WITHDRAWAL_ACK_BODY, 'NAME', Boolean(name));
-  body = keepBlock(body, 'BACKUP', service === SPB_HOSTED_SERVICE);
+  if (!serviceName || !price || (interval !== 'year' && interval !== 'month') || !primaryEmail) return null;
+  let body = keepBlock(WITHDRAWAL_ACK_BODY, 'BACKUP', service === SPB_HOSTED_SERVICE);
   body = keepBlock(body, 'SME', service === SME_HOSTED_SERVICE);
-  const submitted = formatMomentUtc(Math.floor(submittedAtMs / 1000)).replace(/ UTC$/, '');
   const values = {
     service: serviceName,
     price,
     interval,
     purchase_date: formatLongDate(purchasedAt),
-    name,
-    sign_in_email: signInEmail,
-    email,
-    submitted_at: submitted,
-    amount_paid: paid,
+    primary_email: primaryEmail,
+    submitted_at: formatMomentUtc(Math.floor(submittedAtMs / 1000)),
   };
-  // One pass, so an owner-typed value is never read as a placeholder or a mark.
+  if (!values.purchase_date || !values.submitted_at) return null;
+  // One pass, so a stored value is never read as a placeholder or a mark.
   const raw = body.replaceAll(/\{\{([a-z_]+)\}\}/g, (match, key) => (key in values ? `\u0000${key}\u0000` : match));
-  if (/\{\{[a-z_]+\}\}/.test(raw) || !values.purchase_date || !values.submitted_at) return null;
+  if (/\{\{[a-z_]+\}\}/.test(raw)) return null;
   const { text, html } = renderMarkdownEmail(raw);
   const fill = (out, escape) => out.replaceAll(/\u0000([a-z_]+)\u0000/g, (m, key) => (escape ? esc(values[key]) : values[key]));
   return {
@@ -411,7 +406,7 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       interval: parsed.interval,
       unitAmount: parsed.unitAmount,
       withdrawal: withdrawalOn(env)
-        ? { purchasedAt: parsed.startDate, until: withdrawalUntil(parsed.startDate) }
+        ? { purchasedAt: parsed.startDate }
         : null,
     });
     if (!rendered) {

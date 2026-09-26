@@ -1,7 +1,9 @@
 import { createExecutionContext, env as workerEnv, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
+import { runRetention } from '../src/retention.js';
 import { CHECKOUT_SUBMIT_TEXT_LIMIT, checkoutDisclosure } from '../src/stripe.js';
+import { formatLongDate, formatMomentUtc } from '../src/withdrawal-rules.js';
 import {
   TEST_CSRF,
   installStripeFetchMock,
@@ -38,97 +40,94 @@ describe('withdrawal from a paid subscription within 14 days', () => {
   describe('with the door off, owners see none of it', () => {
     it('answers 404 on the withdraw routes and shows no door, box or disclosure', async () => {
       const testEnv = makeTestEnv();
-      const { session, accountId } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
+      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
       const { calls } = installStripeFetchMock({
         'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S - DAY })),
-        'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs', url: 'https://checkout.stripe.test/s' }),
+        'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs_off', url: 'https://checkout.stripe.test/s' }),
       });
 
       expect((await get('/billing/withdraw/private-network', testEnv, session.cookie)).status).toBe(404);
-      expect((await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie)).status).toBe(404);
+      expect((await post('/billing/withdraw/private-network', testEnv, form(), session.cookie)).status).toBe(404);
       expect(await (await get('/private-network', testEnv, session.cookie)).text()).not.toContain(DOOR);
       expect(await (await get('/billing', testEnv, session.cookie)).text()).not.toContain(DOOR);
-      expect(calls.some((c) => c.method !== 'GET')).toBe(false);
 
-      // A new buyer's checkout asks for no box and carries the renewal disclosure alone.
       const buyer = await seedAccount({ email: 'buyer-off@example.com', testEnv });
       const buyerSession = await seedSession(buyer.accountId, { testEnv });
-      const page = await (await get('/private-network', testEnv, buyerSession.cookie)).text();
-      expect(page).not.toContain('name="start_now"');
+      expect(await (await get('/private-network', testEnv, buyerSession.cookie)).text()).not.toContain('name="start_now"');
       const checkout = await post('/billing/checkout', testEnv, form({ plan: 'annual' }), buyerSession.cookie);
       expect(checkout.headers.get('Location')).toBe('https://checkout.stripe.test/s');
       const created = calls.find((c) => c.url.pathname === '/v1/checkout/sessions');
       expect(created.body.get('custom_text[submit][message]')).toBe(checkoutDisclosure());
-      expect(created.body.has('subscription_data[metadata][start_now_requested_at]')).toBe(false);
-      expect(accountId).toBeTruthy();
+      expect(await count('subscription_start_requests')).toBe(0);
     });
   });
 
   describe('the door', () => {
-    it.each(SERVICES)('is on the $slug page and the billing page for the whole 14 days, a pending cancel included', async (def) => {
+    it.each(SERVICES)('is on the $slug page and the billing page, a pending cancel included', async (def) => {
       const testEnv = makeTestEnv(ON);
-      const { session } = await subscriber(testEnv, { service: def.service, purchasedAt: NOW_S - 13 * DAY });
-      installStripeFetchMock({
-        'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ tag: def.tag, purchasedAt: NOW_S - 13 * DAY })),
-      });
+      const purchasedAt = NOW_S - 13 * DAY;
+      const { session } = await subscriber(testEnv, { service: def.service, purchasedAt });
+      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ tag: def.tag, purchasedAt })) });
 
       const pageHtml = await (await get(def.page, testEnv, session.cookie)).text();
-      expect(pageHtml).toContain(DOOR);
       expect(pageHtml).toContain(`href="/billing/withdraw/${def.slug}"`);
+      expect(pageHtml).toContain(`you can withdraw until the end of the 14th day after ${formatLongDate(purchasedAt)}, for a full refund.`);
       expect(await (await get('/billing', testEnv, session.cookie)).text()).toContain(`href="/billing/withdraw/${def.slug}"`);
 
       // An ordinary cancel pending hides the turn-off door, and must not hide this one.
       await workerEnv.DB.prepare('UPDATE entitlements SET cancel_at_period_end = 1').run();
-      const pending = await (await get(def.page, testEnv, session.cookie)).text();
-      expect(pending).toContain(`href="/billing/withdraw/${def.slug}"`);
+      expect(await (await get(def.page, testEnv, session.cookie)).text()).toContain(`href="/billing/withdraw/${def.slug}"`);
       expect(await (await get('/billing', testEnv, session.cookie)).text()).toContain(`href="/billing/withdraw/${def.slug}"`);
     });
 
-    it('runs to the end of the 14th day after the day of purchase: purchase plus 15 days', async () => {
+    it('never shows a date that could read as passed: undated after 15 days, gone after 21', async () => {
       const testEnv = makeTestEnv(ON);
-      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - 14 * DAY - DAY / 2 });
-      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S - 14 * DAY - DAY / 2 })) });
-      const page = await (await get('/private-network', testEnv, session.cookie)).text();
-      expect(page).toContain(DOOR);
-      const until = new Date((NOW_S + DAY / 2) * 1000);
-      expect(page).toContain(`you can withdraw until ${until.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })} ${until.getUTCDate()}, ${until.getUTCFullYear()}, ${String(until.getUTCHours()).padStart(2, '0')}:${String(until.getUTCMinutes()).padStart(2, '0')} UTC, for a full refund.`);
-    });
+      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - 17 * DAY });
+      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S - 17 * DAY })) });
+      const late = await (await get('/private-network', testEnv, session.cookie)).text();
+      expect(late).toContain('you can still withdraw here, for a full refund.');
+      expect(late).not.toContain('14th day after');
 
-    it('stays when the Stripe read fails, and is gone once the 14 days are over', async () => {
-      const testEnv = makeTestEnv(ON);
-      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - 16 * DAY });
-
-      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson({ error: {} }, 500) });
-      expect(await (await get('/private-network', testEnv, session.cookie)).text()).toContain(DOOR);
-      expect(await (await get('/billing', testEnv, session.cookie)).text()).toContain(DOOR);
-
-      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S - 16 * DAY })) });
+      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S - 22 * DAY })) });
       expect(await (await get('/private-network', testEnv, session.cookie)).text()).not.toContain(DOOR);
       expect(await (await get('/billing', testEnv, session.cookie)).text()).not.toContain(DOOR);
     });
 
-    it('places the backup 30-day sentence beside the door', async () => {
+    it('stays, undated, when the Stripe read fails', async () => {
+      const testEnv = makeTestEnv(ON);
+      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - 30 * DAY });
+      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson({ error: {} }, 500) });
+      const page = await (await get('/private-network', testEnv, session.cookie)).text();
+      expect(page).toContain(DOOR);
+      expect(page).toContain('you can still withdraw here, for a full refund.');
+      expect(await (await get('/billing', testEnv, session.cookie)).text()).toContain(DOOR);
+      expect(await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text()).toContain("your subscription details didn't load");
+    });
+
+    it('places the backup sentence beside the door', async () => {
       const testEnv = makeTestEnv(ON);
       const { session } = await subscriber(testEnv, { service: 'spb_hosted', purchasedAt: NOW_S - DAY });
       installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ tag: 'spb', purchasedAt: NOW_S - DAY })) });
-      const page = await (await get('/billing/withdraw/backup', testEnv, session.cookie)).text();
-      expect(page).toContain('we keep your encrypted backup copy for 30 days, then delete it.');
-      expect(await (await get('/billing', testEnv, session.cookie)).text()).toContain('we keep your encrypted backup copy for 30 days, then delete it.');
+      const line = 'we keep your encrypted backup copy for 30 days, then delete it. if you offloaded media into it, that copy is the only one.';
+      expect(await (await get('/billing/withdraw/backup', testEnv, session.cookie)).text()).toContain(line);
+      expect(await (await get('/billing', testEnv, session.cookie)).text()).toContain(line);
     });
   });
 
   describe('the start-now box', () => {
-    it.each(SERVICES)('is unticked on the $slug page, required by the server, and recorded with the subscription', async (def) => {
+    it.each(SERVICES)('is unticked on the $slug page, required by the server, and kept with us, not at Stripe', async (def) => {
       const testEnv = makeTestEnv(ON);
       const buyer = await seedAccount({ email: `buyer-${def.slug}@example.com`, testEnv });
       const session = await seedSession(buyer.accountId, { testEnv });
       const { calls } = installStripeFetchMock({
-        'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: 'cs', url: 'https://checkout.stripe.test/s' }),
+        'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: `cs_${def.tag}`, url: 'https://checkout.stripe.test/s' }),
       });
 
       const page = await (await get(def.page, testEnv, session.cookie)).text();
       expect(page).toMatch(/<input type="checkbox" name="start_now" value="yes" required>/);
       expect(page).not.toMatch(/name="start_now"[^>]*checked/);
+      // Above the button that goes to Checkout.
+      expect(page.indexOf('name="start_now"')).toBeLessThan(page.indexOf('pay yearly'));
 
       const refused = await post(def.checkout, testEnv, form({ plan: 'annual', ...def.extra }), session.cookie);
       expect(refused.headers.get('Location')).toBe(`${def.page}?checkout=start_now`);
@@ -137,192 +136,205 @@ describe('withdrawal from a paid subscription within 14 days', () => {
       const before = Date.now();
       const accepted = await post(def.checkout, testEnv, form({ plan: 'annual', start_now: 'yes', ...def.extra }), session.cookie);
       expect(accepted.headers.get('Location')).toBe('https://checkout.stripe.test/s');
-      const body = calls[0].body;
-      const at = Date.parse(body.get('subscription_data[metadata][start_now_requested_at]'));
-      expect(at).toBeGreaterThanOrEqual(before - 1000);
-      expect(at).toBeLessThanOrEqual(Date.now());
-      const text = body.get('custom_text[submit][message]');
+      const sent = [...calls[0].body.keys()];
+      expect(sent.some((key) => key.includes('start_now'))).toBe(false);
+      const text = calls[0].body.get('custom_text[submit][message]');
       expect(text).toBe(checkoutDisclosure({ withdrawal: true }));
       expect(text.startsWith(checkoutDisclosure())).toBe(true);
       expect(text.length).toBeLessThanOrEqual(CHECKOUT_SUBMIT_TEXT_LIMIT);
+
+      const row = await workerEnv.DB.prepare('SELECT * FROM subscription_start_requests').first();
+      expect(row).toMatchObject({ checkout_session_ref: `cs_${def.tag}`, account_id: buyer.accountId, service: def.service, subscription_ref: null });
+      expect(row.requested_at).toBeGreaterThanOrEqual(before);
+    });
+
+    it('is tied to the subscription when its checkout completes, and swept if it never does', async () => {
+      const testEnv = makeTestEnv(ON);
+      const buyer = await seedAccount({ email: 'start-now-attach@example.com', testEnv });
+      const session = await seedSession(buyer.accountId, { testEnv });
+      let n = 0;
+      installStripeFetchMock({
+        'POST api.stripe.com/v1/checkout/sessions': async () => stripeJson({ id: `cs_attach_${(n += 1)}`, url: 'https://checkout.stripe.test/s' }),
+        'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S })),
+      });
+      await post('/billing/checkout', testEnv, form({ plan: 'annual', start_now: 'yes' }), session.cookie);
+      await post('/billing/checkout', testEnv, form({ plan: 'annual', start_now: 'yes' }), session.cookie);
+      await postWebhook(testEnv, JSON.stringify({
+        id: 'evt_attach',
+        type: 'checkout.session.completed',
+        data: { object: { id: 'cs_attach_1', client_reference_id: buyer.accountId, customer: 'cus_w1', subscription: 'sub_w1' } },
+      }));
+      const rows = (await workerEnv.DB.prepare('SELECT checkout_session_ref, subscription_ref FROM subscription_start_requests ORDER BY checkout_session_ref').all()).results;
+      expect(rows).toEqual([
+        { checkout_session_ref: 'cs_attach_1', subscription_ref: 'sub_w1' },
+        { checkout_session_ref: 'cs_attach_2', subscription_ref: null },
+      ]);
+
+      await runRetention(testEnv, Date.now() + 3 * DAY * 1000);
+      const kept = (await workerEnv.DB.prepare('SELECT checkout_session_ref FROM subscription_start_requests').all()).results;
+      expect(kept).toEqual([{ checkout_session_ref: 'cs_attach_1' }]);
     });
   });
 
   describe('the withdraw page', () => {
-    it('names the sign-in, the subscription and the acknowledgement address, with one confirm button', async () => {
+    it('shows who is signed in, the subscription and where the acknowledgement goes, all read-only, with one confirm', async () => {
       const testEnv = makeTestEnv(ON);
-      const { session } = await subscriber(testEnv, { email: 'owner-page@example.com', purchasedAt: NOW_S - 2 * DAY });
-      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S - 2 * DAY })) });
+      const purchasedAt = NOW_S - 2 * DAY;
+      const { session } = await subscriber(testEnv, { email: 'owner-page@example.com', purchasedAt });
+      installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt })) });
 
       const html = await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text();
       expect(html).toContain('<h1>withdraw from your private network subscription</h1>');
-      expect(html).toMatch(/<label for="withdraw-name">your name<\/label>\s*<input id="withdraw-name" type="text" name="name" maxlength="200" autocomplete="name">/);
-      expect(html).toContain('value="private network, $20 every year, bought on');
-      expect(html).toMatch(/<input id="withdraw-email" type="email" name="email" value="owner-page@example.com" required/);
-      expect(html).toContain('withdrawing ends private network today and refunds everything you paid for this subscription. you have until');
-      const form = html.slice(html.indexOf('action="/billing/withdraw/private-network"'));
-      expect(form.slice(0, form.indexOf('</form>')).match(/type="submit"/g)).toHaveLength(1);
+      expect(html).toContain('signed in as owner-page@example.com');
+      expect(html).toContain(`subscription: private network, $20 every year, bought on ${formatLongDate(purchasedAt)}`);
+      expect(html).toContain("we'll send the acknowledgement to owner-page@example.com");
+      expect(html).toContain(`if you withdraw, private network stops today and we refund everything you paid for this subscription. you have until the end of the 14th day after ${formatLongDate(purchasedAt)}.`);
+      const formHtml = html.slice(html.indexOf('action="/billing/withdraw/private-network"'));
+      const inputs = formHtml.slice(0, formHtml.indexOf('</form>')).match(/<input [^>]*>/g);
+      expect(inputs.every((input) => input.includes('type="hidden"'))).toBe(true);
       expect(html.match(/>confirm withdrawal</g)).toHaveLength(1);
     });
 
-    it('says the period is over after 14 days, and refuses a confirm', async () => {
+    it('says the period is over after 21 days, and a confirm without the page statement records nothing', async () => {
       const testEnv = makeTestEnv(ON);
-      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - 16 * DAY });
-      const { calls } = installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S - 16 * DAY })) });
-
-      expect(await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text()).toContain('the 14 days to withdraw from this private network subscription ended');
-      expect((await post('/billing/withdraw/private-network', testEnv, form(), session.cookie)).headers.get('Location')).toBe('/billing/withdraw/private-network?withdrawal=email');
-      const response = await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
-      expect(response.headers.get('Location')).toBe('/billing/withdraw/private-network?withdrawal=closed');
+      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - 22 * DAY });
+      const { calls } = installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt: NOW_S - 22 * DAY })) });
+      expect(await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text())
+        .toContain(`the 14 days to withdraw from this private network subscription, bought on ${formatLongDate(NOW_S - 22 * DAY)}, are over.`);
+      const response = await post('/billing/withdraw/private-network', testEnv, form(), session.cookie);
+      expect(response.headers.get('Location')).toBe('/billing/withdraw/private-network');
       expect(calls.filter((c) => c.method !== 'GET')).toHaveLength(0);
-      expect(await rowCount()).toBe(0);
+      expect(await count('subscription_withdrawals')).toBe(0);
     });
 
-    it('enforces origin, csrf and ownership', async () => {
+    it('refuses a statement that was altered, belongs to another subscription, or has expired', async () => {
       const testEnv = makeTestEnv(ON);
       const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
-      const { calls } = installStripeFetchMock({
-        'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson({ ...subscription({ purchasedAt: NOW_S - DAY }), customer: 'cus_someone_else' }),
-      });
-      expect((await post('/billing/withdraw/private-network', testEnv, wform({ csrf: 'wrong' }), session.cookie)).status).toBe(403);
-      expect((await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie, 'https://evil.test')).status).toBe(403);
-      const mismatch = await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
-      expect(mismatch.headers.get('Location')).toBe('/private-network?withdrawal=missing');
-      expect(calls.filter((c) => c.method !== 'GET')).toHaveLength(0);
+      fakeStripe({ purchasedAt: NOW_S - DAY });
+      const statement = await pageStatement(testEnv, session);
+      const [payload, signature] = statement.split('.');
+      const altered = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(payload, 'base64url').toString()), p: NOW_S - 30 * DAY })).toString('base64url');
+      for (const bad of [`${altered}.${signature}`, `${payload}.${signature}x`, 'nonsense']) {
+        const response = await post('/billing/withdraw/private-network', testEnv, form({ statement: bad }), session.cookie);
+        expect(response.headers.get('Location')).toBe('/billing/withdraw/private-network');
+      }
+      expect(await count('subscription_withdrawals')).toBe(0);
+
+      vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 2 * 3600 * 1000);
+      const stale = await post('/billing/withdraw/private-network', testEnv, form({ statement }), session.cookie);
+      expect(stale.headers.get('Location')).toBe('/billing/withdraw/private-network');
+      expect(await count('subscription_withdrawals')).toBe(0);
     });
   });
 
   describe('confirming', () => {
-    it('refunds in full, ends the subscription now, lapses the entitlement and emails the acknowledgement', async () => {
+    it('records, ends the service, acknowledges, then refunds in full and ends the Stripe subscription', async () => {
       const testEnv = makeTestEnv(ON);
-      const { session, accountId } = await subscriber(testEnv, { email: 'withdraw@example.com', purchasedAt: NOW_S - 3 * DAY });
-      const stripe = fakeStripe({ purchasedAt: NOW_S - 3 * DAY });
+      const purchasedAt = NOW_S - 3 * DAY;
+      const { session, accountId } = await subscriber(testEnv, { email: 'withdraw@example.com', purchasedAt });
+      const stripe = fakeStripe({ purchasedAt });
 
       const before = Date.now();
-      const response = await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
+      const response = await confirm(testEnv, session);
       expect(response.headers.get('Location')).toBe('/private-network?withdrawal=done');
-
       expect(stripe.refunds).toEqual([{ charge: 'ch_w1', key: 'withdrawal-refund-ch_w1' }]);
       expect(stripe.cancels).toEqual(['sub_w1']);
       expect(stripe.order).toEqual(['refund', 'cancel']);
-      const entitlement = await workerEnv.DB.prepare('SELECT status FROM entitlements WHERE account_id = ?').bind(accountId).first();
-      expect(entitlement.status).toBe('lapsed');
+      expect((await workerEnv.DB.prepare('SELECT status FROM entitlements WHERE account_id = ?').bind(accountId).first()).status).toBe('lapsed');
 
-      expect(testEnv.EMAIL.sent).toHaveLength(1);
-      const mail = testEnv.EMAIL.sent[0];
-      expect(mail.to).toBe('subscriber@example.com');
-      expect(mail.subject).toBe('you withdrew from your private network subscription');
       const row = await workerEnv.DB.prepare('SELECT * FROM subscription_withdrawals').first();
       expect(row.submitted_at).toBeGreaterThanOrEqual(before);
-      const sent = new Date(row.submitted_at);
-      const hhmm = `${String(sent.getUTCHours()).padStart(2, '0')}:${String(sent.getUTCMinutes()).padStart(2, '0')}`;
-      expect(mail.text).toContain(`sent. ${sent.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })} ${sent.getUTCDate()}, ${sent.getUTCFullYear()}, ${hhmm} (UTC).`);
-      expect(mail.text).toContain('what you sent us. "I withdraw from my contract for private network."');
-      expect(mail.text).toContain('the subscription. private network, $20 every year, bought on');
-      expect(mail.text).toContain("we're refunding $20, everything you paid for this subscription");
-      expect(mail.text).toContain('from. signed in as withdraw@example.com, with this confirmation sent to subscriber@example.com.');
-      expect(row.amount_paid).toBe(2000);
-      expect(row.acknowledgement_address_encrypted).toBeNull();
+      expect(row.purchased_at).toBe(purchasedAt);
       expect(row.completed_at).not.toBeNull();
       expect(row.acknowledged_at).not.toBeNull();
-      expect(row.purchased_at).toBe(NOW_S - 3 * DAY);
-    });
+      expect(row.failure_alerted_at).toBeNull();
 
-    it('refunds once for a double confirm and for a replayed deleted webhook', async () => {
-      const testEnv = makeTestEnv(ON);
-      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
-      const stripe = fakeStripe({ purchasedAt: NOW_S - DAY });
-
-      await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
-      // The entitlement has lapsed, so a second confirm finds nothing to withdraw from.
-      const again = await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
-      expect(again.headers.get('Location')).toBe('/private-network?withdrawal=missing');
-      const deleted = JSON.stringify({ id: 'evt_del', type: 'customer.subscription.deleted', data: { object: { ...subscription({ purchasedAt: NOW_S - DAY }), status: 'canceled' } } });
-      await postWebhook(testEnv, deleted);
-      await postWebhook(testEnv, deleted);
-
-      expect(stripe.refunds).toHaveLength(1);
-      expect(stripe.cancels).toHaveLength(1);
       expect(testEnv.EMAIL.sent).toHaveLength(1);
+      const mail = testEnv.EMAIL.sent[0];
+      expect(mail.to).toBe('withdraw@example.com');
+      expect(mail.subject).toBe('you withdrew from your private network subscription');
+      expect(mail.text).toContain('what you sent us. a withdrawal from your private network subscription.');
+      expect(mail.text).toContain(`the subscription. private network, $20 every year, bought on ${formatLongDate(purchasedAt)}.`);
+      expect(mail.text).toContain('from. signed in as withdraw@example.com, and this confirmation is sent there.');
+      expect(mail.text).toContain(`sent. ${formatMomentUtc(Math.floor(row.submitted_at / 1000))}.`);
+      expect(mail.text).toContain("private network stops today and won't renew");
+      expect(mail.text).not.toMatch(/\$20,|\$20 back|refunding \$/);
     });
 
-    it('keeps the door and the subscription when the refund fails, and a retry finishes it', async () => {
+    it('with Stripe down, still records, ends the service and acknowledges, alerts a person, and finishes later', async () => {
       const testEnv = makeTestEnv(ON);
       const { session, accountId } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
-      const stripe = fakeStripe({ purchasedAt: NOW_S - DAY, refundFails: 1 });
+      const statement = await pageStatement(testEnv, session, NOW_S - DAY);
+      installStripeFetchMock({ default: async () => stripeJson({ error: { type: 'api_error' } }, 500) });
 
-      const failed = await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
+      const failed = await post('/billing/withdraw/private-network', testEnv, form({ statement }), session.cookie);
       expect(failed.headers.get('Location')).toBe('/billing/withdraw/private-network?withdrawal=error');
-      expect(stripe.cancels).toHaveLength(0);
-      expect((await workerEnv.DB.prepare('SELECT status FROM entitlements WHERE account_id = ?').bind(accountId).first()).status).toBe('active');
-      expect(await (await get('/private-network', testEnv, session.cookie)).text()).toContain(DOOR);
-      expect(await (await get('/billing/withdraw/private-network?withdrawal=error', testEnv, session.cookie)).text()).toContain("the withdrawal didn't finish");
-      // The acknowledgement does not wait for the refund.
-      expect(testEnv.EMAIL.sent).toHaveLength(1);
+      expect((await workerEnv.DB.prepare('SELECT status FROM entitlements WHERE account_id = ?').bind(accountId).first()).status).toBe('lapsed');
+      const [ack, alert] = testEnv.EMAIL.sent;
+      expect(ack.subject).toBe('you withdrew from your private network subscription');
+      expect(alert.to).toBe('support@solstone.app');
+      expect(alert.subject).toBe('a withdrawal needs a person: private network');
+      expect(alert.text).toContain('subscription: sub_w1');
+      expect(await (await get('/billing/withdraw/private-network?withdrawal=error', testEnv, session.cookie)).text())
+        .toContain("finishing it hit a problem on our side; we'll keep trying, and you don't need to do anything.");
+      expect(await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text()).toContain("and we're finishing it. you don't need to do anything.");
 
-      const retried = await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
-      expect(retried.headers.get('Location')).toBe('/private-network?withdrawal=done');
-      expect(stripe.refunds).toHaveLength(1);
-      expect(stripe.cancels).toHaveLength(1);
-      expect(testEnv.EMAIL.sent).toHaveLength(1);
-    });
-
-    it('does not refund twice when the cancel failed after the refund, even once the 14 days are over', async () => {
-      const testEnv = makeTestEnv(ON);
-      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - 14 * DAY - DAY / 2 });
-      const stripe = fakeStripe({ purchasedAt: NOW_S - 14 * DAY - DAY / 2, cancelFails: 1 });
-
-      const failed = await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
-      expect(failed.headers.get('Location')).toBe('/billing/withdraw/private-network?withdrawal=error');
-      expect(stripe.refunds).toHaveLength(1);
-
-      // The period ends before the owner retries; the submission already made still counts.
-      await workerEnv.DB.prepare('UPDATE subscription_withdrawals SET purchased_at = purchased_at - 86400').run();
-      stripe.setPurchasedAt(NOW_S - 16 * DAY);
-      expect(await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text()).toContain("it hasn't finished yet");
-      const retried = await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
-      expect(retried.headers.get('Location')).toBe('/private-network?withdrawal=done');
-      expect(stripe.refundAttempts).toBe(2);
-      expect(stripe.refunds).toHaveLength(1);
-      expect(stripe.cancels).toHaveLength(1);
-    });
-
-    it('is finished by the schedule when the owner does not retry, and the acknowledgement is resent after a failed send', async () => {
-      const testEnv = makeTestEnv({ ...ON, emailSendError: true });
-      const { session } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
-      const stripe = fakeStripe({ purchasedAt: NOW_S - DAY, cancelFails: 1 });
-
-      await post('/billing/withdraw/private-network', testEnv, wform(), session.cookie);
+      // Still down on the schedule: no second alert yet. Past 48 hours: one more.
       await runScheduled(testEnv);
-      expect(stripe.cancels).toHaveLength(1);
-      let row = await workerEnv.DB.prepare('SELECT completed_at, acknowledged_at FROM subscription_withdrawals').first();
-      expect(row.completed_at).not.toBeNull();
-      expect(row.acknowledged_at).toBeNull();
+      expect(testEnv.EMAIL.sent).toHaveLength(2);
+      vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 49 * 3600 * 1000);
+      await runScheduled(testEnv);
+      await runScheduled(testEnv);
+      expect(testEnv.EMAIL.sent).toHaveLength(3);
+      expect(testEnv.EMAIL.sent[2].subject).toBe('a withdrawal is still unrefunded after 48 hours: private network');
 
-      const working = { ...testEnv, EMAIL: makeTestEnv().EMAIL };
-      await runScheduled(working);
-      await runScheduled(working);
-      expect(working.EMAIL.sent).toHaveLength(1);
-      row = await workerEnv.DB.prepare('SELECT acknowledged_at FROM subscription_withdrawals').first();
-      expect(row.acknowledged_at).not.toBeNull();
+      const stripe = fakeStripe({ purchasedAt: NOW_S - DAY });
+      await runScheduled(testEnv);
       expect(stripe.refunds).toHaveLength(1);
+      expect(stripe.cancels).toHaveLength(1);
+      expect((await workerEnv.DB.prepare('SELECT completed_at FROM subscription_withdrawals').first()).completed_at).not.toBeNull();
+      expect(testEnv.EMAIL.sent).toHaveLength(3);
     });
 
-    it('uses a typed name only in the acknowledgement, and sends it to the address the owner chose', async () => {
+    it('refunds once for a double confirm, and stays ended through replayed and late webhooks', async () => {
       const testEnv = makeTestEnv(ON);
-      const { session } = await subscriber(testEnv, { email: 'signin@example.com', service: 'sme_hosted', purchasedAt: NOW_S - DAY });
-      fakeStripe({ purchasedAt: NOW_S - DAY, tag: 'sme' });
-      const response = await post('/billing/withdraw/solstone-me', testEnv, wform({ name: 'Ada\nLovelace <b>', email: 'elsewhere@example.com' }), session.cookie);
-      expect(response.headers.get('Location')).toBe('/services/solstone-me?withdrawal=done');
-      const mail = testEnv.EMAIL.sent[0];
-      expect(mail.to).toBe('elsewhere@example.com');
-      expect(mail.text).toContain('from. Ada Lovelace <b>, signed in as signin@example.com, with this confirmation sent to elsewhere@example.com.');
-      expect(mail.html).toContain('Ada Lovelace &lt;b&gt;');
-      expect(mail.text).toContain('your solstone.me address stays reserved for you');
-      expect(mail.text).not.toContain('encrypted backup copy');
-      const dump = JSON.stringify(await workerEnv.DB.prepare('SELECT * FROM subscription_withdrawals').all());
-      expect(dump).not.toContain('Lovelace');
-      expect(dump).not.toContain('elsewhere');
+      const { session, accountId } = await subscriber(testEnv, { purchasedAt: NOW_S - DAY });
+      const stripe = fakeStripe({ purchasedAt: NOW_S - DAY });
+      const statement = await pageStatement(testEnv, session);
+
+      await post('/billing/withdraw/private-network', testEnv, form({ statement }), session.cookie);
+      const again = await post('/billing/withdraw/private-network', testEnv, form({ statement }), session.cookie);
+      expect(again.headers.get('Location')).toBe('/private-network?withdrawal=missing');
+      const active = subscription({ purchasedAt: NOW_S - DAY });
+      await postWebhook(testEnv, JSON.stringify({ id: 'evt_late', type: 'customer.subscription.updated', data: { object: active } }));
+      await postWebhook(testEnv, JSON.stringify({ id: 'evt_del', type: 'customer.subscription.deleted', data: { object: { ...active, status: 'canceled' } } }));
+      expect((await workerEnv.DB.prepare('SELECT status FROM entitlements WHERE account_id = ?').bind(accountId).first()).status).toBe('lapsed');
+      expect(stripe.refunds).toHaveLength(1);
+      expect(stripe.cancels).toHaveLength(1);
+      expect(testEnv.EMAIL.sent).toHaveLength(1);
+
+      // Subscribing again is a new subscription, which a late event about the old one leaves alone.
+      await seedEntitlement({ accountId, sourceRef: 'sub_w2', currentPeriodEnd: NOW_S + 365 * DAY });
+      await postWebhook(testEnv, JSON.stringify({ id: 'evt_late2', type: 'customer.subscription.updated', data: { object: active } }));
+      expect(await workerEnv.DB.prepare('SELECT status, source_ref FROM entitlements WHERE account_id = ?').bind(accountId).first())
+        .toEqual({ status: 'active', source_ref: 'sub_w2' });
+    });
+
+    it('carries each service\'s own line in the acknowledgement', async () => {
+      for (const [def, keep, drop] of [
+        [SERVICES[1], 'we keep your encrypted backup copy for 30 days from today', 'solstone.me address stays reserved'],
+        [SERVICES[2], 'your solstone.me address stays reserved for you', 'encrypted backup copy'],
+      ]) {
+        await resetDb();
+        const testEnv = makeTestEnv(ON);
+        const { session } = await subscriber(testEnv, { service: def.service, purchasedAt: NOW_S - DAY });
+        fakeStripe({ purchasedAt: NOW_S - DAY, tag: def.tag });
+        const statement = await pageStatement(testEnv, session, null, def.slug);
+        const response = await post(`/billing/withdraw/${def.slug}`, testEnv, form({ statement }), session.cookie);
+        expect(response.headers.get('Location')).toBe(`${def.page}?withdrawal=done`);
+        expect(testEnv.EMAIL.sent[0].text).toContain(keep);
+        expect(testEnv.EMAIL.sent[0].text).not.toContain(drop);
+      }
     });
 
     it('leaves an ordinary cancel exactly as it was', async () => {
@@ -365,11 +377,27 @@ function subscription({ tag = 'spl', purchasedAt, status = 'active' }) {
   };
 }
 
+// The statement the withdraw page signs for what it showed, read the way the owner's browser gets it.
+async function pageStatement(testEnv, session, purchasedAt = null, slug = 'private-network') {
+  if (purchasedAt != null) {
+    installStripeFetchMock({ 'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ purchasedAt, tag: SERVICES.find((s) => s.slug === slug).tag })) });
+  }
+  const html = await (await get(`/billing/withdraw/${slug}`, testEnv, session.cookie)).text();
+  const match = html.match(/name="statement" value="([^"]+)"/);
+  if (!match) throw new Error('no statement on the page');
+  return match[1];
+}
+
+async function confirm(testEnv, session, slug = 'private-network') {
+  const statement = await pageStatement(testEnv, session, null, slug);
+  return post(`/billing/withdraw/${slug}`, testEnv, form({ statement }), session.cookie);
+}
+
 // A Stripe that keeps the state a withdrawal changes: whether the charge is refunded and the
 // subscription ended, and the order the calls came in.
 function fakeStripe({ purchasedAt, refundFails = 0, cancelFails = 0, tag = 'spl' }) {
   const state = { purchasedAt, refunded: false, canceled: false };
-  const out = { refunds: [], cancels: [], order: [], refundAttempts: 0, setPurchasedAt: (v) => { state.purchasedAt = v; } };
+  const out = { refunds: [], cancels: [], order: [], refundAttempts: 0 };
   installStripeFetchMock({
     'GET api.stripe.com/v1/subscriptions/sub_w1': async () => stripeJson(subscription({ tag, purchasedAt: state.purchasedAt, status: state.canceled ? 'canceled' : 'active' })),
     'GET api.stripe.com/v1/invoices': async ({ url }) => {
@@ -407,11 +435,6 @@ function form(fields = {}) {
   return new URLSearchParams({ csrf: TEST_CSRF, ...fields });
 }
 
-// A confirm, which always carries the address the acknowledgement goes to.
-function wform(fields = {}) {
-  return form({ email: 'subscriber@example.com', ...fields });
-}
-
 function get(path, testEnv, cookie = '') {
   const headers = cookie ? { Cookie: cookie } : {};
   return worker.fetch(new Request(`https://services.solstone.app${path}`, { headers }), testEnv, createExecutionContext());
@@ -435,6 +458,7 @@ async function postWebhook(testEnv, rawBody) {
     body: rawBody,
   }), testEnv, ctx);
   await waitOnExecutionContext(ctx);
+  expect(response.status).toBe(200);
   return response;
 }
 
@@ -444,8 +468,8 @@ async function runScheduled(testEnv) {
   await waitOnExecutionContext(ctx);
 }
 
-async function rowCount() {
-  const row = await workerEnv.DB.prepare('SELECT COUNT(*) AS n FROM subscription_withdrawals').first();
+async function count(table) {
+  const row = await workerEnv.DB.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first();
   return row.n;
 }
 

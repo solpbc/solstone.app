@@ -513,7 +513,7 @@ CREATE TABLE IF NOT EXISTS subscription_created_claims (
   created_at INTEGER NOT NULL
 );
 
--- One withdrawal per subscription, within 14 days of buying it (see migrations 0043, 0044).
+-- One withdrawal per subscription, within 14 days of buying it (see migrations 0043, 0044, 0045).
 CREATE TABLE IF NOT EXISTS subscription_withdrawals (
   subscription_ref TEXT PRIMARY KEY CHECK (substr(subscription_ref, 1, 4) = 'sub_' AND length(subscription_ref) > 4),
   account_id TEXT NOT NULL,
@@ -522,10 +522,23 @@ CREATE TABLE IF NOT EXISTS subscription_withdrawals (
   submitted_at INTEGER NOT NULL,
   completed_at INTEGER,
   acknowledged_at INTEGER,
-  amount_paid INTEGER,
-  acknowledgement_address_encrypted TEXT,
+  failure_alerted_at INTEGER,
+  stuck_alerted_at INTEGER,
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_subscription_withdrawals_account_id
   ON subscription_withdrawals(account_id);
+
+-- The owner's "start my service now" request, kept with the subscription it started (see migration 0045).
+CREATE TABLE IF NOT EXISTS subscription_start_requests (
+  checkout_session_ref TEXT PRIMARY KEY CHECK (substr(checkout_session_ref, 1, 3) = 'cs_' AND length(checkout_session_ref) > 3),
+  account_id TEXT NOT NULL,
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')),
+  requested_at INTEGER NOT NULL,
+  subscription_ref TEXT,
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscription_start_requests_account_id
+  ON subscription_start_requests(account_id);

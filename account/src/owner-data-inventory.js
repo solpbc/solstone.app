@@ -175,9 +175,16 @@ const TABLES = [
     exported('submitted_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('completed_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('acknowledged_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
-    exported('amount_paid', 'identity', 'US cents'),
-    omitted('acknowledgement_address_encrypted', 'the acknowledgement address, cleared once the acknowledgement is sent', 'transient_deletion'),
+    exported('failure_alerted_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    exported('stuck_alerted_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
   ], { deletionOrder: 176, description: 'subscriptions you withdrew from within 14 days' }),
+  table('subscription_start_requests', 'account_id', 'direct_owner_purge', 'exportable', [
+    exported('checkout_session_ref', 'identity', 'Stripe checkout reference'),
+    omitted('account_id', 'internal owner relation'),
+    exported('service'),
+    exported('requested_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    exported('subscription_ref', 'identity', 'Stripe subscription reference'),
+  ], { deletionOrder: 177, description: 'when you asked for a service to start right away' }),
   table('stripe_customers', 'account_id', 'direct_owner_purge', 'exportable', [
     omitted('account_id', 'internal owner relation'), exported('stripe_customer_id', 'identity', 'Stripe customer reference'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),

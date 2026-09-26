@@ -1,30 +1,29 @@
-// Withdrawal from a paid subscription within 14 days of buying it: the owner's own page,
-// then a full refund of what they paid, the subscription ended at once, and an emailed
-// acknowledgement. It sits beside the ordinary cancel, which is untouched: that one goes
-// through Stripe's billing portal and ends at the period's end with no refund.
+// Withdrawal from a paid subscription within 14 days of buying it: the owner's own page, one
+// confirm, and then, in this order, the withdrawal recorded, the service ended, and an emailed
+// acknowledgement, none of which waits on Stripe. The full refund and the immediate end of the
+// Stripe subscription follow, and retry until they land. It sits beside the ordinary cancel,
+// which is untouched: that one goes through Stripe's billing portal and ends at the period's end
+// with no refund.
 //
-// Order matters. A submission is recorded first, so a retry (by the owner, or by the scheduled
-// recovery) resumes it even after the 14 days are over, and the right is used once per
-// subscription. The acknowledgement goes out next, as soon as what was paid is known, whether or
-// not the refund has gone through yet: withdrawing is the owner's act, not ours. The refund is
-// made before the subscription is ended, so a failure in between leaves a live subscription, a
-// door still on the page, and a retry that finishes the job; the other order could end the
-// service and strand the refund.
+// The page carries a signed statement of exactly what it showed the owner (the subscription, its
+// price and when it was bought), so the confirm records and acknowledges that without a Stripe
+// call. Ownership and the purchase are checked against Stripe when the withdrawal is finished;
+// a withdrawal that cannot be finished reaches a person.
 
 import { renewalPlan } from './billing-page.js';
 import { reconcileForService } from './billing.js';
-import { decryptEmail, encryptEmail, hashKey, hashWithPepper, timingSafeEqual } from './crypto.js';
+import { base64UrlDecode, base64UrlEncode, hashKey, hashWithPepper, scopedHmac, timingSafeEqual } from './crypto.js';
 import {
   claimSubscriptionWithdrawal,
   claimSubscriptionWithdrawalAck,
-  clearSubscriptionWithdrawalAddress,
-  setSubscriptionWithdrawalAddress,
-  setSubscriptionWithdrawalAmount,
+  claimSubscriptionWithdrawalAlert,
   getEntitlement,
   getStripeCustomerByAccount,
   getSubscriptionWithdrawal,
+  getUnfinishedWithdrawalFor,
   markSubscriptionWithdrawalCompleted,
   releaseSubscriptionWithdrawalAck,
+  releaseSubscriptionWithdrawalAlert,
   selectUnfinishedSubscriptionWithdrawals,
 } from './db.js';
 import { sendRenewalNoticeEmail } from './email.js';
@@ -50,7 +49,7 @@ import {
   subscriptionPlan,
   subscriptionPurchasedAt,
 } from './stripe.js';
-import { withdrawalOn, withdrawalUntil } from './withdrawal-rules.js';
+import { withdrawalOn, withdrawalRuleShown, withdrawalUntil } from './withdrawal-rules.js';
 
 export const WITHDRAWAL_PATH = '/billing/withdraw';
 
@@ -64,8 +63,13 @@ export const WITHDRAWAL_SERVICES = Object.freeze([
 const BY_SLUG = new Map(WITHDRAWAL_SERVICES.map((def) => [def.slug, def]));
 const BY_SERVICE = new Map(WITHDRAWAL_SERVICES.map((def) => [def.service, def]));
 
-// A submitted withdrawal is retried by the schedule for this long before it is left to an operator.
+// How long the page's signed statement stays good for a confirm.
+const STATEMENT_TTL_MS = 60 * 60 * 1000;
+// A submitted withdrawal is retried by the schedule for this long.
 const RECOVERY_WINDOW_MS = 30 * 86400 * 1000;
+// A person is alerted again if a withdrawal's refund still hasn't landed after this long.
+const STUCK_AFTER_MS = 48 * 3600 * 1000;
+const ALERT_ADDRESS = 'support@solstone.app';
 
 export function withdrawalPathFor(service) {
   const def = BY_SERVICE.get(service);
@@ -73,48 +77,45 @@ export function withdrawalPathFor(service) {
 }
 
 // What a service page and the billing page show about a subscription: its renewal price, and
-// the withdraw door while the 14 days run. With the door off this is exactly the renewal
-// lookup the pages made before, and nothing more is read.
+// the withdraw door while the period runs. With the door off this is exactly the renewal lookup
+// the pages made before, and nothing more is read.
 //
-// The door is shown whether or not a cancel is pending, and a failed Stripe read shows it too
-// (with no date): the door must stay available for the whole period, and the withdraw page
-// itself says so if the period turns out to be over.
+// The door is shown whether or not a cancel is pending, and when the page's Stripe read fails
+// (then with no date): it must stay available for the whole period, and the withdraw page itself
+// says so if the period turns out to be over. `purchasedAt` is given only while the door may
+// still restate the rule with its date.
 export async function billingView(env, entitlement, nowSeconds = Math.floor(Date.now() / 1000)) {
-  if (!withdrawalOn(env)) return { plan: await renewalPlan(env, entitlement), withdrawal: null };
-  if (!withdrawable(entitlement)) return { plan: await renewalPlan(env, entitlement), withdrawal: null };
-  const path = withdrawalPathFor(entitlement.service);
-  let sub = null;
-  try {
-    sub = await getSubscription(env, entitlement.source_ref);
-  } catch {
-    console.warn('stripe_plan_read_failed');
-  }
+  if (!withdrawalOn(env) || !withdrawable(entitlement)) return { plan: await renewalPlan(env, entitlement), withdrawal: null };
+  const sub = await readSubscription(env, entitlement.source_ref);
   const renews = !entitlement.cancel_at_period_end && entitlement.status === 'active' && entitlement.current_period_end != null;
-  const plan = renews && sub ? subscriptionPlan(sub) : null;
-  if (!sub) return { plan, withdrawal: { path, until: null } };
-  const until = withdrawalUntil(subscriptionPurchasedAt(sub));
-  if (until == null || nowSeconds >= until) return { plan, withdrawal: null };
-  return { plan, withdrawal: { path, until } };
+  return { plan: renews && sub ? subscriptionPlan(sub) : null, withdrawal: door(entitlement, sub, nowSeconds) };
 }
 
 // The billing page's price and door for one paid service, from one read of its subscription.
-// With the door off, or for a subscription it does not apply to, this is the page's own price
-// lookup, unchanged.
 export async function billingEntryView(env, entitlement, { priced, readPlan }, nowSeconds) {
   if (!withdrawalOn(env) || !withdrawable(entitlement)) {
     return { plan: priced ? await readPlan(env, entitlement.source_ref) : null, withdrawal: null };
   }
+  const sub = await readSubscription(env, entitlement.source_ref);
+  return { plan: priced && sub ? subscriptionPlan(sub) : null, withdrawal: door(entitlement, sub, nowSeconds) };
+}
+
+function door(entitlement, sub, nowSeconds) {
   const path = withdrawalPathFor(entitlement.service);
-  let sub = null;
+  if (!sub) return { path, purchasedAt: null };
+  const purchasedAt = subscriptionPurchasedAt(sub);
+  const until = withdrawalUntil(purchasedAt);
+  if (until == null || nowSeconds >= until) return null;
+  return { path, purchasedAt: withdrawalRuleShown(purchasedAt, nowSeconds) ? purchasedAt : null };
+}
+
+async function readSubscription(env, subscriptionRef) {
   try {
-    sub = await getSubscription(env, entitlement.source_ref);
+    return await getSubscription(env, subscriptionRef);
   } catch {
     console.warn('stripe_plan_read_failed');
+    return null;
   }
-  if (!sub) return { plan: null, withdrawal: { path, until: null } };
-  const plan = priced ? subscriptionPlan(sub) : null;
-  const until = withdrawalUntil(subscriptionPurchasedAt(sub));
-  return { plan, withdrawal: until != null && nowSeconds < until ? { path, until } : null };
 }
 
 function withdrawable(entitlement) {
@@ -132,39 +133,44 @@ export async function handleWithdrawalPage(req, env, slug) {
   if (guard instanceof Response) return guard;
   const { session, nowMs } = guard;
   const accountId = session.account_id;
-  const [menu, entitlement, csrf, address] = await Promise.all([
+  const [menu, entitlement, csrf, primaryEmail, pending] = await Promise.all([
     loadMenuContext(env, accountId, nowMs),
     getEntitlement(env.DB, { accountId, service: def.service }),
     csrfToken(env),
     resolvePrimaryAddress(env, accountId),
+    getUnfinishedWithdrawalFor(env.DB, { accountId, service: def.service }),
   ]);
-  const url = new URL(req.url);
-  const base = { def, menu, csrf, address, flash: url.searchParams.get('withdrawal') || '' };
+  const flash = new URL(req.url).searchParams.get('withdrawal') || '';
+  const base = { def, menu, csrf, primaryEmail };
+
+  // A withdrawal already on record is reported on, never offered again.
+  if (pending) {
+    return signedInHtml(renderWithdrawal({ ...base, state: flash === 'error' ? 'failed' : 'finishing', submittedAt: pending.submitted_at }));
+  }
   if (!withdrawable(entitlement)) return signedInHtml(renderWithdrawal({ ...base, state: 'none' }));
 
-  const pending = await getSubscriptionWithdrawal(env.DB, { subscriptionRef: entitlement.source_ref });
-  if (pending && pending.account_id === accountId) {
-    return signedInHtml(renderWithdrawal({ ...base, state: 'pending', submittedAt: pending.submitted_at }));
-  }
-
-  let sub;
-  try {
-    sub = await getSubscription(env, entitlement.source_ref);
-  } catch {
-    return signedInHtml(renderWithdrawal({ ...base, state: 'unavailable' }));
-  }
-  const purchasedAt = subscriptionPurchasedAt(sub);
-  const until = withdrawalUntil(purchasedAt);
+  const sub = await readSubscription(env, entitlement.source_ref);
+  const plan = sub ? subscriptionPlan(sub) : null;
+  const purchasedAt = sub ? subscriptionPurchasedAt(sub) : null;
+  if (!sub || !plan || purchasedAt == null) return signedInHtml(renderWithdrawal({ ...base, state: 'unavailable' }));
   const nowSeconds = Math.floor(nowMs / 1000);
-  if (until == null || nowSeconds >= until) {
-    return signedInHtml(renderWithdrawal({ ...base, state: 'closed', until }));
+  if (nowSeconds >= withdrawalUntil(purchasedAt)) {
+    return signedInHtml(renderWithdrawal({ ...base, state: 'closed', purchasedAt }));
   }
+  const statement = await signStatement(env, accountId, {
+    subscriptionRef: entitlement.source_ref,
+    purchasedAt,
+    unitAmount: plan.unitAmount,
+    interval: plan.interval,
+    issuedAt: nowMs,
+  });
   return signedInHtml(renderWithdrawal({
     ...base,
     state: 'open',
     purchasedAt,
-    until,
-    plan: subscriptionPlan(sub),
+    ruleShown: withdrawalRuleShown(purchasedAt, nowSeconds),
+    plan,
+    statement,
   }));
 }
 
@@ -179,119 +185,95 @@ export async function handleWithdrawalConfirm(req, env, ctx, slug) {
   const accountId = guard.session.account_id;
   const nowMs = guard.nowMs;
   const pagePath = `${WITHDRAWAL_PATH}/${def.slug}`;
-  const name = ownerName(form.get('name'));
-  const address = confirmationAddress(form.get('email'));
-  if (!address) return signedInRedirect(`${pagePath}?withdrawal=email`);
 
-  const [entitlement, customer] = await Promise.all([
-    getEntitlement(env.DB, { accountId, service: def.service }),
-    getStripeCustomerByAccount(env.DB, { accountId }),
-  ]);
-  if (!withdrawable(entitlement) || !customer) return signedInRedirect(`${def.path}?withdrawal=missing`);
-  const subscriptionRef = entitlement.source_ref;
-  const addressEncrypted = await encryptEmail(address, env);
-
-  let record = await getSubscriptionWithdrawal(env.DB, { subscriptionRef });
+  const entitlement = await getEntitlement(env.DB, { accountId, service: def.service });
+  let record = withdrawable(entitlement)
+    ? await getSubscriptionWithdrawal(env.DB, { subscriptionRef: entitlement.source_ref })
+    : await getUnfinishedWithdrawalFor(env.DB, { accountId, service: def.service });
   if (record && record.account_id !== accountId) return signedInRedirect(`${def.path}?withdrawal=missing`);
-  if (record) {
-    await setSubscriptionWithdrawalAddress(env.DB, { subscriptionRef, addressEncrypted });
-    record = await getSubscriptionWithdrawal(env.DB, { subscriptionRef });
-  } else {
-    let sub;
-    try {
-      sub = await getSubscription(env, subscriptionRef);
-    } catch {
-      return signedInRedirect(`${pagePath}?withdrawal=error`);
-    }
-    // The subscription must be this sign-in's, for this service, as Stripe itself records it.
-    if (sub?.id !== subscriptionRef || sub.customer !== customer.stripe_customer_id || sub.metadata?.service !== def.tag) {
-      return signedInRedirect(`${def.path}?withdrawal=missing`);
-    }
-    const purchasedAt = subscriptionPurchasedAt(sub);
-    const until = withdrawalUntil(purchasedAt);
-    if (until == null || Math.floor(nowMs / 1000) >= until) return signedInRedirect(`${pagePath}?withdrawal=closed`);
+
+  let statement = null;
+  if (!record) {
+    if (!withdrawable(entitlement)) return signedInRedirect(`${def.path}?withdrawal=missing`);
+    // Recorded from what we hold and what the page showed, with no Stripe call.
+    statement = await verifyStatement(env, accountId, form.get('statement')?.toString() || '', nowMs);
+    if (!statement || statement.subscriptionRef !== entitlement.source_ref) return signedInRedirect(pagePath);
+    if (Math.floor(nowMs / 1000) >= withdrawalUntil(statement.purchasedAt)) return signedInRedirect(pagePath);
     record = await claimSubscriptionWithdrawal(env.DB, {
-      subscriptionRef,
+      subscriptionRef: statement.subscriptionRef,
       accountId,
       service: def.service,
-      purchasedAt,
-      addressEncrypted,
+      purchasedAt: statement.purchasedAt,
       nowMs,
     });
     if (!record || record.account_id !== accountId) return signedInRedirect(`${def.path}?withdrawal=missing`);
   }
 
-  const outcome = await completeWithdrawal(env, ctx, record, { nowMs, name });
+  const outcome = await completeWithdrawal(env, ctx, record, { nowMs, statement });
   if (!outcome.completed) return signedInRedirect(`${pagePath}?withdrawal=error`);
   return signedInRedirect(`${def.path}?withdrawal=${outcome.acknowledged ? 'done' : 'done_unsent'}`);
 }
 
-// The name the owner typed, if any: used in the acknowledgement they are sent, and not stored.
-function ownerName(value) {
-  const text = String(value ?? '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return text.slice(0, 200);
-}
-
-function confirmationAddress(value) {
-  const text = String(value ?? '').trim();
-  if (text.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) return '';
-  return text;
-}
-
-// Finishes a submitted withdrawal, as far as it has not got yet: the acknowledgement, then the
-// refund, then the end of the subscription. Safe to run again at any point: a charge already
-// refunded is not refunded again, an ended subscription is not ended again, and the
-// acknowledgement is claimed before it is sent. `name` is only ever the one just typed; a
-// resend from the schedule goes without it.
-export async function completeWithdrawal(env, ctx, record, { nowMs = Date.now(), name = '' } = {}) {
+// Finishes a recorded withdrawal, as far as it has not got yet. Safe to run again at any point:
+// the entitlement lapse is idempotent, the acknowledgement is claimed before it is sent, a charge
+// already refunded is not refunded again, and an ended subscription is not ended again.
+// `statement` is what the owner's page showed, present only on the confirm itself.
+export async function completeWithdrawal(env, ctx, record, { nowMs = Date.now(), statement = null } = {}) {
   const def = BY_SERVICE.get(record.service);
   if (!def) return { completed: false, acknowledged: false };
   const subscriptionRef = record.subscription_ref;
+
+  // 1 · the service ends now, whatever Stripe is doing.
+  await lapseEntitlement(env, ctx, record, def, nowMs);
+
+  // 2 · the acknowledgement, from the page's statement, or from Stripe on a resend.
   let acknowledged = record.acknowledged_at != null;
-
-  let sub;
-  let invoices;
-  try {
-    sub = await getSubscription(env, subscriptionRef);
-    if (record.amount_paid == null || record.completed_at == null) {
-      invoices = await listPaidSubscriptionInvoices(env, subscriptionRef);
-    }
-  } catch (error) {
-    await logWithdrawal(env, 'withdrawal_stripe_failed', record, { status: error?.status ?? null, code: error?.code ?? null });
-    return { completed: false, acknowledged };
-  }
-  let amountPaid = record.amount_paid;
-  if (amountPaid == null) {
-    amountPaid = invoices.reduce((sum, invoice) => sum + (Number.isInteger(invoice?.amount_paid) && invoice.amount_paid > 0 ? invoice.amount_paid : 0), 0);
-    await setSubscriptionWithdrawalAmount(env.DB, { subscriptionRef, amountPaid });
-  }
-
+  let sub = null;
   if (!acknowledged) {
-    acknowledged = await sendWithdrawalAcknowledgement(env, { ...record, amount_paid: amountPaid }, { sub, name, nowMs });
+    let plan = statement ? { unitAmount: statement.unitAmount, interval: statement.interval } : null;
+    if (!plan) {
+      sub = await readSubscription(env, subscriptionRef);
+      plan = sub ? subscriptionPlan(sub) : null;
+    }
+    acknowledged = plan ? await sendAcknowledgement(env, record, plan, nowMs) : false;
   }
 
+  // 3 · the refund, then the end of the Stripe subscription, checked against Stripe first.
   if (record.completed_at == null) {
     try {
-      await refundSubscriptionInFull(env, subscriptionRef, invoices);
-      if (sub?.status !== 'canceled') await cancelSubscriptionNow(env, subscriptionRef);
+      sub = sub || await getSubscription(env, subscriptionRef);
+      const customer = await getStripeCustomerByAccount(env.DB, { accountId: record.account_id });
+      if (sub?.id !== subscriptionRef || !customer || sub.customer !== customer.stripe_customer_id || sub.metadata?.service !== def.tag) {
+        const error = new Error('withdrawal subscription does not match the sign-in');
+        error.code = 'withdrawal_mismatch';
+        throw error;
+      }
+      await refundSubscriptionInFull(env, subscriptionRef, await listPaidSubscriptionInvoices(env, subscriptionRef));
+      if (sub.status !== 'canceled') await cancelSubscriptionNow(env, subscriptionRef);
     } catch (error) {
-      await logWithdrawal(env, 'withdrawal_stripe_failed', record, { status: error?.status ?? null, code: error?.code ?? null });
+      const detail = { status: error?.status ?? null, code: error?.code ?? null };
+      await logWithdrawal(env, 'withdrawal_finish_failed', record, detail);
+      await alertPerson(env, record, 'failure_alerted_at', detail, nowMs);
+      if (nowMs - record.submitted_at >= STUCK_AFTER_MS) await alertPerson(env, record, 'stuck_alerted_at', detail, nowMs);
       return { completed: false, acknowledged };
     }
     await markSubscriptionWithdrawalCompleted(env.DB, { subscriptionRef, nowMs });
     await logWithdrawal(env, 'withdrawal_completed', record);
-    // The entitlement lapses through the same reconciler the subscription-deleted webhook runs,
-    // now rather than when the webhook lands, and only if it is still this subscription's.
-    const entitlement = await getEntitlement(env.DB, { accountId: record.account_id, service: record.service });
-    if (entitlement?.source === 'stripe' && entitlement.source_ref === subscriptionRef) {
-      await reconcileForService(def.tag, env, record.account_id, nowMs, ctx, { paid: null });
-    }
   }
   return { completed: true, acknowledged };
 }
 
-// Refunds every paid invoice of the subscription in full. Inside 14 days that is the purchase,
-// plus any change of plan made since.
+// The entitlement lapses through the same reconciler the subscription-deleted webhook runs, and
+// only while it is still this subscription's.
+async function lapseEntitlement(env, ctx, record, def, nowMs) {
+  const entitlement = await getEntitlement(env.DB, { accountId: record.account_id, service: record.service });
+  if (entitlement?.source !== 'stripe' || entitlement.source_ref !== record.subscription_ref) return;
+  if (entitlement.status !== 'active' && entitlement.status !== 'past_due') return;
+  await reconcileForService(def.tag, env, record.account_id, nowMs, ctx, { paid: null });
+}
+
+// Refunds every paid invoice of the subscription in full: the purchase, any change of plan since,
+// and a renewal that charged before the cancel landed.
 async function refundSubscriptionInFull(env, subscriptionRef, invoices) {
   for (const invoice of invoices) {
     if (!Number.isInteger(invoice?.amount_paid) || invoice.amount_paid <= 0) continue;
@@ -305,46 +287,59 @@ async function refundSubscriptionInFull(env, subscriptionRef, invoices) {
   }
 }
 
-async function sendWithdrawalAcknowledgement(env, record, { sub, name, nowMs }) {
+async function sendAcknowledgement(env, record, plan, nowMs) {
   const subscriptionRef = record.subscription_ref;
-  const signInEmail = await resolvePrimaryAddress(env, record.account_id);
-  let address = signInEmail;
-  if (record.acknowledgement_address_encrypted) {
-    try {
-      address = await decryptEmail(record.acknowledgement_address_encrypted, env) || signInEmail;
-    } catch {
-      address = signInEmail;
-    }
-  }
-  const plan = subscriptionPlan(sub);
-  const rendered = address && signInEmail && plan
+  const primaryEmail = await resolvePrimaryAddress(env, record.account_id);
+  const rendered = primaryEmail
     ? renderWithdrawalAck({
       service: record.service,
       interval: plan.interval,
       unitAmount: plan.unitAmount,
-      amountPaid: record.amount_paid,
       purchasedAt: record.purchased_at,
       submittedAtMs: record.submitted_at,
-      name,
-      signInEmail,
-      email: address,
+      primaryEmail,
     })
     : null;
   if (!rendered) {
-    await logWithdrawal(env, 'withdrawal_ack_skipped', record, { reason: address && signInEmail ? 'unrenderable' : 'no_email' });
+    await logWithdrawal(env, 'withdrawal_ack_skipped', record, { reason: primaryEmail ? 'unrenderable' : 'no_email' });
     return false;
   }
   if (!await claimSubscriptionWithdrawalAck(env.DB, { subscriptionRef, nowMs })) return true;
   try {
-    await sendRenewalNoticeEmail({ env, address, subject: rendered.subject, text: rendered.text, html: rendered.html });
+    await sendRenewalNoticeEmail({ env, address: primaryEmail, subject: rendered.subject, text: rendered.text, html: rendered.html });
   } catch {
     await releaseSubscriptionWithdrawalAck(env.DB, { subscriptionRef, nowMs });
     await logWithdrawal(env, 'withdrawal_ack_send_failed', record);
     return false;
   }
-  await clearSubscriptionWithdrawalAddress(env.DB, { subscriptionRef, acknowledgedAt: nowMs });
   await logWithdrawal(env, 'withdrawal_ack_sent', record);
   return true;
+}
+
+// A withdrawal that could not be finished reaches a person: once at its first failed finish, and
+// once more if the refund still hasn't landed after 48 hours, well inside the 14 days the refund
+// is owed in. The mail names the subscription, so it can be finished by hand in Stripe.
+async function alertPerson(env, record, column, detail, nowMs) {
+  const subscriptionRef = record.subscription_ref;
+  if (!await claimSubscriptionWithdrawalAlert(env.DB, { subscriptionRef, column, nowMs })) return;
+  const serviceName = BY_SERVICE.get(record.service).name;
+  const stuck = column === 'stuck_alerted_at';
+  const subject = stuck
+    ? `a withdrawal is still unrefunded after 48 hours: ${serviceName}`
+    : `a withdrawal needs a person: ${serviceName}`;
+  const text = [
+    `a ${serviceName} withdrawal was recorded ${new Date(record.submitted_at).toISOString()}, and the refund or the end of its Stripe subscription has not gone through.`,
+    `subscription: ${subscriptionRef}`,
+    `last error: ${detail.code || detail.status || 'unknown'}`,
+    'the service already ended and the owner has their acknowledgement. the schedule retries every 15 minutes; if Stripe keeps refusing, refund every paid invoice of this subscription in full and cancel it now in the Stripe Dashboard. the refund is owed within 14 days of the withdrawal.',
+  ].join('\n\n');
+  try {
+    await sendRenewalNoticeEmail({ env, address: ALERT_ADDRESS, subject, text, html: `<pre>${text.replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</pre>` });
+    await logWithdrawal(env, stuck ? 'withdrawal_stuck_alerted' : 'withdrawal_failure_alerted', record);
+  } catch {
+    await releaseSubscriptionWithdrawalAlert(env.DB, { subscriptionRef, column, nowMs });
+    await logWithdrawal(env, 'withdrawal_alert_send_failed', record);
+  }
 }
 
 // Scheduled: finishes any withdrawal a failed Stripe call or email send left unfinished.
@@ -357,6 +352,30 @@ export async function runWithdrawalRecovery(env, ctx, nowMs = Date.now()) {
       await logWithdrawal(env, 'withdrawal_recovery_failed', row);
     }
   }
+}
+
+// The page's statement of what it showed: which subscription, its price, and when it was bought,
+// signed to this sign-in so the confirm can record it without asking Stripe again.
+async function signStatement(env, accountId, { subscriptionRef, purchasedAt, unitAmount, interval, issuedAt }) {
+  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ s: subscriptionRef, p: purchasedAt, a: unitAmount, i: interval, t: issuedAt })));
+  return `${payload}.${await scopedHmac(payload, env.HMAC_PEPPER, `withdrawal-statement:${accountId}`)}`;
+}
+
+async function verifyStatement(env, accountId, value, nowMs) {
+  const [payload, signature, extra] = value.split('.');
+  if (!payload || !signature || extra !== undefined) return null;
+  const expected = await scopedHmac(payload, env.HMAC_PEPPER, `withdrawal-statement:${accountId}`);
+  if (!timingSafeEqual(signature, expected)) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(base64UrlDecode(payload)));
+  } catch {
+    return null;
+  }
+  const { s, p, a, i, t } = parsed || {};
+  if (typeof s !== 'string' || !s.startsWith('sub_') || !Number.isInteger(p) || !Number.isInteger(a) || a <= 0) return null;
+  if ((i !== 'year' && i !== 'month') || !Number.isInteger(t) || nowMs - t > STATEMENT_TTL_MS || t > nowMs + 60_000) return null;
+  return { subscriptionRef: s, purchasedAt: p, unitAmount: a, interval: i };
 }
 
 // A peppered account reference, never the raw id: console lines are Logpush-retained.

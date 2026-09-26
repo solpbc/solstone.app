@@ -32,6 +32,7 @@ const COUNT_KEYS = [
   'enable_scout_codes',
   'dispatch_tokens_revoked',
   'service_handoffs_swept',
+  'start_requests_unattached',
 ];
 
 describe('retention cron', () => {
