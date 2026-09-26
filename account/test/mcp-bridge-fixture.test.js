@@ -179,10 +179,12 @@ describe('MCP bridge v2 golden fixture', () => {
       'UPDATE mcp_bridge_bindings SET dns_verification_state = NULL, dns_verified_at = NULL WHERE account_id = ?'
     ).bind(account.accountId).run();
 
-    // 6. hostname_capacity
-    await executeCase('hostname_capacity', V2_REPLACE_ASSERTION, {
-      SOLSTONE_ME_DNS_RECORD_CEILING: '0',
-    });
+    // 6. hostname_capacity: the label has no records of its own and the zone is
+    // at its ceiling, so the write path refuses before writing anything.
+    for (const record of fakeZone.getRecords()) fakeZone.deleteRecord(record.id);
+    fakeZone.setTotalRecordCount(190);
+    const capacity = await executeCase('hostname_capacity', V2_REPLACE_ASSERTION);
+    expect(capacity.text).toBe('{"error":"hostname_capacity"}');
 
     const artifact = {
       version: 2,

@@ -83,7 +83,7 @@
       "response": {
         "status": 503,
         "cache_control": "no-store",
-        "body_text": "{\"error\":\"hostname_records_unavailable\"}"
+        "body_text": "{\"error\":\"hostname_capacity\"}"
       }
     }
   ]
