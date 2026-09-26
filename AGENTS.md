@@ -168,7 +168,7 @@ here so they stand on their own:
 - **License: MIT** (root `LICENSE`). Source files in this repo do **not**
   currently carry SPDX headers — match the existing files; do not bulk-add
   headers as a side effect of other work.
-- **Runtime: Cloudflare Workers** via `wrangler` (v3 in `account/`, the root
+- **Runtime: Cloudflare Workers** via `wrangler` (v4 in `account/`, the root
   uses the global `wrangler`). Root tests use Node's built-in test runner;
   `account/` uses vitest on the Workers pool. Build interface is `make` at the
   root, `npm` scripts inside `account/` and `scouts/`.
