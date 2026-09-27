@@ -163,7 +163,7 @@ describe('/enable/solstone-me', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('solstone.me is on for your journal. you can close this tab.');
+    expect(body).toContain('data-enable-state="done"');
     const binding = await smeBindingRow(account.accountId, VALID_INSTANCE);
     expect(binding).toMatchObject({
       account_id: account.accountId,

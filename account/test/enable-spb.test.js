@@ -199,7 +199,7 @@ describe('/enable/backup', () => {
     const binding = await spbBindingRow(account.accountId, VALID_INSTANCE);
 
     expect(response.status).toBe(200);
-    expect(body).toContain('encrypted backup is on for your journal. you can close this tab.');
+    expect(body).toContain('data-enable-state="done"');
     expect(payload).toEqual({
       broker_endpoint: 'https://services.solstone.app',
       account_id: account.accountId,

@@ -330,7 +330,7 @@ describe('/enable/spp', () => {
     const audit = await sppMintAuditRow(account.accountId, VALID_INSTANCE);
 
     expect(response.status).toBe(200);
-    expect(body).toContain('confidential processing is on for your journal.');
+    expect(body).toContain('data-enable-state="done"');
     expect(payload).toEqual({
       state: 'approved',
       endpoint_url: testEnv.SPP_ENGINE_ENDPOINT,
