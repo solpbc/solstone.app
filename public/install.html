@@ -159,10 +159,10 @@
                 <ol class="steps">
                     <li>
                         <h4>set up your journal</h4>
-                        <p>run these commands in your terminal.</p>
-                        <pre id="linux-commands">curl -fsSL https://solstone.app/install.sh | sh
-journal setup</pre>
-                        <div class="actions"><button class="copy-btn" data-target="linux-commands" hidden>copy commands</button></div>
+                        <p>the installer verifies its downloads with minisign, so add it first if you don't have it: <code>sudo apt install minisign</code>, <code>sudo dnf install minisign</code> or <code>sudo pacman -S minisign</code>. not sure which? run the command below. if minisign is missing, the installer stops before changing anything and says how to add it.</p>
+                        <p>run this command in your terminal. it installs your journal and starts it.</p>
+                        <pre id="linux-commands">curl -fsSL https://solstone.app/install.sh | sh</pre>
+                        <div class="actions"><button class="copy-btn" data-target="linux-commands" hidden>copy command</button></div>
                         <p class="copy-message" role="status" id="linux-commands-status"></p>
                         <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
                     </li>
