@@ -259,13 +259,20 @@ function restorePolicyFooter(policyAnchor) {
 // The three follow-on templates every turn-on flow shares (rule 8); the service
 // name is the only variable. Restore's own three follow-on pages are its own
 // (rule 7) and stay with renderEnableSpbRestore* below.
+//
+// The done page can't see the journal. Allowing parks the answer here for the
+// journal to collect, and a journal that stopped waiting (it waits about fifteen
+// minutes, and a restart ends the wait) never collects it. So the page never
+// claims the service is on: it sends the owner back to the journal to check,
+// and says what to do when it isn't.
 function enableDoneTemplate(service) {
   return layout({
-    title: `${service} turned on`,
+    title: `you allowed ${service}`,
     body: `${brandbar()}
-<div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} ${service} turned on</h2>
-  <p>${service} is on for your journal. you can close this tab.</p>
+<div class="card" data-enable-state="done">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} you allowed ${service}</h2>
+  <p>go back to your journal to check that it's on. if your journal is still waiting, it picks this up within a few seconds.</p>
+  <p>if your journal still shows ${service} as off, turn ${service} on again from your journal.</p>
 </div>`,
   });
 }

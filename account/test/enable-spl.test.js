@@ -144,7 +144,7 @@ describe('/enable/spl', () => {
       const second = await worker.fetch(new Request(`https://services.solstone.app/handoff/spl?nonce=${VALID_NONCE}`), testEnv);
 
       expect(response.status).toBe(200);
-      expect(await response.text()).toContain('private network is on for your journal. you can close this tab.');
+      expect(await response.text()).toContain('data-enable-state="done"');
       expect(handoff.status).toBe(200);
       expect(payload).toEqual({
         service: 'spl',
@@ -233,7 +233,7 @@ describe('/enable/spl', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('private network is on for your journal. you can close this tab.');
+    expect(body).toContain('data-enable-state="done"');
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({ instance_id: VALID_INSTANCE, entitled_until: 1_900_000_000 });
     expect(calls[0].init.headers.Authorization).toBe('Bearer test-relay-grant-secret');
