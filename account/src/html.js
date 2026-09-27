@@ -982,7 +982,7 @@ ${restoreCheckout ? '' : retentionDisclosure}`,
   });
 }
 
-export const SME_JOURNAL_UPDATE_NOTICE = 'Your journal needs an update before it can use your solstone.me address. Update the solstone app on the computer your journal runs on, and your address will turn on by itself.';
+export const SME_JOURNAL_UPDATE_NOTICE = 'your journal needs an update before it can use your solstone.me address. update your journal on the computer it runs on, and your address will turn on by itself.';
 
 export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu, journalUpdateNotice = false }) {
   const flashes = smeBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'solstone.me');
