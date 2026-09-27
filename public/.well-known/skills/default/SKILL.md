@@ -1,6 +1,6 @@
 ---
 name: solstone-install
-description: install and configure solstone, a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. when asked to install solstone, set up solstone, or when someone mentions solstone.app. linux (x86_64 and aarch64) and macos on apple silicon.
+description: install and configure solstone, a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. when asked to install solstone, set up solstone, or when someone mentions solstone.app. linux (x86_64 and aarch64), macos on apple silicon, and windows 11 on x64.
 license: AGPL-3.0-only
 metadata:
   author: sol-pbc
