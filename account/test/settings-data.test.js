@@ -211,7 +211,8 @@ describe('settings transparency data view', () => {
       records: { classes: [], failed: [], descriptions: {} },
       relay: { instances: [{ instance_id: 'ffffffff-1111-2222-3333-444444444444', created_at: '2026-09-23T00:00:00.000Z', rotated_at: null, revoked_at: null, entitled_until: null, entitled: false }], accounting: [] },
     })).toContain('relay access off');
-    expect(body).toContain("the relay's record for this journal couldn't be loaded just now. reload to try again.");
+    expect(body).toContain("the relay's record for your journal couldn't be loaded just now. reload to try again.");
+    expect(body).not.toContain("the relay's record for this journal");
     expect(body).toContain('bbbbbbbb-1111-2222-3333-444444444444');
     expect(body).not.toContain('sha256:');
   });

@@ -1617,7 +1617,7 @@ function transparencyRelayBlock(relay) {
   const rows = instances.map((i) => transparencyRecordRow('relay', i, Object.fromEntries(Object.keys(i).map((k) => [k, {}])))).join('')
     + accounting.map((a) => `<div class="row" style="cursor:default"><div class="body">
   <div class="meta" style="margin:0">journal</div><div class="title" style="${TRANSPARENCY_MONO}">${esc(a.instance_id)}</div>
-  <div class="desc">the relay's record for this journal couldn't be loaded just now. reload to try again.</div>
+  <div class="desc">the relay's record for your journal couldn't be loaded just now. reload to try again.</div>
 </div></div>`).join('');
   return `${label}\n<div class="group">${rows}</div>`;
 }
