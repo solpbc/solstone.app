@@ -368,6 +368,53 @@ describe('admin scout endpoints', () => {
     expect(application.data_acked_at).toBeNull();
   });
 
+  it('flags test addresses at creation and leaves customer addresses unflagged', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const flags = {};
+    for (const email of ['spl-e2e-abc@solpbc.org', 'spl-phaseb-x@solpbc.org', 'person@example.com', 'spl-e2e-abc@example.com']) {
+      const response = await worker.fetch(
+        adminRequest('/admin/scouts/pre-approve', token, {
+          method: 'POST',
+          body: { email, reason_code: 'invitation' },
+        }),
+        testEnv
+      );
+      const { account_id } = await response.json();
+      const row = await workerEnv.DB.prepare('SELECT test_identity FROM accounts WHERE id = ?').bind(account_id).first();
+      flags[email] = row.test_identity;
+    }
+    expect(flags).toEqual({
+      'spl-e2e-abc@solpbc.org': 1,
+      'spl-phaseb-x@solpbc.org': 1,
+      'person@example.com': 0,
+      'spl-e2e-abc@example.com': 0,
+    });
+  });
+
+  it('sets and clears the test-identity flag by id and shows it in the projection', async () => {
+    const token = await mintToken();
+    const testEnv = makeTestEnv();
+    const { accountId } = await seedAccount({ email: 'someone@example.com', testEnv });
+    const set = async (value) =>
+      worker.fetch(
+        adminRequest(`/admin/accounts/${accountId}/test-identity`, token, {
+          method: 'POST',
+          body: { test_identity: value },
+        }),
+        testEnv
+      );
+    const show = async () =>
+      (await (await worker.fetch(adminRequest(`/admin/accounts/${accountId}`, token), testEnv)).json()).account;
+
+    expect((await show()).test_identity).toBe(false);
+    expect((await set(true)).status).toBe(200);
+    expect((await show()).test_identity).toBe(true);
+    expect((await set('yes')).status).toBe(400);
+    expect((await set(false)).status).toBe(200);
+    expect((await show()).test_identity).toBe(false);
+  });
+
   it('pre-approves fresh emails with a comp entitlement row', async () => {
     const token = await mintToken();
     const testEnv = makeTestEnv();

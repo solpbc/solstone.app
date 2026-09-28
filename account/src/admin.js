@@ -115,6 +115,12 @@ function scoutLifecycleHistoryUnavailable() {
   );
 }
 
+const TEST_EMAIL_PATTERNS = [/^spl-e2e-.+@solpbc\.org$/, /^spl-phaseb-.+@solpbc\.org$/];
+
+export function isTestAddress(emailLower) {
+  return TEST_EMAIL_PATTERNS.some((pattern) => pattern.test(emailLower));
+}
+
 async function validateCfAccess(request, env) {
   const token = request.headers.get('Cf-Access-Jwt-Assertion');
   if (!token) return null;
@@ -159,6 +165,9 @@ export async function handleAdmin(request, env, url, ctx) {
       if (parts[3] === 'one-off' && request.method === 'POST') {
         return await handleRenewalOneOffAdmin(request, env);
       }
+    }
+    if (request.method === 'POST' && parts.length === 5 && parts[2] === 'accounts' && parts[4] === 'test-identity') {
+      return await setTestIdentity(request, env, decodeURIComponent(parts[3]), admin);
     }
     if (request.method !== 'GET') {
       return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
@@ -357,6 +366,9 @@ async function preApproveScout(request, env, actor, ctx) {
       addressLowerHash,
       nowMs,
     }));
+    if (isTestAddress(emailLower)) {
+      await env.DB.prepare('UPDATE accounts SET test_identity = 1 WHERE id = ?').bind(accountId).run();
+    }
   } catch {
     return scoutLifecycleTransitionUnavailable();
   }
@@ -644,7 +656,7 @@ async function listAccounts(env) {
   const nowMs = Date.now();
   const { results } = await env.DB
     .prepare(
-      `SELECT accounts.id, accounts.created_at, accounts.last_signin_at,
+      `SELECT accounts.id, accounts.created_at, accounts.last_signin_at, accounts.test_identity,
               pe.address_encrypted AS primary_address_encrypted,
               sa.status AS scout_status,
               (SELECT COUNT(*) FROM passkey_credentials pc
@@ -672,9 +684,35 @@ async function listAccounts(env) {
     n_emails: row.n_emails,
     created_at: isoOrNull(row.created_at),
     last_signin_at: isoOrNull(row.last_signin_at),
+    test_identity: row.test_identity === 1,
     scout_status: row.scout_status ?? 'absent',
   })));
   return json({ accounts }, { headers: SECURITY_HEADERS });
+}
+
+async function setTestIdentity(request, env, seg, admin) {
+  const account = await resolveAccount(env, seg);
+  if (!account) return json({ error: 'account not found' }, { status: 404, headers: SECURITY_HEADERS });
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    body = null;
+  }
+  if (typeof body?.test_identity !== 'boolean') {
+    return json({ error: 'test_identity boolean required' }, { status: 400, headers: SECURITY_HEADERS });
+  }
+  await env.DB
+    .prepare('UPDATE accounts SET test_identity = ? WHERE id = ?')
+    .bind(body.test_identity ? 1 : 0, account.id)
+    .run();
+  console.warn(JSON.stringify({
+    event: 'admin_test_identity_set',
+    account_ref: await hashWithPepper(`account:${account.id}`, env),
+    test_identity: body.test_identity,
+    operator: admin.email ?? admin.service,
+  }));
+  return json({ account_id: account.id, test_identity: body.test_identity }, { headers: SECURITY_HEADERS });
 }
 
 async function showAccount(env, seg) {
@@ -718,6 +756,7 @@ async function showAccount(env, seg) {
         primary_email: primaryEmail,
         created_at: isoOrNull(account.created_at),
         last_signin_at: isoOrNull(account.last_signin_at),
+        test_identity: account.test_identity === 1,
       },
       emails,
       passkeys,
@@ -755,7 +794,7 @@ async function resolveAccount(env, seg) {
 
 async function getAccountById(env, id) {
   return env.DB
-    .prepare('SELECT id, primary_email_id, created_at, last_signin_at FROM accounts WHERE id = ?')
+    .prepare('SELECT id, primary_email_id, created_at, last_signin_at, test_identity FROM accounts WHERE id = ?')
     .bind(id)
     .first();
 }

@@ -261,7 +261,7 @@ describe('admin owner sign-in projection', () => {
   it('returns projection-unavailable when detail account resolution fails', async () => {
     await expectProjectionUnavailable(
       '/admin/accounts/00000000-0000-0000-0000-000000000001',
-      (sql) => /SELECT id, primary_email_id, created_at, last_signin_at FROM accounts WHERE id = \?/i.test(sql)
+      (sql) => /SELECT id, primary_email_id, created_at, last_signin_at, test_identity FROM accounts WHERE id = \?/i.test(sql)
     );
   });
 
@@ -309,8 +309,9 @@ describe('admin owner sign-in projection', () => {
     const session = await seedSession(account.accountId, { nowMs: sessionNow, testEnv });
 
     const list = await adminJson('/admin/accounts', token, testEnv);
-    const { scout_status: scoutStatus, ...priorListRow } = list.accounts.find((row) => row.id === account.accountId);
+    const { scout_status: scoutStatus, test_identity: listTestIdentity, ...priorListRow } = list.accounts.find((row) => row.id === account.accountId);
     expect(scoutStatus).toBe('absent');
+    expect(listTestIdentity).toBe(false);
     expect(priorListRow).toEqual({
       id: account.accountId,
       primary_email: 'compat-primary@example.com',
@@ -331,7 +332,9 @@ describe('admin owner sign-in projection', () => {
     expect(scout.status).toBe('absent');
     expect(serviceEntitlements).toHaveLength(4);
     expect(consistencyWarnings).toEqual([]);
-    expect(priorDetail).toEqual({
+    const { test_identity: detailTestIdentity, ...priorAccount } = priorDetail.account;
+    expect(detailTestIdentity).toBe(false);
+    expect({ ...priorDetail, account: priorAccount }).toEqual({
       account: {
         id: account.accountId,
         primary_email: 'compat-primary@example.com',

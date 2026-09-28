@@ -67,6 +67,7 @@ const TABLES = [
     omitted('passkey_user_handle', 'authentication material'),
     exported('created_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
     exported('last_signin_at', 'epoch_ms_to_iso', 'milliseconds since Unix epoch'),
+    omitted('test_identity', 'operator marker for sol pbc test sign-ins'),
   ], { deletionOrder: 230, description: 'your solstone services sign-in' }),
   table('account_emails', 'account_id', 'direct_owner_purge', 'exportable', [
     exported('id'), omitted('account_id', 'internal owner relation'),

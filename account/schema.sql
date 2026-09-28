@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   primary_email_id TEXT,
   passkey_user_handle TEXT,
   created_at INTEGER NOT NULL,
-  last_signin_at INTEGER
+  last_signin_at INTEGER,
+  test_identity INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS account_emails (
