@@ -49,7 +49,7 @@ footer a:hover {
 }
 .footer-covenant {
     max-width: 600px;
-    width: 90vw;
+    width: min(90vw, 100%);
     margin: 0 auto;
     line-height: 1.6;
 }
