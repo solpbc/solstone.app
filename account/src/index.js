@@ -1,3 +1,4 @@
+import { WorkerEntrypoint } from 'cloudflare:workers';
 import {
   encryptEmail,
   generateOtp,
@@ -8,6 +9,7 @@ import {
   timingSafeEqual,
 } from './crypto.js';
 import { handleAdmin } from './admin.js';
+import { answerOrigin } from './deletion-origin.js';
 import { rateBucketFamily } from './owner-data-inventory.js';
 import {
   bumpOtpAttempts,
@@ -1109,6 +1111,15 @@ async function routeRequest(req, env, ctx) {
       console.error('account portal request failed');
       return html(renderError(), { status: 500 });
     }
+}
+
+// The purge targets bind to this entrypoint as ORIGINATOR to ask whether the
+// portal originated a purge. It exposes that one method and no fetch, so a
+// binding to it cannot reach any portal route.
+export class OwnerPurgeOrigin extends WorkerEntrypoint {
+  async originated(frame) {
+    return { originated: await answerOrigin(this.env, frame) };
+  }
 }
 
 export default {

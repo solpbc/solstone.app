@@ -27,6 +27,14 @@ export default defineConfig({
           modules: true,
           script: 'export default { async fetch() { return new Response(JSON.stringify({ error: "test relay worker not configured" }), { status: 500, headers: { "Content-Type": "application/json" } }); } }',
         }],
+        // The purge targets' ORIGINATOR binding, pointed back at this worker's own entrypoint,
+        // so tests reach OwnerPurgeOrigin exactly the way a target does. The pool only exposes
+        // the main module's named entrypoints when ctx.exports is on, which this compatibility
+        // date predates.
+        compatibilityFlags: ['enable_ctx_exports'],
+        serviceBindings: {
+          OWNER_PURGE_ORIGIN_PROBE: { name: 'account-portal', entrypoint: 'OwnerPurgeOrigin' },
+        },
         d1Databases: ['DB'],
         d1Persist: false,
         kvNamespaces: ['GCP_TOKEN_CACHE'],
@@ -40,6 +48,11 @@ export default defineConfig({
           EMAIL_PATH_DISABLED: 'false',
           SIGNUP_DISABLED: 'false',
           SERVICES_AUTH_TOKEN: 'test-services-auth-token',
+          // Fixture-only purge keys, so OwnerPurgeOrigin can verify a frame on the worker's own env.
+          ACCOUNT_RELAY_PURGE_HMAC_KEY_V1: 'owner-purge-v1-fixture-test-key',
+          ACCOUNT_RELAY_PURGE_HMAC_KEY_V2: 'owner-purge-v2-fixture-test-key',
+          ACCOUNT_SUPPORT_PURGE_HMAC_KEY_V1: 'owner-purge-v1-fixture-test-key',
+          ACCOUNT_SUPPORT_PURGE_HMAC_KEY_V2: 'owner-purge-v2-fixture-test-key',
           R2_PARENT_ACCESS_KEY_ID: 'test-r2-parent-access-key-id',
           R2_PARENT_SECRET_ACCESS_KEY: 'test-r2-parent-secret-access-key',
           R2_ACCOUNT_ID: '3f2c1528c7d4d9685819ea9e9e307c92',

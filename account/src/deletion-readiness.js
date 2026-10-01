@@ -108,10 +108,15 @@ async function checkServiceReadiness(env, service, signal) {
       return { ok: false, service, error: 'legacy_proof_header' };
     }
 
+    // A target signs whether its origin check answered a live probe. Only a
+    // target that proves the check verifies, so a production target that lost
+    // its ORIGINATOR binding, or was rolled back to a build without the check,
+    // stops new deletions here, before anything is frozen.
     const domain = readinessDomainFor(service);
     const expectedProofV1 = await framedHmacSha256Base64Url(keyV1, domain, canonicalJson({
       key_version: 1,
       nonce,
+      origin_check: true,
       service,
       version: 1,
     }));
@@ -122,6 +127,7 @@ async function checkServiceReadiness(env, service, signal) {
     const expectedProofV2 = await framedHmacSha256Base64Url(keyV2, domain, canonicalJson({
       key_version: 2,
       nonce,
+      origin_check: true,
       service,
       version: 1,
     }));

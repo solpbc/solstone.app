@@ -27,11 +27,12 @@ const relayFixture = JSON.parse(relayFixtureText);
 const supportFixture = JSON.parse(supportFixtureText);
 
 // Independent framer and signer (strictly independent: no imports from production crypto/canonicalization helpers)
-async function independentFrameAndSign(secret, service, nonce, keyVersion) {
+async function independentFrameAndSign(secret, service, nonce, keyVersion, originCheck = true) {
   const enc = new TextEncoder();
   const canonical = independentCanonicalJson({
     key_version: keyVersion,
     nonce,
+    origin_check: originCheck,
     service,
     version: 1,
   });
@@ -106,6 +107,7 @@ function makeStrictPeerDouble(service, {
   legacyProofV1 = false,
   legacyProofV2 = false,
   isRedirect = false,
+  originCheck = true,
   calls = [],
 } = {}) {
   return {
@@ -167,8 +169,8 @@ function makeStrictPeerDouble(service, {
         });
       }
 
-      const resV1 = await independentFrameAndSign(keyV1, service, nonce, 1);
-      const resV2 = await independentFrameAndSign(keyV2, service, nonce, 2);
+      const resV1 = await independentFrameAndSign(keyV1, service, nonce, 1, originCheck);
+      const resV2 = await independentFrameAndSign(keyV2, service, nonce, 2, originCheck);
 
       const finalProofV1 = proofV1Override !== undefined ? proofV1Override : resV1.proof;
       const finalProofV2 = proofV2Override !== undefined ? proofV2Override : resV2.proof;
@@ -331,15 +333,15 @@ describe('deletion readiness protocol and shared registry', () => {
     it('vendors the exact landed peer bytes and reproduces all four fixed proofs', async () => {
       expect(provenance.relay).toEqual({
         repository: 'solpbc/spl',
-        commit: '97861fac6dee59cffa04253b6b02728cfcd44266',
+        commit: '2e0697f961480c0c93bfde63ad668a717186209b',
         path: 'proto/owner-purge-readiness-v1.json',
-        sha256: 'e6456d20243c7a73542bacd8a31a2c1f321f08bee7034584d03977b6e0ba0ef4',
+        sha256: '66bbdef1860c0899ccb9a8eafb9334e6c4a5c4d5e51f74574859cb04ead74a03',
       });
       expect(provenance.support).toEqual({
         repository: 'private-support-worker',
-        commit: '284c8bace2738633601f581672b6c88cbdf8d922',
+        commit: 'ebea448cdf8ed1e1d4e02b7eb86ecf33dd241e87',
         path: 'sites/support/proto/owner-purge-ready-v1.json',
-        sha256: '4cdc531a57013a6c7e4d3b86c0a172e87588cf4caad725d56ed4e4f793fc17e7',
+        sha256: '715163328fb333fba4d0b5d72e891b38ac0e21f2bcefb17a25a9fed0f7bbf533',
       });
       expect(await sha256Hex(relayFixtureText)).toBe(provenance.relay.sha256);
       expect(await sha256Hex(supportFixtureText)).toBe(provenance.support.sha256);
@@ -393,6 +395,18 @@ describe('deletion readiness protocol and shared registry', () => {
       expect(relayCalls[0].nonce).toHaveLength(43);
       expect(supportCalls[0].nonce).toHaveLength(43);
       expect(relayCalls[0].nonce).not.toBe(supportCalls[0].nonce);
+    });
+
+    it('refuses a target whose origin check is unbound or does not answer', async () => {
+      for (const service of DELETION_SERVICES) {
+        const env = makeTestEnv({
+          RELAY: makeStrictPeerDouble('relay', { originCheck: service !== 'relay' }),
+          SUPPORT_WORKER: makeStrictPeerDouble('support', { originCheck: service !== 'support' }),
+        });
+        const result = await checkDeletionReadiness(env);
+        expect(result.ok).toBe(false);
+        expect(result.service).toBe(service);
+      }
     });
 
     it('rejects non-204 status (200, 206, 500, 503)', async () => {

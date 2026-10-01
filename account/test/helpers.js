@@ -129,12 +129,14 @@ function makeDefaultPurgeBinding(service, overrides = {}) {
         const proofV1 = await framedHmacSha256Base64Url(secretV1, domain, canonicalJson({
           key_version: 1,
           nonce: nonce || '',
+          origin_check: true,
           service,
           version: 1,
         }));
         const proofV2 = await framedHmacSha256Base64Url(secretV2, domain, canonicalJson({
           key_version: 2,
           nonce: nonce || '',
+          origin_check: true,
           service,
           version: 1,
         }));
