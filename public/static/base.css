@@ -96,7 +96,7 @@ body.sunrise {
 .early-days .stage-label {
     font-family: var(--font-display);
     font-weight: 700;
-    color: var(--orange-ink);
+    color: var(--orange-text-aa);
     letter-spacing: 0.01em;
 }
 /* --- accessibility (shared) --- */

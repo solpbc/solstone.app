@@ -50,7 +50,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             font-size: 0.9rem; color: var(--ink-faint); text-decoration: none;
             transition: color 0.15s;
         }
-        .intro-dl:hover { color: var(--orange-ink); }
+        .intro-dl:hover { color: var(--orange-text-aa); }
         .stream-switch {
             position: sticky; top: 0; z-index: 10;
             margin-top: 1.25rem; padding: 0.6rem 1rem;
@@ -69,7 +69,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             text-decoration: none; padding: 0.5rem 0.85rem; border-radius: 999px;
             color: var(--ink-soft); transition: color 0.15s, background 0.15s;
         }
-        a.ss-pill:hover { color: var(--orange-ink); background: var(--orange-wash); }
+        a.ss-pill:hover { color: var(--ink); background: var(--orange-wash); }
         .ss-active { background: var(--orange); color: var(--ink); font-weight: 700; }       /* you-are-here (dark text = AA contrast on orange) */
         .ss-home:not(.ss-active) { box-shadow: inset 0 -2px 0 var(--orange); }         /* journal primacy underline */
         .ss-soon { color: var(--ink-faint); cursor: default; }
@@ -97,7 +97,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             font-family: var(--font-display);
             font-size: 0.82rem; font-weight: 700;
             text-transform: lowercase; letter-spacing: 0.04em;
-            color: var(--orange-ink); margin: 1.25rem 0 0.5rem;
+            color: var(--orange-text-aa); margin: 1.25rem 0 0.5rem;
         }
         .release p { font-size: 0.95rem; line-height: 1.65; color: var(--ink-soft); margin: 0.5rem 0; }
         .release ul { margin: 0.25rem 0 0.5rem; padding-left: 1.25rem; }
@@ -108,8 +108,8 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             font-size: 0.84em; background: var(--cream-bright);
             padding: 0.05rem 0.35rem; border-radius: 3px; color: var(--ink);
         }
-        .release a { color: var(--orange-ink); text-decoration: underline; }
-        .release a:hover { color: var(--orange-ink); }
+        .release a { color: var(--orange-text-aa); text-decoration: underline; }
+        .release a:hover { color: var(--orange-text-aa); }
         .rel-links a:focus-visible,
         .release a:focus-visible {
             outline: 2px solid var(--focus);
@@ -123,7 +123,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             color: var(--ink-faint); font-size: 0.95rem; text-decoration: none;
             transition: color 0.15s;
         }
-        .rel-links a:hover { color: var(--orange-ink); }
+        .rel-links a:hover { color: var(--orange-text-aa); }
         @media (max-width: 640px) {
             .ss-lead {
                 flex-basis: 100%; text-align: center; margin: 0 0 0.2rem;
