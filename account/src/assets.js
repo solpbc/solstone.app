@@ -1,4 +1,4 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=8';
+export const PORTAL_CSS_HREF = '/portal.css?v=9';
 export const SUNARC_JS_SRC = '/sunarc.js?v=3';
 
 export const PORTAL_CSS = `/* services.solstone.app — the account portal's own tokens.
@@ -40,8 +40,8 @@ export const PORTAL_CSS = `/* services.solstone.app — the account portal's own
   --orange-text-aa: #A15F17; /* normal-size orange text; 4.58:1 on --cream, 4.92:1 on --cream-bright, 5.04:1 on --paper */
   --ink-on-brand: #1A1A1A; /* text on --orange (7.08:1) and --gold (11.55:1); same in both appearances */
   --panel: rgb(254 252 248 / 0.90); /* content sheet; 90% cream-bright */
-  --danger-wash: #FBF1F1; /* .error fill and the danger hovers */
-  --error-ink: #7d2525; /* 8.76:1 on --danger-wash */
+  --danger-wash: #F8E9E6; /* .error fill and the danger hovers; the token SOT value */
+  --error-ink: #7d2525; /* 8.22:1 on --danger-wash */
   --success: #3F9D6A;
   --success-ink: #166534;
   --success-wash: #E7F1E9;
@@ -63,7 +63,7 @@ export const PORTAL_CSS = `/* services.solstone.app — the account portal's own
   --hover-fill: #FBF6EC; /* menu and secondary hover; --ink is 16.16:1 */
   --row-hover: #FDFBF6; /* --ink is 16.83:1 */
   --orange-hover: #E9963F; /* primary hover; --ink-on-brand is 7.38:1 */
-  --danger-line: #E2C4C4; /* decorative; 1.47:1 on --danger-wash */
+  --danger-line: #E2C4C4; /* decorative; 1.38:1 on --danger-wash */
   --mark-faint: #C9BFA8; /* decorative chevron and empty icon; 1.66:1 on --cream */
   --pill-dot: #C2B89F; /* decorative; 1.67:1 on --tag-neutral-bg */
   --track-off: #D8CFBC; /* decorative off track; 1.51:1 on --cream-bright */
@@ -417,6 +417,7 @@ input.code {
   background: var(--paper); border: 1px solid var(--hairline);
   border-radius: var(--radius); padding: 22px; box-shadow: 0 1px 2px var(--shadow-raise);
 }
+.card + .card { margin-top: 16px; }
 
 /* grant blocks (consent) */
 .grant { display: flex; gap: 14px; padding: 14px 0; }
