@@ -1,5 +1,12 @@
 /* Comfortaa @font-face now ships with tokens.css (loaded before base.css on
    every page) — single declaration, no per-surface duplication. */
+/* The sunrise gradient, gold to sol orange, as two shared values: the short
+   heading rule under a page title and the primary-button fill. Pages use
+   these rather than repeating the hex pair. */
+:root {
+    --sunrise-rule: linear-gradient(90deg, var(--gold), var(--orange));
+    --sunrise-fill: linear-gradient(135deg, var(--gold), var(--orange));
+}
 * {
     margin: 0;
     padding: 0;

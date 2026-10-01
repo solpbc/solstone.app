@@ -18,22 +18,22 @@
         .install-page { width: min(100% - 2.5rem, 860px); margin: 0 auto; }
         .page-intro { max-width: 650px; margin: 2.5rem auto 1.5rem; text-align: center; }
         .page-intro h1 { margin-bottom: 1rem; padding-bottom: 1rem; position: relative; }
-        .page-intro h1::after { content: ""; position: absolute; bottom: 0; left: calc(50% - 38px); width: 76px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #FFCC33, #E8913A); }
+        .page-intro h1::after { content: ""; position: absolute; bottom: 0; left: calc(50% - 38px); width: 76px; height: 4px; border-radius: 2px; background: var(--sunrise-rule); }
         .install-page p { line-height: 1.65; }
         .install-page a:not(.action):not(.platform-link) { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
         .overview { display: grid; grid-template-columns: 1fr 2rem 1fr; align-items: stretch; margin: 0 auto 1rem; }
         .overview-part { padding: 1.15rem 1.35rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px -10px rgba(139,90,24,.25); }
-        .overview-part.journal { background: #FBF1DB; }
+        .overview-part.journal { background: var(--orange-wash); }
         .overview-part h2 { font-family: var(--font-display); font-size: 1rem; color: var(--ink); margin-bottom: .4rem; }
         .overview-part p { font-size: .94rem; }
         .connection { display: grid; place-items: center; color: var(--ink-soft); font-size: 1.4rem; }
         .overview-note { text-align: center; font-size: .94rem; }
-        .early-note { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid #E8913A; font-size: .94rem; }
+        .early-note { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--orange); font-size: .94rem; }
         .setup { background: white; border-radius: 14px; padding: 1.75rem; box-shadow: 0 3px 5px rgba(139,90,24,.04), 0 18px 40px -24px rgba(139,90,24,.25); }
         .setup h2, .more h2 { font-family: var(--font-display); font-size: 1.25rem; color: var(--ink); margin-bottom: .6rem; }
         .platform-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.2rem 0; }
         .platform-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .6rem .85rem; border: 1px solid var(--hairline-2); border-radius: 7px; font-size: .94rem; color: var(--ink); text-decoration: none; }
-        .platform-link:hover { background: #FBF1DB; }
+        .platform-link:hover { background: var(--orange-wash); }
         .platform-link[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: white; }
         .platform-panel { scroll-margin-top: 1rem; padding-top: .5rem; }
         .platform-panel + .platform-panel { margin-top: 1.5rem; border-top: 1px solid var(--hairline); }
@@ -41,23 +41,23 @@
         .platform-panel[hidden] { display: none; }
         .platform-panel h3 { font-family: var(--font-display); font-size: 1.05rem; margin-bottom: .5rem; color: var(--ink); }
         .requirements { font-size: .9rem; margin-bottom: 1rem; }
-        .existing { background: #F8F7F3; padding: .8rem 1rem; border-radius: 7px; margin-bottom: 1.25rem; font-size: .94rem; }
+        .existing { background: var(--cream-bright); border: 1px solid var(--hairline-2); padding: .8rem 1rem; border-radius: 7px; margin-bottom: 1.25rem; font-size: .94rem; }
         .steps { list-style: none; counter-reset: step; }
         .steps > li { position: relative; padding-left: 2.5rem; counter-increment: step; }
-        .steps > li::before { content: counter(step); position: absolute; left: 0; top: -.1rem; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: 50%; background: #FBF1DB; font-weight: 600; color: var(--ink); }
+        .steps > li::before { content: counter(step); position: absolute; left: 0; top: -.1rem; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: 50%; background: var(--orange-wash); font-weight: 600; color: var(--ink); }
         .steps > li + li { margin-top: 1.75rem; }
         .steps h4 { font-size: 1rem; color: var(--ink); margin-bottom: .4rem; }
         .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: .85rem; }
         .action, .copy-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .65rem 1rem; border-radius: 7px; border: 0; font: 600 .94rem var(--font-body); cursor: pointer; text-decoration: none; text-align: center; }
-        .action { background: linear-gradient(135deg, #FFCC33, #E8913A); color: var(--ink); }
-        .action:hover { background: #FFCC33; color: var(--ink); }
+        .action { background: var(--sunrise-fill); color: var(--ink); }
+        .action:hover { background: var(--gold); color: var(--ink); }
         .copy-btn { background: var(--ink); color: white; }
         .copy-btn:hover { background: var(--ink-soft); }
         .copy-btn[hidden] { display: none; }
         .references { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; font-size: .9rem; margin-top: 1.25rem; }
         .reference-intro { flex-basis: 100%; }
         .references a { display: inline-flex; align-items: center; min-height: 44px; }
-        .install-page pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .87rem/1.65 var(--font-mono); background: #F8F7F3; color: var(--ink); border-radius: 7px; padding: 1rem; margin-top: .85rem; }
+        .install-page pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .87rem/1.65 var(--font-mono); background: var(--cream-bright); border: 1px solid var(--hairline-2); color: var(--ink); border-radius: 7px; padding: 1rem; margin-top: .85rem; }
         .install-page code { font-family: var(--font-mono); font-size: .9em; }
         .install-page details { border-top: 1px solid var(--hairline); margin-top: 1.5rem; padding-top: .5rem; }
         .install-page summary { cursor: pointer; padding: .8rem 0; min-height: 44px; color: var(--ink); font-weight: 600; }
