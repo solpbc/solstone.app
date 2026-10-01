@@ -1,6 +1,6 @@
 ---
 name: solstone-install
-description: install and configure solstone, a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. when asked to install solstone, set up solstone, or when someone mentions solstone.app. linux (x86_64 and aarch64), macos on Apple Silicon, and windows 11 on x64.
+description: install and configure solstone, a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. when asked to install solstone, set up solstone, or when someone mentions solstone.app. linux (x86_64 and aarch64), macos on Apple Silicon, and windows 10 (22H2) or 11 on x64.
 license: AGPL-3.0-only
 metadata:
   author: sol-pbc
@@ -29,7 +29,7 @@ the guide covers platforms, prerequisites, installation, setup, service verifica
 
 - **repo:** https://github.com/solpbc/solstone-journal
 - **solstone app (mac):** https://github.com/solpbc/solstone-macos
-- **platforms:** linux (x86_64 and aarch64), macos 15 or later on Apple Silicon, and windows 11 on x64. on windows the journal is its own per-user install, separate from the solstone app for windows.
+- **platforms:** linux (x86_64 and aarch64), macos 15 or later on Apple Silicon, and windows 10 (22H2) or 11 on x64. on windows the journal is its own per-user install, separate from the solstone app for windows.
 - **linux:** the journal ships as one self-contained tree with no interpreter or package manager of its own. the tree puts `solstone` and `journal` on PATH and needs the system OpenMP runtime (`libgomp`) for the default local transcription helper.
 - **mac:** the journal app is the only supported way to run the journal. it does not install a second command-line runtime, PATH wrapper, or launchd service. the journal app and solstone app are separate apps and each handles its own updates.
 - **install on linux:** `curl -fsSL https://solstone.app/install.sh | sh`, then `journal setup`. the installer verifies the signed release and its digests. Debian and Fedora can install the `.deb` or `.rpm` instead.
