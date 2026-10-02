@@ -179,6 +179,7 @@ export function parseClosedHistory(data) {
 
 function parseTicket(row) {
   if (!isObject(row)) return failure();
+  if (Object.hasOwn(row, 'about') && (typeof row.about !== 'string' || new TextEncoder().encode(row.about).byteLength > 8192)) return failure();
   const id = validId(row.id);
   const subject = nonEmptyString(row.subject);
   const status = typeof row.status === 'string' && ACTIVE_STATUSES.has(row.status) ? row.status : null;
@@ -187,7 +188,7 @@ function parseTicket(row) {
     ? null
     : parseTimestamp(row.close_scheduled_at);
   if (!id || !subject || !status || updatedAtMs == null || closeScheduledAtMs === null && row.close_scheduled_at != null) return failure();
-  return success({ id, subject, status, updatedAtMs, closeScheduledAtMs });
+  return success({ id, subject, status, updatedAtMs, closeScheduledAtMs, ...(Object.hasOwn(row, 'about') ? { about: row.about } : {}) });
 }
 
 export function parseDetail(data) {

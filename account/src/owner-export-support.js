@@ -501,6 +501,10 @@ function parseIsoTimestamp(ts) {
   return null;
 }
 
+function validAbout(value) {
+  return typeof value === 'string' && new TextEncoder().encode(value).byteLength <= 8192;
+}
+
 function parseStrictActiveList(data) {
   if (!Array.isArray(data)) {
     return { ok: false, reason: 'invalid_envelope' };
@@ -508,7 +512,7 @@ function parseStrictActiveList(data) {
 
   const items = [];
   for (const row of data) {
-    if (!hasExactKeys(row, LIST_KEYS)) {
+    if (!hasExactKeys(row, Object.hasOwn(row || {}, 'about') ? [...LIST_KEYS, 'about'] : LIST_KEYS) || (Object.hasOwn(row || {}, 'about') && !validAbout(row.about))) {
       return { ok: false, reason: 'invalid_envelope' };
     }
 
@@ -547,7 +551,7 @@ function parseStrictActiveList(data) {
 }
 
 function parseStrictDetail(data, verifiedEmails) {
-  if (!hasExactKeys(data, DETAIL_KEYS)) {
+  if (!hasExactKeys(data, Object.hasOwn(data || {}, 'about') ? [...DETAIL_KEYS, 'about'] : DETAIL_KEYS) || (Object.hasOwn(data || {}, 'about') && !validAbout(data.about))) {
     return { ok: false, reason: 'invalid_envelope' };
   }
 
@@ -653,6 +657,7 @@ function parseStrictDetail(data, verifiedEmails) {
       product: data.product.trim(),
       subject: data.subject.trim(),
       description: data.description,
+      ...(Object.hasOwn(data, 'about') ? { about: data.about } : {}),
       status: data.status,
       category: data.category ? data.category.trim() : null,
       user_email: userEmailToEmit,

@@ -162,6 +162,23 @@ describe('owner export support collector (strict schema & isolation)', () => {
     consoleSpy.assertNoSecrets([SENSITIVE_AUTH_TOKEN]);
   });
 
+  it('accepts legacy absence and exact optional about but rejects other context and malformed values', async () => {
+    const about = '\n ios app 2.0.6 (118) · ios 18.6 · arm64\njournal 2.0.29 · ubuntu 24.04 · x86_64 \n';
+    for (const [fields, valid] of [[{}, true], [{about}, true], [{about: ''}, true], [{about: 'a'.repeat(8192)}, true], [{about: 1}, false], [{about: null}, false], [{about: 'é'.repeat(4096) + 'a'}, false], [{user_context: {about, hostname: 'PRIVATE'}}, false]]) {
+      for (const boundary of ['list', 'detail']) {
+        const support = makeSupportWorker({
+          'GET /api/services/tickets': () => json([makeValidTicketListRow('REQ_1', boundary === 'list' ? fields : {})]),
+          'GET /api/services/tickets/REQ_1': () => json(makeValidDetail('REQ_1', boundary === 'detail' ? fields : {})),
+          'GET /api/services/tickets/closed': () => json({tickets: [], next_cursor: null}),
+        });
+        const result = await collectOwnerSupportExport({env: makeTestEnv({SUPPORT_WORKER: support}), accountId: OWNER_ID, clock: () => NOW});
+        expect(result.complete).toBe(valid);
+        if (valid && boundary === 'detail' && Object.hasOwn(fields, 'about')) expect(result.tickets[0].about).toBe(fields.about);
+        if (valid && (boundary === 'list' || !Object.hasOwn(fields, 'about'))) expect(result.tickets[0]).not.toHaveProperty('about');
+      }
+    }
+  });
+
   it('uses list for discovery only: uses subject and fields from detail, not list', async () => {
     const support = makeSupportWorker({
       'GET /api/services/tickets': () => json([
