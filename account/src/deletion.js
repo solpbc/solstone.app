@@ -62,7 +62,7 @@ const PROOF_MAX_ATTEMPTS = 5;
 const PROOF_ACCOUNT_LIMIT = 10;
 const PROOF_IP_LIMIT = 20;
 const STATUS_COOKIE = 'account_deletion_status';
-const KEEP_FAILED = "that didn't go through. reload the page to see where your sign-in stands.";
+const KEEP_FAILED = "that didn't go through. go back to the services portal to see where your sign-in stands.";
 const DELETION_RUNNING_LINE = 'sol pbc is deleting what it held for your sign-in.';
 const DELETION_DELAYED_LINE = 'this is taking longer than usual. sol pbc keeps trying until every part is done.';
 const DELETION_COMPLETE_LINE = 'your sign-in is closed, and sol pbc has deleted what it held for it, apart from the few records the privacy policy names. your journal is still on your devices.';
@@ -405,7 +405,7 @@ export async function handleDeletionConfirm(req, env) {
   const captured = await captureDeletionSnapshotForAccount(env, guard.session.account_id, operationId);
   const current = await getActiveDeletionForAccount(env.DB, guard.session.account_id);
   if (!captured && (!current || current.operation_id !== operationId || current.phase !== 'frozen')) {
-    return refusal(409, "your request went through, but this page didn't finish. reload the close page to see where it stands, or to change your mind.");
+    return refusal(409, "your request went through, but this page didn't finish. go back to the services portal to see where it stands, or to change your mind.");
   }
   // Every service stops here and no renewal is charged. The coordinator applies the hold again
   // on its next pass, which also covers a failure here.
@@ -487,7 +487,7 @@ export async function handleDeletionStatus(req, env) {
         canSignInToCancel: !canCancel && deletionIsCancellable(row, nowMs),
       }));
     }
-    if (row.phase === 'cancelled') return signedInHtml(renderDeletionStatus({ state: 'you kept your sign-in, and nothing was deleted.' }));
+    if (row.phase === 'cancelled') return signedInHtml(renderDeletionStatus({ state: 'you kept your sign-in, and sol pbc deleted nothing.' }));
     if (row.phase === 'purging') {
       // Between passes a purge is waiting on a part that is not done yet: slow, not stuck.
       return signedInHtml(renderDeletionStatus({ state: row.lease_token ? DELETION_RUNNING_LINE : DELETION_DELAYED_LINE }));

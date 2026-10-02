@@ -177,7 +177,7 @@ describe('deletion status', () => {
 
     await workerEnv.DB.prepare("UPDATE account_deletions SET phase = 'cancelled', lease_token = NULL WHERE operation_id = 'hold'").run();
     const cancelled = await (await statusRequest(env)).text();
-    expect(cancelled).toContain('you kept your sign-in, and nothing was deleted.');
+    expect(cancelled).toContain('you kept your sign-in, and sol pbc deleted nothing.');
     expect(cancelled).not.toContain(SIGN_IN_LINK);
 
     await workerEnv.DB.prepare('DELETE FROM account_deletions').run();
@@ -204,7 +204,7 @@ describe('deletion status', () => {
     ).bind(account.accountId, await hashWithPepper('status-token', env)).run();
 
     const response = await statusRequest(env);
-    expect(await response.text()).toContain('you kept your sign-in, and nothing was deleted.');
+    expect(await response.text()).toContain('you kept your sign-in, and sol pbc deleted nothing.');
   });
 });
 

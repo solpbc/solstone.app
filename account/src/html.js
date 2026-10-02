@@ -1708,7 +1708,7 @@ ${extra}
 // What stops at confirm (deletion-hold.js), with the two tails nothing can cut at once: a
 // backup credential already issued for a running backup or restore, and a solstone.me token
 // already issued (it lasts up to 600 s). Operator approval, 2026-10-02.
-export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup already running can finish, and solstone.me can answer for up to 10 more minutes.';
+export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup or restore already running can finish, and your solstone.me address can keep working for up to 10 more minutes.';
 
 export function renderDeletionPage({ menu, error = '', status = '' }) {
   return layout({
@@ -1728,7 +1728,7 @@ ${renderDeletionForm({
   intro: 'this ends every service on your sign-in and closes it. sol pbc then deletes what it holds for your sign-in.',
 })}
 <p>the journal on your devices isn't touched, and neither is a backup in your own bucket.</p>
-<p>${esc(CLOSE_TIMING_LINE)} after that, you have 72 hours to change your mind.</p>
+<p>${esc(CLOSE_TIMING_LINE)} from the moment you confirm, you have 72 hours to change your mind.</p>
 <p class="notice">if you pay for a service, nothing renews while your sign-in is closing, and the subscription ends when the 72 hours are up, with no refund for the time left. to use what you've paid for, cancel in the billing portal instead.</p>
 <p class="notice">if sol pbc runs your encrypted backup, closing deletes the encrypted copy in its storage too, instead of keeping it for the 30 days after a subscription ends. if you've offloaded media into that copy, it's the only copy of that media, and it will be gone for good, so restore it to your devices before you confirm.</p>
 <p class="disclosure"><a href="https://solpbc.org/privacy#your-rights">what sol pbc deletes, and the few things that outlast it</a></p>`,
@@ -1852,12 +1852,13 @@ ${renderDeletionForm({
   submitLabel: 'send a code',
   hidden: { purpose: 'cancel' },
   intro: "to keep your sign-in, confirm it's you with a fresh code, and your passkey if you set one up.",
+  extra: '<p class="notice">if a subscription was due to renew while your sign-in was closing, keeping it charges that renewal now, and its new period starts today.</p>',
   statusId: 'deletion-cancel-status',
 })}${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${exportLink}`,
   });
 }
 
-export const DELETION_STATUS_SIGN_IN_LINE = 'you can still change your mind before the 72 hours are up. sign in again, then confirm with a fresh code, and your passkey if you set one up.';
+export const DELETION_STATUS_SIGN_IN_LINE = 'to change your mind, sign in again, then confirm with a fresh code, and your passkey if you set one up.';
 export const DELETION_STATUS_SIGN_IN_LINK = 'sign in to keep it';
 export const DELETION_PAST_DEADLINE_LINE = "the 72 hours are up, so this can't be stopped now. sol pbc is deleting what it held for your sign-in.";
 
