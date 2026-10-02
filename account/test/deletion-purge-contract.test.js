@@ -237,6 +237,21 @@ describe('deletion purge contract v1', () => {
     await expect(operation('relay')).resolves.toMatchObject({ state: 'confirmed' });
   });
 
+  it('sends exactly the request body the wire contract names for each route', async () => {
+    const transcript = fixture.wire_transcripts[3];
+    const service = liveContractService('relay');
+    const env = serviceEnv('relay', service.binding);
+    const snapshot = await encryptEmail(JSON.stringify({ relay: transcript.request.association_snapshot }), env);
+    await seedDeletion(snapshot);
+
+    await expect(advanceDeletionServiceOperation(env, {
+      deletion: await deletionRow(), service: 'relay', nowMs: 100,
+    })).resolves.toBe('confirmed');
+    const bodyFor = (path) => Object.keys(service.calls.find((call) => call.path === path).body);
+    expect(bodyFor(fixture.routes.purge)).toEqual(fixture.request_bodies.purge);
+    expect(bodyFor(fixture.routes.confirm)).toEqual(fixture.request_bodies.confirm);
+  });
+
   it('mints exact maximum request and attestation lifetimes', async () => {
     const transcript = fixture.wire_transcripts[3];
     const service = liveContractService('relay');
