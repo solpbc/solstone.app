@@ -314,12 +314,11 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   });
 }
 
-async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
-  const accountRow = await accountForStripeCustomer(env, obj?.customer);
-  if (!accountRow) return;
+// One subscription object, as Stripe holds it now, onto its service's entitlement. Returns the
+// mapped status and paid signal, or null for a status that maps to nothing.
+export async function reconcileSubscription(env, accountId, obj, nowMs, ctx) {
   const status = mapSubscriptionStatus(obj?.status);
-  if (!status) return;
-  const accountId = accountRow.account_id;
+  if (!status) return null;
   const paid = status === 'lapsed'
     ? null
     : {
@@ -331,6 +330,16 @@ async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
       };
   const tag = serviceTag(obj);
   await reconcileForService(tag, env, accountId, nowMs, ctx, { paid });
+  return { status, paid, tag };
+}
+
+async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
+  const accountRow = await accountForStripeCustomer(env, obj?.customer);
+  if (!accountRow) return;
+  const accountId = accountRow.account_id;
+  const reconciled = await reconcileSubscription(env, accountId, obj, nowMs, ctx);
+  if (!reconciled) return;
+  const { status, paid, tag } = reconciled;
   if (status === 'active' && (tag === 'spl' || tag === 'spb' || tag === 'sme') && paid?.sourceRef) {
     await maybeSendSubscriptionAck(env, {
       accountId,

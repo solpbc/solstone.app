@@ -43,12 +43,14 @@ import {
 } from './passkey.js';
 import {
   formatDate,
+  formatDeadline,
   renderDeletionCancelPage,
   renderDeletionPage,
   renderDeletionProofPage,
   renderDeletionStatus,
   renderDeletionUnavailablePage,
 } from './html.js';
+import { holdBillingForDeletion, markKeepRestoreOwed, restoreAfterKeep } from './deletion-hold.js';
 import { checkDeletionReadiness } from './deletion-readiness.js';
 import { DELETION_SERVICES } from './deletion-services.js';
 import { originAllowed } from './index.js';
@@ -90,7 +92,9 @@ export async function startEmailProof(env, { accountId, sessionIdHash, purpose, 
   });
   const address = await primaryVerifiedAddress(env, accountId);
   if (!address) throw new Error('deletion_proof_email_missing');
-  await sendDeletionProofEmail({ env, address, code, purpose });
+  const active = purpose === 'cancel' ? await getActiveDeletionForAccount(env.DB, accountId) : null;
+  const deadline = active ? formatDeadline(active.cancellation_deadline_at) : '';
+  await sendDeletionProofEmail({ env, address, code, purpose, deadline });
   return { expiresAt: nowMs + PROOF_TTL_MS };
 }
 
@@ -248,7 +252,15 @@ export async function handleAccountDeletionPage(req, env) {
   const menu = withDeletionMenu(baseMenu, active, env);
   if (active) {
     const exportEnabled = env?.OWNER_EXPORT_ENABLED === 'true';
-    return signedInHtml(renderDeletionCancelPage({ menu, phase: active.phase, exportEnabled }));
+    // The deadline decides, not the phase: past it the coordinator may not have moved the
+    // deletion to purging yet, and a keep would be refused.
+    const phase = deletionIsCancellable(active, guard.nowMs) ? active.phase : 'purging';
+    return signedInHtml(renderDeletionCancelPage({
+      menu,
+      phase,
+      exportEnabled,
+      deadline: formatDeadline(active.cancellation_deadline_at),
+    }));
   }
   return signedInHtml(renderDeletionPage({ menu }));
 }
@@ -388,12 +400,13 @@ export async function handleDeletionConfirm(req, env) {
   }
   if (!result.created) return refusal(409, 'deletion request could not be confirmed');
   const captured = await captureDeletionSnapshotForAccount(env, guard.session.account_id, operationId);
-  if (!captured) {
-    const current = await getActiveDeletionForAccount(env.DB, guard.session.account_id);
-    if (!current || current.operation_id !== operationId || current.phase !== 'frozen') {
-      return refusal(409, 'deletion request could not be prepared');
-    }
+  const current = await getActiveDeletionForAccount(env.DB, guard.session.account_id);
+  if (!captured && (!current || current.operation_id !== operationId || current.phase !== 'frozen')) {
+    return refusal(409, 'deletion request could not be prepared');
   }
+  // No renewal is charged from here on. The coordinator applies the hold again on its next pass,
+  // which also covers a failure here.
+  if (current?.operation_id === operationId) await holdBillingForDeletion(env, current);
   return new Response(null, {
     status: 303,
     headers: {
@@ -408,7 +421,7 @@ export async function handleDeletionCancel(req, env) {
   const guard = await deletionGuard(req, env);
   if (guard instanceof Response) return guard;
   const active = await getActiveDeletionForAccount(env.DB, guard.session.account_id);
-  if (!active || active.phase === 'purging') return refusal(409, 'deletion can no longer be cancelled');
+  if (!deletionIsCancellable(active, guard.nowMs)) return refusal(409, 'deletion can no longer be cancelled');
   const fresh = await requireFreshProof(env.DB, {
     accountId: guard.session.account_id,
     sessionIdHash: guard.session.id_hash,
@@ -431,6 +444,12 @@ export async function handleDeletionCancel(req, env) {
     nowMs: guard.nowMs,
   });
   if (!result.cancelled) return refusal(409, 'deletion can no longer be cancelled');
+  // Keeping the sign-in gives back what the hold stopped. The restore is marked owed first, so
+  // the coordinator finishes it if this request does not.
+  await markKeepRestoreOwed(env, active.operation_id, guard.nowMs);
+  const kept = await env.DB.prepare('SELECT * FROM account_deletions WHERE operation_id = ?')
+    .bind(active.operation_id).first();
+  if (kept) await restoreAfterKeep(env, kept, guard.nowMs);
   return new Response(null, { status: 303, headers: { Location: '/account/delete', 'Cache-Control': 'no-store' } });
 }
 
@@ -446,6 +465,9 @@ export async function handleDeletionStatus(req, env) {
     }
     const row = await getDeletionByStatusTokenHash(env.DB, tokenHash);
     if (!row) return signedInHtml(renderDeletionStatus({ state: 'expired link' }), { status: 410 });
+    if ((row.phase === 'requested' || row.phase === 'frozen') && Date.now() >= row.cancellation_deadline_at) {
+      return signedInHtml(renderDeletionStatus({ state: 'deletion in progress' }));
+    }
     if (row.phase === 'requested' || row.phase === 'frozen') {
       const guard = await requireSignedInSession(req, env);
       const nowMs = Date.now();
@@ -458,6 +480,7 @@ export async function handleDeletionStatus(req, env) {
         // Display only: point a receipt-only viewer at sign-in, which during a
         // cancellable hold lands on /account/delete (index.js, passkey.js).
         canSignInToCancel: !canCancel && deletionIsCancellable(row, nowMs),
+        deadline: formatDeadline(row.cancellation_deadline_at),
       }));
     }
     if (row.phase === 'cancelled') return signedInHtml(renderDeletionStatus({ state: 'deletion request canceled' }));
@@ -503,7 +526,7 @@ async function requestPurpose(req, env, accountId) {
   const form = await req.formData();
   const purpose = normalizePurpose(form.get('purpose'));
   if (purpose !== 'cancel') return 'delete';
-  return (await getActiveDeletionForAccount(env.DB, accountId)) ? 'cancel' : null;
+  return deletionIsCancellable(await getActiveDeletionForAccount(env.DB, accountId), Date.now()) ? 'cancel' : null;
 }
 
 function normalizePurpose(value) {

@@ -1823,7 +1823,7 @@ ${exportPasskeyScript()}`,
 
 export const DELETION_EXPORT_PROMPT_LINK = 'download what sol pbc holds before this completes';
 
-export function renderDeletionCancelPage({ menu, phase, exportEnabled = false }) {
+export function renderDeletionCancelPage({ menu, phase, exportEnabled = false, deadline = '' }) {
   if (phase === 'purging') {
     return layout({
       title: 'deletion in progress',
@@ -1847,7 +1847,7 @@ ${renderDeletionForm({
   hidden: { purpose: 'cancel' },
   intro: 'a fresh ownership proof is required before cancellation.',
   statusId: 'deletion-cancel-status',
-})}${exportLink}`,
+})}${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${exportLink}`,
   });
 }
 
@@ -1857,7 +1857,11 @@ export const DELETION_STATUS_SIGN_IN_LINK = 'sign in to cancel';
 // canSignInToCancel: the hold is still cancellable but this viewer holds only the
 // receipt (or a session that cannot cancel). A fresh sign-in during the hold lands
 // on /account/delete, where cancelling asks for its own fresh proof.
-export function renderDeletionStatus({ state = 'deletion status unavailable', canCancel = false, canSignInToCancel = false } = {}) {
+export function deletionDeadlineLine(deadline) {
+  return `the safety period ends ${deadline}. after that, this request can't be cancelled.`;
+}
+
+export function renderDeletionStatus({ state = 'deletion status unavailable', canCancel = false, canSignInToCancel = false, deadline = '' } = {}) {
   const action = canCancel
     ? '<p><a class="btn danger" href="/account/delete">cancel deletion request</a></p>'
     : canSignInToCancel
@@ -1865,7 +1869,7 @@ export function renderDeletionStatus({ state = 'deletion status unavailable', ca
       : '';
   return layout({
     title: 'deletion status',
-    body: `<div class="card">${brandbar()}<h1>deletion status</h1><p aria-live="polite">${esc(state)}</p>${action}</div>`,
+    body: `<div class="card">${brandbar()}<h1>deletion status</h1><p aria-live="polite">${esc(state)}</p>${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${action}</div>`,
     showFooter: false,
   });
 }
@@ -2658,4 +2662,12 @@ export function formatDate(tsMs) {
   const ts = Number(tsMs);
   if (!Number.isFinite(ts)) return '—';
   return new Date(ts).toISOString().slice(0, 10);
+}
+
+// A deadline an owner acts against, with its time and zone: 2026-10-04 16:52 UTC.
+export function formatDeadline(tsMs) {
+  const ts = Number(tsMs);
+  if (!Number.isFinite(ts)) return '';
+  const iso = new Date(ts).toISOString();
+  return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
 }

@@ -35,7 +35,7 @@ if you didn't request this, you can ignore this email.`;
   return { sent: true, messageId: response?.messageId };
 }
 
-export async function sendDeletionProofEmail({ env, address, code, purpose }) {
+export async function sendDeletionProofEmail({ env, address, code, purpose, deadline = '' }) {
   const formatted = `${code.slice(0, 3)} ${code.slice(3)}`;
   if (purpose === 'export') {
     const subject = `confirm your download from solstone services: ${formatted}`;
@@ -97,7 +97,7 @@ if you did not request this, you can ignore this email.`;
   }
   const action = purpose === 'cancel' ? 'cancel your deletion request' : 'delete your sign-in and services';
   const notice = purpose === 'cancel'
-    ? 'this cancels your deletion request.'
+    ? `this cancels your deletion request.${deadline ? ` the safety period ends ${deadline}. after that, it can't be cancelled.` : ''}`
     : 'this starts a deletion request. you have 72 hours to cancel before deletion begins.';
   const subject = `confirm ${action}: ${formatted}`;
   const text = `you requested to ${action}.

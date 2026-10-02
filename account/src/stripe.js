@@ -177,6 +177,51 @@ export async function cancelSubscriptionNow(env, subscriptionId) {
   });
 }
 
+// Every subscription on a customer, whatever its status. Used only by the sign-in deletion
+// hold, which pauses and later resumes collection on each one.
+export async function listCustomerSubscriptions(env, stripeCustomerId) {
+  const query = new URLSearchParams({ customer: stripeCustomerId, status: 'all', limit: '100' });
+  const list = await stripeRequest(env, `/subscriptions?${query}`, { method: 'GET' });
+  return Array.isArray(list?.data) ? list.data : [];
+}
+
+// Pauses collection so that any invoice Stripe creates while paused, a renewal included, is
+// voided rather than charged. The subscription itself stays as it is.
+export async function pauseSubscriptionCollection(env, subscriptionId) {
+  const body = new URLSearchParams();
+  body.set('pause_collection[behavior]', 'void');
+  return stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: 'POST', body });
+}
+
+// The renewal invoices Stripe voided on one subscription since a moment, newest first. A
+// paused subscription's renewal lands here instead of being charged.
+// The time is compared here rather than sent as a created filter, which Stripe applies to
+// wall-clock creation and so misses a renewal raised under a test clock.
+export async function listVoidedRenewals(env, subscriptionId, sinceMs) {
+  const query = new URLSearchParams({ subscription: subscriptionId, status: 'void', limit: '100' });
+  const list = await stripeRequest(env, `/invoices?${query}`, { method: 'GET' });
+  return (Array.isArray(list?.data) ? list.data : []).filter((invoice) => (
+    invoice.billing_reason === 'subscription_cycle' && Number(invoice.created) * 1000 >= Number(sinceMs)
+  ));
+}
+
+// Resumes collection. restartAfter names a voided renewal: the subscription is then charged a
+// full period now and its period starts now. The idempotency key names that renewal, so a
+// repeat of the same restart charges nothing more.
+export async function resumeSubscriptionCollection(env, subscription, { restartAfter = '' } = {}) {
+  const body = new URLSearchParams();
+  body.set('pause_collection', '');
+  if (restartAfter) {
+    body.set('billing_cycle_anchor', 'now');
+    body.set('proration_behavior', 'none');
+  }
+  return stripeRequest(env, `/subscriptions/${encodeURIComponent(subscription.id)}`, {
+    method: 'POST',
+    body,
+    idempotencyKey: restartAfter ? `deletion-keep-restart-${subscription.id}-${restartAfter}` : '',
+  });
+}
+
 export function subscriptionPeriodEnd(sub) {
   return sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end ?? null;
 }

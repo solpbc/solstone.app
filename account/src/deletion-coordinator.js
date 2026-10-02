@@ -1,6 +1,7 @@
 import { decryptEmail, generateSessionToken, hashKey, hashWithPepper } from './crypto.js';
 import { captureDeletionSnapshotForAccount } from './deletion.js';
 import { advanceDeletionServiceOperation, remintExpiredDeletionServiceOperation } from './deletion-contract.js';
+import { holdBillingForDeletion, runOwedKeepRestores } from './deletion-hold.js';
 import { DELETION_SERVICES } from './deletion-services.js';
 import { mintScopedCredential } from './r2-credential.js';
 import { listMultipartUploads, listObjectsV2 } from './s3.js';
@@ -16,6 +17,7 @@ const SERVICE_RECONCILIATION_PENDING = 'service_reconciliation_pending';
 
 export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
   await env.DB.prepare('DELETE FROM account_deletion_completions WHERE expires_at <= ?').bind(nowMs).run();
+  await runOwedKeepRestores(env, nowMs);
   const leaseToken = generateSessionToken();
   const claim = await claimDueDeletion(env.DB, leaseToken, nowMs);
   if (!claim) return { claimed: false };
@@ -26,8 +28,13 @@ export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
   }
   if (claim.phase === 'frozen') {
     if (nowMs < claim.cancellation_deadline_at) {
-      await reschedule(env.DB, claim.operation_id, leaseToken, claim.cancellation_deadline_at, nowMs);
-      return { claimed: true, phase: 'frozen' };
+      // A hold that did not finish at confirm is retried until it does, or the deadline comes.
+      const held = await holdBillingForDeletion(env, claim);
+      const nextAttemptAt = held
+        ? claim.cancellation_deadline_at
+        : Math.min(claim.cancellation_deadline_at, nowMs + retryBackoff(claim.attempt_count));
+      await reschedule(env.DB, claim.operation_id, leaseToken, nextAttemptAt, nowMs, !held);
+      return { claimed: true, phase: 'frozen', held };
     }
     await env.DB.prepare(
       "UPDATE account_deletions SET phase = 'purging', next_attempt_at = ? WHERE operation_id = ? AND lease_token = ? AND phase = 'frozen'"

@@ -27,6 +27,7 @@ describe('static source checks', () => {
       'db.js',
       'deletion-contract.js',
       'deletion-coordinator.js',
+      'deletion-hold.js',
       'deletion-origin.js',
       'deletion-readiness.js',
       'deletion-services.js',

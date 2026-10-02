@@ -189,7 +189,7 @@ describe('deletion status', () => {
     expect(body).not.toContain(SIGN_IN_LINK);
   });
 
-  it('does not offer sign-in once the safety period has ended', async () => {
+  it('reads in progress, and offers no way back, once the safety period has ended', async () => {
     const env = makeTestEnv();
     const owner = await seedAccount({ testEnv: env });
     const session = await seedSession(owner.accountId, { testEnv: env });
@@ -197,7 +197,8 @@ describe('deletion status', () => {
 
     for (const cookie of ['', session.cookie]) {
       const body = await (await statusRequest(env, cookie)).text();
-      expect(body).toContain('waiting for the safety period');
+      expect(body).toContain('deletion in progress');
+      expect(body).not.toContain('waiting for the safety period');
       expect(body).not.toContain(SIGN_IN_LINK);
       expect(body).not.toContain('cancel deletion request');
     }
