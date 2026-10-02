@@ -1707,8 +1707,8 @@ ${extra}
 
 // What stops at confirm (deletion-hold.js), with the two tails nothing can cut at once: a
 // backup credential already issued for a running backup or restore, and a solstone.me token
-// already issued (it lasts up to 600 s). Operator approval, 2026-10-02.
-export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup or restore already running can finish, and your solstone.me address can keep working for up to 10 more minutes.';
+// already issued (it lasts up to 600 s). Operator approval of the tails, 2026-10-02.
+export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup or restore already running can finish, and a solstone.me address can keep working for up to 10 more minutes.';
 
 export function renderDeletionPage({ menu, error = '', status = '' }) {
   return layout({
@@ -1852,13 +1852,13 @@ ${renderDeletionForm({
   submitLabel: 'send a code',
   hidden: { purpose: 'cancel' },
   intro: "to keep your sign-in, confirm it's you with a fresh code, and your passkey if you set one up.",
-  extra: '<p class="notice">if a subscription was due to renew while your sign-in was closing, keeping it charges that renewal now, and its new period starts today.</p>',
+  extra: '<p class="notice">if a subscription was due to renew while your sign-in was closing, keeping your sign-in charges that renewal now, and its new period starts today.</p>',
   statusId: 'deletion-cancel-status',
 })}${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${exportLink}`,
   });
 }
 
-export const DELETION_STATUS_SIGN_IN_LINE = 'to change your mind, sign in again, then confirm with a fresh code, and your passkey if you set one up.';
+export const DELETION_STATUS_SIGN_IN_LINE = 'to keep it, sign in again, then confirm with a fresh code, and your passkey if you set one up.';
 export const DELETION_STATUS_SIGN_IN_LINK = 'sign in to keep it';
 export const DELETION_PAST_DEADLINE_LINE = "the 72 hours are up, so this can't be stopped now. sol pbc is deleting what it held for your sign-in.";
 
