@@ -46,7 +46,12 @@ export async function advanceDeletionServiceOperation(env, { deletion, service, 
     if (!op) return 'retryable';
   }
 
-  if (op.envelope_expires_at == null || Number(op.envelope_expires_at) <= nowMs) return 'retryable';
+  // An envelope that expired before its target confirmed can never confirm, so
+  // it is replaced with a fresh one rather than retried until the purge stalls.
+  if (op.envelope_expires_at == null || Number(op.envelope_expires_at) <= nowMs) {
+    op = await createOperation(env, deletion, service, snapshot, nowMs);
+    if (!op) return 'retryable';
+  }
 
   let envelope;
   try {

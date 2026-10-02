@@ -219,6 +219,24 @@ describe('deletion purge contract v1', () => {
     await expect(operationCount('relay')).resolves.toBe(1);
   });
 
+  it('replaces a pending operation whose envelope expired before its target confirmed', async () => {
+    const transcript = fixture.wire_transcripts[3];
+    const service = liveContractService('relay');
+    const env = serviceEnv('relay', service.binding);
+    await seedTranscriptOperation(env, transcript);
+    const nowMs = transcript.request.expires_at + 1;
+
+    await expect(advanceDeletionServiceOperation(env, {
+      deletion: await deletionRow(), service: 'relay', nowMs,
+    })).resolves.toBe('confirmed');
+    const envelope = service.calls.find((call) => call.path === fixture.routes.purge).body.envelope;
+    expect(envelope.operation_id).not.toBe(transcript.request.operation_id);
+    expect(envelope.issued_at).toBe(nowMs);
+    expect(envelope.expires_at).toBe(nowMs + REQUEST_MAX_LIFETIME_MS);
+    await expect(operationCount('relay')).resolves.toBe(2);
+    await expect(operation('relay')).resolves.toMatchObject({ state: 'confirmed' });
+  });
+
   it('mints exact maximum request and attestation lifetimes', async () => {
     const transcript = fixture.wire_transcripts[3];
     const service = liveContractService('relay');
