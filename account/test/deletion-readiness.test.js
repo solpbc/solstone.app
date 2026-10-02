@@ -757,7 +757,7 @@ describe('deletion readiness protocol and shared registry', () => {
       expect(res.headers.get('Cache-Control')).toBe('no-store');
 
       const body = await res.text();
-      expect(body).toContain("deletion request can't be confirmed");
+      expect(body).toContain("your request can't be confirmed right now");
       expect(body).toContain('please try again later.');
       // Exactly one recovery action link to /account/delete
       const matches = body.match(/href="\/account\/delete"/g) || [];
@@ -801,7 +801,7 @@ describe('deletion readiness protocol and shared registry', () => {
         const res = await worker.fetch(req, env);
         expect(res.status).toBe(200);
         const text = await res.text();
-        expect(text).toContain(`${service} cleanup delayed`);
+        expect(text).toContain('this is taking longer than usual.');
 
         // Clean up ops for next iteration
         await workerEnv.DB.prepare('DELETE FROM account_deletion_service_ops WHERE operation_id = ?').bind(opId).run();

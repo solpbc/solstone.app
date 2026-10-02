@@ -6,7 +6,7 @@ const menu = { email: null, lastSignInAt: null, now: Date.now(), decryptOk: fals
 describe('deletion form accessibility', () => {
   it('uses the shared request form structure', () => {
     const body = renderDeletionPage({ menu });
-    expect(body).toContain('<h1>delete sign-in and your services</h1>');
+    expect(body).toContain('<h1>close your sign-in and services</h1>');
     expect(body).toContain('aria-live="polite"');
     expect(body).toContain('action="/account/delete/proof/otp"');
   });
@@ -25,7 +25,7 @@ describe('deletion form accessibility', () => {
 
   it('uses the same live-region form template for cancellation', () => {
     const body = renderDeletionCancelPage({ menu, phase: 'frozen' });
-    expect(body).toContain('<h1>cancel deletion request</h1>');
+    expect(body).toContain('<h1>keep your sign-in</h1>');
     expect(body).toContain('aria-live="polite"');
     expect(body).toContain('action="/account/delete/proof/otp"');
   });

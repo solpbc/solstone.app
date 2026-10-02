@@ -233,18 +233,18 @@ describe('owner export foundation', () => {
     await expect(consumed('revoked-session-proof')).resolves.toBe(1);
   });
 
-  it('gives export its own email contract without changing delete or cancel copy', async () => {
+  it('gives export its own email contract beside the close and keep emails', async () => {
     const env = makeTestEnv();
     for (const purpose of ['delete', 'cancel', 'export']) {
       await sendDeletionProofEmail({ env, address: 'owner@example.com', code: '123456', purpose });
     }
     expect(env.EMAIL.sent.map(({ subject }) => subject)).toEqual([
-      "confirm delete your sign-in and services: 123 456",
-      'confirm cancel your deletion request: 123 456',
+      'confirm closing your sign-in: 123 456',
+      'confirm keeping your sign-in: 123 456',
       'confirm your download from solstone services: 123 456',
     ]);
-    expect(env.EMAIL.sent[0].text).toContain('this starts a deletion request. you have 72 hours to cancel before deletion begins.');
-    expect(env.EMAIL.sent[1].text).toContain('use this code to cancel your deletion request.');
+    expect(env.EMAIL.sent[0].text).toContain('you asked to close your sign-in at services.solstone.app.');
+    expect(env.EMAIL.sent[1].text).toContain('you asked to keep your sign-in at services.solstone.app.');
     expect(env.EMAIL.sent[2].text).toBe(`you requested a copy of the data held with your solstone services sign-in.
 
 enter this code to continue:

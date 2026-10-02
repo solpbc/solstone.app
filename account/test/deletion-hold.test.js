@@ -181,8 +181,8 @@ describe('the sign-in deletion hold', () => {
     await verifiedProof(account.accountId, session, 'cancel');
 
     const page = await (await worker.fetch(get('/account/delete', session), testEnv)).text();
-    expect(page).toContain('<h1>deletion in progress</h1>');
-    expect(page).not.toContain('send a cancellation code');
+    expect(page).toContain('<h1>closing your sign-in</h1>');
+    expect(page).not.toContain('send a code');
 
     const keep = await worker.fetch(post('/account/delete/cancel', session), testEnv);
     expect(keep.status).toBe(409);
@@ -195,7 +195,7 @@ describe('the sign-in deletion hold', () => {
     const session = await seedSession(account.accountId, { testEnv });
     const deadline = Date.UTC(2099, 9, 4, 16, 52, 50);
     await frozenDeletion(account.accountId, { requestedAt: Date.now(), deadline, statusTokenHash: null });
-    const line = 'the safety period ends 2099-10-04 16:52 UTC.';
+    const line = 'your sign-in closes at 2099-10-04 16:52 UTC';
 
     expect(await (await worker.fetch(get('/account/delete', session), testEnv)).text()).toContain(line);
 
