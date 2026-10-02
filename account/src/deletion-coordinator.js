@@ -1,7 +1,7 @@
 import { decryptEmail, generateSessionToken, hashKey, hashWithPepper } from './crypto.js';
 import { captureDeletionSnapshotForAccount } from './deletion.js';
 import { advanceDeletionServiceOperation, remintExpiredDeletionServiceOperation } from './deletion-contract.js';
-import { holdBillingForDeletion, runOwedKeepRestores } from './deletion-hold.js';
+import { applyDeletionHold, runOwedKeepRestores } from './deletion-hold.js';
 import { DELETION_SERVICES } from './deletion-services.js';
 import { mintScopedCredential } from './r2-credential.js';
 import { listMultipartUploads, listObjectsV2 } from './s3.js';
@@ -29,7 +29,7 @@ export async function runAccountDeletionCoordinator(env, nowMs = Date.now()) {
   if (claim.phase === 'frozen') {
     if (nowMs < claim.cancellation_deadline_at) {
       // A hold that did not finish at confirm is retried until it does, or the deadline comes.
-      const held = await holdBillingForDeletion(env, claim);
+      const held = await applyDeletionHold(env, claim);
       const nextAttemptAt = held
         ? claim.cancellation_deadline_at
         : Math.min(claim.cancellation_deadline_at, nowMs + retryBackoff(claim.attempt_count));

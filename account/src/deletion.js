@@ -50,7 +50,7 @@ import {
   renderDeletionStatus,
   renderDeletionUnavailablePage,
 } from './html.js';
-import { holdBillingForDeletion, markKeepRestoreOwed, restoreAfterKeep } from './deletion-hold.js';
+import { applyDeletionHold, markKeepRestoreOwed, restoreAfterKeep } from './deletion-hold.js';
 import { checkDeletionReadiness } from './deletion-readiness.js';
 import { DELETION_SERVICES } from './deletion-services.js';
 import { originAllowed } from './index.js';
@@ -404,9 +404,9 @@ export async function handleDeletionConfirm(req, env) {
   if (!captured && (!current || current.operation_id !== operationId || current.phase !== 'frozen')) {
     return refusal(409, 'deletion request could not be prepared');
   }
-  // No renewal is charged from here on. The coordinator applies the hold again on its next pass,
-  // which also covers a failure here.
-  if (current?.operation_id === operationId) await holdBillingForDeletion(env, current);
+  // Every service stops here and no renewal is charged. The coordinator applies the hold again
+  // on its next pass, which also covers a failure here.
+  if (current?.operation_id === operationId) await applyDeletionHold(env, current);
   return new Response(null, {
     status: 303,
     headers: {

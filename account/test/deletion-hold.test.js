@@ -46,6 +46,21 @@ describe('the sign-in deletion hold', () => {
     await expect(deletionRow()).resolves.toMatchObject({ phase: 'frozen' });
   });
 
+  it('ends the private-network grant at confirm', async () => {
+    const pushes = [];
+    const testEnv = makeTestEnv({ RELAY: grantRecorder(pushes, { readiness: true }) });
+    const { accountId, session } = await ownerWithCustomer(testEnv);
+    await seedSplBinding({ accountId, instanceId: INSTANCE });
+    await seedEntitlement({ accountId, currentPeriodEnd: 1_900_000_000, sourceRef: 'sub_live' });
+    installStripeFetchMock({
+      'GET api.stripe.com/v1/subscriptions': async () => stripeJson({ data: [] }),
+    });
+    await verifiedProof(accountId, session, 'delete');
+
+    expect((await worker.fetch(post('/account/delete/confirm', session), testEnv)).status).toBe(303);
+    expect(pushes).toEqual([{ instance_id: INSTANCE, entitled_until: 0 }]);
+  });
+
   it('retries a hold that failed at confirm before the deadline', async () => {
     const testEnv = makeTestEnv();
     const { accountId } = await ownerWithCustomer(testEnv);
@@ -240,10 +255,12 @@ function subscription(id, { status = 'active', paused = false, periodStart = 1_7
   };
 }
 
-function grantRecorder(pushes) {
+function grantRecorder(pushes, { readiness = false } = {}) {
+  const purge = readiness ? makeTestEnv().RELAY : null;
   return {
     async fetch(input, init = {}) {
       const url = new URL(typeof input === 'string' ? input : input.url);
+      if (purge && url.pathname === '/internal/deletion/purge/ready') return purge.fetch(input, init);
       if (url.pathname !== '/admin/entitlement') return new Response(null, { status: 404 });
       pushes.push(JSON.parse(init.body));
       return Response.json({ ok: true });

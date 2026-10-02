@@ -122,6 +122,8 @@ export async function pushEntitlementGrant(env, { instanceId, entitledUntil }) {
   }
 }
 
+// Pushes every binding's grant; true only when the relay accepted them all. While a deletion
+// is active the grant is 0, which also closes what the relay already has open.
 export async function syncAccountEntitlementToRelay(env, accountId) {
   const nowSeconds = Math.floor(Date.now() / 1000);
   const [entitlement, deletion] = await Promise.all([
@@ -129,9 +131,10 @@ export async function syncAccountEntitlementToRelay(env, accountId) {
     getActiveDeletionForAccount(env.DB, accountId),
   ]);
   const bindings = await listSplBindings(env.DB, accountId);
-  if (!bindings.length) return;
   const entitledUntil = deletion ? 0 : entitledUntilFor(entitlement, nowSeconds, env);
+  let accepted = true;
   for (const binding of bindings) {
-    await pushEntitlementGrant(env, { instanceId: binding.instance_id, entitledUntil });
+    if (!await pushEntitlementGrant(env, { instanceId: binding.instance_id, entitledUntil })) accepted = false;
   }
+  return accepted;
 }
