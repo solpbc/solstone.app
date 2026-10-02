@@ -8,6 +8,7 @@ import {
   topbar,
 } from './html.js';
 import { SUPPORT_FORMS_JS } from './inline/support-forms.js';
+import { SUPPORT_DRAFT_JS } from './inline/support-draft.js';
 
 const SUPPORT_STATUS_LABELS = {
   open: 'open',
@@ -23,7 +24,7 @@ export function renderSupportList({ sections, nowMs = Date.now(), csrf = '' }) {
 <h1>your support</h1>
 ${renderActiveSection(sections.active, nowMs)}
 ${renderClosedSection(sections.closed)}
-${renderCreateSection(sections.create, csrf)}`);
+${renderCreateSection(sections.create, csrf)}`, Boolean(sections.create.createConfirmation || sections.create.attachmentRetry), sections.create.state !== 'hidden');
 }
 
 export function renderSupportDetail({ request, messages = [], attachments = [], csrf = '', nowMs = Date.now(), notices = [], forms = {}, outcome = null }) {
@@ -46,7 +47,7 @@ ${request.closeScheduledAtMs != null ? `<p class="notice">details are scheduled 
 ${actions}`);
 }
 
-export function renderSupportTombstone({ tombstone } = {}) {
+export function renderSupportTombstone({ tombstone, clearDraft = false } = {}) {
   return supportLayout('closed request', `${supportTopbar()}
 <a class="back" href="/support">${BACK_SVG} your support</a>
 <h1>closed request</h1>
@@ -54,7 +55,7 @@ export function renderSupportTombstone({ tombstone } = {}) {
 <p>created ${esc(formatDate(tombstone.createdAtMs))}</p>
 <p>closed ${esc(formatDate(tombstone.closedAtMs))}</p>
 <p>status: closed</p>
-<p>details removed to protect your privacy.</p>`);
+<p>details removed to protect your privacy.</p>`, clearDraft);
 }
 
 export function renderSupportRemoving({
@@ -143,13 +144,17 @@ function renderCreateSection(section, csrf) {
   if (section.state === 'hidden') return '';
   if (section.attachmentRetry) return renderAttachmentRetry(section.attachmentRetry, csrf);
   const values = section.values || {};
-  if (section.outcome?.requiresReview) return `${renderOutcome(section.outcome)}<p><a class="btn secondary" href="/support">review request again</a></p>`;
+  if (section.outcome?.requiresReview && !section.restartKeys) return `${renderOutcome(section.outcome)}<p><a class="btn secondary" href="/support">review request again</a></p>`;
   return `${section.message ? `<p class="notice">${esc(section.message)}</p>` : ''}${renderOutcome(section.outcome)}
 ${section.createConfirmation ? `<p class="notice">got it, this is request #${esc(section.createConfirmation.id)}. you can follow it right here.</p><p><a href="/support/${escAttr(section.createConfirmation.id)}">view request</a></p>` : ''}
 <div class="card"><h2>open a request</h2><p>tell us what's going on. you can attach screenshots or logs here. it's easier than email.</p>
 <p class="notice">screenshots and logs are used only to triage your request. once we've reviewed them, the files are deleted and can't be recovered. after you submit, they're not viewable or downloadable here. until the request closes, we keep only a short triage summary, never the files; closing removes that summary with the rest of the request details.</p>
-${supportForm({ action: '/support', csrf, operationKey: section.operationKey, attachmentOperationKey: section.attachmentOperationKey, enctype: true, body: `${textInput('support-subject', 'subject', "what's going on?", values.subject || '')}
+${supportForm({ action: '/support', csrf, operationKey: section.operationKey, attachmentOperationKey: section.attachmentOperationKey, returned: section.returned, enctype: true, body: `${textInput('support-subject', 'subject', "what's going on?", values.subject || '')}
 ${textArea('support-description', 'description', 'the details', values.description || '')}
+<label for="support-about">your versions</label><p id="support-about-note">optional. open about, choose copy, and paste it here.</p>
+<textarea id="support-about" name="about" aria-describedby="support-about-note">
+${esc(values.about || '')}</textarea>
+${section.restartKeys ? `<button class="btn secondary" type="button" data-support-restart data-operation-key="${escAttr(section.restartKeys.operationKey)}" data-attachment-key="${escAttr(section.restartKeys.attachmentOperationKey)}">start a new request</button>` : ''}
 <label for="support-product">which product?</label><select id="support-product" name="product" required>
 <option value="solstone"${values.product === 'solstone' ? ' selected' : ''}>solstone</option><option value="vit"${values.product === 'vit' ? ' selected' : ''}>vit</option><option value="general"${values.product === 'general' ? ' selected' : ''}>something else</option></select>${fileField('support-file')}`, button: 'open a request' })}</div>`;
 }
@@ -159,9 +164,9 @@ function renderAttachmentRetry({ id, operationKey, message = '' }, csrf) {
 ${supportForm({ action: `/support/${id}/attachments`, csrf, operationKey, enctype: true, body: fileField('retry-file'), button: 'send attachments again' })}</div>`;
 }
 
-function supportForm({ action, csrf, operationKey, attachmentOperationKey = null, body, button, enctype = false }) {
+function supportForm({ action, csrf, operationKey, attachmentOperationKey = null, body, button, enctype = false, returned = false }) {
   const encoding = enctype ? ' enctype="multipart/form-data"' : '';
-  return `<form method="post" action="${escAttr(action)}" data-support-form${encoding}>
+  return `<form method="post" action="${escAttr(action)}" data-support-form${returned ? ' data-support-returned' : ''}${encoding}>
 ${hidden('csrf', csrf)}${hidden('operation_key', operationKey)}${attachmentOperationKey ? hidden('attachment_operation_key', attachmentOperationKey) : ''}
 ${body}<p data-support-progress role="status" aria-live="polite" hidden></p><button class="btn primary" type="submit">${esc(button)}</button></form>`;
 }
@@ -216,6 +221,7 @@ function supportTopbar() {
   return topbar();
 }
 
-function supportLayout(title, body) {
-  return layout({ title, body, afterMain: `<script>${SUPPORT_FORMS_JS}</script>` });
+function supportLayout(title, body, clearDraft = false, withDraft = false) {
+  const draftScript = withDraft ? SUPPORT_DRAFT_JS : clearDraft ? "try { sessionStorage.removeItem('solstone-support-draft-v1'); } catch (_) {}" : '';
+  return layout({ title, body, afterMain: `${clearDraft && withDraft ? '<div data-support-created hidden></div>' : ''}${draftScript ? `<script>${draftScript}</script>` : ''}<script>${SUPPORT_FORMS_JS}</script>` });
 }

@@ -212,7 +212,7 @@ describe('support copy and leak checks', () => {
     expect(active).toContain('required maxlength="5000"');
     expect(active).toContain('data-support-progress role="status" aria-live="polite"');
     expect(active).toContain('data-support-form');
-    expect(active).toContain('disabled=!0');
+    expect(active).toContain('button.disabled = true');
     expect(active).toContain('pageshow');
     expect(closed).not.toMatch(/<form[^>]+action="\/support/);
   });

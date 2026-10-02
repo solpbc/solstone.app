@@ -3,6 +3,7 @@
 import { PORTAL_CSS_HREF, SUNARC_JS_SRC } from './assets.js';
 import { ENROLL_JS } from './inline/passkey-enroll.js';
 import { LANDING_JS } from './inline/passkey-landing.js';
+import { SUPPORT_DRAFT_JS } from './inline/support-draft.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
 import { formatLongDate, formatMomentUtc } from './withdrawal-rules.js';
 
@@ -159,7 +160,7 @@ export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "si
 <p class="disclosure">no analytics, no tracking, no third parties. this is the only solstone surface that ever knows it's you, and only after you sign in.</p>
 <p class="disclosure">by signing in, you agree to the <a href="/terms">terms</a>.</p>`,
     afterMain: `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<script>${LANDING_JS}</script>`,
+<script>${SUPPORT_DRAFT_JS}</script><script>${LANDING_JS}</script>`,
   });
 }
 

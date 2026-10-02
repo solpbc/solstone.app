@@ -12,6 +12,7 @@ import {
 import { forbidden, html, supportOriginAllowed } from './index.js';
 import { getValidSession } from './session.js';
 import { SUPPORT_ID_REGEX } from './support-constants.js';
+import { parseAbout } from './support-about.js';
 import { acknowledgeSupport, callSupport, decodeCursor, mergeTickets } from './support-wire.js';
 
 const SUPPORT_LOAD_FAILURE = "we couldn't load your support right now. try again soon.";
@@ -55,6 +56,10 @@ export async function handleSupportCreate(req, env) {
   if (!form) return renderCreateState(env, guard, { outcome: errorOutcome('we could not read that form. review it and try again.') });
   const values = createValues(form);
   const keys = submittedKeys(form);
+  const aboutFields = form.getAll('about');
+  const about = parseAbout(aboutFields.length === 0 ? undefined : aboutFields.length === 1 ? aboutFields[0] : null);
+  if (!about.ok) return renderCreateState(env, guard, { values, keys, outcome: errorOutcome(about.message) });
+  if (about.value) values.about = about.value;
   if (!validCreate(values) || !keys) return renderCreateState(env, guard, { values, outcome: errorOutcome('review the request before sending it.') });
   const usable = await usableVerifiedEmails(env, guard.session.account_id);
   if (!usable.emails.length) return renderCreateState(env, guard, { values, keys, message: SUPPORT_EMAIL_LIMITATION });
@@ -67,18 +72,21 @@ export async function handleSupportCreate(req, env) {
     verifiedEmail: email,
     json: values,
   });
-  if (parent.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: parent.data }));
+  if (parent.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: parent.data, clearDraft: true }));
   if (parent.classification === 'invalidState') return renderSupportListForSession(env, guard.session, guard.nowMs);
   if (parent.classification !== 'success') {
+    if (parent.classification === 'idempotencyConflict') {
+      return renderCreateState(env, guard, { values, keys, restartKeys: { operationKey: mintKey(), attachmentOperationKey: mintKey() }, outcome: outcomeFor(parent) });
+    }
     return renderCreateState(env, guard, { values, keys: preserveKey(parent) ? keys : null, outcome: outcomeFor(parent, 'the request could not be confirmed. the files were not sent.') });
   }
   const files = selectedFiles(form);
   if (!files.length) return renderCreateState(env, guard, { createConfirmation: { id: parent.data.id } });
   const attachment = await sendAttachmentBatch(env, guard.session.account_id, parent.data.id, keys.attachmentOperationKey, files);
   if (attachment.classification === 'success') return renderCreateState(env, guard, { createConfirmation: { id: parent.data.id } });
-  if (attachment.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: attachment.data }));
+  if (attachment.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: attachment.data, clearDraft: true }));
   if (attachment.classification === 'idempotencyConflict') {
-    return renderCreateState(env, guard, { outcome: reviewOutcome(attachmentRetryMessage(attachment)) });
+    return renderCreateState(env, guard, { createConfirmation: { id: parent.data.id }, outcome: reviewOutcome(attachmentRetryMessage(attachment)) });
   }
   return renderCreateState(env, guard, { attachmentRetry: { id: parent.data.id, operationKey: keys.attachmentOperationKey, message: attachmentRetryMessage(attachment) } });
 }
@@ -384,8 +392,8 @@ function createSection(message = '') {
   return { state: 'ready', message, operationKey: mintKey(), attachmentOperationKey: mintKey() };
 }
 
-async function renderCreateState(env, guard, { values = {}, keys = null, message = '', outcome = null, createConfirmation = null, attachmentRetry = null } = {}) {
-  const create = { ...createSection(message), values, outcome, createConfirmation, attachmentRetry };
+async function renderCreateState(env, guard, { values = {}, keys = null, restartKeys = null, message = '', outcome = null, createConfirmation = null, attachmentRetry = null } = {}) {
+  const create = { ...createSection(message), values, outcome, createConfirmation, attachmentRetry, restartKeys, returned: true };
   if (keys) Object.assign(create, keys);
   return supportHtml(renderSupportList({ csrf: await csrfToken(env), nowMs: guard.nowMs, sections: {
     active: hiddenSection(), closed: hiddenSection(), create,
@@ -400,7 +408,8 @@ function submittedKeys(form) {
 }
 
 function createValues(form) {
-  return { product: String(form.get('product') || ''), subject: String(form.get('subject') || '').trim(), description: String(form.get('description') || '').trim() };
+  const about = parseAbout(form.getAll('about').length === 1 ? form.get('about') : undefined);
+  return { product: String(form.get('product') || ''), subject: String(form.get('subject') || '').trim(), description: String(form.get('description') || '').trim(), ...(about.value ? { about: about.value } : {}) };
 }
 
 function validCreate(values) {

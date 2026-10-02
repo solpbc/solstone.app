@@ -80,9 +80,15 @@ describe('support mutations', () => {
 
       expect(support.requests).toHaveLength(1);
       expect(body).toContain(message);
-      expect(body).toContain('review request again');
-      expect(body).not.toContain(PARENT_KEY);
-      expect(body).not.toContain(BATCH_KEY);
+      if (message === 'does not match the earlier action') {
+        expect(body).toContain('data-support-restart');
+        expect(body).toContain(PARENT_KEY);
+        expect(body).toContain(BATCH_KEY);
+      } else {
+        expect(body).toContain('review request again');
+        expect(body).not.toContain(PARENT_KEY);
+        expect(body).not.toContain(BATCH_KEY);
+      }
       expect(body).not.toContain('closed request');
     }
   });

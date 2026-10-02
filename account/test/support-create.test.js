@@ -16,6 +16,47 @@ describe('support create', () => {
     vi.restoreAllMocks();
   });
 
+  it('forwards exact LF About separately and keeps it on an ambiguous retry', async () => {
+    const block = '\njournal 1.2.3 · ubuntu 24.04 · x86_64\n ';
+    const support = makeSupportWorker({ 'POST /api/services/tickets': () => json({error: 'unavailable'}, 503) });
+    const testEnv = makeTestEnv({ SUPPORT_WORKER: support });
+    const {session} = await signedInAccount(testEnv);
+    const body = await (await worker.fetch(createRequest(session.cookie, {about: block.replaceAll('\n', '\r\n')}), testEnv)).text();
+    expect(support.requests[0].body).toEqual({product: 'solstone', subject: 'help me', description: 'details here', about: block});
+    expect(body).toContain('name="about" aria-describedby="support-about-note">\n' + block + '</textarea>');
+    expect(body).toContain('name="operation_key" value="' + 'a'.repeat(43) + '"');
+    expect(body).toContain('data-support-returned');
+    expect(body).not.toContain('data-support-created hidden');
+  });
+
+  it('rejects non-text, repeated and oversized About before calling support', async () => {
+    const support = makeSupportWorker({});
+    const testEnv = makeTestEnv({SUPPORT_WORKER: support});
+    const {session} = await signedInAccount(testEnv);
+    for (const about of [new File(['text'], 'about.txt'), ['one', 'two'], 'é'.repeat(4096) + 'x']) {
+      const response = await worker.fetch(createRequest(session.cookie, {about}), testEnv);
+      const body = await response.text();
+      expect(body).toContain('your versions');
+      expect(body).toContain('name="operation_key" value="' + 'a'.repeat(43) + '"');
+    }
+    expect(support.requests).toHaveLength(0);
+  });
+
+  it('conflicting About keeps edited text and old keys until the owner explicitly starts a new request', async () => {
+    const support = makeSupportWorker({ 'POST /api/services/tickets': () => json({error: 'idempotency_conflict'}, 409) });
+    const testEnv = makeTestEnv({SUPPORT_WORKER: support});
+    const {session} = await signedInAccount(testEnv);
+    const block = '\nwindows app 1.2.3 · windows 11 26100 · arm64\n ';
+    const body = await (await worker.fetch(createRequest(session.cookie, {about: block}), testEnv)).text();
+    expect(body).toContain('name="about" aria-describedby="support-about-note">\n' + block + '</textarea>');
+    expect(body).toContain('name="operation_key" value="' + 'a'.repeat(43) + '"');
+    expect(body).toContain('type="button" data-support-restart');
+    const fresh = body.match(/data-operation-key="([A-Za-z0-9_-]{43})"/)?.[1];
+    expect(fresh).toBeTruthy();
+    expect(fresh).not.toBe('a'.repeat(43));
+    expect(support.requests).toHaveLength(1);
+  });
+
   it('opens a request with the primary verified email and omits category', async () => {
     const support = makeSupportWorker(withAck({
       'POST /api/services/tickets': () => mutationJson(created('REQ_NEW')),
@@ -163,6 +204,7 @@ function createRequest(cookie, {
   csrf = TEST_CSRF,
   file = null,
   email = '',
+  about = undefined,
 } = {}) {
   const body = new FormData();
   body.set('csrf', csrf);
@@ -173,6 +215,7 @@ function createRequest(cookie, {
   body.set('attachment_operation_key', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
   if (email) body.set('email', email);
   if (file) body.append('file', file);
+  if (about !== undefined) for (const value of Array.isArray(about) ? about : [about]) body.append('about', value);
   return new Request('https://services.solstone.app/support', {
     method: 'POST',
     headers: {
