@@ -244,7 +244,7 @@ describe('owner export foundation', () => {
       'confirm your download from solstone services: 123 456',
     ]);
     expect(env.EMAIL.sent[0].text).toContain('this starts a deletion request. you have 72 hours to cancel before deletion begins.');
-    expect(env.EMAIL.sent[1].text).toContain('this cancels your deletion request.');
+    expect(env.EMAIL.sent[1].text).toContain('use this code to cancel your deletion request.');
     expect(env.EMAIL.sent[2].text).toBe(`you requested a copy of the data held with your solstone services sign-in.
 
 enter this code to continue:
