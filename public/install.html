@@ -117,7 +117,7 @@
 
             <section class="platform-panel" id="macos" aria-labelledby="macos-heading">
                 <h3 id="macos-heading">on your mac</h3>
-                <p class="requirements">Apple Silicon and macos 15 or later required. Intel macs aren't supported.</p>
+                <p class="requirements">an arm64 (Apple Silicon) mac and macos 15 or later required. Intel macs aren't supported.</p>
                 <p class="existing">already have a journal? <a href="#mac-app">just install the solstone app</a> and connect it to your existing journal.</p>
                 <ol class="steps">
                     <li>
@@ -154,7 +154,7 @@
 
             <section class="platform-panel" id="linux" aria-labelledby="linux-heading">
                 <h3 id="linux-heading">on your linux computer</h3>
-                <p class="requirements">journal: Intel/AMD or ARM. desktop app: Intel/AMD (x86_64).</p>
+                <p class="requirements">journal: x86_64 (Intel or AMD) or arm64. desktop app: x86_64 only. not sure which you have? <code>uname -m</code> prints x86_64, or aarch64 on arm64. anything else isn't supported.</p>
                 <p class="existing">already have a journal? <a href="#linux-app">add the desktop app</a> and connect it to your existing journal.</p>
                 <ol class="steps">
                     <li>
@@ -177,7 +177,7 @@
 
             <section class="platform-panel" id="windows" aria-labelledby="windows-heading">
                 <h3 id="windows-heading">on your windows computer</h3>
-                <p class="requirements">windows 10 (22H2) or 11 on Intel/AMD (x64). no administrator access needed to install. the journal installer is about 1.1 GB. the local model needs a compatible GPU; without one, thinking needs your own model. transcription runs on this PC.</p>
+                <p class="requirements">windows 10 (22H2) or 11 on x86_64 (Intel or AMD, shown as x64 in windows settings). no administrator access needed to install. the journal installer is about 1.1 GB. the local model needs a compatible GPU; without one, thinking needs your own model. transcription runs on this PC.</p>
                 <p class="existing">already have a journal? <a href="#windows-app">just install the solstone app</a> and connect it to your existing journal.</p>
                 <ol class="steps">
                     <li>
@@ -217,7 +217,7 @@
 
             <section class="platform-panel" id="tmux" aria-labelledby="tmux-heading">
                 <h3 id="tmux-heading">from your terminal</h3>
-                <p class="requirements">for tmux on mac or linux, with a journal already set up.</p>
+                <p class="requirements">for tmux on an arm64 (Apple Silicon) mac, or on x86_64 (Intel or AMD) or arm64 linux, with a journal already set up.</p>
                 <p>solstone-tmux brings what you share from your terminal sessions into your journal. it can run alongside the desktop app.</p>
                 <div class="actions"><a class="action" href="https://github.com/solpbc/solstone-tmux/blob/main/INSTALL.md">set up solstone-tmux</a></div>
                 <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>

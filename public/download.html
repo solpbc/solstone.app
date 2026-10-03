@@ -299,7 +299,7 @@
                 <li>runs as a menu bar app, starts at login</li>
             </ul>
             <div class="primary-action">
-                <p class="download-clarifier">setting up a new mac? install the solstone app to take in this mac's screen and audio for your journal, the journal to keep what you share, or both. both require Apple Silicon; Intel macs aren't supported.</p>
+                <p class="download-clarifier">setting up a new mac? install the solstone app to take in this mac's screen and audio for your journal, the journal to keep what you share, or both. both require an arm64 (Apple Silicon) mac; Intel macs aren't supported.</p>
                 <a href="https://solstone.app/download/macos" class="download-btn">download the solstone app</a>
                 <a href="https://solstone.app/download/journal" class="download-btn">download the journal</a>
                 <p class="download-clarifier">the solstone app takes in what you share with it here; the journal is where it all gets kept. already have a journal on another machine? the solstone app alone pairs with it.</p>
@@ -319,7 +319,7 @@ then read INSTALL.md and follow it.</pre>
 
         <div class="card">
             <h2>solstone on linux</h2>
-            <p class="subtitle">x86_64 linux desktop app, with screen and audio kept in your journal</p>
+            <p class="subtitle">linux desktop app for x86_64 (Intel or AMD), with screen and audio kept in your journal</p>
             <ul>
                 <li>what you share from every monitor goes into your journal via PipeWire at 1 FPS</li>
                 <li>what you share from microphone and system audio goes into your journal</li>
@@ -371,7 +371,7 @@ git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux</pre
 
         <div class="card">
             <h2>solstone on windows</h2>
-            <p class="subtitle">windows app, with screen and audio kept in your journal</p>
+            <p class="subtitle">windows app for x86_64 (Intel or AMD) PCs, with screen and audio kept in your journal</p>
             <ul>
                 <li>what you share from your screen, system audio, and mic when present goes into your journal</li>
                 <li>runs per-user in the tray, with no admin install</li>
@@ -428,11 +428,10 @@ scoop install solstone</pre>
 on the device that runs tmux, check the current version:
 curl -fsS https://updates.solstone.app/solstone-tmux/release/latest
 
-it prints version=&lt;VERSION&gt;. there is no file listing. fetch SHA256SUMS and its signature, then the .deb, .rpm or .pkg for this system, under the exact name SHA256SUMS gives it:
+it prints version=&lt;VERSION&gt;. there is no file listing. on linux, x86_64 (Intel or AMD) packages say amd64 or x86_64 in the name, and arm64 packages say arm64 or aarch64. an arm64 (Apple Silicon) mac takes the aarch64-macos .pkg. fetch SHA256SUMS and its signature, then the .deb, .rpm or .pkg for this system, under the exact name SHA256SUMS gives it:
 curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/SHA256SUMS
 curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/SHA256SUMS.minisig
 curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/&lt;downloaded-package&gt;
-
 verify first. the release has 13 files: 11 packages and target records, SHA256SUMS, and its signature. minisign authenticates SHA256SUMS; then check your package against one of its 11 entries. replace &lt;downloaded-package&gt; with its exact filename. you run both checks; apt and dnf do not:
 curl -fLo solstone-tmux-release.pub https://updates.solstone.app/solstone-tmux/minisign.pub
 minisign -Vm SHA256SUMS -p solstone-tmux-release.pub
@@ -442,7 +441,7 @@ macos: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | 
 if either command refuses the files, stop. then install the package that matches this system:
 debian / ubuntu:   sudo apt install ./&lt;downloaded-package&gt;
 fedora / rhel:     sudo dnf install ./&lt;downloaded-package&gt;
-apple silicon mac: sudo installer -pkg &lt;downloaded-package&gt; -target /
+arm64 mac:         sudo installer -pkg &lt;downloaded-package&gt; -target /
 
 then pair and activate it:
 solstone-tmux setup &lt; pairing-link.txt
