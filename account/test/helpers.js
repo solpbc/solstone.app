@@ -60,6 +60,13 @@ export function makeTestEnv(overrides = {}) {
       ? overrides.SUPPORT_WORKER
       : makeDefaultPurgeBinding('support', overrides),
     SERVICES_AUTH_TOKEN: overrides.SERVICES_AUTH_TOKEN || 'test-services-auth-token',
+    SPP_ENGINE_EGRESS_IPS: overrides.SPP_ENGINE_EGRESS_IPS ?? '203.0.113.10',
+    SPP_AUTHORIZE_PUBLIC_LIMIT: Object.prototype.hasOwnProperty.call(overrides, 'SPP_AUTHORIZE_PUBLIC_LIMIT')
+      ? overrides.SPP_AUTHORIZE_PUBLIC_LIMIT
+      : makeFakeRateLimit(5),
+    SPP_AUTHORIZE_ENGINE_LIMIT: Object.prototype.hasOwnProperty.call(overrides, 'SPP_AUTHORIZE_ENGINE_LIMIT')
+      ? overrides.SPP_AUTHORIZE_ENGINE_LIMIT
+      : makeFakeRateLimit(1000),
     APNS_TEAM_ID: overrides.APNS_TEAM_ID,
     APNS_KEY_ID: overrides.APNS_KEY_ID,
     APNS_KEY_P8: overrides.APNS_KEY_P8 ?? overrides.APNS_P8_PEM,
@@ -921,4 +928,20 @@ function formatConsoleArg(value) {
 
 function hexEncode(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// A per-key counter with the Workers rate-limit binding's shape. It never resets, so a
+// test sees exactly `limit` successes per key; `calls` records each key it was asked for.
+export function makeFakeRateLimit(limit) {
+  const counts = new Map();
+  const calls = [];
+  return {
+    calls,
+    async limit({ key }) {
+      calls.push(key);
+      const next = (counts.get(key) || 0) + 1;
+      counts.set(key, next);
+      return { success: next <= limit };
+    },
+  };
 }

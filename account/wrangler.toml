@@ -176,6 +176,26 @@ SPB_SWEEP_ENABLED = "true"
 # /internal/spp/authorize endpoint. Provision with `wrangler secret put`; never put it here.
 SPP_ENGINE_ENDPOINT = "https://processing.solstone.app:9443"
 SPP_ENGINE_MODEL = "Qwen/Qwen3.5-4B"
+# Egress IPs of the production confidential-processing engines (comma-separated).
+# The public /spp/authorize route is rate limited per caller IP inside this worker:
+# these addresses get the high engine tier, every other IP the low tier. The zone's
+# one rate-limit rule cannot do this on our plan (ip.src is not an allowed field), so
+# the two-tier limit lives here. Add each new engine's static IP before it serves.
+# 52.185.109.20 = spp-engine-prod-cus-ip (centralus), reserved 2026-10-03 for the flip.
+SPP_ENGINE_EGRESS_IPS = "52.185.109.20"
+
+# Two-tier rate limit for POST /spp/authorize (CSO G3 condition 4), keyed on the
+# caller IP. Counters are Cloudflare-local and short-lived; nothing is stored or logged
+# per caller. The low tier matches the zone rule it replaces (5 per 10 s).
+[[ratelimits]]
+name = "SPP_AUTHORIZE_PUBLIC_LIMIT"
+namespace_id = "26100301"
+simple = { limit = 5, period = 10 }
+
+[[ratelimits]]
+name = "SPP_AUTHORIZE_ENGINE_LIMIT"
+namespace_id = "26100302"
+simple = { limit = 1000, period = 10 }
 
 [triggers]
 # 0 4 * * * is daily on purpose so the 15-day window cannot be missed; empty event.cron still falls through to retention.

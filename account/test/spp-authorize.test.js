@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
+import { publicLimitKey } from '../src/spp-authorize.js';
 import { upsertSppBinding } from '../src/db.js';
-import { makeTestEnv, resetDb, seedAccount, seedEntitlement } from './helpers.js';
+import { makeFakeRateLimit, makeTestEnv, resetDb, seedAccount, seedEntitlement } from './helpers.js';
 
 const TOKEN = 'portal-issued-spp-token';
 const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
@@ -293,6 +294,144 @@ describe('POST /spp/authorize (G3 Shape C, no engine bearer)', () => {
 
     expect(response.status).toBe(503);
     expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'd1', 'network_lost']]);
+  });
+});
+
+// CSO G3 condition 4, enforced in the worker because the zone rule cannot match ip.src
+// on our plan: the engines' egress IPs get the high tier, every other caller the low one,
+// and both run before any pepper hash or D1 read.
+describe('POST /spp/authorize two-tier rate limit', () => {
+  const ENGINE_IP = '203.0.113.10';
+  const OTHER_IP = '198.51.100.7';
+
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('limits an ordinary caller to five per window and answers the sixth with an empty 429', async () => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+    const statuses = [];
+    let last;
+    for (let i = 0; i < 6; i++) {
+      last = await authorizePublic(testEnv, { headers: { 'CF-Connecting-IP': OTHER_IP } });
+      statuses.push(last.status);
+    }
+
+    expect(statuses).toEqual([204, 204, 204, 204, 204, 429]);
+    expect(await last.text()).toBe('');
+    expect(last.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('gives an engine egress IP the engine tier, past the ordinary limit', async () => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+    const statuses = [];
+    for (let i = 0; i < 8; i++) {
+      const response = await authorizePublic(testEnv, { headers: { 'CF-Connecting-IP': ENGINE_IP } });
+      statuses.push(response.status);
+    }
+
+    expect(statuses.every((status) => status === 204)).toBe(true);
+    expect(testEnv.SPP_AUTHORIZE_ENGINE_LIMIT.calls).toHaveLength(8);
+    expect(testEnv.SPP_AUTHORIZE_PUBLIC_LIMIT.calls).toHaveLength(0);
+  });
+
+  it('reads every listed engine IP and treats an unlisted one as ordinary', async () => {
+    const testEnv = makeTestEnv({ SPP_ENGINE_EGRESS_IPS: ' 192.0.2.1 , 203.0.113.10 ' });
+    await seedActiveBinding(testEnv);
+
+    await authorizePublic(testEnv, { headers: { 'CF-Connecting-IP': '192.0.2.1' } });
+    await authorizePublic(testEnv, { headers: { 'CF-Connecting-IP': ENGINE_IP } });
+    await authorizePublic(testEnv, { headers: { 'CF-Connecting-IP': OTHER_IP } });
+
+    expect(testEnv.SPP_AUTHORIZE_ENGINE_LIMIT.calls).toEqual(['192.0.2.1', ENGINE_IP]);
+    expect(testEnv.SPP_AUTHORIZE_PUBLIC_LIMIT.calls).toEqual([OTHER_IP]);
+  });
+
+  it('refuses before any D1 read once a caller is over the limit', async () => {
+    let prepared = 0;
+    const testEnv = makeTestEnv({
+      SPP_AUTHORIZE_PUBLIC_LIMIT: makeFakeRateLimit(0),
+      DB: {
+        prepare() {
+          prepared += 1;
+          throw new Error('D1 must not be reached');
+        },
+      },
+    });
+
+    const response = await authorizePublic(testEnv, { headers: { 'CF-Connecting-IP': OTHER_IP } });
+
+    expect(response.status).toBe(429);
+    expect(prepared).toBe(0);
+  });
+
+  it('logs only a bounded event name when it limits, never the caller address', async () => {
+    const testEnv = makeTestEnv({ SPP_AUTHORIZE_PUBLIC_LIMIT: makeFakeRateLimit(0) });
+    const lines = [];
+    const realWarn = console.warn;
+    console.warn = (...args) => lines.push(args);
+    try {
+      await authorizePublic(testEnv, { headers: { 'CF-Connecting-IP': OTHER_IP } });
+    } finally {
+      console.warn = realWarn;
+    }
+
+    expect(lines).toEqual([['spp_authorize_public_limited']]);
+  });
+
+  it('fails closed with 503 when the rate-limit binding is missing', async () => {
+    const testEnv = makeTestEnv({ SPP_AUTHORIZE_PUBLIC_LIMIT: undefined });
+    await seedActiveBinding(testEnv);
+    const lines = [];
+    const realError = console.error;
+    console.error = (...args) => lines.push(args);
+    let response;
+    try {
+      response = await authorizePublic(testEnv, { headers: { 'CF-Connecting-IP': OTHER_IP } });
+    } finally {
+      console.error = realError;
+    }
+
+    expect(response.status).toBe(503);
+    expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'other', 'rate_limit_binding_missing']]);
+  });
+
+  it('counts IPv6 callers by their /64 so rotating inside it buys no fresh budget', async () => {
+    const testEnv = makeTestEnv();
+    await seedActiveBinding(testEnv);
+    const statuses = [];
+    for (let i = 1; i <= 6; i++) {
+      const response = await authorizePublic(testEnv, {
+        headers: { 'CF-Connecting-IP': `2001:db8:abcd:12::${i.toString(16)}` },
+      });
+      statuses.push(response.status);
+    }
+
+    expect(statuses).toEqual([204, 204, 204, 204, 204, 429]);
+    expect(new Set(testEnv.SPP_AUTHORIZE_PUBLIC_LIMIT.calls)).toEqual(new Set(['2001:db8:abcd:12::/64']));
+  });
+
+  it.each([
+    ['198.51.100.7', '198.51.100.7'],
+    ['2001:db8:abcd:12::1', '2001:db8:abcd:12::/64'],
+    ['2001:0db8:abcd:0012:ffff:0:0:1', '2001:db8:abcd:12::/64'],
+    ['2001:db8::1', '2001:db8:0:0::/64'],
+    ['::1', '0:0:0:0::/64'],
+    ['', 'unknown'],
+  ])('keys %s as %s on the ordinary tier', (ip, key) => {
+    expect(publicLimitKey(ip)).toBe(key);
+  });
+
+  it('leaves the internal route unlimited by the worker tiers', async () => {
+    const testEnv = makeTestEnv({ SPP_AUTHORIZE_PUBLIC_LIMIT: makeFakeRateLimit(0) });
+    await seedActiveBinding(testEnv);
+
+    const response = await authorize(testEnv);
+
+    expect(response.status).toBe(204);
+    expect(testEnv.SPP_AUTHORIZE_PUBLIC_LIMIT.calls).toHaveLength(0);
   });
 });
 

@@ -102,6 +102,8 @@ export async function handleSppAuthorize(req, env) {
 // traffic is never confused with the internal route's in logs or alerting.
 export async function handleSppAuthorizePublic(req, env) {
   try {
+    const admitted = await admitByCallerTier(req, env);
+    if (admitted !== true) return admitted;
     return await authorizeByOwnerCredential(req, env, {
       refused: 'spp_authorize_public_refused_entitlement',
       refusedDeletion: 'spp_authorize_public_refused_deletion',
@@ -110,6 +112,50 @@ export async function handleSppAuthorizePublic(req, env) {
   } catch (err) {
     return failed(err, 'spp_authorize_public_failed');
   }
+}
+
+// CSO G3 condition 4: a high limit for our engines' egress IPs and a low one for every
+// other caller, applied before the pepper hash and the D1 reads a junk request would
+// otherwise cost. It lives here because the zone's single rate-limit rule cannot match
+// on ip.src on our plan. The caller IP keys a Cloudflare-local counter only; it is never
+// logged, stored or echoed. A missing binding fails closed rather than going unlimited.
+async function admitByCallerTier(req, env) {
+  const callerIp = req.headers.get('CF-Connecting-IP') || '';
+  const engineIps = new Set(
+    String(env.SPP_ENGINE_EGRESS_IPS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+  const isEngine = callerIp !== '' && engineIps.has(callerIp);
+  const limiter = isEngine ? env.SPP_AUTHORIZE_ENGINE_LIMIT : env.SPP_AUTHORIZE_PUBLIC_LIMIT;
+  if (!limiter || typeof limiter.limit !== 'function') {
+    console.error('spp_authorize_public_failed', 'Error', 'other', 'rate_limit_binding_missing');
+    return empty(503);
+  }
+  const key = isEngine ? callerIp : publicLimitKey(callerIp);
+  const { success } = await limiter.limit({ key });
+  if (!success) {
+    console.warn(isEngine ? 'spp_authorize_public_limited_engine' : 'spp_authorize_public_limited');
+    return empty(429);
+  }
+  return true;
+}
+
+// The ordinary tier counts an IPv6 caller by its /64, the block one host normally holds,
+// so rotating addresses inside it does not buy a fresh budget. IPv4 counts per address.
+export function publicLimitKey(ip) {
+  if (!ip) return 'unknown';
+  if (!ip.includes(':')) return ip;
+  const [head, tail = ''] = ip.toLowerCase().split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = ip.includes('::')
+    ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right]
+    : left;
+  const prefix = groups.slice(0, 4).map((group) => group.replace(/^0+(?=.)/, '') || '0');
+  while (prefix.length < 4) prefix.push('0');
+  return `${prefix.join(':')}::/64`;
 }
 
 async function authorizeByOwnerCredential(req, env, events) {
