@@ -591,3 +591,142 @@ test("no served page links to TestFlight; iPhone links go to the App Store", asy
     assert.match(page, /https:\/\/apps\.apple\.com\/app\/id6776850664/, `${name} links to the App Store`);
   }
 });
+
+// --- both mac apps ---------------------------------------------------------
+// /download/mac offers the disk image that carries both mac apps. The image is
+// in neither appcast, so it has its own pointer; the worker reads that pointer
+// for the redirect and for the one fact the page shows, the image's size.
+const MAC_BOTH_POINTER = "https://updates.solstone.app/macos-both/latest.json";
+const MAC_BOTH_DMG =
+  "https://updates.solstone.app/macos-both/releases/solstone-app-2.0.23-journal-app-2.0.30-build-68.dmg";
+const MAC_BOTH_UNAVAILABLE = "Latest mac download is temporarily unavailable. Try again shortly.";
+
+function macBothOrigin(pointer) {
+  return (input) => {
+    const href = typeof input === "string" ? input : input.url;
+    if (href !== MAC_BOTH_POINTER) return Promise.reject(new Error(`unexpected fetch: ${href}`));
+    return Promise.resolve(Response.json(pointer));
+  };
+}
+
+const MAC_BOTH_GOOD = { schema: 1, url: MAC_BOTH_DMG, length: 186441365 };
+
+function macBothPageEnv(body = '<div class="facts"><span>a</span><!--SIZE_FACT--></div>') {
+  return {
+    ASSETS: {
+      async fetch(req) {
+        assert.equal(new URL(req.url).pathname, "/download-mac");
+        return new Response(body, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
+      },
+    },
+  };
+}
+
+test("/download/mac/latest 302s to the image the pointer names", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  globalThis.fetch = macBothOrigin(MAC_BOTH_GOOD);
+
+  const res = await fetchDownload("/download/mac/latest");
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("location"), MAC_BOTH_DMG);
+});
+
+test("/download/mac/latest returns 503 when the pointer is unreadable or points elsewhere", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const broken = [
+    () => Promise.reject(new Error("Network connection lost")),
+    () => Promise.resolve(new Response("", { status: 500 })),
+    () => Promise.resolve(new Response("not json{", { status: 200 })),
+    macBothOrigin({ ...MAC_BOTH_GOOD, schema: 2 }),
+    macBothOrigin({ ...MAC_BOTH_GOOD, url: undefined }),
+    macBothOrigin({ ...MAC_BOTH_GOOD, url: "https://example.com/macos-both/releases/x.dmg" }),
+    macBothOrigin({ ...MAC_BOTH_GOOD, url: "https://updates.solstone.app/journal-macos/releases/x.dmg" }),
+    macBothOrigin({ ...MAC_BOTH_GOOD, url: "https://updates.solstone.app/macos-both/releases/../x.dmg" }),
+    macBothOrigin({ ...MAC_BOTH_GOOD, url: "https://updates.solstone.app/macos-both/releases/x.zip" }),
+  ];
+  for (const make of broken) {
+    globalThis.fetch = make;
+    const res = await fetchDownload("/download/mac/latest");
+    assert.equal(res.status, 503);
+    assert.equal(await res.text(), MAC_BOTH_UNAVAILABLE);
+    assert.equal(res.headers.get("content-type"), "text/plain; charset=utf-8");
+    assert.equal(res.headers.get("cache-control"), "no-store");
+  }
+});
+
+test("/download/mac serves the page with the size the pointer measures", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  globalThis.fetch = macBothOrigin(MAC_BOTH_GOOD);
+
+  const res = await worker.fetch(new Request("https://solstone.app/download/mac"), macBothPageEnv());
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("content-type"), "text/html; charset=utf-8");
+  assert.equal(res.headers.get("cache-control"), "public, max-age=300");
+  const html = await res.text();
+  assert.doesNotMatch(html, /SIZE_FACT/);
+  assert.match(html, /<span>about 186 MB<\/span>/);
+
+  // A republished image changes the size the page shows.
+  globalThis.fetch = macBothOrigin({ ...MAC_BOTH_GOOD, length: 201_600_000 });
+  const next = await (await worker.fetch(new Request("https://solstone.app/download/mac"), macBothPageEnv())).text();
+  assert.match(next, /<span>about 202 MB<\/span>/);
+});
+
+test("/download/mac shows no size, and is not cached, when the pointer can't give one", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  for (const make of [
+    () => Promise.reject(new Error("Network connection lost")),
+    macBothOrigin({ ...MAC_BOTH_GOOD, length: "unknown" }),
+    macBothOrigin({ ...MAC_BOTH_GOOD, length: 0 }),
+  ]) {
+    globalThis.fetch = make;
+    const res = await worker.fetch(new Request("https://solstone.app/download/mac"), macBothPageEnv());
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get("cache-control"), "no-store");
+    const html = await res.text();
+    assert.doesNotMatch(html, /SIZE_FACT/);
+    assert.doesNotMatch(html, /MB/);
+  }
+});
+
+test("the real mac page carries the size slot and the three mac downloads, and no fixed size", async () => {
+  const { readFileSync } = await import("node:fs");
+  const page = readFileSync(new URL("../public/download-mac.html", import.meta.url), "utf8");
+
+  assert.equal(page.split("<!--SIZE_FACT-->").length, 2, "exactly one size slot");
+  assert.doesNotMatch(page, /\d+ MB/, "the size comes from the pointer, never the page");
+  assert.doesNotMatch(page, /location\.href/, "the page offers a choice, so it must not auto-download");
+  assert.match(page, /href="\/download\/mac\/latest"/);
+  assert.match(page, /href="\/download\/macos"/);
+  assert.match(page, /href="\/download\/journal"/);
+  assert.match(page, /<link rel="canonical" href="https:\/\/solstone\.app\/download\/mac">/);
+
+  // Every local asset the page references must exist.
+  for (const [, path] of page.matchAll(/(?:src|href)="(\/static\/[^"]+)"/g)) {
+    readFileSync(new URL(`../public${path}`, import.meta.url));
+  }
+});
+
+test("/download's mac card leads with both apps and keeps each app on its own", async () => {
+  const { readFileSync } = await import("node:fs");
+  const page = readFileSync(new URL("../public/download.html", import.meta.url), "utf8");
+  const card = page.slice(page.indexOf("<h2>solstone on mac</h2>"), page.indexOf("<h2>solstone on linux</h2>"));
+  const both = card.indexOf('href="/download/mac"');
+  assert.ok(both > 0, "the mac card links to /download/mac");
+  assert.ok(card.indexOf('href="/download/macos"') > both, "the solstone app link sits below it");
+  assert.ok(card.indexOf('href="/download/journal"') > both, "the journal app link sits below it");
+});

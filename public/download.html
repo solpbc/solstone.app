@@ -164,6 +164,16 @@
             margin: 0;
             line-height: 1.4;
         }
+        /* the just-one downloads sit under the primary button as quiet links,
+           so the card keeps one primary action */
+        .standalone-links {
+            font-size: 0.82rem;
+            line-height: 1.7;
+            margin: 0;
+        }
+        .standalone-links a {
+            color: var(--orange-text-aa);
+        }
         .trust-signal {
             font-size: 0.78rem;
             color: var(--ink-faint);
@@ -269,18 +279,18 @@
                 <li>runs as a menu bar app, starts at login</li>
             </ul>
             <div class="primary-action">
-                <p class="download-clarifier">setting up a new mac? install the solstone app to take in this mac's screen and audio for your journal, the journal to keep what you share, or both. both require an arm64 (Apple Silicon) mac; Intel macs aren't supported.</p>
-                <a href="https://solstone.app/download/macos" class="download-btn">download the solstone app</a>
-                <a href="https://solstone.app/download/journal" class="download-btn">download the journal</a>
-                <p class="download-clarifier">the solstone app takes in what you share with it here; the journal is where it all gets kept. already have a journal on another machine? the solstone app alone pairs with it.</p>
-                <p class="trust-signal">both signed by sol pbc, notarized by Apple. each updates over its own signed channel.</p>
+                <a href="/download/mac" class="download-btn">download both for mac</a>
+                <p class="download-clarifier">one download with the solstone app and the journal app. needs an arm64 (Apple Silicon) mac; Intel macs aren't supported.</p>
+                <p class="standalone-links"><a href="/download/macos">download the standalone solstone app</a><br><a href="/download/journal">download the standalone journal app</a></p>
+                <p class="download-clarifier">already have a journal on another machine? the solstone app on its own pairs with it.</p>
+                <p class="trust-signal">signed by sol pbc, notarized by Apple. each app updates over its own signed channel.</p>
             </div>
             <div class="secondary-action">
                 <button class="copy-btn" data-target="blurb-macos" aria-label="copy for your agent: solstone on mac install prompt">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-macos" class="gh-link">GitHub →</a>
                 <a href="/releases/macos" class="gh-link">release notes →</a>
             </div>
-            <pre class="blurb" id="blurb-macos">developer build (build from source). most people should download the DMG above. this path requires Xcode (full IDE, not just command line tools) and is here for developers who want to build, modify, or hand the install to a coding agent.
+            <pre class="blurb" id="blurb-macos">developer build (build from source). most people should use the download above. this path requires Xcode (full IDE, not just command line tools) and is here for developers who want to build, modify, or hand the install to a coding agent.
 
 git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos
 

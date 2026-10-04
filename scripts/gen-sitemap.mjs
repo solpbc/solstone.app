@@ -26,6 +26,7 @@ const PAGES = [
   ["/", "public/index.html"],
   ["/install", "public/install.html"],
   ["/download", "public/download.html"],
+  ["/download/mac", "public/download-mac.html"],
   ["/download/macos", "public/download-macos.html"],
   ["/download/journal", "public/download-journal.html"],
   ["/download/windows", "public/download-windows.html"],

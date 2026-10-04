@@ -2,6 +2,8 @@ import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseChangelogItems, parseGitH
 
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
 const JOURNAL_MACOS_APPCAST_URL = "https://updates.solstone.app/journal-macos/appcast.xml";
+const MAC_BOTH_POINTER_URL = "https://updates.solstone.app/macos-both/latest.json";
+const MAC_BOTH_RELEASES_PREFIX = "https://updates.solstone.app/macos-both/releases/";
 const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win.json";
 const JOURNAL_WIN_FEED_URL = "https://updates.solstone.app/solstone-journal/release/windows/releases.win.json";
 const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/release";
@@ -39,6 +41,38 @@ async function latestJournalDmgUrl() {
   } catch {
     return null;
   }
+}
+
+// The disk image that carries both mac apps is in neither app's appcast: each
+// app updates itself after install, over its own feed. The image has its own
+// pointer, republished whenever either app publishes, and the pointer's length
+// is the image's measured size. Only a plain .dmg name under the image's own
+// releases prefix is accepted, so the pointer can never steer this redirect
+// anywhere else.
+async function latestMacBothImage() {
+  try {
+    const res = await fetch(MAC_BOTH_POINTER_URL, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return null;
+    const pointer = await res.json();
+    if (pointer?.schema !== 1) return null;
+    const url = String(pointer.url ?? "");
+    if (!url.startsWith(MAC_BOTH_RELEASES_PREFIX)) return null;
+    if (!/^[A-Za-z0-9._-]+\.dmg$/.test(url.slice(MAC_BOTH_RELEASES_PREFIX.length))) return null;
+    const length = Number(pointer.length);
+    return { url, size: Number.isSafeInteger(length) && length > 0 ? length : null };
+  } catch {
+    return null;
+  }
+}
+
+// The size is the one fact the page reads from the origin. Its slot is an HTML
+// comment, so the flat asset path (served without this worker) and an
+// unreadable pointer both render the page with no size rather than a stale one.
+function renderMacBothPage(html, image) {
+  const size = image?.size ? `<span>about ${Math.round(image.size / 1e6)} MB</span>` : "";
+  return html.replace("<!--SIZE_FACT-->", size);
 }
 
 async function latestWindowsSetupUrl() {
@@ -203,6 +237,37 @@ export default {
       const headers = new Headers(pageResponse.headers);
       headers.set("Content-Type", "text/html; charset=utf-8");
       return new Response(pageResponse.body, { status: 200, headers });
+    }
+
+    // Binary URL: /download/mac/latest 302s to the current disk image carrying
+    // both mac apps. Neither app's updater uses this path.
+    if (url.pathname === "/download/mac/latest") {
+      const image = await latestMacBothImage();
+      if (!image) {
+        return new Response("Latest mac download is temporarily unavailable. Try again shortly.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+        });
+      }
+      return Response.redirect(image.url, 302);
+    }
+
+    // Human-shareable URL: /download/mac is the page for both mac apps. It does
+    // not auto-download: it offers both in one image, and each app on its own
+    // (/download/macos, /download/journal) below. The binary is at
+    // /download/mac/latest, behind a visible button.
+    if (url.pathname === "/download/mac") {
+      const pageUrl = new URL(request.url);
+      pageUrl.pathname = "/download-mac";
+      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
+      if (!pageResponse.ok) return pageResponse;
+      const image = await latestMacBothImage();
+      const headers = new Headers(pageResponse.headers);
+      headers.set("Content-Type", "text/html; charset=utf-8");
+      // A page rendered without its size must not sit at the edge after the
+      // pointer comes back.
+      headers.set("Cache-Control", image?.size ? "public, max-age=300" : "no-store");
+      return new Response(renderMacBothPage(await pageResponse.text(), image), { status: 200, headers });
     }
 
     // Binary URL: /download/journal/latest 302s to the current versioned
