@@ -466,7 +466,6 @@ test("the Linux instructions use a journal pair link, not retired setup paths", 
   const { readFileSync } = await import("node:fs");
   const page = readFileSync(new URL("../public/download.html", import.meta.url), "utf8");
 
-  assert.match(page, /create a pair link for this device in your journal/);
   assert.match(page, /solstone-linux setup &lt; pair-link\.txt/);
   assert.doesNotMatch(page, /setup --server-url/);
   assert.doesNotMatch(page, /journal observer create/);

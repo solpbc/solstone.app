@@ -337,7 +337,7 @@ solstone-linux setup
 
 solstone-linux needs PipeWire, GStreamer (core, base, good, pipewire, x11), xdg-desktop-portal and xdg-utils on the desktop first. the repo's INSTALL.md lists the exact package names for debian, fedora, arch and openSUSE.
 
-create a pair link for this device in your journal and save it as pair-link.txt. then stop the service before pairing, run setup with that link, and start it again:
+create a pair link for your device in your journal and save it as pair-link.txt. then stop the service before pairing, run setup with that link, and start it again:
 
 solstone-linux install-service
 systemctl --user stop solstone-linux
@@ -427,7 +427,7 @@ scoop install solstone</pre>
 on the device that runs tmux, check the current version:
 curl -fsS https://updates.solstone.app/solstone-tmux/release/latest
 
-it prints version=&lt;VERSION&gt;. there is no file listing. on linux, x86_64 (Intel or AMD) packages say amd64 or x86_64 in the name, and arm64 packages say arm64 or aarch64. an arm64 (Apple Silicon) mac takes the aarch64-macos .pkg. fetch SHA256SUMS and its signature, then the .deb, .rpm or .pkg for this system, under the exact name SHA256SUMS gives it:
+it prints version=&lt;VERSION&gt;. there is no file listing. on linux, x86_64 (Intel or AMD) packages say amd64 or x86_64 in the name, and arm64 packages say arm64 or aarch64. an arm64 (Apple Silicon) mac takes the aarch64-macos .pkg. fetch SHA256SUMS and its signature, then the .deb, .rpm or .pkg for your system, under the exact name SHA256SUMS gives it:
 curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/SHA256SUMS
 curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/SHA256SUMS.minisig
 curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/&lt;downloaded-package&gt;
@@ -437,7 +437,7 @@ minisign -Vm SHA256SUMS -p solstone-tmux-release.pub
 linux: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | sha256sum -c -
 macos: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | shasum -a 256 -c -
 
-if either command refuses the files, stop. then install the package that matches this system:
+if either command refuses the files, stop. then install the package that matches your system:
 debian / ubuntu:   sudo apt install ./&lt;downloaded-package&gt;
 fedora / rhel:     sudo dnf install ./&lt;downloaded-package&gt;
 arm64 mac:         sudo installer -pkg &lt;downloaded-package&gt; -target /
