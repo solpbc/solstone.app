@@ -412,6 +412,39 @@ test("Android download survives an unreadable SHA256SUMS — bytes first", async
   assert.equal(res.headers.get("location"), ANDROID_APK);
 });
 
+test("Android template URLs redirect to the rendered page without fetching assets or release facts", async (t) => {
+  t.mock.method(globalThis, "fetch", () => assert.fail("the redirect must not fetch release facts"));
+  const env = { ASSETS: { fetch: () => assert.fail("the raw template must not be served") } };
+  for (const path of ["/download-android", "/download-android/", "/download-android.html", "/download-android.html/"]) {
+    for (const method of ["GET", "HEAD"]) {
+      const res = await worker.fetch(new Request(`https://solstone.app${path}?source=link`, { method }), env);
+      assert.equal(res.status, 301);
+      assert.equal(res.headers.get("location"), "https://solstone.app/download/android?source=link");
+      assert.equal(await res.text(), "");
+    }
+    const res = await worker.fetch(new Request(`https://solstone.app${path}`, { method: "POST", body: "test" }), env);
+    assert.equal(res.status, 405);
+  }
+});
+
+test("following an Android template redirect renders the real page with the current version and checksum", async (t) => {
+  const { readFileSync } = await import("node:fs");
+  const page = readFileSync(new URL("../public/download-android.html", import.meta.url), "utf8");
+  t.mock.method(globalThis, "fetch", androidOrigin());
+  const env = { ASSETS: { async fetch(req) {
+    assert.equal(new URL(req.url).pathname, "/download-android");
+    return new Response(page, { headers: { "content-type": "text/html; charset=utf-8" } });
+  } } };
+  const redirect = await worker.fetch(new Request("https://solstone.app/download-android"), env);
+  const res = await worker.fetch(new Request(redirect.headers.get("location")), env);
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.doesNotMatch(html, /\{\{/);
+  assert.match(html, /version 2\.1\.0/);
+  assert.match(html, /solstone-android-2\.1\.0\.apk/);
+  assert.match(html, new RegExp(`<code class="fingerprint">${ANDROID_DIGEST}</code>`));
+});
+
 test("/download/android serves the HTML page filled from the origin, never the binary", async (t) => {
   const realFetch = globalThis.fetch;
   t.after(() => {
@@ -457,8 +490,7 @@ test("the real android page does not auto-download, and carries every slot the w
   const inWorker = new Set(renderer.match(/\{\{[A-Z_]+\}\}/g) || []);
   assert.deepEqual([...inPage].sort(), [...inWorker].sort());
 
-  // The flat asset path is served at 200 alongside the pretty route, so it
-  // needs the same rel=canonical its three siblings carry.
+  // The rendered page identifies its canonical URL.
   assert.match(page, /<link rel="canonical" href="https:\/\/solstone\.app\/download\/android">/);
 });
 
