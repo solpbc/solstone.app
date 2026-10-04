@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>install on every device · solstone</title>
-    <meta name="description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone for mac, linux, and tmux: download, or copy the prompt for your coding agent.">
+    <meta name="description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on your computer and your phone: download it, or on a computer, copy the prompt for your coding agent.">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="720">
@@ -71,6 +71,10 @@
             font-size: 0.9rem;
             color: var(--ink-faint);
             margin-bottom: 1rem;
+        }
+        /* the two phones share a row, so neither reads as the afterthought */
+        .card.phone-row-start {
+            grid-column: 1;
         }
         .card ul {
             list-style: none;
@@ -209,39 +213,6 @@
         .supplemental .card .subtitle {
             color: var(--ink-faint);
         }
-        .section-title {
-            font-family: var(--font-display);
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--ink-soft);
-            text-align: center;
-            margin: 1.75rem 0 0.75rem;
-            max-width: 820px;
-            width: 90vw;
-            letter-spacing: 0.02em;
-        }
-        .cards.placeholders {
-            grid-template-columns: 1fr 1fr;
-        }
-        .card.placeholder {
-            background: none;
-            border: 1px dashed var(--hairline-2);
-            box-shadow: none;
-        }
-        .card.placeholder h2 {
-            color: var(--ink-faint);
-        }
-        .card.placeholder .subtitle {
-            color: var(--ink-faint);
-            margin-bottom: 0.5rem;
-        }
-        .card.placeholder .coming-soon {
-            font-size: 0.88rem;
-            color: var(--ink-faint);
-            margin: 0;
-        }
-        .card.placeholder .coming-soon a { color: inherit; text-decoration: underline; }
-        .card.placeholder .coming-soon a:hover { color: var(--orange-text-aa); }
         .blurb {
             display: none;
         }
@@ -269,8 +240,7 @@
             width: calc(90vw - 3rem);
         }
         @media (max-width: 640px) {
-            .cards,
-            .cards.placeholders {
+            .cards {
                 grid-template-columns: 1fr;
             }
         }
@@ -395,6 +365,25 @@ git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux</pre
 scoop install solstone</pre>
         </div>
 
+        <div class="card phone-row-start">
+            <h2>solstone on iphone and ipad</h2>
+            <p class="subtitle">iphone and ipad app, with what you share kept in your journal</p>
+            <ul>
+                <li>the photos and screens that matter to you go into your journal</li>
+                <li>with your permission, the audio from your day and where you were go in too</li>
+                <li>pairs with the journal on your mac or linux machine</li>
+            </ul>
+            <div class="primary-action">
+                <a href="https://apps.apple.com/app/id6776850664" class="download-btn">get it on the App Store</a>
+                <p class="download-clarifier">free on the App Store, where it's listed as solstone mobile. needs ios or ipados 26 or later.</p>
+                <p class="trust-signal">made by sol pbc. it updates through the App Store.</p>
+            </div>
+            <div class="secondary-action">
+                <a href="https://github.com/solpbc/solstone-swift" class="gh-link">GitHub →</a>
+                <a href="/releases/ios" class="gh-link">release notes →</a>
+            </div>
+        </div>
+
         <div class="card">
             <h2>solstone on android</h2>
             <p class="subtitle">android phone app, with what you share kept in your journal</p>
@@ -456,15 +445,6 @@ git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux</pre>
         </div>
     </div>
 
-    <div class="section-title">more devices on the way</div>
-
-    <div class="cards placeholders">
-        <div class="card placeholder">
-            <h2>iphone/ipad</h2>
-            <p class="subtitle">solstone for iphone and ipad</p>
-            <p class="coming-soon"><em>in open beta through TestFlight</em> &middot; <a href="/beta">join the beta &rarr;</a></p>
-        </div>
-    </div>
     </main>
 
     <div class="visually-hidden" role="status" aria-live="polite" id="copy-status"></div>

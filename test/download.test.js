@@ -576,3 +576,18 @@ test("/download/journal/windows/latest refuses an unreadable feed or an unexpect
     assert.equal(res.headers.get("cache-control"), "no-store");
   }
 });
+
+test("no served page links to TestFlight; iPhone links go to the App Store", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const dir = new URL("../public/", import.meta.url);
+  const pages = readdirSync(dir).filter((name) => name.endsWith(".html") || name === "llms.txt");
+  assert.ok(pages.includes("beta.html") && pages.includes("install.html"), "scan sees the phone pages");
+  for (const name of pages) {
+    const page = readFileSync(new URL(name, dir), "utf8");
+    assert.doesNotMatch(page, /testflight\.apple\.com/, `${name} links to TestFlight`);
+  }
+  for (const name of ["beta.html", "install.html", "download.html", "llms.txt"]) {
+    const page = readFileSync(new URL(name, dir), "utf8");
+    assert.match(page, /https:\/\/apps\.apple\.com\/app\/id6776850664/, `${name} links to the App Store`);
+  }
+});

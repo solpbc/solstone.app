@@ -348,9 +348,10 @@ export default {
       return env.ASSETS.fetch(assetRequest(rewritten, request));
     }
 
-    // /beta is the one URL printed on QR codes and handed out for the phone
-    // betas. The page is static; what it points at (the TestFlight public
-    // link, /download/android) can change without reprinting anything.
+    // /beta is the one URL printed on QR codes, and it is the phone page for
+    // both platforms: iPhone and iPad go to the App Store, Android to the
+    // signed beta APK. The page is static; what it points at can change
+    // without reprinting anything, so the URL stays even though the name is old.
     if (url.pathname === "/beta") {
       const rewritten = new URL(request.url);
       rewritten.pathname = "/beta.html";
@@ -400,10 +401,10 @@ export default {
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.android);
     }
 
-    // iOS reads GitHub releases (same path as journal/linux/android). An external
-    // TestFlight beta submission is the release event on iOS — internal builds are
-    // dev checkpoints and are never tagged, so they never appear here. Tag `vX.Y.Z`,
-    // notes ride in the release body. See the internal Swift release runbook.
+    // iOS reads GitHub releases (same path as journal/linux/android). The stream
+    // includes TestFlight builds, so it can run ahead of the App Store build; the
+    // page intro says so. Tag `vX.Y.Z`, notes ride in the release body. See the
+    // internal Swift release runbook.
     if (url.pathname === "/releases/ios") {
       const items = await githubReleaseItems(IOS_RELEASES_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.ios);

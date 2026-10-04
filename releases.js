@@ -288,10 +288,11 @@ export const RELEASE_PAGE_CONFIGS = {
     stream: "ios",
     heading: "iphone app releases",
     intro:
-      "these are the iphone app's own changes: pairing, the journal view, what is still waiting on your phone, and the apple watch. the solstone app on your iphone is in beta: builds reach testers through TestFlight.",
-    // Invite-only TestFlight beta — there is no public download, so no primary CTA
-    // (same shape as Android).
-    primaryLink: null,
+      "these are the iphone app's own changes: pairing, the journal view, what is still waiting on your phone, and the apple watch. the app is on the App Store, where it's listed as solstone mobile. new versions reach testers through TestFlight first, so the newest notes here can be ahead of what the App Store has.",
+    // The App Store is the one public way in on iPhone, so the CTA is the store
+    // listing. TestFlight builds are tagged here too, which is why the intro says
+    // the newest notes can run ahead of the store.
+    primaryLink: { href: "https://apps.apple.com/app/id6776850664", text: "get it on the App Store →" },
     sourceUrl: "https://github.com/solpbc/solstone-swift",
     unavailableUrl: "https://github.com/solpbc/solstone-swift/releases",
     unavailableLabel: "see iphone app releases on GitHub →",

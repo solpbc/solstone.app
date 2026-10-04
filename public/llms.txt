@@ -2,6 +2,8 @@
 
 > solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours. open source, made by sol pbc. the journal lives on x86_64 (Intel or AMD) or arm64 linux, and in the journal app on arm64 (Apple Silicon) macs running macos 15 or later. on an x86_64 (Intel or AMD) PC running windows 10 (22H2) or 11, the journal is its own per-user install: download https://solstone.app/download/journal/windows/latest, run it, then run `solstone journal setup` in a new terminal window. on linux, the journal ships as one self-contained tree with the `solstone` and `journal` commands; install it with `curl -fsSL https://solstone.app/install.sh | sh`, then run `solstone journal setup`. on mac, the journal app is the only supported journal runtime; install it with `curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal`, or use `--components all` for both mac apps. the installer verifies each release before installing. the two mac apps update themselves.
 
+on iphone and ipad (ios or ipados 26 or later), the solstone app is free on the App Store, listed as solstone mobile: https://apps.apple.com/app/id6776850664. on android, it is in beta, as a signed app downloaded from https://solstone.app/download/android, and it doesn't update itself. the phone app pairs with a journal on a mac or linux computer; the journal does not run on the phone.
+
 your journal holds transcripts, people and projects, meetings, a knowledge graph, and daily insights. it is a folder of dated directories. your journal has full-text search, transcript browsing, and calendar views.
 
 the project is maintained by sol pbc (https://solpbc.org), a colorado public benefit corporation. the data covenants in its articles of incorporation can't be amended without the founder's personal signature, and after the founder the language can only get stronger, never weaker. any acquisition is conditional: the successor must be legally bound to preserve a substantially equivalent benefit purpose and assume covenants no less protective than article 8. the code is open source.
@@ -10,7 +12,7 @@ the project is maintained by sol pbc (https://solpbc.org), a colorado public ben
 
 - [Get started](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md): install guide for a coding agent and human working together
 - [README](https://github.com/solpbc/solstone-journal/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
-- [Install the solstone app on your devices](https://solstone.app/download): the solstone app for macos, linux, and windows. tmux is a separate install. pick your platform and copy the prompt for your agent.
+- [Install the solstone app on your devices](https://solstone.app/download): the solstone app for macos, linux, windows, iphone, ipad and android. tmux is a separate install. pick your platform: get it from the App Store, download it, or on a computer, copy the prompt for your agent.
 - [Journal structure](https://github.com/solpbc/solstone-journal/blob/main/docs/JOURNAL.md): Data model and daily directory layout
 - [AI providers](https://github.com/solpbc/solstone-journal/blob/main/docs/PROVIDERS.md): provider setup
 - [Web interface](https://github.com/solpbc/solstone-journal/blob/main/docs/CONVEY.md): the web UI for browsing the journal

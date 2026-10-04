@@ -581,8 +581,10 @@ test("renderReleasesPage renders the ios stream from github releases with an act
   // GitHub releases carry a date; the release heading is stripped from the body.
   assert.match(html, /class="rel-date"/);
   assert.doesNotMatch(html, /## \[0\.1\.1\]/);
-  // invite-only TestFlight beta: no public download, so no primary CTA on the intro.
-  assert.doesNotMatch(html, /class="intro-dl"/);
+  // The App Store is the one public way in on iPhone, so the intro's primary
+  // link is the store listing (not TestFlight, not a download).
+  assert.match(html, /<a href="https:\/\/apps\.apple\.com\/app\/id6776850664" class="intro-dl">/);
+  assert.doesNotMatch(html, /testflight\.apple\.com/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">iphone<\/span>/);
 
   // The retired "iOS soon" placeholder must not survive anywhere in the switcher.
