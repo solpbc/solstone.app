@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>download the solstone app for android</title>
-    <meta name="description" content="the signed solstone app for android, straight from us. what android asks you before it will install it, how to check the file is ours, and every permission the app declares.">
+    <meta name="description" content="the signed solstone app for android, straight from us, for a phone without Google Play. what android asks you before it will install it, how to check the file is ours, and every permission the app declares.">
     <meta property="og:title" content="download solstone for android">
-    <meta property="og:description" content="the signed solstone app for android, straight from us. what android asks before it will install it, how to check the file is ours, and every permission the app declares.">
+    <meta property="og:description" content="the signed solstone app for android, straight from us, for a phone without Google Play. what android asks you before it will install it, how to check the file is ours, and every permission the app declares.">
     <meta property="og:url" content="https://solstone.app/download/android">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
@@ -261,7 +261,7 @@
     <main id="main" tabindex="-1">
         <div class="column">
             <h1>download solstone for android</h1>
-            <p class="lead">this is the signed app, from us, on our own server. it is not in the Play Store, so android treats it as an app from a source it does not recognize: there are two things you have to allow, an ordinary install confirm, and a Play Protect scan for any version it has not seen, in that order, below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
+            <p class="lead">solstone is on <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">Google Play</a>. this is the other way in: the same app, signed by us, on our own server, for a phone without Google Play or for anyone who would rather not use it. it doesn't come from a store, so android treats it as an app from a source it does not recognize, and asks you to allow it, in the steps below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
         </div>
 
         <div class="primary-action">
@@ -270,7 +270,7 @@
         </div>
 
         <div class="column">
-            <p class="early-days"><span class="stage-label">in beta.</span> solstone for android is early. it does what is on this page and not more, and it changes between versions. it does not update itself: what you install stays at that version until you come back here and install a newer one.</p>
+            <p class="early-days"><span class="stage-label">updates.</span> this copy does not update itself: what you install stays at that version until you come back here and install a newer one. a copy from here and a copy from Google Play are signed by different keys, so neither can update the other. to move from one to the other, uninstall the one you have, install the other, and pair it again. anything on the phone that hasn't reached your journal yet is lost when you uninstall.</p>
 
             <h2>what you will be asked</h2>
             <p>the quoted words below are android's own, taken off a samsung galaxy running android 16. phone makers change this wording, so yours may say it a little differently. the two things you allow are the same on every android since 8.0.</p>
@@ -313,7 +313,7 @@ sha256sum -c SHA256SUMS</code></pre>
             {{DIGEST_BLOCK}}
 
             <h3>the signing certificate</h3>
-            <p>every release we publish is signed by one key. its certificate fingerprint is:</p>
+            <p>every release on this page is signed by one key. its certificate fingerprint is:</p>
             <pre><code class="fingerprint">12:DF:E3:2F:91:F7:18:25:90:09:27:37:91:7E:D7:19:33:7F:8F:9B:11:63:24:5B:3B:DC:34:79:A6:BE:26:60</code></pre>
             <p>if you have the android build tools, read it off the file before you install it:</p>
             <pre><code>apksigner verify --print-certs {{APK_NAME}}</code></pre>

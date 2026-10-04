@@ -612,15 +612,57 @@ test("no served page links to TestFlight; iPhone links go to the App Store", asy
   const { readFileSync, readdirSync } = await import("node:fs");
   const dir = new URL("../public/", import.meta.url);
   const pages = readdirSync(dir).filter((name) => name.endsWith(".html") || name === "llms.txt");
-  assert.ok(pages.includes("beta.html") && pages.includes("install.html"), "scan sees the phone pages");
+  assert.ok(pages.includes("phone.html") && pages.includes("install.html"), "scan sees the phone pages");
   for (const name of pages) {
     const page = readFileSync(new URL(name, dir), "utf8");
     assert.doesNotMatch(page, /testflight\.apple\.com/, `${name} links to TestFlight`);
   }
-  for (const name of ["beta.html", "install.html", "download.html", "llms.txt"]) {
+  for (const name of ["phone.html", "install.html", "download.html", "llms.txt"]) {
     const page = readFileSync(new URL(name, dir), "utf8");
     assert.match(page, /https:\/\/apps\.apple\.com\/app\/id6776850664/, `${name} links to the App Store`);
   }
+});
+
+test("Android links go to Google Play, keep the signed APK as a second way in, and no page calls it a beta", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const dir = new URL("../public/", import.meta.url);
+  const pages = readdirSync(dir).filter((name) => name.endsWith(".html") || name === "llms.txt");
+  assert.ok(pages.includes("phone.html") && pages.includes("download-android.html"), "scan sees the android pages");
+  assert.ok(!pages.includes("beta.html"), "a beta.html asset would answer /beta before the worker's redirect");
+  for (const name of pages) {
+    const page = readFileSync(new URL(name, dir), "utf8");
+    assert.doesNotMatch(page, /in beta|signed beta|isn't in the Play Store|not in the Play Store/i, `${name} calls android a beta`);
+  }
+  const play = /https:\/\/play\.google\.com\/store\/apps\/details\?id=app\.solstone\.observer\.phone/;
+  for (const name of ["phone.html", "install.html", "download.html", "download-android.html", "llms.txt"]) {
+    const page = readFileSync(new URL(name, dir), "utf8");
+    assert.match(page, play, `${name} links to Google Play`);
+  }
+  for (const name of ["phone.html", "install.html", "download.html"]) {
+    const page = readFileSync(new URL(name, dir), "utf8");
+    assert.match(page, /href="\/download\/android"/, `${name} keeps the signed APK as a second way in`);
+  }
+});
+
+test("/beta and its .html and slash forms 301 to /phone with the query, and /phone serves the page", async (t) => {
+  t.mock.method(globalThis, "fetch", () => assert.fail("the redirect must not fetch"));
+  const redirectEnv = { ASSETS: { fetch: () => assert.fail("the redirect must not read an asset") } };
+  for (const path of ["/beta", "/beta/", "/beta.html", "/beta.html/"]) {
+    for (const method of ["GET", "HEAD"]) {
+      const res = await worker.fetch(new Request(`https://solstone.app${path}?src=qr`, { method }), redirectEnv);
+      assert.equal(res.status, 301);
+      assert.equal(res.headers.get("location"), "https://solstone.app/phone?src=qr");
+    }
+  }
+  const res = await worker.fetch(new Request("https://solstone.app/beta"), redirectEnv);
+  assert.equal(res.headers.get("location"), "https://solstone.app/phone");
+  const phoneEnv = { ASSETS: { async fetch(req) {
+    assert.equal(new URL(req.url).pathname, "/phone.html");
+    return new Response("phone page", { headers: { "content-type": "text/html; charset=utf-8" } });
+  } } };
+  const page = await worker.fetch(new Request("https://solstone.app/phone"), phoneEnv);
+  assert.equal(page.status, 200);
+  assert.equal(await page.text(), "phone page");
 });
 
 // --- both mac apps ---------------------------------------------------------

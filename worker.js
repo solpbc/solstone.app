@@ -420,14 +420,24 @@ export default {
       return env.ASSETS.fetch(assetRequest(rewritten, request));
     }
 
-    // /beta is the one URL printed on QR codes, and it is the phone page for
-    // both platforms: iPhone and iPad go to the App Store, Android to the
-    // signed beta APK. The page is static; what it points at can change
-    // without reprinting anything, so the URL stays even though the name is old.
-    if (url.pathname === "/beta") {
+    // /phone is the phone page for both platforms: iPhone and iPad go to the
+    // App Store, Android to Google Play, with the signed APK as the second way
+    // in. Workers Assets serves phone.html at /phone before this router runs;
+    // this rewrite is the fallback, matching /install.
+    if (url.pathname === "/phone") {
       const rewritten = new URL(request.url);
-      rewritten.pathname = "/beta.html";
+      rewritten.pathname = "/phone.html";
       return env.ASSETS.fetch(assetRequest(rewritten, request));
+    }
+
+    // /beta is printed on QR codes, so it has to keep working: it 301s to
+    // /phone with the query preserved. The asset is deliberately not named
+    // beta.html. Workers Assets answers an exact or .html match before the
+    // worker runs, so while a beta.html asset existed this branch could never
+    // fire, and node --test (which calls worker.fetch directly) can't see that.
+    if (/^\/beta(?:\.html)?\/?$/.test(url.pathname)) {
+      url.pathname = "/phone";
+      return Response.redirect(url.toString(), 301);
     }
 
     // The authoritative installer URL: install.sh must be

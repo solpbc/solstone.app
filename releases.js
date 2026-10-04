@@ -44,6 +44,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         .page-intro p {
             font-size: 1rem; line-height: 1.6; color: var(--ink-soft);
         }
+        .page-intro p a { color: var(--orange-text-aa); }
         .intro-dl {
             display: inline-block; margin-top: 1.25rem;
             font-family: var(--font-display);
@@ -269,8 +270,12 @@ export const RELEASE_PAGE_CONFIGS = {
     stream: "android",
     heading: "android app releases",
     intro:
-      "these are the android app's own changes: its sources, pairing, and how it reaches your journal. the app is in beta, and it does not update itself, so the download page is always where the current one is.",
-    primaryLink: { href: "/download/android", text: "download solstone for android →" },
+      "these are the android app's own changes: its sources, pairing, and how it reaches your journal. the app is on Google Play. the signed copy from us doesn't update itself, so its download page is always where the current one is.",
+    // Google Play is the first way in on Android, so the CTA is the store
+    // listing. The signed APK on our own origin stays as the second way in, for
+    // a phone without Google Play, and the intro links its download page.
+    introLink: { phrase: "its download page", href: "/download/android" },
+    primaryLink: { href: "https://play.google.com/store/apps/details?id=app.solstone.observer.phone", text: "get it on Google Play →" },
     sourceUrl: "https://github.com/solpbc/solstone-android",
     unavailableUrl: "https://github.com/solpbc/solstone-android/releases",
     unavailableLabel: "see android app releases on GitHub →",
@@ -506,10 +511,21 @@ function fillTemplate(template, config) {
     .replaceAll("{{ogUrl}}", escapeHtml(config.ogUrl))
     .replaceAll("{{canonicalUrl}}", escapeHtml(config.canonicalUrl))
     .replaceAll("{{heading}}", escapeHtml(config.heading))
-    .replaceAll("{{intro}}", escapeHtml(config.intro))
+    .replaceAll("{{intro}}", renderIntro(config))
     .replaceAll("{{primaryLink}}", renderPrimaryLink(config.primaryLink))
     .replaceAll("{{streamSwitcher}}", streamSwitcher(config.stream))
     .replaceAll("{{sourceUrl}}", escapeHtml(config.sourceUrl));
+}
+
+// The intro is plain text; an optional introLink turns one exact phrase in it
+// into a link, so a stream can point at a second way in without a second CTA.
+function renderIntro(config) {
+  const intro = escapeHtml(config.intro);
+  const link = config.introLink;
+  if (!link) return intro;
+  const phrase = escapeHtml(link.phrase);
+  if (!intro.includes(phrase)) throw new Error(`introLink phrase not in intro: ${link.phrase}`);
+  return intro.replace(phrase, `<a href="${escapeHtml(link.href)}">${phrase}</a>`);
 }
 
 function renderPrimaryLink(link) {

@@ -54,6 +54,8 @@
         .copy-btn { background: var(--ink); color: white; }
         .copy-btn:hover { background: var(--ink-soft); }
         .copy-btn[hidden] { display: none; }
+        /* a quiet second way in beside the primary action, at the same tap height */
+        .action-alt { display: inline-flex; align-items: center; min-height: 44px; font-size: .9rem; }
         .references { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; font-size: .9rem; margin-top: 1.25rem; }
         .reference-intro { flex-basis: 100%; }
         .references a { display: inline-flex; align-items: center; min-height: 44px; }
@@ -209,9 +211,9 @@
 
             <section class="platform-panel" id="android" aria-labelledby="android-heading">
                 <h3 id="android-heading">on your android phone</h3>
-                <p class="requirements">beta. installed directly, outside the Play Store; updates are manual.</p>
+                <p class="requirements">android 8.0 or later. free on Google Play.</p>
                 <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
-                <div class="actions"><a class="action" href="/download/android">get the android app</a></div>
+                <div class="actions"><a class="action" href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">get it on Google Play</a><a class="action-alt" href="/download/android">no Google Play? get it from us</a></div>
                 <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
             </section>
 

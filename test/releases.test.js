@@ -547,10 +547,17 @@ test("renderReleasesPage renders the android stream from github releases with an
   // GitHub releases carry a date; the release heading is stripped from the body.
   assert.match(html, /class="rel-date"/);
   assert.doesNotMatch(html, /## \[0\.1\.0\]/);
-  // The signed APK is published on our own release origin, so the Android page
-  // carries a download CTA like the desktop streams do. It was deliberately
-  // absent while the only channel was an invite-only tester group.
-  assert.match(html, /<a href="\/download\/android" class="intro-dl">download solstone for android →<\/a>/);
+  // Google Play is the first way in on Android, so the CTA is the store
+  // listing, as the App Store is on iOS. The signed APK on our own origin stays
+  // as the second way in, linked from the intro, and the page no longer calls
+  // the app a beta.
+  assert.match(
+    html,
+    /<a href="https:\/\/play\.google\.com\/store\/apps\/details\?id=app\.solstone\.observer\.phone" class="intro-dl">get it on Google Play →<\/a>/,
+  );
+  assert.doesNotMatch(html, /class="intro-dl">download solstone for android/);
+  assert.match(html, /so <a href="\/download\/android">its download page<\/a> is always where the current one is/);
+  assert.doesNotMatch(html, /in beta/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">android<\/span>/);
 
   // and the Android pill renders as a link after Linux on other streams.
