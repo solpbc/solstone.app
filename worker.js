@@ -466,10 +466,11 @@ export default {
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.android);
     }
 
-    // iOS reads GitHub releases (same path as journal/linux/android). The stream
-    // includes TestFlight builds, so it can run ahead of the App Store build; the
-    // page intro says so. Tag `vX.Y.Z`, notes ride in the release body. See the
-    // internal Swift release runbook.
+    // iOS reads GitHub releases (same path as journal/linux/android). An external
+    // TestFlight beta submission is the release event on iOS, so the stream can run
+    // ahead of the App Store build; the page intro says so. Internal builds are dev
+    // checkpoints and are never tagged, so they never appear here. Tag `vX.Y.Z`,
+    // notes ride in the release body. See the internal Swift release runbook.
     if (url.pathname === "/releases/ios") {
       const items = await githubReleaseItems(IOS_RELEASES_URL);
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.ios);
