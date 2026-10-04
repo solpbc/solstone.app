@@ -206,7 +206,7 @@ export function renderError() {
 <div class="card">
   <p style="margin:0 0 16px;color:var(--ink)">to pick up where you left off:</p>
   <ul style="margin:0 0 18px;padding-left:20px;color:var(--ink-soft)">
-    <li style="margin-bottom:6px">if you came here from solstone on your device, run the enable command again for a fresh link.</li>
+    <li style="margin-bottom:6px">if you came here from your journal, run the enable command again for a fresh link.</li>
     <li>otherwise, open services.solstone.app directly and request a new code.</li>
   </ul>
   <a class="btn primary block" href="/">open your services</a>
@@ -297,7 +297,7 @@ function enableErrorTemplate(service) {
 <div class="card">
   <h1>could not turn on ${service}</h1>
   <p>something didn't look right with that link.</p>
-  <p>if you got here from solstone on your device, try again from the journal. otherwise, you can close this tab.</p>
+  <p>if you got here from your journal, try again from there. otherwise, you can close this tab.</p>
 </div>`,
   });
 }
