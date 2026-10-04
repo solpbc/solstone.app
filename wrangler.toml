@@ -7,3 +7,4 @@ routes = [{ pattern = "solstone.app", custom_domain = true }]
 [assets]
 directory = "./public"
 binding = "ASSETS"
+run_worker_first = ["/download-android", "/download-android/", "/download-android.html", "/download-android.html/"]

@@ -353,6 +353,13 @@ export default {
       return Response.redirect(release.apkUrl, 302);
     }
 
+    // Public requests for the template go to the rendered page. The ASSETS
+    // binding still reads the template directly, bypassing this router.
+    if (/^\/download-android(?:\.html)?\/?$/.test(url.pathname)) {
+      url.pathname = "/download/android";
+      return Response.redirect(url.toString(), 301);
+    }
+
     // Human-shareable URL: /download/android mirrors /download/macos, with one
     // deliberate difference — it does NOT auto-download. The page explains what
     // android asks before it will install an app it did not get from a store,
