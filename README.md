@@ -19,5 +19,5 @@ make dev
 ```
 public/          static assets served by CF Workers
 ├── index.html   landing page
-└── static/      logo and screenshots
+└── static/      styles, fonts, the mark, app icons and the share card
 ```

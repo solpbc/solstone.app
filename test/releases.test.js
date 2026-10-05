@@ -240,7 +240,7 @@ test("renderReleasesPage renders graceful fallback inside full chrome", () => {
   );
   assert.match(
     html,
-    /<div class="footer-covenant">&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; your journal lives on your device — never sold, never shared\. solstone is a trademark of sol pbc\.<\/div>/,
+    /<div class="footer-covenant">&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; your journal is always private, only yours\. solstone is a trademark of sol pbc\.<\/div>/,
   );
 });
 

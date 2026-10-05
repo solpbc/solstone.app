@@ -24,9 +24,10 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <meta property="og:description" content="{{metaDescription}}">
     <meta property="og:url" content="{{ogUrl}}">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://solstone.app/static/screenshot-home.png">
-    <meta property="og:image:width" content="1280">
-    <meta property="og:image:height" content="720">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="solstone">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="{{canonicalUrl}}">
     <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
@@ -160,7 +161,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         <nav class="footer-nav" aria-label="footer">
             <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
         </nav>
-        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal lives on your device — never sold, never shared. solstone is a trademark of sol pbc.</div>
+        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
     </footer>
 </body>
 </html>`;
