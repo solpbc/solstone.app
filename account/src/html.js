@@ -68,7 +68,7 @@ export function topbar({ email = null, lastSignInAt = null, now = null, deletion
     ? `<span class="home">${MARK_SVG}<span class="wordmark">solstone</span></span>`
     : `<a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a>`;
   const links = deletion
-    ? `<a href="/account/delete">deletion request</a>${deletion.exportAvailable ? '\n      <a href="/account/export">download what sol pbc holds</a>' : ''}`
+    ? `<a href="/account/delete">closing your sign-in</a>${deletion.exportAvailable ? '\n      <a href="/account/export">download what sol pbc holds</a>' : ''}`
     : `<a href="/">home</a>
       <a href="/sign-in">manage sign-in</a>`;
   // <details> never closes on its own when focus or a tap lands elsewhere. pointerdown,
@@ -529,7 +529,7 @@ export function renderEnableSppError() {
 // with operator approval: the certificate-log mechanics are not owner education. The floor is the privacy policy's
 // own sentence: the address's existence stays public for good, which stays below.
 export const SME_PERMANENCE_PARTS = [
-  "the address is public once it's issued, and stays public for good, even after you turn this off, cancel, or delete your sign-in. it's an identifier, not your data: eight random characters with nothing of yours in it.",
+  "the address is public once it's issued, and stays public for good, even after you turn this off, cancel, or close your sign-in. it's an identifier, not your data: eight random characters with nothing of yours in it.",
 ];
 
 export function renderEnableSmeConsent({ csrf, nonce, instance }) {
@@ -1429,7 +1429,7 @@ ${passkeyHtml ? `<div class="group">${passkeyHtml}</div>` : '<p>no passkeys.</p>
 ${sessionHtml ? `<div class="group">${sessionHtml}</div>` : '<p>no sessions.</p>'}
 ${renderTransparencyRecords({ records, relay, smeOnSale, exportEnabled })}
 ${exportEnabled ? '<p style="margin-top:28px"><a class="btn secondary block" href="/account/export">download what sol pbc holds</a></p>' : ''}
-<p style="margin-top:28px"><a class="btn danger" href="/account/delete">delete sign-in and your services</a></p>`,
+<p style="margin-top:28px"><a class="btn danger" href="/account/delete">close your sign-in and services</a></p>`,
   });
 }
 
@@ -1706,63 +1706,69 @@ ${extra}
 </form></div>`;
 }
 
+// What stops at confirm (deletion-hold.js), with the two tails nothing can cut at once: a
+// backup credential already issued for a running backup or restore, and a solstone.me token
+// already issued (it lasts up to 600 s). Operator approval of the tails, 2026-10-02.
+export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup or restore already running can finish, and a solstone.me address can keep working for up to 10 more minutes.';
+
 export function renderDeletionPage({ menu, error = '', status = '' }) {
   return layout({
-    title: 'delete sign-in and your services',
+    title: 'close your sign-in and services',
     mainClass: 'deletion-surface',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 <a class="back" href="/transparency">${BACK_SVG} data transparency</a>
 ${renderDeletionForm({
-  heading: 'delete sign-in and your services',
+  heading: 'close your sign-in and services',
   action: '/account/delete/proof/otp',
   submitLabel: 'send a confirmation code',
   hidden: { purpose: 'delete' },
   error,
   status,
   statusId: 'deletion-request-status',
-  intro: 'this begins deletion of your sign-in for the services portal and your services after you confirm ownership.',
+  intro: 'this ends every service on your sign-in and closes it. sol pbc then deletes what it holds for your sign-in.',
 })}
-<p>this does not delete a journal, device, or bucket you control. those remain under their own owner-controlled arrangements.</p>
-<p class="notice">if you have paid subscriptions, deleting your sign-in ends every one of them when the 72-hour safety period below ends, with no refund of the unused period. to use what you paid for, cancel from the billing portal instead.</p>
-<p class="notice">if encrypted backup is on, deleting your sign-in deletes the operated backup at once, with no 30-day lapse window. if you've turned on media offload, that backup is the only copy of that media, and it goes too.</p>
-<p class="disclosure">after you confirm, you have 72 hours to cancel before deletion begins. see <a href="https://solpbc.org/privacy#your-rights">what this deletes and what outlasts it</a>.</p>`,
+<p>the journal on your devices isn't touched, and neither is a backup in your own bucket.</p>
+<p>${esc(CLOSE_TIMING_LINE)} from the moment you confirm, you have 72 hours to change your mind.</p>
+<p class="notice">if you pay for a service, nothing renews while your sign-in is closing, and the subscription ends when the 72 hours are up, with no refund for the time left. to use what you've paid for, cancel in the billing portal instead.</p>
+<p class="notice">if sol pbc runs your encrypted backup, closing deletes the encrypted copy in its storage too, instead of keeping it for the 30 days after a subscription ends. if you've offloaded media into that copy, it's the only copy of that media, and it will be gone for good, so restore it to your devices before you confirm.</p>
+<p class="disclosure"><a href="https://solpbc.org/privacy#your-rights">what sol pbc deletes, and the few things that outlast it</a></p>`,
   });
 }
 
 export function renderDeletionProofPage({ menu, purpose, error = '', status = '' }) {
   const action = purpose === 'cancel' ? '/account/delete/cancel' : '/account/delete/confirm';
-  const actionLabel = purpose === 'cancel' ? 'cancel deletion' : 'confirm deletion request';
+  const actionLabel = purpose === 'cancel' ? 'keep my sign-in' : 'close my sign-in';
   return layout({
-    title: purpose === 'cancel' ? 'prove ownership to cancel deletion' : 'prove ownership to delete',
+    title: "confirm it's you",
     mainClass: 'deletion-surface',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
-<a class="back" href="/account/delete">${BACK_SVG} deletion request</a>
+<a class="back" href="/account/delete">${BACK_SVG} back</a>
 ${renderDeletionForm({
-  heading: purpose === 'cancel' ? 'prove ownership to cancel deletion' : 'prove ownership to delete',
+  heading: "confirm it's you",
   action: '/account/delete/proof/otp/verify',
   submitLabel: 'verify code',
   hidden: { purpose },
   error,
   status,
   statusId: 'deletion-otp-status',
-  intro: 'enter the fresh code sent to your verified email address.',
+  intro: 'enter the code we just emailed you.',
   fields: [{
     id: 'deletion-otp-code', name: 'code', label: '6-digit code',
-    hint: 'The code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
+    hint: 'the code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
     autocomplete: 'one-time-code', pattern: '[0-9]*',
   }],
 })}
 ${renderDeletionForm({
-  heading: 'passkey proof',
+  heading: 'confirm with your passkey',
   action,
   submitLabel: actionLabel,
   hidden: { purpose },
   status: '',
   statusId: 'deletion-passkey-status',
-  intro: 'if you have an active passkey, you must also verify it before continuing.',
-  extra: `<button class="btn secondary" type="button" data-deletion-passkey data-purpose="${escAttr(purpose)}">verify with passkey</button>`,
+  intro: 'if you set up a passkey, confirm with it too.',
+  extra: `<button class="btn secondary" type="button" data-deletion-passkey data-purpose="${escAttr(purpose)}">use your passkey</button>`,
 })}
 ${deletionPasskeyScript()}`,
   });
@@ -1770,7 +1776,7 @@ ${deletionPasskeyScript()}`,
 
 export function renderExportPage({ menu, error = '', status = '' }) {
   const back = menu?.deletion
-    ? `<a class="back" href="/account/delete">${BACK_SVG} deletion request</a>`
+    ? `<a class="back" href="/account/delete">${BACK_SVG} closing your sign-in</a>`
     : `<a class="back" href="/transparency">${BACK_SVG} data transparency</a>`;
   return layout({
     title: 'download what sol pbc holds',
@@ -1822,69 +1828,71 @@ ${exportPasskeyScript()}`,
   });
 }
 
-export const DELETION_EXPORT_PROMPT_LINK = 'download what sol pbc holds before this completes';
+export const DELETION_EXPORT_PROMPT_LINK = 'download what sol pbc holds before your sign-in closes';
 
 export function renderDeletionCancelPage({ menu, phase, exportEnabled = false, deadline = '' }) {
   if (phase === 'purging') {
     return layout({
-      title: 'deletion in progress',
+      title: 'closing your sign-in',
       mainClass: 'deletion-surface',
       deletionActive: Boolean(menu?.deletion),
-      body: `${topbar(menu)}<h1>deletion in progress</h1><p>the deletion safety period has ended and this request can no longer be cancelled.</p>`,
+      body: `${topbar(menu)}<h1>closing your sign-in</h1><p>${esc(DELETION_PAST_DEADLINE_LINE)}</p>`,
     });
   }
   const exportLink = exportEnabled
     ? `<p><a href="/account/export">${esc(DELETION_EXPORT_PROMPT_LINK)}</a></p>`
     : '';
   return layout({
-    title: 'cancel deletion request',
+    title: 'keep your sign-in',
     mainClass: 'deletion-surface',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 ${renderDeletionForm({
-  heading: 'cancel deletion request',
+  heading: 'keep your sign-in',
   action: '/account/delete/proof/otp',
-  submitLabel: 'send a cancellation code',
+  submitLabel: 'send a code',
   hidden: { purpose: 'cancel' },
-  intro: 'a fresh ownership proof is required before cancellation.',
+  intro: "to keep your sign-in, confirm it's you with a fresh code, and your passkey if you set one up.",
+  extra: '<p class="notice">if a subscription was due to renew while your sign-in was closing, keeping your sign-in charges that renewal now, and its new period starts today.</p>',
   statusId: 'deletion-cancel-status',
 })}${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${exportLink}`,
   });
 }
 
-export const DELETION_STATUS_SIGN_IN_LINE = 'you can still cancel before the safety period ends. sign in again, then confirm with a fresh code, and your passkey if you set one up.';
-export const DELETION_STATUS_SIGN_IN_LINK = 'sign in to cancel';
+export const DELETION_STATUS_SIGN_IN_LINE = 'to keep it, sign in again, then confirm with a fresh code, and your passkey if you set one up.';
+export const DELETION_STATUS_SIGN_IN_LINK = 'sign in to keep it';
+export const DELETION_PAST_DEADLINE_LINE = "the 72 hours are up, so this can't be stopped now. sol pbc is deleting what it held for your sign-in.";
 
 // canSignInToCancel: the hold is still cancellable but this viewer holds only the
 // receipt (or a session that cannot cancel). A fresh sign-in during the hold lands
 // on /account/delete, where cancelling asks for its own fresh proof.
 export function deletionDeadlineLine(deadline) {
-  return `the safety period ends ${deadline}. after that, this request can't be cancelled.`;
+  return `your sign-in closes at ${deadline}. until then, you can change your mind.`;
 }
 
-export function renderDeletionStatus({ state = 'deletion status unavailable', canCancel = false, canSignInToCancel = false, deadline = '' } = {}) {
+export function renderDeletionStatus({ state = "we can't show where this stands right now.", canCancel = false, canSignInToCancel = false, deadline = '' } = {}) {
   const action = canCancel
-    ? '<p><a class="btn danger" href="/account/delete">cancel deletion request</a></p>'
+    ? '<p><a class="btn primary" href="/account/delete">keep my sign-in</a></p>'
     : canSignInToCancel
       ? `<p>${esc(DELETION_STATUS_SIGN_IN_LINE)}</p><p><a class="btn primary" href="/?signin">${esc(DELETION_STATUS_SIGN_IN_LINK)}</a></p>`
       : '';
   return layout({
-    title: 'deletion status',
-    body: `<div class="card">${brandbar()}<h1>deletion status</h1><p aria-live="polite">${esc(state)}</p>${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${action}</div>`,
+    title: 'your sign-in',
+    body: `<div class="card">${brandbar()}<h1>your sign-in</h1><p aria-live="polite">${esc(state)}</p>${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${action}</div>`,
     showFooter: false,
   });
 }
 
 export function renderDeletionUnavailablePage({ menu } = {}) {
   return layout({
-    title: "deletion request can't be confirmed",
+    title: "your request can't be confirmed right now",
     mainClass: 'deletion-surface',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 <div class="card">
-  <h1>deletion request can't be confirmed</h1>
+  <h1>your request can't be confirmed right now</h1>
   <p class="lead">please try again later.</p>
-  <p><a class="btn primary" href="/account/delete">return to deletion request</a></p>
+  <p><a class="btn primary" href="/account/delete">back</a></p>
 </div>`,
   });
 }

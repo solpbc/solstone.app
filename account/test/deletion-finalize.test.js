@@ -213,7 +213,7 @@ describe('deletion finalization', () => {
       headers: { Cookie: 'account_deletion_status=reconcile-status' },
     }), env);
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain('complete');
+    expect(await response.text()).toContain('your sign-in is closed');
   });
 
   it('hard-deletes expired completion verifiers even when no deletion is due', async () => {

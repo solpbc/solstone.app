@@ -16,6 +16,7 @@
 // the restore finishes; the coordinator retries any keep still owed.
 import { getStripeCustomerByAccount } from './db.js';
 import { reconcileSubscription } from './billing.js';
+import { syncAccountEntitlementToRelay } from './relay-grant.js';
 import { reconcileAllServices } from './spb-entitlement.js';
 import {
   listCustomerSubscriptions,
@@ -28,6 +29,17 @@ import {
 // subscription has nothing left to collect.
 const COLLECTING_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete']);
 const RESTORE_RETRY_MS = 15 * 60 * 1000;
+
+// Everything the hold does at confirm, and again on the coordinator's passes until it all
+// lands: no renewal is charged, and the private-network grant goes to 0. The other services
+// already refuse while a deletion is active.
+export async function applyDeletionHold(env, deletion) {
+  const [billing, relay] = await Promise.all([
+    holdBillingForDeletion(env, deletion),
+    syncAccountEntitlementToRelay(env, deletion.account_id).catch(() => false),
+  ]);
+  return billing && relay;
+}
 
 export async function holdBillingForDeletion(env, deletion) {
   try {

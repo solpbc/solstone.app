@@ -46,6 +46,21 @@ describe('the sign-in deletion hold', () => {
     await expect(deletionRow()).resolves.toMatchObject({ phase: 'frozen' });
   });
 
+  it('ends the private-network grant at confirm', async () => {
+    const pushes = [];
+    const testEnv = makeTestEnv({ RELAY: grantRecorder(pushes, { readiness: true }) });
+    const { accountId, session } = await ownerWithCustomer(testEnv);
+    await seedSplBinding({ accountId, instanceId: INSTANCE });
+    await seedEntitlement({ accountId, currentPeriodEnd: 1_900_000_000, sourceRef: 'sub_live' });
+    installStripeFetchMock({
+      'GET api.stripe.com/v1/subscriptions': async () => stripeJson({ data: [] }),
+    });
+    await verifiedProof(accountId, session, 'delete');
+
+    expect((await worker.fetch(post('/account/delete/confirm', session), testEnv)).status).toBe(303);
+    expect(pushes).toEqual([{ instance_id: INSTANCE, entitled_until: 0 }]);
+  });
+
   it('retries a hold that failed at confirm before the deadline', async () => {
     const testEnv = makeTestEnv();
     const { accountId } = await ownerWithCustomer(testEnv);
@@ -166,8 +181,8 @@ describe('the sign-in deletion hold', () => {
     await verifiedProof(account.accountId, session, 'cancel');
 
     const page = await (await worker.fetch(get('/account/delete', session), testEnv)).text();
-    expect(page).toContain('<h1>deletion in progress</h1>');
-    expect(page).not.toContain('send a cancellation code');
+    expect(page).toContain('<h1>closing your sign-in</h1>');
+    expect(page).not.toContain('send a code');
 
     const keep = await worker.fetch(post('/account/delete/cancel', session), testEnv);
     expect(keep.status).toBe(409);
@@ -180,7 +195,7 @@ describe('the sign-in deletion hold', () => {
     const session = await seedSession(account.accountId, { testEnv });
     const deadline = Date.UTC(2099, 9, 4, 16, 52, 50);
     await frozenDeletion(account.accountId, { requestedAt: Date.now(), deadline, statusTokenHash: null });
-    const line = 'the safety period ends 2099-10-04 16:52 UTC.';
+    const line = 'your sign-in closes at 2099-10-04 16:52 UTC';
 
     expect(await (await worker.fetch(get('/account/delete', session), testEnv)).text()).toContain(line);
 
@@ -240,10 +255,12 @@ function subscription(id, { status = 'active', paused = false, periodStart = 1_7
   };
 }
 
-function grantRecorder(pushes) {
+function grantRecorder(pushes, { readiness = false } = {}) {
+  const purge = readiness ? makeTestEnv().RELAY : null;
   return {
     async fetch(input, init = {}) {
       const url = new URL(typeof input === 'string' ? input : input.url);
+      if (purge && url.pathname === '/internal/deletion/purge/ready') return purge.fetch(input, init);
       if (url.pathname !== '/admin/entitlement') return new Response(null, { status: 404 });
       pushes.push(JSON.parse(init.body));
       return Response.json({ ok: true });

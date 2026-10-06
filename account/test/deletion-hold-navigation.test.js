@@ -99,7 +99,7 @@ describe('navigation from deletion pages during an active deletion', () => {
     const onEnv = makeTestEnv({ OWNER_EXPORT_ENABLED: 'true' });
     await workerEnv.DB.prepare("UPDATE account_deletions SET phase = 'purging'").run();
     const purging = await (await worker.fetch(get('/account/delete', await freshCookie(onEnv, owner)), onEnv)).text();
-    expect(purging).toContain('deletion in progress');
+    expect(purging).toContain('<h1>closing your sign-in</h1>');
     expect(menuLinks(purging)).toEqual(['/account/delete']);
     await expectEveryLinkKeepsSession(onEnv, owner, purging);
   });
