@@ -1708,8 +1708,9 @@ ${extra}
 
 // What stops at confirm (deletion-hold.js), with the two tails nothing can cut at once: a
 // backup credential already issued for a running backup or restore, and a solstone.me token
-// already issued (it lasts up to 600 s). Operator approval of the tails, 2026-10-02.
-export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup or restore already running can finish, and a solstone.me address can keep working for up to 10 more minutes.';
+// already issued (it lasts up to 600 s). Operator approval of the tails, 2026-10-02. The line says
+// 15 minutes, the bound the services Terms (section 14) and the close notice state; 600 s sits inside it.
+export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup or restore already running can finish, and a solstone.me address can keep working for up to 15 minutes.';
 
 export function renderDeletionPage({ menu, error = '', status = '' }) {
   return layout({
