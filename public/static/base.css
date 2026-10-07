@@ -127,6 +127,7 @@ body.sunrise {
     letter-spacing: 0.02em;
     color: var(--ink);
     background: var(--sunrise-fill);
+    max-width: 90vw;
     padding: 0.85rem 2rem;
     border-radius: 8px;
     text-decoration: none;
