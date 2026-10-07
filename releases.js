@@ -24,113 +24,58 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <meta property="og:description" content="{{metaDescription}}">
     <meta property="og:url" content="{{ogUrl}}">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://solstone.app/static/share-card.png">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="solstone">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="{{canonicalUrl}}">
-    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/base.css">
-    <link rel="stylesheet" href="/static/site.css">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
     <style>
-        .page-intro {
-            text-align: center;
-            padding: 3rem 1.5rem 1.25rem;
-            max-width: 640px;
-            width: 100%;
-        }
-        .page-intro h1 { margin-bottom: 1rem; overflow-wrap: anywhere; }
-        .page-intro p {
-            font-size: 1rem; line-height: 1.6; color: var(--ink-soft);
-        }
-        .page-intro p a { color: var(--orange-text-aa); }
-        .intro-dl { margin-top: 1.25rem; }
+        .page-intro .btn { margin-top: 18px; }
         .stream-switch {
-            position: sticky; top: 0; z-index: 10;
-            margin-top: 1.25rem; padding: 0.6rem 1rem;
-            width: 100%; max-width: 720px;
-            display: flex; flex-wrap: wrap; gap: 0.4rem;
-            align-items: center; justify-content: center;
-            background: var(--cream-bright); border-bottom: 1px solid var(--hairline);
+            position: sticky; top: 8px; z-index: 5;
+            display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+            padding: 8px 12px; border-radius: 16px;
         }
-        .ss-lead {
-            font-family: var(--font-display);
-            font-size: 0.8rem; color: var(--ink-faint); margin-right: 0.15rem;
-        }
+        .ss-lead { font-size: 14px; color: var(--ink-soft); margin-right: 4px; }
         .ss-pill {
-            font-family: var(--font-display);
-            font-size: 0.9rem; line-height: 1;
-            text-decoration: none; padding: 0.5rem 0.85rem; border-radius: 999px;
-            color: var(--ink-soft); transition: color 0.15s, background 0.15s;
+            display: inline-flex; align-items: center; min-height: 36px;
+            font-size: 15px; font-weight: 500; line-height: 1;
+            text-decoration: none; padding: 0 12px; border-radius: 999px;
+            color: var(--ink); border: 1.5px solid transparent;
         }
-        a.ss-pill:hover { color: var(--ink); background: var(--orange-wash); }
-        .ss-active { background: var(--orange); color: var(--ink); font-weight: 700; }       /* you-are-here (dark text = AA contrast on orange) */
-        .ss-home:not(.ss-active) { box-shadow: inset 0 -2px 0 var(--orange); }         /* journal primacy underline */
-        .ss-soon { color: var(--ink-faint); cursor: default; }
-        .ss-pill:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-        .releases {
-            max-width: 720px; width: 100%; padding: 0 1.5rem;
-            text-align: left;
-        }
-        .release {
-            padding: 1.75rem 0;
-            border-top: 1px solid var(--hairline);
-        }
-        .release:first-of-type { border-top: none; }
-        .release h2 {
-            font-family: var(--font-display);
-            font-size: 1.35rem; font-weight: 700;
-            text-transform: lowercase; letter-spacing: 0.03em;
-            color: var(--ink); margin-bottom: 0.2rem;
-            scroll-margin-top: 3.5rem;   /* anchor jump doesn't hide under top edge */
-        }
-        .release .rel-date {
-            font-size: 0.85rem; color: var(--ink-faint); margin-bottom: 1.1rem;
-        }
-        .release h3.rel-section {
-            font-family: var(--font-display);
-            font-size: 0.82rem; font-weight: 700;
-            text-transform: lowercase; letter-spacing: 0.04em;
-            color: var(--orange-text-aa); margin: 1.25rem 0 0.5rem;
-        }
-        .release p { font-size: 0.95rem; line-height: 1.65; color: var(--ink-soft); margin: 0.5rem 0; }
-        .release ul { margin: 0.25rem 0 0.5rem; padding-left: 1.25rem; }
-        .release li { font-size: 0.95rem; line-height: 1.6; color: var(--ink-soft); margin-bottom: 0.5rem; }
-        .release li::marker { color: var(--orange); }
-        .release code {
-            font-family: var(--font-mono);
-            font-size: 0.84em; background: var(--cream-bright);
-            padding: 0.05rem 0.35rem; border-radius: 3px; color: var(--ink);
-            overflow-wrap: anywhere;
-        }
-        .release a { color: var(--orange-text-aa); text-decoration: underline; }
-        .release a:hover { color: var(--orange-text-aa); }
-        .rel-links a:focus-visible,
-        .release a:focus-visible {
-            outline: 2px solid var(--focus);
-            outline-offset: 3px;
-        }
-        .rel-links {
-            max-width: 720px; width: 100%; padding: 1.5rem 1.5rem 0;
-            display: flex; flex-direction: column; gap: 0.5rem; text-align: left;
-        }
-        .rel-links a {
-            color: var(--ink-faint); font-size: 0.95rem; text-decoration: none;
-            transition: color 0.15s;
-        }
-        .rel-links a:hover { color: var(--orange-text-aa); }
+        a.ss-pill:hover { border-color: var(--hairline-2); }
+        .ss-active { background: var(--ink); color: var(--cream); font-weight: 600; }
+        .ss-home:not(.ss-active) { background: var(--orange-wash); }
+        .releases .band-inner { max-width: calc(760px + 2 * clamp(22px, 4vw, 44px)); }
+        .release { padding: 26px 0; border-top: 1px solid var(--hairline); }
+        .release:first-of-type { border-top: none; padding-top: 0; }
+        .release h2 { margin-bottom: 2px; scroll-margin-top: 80px; overflow-wrap: anywhere; }
+        .release .rel-date { font-size: 15px; color: var(--ink-soft); margin-bottom: 14px; }
+        .release h3.rel-section { font-size: 15px; font-weight: 600; color: var(--ink-soft); margin: 18px 0 6px; }
+        .release p { margin: 8px 0; }
+        .release ul { margin: 4px 0 8px; padding-left: 1.25rem; }
+        .release li { margin-bottom: 8px; }
+        .release li::marker { color: var(--ink-faint); }
+        .release code { background: var(--cream-bright); padding: 1px 5px; border-radius: 4px; border: 0; }
+        .rel-links { margin-top: 18px; }
         @media (max-width: 640px) {
-            .ss-lead {
-                flex-basis: 100%; text-align: center; margin: 0 0 0.2rem;
-            }
-            .release h2 { font-size: 1.2rem; }
+            .ss-lead { flex-basis: 100%; }
         }
     </style>
 </head>
-<body class="sunrise sun">
+<body class="sun both">
     <div class="ground-sunrise" aria-hidden="true"></div>
     <div class="sunarc" id="sunarc" aria-hidden="true">
         <div class="sunarc-twilight"></div>
@@ -141,7 +86,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
             <div class="bar glass">
-                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
                     <a href="/install#agents">connect your agent</a>
@@ -164,27 +109,36 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             </div>
         </header>
     <main id="main" tabindex="-1">
-        <div class="page-intro">
-            <h1>{{heading}}</h1>
-            <p>{{intro}}</p>
-            {{primaryLink}}
-        </div>
-
-        {{streamSwitcher}}
-
-        <section class="releases" aria-label="release history">
-            <!-- per-version <article> blocks here, newest first -->
+        <section class="band wrap glass" aria-labelledby="page-title">
+            <div class="band-inner page-intro">
+                <h1 id="page-title">{{heading}}</h1>
+                <p class="lead">{{intro}}</p>
+                {{primaryLink}}
+            </div>
         </section>
 
-        <nav class="rel-links" aria-label="more">
-            <a href="{{sourceUrl}}">source code on GitHub &rarr;</a>
-        </nav>
+        <div class="band wrap">
+        {{streamSwitcher}}
+        </div>
+
+        <section class="band wrap glass releases" aria-label="release history">
+            <div class="band-inner">
+            <!-- per-version <article> blocks here, newest first -->
+            </div>
+        </section>
+
+        <div class="band wrap">
+            <nav class="links rel-links" aria-label="more">
+                <a href="{{sourceUrl}}">source code on GitHub &rarr;</a>
+            </nav>
+        </div>
     </main>
         <footer class="site-footer">
             <div class="glass">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
+                    <a href="https://services.solstone.app">services</a>
                     <a href="https://solpbc.org/privacy">privacy</a>
                     <a href="/releases">releases</a>
                     <a href="https://trust.solstone.app">trust</a>
@@ -195,7 +149,8 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             </div>
         </footer>
     </div>
-    <script src="/static/sunarc.js" defer></script>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=d677dfd20e" defer></script>
 </body>
 </html>`;
 
@@ -213,7 +168,7 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "journal releases",
     intro:
       "what's new in the journal, newest first. the journal is the memory, on a computer you choose; these are the journal's own changes.",
-    primaryLink: { href: "/install", text: "install solstone →" },
+    primaryLink: { href: "/install", text: "get started →" },
     sourceUrl: "https://github.com/solpbc/solstone-journal",
     unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
     unavailableLabel: "see journal releases on GitHub →",
@@ -221,39 +176,39 @@ export const RELEASE_PAGE_CONFIGS = {
     linkifyBundledJournal: false,
   },
   macos: {
-    pageTitle: "macOS app releases · solstone",
-    ogTitle: "macOS app releases · solstone",
+    pageTitle: "mac app releases · solstone",
+    ogTitle: "mac app releases · solstone",
     metaDescription:
-      "release notes for the solstone macOS app, in plain language. installer, menu bar, settings, and auto-update changes.",
+      "release notes for the solstone app for mac, in plain language. installer, menu bar, settings, and auto-update changes.",
     ogUrl: "https://solstone.app/releases/macos",
     canonicalUrl: "https://solstone.app/releases/macos",
     stream: "macos",
-    heading: "macOS app releases",
+    heading: "mac app releases",
     intro:
-      "these are the macOS app's own changes: installer, menu bar, settings, and auto-update. the solstone app runs on your mac.",
-    primaryLink: { href: "/download/macos", text: "download solstone for macOS →" },
+      "these are the mac app's own changes: installer, menu bar, settings, and auto-update. the solstone app runs on your mac.",
+    primaryLink: { href: "/download/macos", text: "download the solstone app for mac →" },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
-    unavailableLabel: "see macOS app releases on GitHub →",
-    articleTitle: (version) => `solstone for macOS ${version}`,
+    unavailableLabel: "see mac app releases on GitHub →",
+    articleTitle: (version) => `the solstone app for mac ${version}`,
     linkifyBundledJournal: true,
   },
   journalMacos: {
-    pageTitle: "journal for mac releases · solstone",
-    ogTitle: "journal for mac releases · solstone",
+    pageTitle: "journal app releases · solstone",
+    ogTitle: "journal app releases · solstone",
     metaDescription:
       "release notes for the journal on mac, in plain language. the journal as its own app: the memory, where everything the solstone app takes in goes.",
     ogUrl: "https://solstone.app/releases/journal-macos",
     canonicalUrl: "https://solstone.app/releases/journal-macos",
     stream: "journal-macos",
-    heading: "journal for mac releases",
+    heading: "journal app releases",
     intro:
-      "these are the journal's own changes on mac — your journal, its window, and its updates.",
-    primaryLink: { href: "/download/macos", text: "download for mac →" },
+      "these are the journal's own changes on mac: your journal, its window, and its updates.",
+    primaryLink: { href: "/download/journal", text: "download the journal app for mac →" },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
-    unavailableLabel: "see journal for mac releases on GitHub →",
-    articleTitle: (version) => `journal for mac ${version}`,
+    unavailableLabel: "see journal app releases on GitHub →",
+    articleTitle: (version) => `the journal app for mac ${version}`,
     linkifyBundledJournal: true,
   },
   linux: {
@@ -267,11 +222,11 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "linux app releases",
     intro:
       "these are the linux app's own changes: installation, systemd service, desktop integration, and how it reaches your journal. the solstone app runs on your linux desktop.",
-    primaryLink: { href: "/download", text: "install solstone for linux →" },
+    primaryLink: { href: "/install#linux", text: "install the solstone app for linux →" },
     sourceUrl: "https://github.com/solpbc/solstone-linux",
     unavailableUrl: "https://github.com/solpbc/solstone-linux/releases",
     unavailableLabel: "see linux app releases on GitHub →",
-    articleTitle: (version) => `solstone for linux ${version}`,
+    articleTitle: (version) => `the solstone app for linux ${version}`,
     linkifyBundledJournal: true,
   },
   windows: {
@@ -285,11 +240,11 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "windows app releases",
     intro:
       "these are the windows app's own changes: installer, tray, settings, and auto-update. the solstone app runs on your windows PC.",
-    primaryLink: { href: "/download/windows", text: "download solstone for windows →" },
+    primaryLink: { href: "/download/windows", text: "download the solstone app for windows →" },
     sourceUrl: "https://github.com/solpbc/solstone-windows",
     unavailableUrl: "https://github.com/solpbc/solstone-windows/releases",
     unavailableLabel: "see windows app releases on GitHub →",
-    articleTitle: (version) => `solstone for windows ${version}`,
+    articleTitle: (version) => `the solstone app for windows ${version}`,
     // The Windows observer is a pairing client, not a journal host — its notes
     // never say "updated the bundled solstone journal to X", so keep linkify off.
     linkifyBundledJournal: false,
@@ -313,7 +268,7 @@ export const RELEASE_PAGE_CONFIGS = {
     sourceUrl: "https://github.com/solpbc/solstone-android",
     unavailableUrl: "https://github.com/solpbc/solstone-android/releases",
     unavailableLabel: "see android app releases on GitHub →",
-    articleTitle: (version) => `solstone for android ${version}`,
+    articleTitle: (version) => `the solstone app for android ${version}`,
     // The Android app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
@@ -335,7 +290,7 @@ export const RELEASE_PAGE_CONFIGS = {
     sourceUrl: "https://github.com/solpbc/solstone-swift",
     unavailableUrl: "https://github.com/solpbc/solstone-swift/releases",
     unavailableLabel: "see iphone app releases on GitHub →",
-    articleTitle: (version) => `solstone for iphone ${version}`,
+    articleTitle: (version) => `the solstone app for iphone ${version}`,
     // The iPhone app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
@@ -564,7 +519,7 @@ function renderIntro(config) {
 
 function renderPrimaryLink(link) {
   if (!link) return "";
-  return `<a href="${escapeHtml(link.href)}" class="btn-sunrise intro-dl">${escapeHtml(link.text)}</a>`;
+  return `<a href="${escapeHtml(link.href)}" class="btn btn-primary btn-block-sm intro-dl">${escapeHtml(link.text)}</a>`;
 }
 
 function streamSwitcher(currentStream) {
@@ -581,15 +536,15 @@ function streamSwitcher(currentStream) {
   };
 
   return [
-    '<nav class="stream-switch" aria-label="release streams">',
+    '<nav class="stream-switch glass" aria-label="release streams">',
     '            <span class="ss-lead">release notes for:</span>',
     pill("journal", "journal", "/releases", "ss-home"),
-    pill("macos", "macOS", "/releases/macos"),
-    pill("journal-macos", "journal for mac", "/releases/journal-macos"),
-    pill("windows", "windows", "/releases/windows"),
-    pill("linux", "linux", "/releases/linux"),
-    pill("android", "android", "/releases/android"),
-    pill("ios", "iphone", "/releases/ios"),
+    pill("macos", "mac app", "/releases/macos"),
+    pill("journal-macos", "journal app", "/releases/journal-macos"),
+    pill("windows", "windows app", "/releases/windows"),
+    pill("linux", "linux app", "/releases/linux"),
+    pill("android", "android app", "/releases/android"),
+    pill("ios", "iphone app", "/releases/ios"),
     "</nav>",
   ].join("\n");
 }

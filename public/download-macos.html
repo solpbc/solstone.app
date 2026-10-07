@@ -3,181 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>download the solstone app for macOS</title>
-    <meta name="description" content="download the solstone app for Apple Silicon macs. it takes in what you share with it, and all of it goes into your journal. open source, self-hostable.">
-    <meta property="og:title" content="download solstone for macOS">
-    <meta property="og:description" content="the solstone app takes in what you share with it on your Apple Silicon mac, and all of it goes into your journal. download the macOS app.">
+    <title>download the solstone app for mac</title>
+    <meta name="description" content="download the solstone app for Apple silicon macs. it takes in what you share with it, and all of it goes into your journal. open source, self-hostable.">
+    <meta property="og:title" content="download the solstone app for mac">
+    <meta property="og:description" content="the solstone app takes in what you share with it on your Apple silicon mac, and all of it goes into your journal. download the solstone app for mac.">
     <meta property="og:url" content="https://solstone.app/download/macos">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://solstone.app/static/share-card.png">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="solstone">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="https://solstone.app/download/macos">
-    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/base.css">
-    <link rel="stylesheet" href="/static/site.css">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
     <style>
-        /* Comfortaa loads via tokens.css (linked above) — no per-page @font-face.
-           base.css supplies the shared sunrise ground (<body class="sunrise">) and
-           the footer spine; the rules below are this page's own layout. */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-family: var(--font-body);
-            padding: 2rem 0;
-        }
-        a {
-            text-decoration: none;
-        }
-        .logo {
-            height: 40px;
-            margin-bottom: 2.5rem;
-        }
-        h1 {
-            font-family: var(--font-display);
-            font-size: 2.2rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: lowercase;
-            color: var(--ink);
-            margin-bottom: 1.25rem;
-            text-align: center;
-        }
-        .message {
-            max-width: 480px;
-            width: 90vw;
-            font-size: 1rem;
-            line-height: 1.6;
-            color: var(--ink-soft);
-            text-align: center;
-            margin-bottom: 2.25rem;
-        }
-        .fallback {
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            color: var(--ink-faint);
-            text-align: center;
-        }
-        .message a { color: inherit; text-decoration: underline; }
-        .message a:hover { color: var(--orange-text-aa); }
-        .fallback a {
-            color: var(--ink-faint);
-            text-decoration: underline;
-        }
-        .fallback a:hover {
-            color: var(--orange-text-aa);
-        }
-        .links {
-            margin-top: 2.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .links a {
-            display: block;
-            color: var(--ink-faint);
-            font-size: 0.95rem;
-            margin-bottom: 0.5rem;
-            transition: color 0.15s;
-        }
-        .links a:hover {
-            color: var(--orange-text-aa);
-        }
-        footer {
-            margin-top: auto;
-            padding-top: 3rem;
-            font-family: var(--font-display);
-            font-size: 0.85rem;
-            color: var(--ink-faint);
-            text-align: center;
-            max-width: 520px;
-            width: 90vw;
-            line-height: 1.6;
-        }
-        footer a {
-            color: var(--ink-faint);
-        }
-        footer a:hover {
-            text-decoration: underline;
-        }
-        /* --- accessibility --- */
-        .skip-link {
-            position: absolute;
-            top: -3rem;
-            left: 0.5rem;
-            z-index: 1000;
-            background: var(--ink);
-            color: var(--ink-on-dark);
-            font-family: var(--font-display);
-            font-size: 0.9rem;
-            padding: 0.6rem 1rem;
-            border-radius: 0 0 6px 6px;
-            text-decoration: none;
-            transition: top 0.15s;
-        }
-        .skip-link:focus {
-            top: 0;
-        }
-        :focus-visible {
-            outline: 2px solid var(--focus);
-            outline-offset: 2px;
-        }
-        main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-        main:focus {
-            outline: none;
-        }
-        .helper {
-            max-width: 90vw;
-            margin-top: 0.75rem;
-            font-size: 0.9rem;
-            color: var(--ink-soft);
-            text-align: center;
-        }
-        .phone-note {
-            max-width: 480px;
-            width: 90vw;
-            margin-top: 1rem;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            background: var(--orange-wash);
-            font-size: 0.92rem;
-            line-height: 1.5;
-            color: var(--ink);
-            text-align: center;
-        }
-        .phone-note[hidden] {
-            display: none;
-        }
-        .phone-note a {
-            color: var(--ink);
-            text-decoration: underline;
-        }
-        .first {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 2.25rem;
-        }
+        .phone-note[hidden] { display: none; }
+        .file-line + .file-line { margin-top: -6px; }
     </style>
 </head>
-<body class="sunrise sun">
+<body class="sun both">
     <div class="ground-sunrise" aria-hidden="true"></div>
     <div class="sunarc" id="sunarc" aria-hidden="true">
         <div class="sunarc-twilight"></div>
@@ -188,7 +42,7 @@
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
             <div class="bar glass">
-                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
                     <a href="/install#agents">connect your agent</a>
@@ -210,26 +64,34 @@
                 </div>
             </div>
         </header>
-    <main id="main" tabindex="-1">
-        <h1>download solstone for macOS</h1>
-        <div class="first">
-            <a href="/download/macos/latest" class="btn-sunrise" id="dl">download the solstone app for mac</a>
-            <p class="helper">Apple Silicon (M1 or newer), macos 15 or later<!--SIZE_FACT--></p>
-            <p class="phone-note" id="phone-note" hidden>this download is for a computer. on your phone? get the solstone app from the <a href="/phone">App Store</a> or <a href="/phone">Google Play</a>.</p>
-        </div>
-        <p class="message">this is <strong>the solstone app</strong>: it takes in what you share with it on your mac, and all of it goes into your journal. needs an Apple Silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported. setting up a new mac? <a href="/download/journal">get the journal</a> too, so what the solstone app takes in has somewhere to go.</p>
-        <p class="fallback"><a href="/download/journal">get the journal too &rarr;</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
-        <nav class="links" aria-label="more">
-            <a href="/releases/macos">what's new in this version &rarr;</a>
-            <a href="https://github.com/solpbc/solstone-macos">source code on GitHub &rarr;</a>
-            <a href="/">back to solstone.app &rarr;</a>
-        </nav>
-    </main>
+        <main id="main" tabindex="-1">
+            <section class="band wrap glass" aria-labelledby="page-title">
+                <div class="band-inner prose-col">
+                    <h1 id="page-title">download the solstone app for mac</h1>
+                    <p class="lead">the solstone app takes in what you share with it on your mac, and all of it goes into your journal. it needs an Apple silicon mac (M1 or newer) with macos 15 or later; Intel macs aren't supported. setting up a new mac? <a href="/download/mac">get both mac apps in one download</a>, so what the solstone app takes in has somewhere to go.</p>
+                    <div class="actions">
+                        <a href="/download/macos/latest" class="btn btn-primary btn-block-sm" id="dl">download the solstone app for mac</a>
+                        <p class="file-line">Apple silicon (M1 or newer), macos 15 or later<!--SIZE_FACT--></p>
+                        <p class="file-line">signed by sol pbc, notarized by Apple.</p>
+                        <p class="file-line phone-note" id="phone-note" hidden>this download is for a computer. on your phone? get the solstone app from the <a href="/phone">App Store or Google Play</a>.</p>
+                    </div>
+                    <nav class="links" aria-label="more">
+                        <a href="/install#macos">setup steps →</a>
+                        <a href="/releases/macos">what's new in this version →</a>
+                        <a href="https://github.com/solpbc/solstone-macos">source code on GitHub →</a>
+                    </nav>
+                </div>
+            </section>
+            <div class="notice-wrap">
+                <p class="early-days"><span class="stage-label">early days.</span> on a mac, on windows and on your phone, solstone installs like any app. on linux, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
+            </div>
+        </main>
         <footer class="site-footer">
             <div class="glass">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
+                    <a href="https://services.solstone.app">services</a>
                     <a href="https://solpbc.org/privacy">privacy</a>
                     <a href="/releases">releases</a>
                     <a href="https://trust.solstone.app">trust</a>
@@ -240,7 +102,8 @@
             </div>
         </footer>
     </div>
-    <script src="/static/sunarc.js" defer></script>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=d677dfd20e" defer></script>
     <script>
         // No download starts on its own: the button is the download. On a
         // phone or tablet the page also says this is for a computer. iPadOS

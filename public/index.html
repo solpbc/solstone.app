@@ -9,14 +9,23 @@
     <meta property="og:description" content="solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal: an open source, local-first memory the agents you use can work from. your journal is always private, only yours.">
     <meta property="og:url" content="https://solstone.app">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://solstone.app/static/share-card.png">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="solstone">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="https://solstone.app/">
-    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -38,6 +47,7 @@
         },
         {
           "@type": "SoftwareApplication",
+          "@id": "https://solstone.app/#software",
           "name": "solstone",
           "description": "solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal: an open source, local-first memory the agents you use can work from. solstone installs on your own devices. your journal is always private, only yours.",
           "url": "https://solstone.app",
@@ -46,7 +56,8 @@
           "installUrl": "https://solstone.app/install",
           "downloadUrl": "https://solstone.app/download",
           "codeRepository": "https://github.com/solpbc/solstone-journal",
-          "sameAs": ["https://github.com/solpbc/solstone-journal"],
+          "screenshot": "https://solstone.app/static/demo/week-eve-light-2000.webp?v=e7ba6ea64d",
+          "isAccessibleForFree": true,
           "license": "https://www.gnu.org/licenses/agpl-3.0.html",
           "author": { "@id": "https://solpbc.org/#organization" },
           "publisher": { "@id": "https://solpbc.org/#organization" },
@@ -59,11 +70,6 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/tokens-dark.css">
-    <link rel="stylesheet" href="/static/site.css">
-    <link rel="preload" href="/static/Comfortaa-Variable.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/static/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { color: var(--ink); font-family: var(--font-body); font-size: 18px; line-height: 1.55; }
@@ -80,24 +86,47 @@
         .more { margin-top: 14px; }
         .note { margin-top: 12px; font-size: 15px; color: var(--ink-soft); }
 
-        /* hero: on the ground in light (ink clears AA over every light ground and the
-           sun); on the container in dark, where text never sits on the sun */
-        .hero .band-inner { padding: clamp(26px, 5vw, 64px) 4px clamp(24px, 5vw, 56px); }
+        /* hero: claim and proof as one unit, in one container in both appearances
+           (text never sits on the sun, and the hero's left edge lines up with every band) */
+        .hero .band-inner { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "title card" "lede card" "actions card" "spec card"; column-gap: clamp(20px, 3.5vw, 44px); align-items: start; align-content: center; }
+        .hero h1 { grid-area: title; }
+        .hero .lede { grid-area: lede; }
+        .hero .actions { grid-area: actions; }
+        .hero .spec { grid-area: spec; }
+        .hero .answer { grid-area: card; align-self: center; }
         .hero .lede { margin-top: 16px; max-width: 34em; }
         .hero .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
         .hero .spec { margin-top: 16px; }
-        @media (prefers-color-scheme: dark) {
-            .hero { background: var(--glass); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid var(--glass-line); border-radius: 20px; box-shadow: var(--glass-shadow); }
-            .hero .band-inner { padding-left: clamp(22px, 4vw, 48px); padding-right: clamp(22px, 4vw, 48px); }
+        .answer { padding: 18px 20px; border-radius: 14px; border: 1px solid var(--hairline-2); background: var(--cream-bright); font-family: var(--font-body); }
+        .answer .answer-label { display: inline-block; font-size: 13px; font-weight: 600; color: var(--ink); background: var(--orange-wash); border-radius: 999px; padding: 3px 10px; }
+        .answer dl { margin-top: 12px; }
+        .answer dt { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+        .answer dd { font-size: 16px; line-height: 1.5; color: var(--ink); }
+        .answer dd + dt { margin-top: 10px; }
+        .answer .answer-source { margin-top: 12px; font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
+        .answer .btn-text { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; font-size: 16px; }
+        /* narrower than two columns: the proof comes straight after the claim, so the
+           two read as one unit in the first screen (the header keeps get started in view) */
+        @media (max-width: 1023px) {
+            .hero .band-inner { grid-template-columns: 1fr; grid-template-areas: "title" "card" "lede" "actions" "spec"; }
+            .hero .answer { margin-top: 18px; }
         }
         @media (max-width: 640px) {
             body { font-size: 17px; }
-            .hero .band-inner { padding: 22px 4px; }
-            .hero .lede { margin-top: 12px; }
-            .hero .actions { margin-top: 18px; flex-direction: column; align-items: stretch; gap: 8px; }
-            .hero .spec { margin-top: 12px; font-size: 14px; }
+            .hero .band-inner { padding: 20px 18px; }
+            .hero .answer { margin-top: 14px; }
+            .hero h1 { text-wrap: balance; }
+            .hero .lede { margin-top: 10px; font-size: 17px; }
+            .hero .actions { margin-top: 14px; flex-direction: column; align-items: stretch; gap: 8px; }
+            .hero .spec { margin-top: 10px; font-size: 14px; }
+            .answer { padding: 14px 16px; }
+            .answer dd { font-size: 15px; }
+            .answer .answer-source { margin-top: 8px; font-size: 13px; }
         }
-        @media (max-width: 640px) and (prefers-color-scheme: dark) { .hero .band-inner { padding: 22px 20px; } }
+        @media (max-width: 360px) {
+            .hero h1 { font-size: 30px; }
+            .answer dd + dt { margin-top: 6px; }
+        }
 
         .product { margin: 8px 0 22px; }
         .frame { border-radius: 14px; overflow: hidden; border: 1px solid var(--hairline-2); background: var(--cream-bright); box-shadow: 0 18px 50px rgb(90 60 20 / 0.12); }
@@ -106,13 +135,8 @@
         .frame-bar .url { margin-left: 10px; font-size: 13px; color: var(--ink-soft); background: var(--cream-bright); border-radius: 6px; padding: 3px 10px; }
         .frame-bar .demo-tag { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink); background: var(--orange-wash); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
         .frame img { display: block; width: 100%; height: auto; }
-        .product figcaption, .agent-result figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); }
-        .agent-result { margin-top: 22px; padding: 18px 20px; border-radius: 14px; border: 1px solid var(--hairline); background: var(--cream-bright); }
-        .agent-result .tag { display: inline-block; font-size: 12px; font-weight: 600; background: var(--orange-wash); border-radius: 999px; padding: 3px 10px; margin-bottom: 10px; }
-        .agent-result blockquote p { font-size: 17px; color: var(--ink); }
-        .agent-result blockquote .q { font-weight: 600; }
+        .product figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); }
         @media (max-width: 760px) {
-            .frame img { aspect-ratio: 390 / 560; object-fit: cover; object-position: top; }
             .frame-bar i { display: none; }
             .frame-bar .url { margin-left: 0; white-space: nowrap; }
             .frame-bar .demo-tag { font-size: 11px; padding: 3px 8px; }
@@ -158,7 +182,7 @@
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
             <div class="bar glass">
-                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
                     <a href="/install#agents">connect your agent</a>
@@ -183,15 +207,25 @@
 
         <main id="main" tabindex="-1">
 
-            <section class="band wrap hero" aria-labelledby="hero-title">
+            <section class="band wrap glass hero" aria-labelledby="hero-title">
                 <div class="band-inner">
-                    <h1 id="hero-title">a memory your agents can work from.</h1>
-                    <p class="lede">the solstone app takes in what you share with it, from your screen and your audio to the places you go and your terminal. all of it goes into your journal, on a computer you own, and the agents you choose work from it.</p>
-                    <div class="actions">
-                        <a class="btn btn-primary" href="/install">get started</a>
-                        <a class="btn btn-secondary" href="/install#agents">how your agents read it&nbsp;→</a>
-                    </div>
-                    <p class="spec">free and open source · your journal lives on an M1-or-newer mac on macos 15 or later, or a linux computer · phones pair with it</p>
+                        <h1 id="hero-title">a memory your agents can work from.</h1>
+                        <p class="lede">the solstone app takes in what you share with it, from your screen and your audio to the places you go and your terminal. all of it goes into your journal, on a computer you own, and the agents you choose work from it.</p>
+                        <div class="actions">
+                            <a class="btn btn-primary" href="/install">get started</a>
+                        </div>
+                        <p class="spec">free and open source · your journal lives on an Apple silicon mac, a windows PC or a linux computer · phones pair with it</p>
+                    <figure class="answer" aria-labelledby="answer-label">
+                        <figcaption><span class="answer-label" id="answer-label">demo output</span></figcaption>
+                        <dl>
+                            <dt>asked</dt>
+                            <dd>What did Paris Duke ask for, and how did the versioning rule change during the week?</dd>
+                            <dt>answered</dt>
+                            <dd>Paris Duke from Ducal Freight asked for three things, and the versioning rule went from "both sides must approve every change" to "silence for 48 hours counts as approval."</dd>
+                        </dl>
+                        <p class="answer-source">the answer came from Claude Code, reading the demo journal on the same computer. this is the opening of its answer, as it came back.</p>
+                        <a class="btn-text" href="/install#agents">how your agents read it →</a>
+                    </figure>
                 </div>
             </section>
 
@@ -202,23 +236,23 @@
                         <div class="frame">
                             <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span class="url">your journal</span><span class="demo-tag">demo journal · journal 2.0.34</span></div>
                             <picture>
-                                <source media="(max-width: 760px) and (prefers-color-scheme: dark)" srcset="/static/demo/week-dark-phone-780.webp">
-                                <source media="(max-width: 760px)" srcset="/static/demo/week-light-phone-780.webp">
-                                <source media="(prefers-color-scheme: dark)" srcset="/static/demo/week-dark-1440.webp 1440w, /static/demo/week-dark-2880.webp 2880w" sizes="(max-width: 1120px) 92vw, 1040px">
-                                <img src="/static/demo/week-light-1440.webp" srcset="/static/demo/week-light-1440.webp 1440w, /static/demo/week-light-2880.webp 2880w" sizes="(max-width: 1120px) 92vw, 1040px" width="1440" height="900" loading="lazy" decoding="async" alt="a week in a demo journal: a row of days from sunday 27 to saturday 3, with a memory from monday to friday. the first reads: drafted the first 'Schema Bridge: draft 1' specification outlining core v1 inspection record schema fields including site identifiers, photos, findings, and signatures. each memory says it came from the next morning's briefing.">
+                                <source media="(max-width: 760px) and (prefers-color-scheme: dark)" srcset="/static/demo/week-eve-dark-phone-654.webp?v=d2ef1a2e73">
+                                <source media="(max-width: 760px)" srcset="/static/demo/week-eve-light-phone-654.webp?v=646defdc76">
+                                <source media="(prefers-color-scheme: dark)" srcset="/static/demo/week-eve-dark-1000.webp?v=efe0469b8a 1000w, /static/demo/week-eve-dark-2000.webp?v=824dd62f3f 2000w" sizes="(max-width: 1120px) 92vw, 1040px">
+                                <img src="/static/demo/week-eve-light-1000.webp?v=8561701ad6" srcset="/static/demo/week-eve-light-1000.webp?v=8561701ad6 1000w, /static/demo/week-eve-light-2000.webp?v=e7ba6ea64d 2000w" sizes="(max-width: 1120px) 92vw, 1040px" width="1000" height="740" loading="lazy" decoding="async" alt="a week in a demo journal: a row of days from sunday 27 to saturday 3, with a memory from monday to friday. the first reads: drafted the first 'Schema Bridge: draft 1' specification outlining core v1 inspection record schema fields including site identifiers, photos, findings, and signatures. each memory says it came from the next morning's briefing.">
                             </picture>
                         </div>
-                        <figcaption>a demo journal's week, as journal 2.0.34 shows it: one memory from each day that has one, word for word from the next morning's briefing. everyone in it is invented.</figcaption>
+                        <figcaption>a demo journal's week, as journal 2.0.34 shows it: one memory from each day that has one, word for word from the next morning's briefing. everyone in it is invented. this demo's thinking ran on Google's gemini-3.5-flash; your own journal's thinking stays on your computer unless you choose otherwise.</figcaption>
                     </figure>
                     <ol class="nodes">
                         <li class="node">
                             <h3>what you share</h3>
-                            <p>your screen, your audio, the places you go, your terminal, and the files you import. you turn each one on, and you can pause it or turn it off.</p>
+                            <p>your screen, your audio, your camera, the places you go, your terminal, and the files you import. you turn each one on, and you can pause it or turn it off.</p>
                         </li>
                         <li class="arrow" aria-hidden="true">→</li>
                         <li class="node journal">
                             <h3>your journal</h3>
-                            <p>a folder on a mac or linux computer you own. it keeps the originals, transcribes and organizes them, and makes them searchable.</p>
+                            <p>a folder on a mac, windows or linux computer you own. it keeps the originals, transcribes and organizes them, and makes them searchable.</p>
                         </li>
                         <li class="arrow" aria-hidden="true">→</li>
                         <li class="node">
@@ -226,14 +260,6 @@
                             <p>the ones you choose, connected and managed in your journal's agents app.</p>
                         </li>
                     </ol>
-                    <figure class="agent-result">
-                        <p class="tag">an agent, reading the demo journal</p>
-                        <blockquote>
-                            <p class="q">What did Paris Duke ask for, and how did the versioning rule change during the week?</p>
-                            <p>Paris Duke from Ducal Freight asked for three things, and the versioning rule went from "both sides must approve every change" to "silence for 48 hours counts as approval."</p>
-                        </blockquote>
-                        <figcaption>Claude Code, connected to the demo journal on the same computer. the opening of its answer, as it came back.</figcaption>
-                    </figure>
                 </div>
             </section>
 
@@ -243,7 +269,7 @@
                         <h2 id="get-title">what you get</h2>
                         <ul class="list">
                             <li><h3>the people and projects in your days</h3><p>remembered across days, with the moments that connect them.</p></li>
-                            <li><h3>your meetings, with who said what</h3><p>transcribed on your computer by default, with the commitments that came up in them.</p></li>
+                            <li><h3>your meetings, transcribed</h3><p>on your computer by default, with the commitments that came up in them. once you confirm your voice, your journal names your own lines from then on.</p></li>
                             <li><h3>a briefing each morning</h3><p>your day ahead, written from your own material.</p></li>
                             <li><h3>search across all of it</h3><p>from the command line, or from your agents.</p></li>
                         </ul>
@@ -252,7 +278,7 @@
                         <h2>what your agents get</h2>
                         <p>the agents you already use can work from your journal. you choose which ones.</p>
                         <ul class="list">
-                            <li><h3>on the same computer</h3><p>a solstone skill for Claude Code, Codex and Gemini CLI, and a local connection for any agent that speaks MCP.</p></li>
+                            <li><h3>on the same computer</h3><p>a local connection for any agent that speaks MCP. on linux, your journal also adds a solstone skill for Claude Code, Codex and Gemini CLI.</p></li>
                             <li><h3>on your wifi or VPN</h3><p>pair an agent with a code from your journal's agents app.</p></li>
                             <li><h3>from anywhere</h3><p>through a tunnel of your own, or through solstone.me. some free tunnels decrypt your traffic to move it, and whoever runs one can read what your agent reads and reuse its key to reach your journal.</p></li>
                         </ul>
@@ -266,7 +292,7 @@
                 <div class="band-inner prose">
                     <h2 id="yours-title">yours, by structure</h2>
                     <p>your journal keeps the originals in open formats, in a folder on your own disk. you can back it up, hand it down, and take it anywhere.</p>
-                    <p>sol pbc can't sell or license your data, even anonymized or aggregated, and can't use it for advertising or profiling. that's written into our <a href="https://solpbc.org/articles">articles of incorporation</a>, and it can't be amended without the personal signature of our founder, jer miller. after him, the language can only get stronger, never weaker.</p>
+                    <p>sol pbc can't sell or license your data, even anonymized or aggregated, and can't use it for targeted advertising or behavioral profiling. that's written into our <a href="https://solpbc.org/articles">articles of incorporation</a>, and it can't be amended without the personal signature of our founder, jer miller. after him, the language can only get stronger, never weaker.</p>
                     <p>there's no telemetry, no analytics vendor, and no behavioral tracking. the only call solstone makes on its own is a check for newer versions, and it sends nothing about you or your device. <a href="https://solpbc.org/privacy">the privacy policy</a></p>
                 </div>
             </section>
@@ -282,7 +308,7 @@
                     <h3 class="addons-title">optional services</h3>
                     <p class="prose">sol pbc runs a few services, if you want them. each one has a free way to do it yourself that we fully support, there's no lock-in, and you never have to pay us.</p>
                     <ul class="services">
-                        <li><h4>private network <span>$20/yr</span></h4><p>reach your journal from your phone, from anywhere.</p><p class="byo"><strong>or your own:</strong> your wifi, your own VPN, or a relay you run.</p></li>
+                        <li><h4>private network <span>$20/yr</span></h4><p>reach your journal from your phone, from anywhere.</p><p class="byo"><strong>or your own:</strong> your wifi, or your own VPN.</p></li>
                         <li><h4>encrypted backup <span>$48/yr</span></h4><p>a copy of your journal, encrypted before it leaves, that only you can read.</p><p class="byo"><strong>or your own:</strong> any storage bucket you choose.</p></li>
                         <li><h4>solstone.me <span>$5/yr</span></h4><p>an address for your journal, so an agent you already use can reach it.</p><p class="byo"><strong>or your own:</strong> a tunnel that only passes the bytes through.</p></li>
                         <li><h4>confidential processing <span>scouts</span></h4><p>thinking off your device, on confidential hardware sol pbc runs. available to approved scouts.</p><p class="byo"><strong>or your own:</strong> a model on your computer, the default, or your own provider.</p></li>
@@ -292,7 +318,7 @@
             </section>
 
             <div class="notice-wrap">
-                <p class="early-days"><span class="stage-label">early days.</span> on a mac and on your phone, solstone installs like any app. on linux, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
+                <p class="early-days"><span class="stage-label">early days.</span> on a mac, on windows and on your phone, solstone installs like any app. on linux, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
             </div>
         </main>
 
@@ -301,6 +327,7 @@
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
+                    <a href="https://services.solstone.app">services</a>
                     <a href="https://solpbc.org/privacy">privacy</a>
                     <a href="/releases">releases</a>
                     <a href="https://trust.solstone.app">trust</a>
@@ -311,6 +338,7 @@
             </div>
         </footer>
     </div>
-    <script src="/static/sunarc.js" defer></script>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=d677dfd20e" defer></script>
 </body>
 </html>

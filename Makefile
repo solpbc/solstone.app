@@ -1,8 +1,9 @@
-.PHONY: deploy dev install sitemap sunarc publish-install-sh check-install-sh-served build-install-sh
+.PHONY: deploy dev install sitemap sunarc stamp publish-install-sh check-install-sh-served build-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
 deploy: sitemap sunarc
+	node scripts/stamp-assets.mjs --check
 	wrangler deploy
 
 dev:
@@ -15,6 +16,12 @@ sitemap:
 # engine, so the two surfaces run one implementation.
 sunarc:
 	node scripts/gen-sunarc.mjs
+
+# Every /static/ reference carries its file's content hash, so /static/* is
+# cached as immutable. Run after changing anything under public/static, then
+# commit the stamped pages; `make deploy` refuses a stale stamp.
+stamp:
+	node scripts/stamp-assets.mjs
 
 install:
 	@echo "solstone.app is a static deploy — no install step. use 'make deploy' to ship."

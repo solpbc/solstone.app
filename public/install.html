@@ -9,17 +9,23 @@
     <meta property="og:description" content="get started with solstone. the solstone app takes in what you share with it, and all of it goes into your journal, the memory. your journal is always private, only yours.">
     <meta property="og:url" content="https://solstone.app/install">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://solstone.app/static/share-card.png">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="solstone">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="https://solstone.app/install">
-    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/tokens-dark.css">
-    <link rel="stylesheet" href="/static/site.css">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
@@ -37,11 +43,6 @@
         .step-no { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--orange-wash); font-weight: 700; color: var(--ink); margin-bottom: 10px; }
         .step-no + p { margin-top: 0; }
 
-        .intro .band-inner { padding-left: 4px; padding-right: 4px; }
-        @media (prefers-color-scheme: dark) {
-            .intro { background: var(--glass); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid var(--glass-line); border-radius: 20px; box-shadow: var(--glass-shadow); }
-            .intro .band-inner { padding-left: clamp(22px, 4vw, 44px); padding-right: clamp(22px, 4vw, 44px); }
-        }
         .overview { display: grid; grid-template-columns: 1fr 2rem 1fr; align-items: stretch; margin-top: 24px; max-width: 760px; }
         .overview-part { padding: 16px 18px; background: var(--cream-bright); border: 1px solid var(--hairline); border-radius: 14px; }
         .overview-part.journal { background: var(--orange-wash); }
@@ -83,6 +84,8 @@
 
         /* the two branches: without JavaScript both show, labelled; with it, the chosen one */
         .branch-start [data-branch="connect"], .branch-connect [data-branch="start"] { display: none; }
+        .agent-steps { margin: 12px 0 14px 1.3rem; }
+        .agent-steps li + li { margin-top: 8px; }
 
         .asks { display: grid; grid-template-columns: max-content 1fr; gap: 12px 24px; margin: 16px 0; max-width: 820px; }
         .asks dt { font-weight: 600; }
@@ -109,7 +112,7 @@
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
             <div class="bar glass">
-                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
                     <a href="/install#agents">connect your agent</a>
@@ -133,7 +136,7 @@
         </header>
 
         <main id="main" tabindex="-1">
-            <section class="band wrap intro" aria-labelledby="page-title">
+            <section class="band wrap glass intro" aria-labelledby="page-title">
                 <div class="band-inner">
                     <h1 id="page-title">get started</h1>
                     <p class="lede">what you share with the solstone app goes into your journal, on a computer you own. set up the journal first, then add the solstone app on each device you want to share from.</p>
@@ -172,17 +175,21 @@
 
                     <section class="platform-panel" id="macos" aria-labelledby="macos-heading">
                         <h3 id="macos-heading">on your mac</h3>
-                        <p class="requirements">an Apple Silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
+                        <p class="requirements">an Apple silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
                         <ol class="steps">
                             <li data-branch="start">
+                                <h4>get both mac apps</h4>
+                                <p>one download has the journal app and the solstone app. drag both to Applications.</p>
+                                <div class="actions"><a class="btn btn-primary" href="/download/mac">get both mac apps</a></div>
+                            </li>
+                            <li data-branch="start">
                                 <h4>create your journal first</h4>
-                                <p>install and open the journal app. choose where your journal lives, and lock in its mark: two shapes and two words that are your journal's own, so you can always tell which journal is yours. then choose <strong>open your journal</strong> to read it in your browser.</p>
-                                <div class="actions"><a class="btn btn-primary" href="/download/journal">get the journal app</a></div>
+                                <p>open the journal app. choose where your journal lives, and lock in its mark: two shapes and two words that are your journal's own, so you can always tell which journal is yours. then choose <strong>open your journal</strong> to read it in your browser.</p>
                             </li>
                             <li id="mac-app">
                                 <h4>connect the solstone app</h4>
-                                <p>install and open the solstone app. in settings, choose <strong>journal</strong> to connect. for a journal on your mac, confirm the one it finds. follow the prompts to choose what you share.</p>
-                                <div class="actions"><a class="btn btn-primary" href="/download/macos">get the solstone app</a></div>
+                                <p><span data-branch="connect">install and open the solstone app.</span><span data-branch="start">open the solstone app.</span> in settings, choose <strong>journal</strong> to connect. for a journal on your mac, confirm the one it finds. follow the prompts to choose what you share.</p>
+                                <div class="actions" data-branch="connect"><a class="btn btn-primary" href="/download/macos">get the solstone app</a></div>
                             </li>
                         </ol>
                         <p class="ours"><strong>check it's ours.</strong> both mac apps are signed by sol pbc and notarized by Apple. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
@@ -234,13 +241,8 @@
                         <ol class="steps">
                             <li data-branch="start">
                                 <h4>set up your journal</h4>
-                                <p>download and run the journal installer.</p>
+                                <p>download and run the journal installer. then open <strong>journal</strong> from the Start menu: it sets up your journal and shows its mark, and it's where you start or stop your journal and manage updates and paired devices.</p>
                                 <div class="actions"><a class="btn btn-primary" href="/download/journal/windows">get the journal for windows</a></div>
-                                <p>then open a new terminal window and run:</p>
-                                <pre id="windows-commands">solstone journal setup</pre>
-                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="windows-commands" hidden>copy command</button></div>
-                                <p class="copy-message" role="status" id="windows-commands-status"></p>
-                                <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
                             </li>
                             <li id="windows-app">
                                 <h4>connect the solstone app</h4>
@@ -254,7 +256,7 @@
                     <section class="platform-panel" id="ios" aria-labelledby="ios-heading" data-branch="connect">
                         <h3 id="ios-heading">on your iphone or ipad</h3>
                         <p class="requirements">ios or ipados 26 or later. free on the App Store, where it's listed as solstone mobile.</p>
-                        <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
+                        <p>connect the app to a journal on your mac, windows or linux computer. your journal stays on that computer.</p>
                         <div class="actions"><a class="btn btn-primary" href="https://apps.apple.com/app/id6776850664">get it on the App Store</a></div>
                         <p class="ours"><strong>check it's ours.</strong> the App Store lists sol pbc as the developer.</p>
                     </section>
@@ -262,14 +264,14 @@
                     <section class="platform-panel" id="android" aria-labelledby="android-heading" data-branch="connect">
                         <h3 id="android-heading">on your android phone</h3>
                         <p class="requirements">android 8.0 or later. free on Google Play.</p>
-                        <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer. with a journal on windows, <a href="/download/journal/windows">see what pairs with it</a>.</p>
+                        <p>connect the app to a journal on your mac, windows or linux computer. your journal stays on that computer.</p>
                         <div class="actions"><a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">get it on Google Play</a><a class="btn-text" href="/download/android">no Google Play? get it from us →</a></div>
                         <p class="ours"><strong>check it's ours.</strong> Google Play lists sol pbc as the developer. getting it from us instead? <a href="/download/android#check">check the download yourself</a>.</p>
                     </section>
 
                     <section class="platform-panel" id="tmux" aria-labelledby="tmux-heading" data-branch="connect">
                         <h3 id="tmux-heading">from your terminal</h3>
-                        <p class="requirements">for tmux on an Apple Silicon mac (M1 or newer), or on x86_64 (Intel or AMD) or arm64 linux, with a journal already set up.</p>
+                        <p class="requirements">for tmux on an Apple silicon mac (M1 or newer), or on x86_64 (Intel or AMD) or arm64 linux, with a journal already set up.</p>
                         <p>solstone-tmux brings what you share from your terminal sessions into your journal. it can run alongside the desktop app.</p>
                         <div class="actions"><a class="btn btn-primary" href="https://github.com/solpbc/solstone-tmux/blob/main/INSTALL.md">set up solstone-tmux</a></div>
                         <p class="ours"><strong>check it's ours.</strong> its setup guide has you verify each download with minisign before you install it.</p>
@@ -299,9 +301,9 @@
                         <dt>linux</dt>
                         <dd>your desktop asks which screen to share when you turn on your screen as a source.</dd>
                         <dt>windows</dt>
-                        <dd>while our signing reputation builds, windows may warn that it couldn't verify the solstone app because it isn't commonly downloaded. the publisher it shows is sol pbc. after that, you choose what you share inside the solstone app.</dd>
+                        <dd>while our signing reputation builds, windows may warn that it couldn't verify the solstone app because it isn't commonly downloaded. the publisher it shows is sol pbc. after that, you choose what you share inside the solstone app. when you first open <strong>network</strong> in your journal to pair a device, windows asks whether to let it on your network; choose allow, so your devices can reach it.</dd>
                         <dt>iphone and ipad</dt>
-                        <dd>the microphone and your location, each when you turn on the source that needs it; the camera, to scan your journal's pairing code; your local network, to reach your journal; and notifications, if you turn them on.</dd>
+                        <dd>the microphone and your location, each when you turn on the source that needs it; the camera, to scan your journal's pairing code; your local network, to reach your journal; and notifications, if you turn them on. the app asks for your precise location; you can choose approximate when it asks, or later in settings. your screen goes into your journal only while you broadcast it: you start it from the app, iphone shows its own screen-broadcast sheet, and you stop it there or from the red bar at the top of your screen.</dd>
                         <dt>android</dt>
                         <dd>the microphone and your location, each when you turn on the source that needs it; the camera, to scan your journal's pairing code or when you turn it on as a source; and notifications the first time you start sharing.</dd>
                     </dl>
@@ -331,8 +333,20 @@
                     <p class="step-no" aria-hidden="true">4</p>
                     <h2 id="agents-heading">connect your agent</h2>
                     <p>the agents you already use can work from your journal. you choose which ones.</p>
-            <h3>on the same computer</h3>
-            <p>on linux, setting up your journal adds a solstone skill to Claude Code, Codex and Gemini CLI if they're installed. from then on, an agent in any project can search your journal, look up a person, or read a transcript. and any agent that speaks MCP can connect to your journal from the same computer. it gets read-only tools: search, read, and look up people and transcripts. it can't add, change, or delete anything.</p>
+                    <h3>on the same computer</h3>
+                    <p>any agent that speaks MCP can connect to your journal from the same computer. through this connection, your agent can search and read your journal and keep notes of its own there. it can't add, change, or delete anything else.</p>
+                    <ol class="agent-steps">
+                        <li>in your journal, open <strong>agents</strong>. on a mac or on windows it's also in the journal app, and on the journal's computer it's at <a href="http://localhost:5015/app/agents/">localhost:5015/app/agents</a>.</li>
+                        <li>choose <strong>connect an agent</strong>, then <strong>on this computer</strong>, then <strong>make a pairing code</strong>. the code works once and expires after 10 minutes.</li>
+                        <li>add your journal to your agent with the line the agents app shows for it. on every computer, that line points your agent at <code>http://127.0.0.1:7659/mcp</code>.</li>
+                        <li>your browser opens your journal's page. choose what the agent may see, enter the code, and connect.</li>
+                    </ol>
+                    <p><strong>on a mac, with Claude Code</strong>, which we've tested end to end, the line is:</p>
+                    <pre id="claude-mcp">claude mcp add --transport http journal "http://127.0.0.1:7659/mcp"</pre>
+                    <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="claude-mcp" hidden>copy command</button></div>
+                    <p class="copy-message" role="status" id="claude-mcp-status"></p>
+                    <p>then type <code>/mcp</code> in Claude Code, choose <strong>journal</strong>, and authenticate.</p>
+                    <p><strong>on linux</strong>, setting up your journal also adds a solstone skill for Claude Code, Codex and Gemini CLI, whether or not they're installed yet, so an agent you install later already has it. <code>solstone skills list</code> shows it. with the skill, an agent in any project can search your journal, look up a person, or read a transcript.</p>
             <h3>on your wifi or VPN</h3>
             <p>turn it on in your journal's agents app. an agent pairs with a code from your journal, and it only works on the route it paired through.</p>
             <h3>from anywhere</h3>
@@ -346,7 +360,7 @@
                 <div class="band-inner prose">
                     <p class="step-no" aria-hidden="true">5</p>
                     <h2 id="phone-heading">pair a phone, if you like</h2>
-                    <p>your journal works from your computer alone, so you can skip this. to add your iphone, ipad or android phone, get the solstone app from its store, then pair it with your journal on your mac or linux computer: in your journal, open <strong>network</strong> and choose <strong>pair a device</strong>. with a journal on windows, <a href="/download/journal/windows">see what pairs with it</a>.</p>
+                    <p>your journal works from your computer alone, so you can skip this. to add your iphone, ipad or android phone, get the solstone app from its store, then pair it with your journal on your mac, windows or linux computer: in your journal, open <strong>network</strong> and choose <strong>pair a device</strong>.</p>
                     <p class="more"><a class="btn-text" href="/phone">solstone on your phone →</a></p>
                 </div>
             </section>
@@ -367,13 +381,14 @@
                     <h2 id="updating-heading">updating your journal</h2>
                     <p>update the journal on the computer that runs it. the solstone app and your journal update separately, so their version numbers can differ.</p>
                     <p><strong>on mac:</strong> open the journal app and choose <strong>updates</strong> in its sidebar. the solstone app has its own updates pane in settings. <a href="/download/journal#upgrading">manual journal update instructions</a>.</p>
-                    <p><strong>on windows or linux:</strong> follow the <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md#upgrading">journal upgrade guide</a> for your installation.</p>
+                    <p><strong>on windows:</strong> open <strong>journal</strong> from the Start menu and manage updates there.</p>
+                    <p><strong>on linux:</strong> follow the <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md#upgrading">journal upgrade guide</a>.</p>
                     <p>after updating, reopen your journal and check the version in its status details.</p>
                 </div>
             </section>
 
             <div class="notice-wrap">
-                <p class="early-days"><span class="stage-label">early days.</span> on a mac and on your phone, solstone installs like any app. on linux, and for the journal on windows, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
+                <p class="early-days"><span class="stage-label">early days.</span> on a mac, on windows and on your phone, solstone installs like any app. on linux, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
             </div>
         </main>
 
@@ -382,6 +397,7 @@
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
+                    <a href="https://services.solstone.app">services</a>
                     <a href="https://solpbc.org/privacy">privacy</a>
                     <a href="/releases">releases</a>
                     <a href="https://trust.solstone.app">trust</a>
@@ -439,8 +455,27 @@
                 selectPlatform(panel.id);
                 return;
             }
+            if (!tabs.some(t => t.getAttribute('aria-selected') === 'true')) {
+                const guess = detectedPlatform();
+                setBranch(guess ? guess.branch : branch);
+                selectPlatform(guess ? guess.platform : 'macos');
+                return;
+            }
             setBranch(branch);
-            if (!tabs.some(t => t.getAttribute('aria-selected') === 'true')) selectPlatform('macos');
+        }
+        // A first guess at the visitor's platform, from the browser's own user agent. It only
+        // picks which tab opens first: every tab stays one tap away, and nothing is sent or
+        // stored. iPadOS Safari reports a Mac, so a touch "Mac" counts as an iPad, and a
+        // phone or tablet goes to connecting to a journal, which lives on a computer.
+        function detectedPlatform() {
+            const ua = navigator.userAgent;
+            const touchMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+            if (/iPhone|iPad|iPod/.test(ua) || touchMac) return { branch: 'connect', platform: 'ios' };
+            if (/Android/.test(ua)) return { branch: 'connect', platform: 'android' };
+            if (/Windows/.test(ua)) return { branch: 'start', platform: 'windows' };
+            if (/Macintosh/.test(ua)) return { branch: 'start', platform: 'macos' };
+            if (/Linux|X11|CrOS/.test(ua)) return { branch: 'start', platform: 'linux' };
+            return null;
         }
         fromHash();
         branchLinks.forEach(link => link.addEventListener('click', event => {
@@ -501,6 +536,7 @@
             });
         });
     </script>
-    <script src="/static/sunarc.js" defer></script>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=d677dfd20e" defer></script>
 </body>
 </html>

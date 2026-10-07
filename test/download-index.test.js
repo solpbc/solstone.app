@@ -384,13 +384,13 @@ test("the feeds are read at the same time, not one after another", async (t) => 
 test("the page template: no timer, no scripted navigation, nothing loaded from elsewhere", async () => {
   const html = await template();
   assert.doesNotMatch(html, /setTimeout|setInterval|location\.href\s*=|location\.assign|location\.replace|http-equiv="refresh"/i);
-  const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(([tag]) => tag);
-  assert.deepEqual(scripts, ['<script src="/static/sunarc.js" defer>']);
+  const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(([tag]) => tag.replace(/\?v=[0-9a-f]+/, ""));
+  assert.deepEqual(scripts, ['<script src="/static/site.js" defer>', '<script src="/static/sunarc.js" defer>']);
   for (const [, url] of html.matchAll(/<(?:link|script|img)\b[^>]*\b(?:href|src)="([^"]+)"/g)) {
     if (url.startsWith("https://solstone.app/")) continue; // canonical and og URLs name this site
     assert.ok(url.startsWith("/"), `${url} is loaded from another host`);
   }
-  for (const [, path] of html.matchAll(/(?:src|href)="(\/static\/[^"]+)"/g)) {
+  for (const [, path] of html.matchAll(/(?:src|href)="(\/static\/[^"?]+)(?:\?v=[0-9a-f]+)?"/g)) {
     await readFile(new URL(`../public${path}`, import.meta.url));
   }
 });

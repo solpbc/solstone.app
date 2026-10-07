@@ -5,22 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>download the solstone app for android</title>
     <meta name="description" content="the signed solstone app for android, straight from us, for a phone without Google Play. what android asks you before it will install it, how to check the file is ours, and every permission the app declares.">
-    <meta property="og:title" content="download solstone for android">
+    <meta property="og:title" content="download the solstone app for android">
     <meta property="og:description" content="the signed solstone app for android, straight from us, for a phone without Google Play. what android asks you before it will install it, how to check the file is ours, and every permission the app declares.">
     <meta property="og:url" content="https://solstone.app/download/android">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://solstone.app/static/share-card.png">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="solstone">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="https://solstone.app/download/android">
-    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/site.css">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
         a { color: var(--ink); text-underline-offset: 3px; }
         .band { margin-top: var(--band-gap); }
@@ -51,7 +57,7 @@
         @media (max-width: 560px) { td:first-child { width: 42%; } }
     </style>
 </head>
-<body class="sun">
+<body class="sun both">
     <div class="ground-sunrise" aria-hidden="true"></div>
     <div class="sunarc" id="sunarc" aria-hidden="true">
         <div class="sunarc-twilight"></div>
@@ -62,7 +68,7 @@
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
             <div class="bar glass">
-                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
                     <a href="/install#agents">connect your agent</a>
@@ -88,10 +94,10 @@
         <main id="main" tabindex="-1">
             <section class="band wrap glass" aria-labelledby="page-title">
                 <div class="band-inner">
-                    <h1 id="page-title">download solstone for android</h1>
+                    <h1 id="page-title">download the solstone app for android</h1>
                     <p class="lead">solstone is on <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">Google Play</a>. this is the other way in: the same app, signed by us, on our own server, for a phone without Google Play or for anyone who would rather not use it. it doesn't come from a store, so android treats it as an app from a source it does not recognize, and asks you to allow it, in the steps below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
                     <div class="primary-action">
-                        <a href="/download/android/latest" class="btn btn-primary" id="dl">download solstone for android</a>
+                        <a href="/download/android/latest" class="btn btn-primary btn-block-sm" id="dl">download the solstone app for android</a>
                         <a class="btn-text" href="#check">check the file is ours →</a>
                         <p class="file-line">{{VERSION_LINE}}</p>
                     </div>
@@ -229,7 +235,7 @@ sha256sum -c SHA256SUMS</code></pre>
             <p>that list is read out of the file you are about to download, not out of our source code. android merges in permissions from the libraries an app is built on, and the last two above arrive that way. read it yourself, if you have the android build tools:</p>
             <pre><code>aapt2 dump permissions {{APK_NAME}}</code></pre></div>
                     </details>
-                    <p>there is no analytics or tracking code in this app. the source is linked below, and the build refuses the analytics and crash-reporting dependencies it names. what the app takes in goes to the journal you paired it with, on a computer you keep. reaching that journal from off your own network goes over the private network, and if that is the relay sol pbc runs rather than a network you run yourself, it passes encrypted bytes it cannot read. your journal is always private, only yours.</p>
+                    <p>there is no analytics or tracking code in this app. the source is linked below, and the build refuses the analytics and crash-reporting dependencies it names. what the app takes in goes to the journal you paired it with, on a computer you keep. reaching that journal from off your own network goes over the private network, and if that is the relay sol pbc runs rather than a network you run yourself, it passes encrypted bytes it cannot read. sol pbc does see your devices' network addresses, when they connected, and how much passed. your journal is always private, only yours.</p>
                     <nav class="links" aria-label="more">
                 <a href="/releases/android">what's new in this version →</a>
                 <a href="https://github.com/solpbc/solstone-android">source code on GitHub →</a>
@@ -245,6 +251,7 @@ sha256sum -c SHA256SUMS</code></pre>
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
+                    <a href="https://services.solstone.app">services</a>
                     <a href="https://solpbc.org/privacy">privacy</a>
                     <a href="/releases">releases</a>
                     <a href="https://trust.solstone.app">trust</a>
@@ -255,6 +262,7 @@ sha256sum -c SHA256SUMS</code></pre>
             </div>
         </footer>
     </div>
-    <script src="/static/sunarc.js" defer></script>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=d677dfd20e" defer></script>
 </body>
 </html>

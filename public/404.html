@@ -4,118 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>page not found · solstone</title>
-    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/base.css">
-    <link rel="stylesheet" href="/static/site.css">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
     <style>
-        /* Comfortaa loads via tokens.css (linked above) — no per-page @font-face.
-           base.css supplies the shared sunrise ground (<body class="sunrise">) and
-           the footer spine; the rules below are this page's own layout. */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-family: var(--font-body);
-        }
-        h1 {
-            font-family: var(--font-display);
-            font-size: clamp(2rem, 5vw, 2.2rem);
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: lowercase;
-            color: var(--ink);
-            max-width: 90vw;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        .logo {
-            height: 40px;
-            margin-bottom: 2rem;
-        }
-        a {
-            text-decoration: none;
-        }
-        .message {
-            max-width: 500px;
-            width: 90vw;
-            font-size: 1rem;
-            line-height: 1.6;
-            color: var(--ink-soft);
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .links {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .links a {
-            display: block;
-            color: var(--ink-faint);
-            font-size: 0.95rem;
-            margin-bottom: 0.5rem;
-            transition: color 0.15s;
-        }
-        .links a:hover {
-            color: var(--orange-text-aa);
-            text-decoration: none;
-        }
-        footer {
-            margin-top: auto;
-            padding: 2rem 0;
-            font-family: var(--font-display);
-            font-size: 0.85rem;
-            color: var(--ink-faint);
-        }
-        footer a {
-            color: var(--ink-faint);
-        }
-        footer a:hover {
-            text-decoration: underline;
-        }
-        /* --- accessibility --- */
-        .skip-link {
-            position: absolute;
-            top: -3rem;
-            left: 0.5rem;
-            z-index: 1000;
-            background: var(--ink);
-            color: var(--ink-on-dark);
-            font-family: var(--font-display);
-            font-size: 0.9rem;
-            padding: 0.6rem 1rem;
-            border-radius: 0 0 6px 6px;
-            text-decoration: none;
-            transition: top 0.15s;
-        }
-        .skip-link:focus {
-            top: 0;
-        }
-        :focus-visible {
-            outline: 2px solid var(--focus);
-            outline-offset: 2px;
-        }
-        main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-        main:focus {
-            outline: none;
-        }
+        .links { flex-direction: column; gap: 0; }
     </style>
 </head>
-<body class="sunrise sun">
+<body class="sun both">
     <div class="ground-sunrise" aria-hidden="true"></div>
     <div class="sunarc" id="sunarc" aria-hidden="true">
         <div class="sunarc-twilight"></div>
@@ -126,7 +30,7 @@
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
             <div class="bar glass">
-                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
                     <a href="/install#agents">connect your agent</a>
@@ -148,22 +52,27 @@
                 </div>
             </div>
         </header>
-    <main id="main" tabindex="-1">
-        <h1>page not found.</h1>
-        <p class="message">this page doesn't exist. here are some places that do:</p>
-        <nav class="links" aria-label="helpful links">
-            <a href="/install">get started &rarr;</a>
-            <a href="/download">install solstone on your devices &rarr;</a>
-            <a href="https://support.solstone.app">support &rarr;</a>
-            <a href="https://github.com/solpbc/solstone-journal">source code on GitHub &rarr;</a>
-            <a href="/">back to solstone.app &rarr;</a>
-        </nav>
-    </main>
+        <main id="main" tabindex="-1">
+            <section class="band wrap glass" aria-labelledby="page-title">
+                <div class="band-inner prose-col">
+                    <h1 id="page-title">page not found.</h1>
+                    <p class="lead">this page doesn't exist. here are some places that do:</p>
+                    <nav class="links" aria-label="helpful links">
+                        <a href="/install">get started →</a>
+                        <a href="/download">every download →</a>
+                        <a href="https://support.solstone.app">support →</a>
+                        <a href="https://github.com/solpbc/solstone-journal">source code on GitHub →</a>
+                        <a href="/">back to solstone.app →</a>
+                    </nav>
+                </div>
+            </section>
+        </main>
         <footer class="site-footer">
             <div class="glass">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
+                    <a href="https://services.solstone.app">services</a>
                     <a href="https://solpbc.org/privacy">privacy</a>
                     <a href="/releases">releases</a>
                     <a href="https://trust.solstone.app">trust</a>
@@ -174,6 +83,7 @@
             </div>
         </footer>
     </div>
-    <script src="/static/sunarc.js" defer></script>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=d677dfd20e" defer></script>
 </body>
 </html>

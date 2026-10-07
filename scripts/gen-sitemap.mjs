@@ -27,6 +27,7 @@ const PAGES = [
   ["/install", "public/install.html"],
   ["/download", "public/download.html"],
   ["/download/mac", "public/download-mac.html"],
+  ["/download/journal/windows", "public/download-journal-windows.html"],
   ["/download/android", "public/download-android.html"],
   ["/phone", "public/phone.html"],
   ["/releases", "releases.js"],
@@ -41,8 +42,8 @@ const PAGES = [
 // The single-app download pages (/download/macos, /download/journal,
 // /download/windows) are deliberately absent: they are share targets for one
 // binary, and /download and /download/mac are the pages a search should land
-// on. /download/journal/windows is absent too while the windows journal stays
-// unpromoted.
+// on. /download/journal/windows is listed: it is the windows journal's own
+// page, the one place its setup is described.
 //
 // The icons are part of every page's crawl-facing presentation, so an icon
 // change bumps every page's lastmod (the site runbook's rule). Stylesheets and

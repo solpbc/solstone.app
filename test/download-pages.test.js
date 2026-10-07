@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import worker from "../worker.js";
@@ -121,7 +123,14 @@ test("an unreadable origin renders the page without a size, uncached", async (t)
 
 test("the sitemap leaves out the single-app download pages", async () => {
   const source = await readFile(new URL("../scripts/gen-sitemap.mjs", import.meta.url), "utf8");
-  for (const path of ["/download/macos", "/download/journal", "/download/windows", "/download/journal/windows"]) {
+  for (const path of ["/download/macos", "/download/journal", "/download/windows"]) {
     assert.doesNotMatch(source, new RegExp(`\\["${path.replaceAll("/", "\\/")}",`), path);
   }
+});
+
+test("every /static/ reference carries its file's current content stamp", () => {
+  // /static/* is cached as immutable, so a page that points at an old stamp would
+  // keep serving the old file. `make stamp` fixes it; `make deploy` checks it too.
+  const result = spawnSync(process.execPath, [fileURLToPath(new URL("../scripts/stamp-assets.mjs", import.meta.url)), "--check"], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
 });
