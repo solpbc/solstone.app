@@ -99,6 +99,24 @@
         }
         @media (max-width: 640px) and (prefers-color-scheme: dark) { .hero .band-inner { padding: 22px 20px; } }
 
+        .product { margin: 8px 0 22px; }
+        .frame { border-radius: 14px; overflow: hidden; border: 1px solid var(--hairline-2); background: var(--cream-bright); box-shadow: 0 18px 50px rgb(90 60 20 / 0.12); }
+        .frame-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--hairline); background: var(--cream); }
+        .frame-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--hairline-2); display: inline-block; }
+        .frame-bar .url { margin-left: 10px; font-size: 13px; color: var(--ink-soft); background: var(--cream-bright); border-radius: 6px; padding: 3px 10px; }
+        .frame-bar .demo-tag { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink); background: var(--orange-wash); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+        .frame img { display: block; width: 100%; height: auto; }
+        .product figcaption, .agent-result figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); }
+        .agent-result { margin-top: 22px; padding: 18px 20px; border-radius: 14px; border: 1px solid var(--hairline); background: var(--cream-bright); }
+        .agent-result .tag { display: inline-block; font-size: 12px; font-weight: 600; background: var(--orange-wash); border-radius: 999px; padding: 3px 10px; margin-bottom: 10px; }
+        .agent-result blockquote p { font-size: 17px; color: var(--ink); }
+        .agent-result blockquote .q { font-weight: 600; }
+        @media (max-width: 760px) {
+            .frame img { aspect-ratio: 390 / 560; object-fit: cover; object-position: top; }
+            .frame-bar i { display: none; }
+            .frame-bar .url { margin-left: 0; white-space: nowrap; }
+            .frame-bar .demo-tag { font-size: 11px; padding: 3px 8px; }
+        }
         .nodes { list-style: none; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: stretch; margin-top: 8px; }
         .node { padding: 16px 18px; border-radius: 14px; background: var(--cream-bright); border: 1px solid var(--hairline); }
         .node.journal { background: var(--orange-wash); }
@@ -180,6 +198,18 @@
             <section class="band wrap glass" id="how" aria-labelledby="how-title">
                 <div class="band-inner">
                     <h2 id="how-title">how it works</h2>
+                    <figure class="product">
+                        <div class="frame">
+                            <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span class="url">your journal</span><span class="demo-tag">demo journal · journal 2.0.34</span></div>
+                            <picture>
+                                <source media="(max-width: 760px) and (prefers-color-scheme: dark)" srcset="/static/demo/week-dark-phone-780.webp">
+                                <source media="(max-width: 760px)" srcset="/static/demo/week-light-phone-780.webp">
+                                <source media="(prefers-color-scheme: dark)" srcset="/static/demo/week-dark-1440.webp 1440w, /static/demo/week-dark-2880.webp 2880w" sizes="(max-width: 1120px) 92vw, 1040px">
+                                <img src="/static/demo/week-light-1440.webp" srcset="/static/demo/week-light-1440.webp 1440w, /static/demo/week-light-2880.webp 2880w" sizes="(max-width: 1120px) 92vw, 1040px" width="1440" height="900" loading="lazy" decoding="async" alt="a week in a demo journal: a row of days from sunday 27 to saturday 3, with a memory from monday to friday. the first reads: drafted the first 'Schema Bridge: draft 1' specification outlining core v1 inspection record schema fields including site identifiers, photos, findings, and signatures. each memory says it came from the next morning's briefing.">
+                            </picture>
+                        </div>
+                        <figcaption>a demo journal's week, as journal 2.0.34 shows it: one memory from each day that has one, word for word from the next morning's briefing. everyone in it is invented.</figcaption>
+                    </figure>
                     <ol class="nodes">
                         <li class="node">
                             <h3>what you share</h3>
@@ -196,6 +226,14 @@
                             <p>the ones you choose, connected and managed in your journal's agents app.</p>
                         </li>
                     </ol>
+                    <figure class="agent-result">
+                        <p class="tag">an agent, reading the demo journal</p>
+                        <blockquote>
+                            <p class="q">What did Paris Duke ask for, and how did the versioning rule change during the week?</p>
+                            <p>Paris Duke from Ducal Freight asked for three things, and the versioning rule went from "both sides must approve every change" to "silence for 48 hours counts as approval."</p>
+                        </blockquote>
+                        <figcaption>Claude Code, connected to the demo journal on the same computer. the opening of its answer, as it came back.</figcaption>
+                    </figure>
                 </div>
             </section>
 
