@@ -161,7 +161,7 @@ export const RELEASE_PAGE_CONFIGS = {
     pageTitle: "journal releases · solstone",
     ogTitle: "journal releases · solstone",
     metaDescription:
-      "what's new in the journal, in plain language. the journal is the memory. your journal lives on your device: never sold, never shared.",
+      "what's new in the journal, in plain language. the journal is the memory. your journal is always private, only yours.",
     ogUrl: "https://solstone.app/releases",
     canonicalUrl: "https://solstone.app/releases",
     stream: "journal",

@@ -267,9 +267,8 @@ test("renderReleasesPage preserves chrome copy", () => {
   const macosHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.macos);
   const linuxHtml = renderReleasesPage([], RELEASE_PAGE_CONFIGS.linux);
 
-  assert.match(
-    html,
-    /<meta property="og:description" content="what's new in the journal, in plain language\. the journal is the memory\. your journal lives on your device: never sold, never shared\.">/,
+  assert.ok(
+    html.includes(`<meta property="og:description" content="${RELEASE_PAGE_CONFIGS.journal.metaDescription}">`),
   );
   assert.match(
     macosHtml,

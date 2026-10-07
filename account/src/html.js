@@ -664,7 +664,7 @@ export function renderPrivateNetworkLanding() {
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>private network</h1>
 <p class="hero-tag">your private network</p>
-<p class="lead">reach your journal from your phone, your laptop, from anywhere: a private network only your own devices can enter, like a vpn dedicated to solstone. your journal never leaves home; your devices just reach it.</p>
+<p class="lead">reach your journal from your phone, your laptop, from anywhere: a private network only your own devices can enter, like a vpn dedicated to solstone.</p>
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_NET, 'your own network, always free', 'on the same wifi, or over your own vpn, your devices reach your journal directly. sol pbc is never in the path.')}
@@ -815,7 +815,7 @@ export function renderSmeLanding() {
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_GLOBE, 'an address for your journal', "sol pbc runs the solstone.me relay in between, so your agent can find your journal without you running anything of your own. it's off until you turn it on, and you can turn it off from the journal at any time.")}
-  ${beat(IC_VAULT, 'blind by construction', "your own machine holds the private key and ends the encryption, so the relay can't read a byte of what passes through it. sol pbc does see that an agent and your journal met, when, and how much passed.")}
+  ${beat(IC_VAULT, 'blind by construction', "your own machine holds the private key and ends the encryption, so the relay can't read a byte of what passes through it. sol pbc does see the network addresses your journal and the agent reached it from, that they met, when, and how much passed.")}
   ${beat(IC_NET, 'what an agent gets', "you choose what it may see: your whole journal, or only the facets you choose. through this connection, your agent can search and read your journal and keep notes of its own there. it can't add, change, or delete anything else.")}
   ${beat(IC_GLOBE, 'where you manage it', "your journal's agents app works with your own route or with solstone.me; solstone.me is the address, and the agents app is where you manage what connects.")}
 </div>
