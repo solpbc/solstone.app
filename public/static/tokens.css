@@ -118,3 +118,16 @@
 /* Breakpoints are documented here but live in @media (custom properties can't
  * be used in media queries). Mobile-first: every surface works at mobile before
  * desktop. Test widths: mobile 390 · tablet 768 · desktop 1280. */
+
+/* ── usage tokens added for the dark appearance and text over the sun arc ──
+ * --panel is the translucent container text sits in over the sun arc; every
+ * light text role clears AA over the worst-case ground + sun + glow.
+ * --ink-on-brand is the label on an orange or gold fill. It does not follow the
+ * dark appearance, where --ink turns cream (tokens-dark.css). */
+:root {
+  --panel: rgb(254 252 248 / 0.90);
+  --ink-on-brand: #1A1A1A;
+  --ink-on-danger: #FFFFFF;
+  --tone-1: #EFE4CF;
+  --tone-2: #E4D6BC;
+}

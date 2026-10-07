@@ -1,0 +1,84 @@
+/* ============================================================================
+ * sol pbc — web design tokens, the dark appearance (opt-in companion)
+ *
+ *   Source: the design system's token reference, § dark appearance
+ *   Load order:                   tokens.css, then this file, then the surface
+ *
+ * WHAT IT DOES. Loading this file is how a web surface says "I have a dark
+ * appearance". It declares `color-scheme: light dark` (the web platform's seam,
+ * which the sun arc reads to decide whether to draw its dark row) and, when the
+ * owner's system is dark, re-points the USAGE roles below at their dark values.
+ * The owner's setting picks it; nothing here reads the clock, and a surface
+ * never sets the appearance (sun-arc spec § 6, § 10).
+ *
+ * ⛔ DO NOT LOAD IT on a surface whose own CSS still hard-codes light colours:
+ *   its ink would turn cream on a cream card. Tokenize the surface first; this
+ *   file only flips values that the surface reads through var().
+ *
+ * WHAT DOES NOT MOVE. The identity inks (--gold, --orange) and the fixed
+ * text-on-brand ink (--ink-on-brand, defined in tokens.css) are the same in
+ * both appearances. Text on an orange or gold fill is --ink-on-brand, never
+ * --ink, because --ink turns cream here. --surface-dark / --ink-on-dark keep
+ * their values (an inverse chip stays ink-on-white).
+ *
+ * WHERE THE VALUES COME FROM. Every value is an OKLab mix of canon colours:
+ *   text        tile cream #FCF3E4 (sun-arc spec § 6: the text on the dark row)
+ *               mixed toward the lightest dark container — ink-soft 0.20, ink-faint 0.35
+ *   containers  the dark row's grounds (#392E26 day, #2E241C night, #281E17 true
+ *               dark) and ink #1A1A1A: paper = day→night 0.55, cream-bright =
+ *               night→ink 0.15, cream = true dark→ink 0.45 (elevation stays lighter)
+ *   lines       tile cream over cream-bright at 14 % / 20 %
+ *   orange text #F2A451, iOS's shipped dark orange (solstone-swift
+ *               `solOrangeAdaptive`); the AA orange tokens fail on dark
+ *   status inks the least-pale tint of each status hue (base mixed toward tile
+ *               cream) that clears 6.0:1 on paper — the watch's lifted-tint method
+ *   washes      cream-bright mixed 0.18 toward the family's base colour
+ *
+ * CONTRAST (WCAG, opaque fill):
+ *   on paper · cream-bright · cream     ink 13.0/14.0/15.3  ink-soft 8.5/9.2/10.0
+ *                                       ink-faint 6.0/6.4/7.0  orange text 7.0/7.5/8.2
+ *                                       danger 6.0 · success 6.0 · warn 6.1 (on paper)
+ *   own ink on its wash                 orange 5.6 · danger 5.8 · success 5.1 · warn 4.9
+ *   --ink-on-brand on --orange 7.08 · on --gold 11.55
+ *   --panel, worst case over ground + sun + halo + twilight glow:
+ *     light ink 15.9 · soft 7.0 · faint 5.3 · orange text 4.6
+ *     dark  ink 13.5 · soft 8.8 · faint 6.2 · orange text 7.2
+ * ========================================================================== */
+
+:root { color-scheme: light dark; }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* surfaces — elevation is lighter, as in light mode paper is the brightest */
+    --cream:        #221C19; /* page / recessed panel */
+    --cream-bright: #2B231C; /* card, input, elevated panel */
+    --paper:        #332820; /* grouped-list row, raised card */
+    --panel:        rgb(34 28 25 / 0.90); /* --cream at 90 %: text over the sun arc */
+
+    /* ink (text) — tile cream and two mixes of it */
+    --ink:             #FCF3E4;
+    --ink-soft:        #D0C6B8;
+    --ink-faint:       #B0A699;
+    --ink-soft-paper:  #D0C6B8; /* one dark ground family, so paper inks = warm inks */
+    --ink-faint-paper: #B0A699;
+
+    /* lines */
+    --hairline:   #484038;
+    --hairline-2: #514840;
+
+    /* orange text, focus, tint */
+    --orange-text-aa: #F2A451;
+    --orange-ink:     #F2A451;
+    --focus:          #F2A451;
+    --orange-wash:    #493524;
+
+    /* status — text inks lift, washes darken; the decoration bases stay */
+    --danger:       #D7998C;
+    --danger-wash:  #3F271F;
+    --ink-on-danger: #1A1A1A; /* the label on a --danger fill: 7.31:1 on #D7998C (white is 2.38) */
+    --success-ink:  #7AB58B;
+    --success-wash: #333729;
+    --warn-ink:     #CEA245;
+    --warn-wash:    #443622;
+  }
+}

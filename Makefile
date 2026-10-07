@@ -1,8 +1,8 @@
-.PHONY: deploy dev install sitemap publish-install-sh check-install-sh-served build-install-sh
+.PHONY: deploy dev install sitemap sunarc publish-install-sh check-install-sh-served build-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
-deploy: sitemap
+deploy: sitemap sunarc
 	wrangler deploy
 
 dev:
@@ -10,6 +10,11 @@ dev:
 
 sitemap:
 	node scripts/gen-sitemap.mjs
+
+# The marketing pages' sun-arc script is generated from the services portal's
+# engine, so the two surfaces run one implementation.
+sunarc:
+	node scripts/gen-sunarc.mjs
 
 install:
 	@echo "solstone.app is a static deploy — no install step. use 'make deploy' to ship."
