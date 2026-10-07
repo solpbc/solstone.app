@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>get started with solstone</title>
     <meta name="description" content="get started with solstone. the solstone app takes in what you share with it, and all of it goes into your journal, the memory. your journal is always private, only yours.">
+    <meta property="og:title" content="get started with solstone">
+    <meta property="og:description" content="get started with solstone. the solstone app takes in what you share with it, and all of it goes into your journal, the memory. your journal is always private, only yours.">
+    <meta property="og:url" content="https://solstone.app/install">
+    <meta property="og:type" content="website">
     <meta property="og:image" content="https://solstone.app/static/share-card.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -69,6 +73,8 @@
         .detail-body h3 { font-size: 1rem; color: var(--ink); margin: 1rem 0 .3rem; }
         .platform-request { margin: 1.25rem 0 0; font-size: .94rem; text-align: center; }
         .more { margin: 2.25rem auto 0; max-width: 700px; }
+        .more h3 { font-size: 1rem; color: var(--ink); margin: 1rem 0 .3rem; }
+        .more p + p { margin-top: .85rem; }
         .copy-message { font-size: .9rem; margin-top: .5rem; }
         .copy-message:empty { display: none; }
         @media (max-width: 540px) {
@@ -104,7 +110,7 @@
             </section>
         </div>
         <p class="overview-note">start on one computer. connect more devices to the same journal whenever you're ready.</p>
-        <p class="early-note"><strong>early days.</strong> solstone is open source and hands-on. expect rough edges; linux setup uses the terminal. <a href="https://support.solstone.app">we're here to help.</a></p>
+        <p class="early-note"><strong>early days.</strong> on a mac and on your phone, solstone installs like any app. on linux, and for the journal on windows, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
 
         <section class="setup" aria-labelledby="setup-heading">
             <h2 id="setup-heading">install on your device</h2>
@@ -120,12 +126,12 @@
 
             <section class="platform-panel" id="macos" aria-labelledby="macos-heading">
                 <h3 id="macos-heading">on your mac</h3>
-                <p class="requirements">an arm64 (Apple Silicon) mac and macos 15 or later required. Intel macs aren't supported.</p>
+                <p class="requirements">an Apple Silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
                 <p class="existing">already have a journal? <a href="#mac-app">just install the solstone app</a> and connect it to your existing journal.</p>
                 <ol class="steps">
                     <li>
                         <h4>create your journal first</h4>
-                        <p>install and open the journal app. choose a place for your journal. then choose <strong>open your journal</strong> to read it in your browser.</p>
+                        <p>install and open the journal app. choose where your journal lives, and lock in its mark: two shapes and two words that are your journal's own, so you can always tell which journal is yours. then choose <strong>open your journal</strong> to read it in your browser.</p>
                         <div class="actions"><a class="action" href="/download/journal">get the journal app</a></div>
                     </li>
                     <li id="mac-app">
@@ -186,7 +192,7 @@
                     <li>
                         <h4>set up your journal</h4>
                         <p>download and run the journal installer.</p>
-                        <div class="actions"><a class="action" href="/download/journal/windows/latest">get the journal for windows</a></div>
+                        <div class="actions"><a class="action" href="/download/journal/windows">get the journal for windows</a></div>
                         <p>then open a new terminal window and run:</p>
                         <pre id="windows-commands">solstone journal setup</pre>
                         <div class="actions"><button class="copy-btn" data-target="windows-commands" hidden>copy command</button></div>
@@ -207,7 +213,7 @@
                 <p class="requirements">ios or ipados 26 or later. free on the App Store, where it's listed as solstone mobile.</p>
                 <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
                 <div class="actions"><a class="action" href="https://apps.apple.com/app/id6776850664">get it on the App Store</a></div>
-                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
+                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a><a href="/phone">solstone on your phone</a></div>
             </section>
 
             <section class="platform-panel" id="android" aria-labelledby="android-heading">
@@ -215,12 +221,12 @@
                 <p class="requirements">android 8.0 or later. free on Google Play.</p>
                 <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
                 <div class="actions"><a class="action" href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">get it on Google Play</a><a class="action-alt" href="/download/android">no Google Play? get it from us</a></div>
-                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
+                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a><a href="/phone">solstone on your phone</a></div>
             </section>
 
             <section class="platform-panel" id="tmux" aria-labelledby="tmux-heading">
                 <h3 id="tmux-heading">from your terminal</h3>
-                <p class="requirements">for tmux on an arm64 (Apple Silicon) mac, or on x86_64 (Intel or AMD) or arm64 linux, with a journal already set up.</p>
+                <p class="requirements">for tmux on an Apple Silicon mac (M1 or newer), or on x86_64 (Intel or AMD) or arm64 linux, with a journal already set up.</p>
                 <p>solstone-tmux brings what you share from your terminal sessions into your journal. it can run alongside the desktop app.</p>
                 <div class="actions"><a class="action" href="https://github.com/solpbc/solstone-tmux/blob/main/INSTALL.md">set up solstone-tmux</a></div>
                 <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
@@ -238,6 +244,19 @@
         </section>
         <p class="platform-request">don't see your platform? <a href="https://support.solstone.app">tell us what you'd like supported.</a></p>
 
+        <section class="more" id="thinking" aria-labelledby="thinking-heading">
+            <h2 id="thinking-heading">where does the thinking happen?</h2>
+            <p>you choose during setup. your journal stays on your computer whichever you choose; what each choice sends, and to whom, is below.</p>
+            <p>on windows, the local model needs a compatible GPU, and confidential processing isn't available there.</p>
+            <h3>local, the default</h3>
+            <p>a model runs on your computer. setup checks that your machine can run it before anything downloads.</p>
+            <h3>your own model</h3>
+            <p>bring your own provider key (Claude, Gemini, or GPT), or use an OpenAI-compatible endpoint you run. your provider sees what your journal sends it for thinking, under its own terms, and you pay it directly. sol pbc is never in the path.</p>
+            <h3>confidential processing</h3>
+            <p>available to approved scouts. think off your device on confidential hardware sol pbc runs. no content is retained · no human reviews it · nothing is used to train. <a href="https://services.solstone.app/confidential-processing">how it works</a></p>
+            <p>nothing is chosen for you silently. if no model is set, the solstone app tells you and waits.</p>
+        </section>
+
         <section class="more" id="updating" aria-labelledby="updating-heading">
             <h2 id="updating-heading">updating your journal</h2>
             <p>update the journal on the computer that runs it. the solstone app and your journal update separately, so their version numbers can differ.</p>
@@ -249,20 +268,6 @@
         <section class="more" aria-labelledby="yours-heading">
             <h2 id="yours-heading">your journal stays yours</h2>
             <p>your journal is a folder on your computer, in open formats. you can read it, move it, and back it up yourself. your journal is always private, only yours.</p>
-            <details>
-                <summary>where does the thinking happen?</summary>
-                <div class="detail-body">
-                    <p>you choose during setup. your journal stays on your computer whichever you choose.</p>
-                    <p>on windows, the local model needs a compatible GPU, and confidential processing isn't available there.</p>
-                    <h3>local, the default</h3>
-                    <p>a model runs on your computer. setup checks that your machine can run it before anything downloads.</p>
-                    <h3>your own model</h3>
-                    <p>bring your own provider key (Claude, Gemini, or GPT), or use an OpenAI-compatible endpoint you run. sol pbc is never in the path.</p>
-                    <h3>confidential processing</h3>
-                    <p>available to approved scouts. think off your device on confidential hardware sol pbc runs. no content is retained · no human reviews it · nothing is used to train. <a href="https://services.solstone.app/confidential-processing">how it works</a></p>
-                    <p>nothing is chosen for you silently. if no model is set, the solstone app tells you and waits.</p>
-                </div>
-            </details>
             <nav class="references" aria-label="more about solstone"><a href="https://github.com/solpbc/solstone-journal">source on GitHub</a><a href="/releases">what's new</a><a href="https://services.solstone.app/scout">become a scout</a></nav>
         </section>
     </div>

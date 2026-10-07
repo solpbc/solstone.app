@@ -178,7 +178,10 @@
             font-size: 0.82rem;
             line-height: 1.6;
             color: var(--ink);
-            overflow-x: auto;
+            /* wrap rather than scroll: a scrolling block can't be reached by
+               keyboard, and a command reads whole on a phone */
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
             margin-bottom: 0.9rem;
         }
         pre code {
@@ -304,7 +307,7 @@
 
             <h2>check the file is ours</h2>
             <p>you do not have to take our word for what you downloaded. there are two things to check, and they check different things: the digest says you got the bytes we published, and the signing certificate says we are the ones who built them.</p>
-            <p><strong>this takes a computer</strong> — download the file there, check it, then copy it to the phone and install it from your file manager. <strong>and it is worth doing before the first install rather than after</strong>: from then on, android will only accept updates signed by the same key as the copy you already have. that is a real protection and it is the reason to look closely at the first one, because it is the copy every later one gets measured against.</p>
+            <p><strong>this takes a computer</strong>. download the file there, check it, then copy it to the phone and install it from your file manager. <strong>and it is worth doing before the first install rather than after</strong>: from then on, android will only accept updates signed by the same key as the copy you already have. that is a real protection and it is the reason to look closely at the first one, because it is the copy every later one gets measured against.</p>
 
             <h3>the digest</h3>
             <p>fetch the checksum we publish beside the file, and let your machine do the comparing rather than your eyes:</p>

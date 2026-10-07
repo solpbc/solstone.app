@@ -14,33 +14,68 @@ const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-andro
 const IOS_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-swift/releases";
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
 
-async function latestMacosDmgUrl() {
+// publish-appcast.py prepends new <item>s, so the first <enclosure ... .dmg> is
+// the latest. Its length attribute is the DMG's size in bytes; a missing or
+// malformed one leaves the size null rather than guessing.
+async function latestAppcastDmg(appcastUrl) {
   try {
-    const res = await fetch(APPCAST_URL, {
+    const res = await fetch(appcastUrl, {
       cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
     });
     if (!res.ok) return null;
     const xml = await res.text();
-    // publish-appcast.py prepends new <item>s, so the first <enclosure ... .dmg> is the latest.
-    const match = xml.match(/<enclosure[^>]*\burl="([^"]+\.dmg)"/);
-    return match ? match[1] : null;
+    const enclosure = xml.match(/<enclosure[^>]*\burl="[^"]+\.dmg"[^>]*>/);
+    if (!enclosure) return null;
+    const url = enclosure[0].match(/\burl="([^"]+\.dmg)"/)[1];
+    const length = Number(enclosure[0].match(/\blength="(\d+)"/)?.[1]);
+    return { url, size: Number.isSafeInteger(length) && length > 0 ? length : null };
   } catch {
     return null;
   }
 }
 
+async function latestMacosDmgUrl() {
+  return (await latestAppcastDmg(APPCAST_URL))?.url ?? null;
+}
+
 async function latestJournalDmgUrl() {
+  return (await latestAppcastDmg(JOURNAL_MACOS_APPCAST_URL))?.url ?? null;
+}
+
+// The size of a published installer, read from the origin's own response
+// headers. null when it can't be read, so a page shows no size rather than a
+// wrong one.
+async function installerSize(url) {
+  if (!url) return null;
   try {
-    const res = await fetch(JOURNAL_MACOS_APPCAST_URL, {
+    const head = await fetch(url, {
+      method: "HEAD",
       cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
     });
-    if (!res.ok) return null;
-    const xml = await res.text();
-    const match = xml.match(/<enclosure[^>]*\burl="([^"]+\.dmg)"/);
-    return match ? match[1] : null;
+    const length = Number(head.headers.get("content-length"));
+    return head.ok && Number.isSafeInteger(length) && length > 0 ? length : null;
   } catch {
     return null;
   }
+}
+
+function megabytes(size) {
+  return `about ${Math.round(size / 1e6)} MB`;
+}
+
+function gigabytes(size) {
+  return `about ${(size / 1e9).toFixed(1)} GB`;
+}
+
+// A download page's size slot is an HTML comment, so the flat asset path
+// (served without this worker) and an unreadable origin both render the page
+// with no size rather than a stale one. The joining words travel with the
+// size, so a missing size leaves no dangling dot or comma. SIZE_FACT sits at
+// the end of a helper line; SIZE_LEAD opens a requirements item.
+function renderSizedPage(html, sizeText) {
+  return html
+    .replace("<!--SIZE_FACT-->", sizeText ? ` · ${sizeText}` : "")
+    .replace("<!--SIZE_LEAD-->", sizeText ? `${sizeText}, and ` : "");
 }
 
 // The disk image that carries both mac apps is in neither app's appcast: each
@@ -184,7 +219,7 @@ function renderAndroidPage(html, facts) {
   const digestBlock = facts?.sha256
     ? `<pre><code class="fingerprint">${facts.sha256}</code></pre>\n` +
       `            <p>we publish it beside the file, at <code>${sumsUrl}</code>.</p>`
-    : `<p>we publish it beside the file, at <code>${sumsUrl}</code> — that is the copy to check against.</p>`;
+    : `<p>we publish it beside the file, at <code>${sumsUrl}</code>. that is the copy to check against.</p>`;
   return html
     .replaceAll("{{VERSION}}", versionPath)
     .replaceAll("{{APK_NAME}}", facts ? facts.apkName : "solstone-android-&lt;version&gt;.apk")
@@ -198,8 +233,35 @@ function renderAndroidPage(html, facts) {
     .replaceAll("{{DIGEST_BLOCK}}", digestBlock);
 }
 
+// The site-wide security headers. public/_headers sets the same block on
+// static assets; Workers Assets doesn't apply _headers to what this worker
+// returns, so every worker response gets them here. CSP is deliberately not
+// in this set.
+const SECURITY_HEADERS = {
+  "Strict-Transport-Security": "max-age=31536000",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "X-Frame-Options": "DENY",
+};
+
+function withSecurityHeaders(response) {
+  // Response.redirect() and asset responses can carry immutable headers, so
+  // copy into a fresh response rather than mutating in place.
+  const secured = new Response(response.body, response);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    secured.headers.set(name, value);
+  }
+  return secured;
+}
+
 export default {
   async fetch(request, env) {
+    return withSecurityHeaders(await route(request, env));
+  },
+};
+
+async function route(request, env) {
     const url = new URL(request.url);
 
     // solstone.app is a static/redirect site — every route is GET/HEAD only.
@@ -228,15 +290,11 @@ export default {
 
     // Human-shareable URL: /download/macos is an HTML page so link unfurlers
     // (Slack, iMessage, Bluesky, etc.) get Open Graph tags and render a rich
-    // preview. The page auto-downloads via JS and shows a visible button;
-    // the binary itself lives at /download/macos/latest.
+    // preview. It never starts a download on its own: the download is a
+    // button, with the size beside it. The binary is at /download/macos/latest.
     if (url.pathname === "/download/macos") {
-      const pageUrl = new URL(request.url);
-      pageUrl.pathname = "/download-macos";
-      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
-      const headers = new Headers(pageResponse.headers);
-      headers.set("Content-Type", "text/html; charset=utf-8");
-      return new Response(pageResponse.body, { status: 200, headers });
+      const dmg = await latestAppcastDmg(APPCAST_URL);
+      return sizedPageResponse(request, env, "/download-macos", dmg?.size ? megabytes(dmg.size) : null);
     }
 
     // Binary URL: /download/mac/latest 302s to the current disk image carrying
@@ -297,16 +355,19 @@ export default {
       return Response.redirect(setupUrl, 302);
     }
 
-    // Human-shareable URL: /download/journal mirrors /download/macos — an HTML
-    // page for link unfurlers, auto-downloading via JS; the binary lives at
-    // /download/journal/latest.
+    // Human-shareable URL: /download/journal mirrors /download/macos: an HTML
+    // page for link unfurlers with the download behind a button. The binary
+    // lives at /download/journal/latest.
     if (url.pathname === "/download/journal") {
-      const pageUrl = new URL(request.url);
-      pageUrl.pathname = "/download-journal";
-      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
-      const headers = new Headers(pageResponse.headers);
-      headers.set("Content-Type", "text/html; charset=utf-8");
-      return new Response(pageResponse.body, { status: 200, headers });
+      const dmg = await latestAppcastDmg(JOURNAL_MACOS_APPCAST_URL);
+      return sizedPageResponse(request, env, "/download-journal", dmg?.size ? megabytes(dmg.size) : null);
+    }
+
+    // The windows journal's page: requirements first, then the button. Its
+    // binary stays at /download/journal/windows/latest above.
+    if (url.pathname === "/download/journal/windows") {
+      const size = await installerSize(await latestJournalWindowsSetupUrl());
+      return sizedPageResponse(request, env, "/download-journal-windows", size ? gigabytes(size) : null);
     }
 
     // Windows installer permalink: resolve the current version from the live
@@ -327,15 +388,11 @@ export default {
 
     // Human-shareable URL: /download/windows is an HTML page (mirrors
     // /download/macos) so link unfurlers get Open Graph tags and render a rich
-    // preview. The page auto-downloads via JS and shows a visible button; the
-    // binary itself lives at /download/windows/latest.
+    // preview, with the download behind a button. The binary itself lives at
+    // /download/windows/latest.
     if (url.pathname === "/download/windows") {
-      const pageUrl = new URL(request.url);
-      pageUrl.pathname = "/download-windows";
-      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
-      const headers = new Headers(pageResponse.headers);
-      headers.set("Content-Type", "text/html; charset=utf-8");
-      return new Response(pageResponse.body, { status: 200, headers });
+      const size = await installerSize(await latestWindowsSetupUrl());
+      return sizedPageResponse(request, env, "/download-windows", size ? megabytes(size) : null);
     }
 
     // Binary URL: /download/android/latest 302s to the current versioned APK on
@@ -535,16 +592,16 @@ export default {
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.windows);
     }
 
+    // The not-found page's own path is not a page: it answers 404 like any
+    // other missing path. run_worker_first sends both spellings here.
+    if (url.pathname === "/404" || url.pathname === "/404.html") {
+      return notFound(request, env);
+    }
+
     const response = await env.ASSETS.fetch(request);
 
     if (response.status === 404) {
-      const notFoundUrl = new URL(request.url);
-      notFoundUrl.pathname = "/404";
-      const notFoundResponse = await env.ASSETS.fetch(assetRequest(notFoundUrl, request));
-      return new Response(notFoundResponse.body, {
-        status: 404,
-        headers: notFoundResponse.headers,
-      });
+      return notFound(request, env);
     }
 
     if (url.pathname.endsWith(".md")) {
@@ -554,8 +611,30 @@ export default {
     }
 
     return response;
-  },
-};
+}
+
+async function notFound(request, env) {
+  const notFoundUrl = new URL(request.url);
+  notFoundUrl.pathname = "/404";
+  const notFoundResponse = await env.ASSETS.fetch(assetRequest(notFoundUrl, request));
+  return new Response(notFoundResponse.body, {
+    status: 404,
+    headers: notFoundResponse.headers,
+  });
+}
+
+// Render a download page with its size slot filled. A page rendered without
+// its size must not sit at the edge after the origin comes back.
+async function sizedPageResponse(request, env, assetPath, sizeText) {
+  const pageUrl = new URL(request.url);
+  pageUrl.pathname = assetPath;
+  const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
+  if (!pageResponse.ok) return pageResponse;
+  const headers = new Headers(pageResponse.headers);
+  headers.set("Content-Type", "text/html; charset=utf-8");
+  headers.set("Cache-Control", sizeText ? "public, max-age=300" : "no-store");
+  return new Response(renderSizedPage(await pageResponse.text(), sizeText), { status: 200, headers });
+}
 
 function methodNotAllowed(allow) {
   return new Response(null, { status: 405, headers: { Allow: allow } });

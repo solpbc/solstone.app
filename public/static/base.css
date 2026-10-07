@@ -72,8 +72,8 @@ body.sunrise {
     --hairline-2:   #E6DCC6;
     background:
         radial-gradient(ellipse 900px 420px at 50% -140px,
-            rgba(255, 207, 51, 0.30) 0%,
-            rgba(255, 207, 51, 0) 70%),
+            rgba(255, 204, 51, 0.30) 0%,
+            rgba(255, 204, 51, 0) 70%),
         linear-gradient(180deg,
             #FFF3CF 0%,
             #FCF3E0 24%,
@@ -100,11 +100,41 @@ body.sunrise {
     margin: 0.5rem auto 1rem;
     font-style: normal;
 }
+/* the label is ink: orange text on the orange wash misses AA, so the orange
+   stays a tint behind the words */
 .early-days .stage-label {
     font-family: var(--font-display);
     font-weight: 700;
-    color: var(--orange-text-aa);
+    color: var(--ink);
     letter-spacing: 0.01em;
+}
+.early-days a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+/* the shared primary button: the sunrise fill with ink text. One definition
+   for every page whose main action is a single button. */
+.btn-sunrise {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    background: var(--sunrise-fill);
+    padding: 0.85rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    text-align: center;
+}
+.btn-sunrise:hover {
+    background: linear-gradient(135deg, #F2BF2B 0%, #DB8330 100%);
+    color: var(--ink);
 }
 /* --- accessibility (shared) --- */
 /* skip-to-content: first focusable element, off-screen until focused */

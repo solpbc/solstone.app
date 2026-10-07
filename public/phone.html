@@ -74,23 +74,6 @@
         .platform h2 {
             margin: 0 0 0.75rem;
         }
-        .download-btn {
-            display: inline-block;
-            font-family: var(--font-display);
-            font-size: 1.05rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            color: var(--ink);
-            background: var(--orange);
-            padding: 0.85rem 2rem;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: background 0.15s;
-        }
-        .download-btn:hover {
-            background: var(--orange-text-aa);
-            color: var(--paper);
-        }
         .file-line {
             margin: 0.75rem 0 0;
             font-size: 0.88rem;
@@ -121,7 +104,7 @@
         }
     </style>
 </head>
-<body>
+<body class="sunrise">
     <a href="#main" class="skip-link">skip to content</a>
     <header>
         <a href="/"><img src="/static/mark.svg" alt="solstone home" class="logo"></a>
@@ -133,21 +116,21 @@
 
             <div class="platform">
                 <h2>iphone and ipad</h2>
-                <a href="https://apps.apple.com/app/id6776850664" class="download-btn">get it on the App Store</a>
+                <a href="https://apps.apple.com/app/id6776850664" class="btn-sunrise">get it on the App Store</a>
                 <p class="file-line">free on the App Store, where it's listed as solstone mobile. needs ios or ipados 26 or later.</p>
             </div>
 
             <div class="platform">
                 <h2>android</h2>
-                <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone" class="download-btn">get it on Google Play</a>
+                <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone" class="btn-sunrise">get it on Google Play</a>
                 <p class="file-line">free on Google Play. needs android 8.0 or later. no Google Play on your phone? <a href="/download/android">download the signed app from us</a>.</p>
             </div>
 
             <h2>what the app needs</h2>
-            <p>the solstone app on your phone pairs with your journal, on a computer you own and run solstone on. what you bring in on the phone goes into it. set up your journal on your computer first if you haven't already; that's where your memories live. <a href="/install">get started &rarr;</a></p>
+            <p>the solstone app on your phone pairs with your journal on a mac or linux computer you own. set that up first if you haven't already; that's where your memories live. <a href="/install">get started &rarr;</a></p>
 
             <h2>you don't have to take our word for it</h2>
-            <p>solstone is open source. read the code, run it yourself, verify every claim. there's no telemetry, no analytics, and no phone home.</p>
+            <p>solstone is open source. read the code, run it yourself, verify every claim. there's no telemetry, no analytics vendor, and no behavioral tracking. the only call solstone makes on its own is a check for newer versions, and it sends nothing about you or your device.</p>
 
             <nav class="links" aria-label="more">
                 <a href="https://github.com/solpbc/solstone-swift">iphone source on GitHub &rarr;</a>

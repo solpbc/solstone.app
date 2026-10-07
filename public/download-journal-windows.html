@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>the journal for windows · solstone</title>
+    <meta name="description" content="this is the journal, the memory, for a windows PC. the solstone app takes in what you share, and all of it goes into your journal, on a PC you own.">
+    <meta property="og:title" content="the journal for windows · solstone">
+    <meta property="og:description" content="this is the journal, the memory, for a windows PC. the solstone app takes in what you share, and all of it goes into your journal, on a PC you own.">
+    <meta property="og:url" content="https://solstone.app/download/journal/windows">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="solstone">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/download/journal/windows">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="stylesheet" href="/static/tokens.css">
+    <link rel="stylesheet" href="/static/base.css">
+    <style>
+        /* Comfortaa loads via tokens.css (linked above) — no per-page @font-face.
+           base.css supplies the shared sunrise ground (<body class="sunrise">) and
+           the footer spine; the rules below are this page's own layout (mirrors
+           download-macos.html). */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-body);
+            padding: 2rem 0;
+        }
+        a {
+            text-decoration: none;
+        }
+        .logo {
+            height: 40px;
+            margin-bottom: 2.5rem;
+        }
+        h1 {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: lowercase;
+            color: var(--ink);
+            margin-bottom: 1.25rem;
+            text-align: center;
+        }
+        .message {
+            max-width: 480px;
+            width: 90vw;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--ink-soft);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .links {
+            margin-top: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .links a {
+            display: block;
+            color: var(--ink-faint);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            transition: color 0.15s;
+        }
+        .links a:hover {
+            color: var(--orange-text-aa);
+        }
+        footer {
+            margin-top: auto;
+            padding-top: 3rem;
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            color: var(--ink-faint);
+            text-align: center;
+            max-width: 560px;
+            width: 90vw;
+            line-height: 1.6;
+        }
+        footer a {
+            color: var(--ink-faint);
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+        .intro {
+            max-width: 520px;
+            width: 90vw;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--ink-soft);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .block {
+            max-width: 520px;
+            width: 90vw;
+            text-align: left;
+            margin-bottom: 2rem;
+        }
+        .block h2 {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 700;
+            text-transform: lowercase;
+            color: var(--ink);
+            margin-bottom: 0.6rem;
+        }
+        .block ul, .block ol {
+            padding-left: 1.25rem;
+            color: var(--ink-soft);
+            line-height: 1.6;
+        }
+        .block li + li {
+            margin-top: 0.4rem;
+        }
+        .block code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            overflow-wrap: anywhere;
+        }
+        .action {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body class="sunrise">
+    <a href="#main" class="skip-link">skip to content</a>
+    <header>
+        <a href="/"><img src="/static/mark.svg" alt="solstone home" class="logo"></a>
+    </header>
+    <main id="main" tabindex="-1">
+        <h1>the journal for windows</h1>
+        <p class="intro">this is the journal, the memory, for a windows PC. the solstone app takes in what you share, and all of it goes into your journal, on a PC you own.</p>
+
+        <section class="block" aria-labelledby="before-heading">
+            <h2 id="before-heading">before you download</h2>
+            <ul>
+                <li>windows 10 (22H2) or 11, on an x64 PC (Intel or AMD)</li>
+                <li><!--SIZE_LEAD-->no administrator access needed</li>
+                <li>one step in the terminal after it installs</li>
+                <li>the local model needs a compatible GPU; without one, bring your own model</li>
+                <li>confidential processing isn't available on windows</li>
+                <li>an android phone pairs with it through the private network, which sol pbc runs for $20 a year, using the solstone app 2.1.19 or later, from <a href="/download/android">solstone.app/download/android</a>. pairing an iphone with a journal on windows hasn't been tested yet.</li>
+            </ul>
+        </section>
+
+        <div class="action"><a href="/download/journal/windows/latest" class="btn-sunrise">download the journal for windows</a></div>
+
+        <section class="block" aria-labelledby="after-heading">
+            <h2 id="after-heading">after it installs</h2>
+            <ol>
+                <li>open a new terminal window and run <code>solstone journal setup</code>.</li>
+                <li>open your journal in your browser and follow setup.</li>
+                <li>install the solstone app for windows and connect it to your journal.</li>
+            </ol>
+        </section>
+
+        <nav class="links" aria-label="more">
+            <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md">setup help &rarr;</a>
+            <a href="/releases">what's new &rarr;</a>
+            <a href="/install#windows">back to get started &rarr;</a>
+        </nav>
+    </main>
+    <footer>
+        <nav class="footer-nav" aria-label="footer">
+            <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
+        </nav>
+        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
+    </footer>
+</body>
+</html>

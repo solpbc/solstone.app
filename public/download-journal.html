@@ -64,23 +64,6 @@
             text-align: center;
             margin-bottom: 2.25rem;
         }
-        .download-btn {
-            display: inline-block;
-            font-family: var(--font-display);
-            font-size: 1.05rem;
-            font-weight: 600;
-            text-transform: lowercase;
-            letter-spacing: 0.03em;
-            color: var(--ink);
-            background: var(--orange);
-            padding: 0.85rem 2rem;
-            border-radius: 8px;
-            transition: background 0.15s;
-        }
-        .download-btn:hover {
-            background: var(--orange-text-aa);
-            color: var(--paper);
-        }
         .fallback {
             margin-top: 1.5rem;
             font-size: 0.9rem;
@@ -171,6 +154,37 @@
         .upgrade p + p {
             margin-top: 12px;
         }
+        .helper {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--ink-soft);
+            text-align: center;
+        }
+        .phone-note {
+            max-width: 480px;
+            width: 90vw;
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background: var(--orange-wash);
+            font-size: 0.92rem;
+            line-height: 1.5;
+            color: var(--ink);
+            text-align: center;
+        }
+        .phone-note[hidden] {
+            display: none;
+        }
+        .phone-note a {
+            color: var(--ink);
+            text-decoration: underline;
+        }
+        .first {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2.25rem;
+        }
     </style>
 </head>
 <body class="sunrise">
@@ -180,9 +194,13 @@
     </header>
     <main id="main" tabindex="-1">
         <h1>download the journal</h1>
-        <p class="message">your download should start automatically. this is <strong>the journal</strong>, the memory. it's a separate app from the solstone app: open it, and its first run gives your journal a place and marks it as yours. <strong>an arm64 (Apple Silicon) mac is required; Intel macs aren't supported.</strong> don't have the solstone app yet? <a href="/download/macos">get it</a> too, most people setting up a new mac want both.</p>
-        <a href="/download/journal/latest" class="download-btn" id="dl">download the journal</a>
-        <p class="fallback">didn't start? <a href="/download/journal/latest">click here to download</a> &middot; <a href="/download/macos">get solstone too &rarr;</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
+        <div class="first">
+            <a href="/download/journal/latest" class="btn-sunrise" id="dl">download the journal for mac</a>
+            <p class="helper">Apple Silicon (M1 or newer), macos 15 or later<!--SIZE_FACT--></p>
+            <p class="phone-note" id="phone-note" hidden>this download is for a computer. on your phone? get the solstone app from the <a href="/phone">App Store</a> or <a href="/phone">Google Play</a>.</p>
+        </div>
+        <p class="message">this is <strong>the journal</strong>, the memory. it's a separate app from the solstone app: open it, and its first run gives your journal a place and marks it as yours. an Apple Silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported. don't have the solstone app yet? <a href="/download/macos">get it</a> too, most people setting up a new mac want both.</p>
+        <p class="fallback"><a href="/download/macos">get solstone too &rarr;</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
         <section id="upgrading" class="message upgrade" aria-labelledby="upgrading-heading">
             <h2 id="upgrading-heading">already have the journal app?</h2>
             <p>open the journal app and choose <strong>updates</strong> in its sidebar to check for an update.</p>
@@ -202,14 +220,17 @@
         <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
     </footer>
     <script>
-        // Humans get an automatic download; the visible button is the always-present
-        // fallback (browsers can block scripted navigation). Crawlers/unfurlers
-        // don't run JS — they read the Open Graph tags above and render a card.
-        setTimeout(function () {
-            if (window.location.hash !== '#upgrading') {
-                window.location.href = '/download/journal/latest';
+        // No download starts on its own: the button is the download. On a
+        // phone or tablet the page also says this is for a computer. iPadOS
+        // Safari reports a Mac user agent, so a touch "Mac" counts as an iPad.
+        // Client-side only; nothing is sent or logged.
+        (function () {
+            var ua = navigator.userAgent;
+            var touchMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+            if (/iPhone|iPad|iPod|Android/.test(ua) || touchMac) {
+                document.getElementById('phone-note').hidden = false;
             }
-        }, 600);
+        })();
     </script>
 </body>
 </html>

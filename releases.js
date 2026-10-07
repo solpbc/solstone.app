@@ -46,13 +46,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             font-size: 1rem; line-height: 1.6; color: var(--ink-soft);
         }
         .page-intro p a { color: var(--orange-text-aa); }
-        .intro-dl {
-            display: inline-block; margin-top: 1.25rem;
-            font-family: var(--font-display);
-            font-size: 0.9rem; color: var(--ink-faint); text-decoration: none;
-            transition: color 0.15s;
-        }
-        .intro-dl:hover { color: var(--orange-text-aa); }
+        .intro-dl { margin-top: 1.25rem; }
         .stream-switch {
             position: sticky; top: 0; z-index: 10;
             margin-top: 1.25rem; padding: 0.6rem 1rem;
@@ -109,6 +103,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             font-family: var(--font-mono);
             font-size: 0.84em; background: var(--cream-bright);
             padding: 0.05rem 0.35rem; border-radius: 3px; color: var(--ink);
+            overflow-wrap: anywhere;
         }
         .release a { color: var(--orange-text-aa); text-decoration: underline; }
         .release a:hover { color: var(--orange-text-aa); }
@@ -134,7 +129,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         }
     </style>
 </head>
-<body>
+<body class="sunrise">
     <a href="#main" class="skip-link">skip to content</a>
     <header>
         <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/mark.svg" alt="solstone home" style="height:40px;"></a>
@@ -531,7 +526,7 @@ function renderIntro(config) {
 
 function renderPrimaryLink(link) {
   if (!link) return "";
-  return `<a href="${escapeHtml(link.href)}" class="intro-dl">${escapeHtml(link.text)}</a>`;
+  return `<a href="${escapeHtml(link.href)}" class="btn-sunrise intro-dl">${escapeHtml(link.text)}</a>`;
 }
 
 function streamSwitcher(currentStream) {

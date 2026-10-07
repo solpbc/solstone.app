@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>solstone</title>
-    <meta name="description" content="solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal: an open source, local-first memory the agents you use can work from. your journal is always private, only yours. made by sol pbc.">
+    <title>solstone · a memory your agents can work from</title>
+    <meta name="description" content="solstone is a personal memory platform. what you share goes into your journal, on your device, owned by you. open source, by sol pbc.">
     <meta property="og:title" content="solstone: a memory your agents can work from">
     <meta property="og:description" content="solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal: an open source, local-first memory the agents you use can work from. your journal is always private, only yours.">
     <meta property="og:url" content="https://solstone.app">
@@ -20,28 +20,43 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "solstone",
-      "description": "solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal: an open source, local-first memory the agents you use can work from. solstone installs on your own devices. your journal is always private, only yours.",
-      "url": "https://solstone.app",
-      "applicationCategory": "LifestyleApplication",
-      "operatingSystem": "Linux, macOS, Windows, iOS, Android",
-      "installUrl": "https://solstone.app/install",
-      "downloadUrl": "https://github.com/solpbc/solstone-journal",
-      "codeRepository": "https://github.com/solpbc/solstone-journal",
-      "license": "https://www.gnu.org/licenses/agpl-3.0.html",
-      "author": {
-        "@type": "Organization",
-        "name": "sol pbc",
-        "url": "https://solpbc.org",
-        "legalName": "sol pbc",
-        "description": "Public benefit corporation dedicated to digital self-determination"
-      },
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      }
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://solstone.app/#website",
+          "name": "solstone",
+          "url": "https://solstone.app/",
+          "publisher": { "@id": "https://solpbc.org/#organization" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://solpbc.org/#organization",
+          "name": "sol pbc",
+          "legalName": "sol pbc",
+          "url": "https://solpbc.org",
+          "description": "Public benefit corporation dedicated to digital self-determination"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "solstone",
+          "description": "solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal: an open source, local-first memory the agents you use can work from. solstone installs on your own devices. your journal is always private, only yours.",
+          "url": "https://solstone.app",
+          "applicationCategory": "LifestyleApplication",
+          "operatingSystem": "Linux, macOS, Windows, iOS, iPadOS, Android",
+          "installUrl": "https://solstone.app/install",
+          "downloadUrl": "https://solstone.app/download",
+          "codeRepository": "https://github.com/solpbc/solstone-journal",
+          "sameAs": ["https://github.com/solpbc/solstone-journal"],
+          "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+          "author": { "@id": "https://solpbc.org/#organization" },
+          "publisher": { "@id": "https://solpbc.org/#organization" },
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }
+      ]
     }
     </script>
     <link rel="stylesheet" href="/static/tokens.css">
@@ -148,10 +163,11 @@
         <p class="beat">every agent you run inherits nothing. every session starts cold. your journal changes that: your projects, the people, what you decided last time, context your agents can work from. none of it leaves your control. and it's just files: dated folders of plain markdown and json you can read, grep, and back up yourself. no proprietary format, no database lock-in.</p>
         <p class="beat" style="font-size: 0.9rem;"><strong>solstone</strong> is the platform, and the app you install. <strong>the journal</strong> is the memory it keeps.</p>
         <p class="trust">open source and yours. your journal always lives on a device you own. sol pbc never sells your data, and any future acquisition is conditional on the successor being legally bound to preserve the same protections. these aren't promises: they're covenants in the <a href="https://solpbc.org/articles" style="color:var(--ink-faint);">articles of incorporation</a> that can't be amended without the founder's personal signature, and after him, the language can only get stronger, never weaker.</p>
-        <p class="early-days"><span class="stage-label">early days.</span> solstone is open source and hands-on, so expect time in the terminal and a few rough edges as we build.</p>
+        <p class="early-days"><span class="stage-label">early days.</span> on a mac and on your phone, solstone installs like any app. on linux, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
         <nav class="cta-nav" aria-label="get started">
             <a href="/install" class="cta cta-primary">get started →</a>
             <a href="/download" class="cta">install solstone on every device →</a>
+            <a href="/phone" class="cta">solstone on your phone →</a>
         </nav>
     </main>
     <footer>

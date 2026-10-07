@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>install on every device · solstone</title>
     <meta name="description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on your computer and your phone: download it, or on a computer, copy the prompt for your coding agent.">
+    <meta property="og:title" content="install on every device · solstone">
+    <meta property="og:description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on your computer and your phone: download it, or on a computer, copy the prompt for your coding agent.">
+    <meta property="og:url" content="https://solstone.app/download">
+    <meta property="og:type" content="website">
     <meta property="og:image" content="https://solstone.app/static/share-card.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -171,11 +175,18 @@
         /* the just-one downloads sit under the primary button as quiet links,
            so the card keeps one primary action */
         .standalone-links {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.35rem;
             font-size: 0.82rem;
-            line-height: 1.7;
             margin: 0;
         }
+        /* each link is its own 24px-tall target (WCAG 2.5.8) */
         .standalone-links a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
             color: var(--orange-text-aa);
         }
         .trust-signal {
@@ -271,7 +282,7 @@
         <p>the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on each device you use: download it, or copy the prompt below into your coding agent and it handles the rest.</p>
     </div>
 
-    <p class="early-days"><span class="stage-label">early days.</span> solstone on mac, linux, and windows is in use today, open source and hands-on. expect rough edges, and we'll fix them together as we go.</p>
+    <p class="early-days"><span class="stage-label">early days.</span> on a mac and on your phone, solstone installs like any app. on linux, and for the journal on windows, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
 
     <div class="cards">
         <div class="card">
@@ -284,8 +295,8 @@
             </ul>
             <div class="primary-action">
                 <a href="/download/mac" class="download-btn">download both for mac</a>
-                <p class="download-clarifier">one download with the solstone app and the journal app. needs an arm64 (Apple Silicon) mac; Intel macs aren't supported.</p>
-                <p class="standalone-links"><a href="/download/macos">download the standalone solstone app</a><br><a href="/download/journal">download the standalone journal app</a></p>
+                <p class="download-clarifier">one download with the solstone app and the journal app. needs an Apple Silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
+                <p class="standalone-links"><a href="/download/macos">download the standalone solstone app</a><a href="/download/journal">download the standalone journal app</a></p>
                 <p class="download-clarifier">already have a journal on another machine? the solstone app on its own pairs with it.</p>
                 <p class="trust-signal">signed by sol pbc, notarized by Apple. each app updates over its own signed channel.</p>
             </div>
@@ -363,8 +374,9 @@ git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux</pre
             </ul>
             <div class="primary-action">
                 <a href="/download/windows" class="download-btn">download for windows</a>
-                <p class="download-clarifier">downloads the signed installer, then pairs with your journal during setup.</p>
-                <p class="trust-signal">signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds.</p>
+                <p class="download-clarifier">downloads the signed installer. during setup, the solstone app pairs with your journal.</p>
+                <p class="standalone-links"><a href="/download/journal/windows">the journal for windows</a></p>
+                <p class="trust-signal">signed by sol pbc. while our signing reputation builds, windows may warn that it couldn't verify the app because it isn't commonly downloaded. the publisher it shows is sol pbc.</p>
             </div>
             <div class="secondary-action">
                 <button class="copy-btn" data-target="blurb-winget" data-default-label="copy winget install" aria-label="copy winget install command for solstone on windows">copy winget install</button>
@@ -393,6 +405,7 @@ scoop install solstone</pre>
                 <p class="trust-signal">made by sol pbc. it updates through the App Store.</p>
             </div>
             <div class="secondary-action">
+                <a href="/phone" class="gh-link">solstone on your phone →</a>
                 <a href="https://github.com/solpbc/solstone-swift" class="gh-link">GitHub →</a>
                 <a href="/releases/ios" class="gh-link">release notes →</a>
             </div>
@@ -412,6 +425,7 @@ scoop install solstone</pre>
                 <p class="trust-signal">made by sol pbc. the Google Play copy updates on its own.</p>
             </div>
             <div class="secondary-action">
+                <a href="/phone" class="gh-link">solstone on your phone →</a>
                 <a href="https://github.com/solpbc/solstone-android" class="gh-link">GitHub →</a>
                 <a href="/releases/android" class="gh-link">release notes →</a>
             </div>
@@ -421,7 +435,7 @@ scoop install solstone</pre>
     <div class="supplemental">
         <div class="card">
             <h2>+ add your terminal</h2>
-            <p class="subtitle">what's on every active tmux session and pane goes into your journal. solstone-tmux is a native Rust binary that requires tmux and works alongside the solstone app.</p>
+            <p class="subtitle">what you share from your terminal sessions goes into your journal. solstone-tmux is a native Rust binary that requires tmux and works alongside the solstone app.</p>
             <div class="card-actions">
                 <button class="copy-btn" data-target="blurb-tmux" aria-label="copy for your agent: solstone-tmux install prompt">copy for your agent</button>
                 <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">GitHub →</a>

@@ -27,9 +27,6 @@ const PAGES = [
   ["/install", "public/install.html"],
   ["/download", "public/download.html"],
   ["/download/mac", "public/download-mac.html"],
-  ["/download/macos", "public/download-macos.html"],
-  ["/download/journal", "public/download-journal.html"],
-  ["/download/windows", "public/download-windows.html"],
   ["/download/android", "public/download-android.html"],
   ["/phone", "public/phone.html"],
   ["/releases", "releases.js"],
@@ -41,15 +38,18 @@ const PAGES = [
   ["/releases/ios", "releases.js"],
 ];
 
-// Shared brand/head assets are part of every page's crawl-facing presentation.
-// The site runbook requires icon changes to bump sitemap lastmod even when no
-// HTML file changes; the header wordmark and token CSS follow the same global
-// dependency shape.
+// The single-app download pages (/download/macos, /download/journal,
+// /download/windows) are deliberately absent: they are share targets for one
+// binary, and /download and /download/mac are the pages a search should land
+// on. /download/journal/windows is absent too while the windows journal stays
+// unpromoted.
+//
+// The icons are part of every page's crawl-facing presentation, so an icon
+// change bumps every page's lastmod (the site runbook's rule). Stylesheets and
+// the header mark are not: a page's lastmod is its own content's date.
 const GLOBAL_LASTMOD_FILES = [
   "public/favicon.ico",
   "public/apple-touch-icon.png",
-  "public/static/tokens.css",
-  "public/static/mark.svg",
 ];
 
 const BASE = "https://solstone.app";

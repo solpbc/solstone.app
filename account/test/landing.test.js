@@ -20,7 +20,7 @@ describe('landing page', () => {
     expect(body).toContain('autocomplete="email webauthn"');
     expect(body).toContain('placeholder="you@example.com"');
     expect(body).toContain('maxlength="254"');
-    expect(body).toContain('no analytics, no tracking, no third parties.');
+    expect(body).toContain('no analytics and no tracking.');
     expect(body).toContain('/passkey/auth/start');
     expect(body).toContain('passkey sign-in failed. use your email instead.');
   });

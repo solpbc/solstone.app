@@ -516,7 +516,7 @@ test("renderReleasesPage renders the windows stream from its origin CHANGELOG.md
   assert.match(html, /class="rel-date"/);
   assert.match(html, /<h2 id="v0\.2\.0">solstone for windows 0\.2\.0<\/h2>/);
   // download permalink + the Windows pill marked active on its own page.
-  assert.match(html, /<a href="\/download\/windows" class="intro-dl">download solstone for windows →<\/a>/);
+  assert.match(html, /<a href="\/download\/windows" class="btn-sunrise intro-dl">download solstone for windows →<\/a>/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">windows<\/span>/);
 
   // and the Windows pill renders as a link in the desktop trio on other streams.
@@ -553,9 +553,9 @@ test("renderReleasesPage renders the android stream from github releases with an
   // the app a beta.
   assert.match(
     html,
-    /<a href="https:\/\/play\.google\.com\/store\/apps\/details\?id=app\.solstone\.observer\.phone" class="intro-dl">get it on Google Play →<\/a>/,
+    /<a href="https:\/\/play\.google\.com\/store\/apps\/details\?id=app\.solstone\.observer\.phone" class="btn-sunrise intro-dl">get it on Google Play →<\/a>/,
   );
-  assert.doesNotMatch(html, /class="intro-dl">download solstone for android/);
+  assert.doesNotMatch(html, /class="btn-sunrise intro-dl">download solstone for android/);
   assert.match(html, /so <a href="\/download\/android">its download page<\/a> is always where the current one is/);
   assert.doesNotMatch(html, /in beta/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">android<\/span>/);
@@ -590,7 +590,7 @@ test("renderReleasesPage renders the ios stream from github releases with an act
   assert.doesNotMatch(html, /## \[0\.1\.1\]/);
   // The App Store is the one public way in on iPhone, so the intro's primary
   // link is the store listing (not TestFlight, not a download).
-  assert.match(html, /<a href="https:\/\/apps\.apple\.com\/app\/id6776850664" class="intro-dl">/);
+  assert.match(html, /<a href="https:\/\/apps\.apple\.com\/app\/id6776850664" class="btn-sunrise intro-dl">/);
   assert.doesNotMatch(html, /testflight\.apple\.com/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">iphone<\/span>/);
 

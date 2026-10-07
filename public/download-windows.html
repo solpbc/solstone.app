@@ -80,23 +80,6 @@
         .journal-note a:hover {
             color: var(--orange-text-aa);
         }
-        .download-btn {
-            display: inline-block;
-            font-family: var(--font-display);
-            font-size: 1.05rem;
-            font-weight: 700;
-            text-transform: lowercase;
-            letter-spacing: 0.03em;
-            color: var(--ink);
-            background: var(--sunrise-fill);
-            padding: 0.85rem 2rem;
-            border-radius: 8px;
-            transition: background 0.15s;
-        }
-        .download-btn:hover {
-            background: linear-gradient(135deg, #F2BF2B 0%, #DB8330 100%);
-            color: var(--ink);
-        }
         .fallback {
             margin-top: 1.5rem;
             font-size: 0.9rem;
@@ -152,6 +135,37 @@
         footer a:hover {
             text-decoration: underline;
         }
+        .helper {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--ink-soft);
+            text-align: center;
+        }
+        .phone-note {
+            max-width: 480px;
+            width: 90vw;
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background: var(--orange-wash);
+            font-size: 0.92rem;
+            line-height: 1.5;
+            color: var(--ink);
+            text-align: center;
+        }
+        .phone-note[hidden] {
+            display: none;
+        }
+        .phone-note a {
+            color: var(--ink);
+            text-decoration: underline;
+        }
+        .first {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2.25rem;
+        }
     </style>
 </head>
 <body class="sunrise">
@@ -161,11 +175,15 @@
     </header>
     <main id="main" tabindex="-1">
         <h1>download solstone for windows</h1>
-        <p class="message">your download should start automatically. the installer sets up the solstone app on your PC. the solstone app pairs with your journal, and everything it takes in goes there.</p>
-        <p class="journal-note">solstone for windows pairs with your journal, the memory. your journal can live on your PC or on a mac or linux machine. don't have a journal yet? <a href="/install#windows">start at solstone.app/install</a>.</p>
-        <a href="/download/windows/latest" class="download-btn" id="dl">download for windows</a>
-        <p class="fallback">didn't start? <a href="/download/windows/latest">click here to download</a> &middot; <a href="/install">setup instructions &rarr;</a></p>
-        <p class="smartscreen-note">signed by sol pbc. windows may show an "unknown publisher" or SmartScreen prompt while our signing reputation builds — expected for a new publisher; the signature is real.</p>
+        <div class="first">
+            <a href="/download/windows/latest" class="btn-sunrise" id="dl">download the solstone app for windows</a>
+            <p class="helper">windows 10 (22H2) or 11 · x64<!--SIZE_FACT--></p>
+            <p class="phone-note" id="phone-note" hidden>this download is for a computer. on your phone? get the solstone app from the <a href="/phone">App Store</a> or <a href="/phone">Google Play</a>.</p>
+        </div>
+        <p class="message">the installer sets up the solstone app on your PC. the solstone app pairs with your journal, and everything it takes in goes there.</p>
+        <p class="journal-note">the solstone app pairs with your journal, the memory. your journal can live on your PC or on a mac or linux machine. don't have a journal yet? <a href="/install#windows">start at solstone.app/install</a>.</p>
+        <p class="fallback"><a href="/install">setup instructions &rarr;</a></p>
+        <p class="smartscreen-note">signed by sol pbc. while our signing reputation builds, windows may warn that it couldn't verify the app because it isn't commonly downloaded. the publisher it shows is sol pbc.</p>
         <nav class="links" aria-label="more">
             <a href="/releases/windows">what's new in this version &rarr;</a>
             <a href="https://github.com/solpbc/solstone-windows">source code on GitHub &rarr;</a>
@@ -179,12 +197,17 @@
         <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
     </footer>
     <script>
-        // Humans get an automatic download; the visible button is the always-present
-        // fallback (browsers can block scripted navigation). Crawlers/unfurlers
-        // don't run JS — they read the Open Graph tags above and render a card.
-        setTimeout(function () {
-            window.location.href = '/download/windows/latest';
-        }, 600);
+        // No download starts on its own: the button is the download. On a
+        // phone or tablet the page also says this is for a computer. iPadOS
+        // Safari reports a Mac user agent, so a touch "Mac" counts as an iPad.
+        // Client-side only; nothing is sent or logged.
+        (function () {
+            var ua = navigator.userAgent;
+            var touchMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+            if (/iPhone|iPad|iPod|Android/.test(ua) || touchMac) {
+                document.getElementById('phone-note').hidden = false;
+            }
+        })();
     </script>
 </body>
 </html>

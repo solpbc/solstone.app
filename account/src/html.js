@@ -157,7 +157,7 @@ export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "si
     <button class="btn primary block" type="submit">continue</button>
   </form>
 </div>
-<p class="disclosure">no analytics, no tracking, no third parties. this is the only solstone surface that ever knows it's you, and only after you sign in.</p>
+<p class="disclosure">no analytics and no tracking. this is the only solstone surface that ever knows it's you, and only after you sign in.</p>
 <p class="disclosure">by signing in, you agree to the <a href="/terms">terms</a>.</p>`,
     afterMain: `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script>${SUPPORT_DRAFT_JS}</script><script>${LANDING_JS}</script>`,
@@ -607,7 +607,7 @@ ${BRANDLOCK}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
-  <p class="disclosure">no analytics, no tracking, no third parties. sign in only to manage what you've turned on. solstone itself never asks you to sign in.</p>`,
+  <p class="disclosure">no analytics and no tracking. sign in only to manage what you've turned on. solstone itself never asks you to sign in.</p>`,
     });
   }
 
@@ -816,7 +816,7 @@ export function renderSmeLanding() {
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_GLOBE, 'an address for your journal', "sol pbc runs the solstone.me relay in between, so your agent can find your journal without you running anything of your own. it's off until you turn it on, and you can turn it off from the journal at any time.")}
-  ${beat(IC_VAULT, 'blind by construction', "your own machine holds the private key and ends the encryption, so the relay can't read a byte of what passes through it. it keeps no record of what happened, only that something did.")}
+  ${beat(IC_VAULT, 'blind by construction', "your own machine holds the private key and ends the encryption, so the relay can't read a byte of what passes through it. sol pbc does see that an agent and your journal met, when, and how much passed.")}
   ${beat(IC_NET, 'what an agent gets', "you choose what it may see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.")}
 </div>
 <div class="card">
@@ -828,7 +828,7 @@ ${BRANDLOCK}
     <div><div class="big">$5 <span class="price"><span class="per">/ year</span></span></div><div class="alt">annual only · tax included · per journal, not per device</div></div>
     <a class="btn primary" href="/?signin">sign in to enable</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">you never have to pay us. your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were it. a tunnel that only passes the bytes through will say so; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>
+  <p class="free-note" style="margin:14px 0 0">you never have to pay us. your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were your agent. look for a tunnel that says it only passes the bytes through; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });
@@ -1078,7 +1078,7 @@ ${withdrawalDoor(withdrawal)}
   </form>
   <p class="disclosure">tax included. billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
 </div>
-<p class="disclosure" style="margin-top:24px"><strong>you never have to pay us.</strong> your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were it. a tunnel that only passes the bytes through will say so; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>`,
+<p class="disclosure" style="margin-top:24px"><strong>you never have to pay us.</strong> your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were your agent. look for a tunnel that says it only passes the bytes through; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>`,
   });
 }
 

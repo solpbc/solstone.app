@@ -13,7 +13,7 @@ the project is maintained by sol pbc (https://solpbc.org), a colorado public ben
 - [Get started](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md): install guide for a coding agent and human working together
 - [README](https://github.com/solpbc/solstone-journal/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
 - [Install the solstone app on your devices](https://solstone.app/download): the solstone app for macos, linux, windows, iphone, ipad and android. tmux is a separate install. pick your platform: get it from the App Store or Google Play, download it, or on a computer, copy the prompt for your agent.
-- [Journal structure](https://github.com/solpbc/solstone-journal/blob/main/docs/JOURNAL.md): Data model and daily directory layout
+- [Journal structure](https://github.com/solpbc/solstone-journal/blob/main/core/payload/solstone/talent/journal/SKILL.md): Data model and daily directory layout
 - [AI providers](https://github.com/solpbc/solstone-journal/blob/main/docs/PROVIDERS.md): provider setup
 - [Web interface](https://github.com/solpbc/solstone-journal/blob/main/docs/CONVEY.md): the web UI for browsing the journal
 - [Troubleshooting](https://github.com/solpbc/solstone-journal/blob/main/docs/DOCTOR.md): Diagnostics and common issues
