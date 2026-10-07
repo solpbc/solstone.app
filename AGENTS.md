@@ -65,7 +65,8 @@ for new routes/migrations.
 
 ```bash
 # Root site (solstone.app)
-make deploy            # regenerate sitemap, then wrangler deploy
+make deploy            # regenerate sitemap, refuse a stale asset stamp, then wrangler deploy
+make stamp             # after changing anything under public/static/: re-stamp every /static/ reference, then commit
 make dev               # wrangler dev
 node --test test/*.test.js   # download + releases parsing tests
 
