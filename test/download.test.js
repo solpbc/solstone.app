@@ -494,13 +494,13 @@ test("the real android page does not auto-download, and carries every slot the w
   assert.match(page, /<link rel="canonical" href="https:\/\/solstone\.app\/download\/android">/);
 });
 
-test("the Linux instructions use a journal pair link, not retired setup paths", async () => {
+test("the download pages never point at retired setup paths", async () => {
   const { readFileSync } = await import("node:fs");
-  const page = readFileSync(new URL("../public/download.html", import.meta.url), "utf8");
-
-  assert.match(page, /solstone-linux setup &lt; pair-link\.txt/);
-  assert.doesNotMatch(page, /setup --server-url/);
-  assert.doesNotMatch(page, /journal observer create/);
+  for (const name of ["download.html", "install.html"]) {
+    const page = readFileSync(new URL(`../public/${name}`, import.meta.url), "utf8");
+    assert.doesNotMatch(page, /setup --server-url/, name);
+    assert.doesNotMatch(page, /journal observer create/, name);
+  }
 });
 
 test("/download/android never prints a digest it did not read from the origin", async (t) => {
@@ -792,14 +792,4 @@ test("the real mac page carries the size slot and the three mac downloads, and n
   for (const [, path] of page.matchAll(/(?:src|href)="(\/static\/[^"]+)"/g)) {
     readFileSync(new URL(`../public${path}`, import.meta.url));
   }
-});
-
-test("/download's mac card leads with both apps and keeps each app on its own", async () => {
-  const { readFileSync } = await import("node:fs");
-  const page = readFileSync(new URL("../public/download.html", import.meta.url), "utf8");
-  const card = page.slice(page.indexOf("<h2>solstone on mac</h2>"), page.indexOf("<h2>solstone on linux</h2>"));
-  const both = card.indexOf('href="/download/mac"');
-  assert.ok(both > 0, "the mac card links to /download/mac");
-  assert.ok(card.indexOf('href="/download/macos"') > both, "the solstone app link sits below it");
-  assert.ok(card.indexOf('href="/download/journal"') > both, "the journal app link sits below it");
 });

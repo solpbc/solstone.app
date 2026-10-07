@@ -10,13 +10,22 @@ const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/rel
 const JOURNAL_CHANGELOG_URL = "https://updates.solstone.app/solstone-journal/CHANGELOG.md";
 const LINUX_CHANGELOG_URL = "https://updates.solstone.app/solstone-linux/CHANGELOG.md";
 const WIN_CHANGELOG_URL = "https://updates.solstone.app/solstone-windows/CHANGELOG.md";
+// Each linux product's own release pointer: one line, `version=x.y.z`. The
+// journal's is the one its installer reads; the linux app's and solstone-tmux's
+// are the ones their install guides read.
+const JOURNAL_LINUX_LATEST_URL = "https://updates.solstone.app/solstone-journal/release/latest";
+const LINUX_APP_LATEST_URL = "https://updates.solstone.app/solstone-linux/release/latest";
+const TMUX_LATEST_URL = "https://updates.solstone.app/solstone-tmux/release/latest";
 const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-android/releases";
 const IOS_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-swift/releases";
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
 
 // publish-appcast.py prepends new <item>s, so the first <enclosure ... .dmg> is
 // the latest. Its length attribute is the DMG's size in bytes; a missing or
-// malformed one leaves the size null rather than guessing.
+// malformed one leaves the size null rather than guessing. The version is the
+// shortVersionString of the item that enclosure sits in, and the signature is
+// the enclosure's own Sparkle ed25519 signature over that exact DMG; either
+// comes back null when it isn't there in the expected shape.
 async function latestAppcastDmg(appcastUrl) {
   try {
     const res = await fetch(appcastUrl, {
@@ -28,10 +37,29 @@ async function latestAppcastDmg(appcastUrl) {
     if (!enclosure) return null;
     const url = enclosure[0].match(/\burl="([^"]+\.dmg)"/)[1];
     const length = Number(enclosure[0].match(/\blength="(\d+)"/)?.[1]);
-    return { url, size: Number.isSafeInteger(length) && length > 0 ? length : null };
+    const itemStart = xml.lastIndexOf("<item", enclosure.index);
+    const item = itemStart >= 0 ? xml.slice(itemStart, enclosure.index) : "";
+    const version =
+      item.match(/<sparkle:shortVersionString>\s*([^<\s]+)\s*<\/sparkle:shortVersionString>/)?.[1] ??
+      enclosure[0].match(/\bsparkle:shortVersionString="([^"]+)"/)?.[1] ??
+      null;
+    const edSignature = enclosure[0].match(/\bsparkle:edSignature="([A-Za-z0-9+/]{86}==)"/)?.[1] ?? null;
+    return {
+      url,
+      size: Number.isSafeInteger(length) && length > 0 ? length : null,
+      version: plainVersion(version),
+      edSignature,
+    };
   } catch {
     return null;
   }
+}
+
+// A version a page may print: digits and dots only, so nothing a feed carries
+// can reach the page as markup.
+function plainVersion(value) {
+  const version = String(value ?? "").trim();
+  return /^\d+(?:\.\d+){1,3}$/.test(version) ? version : null;
 }
 
 async function latestMacosDmgUrl() {
@@ -96,7 +124,15 @@ async function latestMacBothImage() {
     if (!url.startsWith(MAC_BOTH_RELEASES_PREFIX)) return null;
     if (!/^[A-Za-z0-9._-]+\.dmg$/.test(url.slice(MAC_BOTH_RELEASES_PREFIX.length))) return null;
     const length = Number(pointer.length);
-    return { url, size: Number.isSafeInteger(length) && length > 0 ? length : null };
+    const sha256 = String(pointer.sha256 ?? "");
+    return {
+      url,
+      size: Number.isSafeInteger(length) && length > 0 ? length : null,
+      // The pointer's digest is of the image itself, the file this URL serves.
+      sha256: /^[0-9a-f]{64}$/.test(sha256) ? sha256 : null,
+      appVersion: plainVersion(pointer.apps?.solstone?.version),
+      journalVersion: plainVersion(pointer.apps?.journal?.version),
+    };
   } catch {
     return null;
   }
@@ -110,23 +146,30 @@ function renderMacBothPage(html, image) {
   return html.replace("<!--SIZE_FACT-->", size);
 }
 
-async function latestWindowsSetupUrl() {
+// A Velopack feed lists newest release first, so the first "Full" asset is the
+// current version. Deltas carry a Version too but aren't standalone
+// installers, so scan for the first Full rather than taking Assets[0]. The
+// feed's hashes and sizes are for the .nupkg packages the updater fetches, not
+// for the Setup a visitor downloads, so only the version is read from it.
+async function velopackFullVersion(feedUrl) {
   try {
-    const res = await fetch(WIN_FEED_URL, {
+    const res = await fetch(feedUrl, {
       cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
     });
     if (!res.ok) return null;
     const feed = await res.json();
-    // The feed lists newest release first, so the first "Full" asset is the
-    // current version. Deltas carry a Version too but aren't standalone
-    // installers, so scan for the first Full rather than taking Assets[0].
     const asset = feed?.Assets?.find((a) => a?.Type === "Full");
     const version = String(asset?.Version ?? "").trim();
-    if (!version) return null;
-    return `https://updates.solstone.app/solstone-windows/solstone-setup-${version}.exe`;
+    return version || null;
   } catch {
     return null;
   }
+}
+
+async function latestWindowsSetupUrl() {
+  const version = await velopackFullVersion(WIN_FEED_URL);
+  if (!version) return null;
+  return `https://updates.solstone.app/solstone-windows/solstone-setup-${version}.exe`;
 }
 
 // The Windows journal is its own per-user Velopack product with its own feed,
@@ -135,16 +178,21 @@ async function latestWindowsSetupUrl() {
 // Only a plain x.y.z version is accepted, so the feed can never steer this
 // redirect anywhere but that one prefix.
 async function latestJournalWindowsSetupUrl() {
+  const version = await velopackFullVersion(JOURNAL_WIN_FEED_URL);
+  if (!version || !/^\d+\.\d+\.\d+$/.test(version)) return null;
+  return `https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64-setup.exe`;
+}
+
+// A release pointer of the form `version=x.y.z`, one line. null when it can't
+// be read or isn't that shape.
+async function releasePointerVersion(pointerUrl) {
   try {
-    const res = await fetch(JOURNAL_WIN_FEED_URL, {
+    const res = await fetch(pointerUrl, {
       cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
     });
     if (!res.ok) return null;
-    const feed = await res.json();
-    const asset = feed?.Assets?.find((a) => a?.Type === "Full");
-    const version = String(asset?.Version ?? "").trim();
-    if (!/^\d+\.\d+\.\d+$/.test(version)) return null;
-    return `https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64-setup.exe`;
+    const match = (await res.text()).trim().match(/^version=(\d+\.\d+\.\d+)$/);
+    return match ? match[1] : null;
   } catch {
     return null;
   }
@@ -231,6 +279,103 @@ function renderAndroidPage(html, facts) {
         : "for android 8.0 and later",
     )
     .replaceAll("{{DIGEST_BLOCK}}", digestBlock);
+}
+
+// /download is the index of every download: one row per artifact, and every
+// version, size and fingerprint on it read from the same release feeds the
+// apps and installers read. Nothing here is typed in by hand.
+//
+// The page template marks each live cell as a slot:
+//   <!--slot NAME-->fallback<!--/slot-->
+// A slot this function can fill is replaced by its value; any other keeps its
+// fallback, which is a dash (or nothing, where the cell already says something
+// true without the value). So a feed that can't be read costs its row its live
+// values and nothing else, and the template served on its own reads as all
+// dashes rather than as stale numbers.
+async function downloadIndexSlots() {
+  const [macApp, macJournal, macBoth, winApp, winJournal, linuxJournal, linuxApp, tmux, android] = await Promise.all([
+    latestAppcastDmg(APPCAST_URL),
+    latestAppcastDmg(JOURNAL_MACOS_APPCAST_URL),
+    latestMacBothImage(),
+    windowsSetupFacts(WIN_FEED_URL, (version) => `https://updates.solstone.app/solstone-windows/solstone-setup-${version}.exe`),
+    windowsSetupFacts(
+      JOURNAL_WIN_FEED_URL,
+      (version) => `https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64-setup.exe`,
+    ),
+    releasePointerVersion(JOURNAL_LINUX_LATEST_URL),
+    releasePointerVersion(LINUX_APP_LATEST_URL),
+    releasePointerVersion(TMUX_LATEST_URL),
+    latestAndroidFacts(),
+  ]);
+
+  const slots = {};
+  let complete = true;
+  const fill = (name, html) => {
+    if (html) slots[name] = html;
+    else complete = false;
+  };
+
+  fill("macos-version", macApp?.version);
+  fill("macos-size", sizeCell(macApp?.size));
+  fill("macos-check", fingerprintCell("ed25519 (Sparkle)", macApp?.edSignature));
+
+  fill("journal-macos-version", macJournal?.version);
+  fill("journal-macos-size", sizeCell(macJournal?.size));
+  fill("journal-macos-check", fingerprintCell("ed25519 (Sparkle)", macJournal?.edSignature));
+
+  fill(
+    "mac-both-version",
+    macBoth?.appVersion && macBoth?.journalVersion
+      ? `<span class="line">solstone app ${macBoth.appVersion}</span><span class="line">journal app ${macBoth.journalVersion}</span>`
+      : null,
+  );
+  fill("mac-both-size", sizeCell(macBoth?.size));
+  fill("mac-both-check", fingerprintCell("sha256", macBoth?.sha256));
+
+  fill("windows-version", winApp?.version);
+  fill("windows-size", sizeCell(winApp?.size));
+
+  fill("journal-windows-version", winJournal?.version);
+  fill("journal-windows-size", sizeCell(winJournal?.size));
+
+  fill("journal-linux-version", linuxJournal);
+  fill("linux-version", linuxApp);
+  fill("tmux-version", tmux);
+
+  fill("android-version", plainVersion(android?.version));
+  fill("android-size", sizeCell(android?.size));
+  fill("android-check", fingerprintCell("sha256", android?.sha256));
+
+  return { slots, complete };
+}
+
+// A windows Setup's version comes from its Velopack feed and its size from the
+// Setup's own response headers; the feed's own sizes are the .nupkg's.
+async function windowsSetupFacts(feedUrl, setupUrlFor) {
+  const version = plainVersion(await velopackFullVersion(feedUrl));
+  if (!version) return null;
+  return { version, size: await installerSize(setupUrlFor(version)) };
+}
+
+function sizeCell(size) {
+  if (!size) return null;
+  return size >= 1e9 ? gigabytes(size) : megabytes(size);
+}
+
+// A fingerprint is shown short, with the whole value one tap away, and says
+// what kind of fingerprint it is. Callers pass only values already checked to
+// be plain hex or base64, so nothing here can carry markup.
+function fingerprintCell(kind, value) {
+  if (!value) return null;
+  const short = `${value.slice(0, 8)}…${value.slice(-8)}`;
+  return (
+    `<details class="fingerprint"><summary>${kind} <code title="${value}">${short}</code></summary>` +
+    `<code class="fingerprint-full">${value}</code></details>`
+  );
+}
+
+function renderDownloadIndex(html, slots) {
+  return html.replace(/<!--slot ([a-z0-9-]+)-->([\s\S]*?)<!--\/slot-->/g, (_, name, fallback) => slots[name] ?? fallback);
 }
 
 // The site-wide security headers. public/_headers sets the same block on
@@ -437,13 +582,22 @@ async function route(request, env) {
       return new Response(renderAndroidPage(await pageResponse.text(), facts), { status: 200, headers });
     }
 
-    // The per-device get-sol page lives at /download (index of the /download/*
-    // family). /observers is the retired pre-2026-07-03 name and /downloads a
-    // likely guess — both 301 here so old links keep working.
+    // /download is the index of the /download/* family: every download, with
+    // its version, size and fingerprint filled from the release feeds.
+    // /observers is the retired pre-2026-07-03 name and /downloads a likely
+    // guess — both 301 here so old links keep working.
     if (url.pathname === "/download") {
-      const rewritten = new URL(request.url);
-      rewritten.pathname = "/download.html";
-      return env.ASSETS.fetch(assetRequest(rewritten, request));
+      const pageUrl = new URL(request.url);
+      pageUrl.pathname = "/download";
+      const pageResponse = await env.ASSETS.fetch(assetRequest(pageUrl, request));
+      if (!pageResponse.ok) return pageResponse;
+      const { slots, complete } = await downloadIndexSlots();
+      const headers = new Headers(pageResponse.headers);
+      headers.set("Content-Type", "text/html; charset=utf-8");
+      // A page missing any live value must not sit at the edge after the feed
+      // comes back.
+      headers.set("Cache-Control", complete ? "public, max-age=300" : "no-store");
+      return new Response(renderDownloadIndex(await pageResponse.text(), slots), { status: 200, headers });
     }
 
     if (url.pathname === "/observers" || url.pathname === "/downloads") {

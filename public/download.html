@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>install on every device · solstone</title>
-    <meta name="description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on your computer and your phone: download it, or on a computer, copy the prompt for your coding agent.">
-    <meta property="og:title" content="install on every device · solstone">
-    <meta property="og:description" content="the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on your computer and your phone: download it, or on a computer, copy the prompt for your coding agent.">
+    <title>download · solstone</title>
+    <meta name="description" content="every solstone download, with its version, size and how to check it. the solstone app takes in what you share with it, and all of it goes into your journal.">
+    <meta property="og:title" content="download · solstone">
+    <meta property="og:description" content="every solstone download, with its version, size and how to check it. the solstone app takes in what you share with it, and all of it goes into your journal.">
     <meta property="og:url" content="https://solstone.app/download">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://solstone.app/static/share-card.png">
@@ -18,524 +18,235 @@
     <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/base.css">
+    <link rel="stylesheet" href="/static/tokens-dark.css">
+    <link rel="stylesheet" href="/static/site.css">
     <style>
-        .page-intro {
-            text-align: center;
-            padding: 3rem 1.5rem 2rem;
-            max-width: 640px;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
+        a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+        .band { margin-top: var(--band-gap); }
+        .band-inner { padding: clamp(18px, 4vw, 44px); }
+        h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 5vw, 52px); line-height: 1.1; color: var(--ink); }
+        .lede { font-size: clamp(18px, 1.6vw, 20px); margin-top: 14px; max-width: 40em; }
+        .after { margin-top: 24px; max-width: 46em; }
+        .after p + p { margin-top: 10px; }
+        code { font-family: var(--font-mono); font-size: 0.86em; overflow-wrap: anywhere; }
+
+        /* the artifact index: a table on wide screens, a stack of cards on narrow ones */
+        .artifacts-scroll { margin-top: 28px; overflow-x: auto; }
+        .artifacts { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 1.45; }
+        .artifacts th, .artifacts td { text-align: left; vertical-align: top; padding: 12px 10px; border-top: 1px solid var(--hairline); }
+        .artifacts thead th { font-size: 14px; font-weight: 600; color: var(--ink-soft); border-top: 0; border-bottom: 1px solid var(--hairline-2); padding-top: 0; white-space: nowrap; }
+        .artifacts tbody th { font-weight: 600; color: var(--ink); }
+        .artifacts th:first-child, .artifacts td:first-child { padding-left: 0; }
+        .artifacts th:last-child, .artifacts td:last-child { padding-right: 0; }
+        .artifacts .line { display: block; }
+        .artifacts .muted { color: var(--ink-soft); }
+        .artifacts .none { color: var(--ink-faint); }
+        .artifacts .setup a { display: block; }
+        .artifacts .setup a + a { margin-top: 4px; }
+        @media (min-width: 1000px) {
+            .artifacts tbody th, .artifacts td[data-label="size"], .artifacts .setup a { white-space: nowrap; }
         }
-        .page-intro h1 {
-            margin-bottom: 1rem;
-            position: relative;
-            padding-bottom: 1rem;
+        @media (min-width: 761px) and (max-width: 999px) {
+            .artifacts { font-size: 14px; }
+            .artifacts th, .artifacts td { padding: 10px 6px; }
         }
-        /* sunrise signature: gold→orange underline beneath the page h1 */
-        .page-intro h1::after {
-            content: "";
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 0;
-            width: 76px;
-            height: 4px;
-            border-radius: 2px;
-            background: var(--sunrise-rule);
+        .fingerprint { margin-top: 4px; }
+        .fingerprint summary { cursor: pointer; color: var(--ink-soft); overflow-wrap: anywhere; }
+        .fingerprint summary code { color: var(--ink); }
+        .fingerprint-full { display: block; margin-top: 6px; padding: 8px 10px; border-radius: var(--radius-sm, 9px); background: var(--cream-bright); border: 1px solid var(--hairline); color: var(--ink); overflow-wrap: anywhere; word-break: break-all; }
+
+        @media (max-width: 760px) {
+            .artifacts-scroll { overflow-x: visible; }
+            .artifacts, .artifacts tbody, .artifacts tr, .artifacts th, .artifacts td { display: block; width: 100%; }
+            .artifacts thead { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+            .artifacts tr { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--hairline-2); border-radius: 14px; background: var(--cream-bright); }
+            .artifacts tbody th, .artifacts td { border-top: 0; padding: 0; }
+            .artifacts tbody th { font-size: 18px; margin-bottom: 8px; }
+            .artifacts td { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 4px 12px; padding: 5px 0; }
+            .artifacts td::before { content: attr(data-label); color: var(--ink-soft); font-size: 14px; }
         }
-        .page-intro p {
-            font-size: 1rem;
-            line-height: 1.6;
-            color: var(--ink-soft);
-        }
-        .cards {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            max-width: 820px;
-            width: 90vw;
-            padding: 0 1.5rem;
-        }
-        .card {
-            background: var(--cream-bright);
-            border: 1px solid rgba(176, 106, 26, 0.08);
-            border-radius: 10px;
-            padding: 1.75rem;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 1px 2px rgba(139, 90, 24, 0.05),
-                        0 12px 32px -18px rgba(139, 90, 24, 0.22);
-        }
-        .card h2 {
-            font-family: var(--font-display);
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 0.35rem;
-        }
-        .card .subtitle {
-            font-size: 0.9rem;
-            color: var(--ink-faint);
-            margin-bottom: 1rem;
-        }
-        /* the two phones share a row, so neither reads as the afterthought */
-        .card.phone-row-start {
-            grid-column: 1;
-        }
-        .card ul {
-            list-style: none;
-            margin-bottom: 1.25rem;
-            flex-grow: 1;
-        }
-        .card ul li {
-            font-size: 0.88rem;
-            color: var(--ink-soft);
-            padding-left: 1rem;
-            position: relative;
-        }
-        .card ul li::before {
-            content: "·";
-            position: absolute;
-            left: 0;
-            color: var(--ink-faint);
-            font-weight: 700;
-        }
-        .card-actions {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 1rem;
-            margin-top: auto;
-        }
-        .copy-btn {
-            font-family: var(--font-display);
-            font-size: 0.82rem;
-            font-weight: 600;
-            background: var(--ink);
-            border: 1px solid var(--ink);
-            border-radius: 6px;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s, color 0.15s;
-            color: var(--ink-on-dark);
-            white-space: nowrap;
-        }
-        .copy-btn:hover {
-            background: var(--orange);
-            border-color: var(--orange);
-            color: var(--ink);
-        }
-        .copy-btn.copied {
-            background: var(--orange);
-            border-color: var(--orange);
-            color: var(--ink);
-        }
-        .gh-link {
-            font-size: 0.82rem;
-            color: var(--ink-faint);
-            text-decoration: none;
-            transition: color 0.15s;
-            white-space: nowrap;
-        }
-        .gh-link:hover {
-            color: var(--orange-text-aa);
-        }
-        .primary-action {
-            display: flex;
-            flex-direction: column;
-            gap: 0.45rem;
-            margin-top: auto;
-            margin-bottom: 1rem;
-        }
-        .download-btn {
-            display: inline-block;
-            align-self: flex-start;
-            font-family: var(--font-display);
-            font-size: 0.95rem;
-            font-weight: 700;
-            background: var(--sunrise-fill);
-            color: var(--ink);
-            text-decoration: none;
-            border: none;
-            border-radius: 6px;
-            padding: 0.65rem 1.1rem;
-        }
-        .download-btn:hover {
-            background: linear-gradient(135deg, #F2BF2B 0%, #DB8330 100%);
-            color: var(--ink);
-        }
-        .download-clarifier {
-            font-size: 0.82rem;
-            color: var(--ink-soft);
-            margin: 0;
-            line-height: 1.4;
-        }
-        .download-clarifier a {
-            color: var(--orange-text-aa);
-        }
-        /* the just-one downloads sit under the primary button as quiet links,
-           so the card keeps one primary action */
-        .standalone-links {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.35rem;
-            font-size: 0.82rem;
-            margin: 0;
-        }
-        /* each link is its own 24px-tall target (WCAG 2.5.8) */
-        .standalone-links a {
-            display: inline-flex;
-            align-items: center;
-            min-height: 24px;
-            color: var(--orange-text-aa);
-        }
-        .trust-signal {
-            font-size: 0.78rem;
-            color: var(--ink-faint);
-            margin: 0;
-            line-height: 1.4;
-        }
-        .secondary-action {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.85rem;
-            padding-top: 0.85rem;
-            border-top: 1px solid var(--hairline);
-        }
-        /* one primary action per card: when a card already
-           has a download button, its copy button steps down to a quiet outline
-           so it reads as the secondary it is */
-        .secondary-action .copy-btn {
-            font-size: 0.74rem;
-            padding: 0.35rem 0.75rem;
-            background: none;
-            border-color: var(--hairline-2);
-            color: var(--ink-soft);
-        }
-        .secondary-action .copy-btn:hover {
-            background: none;
-            border-color: var(--orange-ink);
-            color: var(--ink);
-        }
-        .secondary-action .gh-link {
-            font-size: 0.74rem;
-        }
-        .supplemental {
-            max-width: 820px;
-            width: 90vw;
-            padding: 0 1.5rem;
-            margin-top: 1.5rem;
-        }
-        .supplemental .card {
-            border-color: rgba(176, 106, 26, 0.08);
-            background: var(--cream-bright);
-        }
-        .supplemental .card h2 {
-            font-size: 1.05rem;
-            color: var(--ink-soft);
-        }
-        .supplemental .card .subtitle {
-            color: var(--ink-faint);
-        }
-        .blurb {
-            display: none;
-        }
-        /* The sunrise-gradient ground is shared: <body class="sunrise"> in base.css.
-           No per-page copy of the recipe. */
-        .update-note {
-            font-size: 0.78rem;
-            color: var(--ink-faint);
-            margin: 0.5rem 0 0;
-            line-height: 1.4;
-        }
-        .update-note code {
-            font-family: var(--font-mono);
-            font-size: 0.9em;
-            background: var(--orange-wash);
-            padding: 0.05rem 0.3rem;
-            border-radius: 3px;
-            color: var(--ink-soft);
-        }
-        /* alert box tracks the cards' content column instead of its own 600px
-           cap — .cards is max-width 820/90vw with 1.5rem
-           side padding, so the visible card edge is 3rem narrower */
-        .early-days {
-            max-width: calc(820px - 3rem);
-            width: calc(90vw - 3rem);
-        }
-        @media (max-width: 640px) {
-            .cards {
-                grid-template-columns: 1fr;
-            }
+        @media (max-width: 420px) {
+            .artifacts td { grid-template-columns: minmax(0, 1fr); gap: 0; }
         }
     </style>
 </head>
-<body class="sunrise">
-    <a href="#main" class="skip-link">skip to content</a>
-    <header>
-        <a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="static/mark.svg" alt="solstone home" style="height:40px;"></a>
-    </header>
-    <main id="main" tabindex="-1">
-    <div class="page-intro">
-        <h1>install solstone across your devices.</h1>
-        <p>the solstone app takes in what you share with it, and all of it goes into your journal. install solstone on each device you use: download it, or copy the prompt below into your coding agent and it handles the rest.</p>
+<body class="sun both">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
     </div>
-
-    <p class="early-days"><span class="stage-label">early days.</span> on a mac and on your phone, solstone installs like any app. on linux, and for the journal on windows, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
-
-    <div class="cards">
-        <div class="card">
-            <h2>solstone on mac</h2>
-            <p class="subtitle">native mac app, with screen and audio kept in your journal</p>
-            <ul>
-                <li>what you share from every connected display goes into your journal</li>
-                <li>what you share from system audio and microphone goes into your journal separately</li>
-                <li>runs as a menu bar app, starts at login</li>
-            </ul>
-            <div class="primary-action">
-                <a href="/download/mac" class="download-btn">download both for mac</a>
-                <p class="download-clarifier">one download with the solstone app and the journal app. needs an Apple Silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
-                <p class="standalone-links"><a href="/download/macos">download the standalone solstone app</a><a href="/download/journal">download the standalone journal app</a></p>
-                <p class="download-clarifier">already have a journal on another machine? the solstone app on its own pairs with it.</p>
-                <p class="trust-signal">signed by sol pbc, notarized by Apple. each app updates over its own signed channel.</p>
+    <div class="page">
+        <a href="#main" class="skip-link">skip to content</a>
+        <header class="site-header">
+            <div class="bar glass">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="main">
+                    <a href="/#how">how it works</a>
+                    <a href="/install#agents">connect your agent</a>
+                    <a href="/#open-source">open source</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                    <details class="site-menu">
+                        <summary>menu</summary>
+                        <nav aria-label="main">
+                            <a href="/#how">how it works</a>
+                            <a href="/install#agents">connect your agent</a>
+                            <a href="/#open-source">open source</a>
+                            <a href="https://support.solstone.app">support</a>
+                        </nav>
+                    </details>
+                </div>
             </div>
-            <div class="secondary-action">
-                <button class="copy-btn" data-target="blurb-macos" aria-label="copy for your agent: solstone on mac install prompt">copy for your agent</button>
-                <a href="https://github.com/solpbc/solstone-macos" class="gh-link">GitHub →</a>
-                <a href="/releases/macos" class="gh-link">release notes →</a>
+        </header>
+
+        <main id="main" tabindex="-1">
+            <section class="band wrap glass" aria-labelledby="page-title">
+                <div class="band-inner">
+                    <h1 id="page-title">download</h1>
+                    <p class="lede">every solstone download, with its version, size and how to check it. new here? start at <a href="/install">get started</a>.</p>
+                    <div class="artifacts-scroll">
+                        <table class="artifacts" role="table" aria-labelledby="page-title">
+                            <thead role="rowgroup">
+                                <tr role="row"><th scope="col" role="columnheader">product</th><th scope="col" role="columnheader">what it does</th><th scope="col" role="columnheader">platform</th><th scope="col" role="columnheader">version</th><th scope="col" role="columnheader">architecture</th><th scope="col" role="columnheader">size</th><th scope="col" role="columnheader">check it</th><th scope="col" role="columnheader">setup</th></tr>
+                            </thead>
+                            <tbody role="rowgroup">
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/macos">the solstone app</a></th>
+                                    <td role="cell" data-label="what it does"><div>takes in what you share</div></td>
+                                    <td role="cell" data-label="platform"><div>mac</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot macos-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div>Apple Silicon (M1 or newer)<span class="line muted">Intel macs aren't supported.</span></div></td>
+                                    <td role="cell" data-label="size"><div><!--slot macos-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="check it"><div><span class="line">signed by sol pbc, notarized by Apple</span><!--slot macos-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="/install#macos">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/journal">the journal app</a></th>
+                                    <td role="cell" data-label="what it does"><div>keeps your journal</div></td>
+                                    <td role="cell" data-label="platform"><div>mac</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot journal-macos-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div>Apple Silicon (M1 or newer)<span class="line muted">Intel macs aren't supported.</span></div></td>
+                                    <td role="cell" data-label="size"><div><!--slot journal-macos-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="check it"><div><span class="line">signed by sol pbc, notarized by Apple</span><!--slot journal-macos-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="/install#macos">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/mac">both mac apps</a></th>
+                                    <td role="cell" data-label="what it does"><div>one disk image with both</div></td>
+                                    <td role="cell" data-label="platform"><div>mac</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot mac-both-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div>Apple Silicon (M1 or newer)<span class="line muted">Intel macs aren't supported.</span></div></td>
+                                    <td role="cell" data-label="size"><div><!--slot mac-both-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="check it"><div><span class="line">signed by sol pbc, notarized by Apple</span><!--slot mac-both-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="/install#macos">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/windows">the solstone app</a></th>
+                                    <td role="cell" data-label="what it does"><div>takes in what you share</div></td>
+                                    <td role="cell" data-label="platform"><div>windows</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot windows-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div>x64</div></td>
+                                    <td role="cell" data-label="size"><div><!--slot windows-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="check it"><div>signed by sol pbc</div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="/install#windows">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/journal/windows">the journal</a></th>
+                                    <td role="cell" data-label="what it does"><div>keeps your journal</div></td>
+                                    <td role="cell" data-label="platform"><div>windows</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot journal-windows-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div>x64</div></td>
+                                    <td role="cell" data-label="size"><div><!--slot journal-windows-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="check it"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span></div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="/install#windows">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader">the journal</th>
+                                    <td role="cell" data-label="what it does"><div>keeps your journal</div></td>
+                                    <td role="cell" data-label="platform"><div>linux</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot journal-linux-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div>x86_64 or arm64</div></td>
+                                    <td role="cell" data-label="size"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span></div></td>
+                                    <td role="cell" data-label="check it"><div>verified by install.sh (minisign)</div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="/install#linux">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader">the solstone app</th>
+                                    <td role="cell" data-label="what it does"><div>takes in what you share</div></td>
+                                    <td role="cell" data-label="platform"><div>linux</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot linux-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div>x86_64</div></td>
+                                    <td role="cell" data-label="size"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span></div></td>
+                                    <td role="cell" data-label="check it"><div>signed by sol pbc (minisign)</div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader">solstone-tmux</th>
+                                    <td role="cell" data-label="what it does"><div>takes in your terminal sessions</div></td>
+                                    <td role="cell" data-label="platform"><div>mac and linux</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot tmux-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div>Apple Silicon, x86_64 or arm64</div></td>
+                                    <td role="cell" data-label="size"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span></div></td>
+                                    <td role="cell" data-label="check it"><div>signed by sol pbc (minisign)</div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="https://github.com/solpbc/solstone-tmux/blob/main/INSTALL.md">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/android">the solstone app</a></th>
+                                    <td role="cell" data-label="what it does"><div>takes in what you share</div></td>
+                                    <td role="cell" data-label="platform"><div>android (from us)</div></td>
+                                    <td role="cell" data-label="version"><div><!--slot android-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="architecture"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span></div></td>
+                                    <td role="cell" data-label="size"><div><!--slot android-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="check it"><div><span class="line">signed by sol pbc</span><!--slot android-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="/install#android">setup steps</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader">the solstone app</th>
+                                    <td role="cell" data-label="what it does"><div>takes in what you share</div></td>
+                                    <td role="cell" data-label="platform"><div>iphone and ipad (<a href="https://apps.apple.com/app/id6776850664">App Store</a>), android (<a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">Google Play</a>)</div></td>
+                                    <td role="cell" data-label="version"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span></div></td>
+                                    <td role="cell" data-label="architecture"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span></div></td>
+                                    <td role="cell" data-label="size"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">not shown</span></div></td>
+                                    <td role="cell" data-label="check it"><div>listed by sol pbc</div></td>
+                                    <td role="cell" data-label="setup" class="setup"><div><a href="/install#ios">iphone and ipad</a><a href="/install#android">android</a></div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="after">
+                        <p>check it's ours: <a href="https://trust.solstone.app">trust.solstone.app</a> walks through the signed records we publish, including the journal's releases on mac and linux.</p>
+                        <p>on your phone? <a class="btn-text" href="/phone">solstone on your phone →</a></p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="notice-wrap">
+                <p class="early-days"><span class="stage-label">early days.</span> on a mac and on your phone, solstone installs like any app. on linux, and for the journal on windows, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
             </div>
-            <pre class="blurb" id="blurb-macos">developer build (build from source). most people should use the download above. this path requires Xcode (full IDE, not just command line tools) and is here for developers who want to build, modify, or hand the install to a coding agent.
+        </main>
 
-git clone https://github.com/solpbc/solstone-macos.git && cd solstone-macos
-
-then read INSTALL.md and follow it.</pre>
-        </div>
-
-        <div class="card">
-            <h2>solstone on linux</h2>
-            <p class="subtitle">linux desktop app for x86_64 (Intel or AMD), with screen and audio kept in your journal</p>
-            <ul>
-                <li>what you share from every monitor goes into your journal via PipeWire at 1 FPS</li>
-                <li>what you share from microphone and system audio goes into your journal</li>
-            </ul>
-            <p class="trust-signal">verify the signed release manifest before you install. apt and dnf do not check our minisign signature.</p>
-            <div class="card-actions">
-                <button class="copy-btn" data-target="blurb-linux" aria-label="copy for your agent: solstone on linux install prompt">copy for your agent</button>
-                <a href="https://github.com/solpbc/solstone-linux" class="gh-link">GitHub →</a>
-                <a href="/releases/linux" class="gh-link">release notes →</a>
+        <footer class="site-footer">
+            <div class="glass">
+                <nav aria-label="footer">
+                    <a href="/download">download</a>
+                    <a href="/phone">phone</a>
+                    <a href="https://solpbc.org/privacy">privacy</a>
+                    <a href="/releases">releases</a>
+                    <a href="https://trust.solstone.app">trust</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc.</p>
             </div>
-            <pre class="blurb" id="blurb-linux">install solstone-linux, which sets up the solstone app on x86_64 linux desktops using PipeWire and GStreamer. the solstone app takes in your screen and audio along with you, and it all goes into your journal.
-
-on the linux desktop, check the current version:
-curl -fsS https://updates.solstone.app/solstone-linux/release/latest
-
-it prints version=&lt;VERSION&gt;. there is no file listing, so fetch by name. take the deb or the rpm, plus the manifest and its signature:
-debian / ubuntu:   curl -fLO https://updates.solstone.app/solstone-linux/release/&lt;VERSION&gt;/solstone-linux_&lt;VERSION&gt;-1_amd64.deb
-fedora / rhel:     curl -fLO https://updates.solstone.app/solstone-linux/release/&lt;VERSION&gt;/solstone-linux-&lt;VERSION&gt;-1.x86_64.rpm
-curl -fLO https://updates.solstone.app/solstone-linux/release/&lt;VERSION&gt;/solstone-linux-&lt;VERSION&gt;-linux-x86_64.rust-release-manifest.json
-curl -fLO https://updates.solstone.app/solstone-linux/release/&lt;VERSION&gt;/solstone-linux-&lt;VERSION&gt;-linux-x86_64.rust-release-manifest.json.minisig
-
-verify first. minisign authenticates the manifest; then check the package against the authenticated digest. replace &lt;downloaded-package&gt; with its exact filename. you run both checks; apt and dnf do not:
-curl -fLo solstone-linux-release.pub https://updates.solstone.app/solstone-linux/minisign.pub
-minisign -Vm solstone-linux-&lt;VERSION&gt;-linux-x86_64.rust-release-manifest.json -p solstone-linux-release.pub
-jq -r --arg package '&lt;downloaded-package&gt;' '.artifacts[] | select(.path == $package) | "\(.sha256)  \(.path)"' solstone-linux-&lt;VERSION&gt;-linux-x86_64.rust-release-manifest.json | sha256sum -c -
-
-if either command refuses the files, stop. then install:
-debian / ubuntu:   sudo apt install ./solstone-linux_&lt;VERSION&gt;-1_amd64.deb
-fedora / rhel:     sudo dnf install ./solstone-linux-&lt;VERSION&gt;-1.x86_64.rpm
-
-then:
-
-solstone-linux install-service
-solstone-linux setup
-
-solstone-linux needs PipeWire, GStreamer (core, base, good, pipewire, x11), xdg-desktop-portal and xdg-utils on the desktop first. the repo's INSTALL.md lists the exact package names for debian, fedora, arch and openSUSE.
-
-create a pair link for your device in your journal and save it as pair-link.txt. then stop the service before pairing, run setup with that link, and start it again:
-
-solstone-linux install-service
-systemctl --user stop solstone-linux
-solstone-linux setup &lt; pair-link.txt
-systemctl --user start solstone-linux
-
-building from source instead? (developers only) clone the repo and follow its INSTALL.md:
-
-git clone https://github.com/solpbc/solstone-linux.git && cd solstone-linux</pre>
-        </div>
-
-        <div class="card">
-            <h2>solstone on windows</h2>
-            <p class="subtitle">windows app for x86_64 (Intel or AMD) PCs, with screen and audio kept in your journal</p>
-            <ul>
-                <li>what you share from your screen, system audio, and mic when present goes into your journal</li>
-                <li>runs per-user in the tray, with no admin install</li>
-                <li>pairs with your journal on the same PC, or on a mac or linux machine</li>
-            </ul>
-            <div class="primary-action">
-                <a href="/download/windows" class="download-btn">download for windows</a>
-                <p class="download-clarifier">downloads the signed installer. during setup, the solstone app pairs with your journal.</p>
-                <p class="standalone-links"><a href="/download/journal/windows">the journal for windows</a></p>
-                <p class="trust-signal">signed by sol pbc. while our signing reputation builds, windows may warn that it couldn't verify the app because it isn't commonly downloaded. the publisher it shows is sol pbc.</p>
-            </div>
-            <div class="secondary-action">
-                <button class="copy-btn" data-target="blurb-winget" data-default-label="copy winget install" aria-label="copy winget install command for solstone on windows">copy winget install</button>
-                <button class="copy-btn" data-target="blurb-scoop" data-default-label="copy scoop install" aria-label="copy scoop install commands for solstone on windows">copy scoop install</button>
-                <a href="https://github.com/solpbc/solstone-windows" class="gh-link">GitHub →</a>
-                <a href="/releases/windows" class="gh-link">release notes →</a>
-            </div>
-            <p class="update-note">installed directly, the solstone app updates itself; via winget, run <code>winget upgrade solstone</code>; via scoop, run <code>scoop update solstone</code>.</p>
-
-            <pre class="blurb" id="blurb-winget">winget install solstone</pre>
-            <pre class="blurb" id="blurb-scoop">scoop bucket add solstone https://github.com/solpbc/scoop-solstone
-scoop install solstone</pre>
-        </div>
-
-        <div class="card phone-row-start">
-            <h2>solstone on iphone and ipad</h2>
-            <p class="subtitle">iphone and ipad app, with what you share kept in your journal</p>
-            <ul>
-                <li>the photos and screens that matter to you go into your journal</li>
-                <li>with your permission, the audio from your day and where you were go in too</li>
-                <li>pairs with the journal on your mac or linux machine</li>
-            </ul>
-            <div class="primary-action">
-                <a href="https://apps.apple.com/app/id6776850664" class="download-btn">get it on the App Store</a>
-                <p class="download-clarifier">free on the App Store, where it's listed as solstone mobile. needs ios or ipados 26 or later.</p>
-                <p class="trust-signal">made by sol pbc. it updates through the App Store.</p>
-            </div>
-            <div class="secondary-action">
-                <a href="/phone" class="gh-link">solstone on your phone →</a>
-                <a href="https://github.com/solpbc/solstone-swift" class="gh-link">GitHub →</a>
-                <a href="/releases/ios" class="gh-link">release notes →</a>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>solstone on android</h2>
-            <p class="subtitle">android phone app, with what you share kept in your journal</p>
-            <ul>
-                <li>what you share from the microphone and the camera goes into your journal</li>
-                <li>a place can sit alongside it, from approximate location</li>
-                <li>pairs with the journal on your mac or linux machine</li>
-            </ul>
-            <div class="primary-action">
-                <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone" class="download-btn">get it on Google Play</a>
-                <p class="download-clarifier">free on Google Play. needs android 8.0 or later. no Google Play on your phone? <a href="/download/android">download the signed app from us</a>, with what android asks and how to check the file is ours.</p>
-                <p class="trust-signal">made by sol pbc. the Google Play copy updates on its own.</p>
-            </div>
-            <div class="secondary-action">
-                <a href="/phone" class="gh-link">solstone on your phone →</a>
-                <a href="https://github.com/solpbc/solstone-android" class="gh-link">GitHub →</a>
-                <a href="/releases/android" class="gh-link">release notes →</a>
-            </div>
-        </div>
+        </footer>
     </div>
-
-    <div class="supplemental">
-        <div class="card">
-            <h2>+ add your terminal</h2>
-            <p class="subtitle">what you share from your terminal sessions goes into your journal. solstone-tmux is a native Rust binary that requires tmux and works alongside the solstone app.</p>
-            <div class="card-actions">
-                <button class="copy-btn" data-target="blurb-tmux" aria-label="copy for your agent: solstone-tmux install prompt">copy for your agent</button>
-                <a href="https://github.com/solpbc/solstone-tmux" class="gh-link">GitHub →</a>
-            </div>
-            <pre class="blurb" id="blurb-tmux">install solstone-tmux. what's on each active tmux pane goes into your journal every 5 seconds. it's a native Rust binary and requires tmux.
-
-on the device that runs tmux, check the current version:
-curl -fsS https://updates.solstone.app/solstone-tmux/release/latest
-
-it prints version=&lt;VERSION&gt;. there is no file listing. on linux, x86_64 (Intel or AMD) packages say amd64 or x86_64 in the name, and arm64 packages say arm64 or aarch64. an arm64 (Apple Silicon) mac takes the aarch64-macos .pkg. fetch SHA256SUMS and its signature, then the .deb, .rpm or .pkg for your system, under the exact name SHA256SUMS gives it:
-curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/SHA256SUMS
-curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/SHA256SUMS.minisig
-curl -fLO https://updates.solstone.app/solstone-tmux/release/&lt;VERSION&gt;/&lt;downloaded-package&gt;
-verify first. the release has 13 files: 11 packages and target records, SHA256SUMS, and its signature. minisign authenticates SHA256SUMS; then check your package against one of its 11 entries. replace &lt;downloaded-package&gt; with its exact filename. you run both checks; apt and dnf do not:
-curl -fLo solstone-tmux-release.pub https://updates.solstone.app/solstone-tmux/minisign.pub
-minisign -Vm SHA256SUMS -p solstone-tmux-release.pub
-linux: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | sha256sum -c -
-macos: awk -v package='&lt;downloaded-package&gt;' '$2 == package' SHA256SUMS | shasum -a 256 -c -
-
-if either command refuses the files, stop. then install the package that matches your system:
-debian / ubuntu:   sudo apt install ./&lt;downloaded-package&gt;
-fedora / rhel:     sudo dnf install ./&lt;downloaded-package&gt;
-arm64 mac:         sudo installer -pkg &lt;downloaded-package&gt; -target /
-
-then pair and activate it:
-solstone-tmux setup &lt; pairing-link.txt
-solstone-tmux install-service
-solstone-tmux status
-
-the pairing link comes from your journal.
-
-building from source instead? (developers only) clone the repo and follow its INSTALL.md:
-
-git clone https://github.com/solpbc/solstone-tmux.git && cd solstone-tmux</pre>
-        </div>
-    </div>
-
-    </main>
-
-    <div class="visually-hidden" role="status" aria-live="polite" id="copy-status"></div>
-
-    <footer>
-        <nav class="footer-nav" aria-label="footer">
-            <a href="/install">get started</a> · <a href="/download">download</a> · <a href="/releases">releases</a> · <a href="https://services.solstone.app">services</a> · <a href="https://support.solstone.app">support</a>
-        </nav>
-        <div class="footer-covenant">© 2026 <a href="https://solpbc.org">sol pbc</a> · your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
-    </footer>
-
-    <script>
-        // announce transient state to assistive tech via the polite live region
-        function announce(msg) {
-            var status = document.getElementById('copy-status');
-            if (!status) return;
-            status.textContent = '';
-            // re-set on the next tick so repeated copies re-announce
-            setTimeout(function() { status.textContent = msg; }, 50);
-        }
-        document.querySelectorAll('.copy-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                var blurb = document.getElementById(btn.dataset.target);
-                if (!blurb) return;
-                var text = blurb.textContent;
-                var defaultLabel = btn.dataset.defaultLabel || 'copy for your agent';
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(function() {
-                        btn.textContent = 'copied!';
-                        btn.classList.add('copied');
-                        announce('copied to clipboard');
-                        setTimeout(function() {
-                            btn.textContent = defaultLabel;
-                            btn.classList.remove('copied');
-                        }, 2000);
-                    }, function() {
-                        showFallback(blurb);
-                    });
-                } else {
-                    showFallback(blurb);
-                }
-            });
-        });
-        function showFallback(blurb) {
-            announce('text selected — press ctrl+c (or cmd+c on mac) to copy');
-            blurb.style.display = 'block';
-            blurb.style.whiteSpace = 'pre-wrap';
-            blurb.style.background = 'var(--orange-wash)';
-            blurb.style.border = '1px solid var(--hairline-2)';
-            blurb.style.borderRadius = '6px';
-            blurb.style.padding = '1rem';
-            blurb.style.fontSize = '0.8rem';
-            blurb.style.color = 'var(--ink-soft)';
-            blurb.style.marginTop = '1rem';
-            blurb.style.fontFamily = 'monospace';
-            blurb.style.maxHeight = '300px';
-            blurb.style.overflow = 'auto';
-            var sel = window.getSelection();
-            var range = document.createRange();
-            range.selectNodeContents(blurb);
-            sel.removeAllRanges();
-            sel.addRange(range);
-        }
-    </script>
+    <script src="/static/sunarc.js" defer></script>
 </body>
 </html>
