@@ -18,235 +18,318 @@
     <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/base.css">
+    <link rel="stylesheet" href="/static/tokens-dark.css">
+    <link rel="stylesheet" href="/static/site.css">
     <style>
-        .install-page { width: min(100% - 2.5rem, 860px); margin: 0 auto; }
-        .page-intro { max-width: 650px; margin: 2.5rem auto 1.5rem; text-align: center; }
-        .page-intro h1 { margin-bottom: 1rem; padding-bottom: 1rem; position: relative; }
-        .page-intro h1::after { content: ""; position: absolute; bottom: 0; left: calc(50% - 38px); width: 76px; height: 4px; border-radius: 2px; background: var(--sunrise-rule); }
-        .install-page p { line-height: 1.65; }
-        .install-page a:not(.action):not(.platform-link) { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-        .overview { display: grid; grid-template-columns: 1fr 2rem 1fr; align-items: stretch; margin: 0 auto 1rem; }
-        .overview-part { padding: 1.15rem 1.35rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px -10px rgba(139,90,24,.25); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
+        a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+        .band { margin-top: var(--band-gap); }
+        .band-inner { padding: clamp(22px, 4vw, 44px); }
+        .prose { max-width: calc(var(--w-prose) + 2 * clamp(22px, 4vw, 44px)); }
+        h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 5vw, 52px); line-height: 1.1; color: var(--ink); }
+        h2 { font-family: var(--font-body); font-weight: 600; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 12px; }
+        h3, h4 { font-family: var(--font-body); font-weight: 600; font-size: 18px; line-height: 1.3; color: var(--ink); margin: 18px 0 6px; }
+        h4 { margin-top: 0; }
+        p + p { margin-top: 12px; }
+        .lede { font-size: clamp(18px, 1.6vw, 20px); margin-top: 14px; max-width: 40em; }
+        .more { margin-top: 14px; }
+        .step-no { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--orange-wash); font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+        .step-no + p { margin-top: 0; }
+
+        .intro .band-inner { padding-left: 4px; padding-right: 4px; }
+        @media (prefers-color-scheme: dark) {
+            .intro { background: var(--glass); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid var(--glass-line); border-radius: 20px; box-shadow: var(--glass-shadow); }
+            .intro .band-inner { padding-left: clamp(22px, 4vw, 44px); padding-right: clamp(22px, 4vw, 44px); }
+        }
+        .overview { display: grid; grid-template-columns: 1fr 2rem 1fr; align-items: stretch; margin-top: 24px; max-width: 760px; }
+        .overview-part { padding: 16px 18px; background: var(--cream-bright); border: 1px solid var(--hairline); border-radius: 14px; }
         .overview-part.journal { background: var(--orange-wash); }
-        .overview-part h2 { font-family: var(--font-display); font-size: 1rem; color: var(--ink); margin-bottom: .4rem; }
-        .overview-part p { font-size: .94rem; }
-        .connection { display: grid; place-items: center; color: var(--ink-soft); font-size: 1.4rem; }
-        .overview-note { text-align: center; font-size: .94rem; }
-        .early-note { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--orange); font-size: .94rem; }
-        .setup { background: white; border-radius: 14px; padding: 1.75rem; box-shadow: 0 3px 5px rgba(139,90,24,.04), 0 18px 40px -24px rgba(139,90,24,.25); }
-        .setup h2, .more h2 { font-family: var(--font-display); font-size: 1.25rem; color: var(--ink); margin-bottom: .6rem; }
-        .platform-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.2rem 0; }
-        .platform-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .6rem .85rem; border: 1px solid var(--hairline-2); border-radius: 7px; font-size: .94rem; color: var(--ink); text-decoration: none; }
-        .platform-link:hover { background: var(--orange-wash); }
-        .platform-link[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: white; }
-        .platform-panel { scroll-margin-top: 1rem; padding-top: .5rem; }
-        .platform-panel + .platform-panel { margin-top: 1.5rem; border-top: 1px solid var(--hairline); }
+        .overview-part h2 { font-size: 17px; margin-bottom: 4px; }
+        .overview-part p { font-size: 15px; color: var(--ink-soft); }
+        .connection { display: grid; place-items: center; color: var(--ink-faint); font-size: 1.3rem; }
+        .branches { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; max-width: 760px; }
+        .branch { display: block; padding: 16px 18px; border-radius: 14px; border: 1.5px solid var(--hairline-2); background: var(--cream-bright); text-decoration: none; color: var(--ink); }
+        .branch strong { display: block; font-size: 17px; }
+        .branch span { display: block; font-size: 15px; color: var(--ink-soft); margin-top: 4px; }
+        .branch:hover { border-color: var(--ink-faint); }
+        .branch[aria-current="true"] { border-color: var(--orange); background: var(--orange-wash); box-shadow: inset 0 0 0 1px var(--orange); }
+
+        .platform-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+        .platform-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--hairline-2); border-radius: 9px; font-size: 15px; font-weight: 500; color: var(--ink); text-decoration: none; background: var(--cream-bright); }
+        .platform-link:hover { border-color: var(--ink-faint); }
+        .platform-link[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--cream); }
+        .platform-panel { padding-top: 12px; max-width: 760px; }
+        .platform-panel + .platform-panel { margin-top: 24px; border-top: 1px solid var(--hairline); }
         .enhanced .platform-panel { margin-top: 0; border-top: 0; }
         .platform-panel[hidden] { display: none; }
-        .platform-panel h3 { font-family: var(--font-display); font-size: 1.05rem; margin-bottom: .5rem; color: var(--ink); }
-        .requirements { font-size: .9rem; margin-bottom: 1rem; }
-        .existing { background: var(--cream-bright); border: 1px solid var(--hairline-2); padding: .8rem 1rem; border-radius: 7px; margin-bottom: 1.25rem; font-size: .94rem; }
+        .platform-panel h3 { margin-top: 8px; }
+        .requirements { font-size: 15px; color: var(--ink-soft); margin-bottom: 16px; }
         .steps { list-style: none; counter-reset: step; }
-        .steps > li { position: relative; padding-left: 2.5rem; counter-increment: step; }
-        .steps > li::before { content: counter(step); position: absolute; left: 0; top: -.1rem; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: 50%; background: var(--orange-wash); font-weight: 600; color: var(--ink); }
-        .steps > li + li { margin-top: 1.75rem; }
-        .steps h4 { font-size: 1rem; color: var(--ink); margin-bottom: .4rem; }
-        .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: .85rem; }
-        .action, .copy-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .65rem 1rem; border-radius: 7px; border: 0; font: 600 .94rem var(--font-body); cursor: pointer; text-decoration: none; text-align: center; }
-        .action { background: var(--sunrise-fill); color: var(--ink); }
-        .action:hover { background: var(--gold); color: var(--ink); }
-        .copy-btn { background: var(--ink); color: white; }
-        .copy-btn:hover { background: var(--ink-soft); }
+        .steps > li { position: relative; padding-left: 40px; counter-increment: step; }
+        .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--hairline-2); font-size: 14px; font-weight: 600; color: var(--ink); }
+        .steps > li + li { margin-top: 26px; }
+        .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
         .copy-btn[hidden] { display: none; }
-        /* a quiet second way in beside the primary action, at the same tap height */
-        .action-alt { display: inline-flex; align-items: center; min-height: 44px; font-size: .9rem; }
-        .references { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; font-size: .9rem; margin-top: 1.25rem; }
-        .reference-intro { flex-basis: 100%; }
-        .references a { display: inline-flex; align-items: center; min-height: 44px; }
-        .install-page pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .87rem/1.65 var(--font-mono); background: var(--cream-bright); border: 1px solid var(--hairline-2); color: var(--ink); border-radius: 7px; padding: 1rem; margin-top: .85rem; }
-        .install-page code { font-family: var(--font-mono); font-size: .9em; }
-        .install-page details { border-top: 1px solid var(--hairline); margin-top: 1.5rem; padding-top: .5rem; }
-        .install-page summary { cursor: pointer; padding: .8rem 0; min-height: 44px; color: var(--ink); font-weight: 600; }
-        .detail-body { padding: .25rem 0 .5rem; }
-        .detail-body p + p { margin-top: .85rem; }
-        .detail-body h3 { font-size: 1rem; color: var(--ink); margin: 1rem 0 .3rem; }
-        .platform-request { margin: 1.25rem 0 0; font-size: .94rem; text-align: center; }
-        .more { margin: 2.25rem auto 0; max-width: 700px; }
-        .more h3 { font-size: 1rem; color: var(--ink); margin: 1rem 0 .3rem; }
-        .more p + p { margin-top: .85rem; }
-        .copy-message { font-size: .9rem; margin-top: .5rem; }
+        .ours { margin-top: 22px; padding: 12px 14px; border-radius: 12px; background: var(--cream-bright); border: 1px solid var(--hairline); font-size: 15px; }
+        pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 0.87rem/1.65 var(--font-mono); background: var(--cream-bright); border: 1px solid var(--hairline-2); color: var(--ink); border-radius: 9px; padding: 14px; margin-top: 12px; }
+        code { font-family: var(--font-mono); font-size: 0.9em; overflow-wrap: anywhere; }
+        .setup details { border-top: 1px solid var(--hairline); margin-top: 18px; padding-top: 4px; }
+        .setup summary { cursor: pointer; padding: 10px 0; min-height: 44px; color: var(--ink); font-weight: 600; }
+        .detail-body { padding: 4px 0 8px; }
+        .copy-message { font-size: 14px; margin-top: 8px; color: var(--ink-soft); }
         .copy-message:empty { display: none; }
-        @media (max-width: 540px) {
-            .page-intro { margin-top: 1.75rem; }
-            .overview { grid-template-columns: 1fr; }
-            .connection { min-height: 1.8rem; transform: rotate(90deg); }
-            .overview-part { padding: 1rem; }
-            .setup { padding: 1.15rem; }
-            .platform-nav { gap: .4rem; }
-            .platform-link { flex: 1 1 28%; padding-inline: .6rem; }
-            .steps > li { padding-left: 2.1rem; }
+        .platform-request { margin-top: 18px; font-size: 15px; color: var(--ink-soft); }
+
+        /* the two branches: without JavaScript both show, labelled; with it, the chosen one */
+        .branch-start [data-branch="connect"], .branch-connect [data-branch="start"] { display: none; }
+
+        .asks { display: grid; grid-template-columns: max-content 1fr; gap: 12px 24px; margin: 16px 0; max-width: 820px; }
+        .asks dt { font-weight: 600; }
+        .asks dd { color: var(--ink-soft); }
+        @media (max-width: 640px) {
+            .overview, .branches { grid-template-columns: 1fr; }
+            .connection { transform: rotate(90deg); min-height: 1.8rem; }
+            .platform-link { flex: 1 1 28%; padding: 0 10px; }
+            .steps > li { padding-left: 36px; }
+            .asks { grid-template-columns: 1fr; gap: 4px; }
+            .asks dd { margin-bottom: 10px; }
+            .intro .band-inner { padding-top: 20px; }
         }
     </style>
 </head>
-<body class="sunrise">
-    <a href="#main" class="skip-link">skip to content</a>
-    <header><a href="/" style="display:inline-block;margin-top:1.5rem;"><img src="/static/mark.svg" alt="solstone home" width="40" height="40"></a></header>
-    <main id="main" tabindex="-1">
-    <div class="install-page">
-        <div class="page-intro">
-            <h1>get started with solstone.</h1>
-            <p>a personal memory platform. what you share with the solstone app goes into your journal, on a computer you own.</p>
-        </div>
-        <div class="overview" aria-label="how solstone fits together">
-            <section class="overview-part">
-                <h2>the solstone app</h2>
-                <p>takes in what you choose to share from your devices.</p>
-            </section>
-            <span class="connection" aria-hidden="true">→</span>
-            <section class="overview-part journal">
-                <h2>your journal</h2>
-                <p>keeps it organized and searchable on your mac, windows or linux computer.</p>
-            </section>
-        </div>
-        <p class="overview-note">start on one computer. connect more devices to the same journal whenever you're ready.</p>
-        <p class="early-note"><strong>early days.</strong> on a mac and on your phone, solstone installs like any app. on linux, and for the journal on windows, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
-
-        <section class="setup" aria-labelledby="setup-heading">
-            <h2 id="setup-heading">install on your device</h2>
-            <p>choose the device you're setting up.</p>
-            <nav class="platform-nav" aria-label="choose your platform">
-                <a class="platform-link" id="tab-macos" href="#macos">mac</a>
-                <a class="platform-link" id="tab-linux" href="#linux">linux</a>
-                <a class="platform-link" id="tab-windows" href="#windows">windows</a>
-                <a class="platform-link" id="tab-ios" href="#ios">iphone / ipad</a>
-                <a class="platform-link" id="tab-android" href="#android">android</a>
-                <a class="platform-link" id="tab-tmux" href="#tmux">tmux</a>
-            </nav>
-
-            <section class="platform-panel" id="macos" aria-labelledby="macos-heading">
-                <h3 id="macos-heading">on your mac</h3>
-                <p class="requirements">an Apple Silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
-                <p class="existing">already have a journal? <a href="#mac-app">just install the solstone app</a> and connect it to your existing journal.</p>
-                <ol class="steps">
-                    <li>
-                        <h4>create your journal first</h4>
-                        <p>install and open the journal app. choose where your journal lives, and lock in its mark: two shapes and two words that are your journal's own, so you can always tell which journal is yours. then choose <strong>open your journal</strong> to read it in your browser.</p>
-                        <div class="actions"><a class="action" href="/download/journal">get the journal app</a></div>
-                    </li>
-                    <li id="mac-app">
-                        <h4>connect the solstone app</h4>
-                        <p>install and open the solstone app. in settings, choose <strong>journal</strong> to connect. for a journal on your mac, confirm the one it finds. follow the prompts to choose what you share.</p>
-                        <div class="actions"><a class="action" href="/download/macos">get the solstone app</a></div>
-                    </li>
-                </ol>
-                <details>
-                    <summary>prefer the terminal?</summary>
-                    <div class="detail-body">
-                        <p>install both mac apps with one command:</p>
-                        <pre id="macos-commands">curl -fsSL https://solstone.app/install.sh | sh -s -- --components all</pre>
-                        <div class="actions"><button class="copy-btn" data-target="macos-commands" hidden>copy command</button></div>
-                        <p class="copy-message" role="status" id="macos-commands-status"></p>
-                        <p>for just one, replace <code>all</code> with <code>journal</code> or <code>app</code>. the installer verifies the download and puts the app in <code>/Applications</code>. updates stay inside each app.</p>
-                    </div>
-                </details>
-                <details id="macos-migration">
-                    <summary>installed the journal from the terminal before?</summary>
-                    <div class="detail-body"><p>install the journal app, then open it. the journal app adopts an older journal only when it can verify the installation it is taking over. if anything is unclear, it stops and tells you what needs attention. your journal stays where it is. <a href="https://support.solstone.app">contact support</a> if you need a hand.</p></div>
-                </details>
-                <details>
-                    <summary>journal on another computer?</summary>
-                    <div class="detail-body"><p>in your journal, open <strong>network</strong> and choose <strong>add a device</strong>. copy the pairing link. in the solstone app's journal settings, choose <strong>pair to a journal on another device</strong>, paste the link, and confirm it's your journal.</p></div>
-                </details>
-                <div class="references"><a href="https://github.com/solpbc/solstone-macos/blob/main/INSTALL.md">mac setup help</a></div>
-            </section>
-
-            <section class="platform-panel" id="linux" aria-labelledby="linux-heading">
-                <h3 id="linux-heading">on your linux computer</h3>
-                <p class="requirements">journal: x86_64 (Intel or AMD) or arm64. desktop app: x86_64 only. not sure which you have? <code>uname -m</code> prints x86_64, or aarch64 on arm64. anything else isn't supported.</p>
-                <p class="existing">already have a journal? <a href="#linux-app">add the desktop app</a> and connect it to your existing journal.</p>
-                <ol class="steps">
-                    <li>
-                        <h4>set up your journal</h4>
-                        <p>the installer verifies its downloads with minisign, so add it first if you don't have it: <code>sudo apt install minisign</code>, <code>sudo dnf install minisign</code> or <code>sudo pacman -S minisign</code>. not sure which? run the command below. if minisign is missing, the installer stops before changing anything and says how to add it.</p>
-                        <p>run this command in your terminal. it installs your journal and starts it.</p>
-                        <pre id="linux-commands">curl -fsSL https://solstone.app/install.sh | sh</pre>
-                        <div class="actions"><button class="copy-btn" data-target="linux-commands" hidden>copy command</button></div>
-                        <p class="copy-message" role="status" id="linux-commands-status"></p>
-                        <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
-                    </li>
-                    <li id="linux-app">
-                        <h4>add the desktop app</h4>
-                        <p>the solstone app takes in what you share from your desktop, and all of it goes into your journal. its setup guide includes the packages your system needs.</p>
-                        <div class="actions"><a class="action" href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">set up the linux app</a></div>
-                    </li>
-                </ol>
-                <div class="references"><a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md">setup help</a><a href="/install.sh">read the installer</a></div>
-            </section>
-
-            <section class="platform-panel" id="windows" aria-labelledby="windows-heading">
-                <h3 id="windows-heading">on your windows computer</h3>
-                <p class="requirements">windows 10 (22H2) or 11 on x86_64 (Intel or AMD, shown as x64 in windows settings). no administrator access needed to install. the journal installer is about 1.1 GB. the local model needs a compatible GPU; without one, thinking needs your own model. transcription runs on your PC.</p>
-                <p class="existing">already have a journal? <a href="#windows-app">just install the solstone app</a> and connect it to your existing journal.</p>
-                <ol class="steps">
-                    <li>
-                        <h4>set up your journal</h4>
-                        <p>download and run the journal installer.</p>
-                        <div class="actions"><a class="action" href="/download/journal/windows">get the journal for windows</a></div>
-                        <p>then open a new terminal window and run:</p>
-                        <pre id="windows-commands">solstone journal setup</pre>
-                        <div class="actions"><button class="copy-btn" data-target="windows-commands" hidden>copy command</button></div>
-                        <p class="copy-message" role="status" id="windows-commands-status"></p>
-                        <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
-                    </li>
-                    <li id="windows-app">
-                        <h4>connect the solstone app</h4>
-                        <p>install the solstone app, then connect it to your journal and choose what you share.</p>
-                        <div class="actions"><a class="action" href="/download/windows">get the windows app</a></div>
-                    </li>
-                </ol>
-                <div class="references"><a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md">setup help</a></div>
-            </section>
-
-            <section class="platform-panel" id="ios" aria-labelledby="ios-heading">
-                <h3 id="ios-heading">on your iphone or ipad</h3>
-                <p class="requirements">ios or ipados 26 or later. free on the App Store, where it's listed as solstone mobile.</p>
-                <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
-                <div class="actions"><a class="action" href="https://apps.apple.com/app/id6776850664">get it on the App Store</a></div>
-                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a><a href="/phone">solstone on your phone</a></div>
-            </section>
-
-            <section class="platform-panel" id="android" aria-labelledby="android-heading">
-                <h3 id="android-heading">on your android phone</h3>
-                <p class="requirements">android 8.0 or later. free on Google Play.</p>
-                <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
-                <div class="actions"><a class="action" href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">get it on Google Play</a><a class="action-alt" href="/download/android">no Google Play? get it from us</a></div>
-                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a><a href="/phone">solstone on your phone</a></div>
-            </section>
-
-            <section class="platform-panel" id="tmux" aria-labelledby="tmux-heading">
-                <h3 id="tmux-heading">from your terminal</h3>
-                <p class="requirements">for tmux on an Apple Silicon mac (M1 or newer), or on x86_64 (Intel or AMD) or arm64 linux, with a journal already set up.</p>
-                <p>solstone-tmux brings what you share from your terminal sessions into your journal. it can run alongside the desktop app.</p>
-                <div class="actions"><a class="action" href="https://github.com/solpbc/solstone-tmux/blob/main/INSTALL.md">set up solstone-tmux</a></div>
-                <div class="references"><span class="reference-intro">need a journal first?</span><a href="#macos">set up on mac</a><a href="#linux">set up on linux</a></div>
-            </section>
-
-            <details>
-                <summary>prefer to install with a coding agent?</summary>
-                <div class="detail-body">
-                    <p>paste this into Claude Code, Codex CLI, Gemini CLI, or similar.</p>
-                    <pre id="agent-prompt">install solstone from https://solstone.app/install</pre>
-                    <div class="actions"><button class="copy-btn" data-target="agent-prompt" hidden>copy prompt</button></div>
-                    <p class="copy-message" role="status" id="agent-prompt-status"></p>
+<body class="sun both branch-start">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
+    </div>
+    <div class="page">
+        <a href="#main" class="skip-link">skip to content</a>
+        <header class="site-header">
+            <div class="bar glass">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="main">
+                    <a href="/#how">how it works</a>
+                    <a href="/install#agents">connect your agent</a>
+                    <a href="/#open-source">open source</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a class="btn btn-primary btn-sm" href="/install" aria-current="page">get started</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                    <details class="site-menu">
+                        <summary>menu</summary>
+                        <nav aria-label="main">
+                            <a href="/#how">how it works</a>
+                            <a href="/install#agents">connect your agent</a>
+                            <a href="/#open-source">open source</a>
+                            <a href="https://support.solstone.app">support</a>
+                        </nav>
+                    </details>
                 </div>
-            </details>
-        </section>
-        <p class="platform-request">don't see your platform? <a href="https://support.solstone.app">tell us what you'd like supported.</a></p>
+            </div>
+        </header>
 
-        <section class="more" id="agents" aria-labelledby="agents-heading">
-            <h2 id="agents-heading">connect your agent</h2>
-            <p>the agents you already use can work from your journal. you choose which ones.</p>
+        <main id="main" tabindex="-1">
+            <section class="band wrap intro" aria-labelledby="page-title">
+                <div class="band-inner">
+                    <h1 id="page-title">get started</h1>
+                    <p class="lede">what you share with the solstone app goes into your journal, on a computer you own. set up the journal first, then add the solstone app on each device you want to share from.</p>
+                    <div class="overview">
+                        <section class="overview-part" aria-labelledby="ov-app">
+                            <h2 id="ov-app">the solstone app</h2>
+                            <p>takes in what you choose to share from your devices.</p>
+                        </section>
+                        <div class="connection" aria-hidden="true">→</div>
+                        <section class="overview-part journal" aria-labelledby="ov-journal">
+                            <h2 id="ov-journal">your journal</h2>
+                            <p>keeps it organized and searchable on your mac, windows or linux computer.</p>
+                        </section>
+                    </div>
+                    <nav class="branches" aria-label="how are you starting?">
+                        <a class="branch" id="branch-start" href="#start"><strong>start a journal</strong><span>set up your journal on a mac, linux or windows computer you own, then add the solstone app.</span></a>
+                        <a class="branch" id="branch-connect" href="#connect"><strong>connect to your journal</strong><span>already have one? add the solstone app on another computer, your phone, or your terminal.</span></a>
+                    </nav>
+                </div>
+            </section>
+
+            <section class="band wrap glass setup" id="install" aria-labelledby="setup-heading">
+                <div class="band-inner">
+                    <p class="step-no" aria-hidden="true">1</p>
+                    <h2 id="setup-heading">install</h2>
+                    <p id="start" class="branch-note" data-branch="start">choose the computer your journal will live on.</p>
+                    <p id="connect" class="branch-note" data-branch="connect">choose the device you're adding. it connects to the journal you already have.</p>
+                    <nav class="platform-nav" aria-label="choose your platform">
+                        <a class="platform-link" id="tab-macos" href="#macos">mac</a>
+                        <a class="platform-link" id="tab-linux" href="#linux">linux</a>
+                        <a class="platform-link" id="tab-windows" href="#windows">windows</a>
+                        <a class="platform-link" id="tab-ios" href="#ios" data-branch="connect">iphone / ipad</a>
+                        <a class="platform-link" id="tab-android" href="#android" data-branch="connect">android</a>
+                        <a class="platform-link" id="tab-tmux" href="#tmux" data-branch="connect">tmux</a>
+                    </nav>
+
+                    <section class="platform-panel" id="macos" aria-labelledby="macos-heading">
+                        <h3 id="macos-heading">on your mac</h3>
+                        <p class="requirements">an Apple Silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
+                        <ol class="steps">
+                            <li data-branch="start">
+                                <h4>create your journal first</h4>
+                                <p>install and open the journal app. choose where your journal lives, and lock in its mark: two shapes and two words that are your journal's own, so you can always tell which journal is yours. then choose <strong>open your journal</strong> to read it in your browser.</p>
+                                <div class="actions"><a class="btn btn-primary" href="/download/journal">get the journal app</a></div>
+                            </li>
+                            <li id="mac-app">
+                                <h4>connect the solstone app</h4>
+                                <p>install and open the solstone app. in settings, choose <strong>journal</strong> to connect. for a journal on your mac, confirm the one it finds. follow the prompts to choose what you share.</p>
+                                <div class="actions"><a class="btn btn-primary" href="/download/macos">get the solstone app</a></div>
+                            </li>
+                        </ol>
+                        <p class="ours"><strong>check it's ours.</strong> both mac apps are signed by sol pbc and notarized by Apple. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
+                        <details>
+                            <summary>prefer the terminal?</summary>
+                            <div class="detail-body">
+                                <p>install both mac apps with one command:</p>
+                                <pre id="macos-commands">curl -fsSL https://solstone.app/install.sh | sh -s -- --components all</pre>
+                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="macos-commands" hidden>copy command</button></div>
+                                <p class="copy-message" role="status" id="macos-commands-status"></p>
+                                <p>for just one, replace <code>all</code> with <code>journal</code> or <code>app</code>. the installer verifies the download and puts the app in <code>/Applications</code>. updates stay inside each app.</p>
+                            </div>
+                        </details>
+                        <details id="macos-migration" data-branch="start">
+                            <summary>installed the journal from the terminal before?</summary>
+                            <div class="detail-body"><p>install the journal app, then open it. the journal app adopts an older journal only when it can verify the installation it is taking over. if anything is unclear, it stops and tells you what needs attention. your journal stays where it is. <a href="https://support.solstone.app">contact support</a> if you need a hand.</p></div>
+                        </details>
+                        <details data-branch="connect" open>
+                            <summary>journal on another computer?</summary>
+                            <div class="detail-body"><p>in your journal, open <strong>network</strong> and choose <strong>add a device</strong>. copy the pairing link. in the solstone app's journal settings, choose <strong>pair to a journal on another device</strong>, paste the link, and confirm it's your journal.</p></div>
+                        </details>
+                    </section>
+
+                    <section class="platform-panel" id="linux" aria-labelledby="linux-heading">
+                        <h3 id="linux-heading">on your linux computer</h3>
+                        <p class="requirements">journal: x86_64 (Intel or AMD) or arm64. desktop app: x86_64 only. not sure which you have? <code>uname -m</code> prints x86_64, or aarch64 on arm64. anything else isn't supported.</p>
+                        <ol class="steps">
+                            <li data-branch="start">
+                                <h4>set up your journal</h4>
+                                <p>the installer verifies its downloads with minisign, so add it first if you don't have it: <code>sudo apt install minisign</code>, <code>sudo dnf install minisign</code> or <code>sudo pacman -S minisign</code>. not sure which? run the command below. if minisign is missing, the installer stops before changing anything and says how to add it.</p>
+                                <p>run this command in your terminal. it installs your journal and starts it.</p>
+                                <pre id="linux-commands">curl -fsSL https://solstone.app/install.sh | sh</pre>
+                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-commands" hidden>copy command</button></div>
+                                <p class="copy-message" role="status" id="linux-commands-status"></p>
+                                <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
+                            </li>
+                            <li id="linux-app">
+                                <h4>add the desktop app</h4>
+                                <p>the solstone app takes in what you share from your desktop, and all of it goes into your journal. its setup guide includes the packages your system needs.</p>
+                                <div class="actions"><a class="btn btn-primary" href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">set up the linux app</a></div>
+                            </li>
+                        </ol>
+                        <p class="ours"><strong>check it's ours.</strong> the journal installer checks every download's minisign signature before it installs anything, and the desktop app's setup guide has you check its signature yourself. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
+                    </section>
+
+                    <section class="platform-panel" id="windows" aria-labelledby="windows-heading">
+                        <h3 id="windows-heading">on your windows computer</h3>
+                        <p class="requirements">windows 10 (22H2) or 11 on x86_64 (Intel or AMD, shown as x64 in windows settings). no administrator access needed to install. the journal installer is about 1.1 GB. the local model needs a compatible GPU; without one, thinking needs your own model. transcription runs on your PC.</p>
+                        <ol class="steps">
+                            <li data-branch="start">
+                                <h4>set up your journal</h4>
+                                <p>download and run the journal installer.</p>
+                                <div class="actions"><a class="btn btn-primary" href="/download/journal/windows">get the journal for windows</a></div>
+                                <p>then open a new terminal window and run:</p>
+                                <pre id="windows-commands">solstone journal setup</pre>
+                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="windows-commands" hidden>copy command</button></div>
+                                <p class="copy-message" role="status" id="windows-commands-status"></p>
+                                <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
+                            </li>
+                            <li id="windows-app">
+                                <h4>connect the solstone app</h4>
+                                <p>install the solstone app, then connect it to your journal and choose what you share.</p>
+                                <div class="actions"><a class="btn btn-primary" href="/download/windows">get the windows app</a></div>
+                            </li>
+                        </ol>
+                        <p class="ours"><strong>check it's ours.</strong> the journal installer and the solstone app for windows are both signed by sol pbc, and windows shows sol pbc as the publisher. trust.solstone.app doesn't carry signed release records for windows.</p>
+                    </section>
+
+                    <section class="platform-panel" id="ios" aria-labelledby="ios-heading" data-branch="connect">
+                        <h3 id="ios-heading">on your iphone or ipad</h3>
+                        <p class="requirements">ios or ipados 26 or later. free on the App Store, where it's listed as solstone mobile.</p>
+                        <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
+                        <div class="actions"><a class="btn btn-primary" href="https://apps.apple.com/app/id6776850664">get it on the App Store</a></div>
+                        <p class="ours"><strong>check it's ours.</strong> the App Store lists sol pbc as the developer.</p>
+                    </section>
+
+                    <section class="platform-panel" id="android" aria-labelledby="android-heading" data-branch="connect">
+                        <h3 id="android-heading">on your android phone</h3>
+                        <p class="requirements">android 8.0 or later. free on Google Play.</p>
+                        <p>connect the app to a journal on your mac or linux computer. your journal stays on that computer.</p>
+                        <div class="actions"><a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">get it on Google Play</a><a class="btn-text" href="/download/android">no Google Play? get it from us →</a></div>
+                        <p class="ours"><strong>check it's ours.</strong> Google Play lists sol pbc as the developer. getting it from us instead? <a href="/download/android#check">check the download yourself</a>.</p>
+                    </section>
+
+                    <section class="platform-panel" id="tmux" aria-labelledby="tmux-heading" data-branch="connect">
+                        <h3 id="tmux-heading">from your terminal</h3>
+                        <p class="requirements">for tmux on an Apple Silicon mac (M1 or newer), or on x86_64 (Intel or AMD) or arm64 linux, with a journal already set up.</p>
+                        <p>solstone-tmux brings what you share from your terminal sessions into your journal. it can run alongside the desktop app.</p>
+                        <div class="actions"><a class="btn btn-primary" href="https://github.com/solpbc/solstone-tmux/blob/main/INSTALL.md">set up solstone-tmux</a></div>
+                        <p class="ours"><strong>check it's ours.</strong> its setup guide has you check each download's minisign signature before you install it.</p>
+                    </section>
+
+                    <details class="agent-install">
+                        <summary>prefer to install with a coding agent?</summary>
+                        <div class="detail-body">
+                            <p>paste this into Claude Code, Codex CLI, Gemini CLI, or similar.</p>
+                            <pre id="agent-prompt">install solstone from https://solstone.app/install</pre>
+                            <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="agent-prompt" hidden>copy for your agent</button></div>
+                            <p class="copy-message" role="status" id="agent-prompt-status"></p>
+                        </div>
+                    </details>
+                    <p class="platform-request">don't see your platform? <a href="https://support.solstone.app">tell us what you'd like supported.</a></p>
+                </div>
+            </section>
+
+            <section class="band wrap glass" id="asks" aria-labelledby="asks-heading">
+                <div class="band-inner">
+                    <p class="step-no" aria-hidden="true">2</p>
+                    <h2 id="asks-heading">what your device will ask</h2>
+                    <p>the solstone app only takes in the sources you turn on, and all of it goes into your journal. your device asks your permission the first time.</p>
+                    <dl class="asks">
+                        <dt>mac</dt>
+                        <dd>the microphone for audio, and <strong>screen &amp; system audio recording</strong> for your screen and the sound your mac plays. it also asks to find devices on your local network, so the solstone app can find your journal.</dd>
+                        <dt>linux</dt>
+                        <dd>your desktop asks which screen to share when you turn on your screen as a source.</dd>
+                        <dt>windows</dt>
+                        <dd>while our signing reputation builds, windows may warn that it couldn't verify the solstone app because it isn't commonly downloaded. the publisher it shows is sol pbc. after that, you choose what you share inside the solstone app.</dd>
+                        <dt>iphone and ipad</dt>
+                        <dd>the microphone and your location, each when you turn on the source that needs it; the camera, to scan your journal's pairing code; your local network, to reach your journal; and notifications, if you turn them on.</dd>
+                        <dt>android</dt>
+                        <dd>the microphone, your location and the camera, each when you turn on the source that needs it, and notifications the first time you start sharing.</dd>
+                    </dl>
+                    <p>you can pause any source, or turn it off, from the solstone app.</p>
+                </div>
+            </section>
+
+            <section class="band wrap glass" id="thinking" aria-labelledby="thinking-heading">
+                <div class="band-inner prose">
+                    <p class="step-no" aria-hidden="true">3</p>
+                    <h2 id="thinking-heading">where does the thinking happen?</h2>
+                    <p>you choose during setup. your journal stays on your computer whichever you choose; what each choice sends, and to whom, is below.</p>
+                    <p>on windows, the local model needs a compatible GPU, and confidential processing isn't available there.</p>
+                    <h3>local, the default</h3>
+                    <p>a model runs on your computer. setup checks that your machine can run it before anything downloads.</p>
+                    <h3>your own model</h3>
+                    <p>bring your own provider key (Claude, Gemini, or GPT), or use an OpenAI-compatible endpoint you run. your provider sees what your journal sends it for thinking, under its own terms, and you pay it directly. sol pbc is never in the path.</p>
+                    <h3>confidential processing</h3>
+                    <p>available to approved scouts. think off your device on confidential hardware sol pbc runs. no content is retained · no human reviews it · nothing is used to train. <a href="https://services.solstone.app/confidential-processing">how it works</a></p>
+                    <p>nothing is chosen for you silently. if no model is set, the solstone app tells you and waits.</p>
+                </div>
+            </section>
+
+            <section class="band wrap glass" id="agents" aria-labelledby="agents-heading">
+                <div class="band-inner prose">
+                    <p class="step-no" aria-hidden="true">4</p>
+                    <h2 id="agents-heading">connect your agent</h2>
+                    <p>the agents you already use can work from your journal. you choose which ones.</p>
             <h3>on the same computer</h3>
             <p>on linux, setting up your journal adds a solstone skill to Claude Code, Codex and Gemini CLI if they're installed. from then on, an agent in any project can search your journal, look up a person, or read a transcript. and any agent that speaks MCP can connect to your journal from the same computer. it gets read-only tools: search, read, and look up people and transcripts. it can't add, change, or delete anything.</p>
             <h3>on your wifi or VPN</h3>
@@ -255,48 +338,76 @@
             <p>turn on solstone.me, an address for your journal that sol pbc runs, for $5 a year. or use a tunnel of your own: you never have to pay us. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were your agent. look for a tunnel that says it only passes the bytes through; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>
             <p>your journal's agents app works with your own route or with solstone.me; solstone.me is the address, and the agents app is where you manage what connects.</p>
             <nav class="references" aria-label="more about solstone.me"><a href="https://services.solstone.app/solstone-me">how solstone.me works</a></nav>
-        </section>
+                </div>
+            </section>
 
-        <section class="more" id="thinking" aria-labelledby="thinking-heading">
-            <h2 id="thinking-heading">where does the thinking happen?</h2>
-            <p>you choose during setup. your journal stays on your computer whichever you choose; what each choice sends, and to whom, is below.</p>
-            <p>on windows, the local model needs a compatible GPU, and confidential processing isn't available there.</p>
-            <h3>local, the default</h3>
-            <p>a model runs on your computer. setup checks that your machine can run it before anything downloads.</p>
-            <h3>your own model</h3>
-            <p>bring your own provider key (Claude, Gemini, or GPT), or use an OpenAI-compatible endpoint you run. your provider sees what your journal sends it for thinking, under its own terms, and you pay it directly. sol pbc is never in the path.</p>
-            <h3>confidential processing</h3>
-            <p>available to approved scouts. think off your device on confidential hardware sol pbc runs. no content is retained · no human reviews it · nothing is used to train. <a href="https://services.solstone.app/confidential-processing">how it works</a></p>
-            <p>nothing is chosen for you silently. if no model is set, the solstone app tells you and waits.</p>
-        </section>
+            <section class="band wrap glass" id="phone" aria-labelledby="phone-heading">
+                <div class="band-inner prose">
+                    <p class="step-no" aria-hidden="true">5</p>
+                    <h2 id="phone-heading">pair a phone, if you like</h2>
+                    <p>your journal works from your computer alone, so you can skip this. to add your iphone, ipad or android phone, get the solstone app from its store, then pair it with your journal on your mac or linux computer: in your journal, open <strong>network</strong> and choose <strong>add a device</strong>. with a journal on windows, <a href="/download/journal/windows">see what pairs with it</a>.</p>
+                    <p class="more"><a class="btn-text" href="/phone">solstone on your phone →</a></p>
+                </div>
+            </section>
 
-        <section class="more" id="updating" aria-labelledby="updating-heading">
-            <h2 id="updating-heading">updating your journal</h2>
-            <p>update the journal on the computer that runs it. the solstone app and your journal update separately, so their version numbers can differ.</p>
-            <p><strong>on mac:</strong> open the journal app and choose <strong>updates</strong> in its sidebar. the solstone app has its own updates pane in settings. <a href="/download/journal#upgrading">manual journal update instructions</a>.</p>
-            <p><strong>on windows or linux:</strong> follow the <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md#upgrading">journal upgrade guide</a> for your installation.</p>
-            <p>after updating, reopen your journal and check the version in its status details.</p>
-        </section>
+            <section class="band wrap glass" id="first-days" aria-labelledby="days-heading">
+                <div class="band-inner prose">
+                    <p class="step-no" aria-hidden="true">6</p>
+                    <h2 id="days-heading">day 1, and tomorrow morning</h2>
+                    <h3>day 1</h3>
+                    <p>what you share goes into your journal as you go. open it in your browser to read your day. as your journal works through what came in, transcripts fill in, and with a model set in step 3, so do the people in them and your meetings.</p>
+                    <h3>tomorrow morning</h3>
+                    <p>a briefing for the day ahead is waiting in your journal, written from your own material by the model you chose. your agents can read it too.</p>
+                </div>
+            </section>
 
-        <section class="more" aria-labelledby="yours-heading">
-            <h2 id="yours-heading">your journal stays yours</h2>
-            <p>your journal is a folder on your computer, in open formats. you can read it, move it, and back it up yourself. your journal is always private, only yours.</p>
-            <nav class="references" aria-label="more about solstone"><a href="https://github.com/solpbc/solstone-journal">source on GitHub</a><a href="/releases">what's new</a><a href="https://services.solstone.app/scout">become a scout</a></nav>
-        </section>
+            <section class="band wrap glass" id="updating" aria-labelledby="updating-heading">
+                <div class="band-inner prose">
+                    <h2 id="updating-heading">updating your journal</h2>
+                    <p>update the journal on the computer that runs it. the solstone app and your journal update separately, so their version numbers can differ.</p>
+                    <p><strong>on mac:</strong> open the journal app and choose <strong>updates</strong> in its sidebar. the solstone app has its own updates pane in settings. <a href="/download/journal#upgrading">manual journal update instructions</a>.</p>
+                    <p><strong>on windows or linux:</strong> follow the <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md#upgrading">journal upgrade guide</a> for your installation.</p>
+                    <p>after updating, reopen your journal and check the version in its status details.</p>
+                </div>
+            </section>
+
+            <div class="notice-wrap">
+                <p class="early-days"><span class="stage-label">early days.</span> on a mac and on your phone, solstone installs like any app. on linux, and for the journal on windows, setup takes a step in the terminal. expect a few rough edges, and <a href="https://support.solstone.app">tell us</a> when you find one.</p>
+            </div>
+        </main>
+
+        <footer class="site-footer">
+            <div class="glass">
+                <nav aria-label="footer">
+                    <a href="/download">download</a>
+                    <a href="/phone">phone</a>
+                    <a href="https://solpbc.org/privacy">privacy</a>
+                    <a href="/releases">releases</a>
+                    <a href="https://trust.solstone.app">trust</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc.</p>
+            </div>
+        </footer>
     </div>
-    </main>
-    <footer>
-        <nav class="footer-nav" aria-label="footer">
-            <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
-        </nav>
-        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
-    </footer>
-
     <script>
-        // Links and all instructions remain usable without JavaScript.
+        // Every step and both branches stay readable without JavaScript.
+        const setup = document.querySelector('.setup');
         const nav = document.querySelector('.platform-nav');
         const tabs = [...nav.querySelectorAll('.platform-link')];
         const panels = [...document.querySelectorAll('.platform-panel')];
+        const branchLinks = [...document.querySelectorAll('.branch')];
+        let branch = 'start';
+        function visibleTabs() { return tabs.filter(t => !(branch === 'start' && t.dataset.branch === 'connect')); }
+        function setBranch(next) {
+            branch = next;
+            document.body.classList.toggle('branch-start', next === 'start');
+            document.body.classList.toggle('branch-connect', next === 'connect');
+            branchLinks.forEach(l => l.setAttribute('aria-current', String(l.hash === '#' + next)));
+            const current = tabs.find(t => t.getAttribute('aria-selected') === 'true');
+            if (!current || !visibleTabs().includes(current)) selectPlatform(visibleTabs()[0].hash.slice(1));
+        }
         function selectPlatform(id, focus = false) {
             tabs.forEach(tab => {
                 const active = tab.hash === '#' + id;
@@ -306,26 +417,41 @@
             });
             panels.forEach(panel => { panel.hidden = panel.id !== id; });
         }
-        function platformForHash() {
-            const target = document.getElementById(location.hash.slice(1));
+        function platformFor(id) {
+            const target = document.getElementById(id);
             return target && target.closest('.platform-panel');
         }
         nav.setAttribute('role', 'tablist');
-        tabs.forEach(tab => {
-            tab.setAttribute('role', 'tab');
-            tab.setAttribute('aria-controls', tab.hash.slice(1));
-        });
+        tabs.forEach(tab => { tab.setAttribute('role', 'tab'); tab.setAttribute('aria-controls', tab.hash.slice(1)); });
         panels.forEach(panel => {
             panel.setAttribute('role', 'tabpanel');
             panel.setAttribute('aria-labelledby', 'tab-' + panel.id);
             panel.tabIndex = 0;
         });
-        document.querySelector('.setup').classList.add('enhanced');
-        selectPlatform((platformForHash() || panels[0]).id);
+        setup.classList.add('enhanced');
+        function fromHash() {
+            const id = location.hash.slice(1);
+            if (id === 'start' || id === 'connect') { setBranch(id); return; }
+            const panel = platformFor(id);
+            if (panel) {
+                setBranch(panel.dataset.branch === 'connect' ? 'connect' : branch);
+                selectPlatform(panel.id);
+                return;
+            }
+            setBranch(branch);
+            if (!tabs.some(t => t.getAttribute('aria-selected') === 'true')) selectPlatform('macos');
+        }
+        fromHash();
+        branchLinks.forEach(link => link.addEventListener('click', event => {
+            event.preventDefault();
+            setBranch(link.hash.slice(1));
+            history.pushState(null, '', link.hash);
+            document.getElementById('install').scrollIntoView({ block: 'start' });
+        }));
         document.addEventListener('click', event => {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             const link = event.target.closest('a[href^="#"]');
-            if (!link) return;
+            if (!link || link.classList.contains('branch')) return;
             const target = document.getElementById(link.hash.slice(1));
             const panel = target && target.closest('.platform-panel');
             if (!panel) return;
@@ -333,33 +459,27 @@
             selectPlatform(panel.id);
             history.pushState(null, '', link.hash);
             if (!link.classList.contains('platform-link')) {
-                target.scrollIntoView({block: 'start'});
+                target.scrollIntoView({ block: 'start' });
                 if (target !== panel) target.tabIndex = -1;
-                target.focus({preventScroll: true});
+                target.focus({ preventScroll: true });
             }
         });
         nav.addEventListener('keydown', event => {
-            const index = tabs.indexOf(document.activeElement);
+            const shown = visibleTabs();
+            const index = shown.indexOf(document.activeElement);
             if (index < 0) return;
-            if (event.key === ' ') {
-                event.preventDefault();
-                tabs[index].click();
-                return;
-            }
+            if (event.key === ' ') { event.preventDefault(); shown[index].click(); return; }
             let next;
-            if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
-            if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+            if (event.key === 'ArrowRight') next = (index + 1) % shown.length;
+            if (event.key === 'ArrowLeft') next = (index + shown.length - 1) % shown.length;
             if (event.key === 'Home') next = 0;
-            if (event.key === 'End') next = tabs.length - 1;
+            if (event.key === 'End') next = shown.length - 1;
             if (next === undefined) return;
             event.preventDefault();
-            selectPlatform(tabs[next].hash.slice(1), true);
-            history.replaceState(null, '', tabs[next].hash);
+            selectPlatform(shown[next].hash.slice(1), true);
+            history.replaceState(null, '', shown[next].hash);
         });
-        window.addEventListener('hashchange', () => {
-            const panel = platformForHash();
-            selectPlatform(panel ? panel.id : 'macos');
-        });
+        window.addEventListener('hashchange', fromHash);
         document.querySelectorAll('.copy-btn').forEach(button => {
             button.hidden = false;
             button.addEventListener('click', async () => {
@@ -380,5 +500,6 @@
             });
         });
     </script>
+    <script src="/static/sunarc.js" defer></script>
 </body>
 </html>

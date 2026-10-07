@@ -18,268 +18,95 @@
     <link rel="icon" type="image/svg+xml" href="/static/mark.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="/static/tokens.css">
-    <link rel="stylesheet" href="/static/base.css">
+    <link rel="stylesheet" href="/static/site.css">
     <style>
-        /* base.css supplies the sunrise ground, the h1 treatment and the footer
-           spine. This page is a document rather than a card grid: one readable
-           column, because its job is to be read before anything is downloaded. */
-        body {
-            padding: 2rem 0 0;
-        }
-        a {
-            color: var(--orange-text-aa);
-        }
-        .logo {
-            height: 36px;
-            margin-bottom: 2rem;
-        }
-        .column {
-            max-width: 660px;
-            width: 90vw;
-            padding: 0 0.25rem;
-        }
-        h1 {
-            font-size: 2rem;
-            text-align: center;
-            margin-bottom: 1rem;
-            position: relative;
-            padding-bottom: 1rem;
-        }
-        h1::after {
-            content: "";
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 0;
-            width: 76px;
-            height: 4px;
-            border-radius: 2px;
-            background: var(--sunrise-rule);
-        }
-        .lead {
-            font-size: 1.02rem;
-            line-height: 1.65;
-            color: var(--ink-soft);
-            text-align: center;
-            margin-bottom: 1.75rem;
-        }
-        .primary-action {
-            text-align: center;
-            margin-bottom: 0.75rem;
-        }
-        .download-btn {
-            display: inline-block;
-            font-family: var(--font-display);
-            font-size: 1.05rem;
-            font-weight: 600;
-            text-transform: lowercase;
-            letter-spacing: 0.03em;
-            color: var(--ink);
-            background: var(--orange);
-            padding: 0.85rem 2rem;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: background 0.15s;
-        }
-        .download-btn:hover {
-            background: var(--orange-text-aa);
-            color: var(--paper);
-        }
-        .file-line {
-            margin-top: 0.75rem;
-            font-size: 0.88rem;
-            color: var(--ink-faint);
-        }
-        h2 {
-            font-family: var(--font-display);
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin: 2.5rem 0 0.85rem;
-        }
-        h3 {
-            font-family: var(--font-display);
-            font-size: 0.98rem;
-            font-weight: 700;
-            color: var(--ink);
-            margin: 1.5rem 0 0.5rem;
-        }
-        p {
-            font-size: 0.95rem;
-            line-height: 1.65;
-            color: var(--ink-soft);
-            margin-bottom: 0.9rem;
-        }
-        .steps {
-            counter-reset: step;
-            list-style: none;
-            margin-bottom: 0.5rem;
-        }
-        .steps > li {
-            counter-increment: step;
-            position: relative;
-            padding-left: 2.4rem;
-            margin-bottom: 1.4rem;
-            font-size: 0.95rem;
-            line-height: 1.65;
-            color: var(--ink-soft);
-        }
-        .steps > li::before {
-            content: counter(step);
-            position: absolute;
-            left: 0;
-            top: 0.05rem;
-            width: 1.65rem;
-            height: 1.65rem;
-            border-radius: 50%;
-            background: var(--orange-wash);
-            color: var(--ink);
-            font-family: var(--font-display);
-            font-weight: 700;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        /* Words android puts on the screen, quoted exactly so you can match them
-           to your phone. Their capitalization is the operating system's, not ours. */
-        .os-words {
-            display: block;
-            margin: 0.6rem 0;
-            padding: 0.7rem 0.95rem;
-            border-left: 3px solid var(--hairline-2);
-            background: var(--cream-bright);
-            border-radius: 0 6px 6px 0;
-            font-size: 0.9rem;
-            line-height: 1.55;
-            color: var(--ink-soft);
-        }
-        .os-words strong {
-            display: block;
-            color: var(--ink);
-            font-weight: 600;
-            margin-bottom: 0.2rem;
-        }
-        code, pre {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        }
-        code {
-            font-size: 0.86em;
-            background: var(--orange-wash);
-            padding: 0.1rem 0.3rem;
-            border-radius: 4px;
-            color: var(--ink);
-        }
-        pre {
-            background: var(--cream-bright);
-            border: 1px solid var(--hairline-2);
-            border-radius: 6px;
-            padding: 0.85rem 1rem;
-            font-size: 0.82rem;
-            line-height: 1.6;
-            color: var(--ink);
-            /* wrap rather than scroll: a scrolling block can't be reached by
-               keyboard, and a command reads whole on a phone */
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            margin-bottom: 0.9rem;
-        }
-        pre code {
-            background: none;
-            padding: 0;
-            font-size: inherit;
-        }
-        /* A 95-character fingerprint and a 64-hex digest both overflow a phone,
-           which is the device this page is read on. `pre` does not wrap by
-           default and `overflow-x: auto` hides the tail behind a scroll nobody
-           finds; these two have to be readable in place. */
-        .fingerprint {
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            word-break: break-all;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-        th, td {
-            text-align: left;
-            vertical-align: top;
-            padding: 0.6rem 0.7rem 0.6rem 0;
-            border-bottom: 1px solid var(--hairline);
-            line-height: 1.55;
-        }
-        th {
-            font-family: var(--font-display);
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: var(--ink);
-            text-transform: lowercase;
-            letter-spacing: 0.02em;
-        }
-        td:first-child, th:first-child {
-            padding-right: 1.1rem;
-            width: 38%;
-        }
-        td:first-child {
-            color: var(--ink);
-        }
-        td .sysname {
-            display: block;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 0.74rem;
-            color: var(--ink-faint);
-            word-break: break-all;
-            margin-top: 0.15rem;
-        }
-        .links {
-            margin: 2.5rem 0 1rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .links a {
-            display: block;
-            color: var(--ink-faint);
-            font-size: 0.95rem;
-            margin-bottom: 0.5rem;
-            text-decoration: none;
-        }
-        .links a:hover {
-            color: var(--orange-text-aa);
-        }
-        @media (max-width: 560px) {
-            td:first-child, th:first-child {
-                width: 45%;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
+        a { color: var(--ink); text-underline-offset: 3px; }
+        .band { margin-top: var(--band-gap); }
+        .band-inner { padding: clamp(22px, 4vw, 44px); max-width: calc(720px + 2 * clamp(22px, 4vw, 44px)); }
+        h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.4vw, 44px); line-height: 1.12; color: var(--ink); text-transform: lowercase; }
+        h2 { font-family: var(--font-body); font-weight: 600; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; color: var(--ink); margin-bottom: 12px; }
+        h3 { font-family: var(--font-body); font-weight: 600; font-size: 18px; color: var(--ink); margin: 22px 0 6px; }
+        p + p, p + pre, pre + p { margin-top: 12px; }
+        .lead { margin-top: 14px; color: var(--ink); }
+        .primary-action { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 22px; }
+        .file-line { flex-basis: 100%; font-size: 15px; color: var(--ink-soft); margin: 0; }
+        .steps { padding-left: 1.4rem; margin-top: 12px; }
+        .steps li + li { margin-top: 14px; }
+        .os-words { display: block; margin: 8px 0; padding: 10px 14px; border-left: 3px solid var(--hairline-2); background: var(--cream-bright); border-radius: 0 9px 9px 0; font-size: 15px; }
+        .os-words strong { display: block; }
+        pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 0.87rem/1.65 var(--font-mono); background: var(--cream-bright); border: 1px solid var(--hairline-2); border-radius: 9px; padding: 14px; }
+        code { font-family: var(--font-mono); font-size: 0.9em; overflow-wrap: anywhere; }
+        .fingerprint { overflow-wrap: anywhere; }
+        .band details { border-top: 1px solid var(--hairline); margin-top: 18px; }
+        .band details summary { cursor: pointer; padding: 12px 0; min-height: 44px; font-weight: 600; color: var(--ink); }
+        .detail-body { padding: 0 0 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
+        th, td { text-align: left; vertical-align: top; padding: 10px 8px; border-top: 1px solid var(--hairline); }
+        th { font-weight: 600; }
+        .sysname { display: block; font: 12px/1.4 var(--font-mono); color: var(--ink-soft); overflow-wrap: anywhere; margin-top: 2px; }
+        .links { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 22px; }
+        .links a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; text-decoration: none; }
+        @media (max-width: 560px) { td:first-child { width: 42%; } }
     </style>
 </head>
-<body class="sunrise">
-    <a href="#main" class="skip-link">skip to content</a>
-    <header>
-        <a href="/"><img src="/static/mark.svg" alt="solstone home" class="logo"></a>
-    </header>
-    <main id="main" tabindex="-1">
-        <div class="column">
-            <h1>download solstone for android</h1>
-            <p class="lead">solstone is on <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">Google Play</a>. this is the other way in: the same app, signed by us, on our own server, for a phone without Google Play or for anyone who would rather not use it. it doesn't come from a store, so android treats it as an app from a source it does not recognize, and asks you to allow it, in the steps below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
-        </div>
+<body class="sun">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
+    </div>
+    <div class="page">
+        <a href="#main" class="skip-link">skip to content</a>
+        <header class="site-header">
+            <div class="bar glass">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg" alt="solstone home" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="main">
+                    <a href="/#how">how it works</a>
+                    <a href="/install#agents">connect your agent</a>
+                    <a href="/#open-source">open source</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                    <details class="site-menu">
+                        <summary>menu</summary>
+                        <nav aria-label="main">
+                            <a href="/#how">how it works</a>
+                            <a href="/install#agents">connect your agent</a>
+                            <a href="/#open-source">open source</a>
+                            <a href="https://support.solstone.app">support</a>
+                        </nav>
+                    </details>
+                </div>
+            </div>
+        </header>
 
-        <div class="primary-action">
-            <a href="/download/android/latest" class="download-btn" id="dl">download solstone for android</a>
-            <p class="file-line">{{VERSION_LINE}}</p>
-        </div>
+        <main id="main" tabindex="-1">
+            <section class="band wrap glass" aria-labelledby="page-title">
+                <div class="band-inner">
+                    <h1 id="page-title">download solstone for android</h1>
+                    <p class="lead">solstone is on <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">Google Play</a>. this is the other way in: the same app, signed by us, on our own server, for a phone without Google Play or for anyone who would rather not use it. it doesn't come from a store, so android treats it as an app from a source it does not recognize, and asks you to allow it, in the steps below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
+                    <div class="primary-action">
+                        <a href="/download/android/latest" class="btn btn-primary" id="dl">download solstone for android</a>
+                        <a class="btn-text" href="#check">check the file is ours →</a>
+                        <p class="file-line">{{VERSION_LINE}}</p>
+                    </div>
+                </div>
+            </section>
 
-        <div class="column">
-            <p class="early-days"><span class="stage-label">updates.</span> this copy does not update itself: what you install stays at that version until you come back here and install a newer one. a copy from here and a copy from Google Play are signed by different keys, so neither can update the other. to move from one to the other, uninstall the one you have, install the other, and pair it again. anything on the phone that hasn't reached your journal yet is lost when you uninstall.</p>
+            <div class="notice-wrap">
+                <p class="early-days"><span class="stage-label">updates.</span> this copy does not update itself: what you install stays at that version until you come back here and install a newer one. a copy from here and a copy from Google Play are signed by different keys, so neither can update the other. to move from one to the other, uninstall the one you have, install the other, and pair it again. anything on the phone that hasn't reached your journal yet is lost when you uninstall.</p>
+            </div>
 
-            <h2>what you will be asked</h2>
-            <p>the quoted words below are android's own, taken off a samsung galaxy running android 16. phone makers change this wording, so yours may say it a little differently. the two things you allow are the same on every android since 8.0.</p>
-
-            <ol class="steps">
+            <section class="band wrap glass" aria-labelledby="asked">
+                <div class="band-inner">
+                    <h2 id="asked">what you will be asked</h2>
+                    <p>the quoted words below are android's own, taken off a samsung galaxy running android 16. phone makers change this wording, so yours may say it a little differently. the two things you allow are the same on every android since 8.0.</p>
+                    <ol class="steps">
                 <li>
                     <strong>your browser will warn you about the file.</strong> Chrome says:
                     <span class="os-words"><strong>File might be harmful</strong>Do you want to download "{{APK_NAME}}"{{SIZE_PAREN}} from updates.solstone.app anyway?</span>
@@ -296,38 +123,48 @@
                     a new version brings one more screen after this one, and that is the next section. then it installs, and the app itself asks for nothing until you turn something on.
                 </li>
             </ol>
-
-            <h3>Play Protect</h3>
+                    <h3>Play Protect</h3>
             <p>if your phone has Google Play services, Play Protect looks at the file while it installs, and <strong>for a version Play Protect has not seen before it stops and asks</strong>. every release of ours is a file it has not seen before, so expect this one each time you install a newer version:</p>
             <span class="os-words"><strong>App scan recommended</strong>Play Protect hasn't seen this app before.</span>
             <p>the two buttons are <em>Scan app</em> and <em>Don't install app</em>. choosing to scan sends the app file to Google. it is the same file everyone on this page downloads. when the scan finds nothing it reads <strong>This app looks safe</strong>, and <em>Install</em> finishes the install. this screen is Play Protect not recognizing us yet rather than a finding about the file: the check that tells you the file is ours is the signature, further down this page, and it is one you can run yourself.</p>
+                    <details>
+                        <summary>phones without Google Play services</summary>
+                        <div class="detail-body"><p>on a de-googled phone there is no Play Protect step, because there is nothing there to run it. the <em>install unknown apps</em> permission in step 2 is android's own and still applies: it is part of android, not part of Google Play. we have not tested this on grapheneos, so we are not going to describe screens we have not seen. if you run one and something on this page is wrong for it, <a href="https://support.solstone.app">tell us</a> and we will fix the page.</p></div>
+                    </details>
+                </div>
+            </section>
 
-            <h3>phones without Google Play services</h3>
-            <p>on a de-googled phone there is no Play Protect step, because there is nothing there to run it. the <em>install unknown apps</em> permission in step 2 is android's own and still applies: it is part of android, not part of Google Play. we have not tested this on grapheneos, so we are not going to describe screens we have not seen. if you run one and something on this page is wrong for it, <a href="https://support.solstone.app">tell us</a> and we will fix the page.</p>
-
-            <h2>check the file is ours</h2>
-            <p>you do not have to take our word for what you downloaded. there are two things to check, and they check different things: the digest says you got the bytes we published, and the signing certificate says we are the ones who built them.</p>
+            <section class="band wrap glass" id="check" aria-labelledby="check-title">
+                <div class="band-inner">
+                    <h2 id="check-title">check the file is ours</h2>
+                    <p>you do not have to take our word for what you downloaded. there are two things to check, and they check different things: the digest says you got the bytes we published, and the signing certificate says we are the ones who built them.</p>
             <p><strong>this takes a computer</strong>. download the file there, check it, then copy it to the phone and install it from your file manager. <strong>and it is worth doing before the first install rather than after</strong>: from then on, android will only accept updates signed by the same key as the copy you already have. that is a real protection and it is the reason to look closely at the first one, because it is the copy every later one gets measured against.</p>
-
-            <h3>the digest</h3>
-            <p>fetch the checksum we publish beside the file, and let your machine do the comparing rather than your eyes:</p>
+                    <details>
+                        <summary>the digest</summary>
+                        <div class="detail-body"><p>fetch the checksum we publish beside the file, and let your machine do the comparing rather than your eyes:</p>
             <pre><code>curl -fLO https://updates.solstone.app/solstone-android/release/{{VERSION}}/SHA256SUMS
 sha256sum -c SHA256SUMS</code></pre>
             <p>on a mac, <code>shasum -a 256 -c SHA256SUMS</code>. either of those prints <code>OK</code> and exits zero, or says plainly that it did not match and exits non-zero. on windows, <code>Get-FileHash {{APK_NAME}} -Algorithm SHA256</code> in PowerShell prints the digest as uppercase hex and leaves the comparing to you, against the value below.</p>
-            {{DIGEST_BLOCK}}
-
-            <h3>the signing certificate</h3>
-            <p>every release on this page is signed by one key. its certificate fingerprint is:</p>
+            {{DIGEST_BLOCK}}</div>
+                    </details>
+                    <details>
+                        <summary>the signing certificate</summary>
+                        <div class="detail-body"><p>every release on this page is signed by one key. its certificate fingerprint is:</p>
             <pre><code class="fingerprint">12:DF:E3:2F:91:F7:18:25:90:09:27:37:91:7E:D7:19:33:7F:8F:9B:11:63:24:5B:3B:DC:34:79:A6:BE:26:60</code></pre>
             <p>if you have the android build tools, read it off the file before you install it:</p>
             <pre><code>apksigner verify --print-certs {{APK_NAME}}</code></pre>
             <p>that prints several digests per signer. the one to compare is the line reading <code>Signer #1 certificate SHA-256 digest</code>, not the SHA-1 or MD5 lines under it: those are different values and will not match.</p>
             <p>and once it is installed, off the phone itself. this one needs usb debugging turned on in developer options, and a unix shell:</p>
             <pre><code>adb shell dumpsys package app.solstone.observer.phone | grep -F "Signatures: ["</code></pre>
-            <p>turn usb debugging back off when you are done. the two commands print the same value in different shapes, and both are the fingerprint above: <code>apksigner</code> gives it lowercase with no colons, the phone gives it uppercase with them.</p>
+            <p>turn usb debugging back off when you are done. the two commands print the same value in different shapes, and both are the fingerprint above: <code>apksigner</code> gives it lowercase with no colons, the phone gives it uppercase with them.</p></div>
+                    </details>
+                </div>
+            </section>
 
-            <h2>what the app asks you for</h2>
-            <p>nothing, when you open it. the app starts with every source off and none of the four below granted, and each source asks for its own permission at the moment you turn that source on. the audio screen asks about the microphone and nothing else.</p>
+            <section class="band wrap glass" aria-labelledby="asks-title">
+                <div class="band-inner">
+                    <h2 id="asks-title">what the app asks you for</h2>
+                    <p>nothing, when you open it. the app starts with every source off and none of the four below granted, and each source asks for its own permission at the moment you turn that source on. the audio screen asks about the microphone and nothing else.</p>
             <p>there are four of these, and android asks you about them one at a time:</p>
 
             <table>
@@ -353,9 +190,9 @@ sha256sum -c SHA256SUMS</code></pre>
                     </tr>
                 </tbody>
             </table>
-
-            <h3>the ones android grants at install, without asking</h3>
-            <p>android grants these when the app installs. it does not ask about them, because none of them reaches anything private on its own.</p>
+                    <details>
+                        <summary>the ones android grants at install, without asking</summary>
+                        <div class="detail-body"><p>android grants these when the app installs. it does not ask about them, because none of them reaches anything private on its own.</p>
 
             <table>
                 <thead>
@@ -390,22 +227,34 @@ sha256sum -c SHA256SUMS</code></pre>
             </table>
 
             <p>that list is read out of the file you are about to download, not out of our source code. android merges in permissions from the libraries an app is built on, and the last two above arrive that way. read it yourself, if you have the android build tools:</p>
-            <pre><code>aapt2 dump permissions {{APK_NAME}}</code></pre>
-            <p>there is no analytics or tracking code in this app. the source is linked below, and the build refuses the analytics and crash-reporting dependencies it names. what the app takes in goes to the journal you paired it with, on a computer you keep. reaching that journal from off your own network goes over the private network, and if that is the relay sol pbc runs rather than a network you run yourself, it passes encrypted bytes it cannot read. your journal is always private, only yours.</p>
+            <pre><code>aapt2 dump permissions {{APK_NAME}}</code></pre></div>
+                    </details>
+                    <p>there is no analytics or tracking code in this app. the source is linked below, and the build refuses the analytics and crash-reporting dependencies it names. what the app takes in goes to the journal you paired it with, on a computer you keep. reaching that journal from off your own network goes over the private network, and if that is the relay sol pbc runs rather than a network you run yourself, it passes encrypted bytes it cannot read. your journal is always private, only yours.</p>
+                    <nav class="links" aria-label="more">
+                <a href="/releases/android">what's new in this version →</a>
+                <a href="https://github.com/solpbc/solstone-android">source code on GitHub →</a>
+                <a href="/download">every other device →</a>
 
-            <nav class="links" aria-label="more">
-                <a href="/releases/android">what's new in this version &rarr;</a>
-                <a href="https://github.com/solpbc/solstone-android">source code on GitHub &rarr;</a>
-                <a href="/download">every other device &rarr;</a>
-                <a href="/">back to solstone.app &rarr;</a>
             </nav>
-        </div>
-    </main>
-    <footer>
-        <nav class="footer-nav" aria-label="footer">
-            <a href="/install">get started</a> &middot; <a href="/download">download</a> &middot; <a href="/releases">releases</a> &middot; <a href="https://services.solstone.app">services</a> &middot; <a href="https://support.solstone.app">support</a>
-        </nav>
-        <div class="footer-covenant">&copy; 2026 <a href="https://solpbc.org">sol pbc</a> &middot; your journal is always private, only yours. solstone is a trademark of sol pbc.</div>
-    </footer>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <div class="glass">
+                <nav aria-label="footer">
+                    <a href="/download">download</a>
+                    <a href="/phone">phone</a>
+                    <a href="https://solpbc.org/privacy">privacy</a>
+                    <a href="/releases">releases</a>
+                    <a href="https://trust.solstone.app">trust</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc.</p>
+            </div>
+        </footer>
+    </div>
+    <script src="/static/sunarc.js" defer></script>
 </body>
 </html>

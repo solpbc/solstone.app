@@ -233,15 +233,9 @@ test("renderReleasesPage renders graceful fallback inside full chrome", () => {
   assert.match(html, /release notes are temporarily unavailable/);
   assert.match(html, /<title>journal releases · solstone<\/title>/);
   assert.match(html, /https:\/\/github\.com\/solpbc\/solstone-journal\/releases/);
-  // shared footer spine: a nav row + the covenant row (matches every solstone.app page)
-  assert.match(
-    html,
-    /<nav class="footer-nav" aria-label="footer">[\s\S]*?<a href="\/install">get started<\/a>[\s\S]*?<a href="https:\/\/support\.solstone\.app">support<\/a>[\s\S]*?<\/nav>/,
-  );
-  assert.match(
-    html,
-    /<div class="footer-covenant">&copy; 2026 <a href="https:\/\/solpbc\.org">sol pbc<\/a> &middot; your journal is always private, only yours\. solstone is a trademark of sol pbc\.<\/div>/,
-  );
+  // the fallback still renders inside the shared site chrome
+  assert.match(html, /<header class="site-header">/);
+  assert.match(html, /<footer class="site-footer">[\s\S]*?<nav aria-label="footer">[\s\S]*?href="https:\/\/support\.solstone\.app"[\s\S]*?<\/footer>/);
 });
 
 test("renderReleasesPage renders articles in order and omits null dates", () => {
@@ -322,7 +316,8 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
     assert.match(html, new RegExp(iosPill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.doesNotMatch(html, /iOS soon/);
     assert.doesNotMatch(html, /stream-links/);
-    assert.doesNotMatch(html, /<script/i);
+    // the stream switcher is plain links: no page script beyond the background sun
+    assert.doesNotMatch(html.replace('<script src="/static/sunarc.js" defer></script>', ""), /<script/i);
   }
 
   assertOrder(journalHtml, [
