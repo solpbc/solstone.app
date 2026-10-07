@@ -1,0 +1,4 @@
+Contact: mailto:support@solstone.app
+Expires: 2027-10-06T00:00:00Z
+Preferred-Languages: en
+Canonical: https://solstone.app/.well-known/security.txt
