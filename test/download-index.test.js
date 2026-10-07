@@ -16,7 +16,7 @@ const FEEDS = {
   macBoth: `${ORIGIN}/macos-both/latest.json`,
   winApp: `${ORIGIN}/solstone-windows/releases.win.json`,
   winJournal: `${ORIGIN}/solstone-journal/release/windows/releases.win.json`,
-  linuxJournal: `${ORIGIN}/solstone-journal/release/latest`,
+  linuxJournal: `${ORIGIN}/solstone/release/latest`,
   linuxApp: `${ORIGIN}/solstone-linux/release/latest`,
   tmux: `${ORIGIN}/solstone-tmux/release/latest`,
   android: `${ORIGIN}/solstone-android/release/latest`,
@@ -31,6 +31,19 @@ const APP_SHA = "a".repeat(56) + "0c0c0c0c";
 const JRN_SHA = "b".repeat(56) + "0d0d0d0d";
 const WINJ_SHA = "e".repeat(56) + "0e0e0e0e";
 const WINJ_PKG_SHA = "9".repeat(64);
+const CATALOGUE = `${ORIGIN}/solstone/release/7.5.5-r2/platform.json`;
+
+// A platform catalogue at a schema 2 coordinate: its own version and revision
+// name the coordinate, and it pins one version per component.
+function platformCatalogue(journal, { version = "7.5.5", revision = 2 } = {}) {
+  return JSON.stringify({
+    schema_version: 2,
+    lane: "release",
+    version,
+    catalogue_revision: revision,
+    components: { journal: { version: journal }, desktop: { version: "7.6.6" }, tmux: { version: "7.7.7" } },
+  });
+}
 
 function appcast(version, url, length, signature) {
   return `<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
@@ -78,7 +91,12 @@ function healthyRoutes() {
     [`${ORIGIN}/solstone-journal/release/windows/solstone-journal-7.4.4-windows-x86_64.sha256`]: text(
       `${WINJ_SHA}  solstone-journal-7.4.4-windows-x86_64-setup.exe\n${WINJ_PKG_SHA}  SolstoneJournal-7.4.4-full.nupkg\n`,
     ),
-    [FEEDS.linuxJournal]: text("version=7.5.5\n"),
+    // The catalogue pointer is a bare coordinate, with no `version=` prefix.
+    [FEEDS.linuxJournal]: text("7.5.5-r2\n"),
+    [CATALOGUE]: text(platformCatalogue("7.5.5")),
+    // The journal's own pointer, which the page no longer reads; a different
+    // version here shows up if it ever does.
+    [`${ORIGIN}/solstone-journal/release/latest`]: text("version=9.9.9\n"),
     [FEEDS.linuxApp]: text("version=7.6.6\n"),
     [FEEDS.tmux]: text("version=7.7.7\n"),
     [FEEDS.android]: text("version=7.8.8\n"),
@@ -229,6 +247,8 @@ test("one unreadable feed costs only its own row, and the page is not cached", a
   stubFetch(t, routes);
   for (const [feed, rowIndex] of [
     [FEEDS.tmux, ROW.tmux],
+    [FEEDS.linuxJournal, ROW.linuxJournal],
+    [CATALOGUE, ROW.linuxJournal],
     [FEEDS.macBoth, ROW.macBoth],
     [FEEDS.winJournal, ROW.winJournal],
     [FEEDS.android, ROW.android],
@@ -267,6 +287,54 @@ test("a fingerprint or size the feed doesn't carry stays a dash, and the page is
   assert.doesNotMatch(table[ROW.android]["check it"], /fingerprint/);
   assert.match(table[ROW.winApp].version, />7\.3\.3</);
   assert.match(table[ROW.winApp].size, DASH);
+});
+
+test("the linux journal row shows the journal the platform catalogue pins, which is what install.sh installs", async (t) => {
+  // Between a journal publish and the catalogue recut, the journal's own
+  // pointer is ahead; the installer still installs the catalogue's pin.
+  const routes = healthyRoutes();
+  routes[`${ORIGIN}/solstone-journal/release/latest`] = () => new Response("version=7.5.6\n");
+  stubFetch(t, routes);
+  const res = await getIndex();
+  assert.equal(res.headers.get("cache-control"), "public, max-age=300");
+  const table = rows(await res.text());
+  assert.match(table[ROW.linuxJournal].version, />7\.5\.5</);
+  assert.doesNotMatch(table[ROW.linuxJournal].version, /7\.5\.6/);
+});
+
+test("a schema 1 catalogue at a bare coordinate is read too", async (t) => {
+  const routes = healthyRoutes();
+  routes[FEEDS.linuxJournal] = () => new Response("7.5.4\n");
+  routes[`${ORIGIN}/solstone/release/7.5.4/platform.json`] = () =>
+    new Response(JSON.stringify({ schema_version: 1, lane: "release", version: "7.5.4", components: { journal: { version: "7.5.4" } } }));
+  stubFetch(t, routes);
+  const table = rows(await (await getIndex()).text());
+  assert.match(table[ROW.linuxJournal].version, />7\.5\.4</);
+});
+
+test("a catalogue install.sh would refuse, or a coordinate that isn't one, leaves the linux journal a dash", async (t) => {
+  const cases = [
+    ["a catalogue naming another revision", { [CATALOGUE]: () => new Response(platformCatalogue("7.5.5", { revision: 3 })) }],
+    ["a catalogue naming another version", { [CATALOGUE]: () => new Response(platformCatalogue("7.5.5", { version: "7.5.4" })) }],
+    ["a catalogue that isn't JSON", { [CATALOGUE]: () => new Response("<html>") }],
+    ["a revised catalogue whose version isn't its journal's", { [CATALOGUE]: () => new Response(platformCatalogue("7.5.4")) }],
+    ["a journal pin that isn't a plain version", { [CATALOGUE]: () => new Response(platformCatalogue('7.5.5"><script>')) }],
+    ["a pointer in the per-product shape", { [FEEDS.linuxJournal]: () => new Response("version=7.5.5\n") }],
+    ["a pointer that would leave the release prefix", { [FEEDS.linuxJournal]: () => new Response("../../x\n") }],
+  ];
+  const routes = {};
+  stubFetch(t, routes);
+  for (const [label, override] of cases) {
+    for (const key of Object.keys(routes)) delete routes[key];
+    Object.assign(routes, healthyRoutes(), override);
+    const res = await getIndex();
+    assert.equal(res.headers.get("cache-control"), "no-store", label);
+    const html = await res.text();
+    assert.doesNotMatch(html, /<script>/, label);
+    const table = rows(html);
+    assert.match(table[ROW.linuxJournal].version, DASH, label);
+    assert.match(table[ROW.linuxApp].version, />7\.6\.6</, label);
+  }
 });
 
 test("a feed value that isn't a plain version never reaches the page", async (t) => {

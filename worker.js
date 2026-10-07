@@ -10,10 +10,14 @@ const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/rel
 const JOURNAL_CHANGELOG_URL = "https://updates.solstone.app/solstone-journal/CHANGELOG.md";
 const LINUX_CHANGELOG_URL = "https://updates.solstone.app/solstone-linux/CHANGELOG.md";
 const WIN_CHANGELOG_URL = "https://updates.solstone.app/solstone-windows/CHANGELOG.md";
-// Each linux product's own release pointer: one line, `version=x.y.z`. The
-// journal's is the one its installer reads; the linux app's and solstone-tmux's
-// are the ones their install guides read.
-const JOURNAL_LINUX_LATEST_URL = "https://updates.solstone.app/solstone-journal/release/latest";
+// The linux journal is installed by install.sh, and install.sh installs what
+// the platform catalogue pins, not what the journal's own release pointer says:
+// it follows this pointer (a bare catalogue coordinate, `x.y.z` or `x.y.z-rN`)
+// to that coordinate's platform.json. So the journal's row reads the same two.
+const CATALOGUE_LATEST_URL = "https://updates.solstone.app/solstone/release/latest";
+const CATALOGUE_RELEASE_PREFIX = "https://updates.solstone.app/solstone/release/";
+// The linux app's and solstone-tmux's own release pointers: one line,
+// `version=x.y.z`. Their install guides read these, not the catalogue.
 const LINUX_APP_LATEST_URL = "https://updates.solstone.app/solstone-linux/release/latest";
 const TMUX_LATEST_URL = "https://updates.solstone.app/solstone-tmux/release/latest";
 const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-android/releases";
@@ -201,6 +205,35 @@ async function releasePointerVersion(pointerUrl) {
   }
 }
 
+// The journal version the linux installer installs today: the catalogue's
+// latest coordinate, then that coordinate's platform.json, then the journal
+// component pinned in it. install.sh refuses a catalogue whose own version and
+// revision don't name the coordinate it was fetched by, or a revised one whose
+// version isn't its journal's, so neither is read here. null when any step
+// can't be read or isn't that shape.
+async function catalogueJournalVersion() {
+  try {
+    const pointer = await fetch(CATALOGUE_LATEST_URL, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!pointer.ok) return null;
+    const coordinate = (await pointer.text()).trim();
+    if (!/^\d+\.\d+\.\d+(?:-r[1-9]\d{0,19})?$/.test(coordinate)) return null;
+    const res = await fetch(`${CATALOGUE_RELEASE_PREFIX}${coordinate}/platform.json`, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return null;
+    const catalogue = await res.json();
+    const revision = catalogue?.catalogue_revision;
+    if (`${catalogue?.version}${revision === undefined ? "" : `-r${revision}`}` !== coordinate) return null;
+    const journal = catalogue?.components?.journal?.version;
+    if (revision !== undefined && journal !== catalogue.version) return null;
+    return plainVersion(journal);
+  } catch {
+    return null;
+  }
+}
+
 // The android app has no auto-updater: an app installed from a file stays at
 // that version until someone installs a newer one. So the release origin's
 // `latest` pointer is the only thing that knows the current version, and both
@@ -337,7 +370,7 @@ async function downloadIndexSlots() {
       JOURNAL_WIN_FEED_URL,
       (version) => `https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64-setup.exe`,
     ),
-    releasePointerVersion(JOURNAL_LINUX_LATEST_URL),
+    catalogueJournalVersion(),
     releasePointerVersion(LINUX_APP_LATEST_URL),
     releasePointerVersion(TMUX_LATEST_URL),
     latestAndroidFacts(),
