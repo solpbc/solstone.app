@@ -27,6 +27,10 @@ const SIG_JOURNAL = "B".repeat(80) + "jrnSig==";
 const BOTH_SHA = "c".repeat(56) + "0b0b0b0b";
 const ANDROID_SHA = "d".repeat(56) + "0a0a0a0a";
 const NUPKG_SHA = "E".repeat(64);
+const APP_SHA = "a".repeat(56) + "0c0c0c0c";
+const JRN_SHA = "b".repeat(56) + "0d0d0d0d";
+const WINJ_SHA = "e".repeat(56) + "0e0e0e0e";
+const WINJ_PKG_SHA = "9".repeat(64);
 
 function appcast(version, url, length, signature) {
   return `<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
@@ -61,13 +65,19 @@ function healthyRoutes() {
         url: `${ORIGIN}/macos-both/releases/both-7.1.1-7.2.2.dmg`,
         length: 188_000_000,
         sha256: BOTH_SHA,
-        apps: { solstone: { version: "7.1.1" }, journal: { version: "7.2.2" } },
+        apps: {
+          solstone: { version: "7.1.1", source_url: `${ORIGIN}/solstone-macos/releases/v7.1.1/solstone-7.1.1.dmg`, source_sha256: APP_SHA },
+          journal: { version: "7.2.2", source_url: `${ORIGIN}/journal-macos/releases/v7.2.2/journal-7.2.2.dmg`, source_sha256: JRN_SHA },
+        },
       }),
     ),
     [FEEDS.winApp]: text(velopack("7.3.3")),
     [`${ORIGIN}/solstone-windows/solstone-setup-7.3.3.exe`]: length(14_000_000),
     [FEEDS.winJournal]: text(velopack("7.4.4")),
     [`${ORIGIN}/solstone-journal/release/windows/solstone-journal-7.4.4-windows-x86_64-setup.exe`]: length(1_120_000_000),
+    [`${ORIGIN}/solstone-journal/release/windows/solstone-journal-7.4.4-windows-x86_64.sha256`]: text(
+      `${WINJ_SHA}  solstone-journal-7.4.4-windows-x86_64-setup.exe\n${WINJ_PKG_SHA}  SolstoneJournal-7.4.4-full.nupkg\n`,
+    ),
     [FEEDS.linuxJournal]: text("version=7.5.5\n"),
     [FEEDS.linuxApp]: text("version=7.6.6\n"),
     [FEEDS.tmux]: text("version=7.7.7\n"),
@@ -144,14 +154,15 @@ test("each feed's values reach their own row", async (t) => {
   const mac = table[ROW.macApp];
   assert.match(mac.version, />7\.1\.1</);
   assert.match(mac.size, /about 11 MB/);
-  assert.match(mac["check it"], new RegExp(`>${SIG_APP.replace(/[+/]/g, "\\$&")}<`), "full signature on the page");
-  assert.match(mac["check it"], /ed25519/);
+  assert.ok(mac["check it"].includes(APP_SHA), "the app image's own digest");
+  assert.match(mac["check it"], /sha256/);
+  assert.ok(!mac["check it"].includes(SIG_APP), "the updater signature is not offered as a check");
 
   const journal = table[ROW.macJournal];
   assert.match(journal.version, />7\.2\.2</);
   assert.match(journal.size, /about 177 MB/);
-  assert.ok(journal["check it"].includes(SIG_JOURNAL));
-  assert.ok(!journal["check it"].includes(SIG_APP), "each mac row carries its own signature");
+  assert.ok(journal["check it"].includes(JRN_SHA));
+  assert.ok(!journal["check it"].includes(APP_SHA), "each mac row carries its own digest");
 
   const both = table[ROW.macBoth];
   assert.match(both.version, /7\.1\.1[\s\S]*7\.2\.2/);
@@ -167,7 +178,8 @@ test("each feed's values reach their own row", async (t) => {
   const winJournal = table[ROW.winJournal];
   assert.match(winJournal.version, />7\.4\.4</);
   assert.match(winJournal.size, /about 1\.1 GB/);
-  assert.match(winJournal["check it"], DASH, "no signature is claimed for this installer");
+  assert.ok(winJournal["check it"].includes(WINJ_SHA), "the Setup's own line from the published .sha256");
+  assert.ok(!winJournal["check it"].includes(WINJ_PKG_SHA), "not the update package's line");
 
   assert.match(table[ROW.linuxJournal].version, />7\.5\.5</);
   assert.match(table[ROW.linuxApp].version, />7\.6\.6</);
@@ -348,4 +360,14 @@ test("each product links its own download page, and the old index URLs still arr
     assert.equal(res.status, 301, path);
     assert.equal(res.headers.get("location"), "https://solstone.app/download", path);
   }
+});
+
+test("a mac app's digest is shown only when the image record names the file its feed serves", async (t) => {
+  const routes = healthyRoutes();
+  routes[FEEDS.macApp] = () => new Response(appcast("7.1.2", `${ORIGIN}/solstone-macos/releases/v7.1.2/solstone-7.1.2.dmg`, 11_000_000, SIG_APP), { status: 200 });
+  stubFetch(t, routes);
+  const res = await getIndex();
+  const table = rows(await res.text());
+  assert.ok(!table[ROW.macApp]["check it"].includes(APP_SHA), "a record for an older image is not this download's digest");
+  assert.equal(res.headers.get("cache-control"), "no-store");
 });

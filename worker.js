@@ -132,6 +132,9 @@ async function latestMacBothImage() {
       sha256: /^[0-9a-f]{64}$/.test(sha256) ? sha256 : null,
       appVersion: plainVersion(pointer.apps?.solstone?.version),
       journalVersion: plainVersion(pointer.apps?.journal?.version),
+      // The pointer also records each app's own disk image and its digest.
+      appSource: sourceDigest(pointer.apps?.solstone),
+      journalSource: sourceDigest(pointer.apps?.journal),
     };
   } catch {
     return null;
@@ -292,6 +295,38 @@ function renderAndroidPage(html, facts) {
 // true without the value). So a feed that can't be read costs its row its live
 // values and nothing else, and the template served on its own reads as all
 // dashes rather than as stale numbers.
+function sourceDigest(app) {
+  const url = String(app?.source_url ?? "");
+  const sha256 = String(app?.source_sha256 ?? "");
+  return url && /^[0-9a-f]{64}$/.test(sha256) ? { url, sha256 } : null;
+}
+
+// A digest for one mac app's disk image, only when the combined image's record
+// names the exact file the app's own feed serves today.
+function macDmgDigest(feed, source) {
+  return feed?.url && source?.url === feed.url ? source.sha256 : null;
+}
+
+// The windows journal publishes a .sha256 file beside its installer; take the
+// line for the Setup itself, not the update package listed with it.
+async function windowsJournalSetupDigest(version) {
+  if (!version) return null;
+  try {
+    const name = `solstone-journal-${version}-windows-x86_64-setup.exe`;
+    const res = await fetch(`https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64.sha256`, {
+      cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
+    });
+    if (!res.ok) return null;
+    for (const line of (await res.text()).split("\n")) {
+      const [digest, file] = line.trim().split(/\s+\*?/);
+      if (file === name && /^[0-9a-f]{64}$/.test(digest)) return digest;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function downloadIndexSlots() {
   const [macApp, macJournal, macBoth, winApp, winJournal, linuxJournal, linuxApp, tmux, android] = await Promise.all([
     latestAppcastDmg(APPCAST_URL),
@@ -317,11 +352,11 @@ async function downloadIndexSlots() {
 
   fill("macos-version", macApp?.version);
   fill("macos-size", sizeCell(macApp?.size));
-  fill("macos-check", fingerprintCell("ed25519 (Sparkle)", macApp?.edSignature));
+  fill("macos-check", fingerprintCell("sha256", macDmgDigest(macApp, macBoth?.appSource)));
 
   fill("journal-macos-version", macJournal?.version);
   fill("journal-macos-size", sizeCell(macJournal?.size));
-  fill("journal-macos-check", fingerprintCell("ed25519 (Sparkle)", macJournal?.edSignature));
+  fill("journal-macos-check", fingerprintCell("sha256", macDmgDigest(macJournal, macBoth?.journalSource)));
 
   fill(
     "mac-both-version",
@@ -337,6 +372,7 @@ async function downloadIndexSlots() {
 
   fill("journal-windows-version", winJournal?.version);
   fill("journal-windows-size", sizeCell(winJournal?.size));
+  fill("journal-windows-check", fingerprintCell("sha256", await windowsJournalSetupDigest(winJournal?.version)));
 
   fill("journal-linux-version", linuxJournal);
   fill("linux-version", linuxApp);
