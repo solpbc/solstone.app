@@ -1,7 +1,7 @@
 -- migration 0047_accounts_test_identity
 -- Mark sol pbc's own test sign-ins so operator tooling can tell them from customers.
 -- Set at creation by the pre-approve path for test addresses; the four ids below
--- are the pre-existing test and founder sign-ins.
+-- are the pre-existing test sign-ins.
 
 ALTER TABLE accounts ADD COLUMN test_identity INTEGER NOT NULL DEFAULT 0;
 
