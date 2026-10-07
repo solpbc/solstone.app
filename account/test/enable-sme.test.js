@@ -77,7 +77,7 @@ describe('/enable/solstone-me', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(body).toContain('sol pbc received a request to turn on solstone.me for your journal. it stays off until you allow it.');
     expect(body).toContain("sol pbc can approve it because it's tied to your sign-in. no journal content comes with it, only what identifies the request, and your allowing it is recorded.");
-    expect(body).toContain("an agent you connect can search and read your journal, within what you let it see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.");
+    expect(body).toContain("you choose what it may see: your whole journal, or only the facets you choose. through this connection, your agent can search and read your journal and keep notes of its own there. it can't add, change, or delete anything else.");
     expect(body).toContain("an agent's requests travel encrypted to your journal and are opened only there.");
     expect(body).toContain("sol pbc runs the relay in between and can't read what passes through it.");
     expect(body).toContain('what sol pbc can see is in the <a href="https://solpbc.org/privacy#solstone-me">privacy policy</a>.');

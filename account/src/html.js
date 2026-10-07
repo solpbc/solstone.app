@@ -544,7 +544,7 @@ export function renderEnableSmeConsent({ csrf, nonce, instance }) {
     <div class="n">2</div>
     <div>
       <div class="gt">what an agent gets</div>
-      <div class="gd">an agent you connect can search and read your journal, within what you let it see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.</div>
+      <div class="gd">you choose what it may see: your whole journal, or only the facets you choose. through this connection, your agent can search and read your journal and keep notes of its own there. it can't add, change, or delete anything else.</div>
     </div>
   </div>
   <div class="grant">
@@ -604,7 +604,7 @@ ${BRANDLOCK}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
   ${smeOnSale ? row('/solstone-me', IC_GLOBE, 'solstone.me', 'an address for your journal, so an agent you already use can read from it.', '<span class="price">$5<span class="per">/yr</span></span>') : ''}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', "notifications reach you when there's something worth a look.", '<span class="tag builtin">built in</span>')}
-  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.', '<span class="tag free">scouts</span>')}
+  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.', '<span class="tag free">scouts</span>')}
   ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
   <p class="disclosure">no analytics and no tracking. sign in only to manage what you've turned on. solstone itself never asks you to sign in.</p>`,
@@ -678,7 +678,7 @@ ${BRANDLOCK}
   </div>
   <p class="free-note" style="margin:14px 0 0">you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
 </div>
-<p class="disclosure">open source, self-hostable. run your own relay if you'd rather. <a href="/terms">terms</a></p>`,
+<p class="disclosure">open source. <a href="/terms">terms</a></p>`,
   });
 }
 
@@ -733,11 +733,10 @@ export function renderConfidentialProcessingLanding() {
     body: brandbarSignin()
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>confidential processing</h1>
-<p class="hero-tag">extend your compute off your device</p>
 <p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_CHIP, 'the thinking, off your device', 'confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.')}
+  ${beat(IC_CHIP, 'on hardware sol pbc runs', 'think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.')}
   ${beat(IC_VAULT, "sol pbc's own model", "a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.")}
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
@@ -817,7 +816,8 @@ ${BRANDLOCK}
 <div class="card">
   ${beat(IC_GLOBE, 'an address for your journal', "sol pbc runs the solstone.me relay in between, so your agent can find your journal without you running anything of your own. it's off until you turn it on, and you can turn it off from the journal at any time.")}
   ${beat(IC_VAULT, 'blind by construction', "your own machine holds the private key and ends the encryption, so the relay can't read a byte of what passes through it. sol pbc does see that an agent and your journal met, when, and how much passed.")}
-  ${beat(IC_NET, 'what an agent gets', "you choose what it may see: your whole journal, or only the facets you choose. it reads. it can't add, change or delete anything.")}
+  ${beat(IC_NET, 'what an agent gets', "you choose what it may see: your whole journal, or only the facets you choose. through this connection, your agent can search and read your journal and keep notes of its own there. it can't add, change, or delete anything else.")}
+  ${beat(IC_GLOBE, 'where you manage it', "your journal's agents app works with your own route or with solstone.me; solstone.me is the address, and the agents app is where you manage what connects.")}
 </div>
 <div class="card">
   <h2>the public record is permanent</h2>

@@ -27,7 +27,7 @@ describe('services catalog', () => {
     expect(body).toContain('$48');
     expect(body).toContain('built in');
     expect(body).toContain('<span class="tag free">scouts</span>');
-    expect(body).toContain('available to approved scouts. confidential processing extends your compute on confidential hardware sol pbc runs that keeps nothing.');
+    expect(body).toContain('available to approved scouts. think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.');
     expect(body).toContain('<span class="tag free">program</span>');
     expect(body).toContain('the tester program. approved scouts can enable confidential processing.');
     expect(body).toContain('your journal is always private, only yours.');
