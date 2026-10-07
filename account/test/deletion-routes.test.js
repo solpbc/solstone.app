@@ -14,8 +14,8 @@ describe('deletion routes', () => {
     const response = await worker.fetch(request('/account/delete', { cookie: session.cookie }), testEnv);
     const body = await response.text();
     expect(response.status).toBe(200);
-    expect(body).toContain('<h1>delete sign-in and your services</h1>');
-    expect(body).toContain('does not delete a journal, device, or bucket you control');
+    expect(body).toContain('<h1>close your sign-in and services</h1>');
+    expect(body).toContain("the journal on your devices isn't touched, and neither is a backup in your own bucket.");
   });
 
   it('rejects a deletion proof request without an exact origin', async () => {

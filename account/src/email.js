@@ -3,6 +3,8 @@
 // services@ has no inbound route, so every send carries Reply-To support@solstone.app:
 // a reply reaches the support mailbox, as the privacy policy says it does.
 
+import { CLOSE_TIMING_LINE } from './html.js';
+
 const FROM_ADDRESS = 'services@solstone.app';
 const FROM_NAME = 'solstone services';
 const REPLY_TO = 'support@solstone.app';
@@ -95,30 +97,32 @@ if you did not request this, you can ignore this email.`;
     });
     return { sent: true, messageId: response?.messageId };
   }
-  const action = purpose === 'cancel' ? 'cancel your deletion request' : 'delete your sign-in and services';
-  const notice = purpose === 'cancel'
-    ? `use this code to cancel your deletion request.${deadline ? ` the safety period ends ${deadline}. after that, the request can't be cancelled.` : ''}`
-    : 'this starts a deletion request. you have 72 hours to cancel before deletion begins.';
-  const subject = `confirm ${action}: ${formatted}`;
-  const text = `you requested to ${action}.
-
-enter this code to continue:
-
-${formatted}
-
-it expires in 10 minutes.
-
-${notice}
-
-if you did not request this, you can ignore this email.`;
+  // The owner closes a sign-in and keeps it; "delete" is kept for what is gone for good.
+  const keeping = purpose === 'cancel';
+  const subject = `confirm ${keeping ? 'keeping' : 'closing'} your sign-in: ${formatted}`;
+  const lines = keeping
+    ? [
+        'you asked to keep your sign-in at services.solstone.app.',
+        'enter this code to continue:',
+        formatted,
+        `it expires in 10 minutes.${deadline ? ` your sign-in closes at ${deadline} unless you confirm before then.` : ''}`,
+        "if you didn't ask for this, you can ignore this email.",
+      ]
+    : [
+        'you asked to close your sign-in at services.solstone.app.',
+        'enter this code to continue:',
+        formatted,
+        "it expires in 10 minutes. after you confirm, you'll have 72 hours to change your mind.",
+        CLOSE_TIMING_LINE,
+        "closing your sign-in doesn't touch the journal on your devices.",
+        "if you didn't ask for this, you can ignore this email.",
+      ];
+  const text = lines.join('\n\n');
   const html = `<!DOCTYPE html>
 <html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
-  <p>you requested to ${action}.</p>
-  <p>enter this code to continue:</p>
-  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #B42318; background: #FFF4F2; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
-  <p>it expires in 10 minutes.</p>
-  <p>${notice}</p>
-  <p>if you did not request this, you can ignore this email.</p>
+${lines.map((line) => (line === formatted
+    ? `  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>`
+    : `  <p>${line}</p>`)).join('\n')}
 </body></html>`;
   const response = await env.EMAIL.send({
     to: address,

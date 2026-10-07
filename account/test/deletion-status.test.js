@@ -10,52 +10,14 @@ const NEXT_RETRY = Date.parse('2024-12-03T12:00:00.000Z');
 describe('deletion status', () => {
   beforeEach(resetDb);
 
-  it('names delayed relay cleanup and the scheduled retry date', async () => {
+  it('reads a purge between passes as slow, not stuck, and names no service or date', async () => {
     const env = makeTestEnv();
-    await deletion(env, { operationId: 'relay-op' });
-    await workerEnv.DB.prepare(
-      `INSERT INTO account_deletion_service_ops (
-         id, operation_id, service, state, attempt_count
-       ) VALUES ('relay-service-op', 'relay-op', 'relay', 'pending', 1)`
-    ).run();
+    await deletion(env, { operationId: 'slow-op', lastErrorCode: 'service_reconciliation_pending' });
 
-    const response = await statusRequest(env);
+    const body = await (await statusRequest(env)).text();
 
-    expect(await response.text()).toContain('relay cleanup delayed; next retry 2024-12-03');
-  });
-
-  it('names delayed backup cleanup when service cleanup is terminal', async () => {
-    const env = makeTestEnv();
-    await deletion(env, { operationId: 'backup-op', stripePurgeState: 'deleted' });
-
-    const response = await statusRequest(env);
-
-    expect(await response.text()).toContain('backup cleanup delayed; next retry 2024-12-03');
-  });
-
-  it('names a pending service reconciliation and the scheduled retry date', async () => {
-    const env = makeTestEnv();
-    await deletion(env, {
-      operationId: 'reconciliation-op',
-      lastErrorCode: 'service_reconciliation_pending',
-    });
-
-    const response = await statusRequest(env);
-
-    expect(await response.text()).toContain('service reconciliation pending; next retry 2024-12-03');
-  });
-
-  it('names delayed billing cleanup after backup is verified empty', async () => {
-    const env = makeTestEnv();
-    await deletion(env, {
-      operationId: 'stripe-op',
-      backupEmptyVerifiedAt: NEXT_RETRY - 1,
-      stripePurgeState: 'retryable',
-    });
-
-    const response = await statusRequest(env);
-
-    expect(await response.text()).toContain('billing cleanup delayed; next retry 2024-12-03');
+    expect(body).toContain('this is taking longer than usual. sol pbc keeps trying until every part is done.');
+    expect(body).not.toContain('2024-12-03');
   });
 
   it('uses the lowercase unavailable message when no receipt is present', async () => {
@@ -63,7 +25,7 @@ describe('deletion status', () => {
 
     const response = await worker.fetch(new Request('https://services.solstone.app/account/delete/status'), env);
 
-    expect(await response.text()).toContain('deletion status unavailable');
+    expect(await response.text()).toContain('show where this stands right now');
   });
 
   it('returns a non-identifying expired link response for a presented unknown receipt', async () => {
@@ -73,8 +35,8 @@ describe('deletion status', () => {
 
     expect(response.status).toBe(410);
     const body = await response.text();
-    expect(body).toContain('expired link');
-    expect(body).not.toContain('deletion status unavailable');
+    expect(body).toContain('this status link has expired.');
+    expect(body).not.toContain('show where this stands right now');
   });
 
   it('offers cancellation only to the matching signed-in owner while the hold is open', async () => {
@@ -98,7 +60,7 @@ describe('deletion status', () => {
     expect(await (await statusRequest(env, otherSession.cookie)).text()).not.toContain('href="/account/delete"');
     const ownerResponse = await statusRequest(env, ownerSession.cookie);
     expect(ownerResponse.headers.get('Cache-Control')).toBe('no-store');
-    expect(await ownerResponse.text()).toContain('href="/account/delete">cancel deletion request</a>');
+    expect(await ownerResponse.text()).toContain('href="/account/delete">keep my sign-in</a>');
 
     await workerEnv.DB.prepare("UPDATE account_deletions SET cancellation_deadline_at = 0 WHERE operation_id = 'hold'").run();
     expect(await (await statusRequest(env, ownerSession.cookie)).text()).not.toContain('href="/account/delete"');
@@ -153,15 +115,15 @@ describe('deletion status', () => {
     const response = await statusRequest(env);
     const body = await response.text();
     expect(response.status).toBe(200);
-    expect(body).toContain('waiting for the safety period');
+    expect(body).toContain('your services are stopping');
     expect(body).toContain(SIGN_IN_LINE);
     expect(body).toContain(SIGN_IN_LINK);
-    expect(body).not.toContain('cancel deletion request');
+    expect(body).not.toContain('keep my sign-in');
     expect(body).not.toContain('href="/account/delete"');
 
     await workerEnv.DB.prepare("UPDATE account_deletions SET phase = 'requested' WHERE operation_id = 'hold'").run();
     const requested = await (await statusRequest(env)).text();
-    expect(requested).toContain('access ended');
+    expect(requested).toContain('your services are stopping');
     expect(requested).toContain(SIGN_IN_LINK);
   });
 
@@ -184,7 +146,7 @@ describe('deletion status', () => {
     await holdDeletion(env, owner.accountId, { phase: 'frozen' });
 
     const body = await (await statusRequest(env, session.cookie)).text();
-    expect(body).toContain('href="/account/delete">cancel deletion request</a>');
+    expect(body).toContain('href="/account/delete">keep my sign-in</a>');
     expect(body).not.toContain(SIGN_IN_LINE);
     expect(body).not.toContain(SIGN_IN_LINK);
   });
@@ -197,10 +159,10 @@ describe('deletion status', () => {
 
     for (const cookie of ['', session.cookie]) {
       const body = await (await statusRequest(env, cookie)).text();
-      expect(body).toContain('deletion in progress');
-      expect(body).not.toContain('waiting for the safety period');
+      expect(body).toContain("the 72 hours are up, so this can't be stopped now.");
+      expect(body).not.toContain('your services are stopping');
       expect(body).not.toContain(SIGN_IN_LINK);
-      expect(body).not.toContain('cancel deletion request');
+      expect(body).not.toContain('keep my sign-in');
     }
   });
 
@@ -210,12 +172,12 @@ describe('deletion status', () => {
     await holdDeletion(env, owner.accountId, { phase: 'purging' });
     await workerEnv.DB.prepare("UPDATE account_deletions SET lease_token = 'lease' WHERE operation_id = 'hold'").run();
     const purging = await (await statusRequest(env)).text();
-    expect(purging).toContain('deletion in progress');
+    expect(purging).toContain('sol pbc is deleting what it held for your sign-in.');
     expect(purging).not.toContain(SIGN_IN_LINK);
 
     await workerEnv.DB.prepare("UPDATE account_deletions SET phase = 'cancelled', lease_token = NULL WHERE operation_id = 'hold'").run();
     const cancelled = await (await statusRequest(env)).text();
-    expect(cancelled).toContain('deletion request canceled');
+    expect(cancelled).toContain('you kept your sign-in, and sol pbc deleted nothing.');
     expect(cancelled).not.toContain(SIGN_IN_LINK);
 
     await workerEnv.DB.prepare('DELETE FROM account_deletions').run();
@@ -224,7 +186,7 @@ describe('deletion status', () => {
        VALUES (?, 'complete', ?, ?)`
     ).bind(await hashWithPepper('status-token', env), Date.now(), Date.now() + 60_000).run();
     const complete = await (await statusRequest(env)).text();
-    expect(complete).toContain('complete');
+    expect(complete).toContain('your sign-in is closed');
     expect(complete).not.toContain(SIGN_IN_LINK);
 
     await workerEnv.DB.prepare('UPDATE account_deletion_completions SET expires_at = 0').run();
@@ -242,7 +204,7 @@ describe('deletion status', () => {
     ).bind(account.accountId, await hashWithPepper('status-token', env)).run();
 
     const response = await statusRequest(env);
-    expect(await response.text()).toContain('deletion request canceled');
+    expect(await response.text()).toContain('you kept your sign-in, and sol pbc deleted nothing.');
   });
 });
 

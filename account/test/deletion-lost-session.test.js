@@ -35,9 +35,9 @@ describe('deletion cancellation after the original session is lost', () => {
     const status = await worker.fetch(get('/account/delete/status', receipt), env);
     const statusBody = await status.text();
     expect(status.status).toBe(200);
-    expect(statusBody).toContain('waiting for the safety period');
+    expect(statusBody).toContain('your services are stopping');
     expect(statusBody).not.toContain('lost@example.com');
-    expect(statusBody).not.toContain('cancel deletion request');
+    expect(statusBody).not.toContain('keep my sign-in');
 
     for (const path of ['/account/delete', '/account/export', '/sign-in']) {
       const response = await worker.fetch(get(path, receipt), env);
@@ -88,9 +88,9 @@ describe('deletion cancellation after the original session is lost', () => {
 
     const page = await worker.fetch(get('/account/delete', cookie), env);
     expect(page.status).toBe(200);
-    expect(await page.text()).toContain('send a cancellation code');
+    expect(await page.text()).toContain('send a code');
     const status = await worker.fetch(get('/account/delete/status', `${cookie}; account_deletion_status=${STATUS_TOKEN}`), env);
-    expect(await status.text()).toContain('href="/account/delete">cancel deletion request</a>');
+    expect(await status.text()).toContain('href="/account/delete">keep my sign-in</a>');
 
     // The sign-in code is not the cancellation proof.
     const early = await worker.fetch(post('/account/delete/cancel', cookie), env);

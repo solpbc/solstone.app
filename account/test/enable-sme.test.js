@@ -169,7 +169,7 @@ describe('/enable/solstone-me', () => {
       account_id: account.accountId,
       instance_id: VALID_INSTANCE,
       consent_acked_at: expect.any(Number),
-      consent_disclosure_version: 'sme-consent-v2-pattern',
+      consent_disclosure_version: 'sme-consent-v3-close',
     });
     expect(binding.consent_acked_at).toBe(binding.last_seen_at);
     const payload = await decryptedHandoff(VALID_NONCE, testEnv);
@@ -219,7 +219,7 @@ describe('/enable/solstone-me', () => {
     expect(body).toContain('turn solstone.me on again in your journal.');
     expect(body).not.toMatch(/won't be asked again/i);
     await expect(smeBindingRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
-      consent_disclosure_version: 'sme-consent-v2-pattern',
+      consent_disclosure_version: 'sme-consent-v3-close',
     });
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({
       service: 'sme',

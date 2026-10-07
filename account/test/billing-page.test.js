@@ -283,8 +283,9 @@ describe('what Stripe holds, named where an owner looks', () => {
       expect(text).toContain("we never hold a readable copy of your journal, and we don't collect a phone number.");
       expect(text).toContain('we keep the network address each of your sessions came from, encrypted');
       expect(text).toContain('Stripe holds your card, the name on it and your billing address');
-      expect(text).toContain("to answer a billing question, an operator can see the card's brand, its last four digits, the name and the billing address in Stripe's own dashboard.");
-      expect(text).toContain('our systems never fetch or store any of it.');
+      expect(text).toContain("to answer a billing question, an operator can see details such as the card's brand, its last four digits, the name and the billing address in Stripe's own dashboard.");
+      expect(text).toContain("the services portal and the hosted services never ask Stripe for your card's details or keep them");
+      expect(text).not.toContain('our systems never fetch or store any of it');
       const article8 = text.slice(text.lastIndexOf('.', text.indexOf('structural commitment under')) + 1, text.indexOf('Article III of the bylaws'));
       expect(article8.trim()).toMatch(/^no analytics, no behavioral data, no third-party tracking: that isn't a promise, it's a structural commitment under Article 8/);
       expect(article8).not.toMatch(/Stripe|network address|phone/);
