@@ -1312,6 +1312,23 @@ function otherActiveBindingSql(table) {
   )`;
 }
 
+const SERVICE_BINDING_TABLES = {
+  spl: 'spl_bindings',
+  spb: 'spb_bindings',
+  spp: 'spp_bindings',
+  sme: 'sme_bindings',
+};
+
+export async function accountHoldsServiceBinding(db, service, accountId, instanceId) {
+  const table = SERVICE_BINDING_TABLES[service];
+  if (!table) return false;
+  const row = await db
+    .prepare(`SELECT 1 FROM ${table} WHERE account_id = ? AND instance_id = ?`)
+    .bind(accountId, instanceId)
+    .first();
+  return Boolean(row);
+}
+
 export async function upsertSplBinding(db, { accountId, instanceId, nowMs }) {
   const result = await db
     .prepare(

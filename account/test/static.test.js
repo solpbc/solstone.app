@@ -37,6 +37,7 @@ describe('static source checks', () => {
       'email.js',
       'emails.js',
       'enable-constants.js',
+      'enable-proof.js',
       'enable.js',
       'html.js',
       'hub.js',

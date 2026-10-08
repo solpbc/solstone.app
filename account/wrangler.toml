@@ -113,6 +113,13 @@ service = "spl-relay"
 # OWNER_EXPORT_ENABLED — exact string "true" enables /account/export*.
 # Leave unset until the full export release gates pass; do not commit it in [vars].
 #
+# Service enable journal possession proof release gate:
+# SERVICE_ENABLE_PROOF_REQUIRED — exact string "true" is mandatory for a new
+#   spl/spb/spp/sme binding. Any other state, including unset, is compatibility,
+#   and a presented proof is still verified. Never a [vars] entry.
+#   Artifact: account/protocol/service-enable-proof.json
+#   Journal mirror: core/contracts/service-enable-proof.json
+#
 # SPB R2 credential broker secrets (set via `wrangler secret put`):
 # R2_PARENT_ACCESS_KEY_ID — parent R2 S3 access key id used as the minted access_key_id.
 # R2_PARENT_SECRET_ACCESS_KEY — parent R2 S3 secret access key used only as the HS256 signing key;

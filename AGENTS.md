@@ -133,6 +133,7 @@ These are not optional. A change that weakens one is wrong regardless of size.
   cookie alone. The session cookie is `SameSite=Lax` underneath
   all of it. Do not add a per-session token, and do not loosen the origin
   predicate.
+- **Service enablement requires proof of journal possession.** Set `SERVICE_ENABLE_PROOF_REQUIRED` to the exact string `"true"` to require a journal possession proof (`account/protocol/service-enable-proof.json`, mirrored in `core/contracts/service-enable-proof.json`) before a new binding; any other state stays compatible, and a presented proof is still verified.
 
 ## 5. Coding principles (sol pbc engineering standards, inlined)
 

@@ -11,6 +11,7 @@ import {
 } from './crypto.js';
 import { resolveBearerAccount } from './dispatch-tokens.js';
 import {
+  accountHoldsServiceBinding,
   consumeServiceHandoff,
   findSpbSweepAudit,
   findServiceHandoffStatus,
@@ -30,6 +31,7 @@ import {
   upsertSplBinding,
   upsertSppBinding,
 } from './db.js';
+import { verifyServiceEnableProof } from './enable-proof.js';
 import {
   HANDOFF_TTL_MS,
   INSTANCE_ID_REGEX,
@@ -126,6 +128,59 @@ export function decodeEnableResume(next) {
   return resume;
 }
 
+export function classifyProof(params) {
+  const assertions = params ? params.getAll('assertion').map((v) => v.toString()) : [];
+  const caPubkeys = params ? params.getAll('ca_pubkey').map((v) => v.toString()) : [];
+  if (assertions.length === 0 && caPubkeys.length === 0) {
+    return { kind: 'absent', assertions: [], caPubkeys: [] };
+  }
+  return {
+    kind: 'supplied',
+    assertions,
+    caPubkeys,
+  };
+}
+
+export async function serviceEnableProofAllows(env, { service, accountId, instanceId, nonce, proof }) {
+  if (proof.kind === 'supplied') {
+    if (!instanceId || proof.assertions.length !== 1 || proof.caPubkeys.length !== 1) {
+      return false;
+    }
+    return verifyServiceEnableProof({
+      assertion: proof.assertions[0],
+      caPubkey: proof.caPubkeys[0],
+      instanceId,
+      nonce,
+      service,
+    });
+  }
+
+  if (env.SERVICE_ENABLE_PROOF_REQUIRED !== 'true') {
+    return true;
+  }
+
+  if (!instanceId) {
+    return service === 'spl';
+  }
+
+  return accountHoldsServiceBinding(env.DB, service, accountId, instanceId);
+}
+
+export function resumeCarriesProof(queryString) {
+  if (!queryString || typeof queryString !== 'string') return false;
+  const search = queryString.startsWith('?') ? queryString.slice(1) : queryString;
+  const params = new URLSearchParams(search);
+  return params.has('assertion') || params.has('ca_pubkey');
+}
+
+export function applyProofHeaders(response, carries) {
+  if (!carries || !response) return response;
+  response.headers.set('Cache-Control', 'no-store');
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  return response;
+}
+
+
 export function handleEnableScoutGet() {
   return noStoreHtml(renderEnableScout());
 }
@@ -162,16 +217,18 @@ export async function handleHandoffScout(req, env) {
 
 export async function handleEnableSplGet(req, env) {
   const url = new URL(req.url);
+  const carries = url.searchParams.has('assertion') || url.searchParams.has('ca_pubkey');
   const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
-  if (!NONCE_REGEX.test(nonce)) return splError(400);
+  if (!NONCE_REGEX.test(nonce)) return applyProofHeaders(splError(400), carries);
   const instance = parseOptionalInstance(url.searchParams);
-  const resumeQuery = splResumeQuery(nonce, instance);
+  const proof = classifyProof(url.searchParams);
+  const resumeQuery = splResumeQuery(nonce, instance, proof);
 
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, ENABLE_SPL_PATH, resumeQuery);
 
   const csrf = await csrfToken(env);
-  return noStoreHtml(renderEnableSplConsent({ csrf, nonce, instance }));
+  return applyProofHeaders(noStoreHtml(renderEnableSplConsent({ csrf, nonce, instance, proof })), carries);
 }
 
 export async function handleEnableSplConfirm(req, env, ctx) {
@@ -187,7 +244,8 @@ export async function handleEnableSplConfirm(req, env, ctx) {
   }
 
   const instance = parseOptionalInstance(form);
-  const resumeQuery = splResumeQuery(nonce, instance);
+  const proof = classifyProof(form);
+  const resumeQuery = splResumeQuery(nonce, instance, proof);
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, ENABLE_SPL_PATH, resumeQuery);
   const account = await getAccountTransparencyRow(env.DB, session.account_id);
@@ -199,6 +257,15 @@ export async function handleEnableSplConfirm(req, env, ctx) {
   if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
     return splError(403);
   }
+
+  const allowed = await serviceEnableProofAllows(env, {
+    service: 'spl',
+    accountId: session.account_id,
+    instanceId: instance,
+    nonce,
+    proof,
+  });
+  if (!allowed) return splError(400);
 
   const nowMs = Date.now();
   if (instance) {
@@ -263,29 +330,32 @@ export async function handleHandoffSpl(req, env) {
 
 export async function handleEnableSpbGet(req, env) {
   const url = new URL(req.url);
+  const carries = url.searchParams.has('assertion') || url.searchParams.has('ca_pubkey');
   const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
-  if (!NONCE_REGEX.test(nonce)) return spbError(400);
+  if (!NONCE_REGEX.test(nonce)) return applyProofHeaders(spbError(400), carries);
   const restore = isRestoreIntent(url.searchParams.get('intent'));
+  const proof = classifyProof(url.searchParams);
   if (restore) {
     const session = await getValidSession(req, env, Date.now());
-    if (!session) return signInRedirect(env, ENABLE_SPB_PATH, spbResumeQuery(nonce, null, true));
-    return handleSpbRestoreResolution({
+    if (!session) return signInRedirect(env, ENABLE_SPB_PATH, spbResumeQuery(nonce, null, true, proof));
+    if (proof.kind === 'supplied') return applyProofHeaders(spbError(400), carries);
+    return applyProofHeaders(await handleSpbRestoreResolution({
       req,
       env,
       nonce,
       accountId: session.account_id,
       csrf: await csrfToken(env),
-    });
+    }), carries);
   }
 
   const instance = parseOptionalInstance(url.searchParams);
-  const resumeQuery = spbResumeQuery(nonce, instance);
+  const resumeQuery = spbResumeQuery(nonce, instance, false, proof);
 
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, ENABLE_SPB_PATH, resumeQuery);
 
   const csrf = await csrfToken(env);
-  return noStoreHtml(renderEnableSpbConsent({ csrf, nonce, instance }));
+  return applyProofHeaders(noStoreHtml(renderEnableSpbConsent({ csrf, nonce, instance, proof })), carries);
 }
 
 export async function handleEnableSpbConfirm(req, env, ctx) {
@@ -300,13 +370,17 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
     return redirect('/', 303, { 'Cache-Control': 'no-store' });
   }
 
+  const proof = classifyProof(form);
   if (isRestoreIntent(form.get('intent'))) {
+    const session = await getValidSession(req, env, Date.now());
+    if (!session) return signInRedirect(env, ENABLE_SPB_PATH, spbResumeQuery(nonce, null, true, proof));
+    if (proof.kind === 'supplied') return spbError(400);
     return handleEnableSpbRestoreConfirm({ req, env, nonce, form });
   }
 
   const instance = parseOptionalInstance(form);
   if (!instance) return spbError(400);
-  const resumeQuery = spbResumeQuery(nonce, instance);
+  const resumeQuery = spbResumeQuery(nonce, instance, false, proof);
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, ENABLE_SPB_PATH, resumeQuery);
   const account = await getAccountTransparencyRow(env.DB, session.account_id);
@@ -318,6 +392,15 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
   if (!timingSafeEqual(form.get('csrf')?.toString() || '', csrf)) {
     return spbError(403);
   }
+
+  const allowed = await serviceEnableProofAllows(env, {
+    service: 'spb',
+    accountId: session.account_id,
+    instanceId: instance,
+    nonce,
+    proof,
+  });
+  if (!allowed) return spbError(400);
 
   const nowMs = Date.now();
   const accountId = session.account_id;
@@ -360,8 +443,10 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
 }
 
 async function handleEnableSpbRestoreConfirm({ req, env, nonce, form }) {
+  const proof = classifyProof(form);
   const session = await getValidSession(req, env, Date.now());
-  if (!session) return signInRedirect(env, ENABLE_SPB_PATH, spbResumeQuery(nonce, null, true));
+  if (!session) return signInRedirect(env, ENABLE_SPB_PATH, spbResumeQuery(nonce, null, true, proof));
+  if (proof.kind === 'supplied') return spbError(400);
   const account = await getAccountTransparencyRow(env.DB, session.account_id);
   if (!account) {
     return redirect('/', 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
@@ -661,10 +746,12 @@ async function sppAllowedBeforeSale(env, { accountId, nowMs }) {
 
 export async function handleEnableSppGet(req, env) {
   const url = new URL(req.url);
+  const carries = url.searchParams.has('assertion') || url.searchParams.has('ca_pubkey');
   const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
-  if (!NONCE_REGEX.test(nonce)) return sppError(400);
+  if (!NONCE_REGEX.test(nonce)) return applyProofHeaders(sppError(400), carries);
   const instance = parseOptionalInstance(url.searchParams);
-  const resumeQuery = sppResumeQuery(nonce, instance);
+  const proof = classifyProof(url.searchParams);
+  const resumeQuery = sppResumeQuery(nonce, instance, proof);
 
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, ENABLE_SPP_PATH, resumeQuery);
@@ -672,11 +759,23 @@ export async function handleEnableSppGet(req, env) {
   const onSale = sppOnSale(env);
   const nowMs = Date.now();
   if (!onSale && !await sppAllowedBeforeSale(env, { accountId: session.account_id, nowMs })) {
-    return refuseSppToEarlyAccess({ env, nonce, accountId: session.account_id, instance, nowMs });
+    const allowed = await serviceEnableProofAllows(env, {
+      service: 'spp',
+      accountId: session.account_id,
+      instanceId: instance,
+      nonce,
+      proof,
+    });
+    if (!allowed) return applyProofHeaders(sppError(400), carries);
+
+    return applyProofHeaders(
+      await refuseSppToEarlyAccess({ env, nonce, accountId: session.account_id, instance, nowMs }),
+      carries
+    );
   }
 
   const csrf = await csrfToken(env);
-  return noStoreHtml(renderEnableSppConsent({ csrf, nonce, instance, onSale }));
+  return applyProofHeaders(noStoreHtml(renderEnableSppConsent({ csrf, nonce, instance, onSale, proof })), carries);
 }
 
 export async function handleEnableSppConfirm(req, env, ctx) {
@@ -693,7 +792,8 @@ export async function handleEnableSppConfirm(req, env, ctx) {
 
   const instance = parseOptionalInstance(form);
   if (!instance) return sppError(400);
-  const resumeQuery = sppResumeQuery(nonce, instance);
+  const proof = classifyProof(form);
+  const resumeQuery = sppResumeQuery(nonce, instance, proof);
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, ENABLE_SPP_PATH, resumeQuery);
   const account = await getAccountTransparencyRow(env.DB, session.account_id);
@@ -710,6 +810,15 @@ export async function handleEnableSppConfirm(req, env, ctx) {
 
   const nowMs = Date.now();
   const accountId = session.account_id;
+
+  const allowed = await serviceEnableProofAllows(env, {
+    service: 'spp',
+    accountId,
+    instanceId: instance,
+    nonce,
+    proof,
+  });
+  if (!allowed) return sppError(400);
 
   // A second submit of the same turn-on (a double click, a resubmitted form) changes nothing: the
   // first one's answer is already waiting for the journal, and binding again would replace the
@@ -929,17 +1038,19 @@ export async function handleHandoffSpp(req, env) {
 
 export async function handleEnableSmeGet(req, env) {
   const url = new URL(req.url);
+  const carries = url.searchParams.has('assertion') || url.searchParams.has('ca_pubkey');
   const nonce = (url.searchParams.get('nonce') || '').trim().toUpperCase();
-  if (!NONCE_REGEX.test(nonce)) return smeError(400);
+  if (!NONCE_REGEX.test(nonce)) return applyProofHeaders(smeError(400), carries);
   const instance = parseOptionalInstance(url.searchParams);
-  if (!instance) return smeError(400);
-  const resumeQuery = smeResumeQuery(nonce, instance);
+  if (!instance) return applyProofHeaders(smeError(400), carries);
+  const proof = classifyProof(url.searchParams);
+  const resumeQuery = smeResumeQuery(nonce, instance, proof);
 
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, ENABLE_SME_PATH, resumeQuery);
 
   const csrf = await csrfToken(env);
-  return noStoreHtml(renderEnableSmeConsent({ csrf, nonce, instance }));
+  return applyProofHeaders(noStoreHtml(renderEnableSmeConsent({ csrf, nonce, instance, proof })), carries);
 }
 
 export async function handleEnableSmeConfirm(req, env, ctx) {
@@ -956,7 +1067,8 @@ export async function handleEnableSmeConfirm(req, env, ctx) {
 
   const instance = parseOptionalInstance(form);
   if (!instance) return smeError(400);
-  const resumeQuery = smeResumeQuery(nonce, instance);
+  const proof = classifyProof(form);
+  const resumeQuery = smeResumeQuery(nonce, instance, proof);
   const session = await getValidSession(req, env, Date.now());
   if (!session) return signInRedirect(env, ENABLE_SME_PATH, resumeQuery);
   const account = await getAccountTransparencyRow(env.DB, session.account_id);
@@ -971,6 +1083,15 @@ export async function handleEnableSmeConfirm(req, env, ctx) {
 
   // The consent is enforced here, not by the form: no acknowledgement, no binding.
   if (form.get('data_ack')?.toString() !== 'yes') return smeError(400);
+
+  const allowed = await serviceEnableProofAllows(env, {
+    service: 'sme',
+    accountId: session.account_id,
+    instanceId: instance,
+    nonce,
+    proof,
+  });
+  if (!allowed) return smeError(400);
 
   const nowMs = Date.now();
   const accountId = session.account_id;
@@ -1047,27 +1168,42 @@ export async function handleHandoffSpa(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
-function splResumeQuery(nonce, instance) {
+function appendProofParams(params, proof) {
+  if (!proof || proof.kind !== 'supplied') return;
+  for (const assertion of proof.assertions) {
+    params.append('assertion', assertion);
+  }
+  for (const caPubkey of proof.caPubkeys) {
+    params.append('ca_pubkey', caPubkey);
+  }
+}
+
+function splResumeQuery(nonce, instance, proof = null) {
   const params = new URLSearchParams({ nonce });
   if (instance) params.set('instance', instance);
+  appendProofParams(params, proof);
   return `?${params.toString()}`;
 }
 
-function spbResumeQuery(nonce, instance, restore = false) {
+function spbResumeQuery(nonce, instance, restore = false, proof = null) {
   const params = new URLSearchParams({ nonce });
   if (restore) params.set('intent', 'restore');
   if (instance) params.set('instance', instance);
+  appendProofParams(params, proof);
   return `?${params.toString()}`;
 }
 
-function sppResumeQuery(nonce, instance) {
+function sppResumeQuery(nonce, instance, proof = null) {
   const params = new URLSearchParams({ nonce });
   if (instance) params.set('instance', instance);
+  appendProofParams(params, proof);
   return `?${params.toString()}`;
 }
 
-function smeResumeQuery(nonce, instance) {
-  return `?${new URLSearchParams({ nonce, instance }).toString()}`;
+function smeResumeQuery(nonce, instance, proof = null) {
+  const params = new URLSearchParams({ nonce, instance });
+  appendProofParams(params, proof);
+  return `?${params.toString()}`;
 }
 
 function parseOptionalInstance(params) {
@@ -1091,10 +1227,15 @@ function isSpbEntitled(entitlement) {
 
 export async function signInRedirect(env, path, queryString) {
   const resume = await signEnableResume(path, queryString, env);
-  return redirect(`/?next=${encodeURIComponent(resume.next)}&next_sig=${encodeURIComponent(resume.nextSig)}`, 303, {
+  const carries = resumeCarriesProof(queryString);
+  const headers = {
     'Cache-Control': 'no-store',
     'X-Robots-Tag': 'noindex',
-  });
+  };
+  if (carries) {
+    headers['Referrer-Policy'] = 'no-referrer';
+  }
+  return redirect(`/?next=${encodeURIComponent(resume.next)}&next_sig=${encodeURIComponent(resume.nextSig)}`, 303, headers);
 }
 
 async function csrfToken(env) {

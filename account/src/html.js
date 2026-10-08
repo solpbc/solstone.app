@@ -303,7 +303,19 @@ function enableErrorTemplate(service) {
   });
 }
 
-export function renderEnableSplConsent({ csrf, nonce, instance = '' }) {
+function renderProofInputs(proof) {
+  if (!proof || proof.kind !== 'supplied') return '';
+  const parts = [];
+  for (const assertion of proof.assertions) {
+    parts.push(`<input type="hidden" name="assertion" value="${escAttr(assertion)}">`);
+  }
+  for (const caPubkey of proof.caPubkeys) {
+    parts.push(`<input type="hidden" name="ca_pubkey" value="${escAttr(caPubkey)}">`);
+  }
+  return parts.length > 0 ? parts.join('\n    ') + '\n    ' : '';
+}
+
+export function renderEnableSplConsent({ csrf, nonce, instance = '', proof = null }) {
   const instanceInput = instance
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
@@ -324,7 +336,7 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '' }) {
   <form method="post" action="/enable/spl/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
-    ${instanceInput}
+    ${renderProofInputs(proof)}${instanceInput}
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
       <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
@@ -347,7 +359,7 @@ export function renderEnableSplError() {
   return enableErrorTemplate('private network');
 }
 
-export function renderEnableSpbConsent({ csrf, nonce, instance = '' }) {
+export function renderEnableSpbConsent({ csrf, nonce, instance = '', proof = null }) {
   const instanceInput = instance
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
@@ -368,7 +380,7 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '' }) {
   <form method="post" action="/enable/backup/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
-    ${instanceInput}
+    ${renderProofInputs(proof)}${instanceInput}
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
       <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
@@ -463,7 +475,7 @@ export function renderEnableSpbError() {
   return enableErrorTemplate('encrypted backup');
 }
 
-export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = false }) {
+export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = false, proof = null }) {
   const instanceInput = instance
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
@@ -491,7 +503,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = fa
   <form method="post" action="/enable/spp/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
-    ${instanceInput}
+    ${renderProofInputs(proof)}${instanceInput}
     ${ackField('i understand what this sends, and that my journal verifies the service before it sends.')}
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
@@ -561,7 +573,7 @@ export const SME_PERMANENCE_PARTS = [
   "the address is public once it's issued, and stays public for good, even after you turn this off, cancel, or close your sign-in. it's eight random characters with nothing of yours in it.",
 ];
 
-export function renderEnableSmeConsent({ csrf, nonce, instance }) {
+export function renderEnableSmeConsent({ csrf, nonce, instance, proof = null }) {
   return layout({
     title: 'turn on solstone.me',
     body: `${brandbar()}
@@ -595,7 +607,7 @@ export function renderEnableSmeConsent({ csrf, nonce, instance }) {
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     <input type="hidden" name="instance" value="${escAttr(instance)}">
-    ${ackField('i understand that the public record of this address is permanent.')}
+    ${renderProofInputs(proof)}${ackField('i understand that the public record of this address is permanent.')}
     <div class="btn-row" style="margin-top:20px">
       <button class="btn primary" name="action" value="allow" type="submit">allow</button>
       <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>

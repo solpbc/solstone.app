@@ -29,6 +29,7 @@ import {
 } from './db.js';
 import { sendOtpEmail } from './email.js';
 import {
+  applyProofHeaders,
   handleEnableScoutGet,
   handleEnableSpbConfirm,
   handleEnableSpbGet,
@@ -44,6 +45,7 @@ import {
   handleHandoffSpa,
   handleHandoffSpp,
   handleScoutStatus,
+  resumeCarriesProof,
   verifyEnableResume,
 } from './enable.js';
 import {
@@ -410,18 +412,20 @@ async function routeRequest(req, env, ctx) {
         const session = await getValidSession(req, env, Date.now());
         const resume = await validResumeFromParams(url.searchParams, env);
         if (session) {
-          if (resume) return redirect(`${resume.path}${resume.queryString}`);
+          if (resume) return applyProofHeaders(redirect(`${resume.path}${resume.queryString}`), resumeCarriesProof(resume.queryString));
           return handleServicesCatalog(req, env, session);
         }
         if (getSessionToken(req)) {
-          return redirect(`/${url.search}`, 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
+          const res = redirect(`/${url.search}`, 303, { 'Set-Cookie': clearSessionCookie(), 'Cache-Control': 'no-store' });
+          return applyProofHeaders(res, resumeCarriesProof(resume?.queryString));
         }
         if (resume || url.searchParams.has('signin')) {
           const csrf = await csrfToken(env);
           const subhead = supportSignInPrompt(resume?.path);
-          return html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}, subhead || undefined), {
+          const landing = html(renderLanding(env.TURNSTILE_SITE_KEY, csrf, resume || {}, subhead || undefined), {
             headers: NOINDEX,
           });
+          return applyProofHeaders(landing, resumeCarriesProof(resume?.queryString));
         }
         return html(renderServicesCatalog({ signedIn: false, smeOnSale: smeOnSale(env), sppOnSale: sppOnSale(env) }));
       }
@@ -1249,13 +1253,14 @@ async function handleSigninVerifyGet(req, env) {
   const email = isValidEmail(emailLower) ? emailLower : '';
   const csrf = await csrfToken(env);
   const resume = await validResumeFromParams(url.searchParams, env);
-  return html(renderVerify({
+  const response = html(renderVerify({
     email,
     error: null,
     csrf,
     next: resume?.next || '',
     nextSig: resume?.nextSig || '',
   }));
+  return applyProofHeaders(response, resumeCarriesProof(resume?.queryString));
 }
 
 async function handleSigninVerifyPost(req, env) {
@@ -1279,9 +1284,10 @@ async function handleSigninVerifyPost(req, env) {
   const codeOk = /^\d{6}$/.test(code);
   const renderEmail = emailOk ? emailLower : '';
   const resume = await validResumeFromForm(form, env);
+  const carries = resumeCarriesProof(resume?.queryString);
 
   if (!emailOk || !codeOk) {
-    return html(renderVerify({
+    const response = html(renderVerify({
       email: renderEmail,
       emailInputValue: emailOk ? '' : emailForEcho,
       error: VERIFY_ERROR,
@@ -1289,6 +1295,7 @@ async function handleSigninVerifyPost(req, env) {
       next: resume?.next || '',
       nextSig: resume?.nextSig || '',
     }));
+    return applyProofHeaders(response, carries);
   }
 
   const nowMs = Date.now();
@@ -1298,13 +1305,14 @@ async function handleSigninVerifyPost(req, env) {
 
   if (!matched) {
     await bumpOtpAttempts(env.DB, { emailLowerHash, nowMs, maxAttempts: OTP_MAX_ATTEMPTS });
-    return html(renderVerify({
+    const response = html(renderVerify({
       email: emailLower,
       error: VERIFY_ERROR,
       csrf,
       next: resume?.next || '',
       nextSig: resume?.nextSig || '',
     }));
+    return applyProofHeaders(response, carries);
   }
 
   const existing = await findEmailByHash(env.DB, emailLowerHash);
@@ -1315,13 +1323,14 @@ async function handleSigninVerifyPost(req, env) {
       email_lower_hash_prefix: emailLowerHash.slice(0, 12),
       ts: nowMs,
     }));
-    return html(renderVerify({
+    const response = html(renderVerify({
       email: emailLower,
       error: VERIFY_ERROR,
       csrf,
       next: resume?.next || '',
       nextSig: resume?.nextSig || '',
     }));
+    return applyProofHeaders(response, carries);
   }
   const accountId = existing
     ? existing.account_id
@@ -1336,7 +1345,8 @@ async function handleSigninVerifyPost(req, env) {
   // own fresh proof. Past the deadline, sign-in stays refused.
   const deletion = await getActiveDeletionForAccount(env.DB, accountId);
   if (deletion && !deletionIsCancellable(deletion, nowMs)) {
-    return html(renderVerify({ email: emailLower, error: VERIFY_ERROR, csrf, next: resume?.next || '', nextSig: resume?.nextSig || '' }));
+    const response = html(renderVerify({ email: emailLower, error: VERIFY_ERROR, csrf, next: resume?.next || '', nextSig: resume?.nextSig || '' }));
+    return applyProofHeaders(response, carries);
   }
   await updateAccountLastSignin(env.DB, accountId, nowMs);
 
@@ -1351,9 +1361,10 @@ async function handleSigninVerifyPost(req, env) {
   // welcome panel, seconds from here) needs no second code.
   await seedCredentialChangeProofFromSignIn(env, { accountId, sessionIdHash: idHash, nowMs });
   const location = resume ? `${resume.path}${resume.queryString}` : (isNew ? '/?welcome=1' : '/');
-  return redirect(location, 303, {
+  const response = redirect(location, 303, {
     'Set-Cookie': sessionCookie(sessionToken),
   });
+  return applyProofHeaders(response, carries);
 }
 
 export function isValidEmail(value) {
