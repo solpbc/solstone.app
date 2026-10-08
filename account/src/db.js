@@ -1584,8 +1584,8 @@ export async function reserveMcpBridgeBinding(db, { accountId, instanceId, label
   ]);
 }
 
-export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, nowMs }) {
-  const result = await db
+export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, nowMs, handoff }) {
+  const statement = db
     .prepare(
       `INSERT INTO spb_bindings (
          account_id, instance_id, created_at, last_seen_at, token_hash, lapsed_at
@@ -1596,9 +1596,29 @@ export async function upsertSpbBinding(db, { accountId, instanceId, tokenHash, n
          last_seen_at = excluded.last_seen_at,
          lapsed_at = NULL`
     )
-    .bind(accountId, instanceId, nowMs, nowMs, tokenHash, instanceId, accountId)
-    .run();
-  return result.meta.changes > 0;
+    .bind(accountId, instanceId, nowMs, nowMs, tokenHash, instanceId, accountId);
+  return runBindingWrite(db, statement, 'spb', { accountId, instanceId, tokenHash, handoff });
+}
+
+// Credential replacement and delivery commit together. A duplicate handoff INSERT
+// fails the D1 transaction and rolls back the binding write, including an upsert.
+// A refused binding must not leave a handoff carrying an unusable credential.
+async function runBindingWrite(db, statement, service, { accountId, instanceId, tokenHash, handoff }) {
+  if (!handoff) return (await statement.run()).meta.changes > 0;
+  const results = await db.batch([
+    statement,
+    db.prepare(
+      `INSERT INTO service_handoffs (
+         handoff_hash, account_id, service, payload_encrypted, created_at, expires_at
+       ) SELECT ?, ?, ?, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM ${service}_bindings
+         WHERE account_id = ? AND instance_id = ? AND token_hash = ?)`
+    ).bind(
+      handoff.handoffHash, accountId, service, handoff.payloadEncrypted, handoff.createdAt, handoff.expiresAt,
+      accountId, instanceId, tokenHash
+    ),
+  ]);
+  return results[0].meta.changes > 0 && results[1].meta.changes > 0;
 }
 
 export async function rotateSpbBindingToken(db, { accountId, instanceId, tokenHash, nowMs }) {
@@ -1634,12 +1654,13 @@ export async function upsertSppBinding(db, {
   consentAckedAt,
   consentDisclosureVersion,
   capped = false,
+  handoff,
 }) {
   const cap = capped
     ? `AND NOT EXISTS (SELECT 1 FROM spp_bindings mine WHERE mine.account_id = ? AND mine.instance_id != ?)`
     : '';
   const capBinds = capped ? [accountId, instanceId] : [];
-  const result = await db
+  const statement = db
     .prepare(
       `INSERT INTO spp_bindings (
          account_id, instance_id, token_hash, created_at, last_seen_at,
@@ -1664,9 +1685,8 @@ export async function upsertSppBinding(db, {
       instanceId,
       accountId,
       ...capBinds
-    )
-    .run();
-  return result.meta.changes > 0;
+    );
+  return runBindingWrite(db, statement, 'spp', { accountId, instanceId, tokenHash, handoff });
 }
 
 export async function listSplBindings(db, accountId) {

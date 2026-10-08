@@ -404,14 +404,17 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
 
   const nowMs = Date.now();
   const accountId = session.account_id;
+  const handoffHash = await hashServiceHandoffNonce(nonce, env);
+  // Consumed and expired handoffs still reserve their nonce. Re-consent uses a
+  // fresh nonce; repeating this one must never replace its delivered credential.
+  if (await findServiceHandoffStatus(env.DB, { handoffHash, service: 'spb' })) return spbError(409);
   const brokerToken = generateSessionToken();
   const tokenHash = await hashWithPepper(brokerToken, env);
-  const bound = await upsertSpbBinding(env.DB, { accountId, instanceId: instance, tokenHash, nowMs });
-  // This journal is already held by another active sign-in: nothing is bound or issued.
-  if (!bound) return spbError(409);
-  await reconcileSpbEntitlement(env, accountId, nowMs, ctx);
   const entitlement = await getEntitlement(env.DB, { accountId, service: SPB_HOSTED_SERVICE });
-  const entitled = isSpbEntitled(entitlement);
+  // Read the same standing reconciliation will write, without changing anything
+  // for a losing submit or a refused cross-account binding.
+  const entitled = !!paidSignalFromRow(entitlement)
+    || (await getScoutApplicationStatusByAccount(env.DB, { accountId }))?.status === 'approved';
   const origin = new URL(req.url).origin;
   const prefix = prefixFor(accountId, instance);
   const payload = {
@@ -424,20 +427,18 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
     status: entitled ? 'approved' : 'needs_subscription',
   };
   if (!entitled) payload.subscribe_url = `${origin}/services/backup`;
-  const handoffHash = await hashServiceHandoffNonce(nonce, env);
   try {
     const payloadEncrypted = await encryptEmail(JSON.stringify(payload), env);
-    await insertServiceHandoff(env.DB, {
-      handoffHash,
-      accountId,
-      service: 'spb',
-      payloadEncrypted,
-      createdAt: nowMs,
-      expiresAt: nowMs + HANDOFF_TTL_MS,
+    const bound = await upsertSpbBinding(env.DB, {
+      accountId, instanceId: instance, tokenHash, nowMs,
+      handoff: { handoffHash, payloadEncrypted, createdAt: nowMs, expiresAt: nowMs + HANDOFF_TTL_MS },
     });
+    // This journal is already held by another active sign-in: nothing is bound or issued.
+    if (!bound) return spbError(409);
   } catch {
     return spbError(503);
   }
+  await reconcileSpbEntitlement(env, accountId, nowMs, ctx);
   if (!entitled) return noStoreHtml(renderEnableSpbNeedsSubscription());
   return noStoreHtml(renderEnableSpbDone());
 }
@@ -875,9 +876,16 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     return noStoreHtml(renderEnableSppJournalLimit());
   }
 
-  const payload = await bindAndMintSpp(env, {
-    accountId, instance, consentAckedAt: nowMs, nowMs, capped: standing === 'entitled_capped',
-  });
+  let payload;
+  try {
+    payload = await bindAndMintSpp(env, {
+      accountId, instance, consentAckedAt: nowMs, nowMs, capped: standing === 'entitled_capped', nonce,
+    });
+  } catch {
+    // The transaction rolled back; a losing submit cannot replace the token
+    // delivered by the existing handoff.
+    return sppError(503);
+  }
   if (payload === 'journal_limit') {
     const inserted = await insertSppHandoff({
       env, nonce, accountId, payload: { state: 'journal_limit', subscribe_url: SPP_SUBSCRIBE_URL }, nowMs, ttlMs: HANDOFF_TTL_MS,
@@ -888,10 +896,6 @@ export async function handleEnableSppConfirm(req, env, ctx) {
   if (!payload) return sppError(409);
   // Paid first: a scout reconcile never lapses or overwrites a paying owner's subscription.
   await reconcileSppEntitlement(env, accountId, nowMs, ctx);
-  const inserted = await insertSppHandoff({ env, nonce, accountId, payload, nowMs, ttlMs: HANDOFF_TTL_MS });
-  // A duplicate nonce collision means the credential was not landed in a handoff;
-  // fail closed rather than record a false 'minted' audit for an undelivered credential.
-  if (!inserted) return sppError(503);
   await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'minted', nowMs });
   return noStoreHtml(renderEnableSppDone());
 }
@@ -906,23 +910,11 @@ async function bindAndMintSpp(env, {
   nowMs,
   capped = false,
   consentDisclosureVersion = SPP_CONSENT_DISCLOSURE_VERSION,
+  nonce,
 }) {
   const token = generateSessionToken();
   const tokenHash = await hashWithPepper(token, env);
-  const bound = await upsertSppBinding(env.DB, {
-    accountId,
-    instanceId: instance,
-    tokenHash,
-    nowMs,
-    consentAckedAt,
-    consentDisclosureVersion,
-    capped,
-  });
-  if (!bound) {
-    if (capped && await hasOtherSppBinding(env.DB, { accountId, instanceId: instance })) return 'journal_limit';
-    return null;
-  }
-  return {
+  const payload = {
     state: 'approved',
     endpoint_url: env.SPP_ENGINE_ENDPOINT,
     served_model_id: env.SPP_ENGINE_MODEL,
@@ -931,6 +923,27 @@ async function bindAndMintSpp(env, {
     instance_id: instance,
     created_at: new Date(nowMs).toISOString(),
   };
+  const handoff = nonce ? {
+    handoffHash: await hashServiceHandoffNonce(nonce, env),
+    payloadEncrypted: await encryptEmail(JSON.stringify(payload), env),
+    createdAt: nowMs,
+    expiresAt: nowMs + HANDOFF_TTL_MS,
+  } : undefined;
+  const bound = await upsertSppBinding(env.DB, {
+    accountId,
+    instanceId: instance,
+    tokenHash,
+    nowMs,
+    consentAckedAt,
+    consentDisclosureVersion,
+    capped,
+    handoff,
+  });
+  if (!bound) {
+    if (capped && await hasOtherSppBinding(env.DB, { accountId, instanceId: instance })) return 'journal_limit';
+    return null;
+  }
+  return payload;
 }
 
 async function insertSppHandoff({ env, nonce, accountId, payload, nowMs, ttlMs }) {
