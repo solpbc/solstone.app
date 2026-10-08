@@ -193,9 +193,9 @@ async function authorizeByOwnerCredential(req, env, events) {
 
 // The journal's own content-free check: does the confidential processing credential it holds
 // still have access? It answers the same question the engine's authorize does, by the same
-// predicate, and adds where the owner can turn it back on. A journal asks before the first
-// request on each new channel, which is when the engine authorizes too, so the portal learns
-// nothing about the owner that the engine's authorize does not already.
+// predicate, and adds where the owner can turn it back on. A journal asks only when the owner
+// opens its thinking app with confidential processing on; it learns whether the engine still
+// admits it from the engine itself, on each new channel, without asking here.
 export async function handleSppAccess(req, env) {
   try {
     const limiter = env.SPP_ACCESS_LIMIT;

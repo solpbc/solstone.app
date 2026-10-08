@@ -538,7 +538,7 @@ export function renderEnableSppJournalLimit() {
 <div class="card" data-enable-state="journal-limit">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">your subscription covers another journal</h2>
   <p>one subscription covers one journal, and yours already covers a different one, so nothing was turned on here.</p>
-  <p>to move your subscription to this journal, release the other one on your confidential processing page, then turn it on here again. to use both, use a different sign-in and subscribe for this journal there.</p>
+  <p>to move your subscription to this journal, release the other one on your confidential processing page, then turn it on again from this journal. to use both, use a different sign-in and subscribe for this journal there.</p>
   <a class="btn secondary" href="${escAttr(SPP_SERVICE_PATH)}">see your subscription</a>
 </div>`,
   });
@@ -1208,7 +1208,9 @@ ${content}`,
   // The journals the subscription covers, each with its own release, so the owner can move it.
   const journalList = journals.length
     ? `<div class="card" style="margin-top:16px">
-  <p>${journals.length === 1 ? 'your subscription covers one journal.' : `your subscription covers ${journals.length} journals, turned on before the one-journal rule.`} to use it on a different journal, release this one, then turn confidential processing on from the other journal.</p>
+  <p>${journals.length === 1
+    ? 'your subscription covers one journal. to use it on a different journal, release this one (it stops using confidential processing right away), then turn confidential processing on from the other journal.'
+    : `your subscription covers ${journals.length} journals, turned on while you were an approved scout. to use it on a different journal, release one of them (it stops using confidential processing right away), then turn confidential processing on from the other journal.`}</p>
   <div class="group">
   ${journals.map((j) => `<div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">journal first turned on ${esc(formatDate(j.created_at))}</div></div><div class="trail"><form method="post" action="${escAttr(`${SPP_SERVICE_PATH}/release`)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
@@ -1237,8 +1239,7 @@ ${cancellationNotice}
 ${portalActions}
 ${journalList}
 ${withdrawalDoor(withdrawal)}
-<p class="disclosure" style="margin-top:24px">${esc(SPP_ONE_JOURNAL)}</p>
-<p class="disclosure">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. ${howItWorks}</p>`,
+<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. ${howItWorks}</p>`,
     });
   }
 
