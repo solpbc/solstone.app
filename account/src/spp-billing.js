@@ -1,7 +1,9 @@
 import { hashKey, timingSafeEqual } from './crypto.js';
 import {
+  deleteSppBinding,
   getEntitlement,
   getScoutApplicationStatusByAccount,
+  listSppBindingsWithDates,
   getStripeCustomerByAccount,
   recordSubscriptionStartRequest,
 } from './db.js';
@@ -14,7 +16,8 @@ import {
   signedInHtml,
   signedInRedirect,
 } from './settings.js';
-import { SPP_HOSTED_SERVICE as SERVICE } from './spp-entitlement.js';
+import { SPP_HOSTED_SERVICE as SERVICE, isSppEntitledToServe } from './spp-entitlement.js';
+import { INSTANCE_ID_REGEX } from './enable-constants.js';
 import { SPP_SERVICE_PATH, sppOnSale, sppPlanTerms } from './spp-service.js';
 import {
   createCheckoutSession,
@@ -37,14 +40,17 @@ export async function handleServicesSpp(req, env) {
   const { session, nowMs } = guard;
   const url = new URL(req.url);
   const onSale = sppOnSale(env);
-  const [menu, entitlement, csrf] = await Promise.all([
+  const [menu, entitlement, csrf, journals] = await Promise.all([
     loadMenuContext(env, session.account_id, nowMs),
     getEntitlement(env.DB, { accountId: session.account_id, service: SERVICE }),
     csrfToken(env),
+    listSppBindingsWithDates(env.DB, session.account_id),
   ]);
   if (!onSale) return signedInHtml(renderServicesSpp({ entitlement, menu }));
   return signedInHtml(renderServicesSpp({
     entitlement,
+    serving: isSppEntitledToServe(entitlement, Math.floor(nowMs / 1000), env),
+    journals: entitlement?.source === 'stripe' ? journals : [],
     ...await billingView(env, entitlement),
     onSale,
     startNowBox: withdrawalOn(env),
@@ -53,6 +59,7 @@ export async function handleServicesSpp(req, env) {
       checkout: url.searchParams.get('checkout') || '',
       billing: url.searchParams.get('billing') || '',
       withdrawal: url.searchParams.get('withdrawal') || '',
+      journal: url.searchParams.get('journal') || '',
     },
     menu,
     planTerms: sppPlanTerms(env),
@@ -179,6 +186,20 @@ export async function handleSppCancel(req, env) {
   }
   if (!portal?.url) return signedInRedirect(`${SPP_SERVICE_PATH}?billing=error`);
   return signedInRedirect(portal.url);
+}
+
+// The owner releases a journal from their subscription, so another journal can be turned on in
+// its place. The released journal's credential stops working at once.
+export async function handleSppRelease(req, env) {
+  if (!originAllowed(req)) return noStore(forbidden());
+  const guard = await requireSignedInSession(req, env);
+  if (guard instanceof Response) return guard;
+  const form = await safeForm(req);
+  if (!await validCsrf(form, env)) return noStore(forbidden());
+  const instance = form.get('instance')?.toString() || '';
+  if (!INSTANCE_ID_REGEX.test(instance)) return signedInRedirect(`${SPP_SERVICE_PATH}?journal=missing`);
+  const released = await deleteSppBinding(env.DB, { accountId: guard.session.account_id, instanceId: instance });
+  return signedInRedirect(`${SPP_SERVICE_PATH}?journal=${released ? 'released' : 'missing'}`);
 }
 
 async function csrfToken(env) {

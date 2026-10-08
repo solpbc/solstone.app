@@ -223,6 +223,85 @@ describe('confidential processing: turning it on once on sale', () => {
     expect(await sppBindings(account.accountId)).toEqual([INSTANCE_A]);
   });
 
+  it('two journals waiting on one subscription: only the first to ask is turned on', async () => {
+    const testEnv = onSaleEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const other = '9'.repeat(52);
+    await confirm(testEnv, session, { instance: INSTANCE_A });
+    await confirm(testEnv, session, { nonce: other, instance: INSTANCE_B });
+    await paidSpp(account.accountId);
+    const [first, second] = await Promise.all([poll(testEnv), poll(testEnv, other)]);
+    const states = [(await first.json()).state, (await second.json()).state].sort();
+    expect(states).toEqual(['approved', 'journal_limit']);
+    expect(await sppBindings(account.accountId)).toHaveLength(1);
+  });
+
+  it('a journal already bound is turned on again even when older bindings exist', async () => {
+    const testEnv = onSaleEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    for (const instanceId of [INSTANCE_A, INSTANCE_B]) {
+      await upsertSppBinding(workerEnv.DB, {
+        accountId: account.accountId, instanceId, tokenHash: `h-${instanceId}`, nowMs: 1, consentAckedAt: 1, consentDisclosureVersion: 'v',
+      });
+    }
+    await paidSpp(account.accountId);
+    await confirm(testEnv, session, { instance: INSTANCE_A });
+    expect((await poll(testEnv).then((r) => r.json())).state).toBe('approved');
+    expect(await sppBindings(account.accountId)).toEqual([INSTANCE_A, INSTANCE_B]);
+  });
+
+  it('releasing the covered journal lets another be turned on, and stops the released credential', async () => {
+    const testEnv = onSaleEnv({ SPP_AUTHORIZE_PUBLIC_LIMIT: makeFakeRateLimit(100) });
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await paidSpp(account.accountId);
+    await confirm(testEnv, session, { instance: INSTANCE_A });
+    const { credential } = await poll(testEnv).then((r) => r.json());
+    const other = '9'.repeat(52);
+    await confirm(testEnv, session, { nonce: other, instance: INSTANCE_B });
+    expect((await poll(testEnv, other).then((r) => r.json())).state).toBe('journal_limit');
+
+    const page = await (await worker.fetch(new Request(`${ORIGIN}/confidential-processing`, { headers: { Cookie: session.cookie } }), testEnv)).text();
+    expect(page).toContain('action="/confidential-processing/release"');
+    const released = await worker.fetch(new Request(`${ORIGIN}/confidential-processing/release`, {
+      method: 'POST',
+      headers: { Cookie: session.cookie, Origin: ORIGIN, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ csrf: TEST_CSRF, instance: INSTANCE_A }),
+    }), testEnv);
+    expect(released.headers.get('Location')).toContain('journal=released');
+    const access = await worker.fetch(new Request(`${ORIGIN}/spp/access`, { headers: { 'X-Sol-Entitlement': credential, 'CF-Connecting-IP': '198.51.100.7' } }), testEnv);
+    expect(access.status).toBe(401);
+
+    const third = 'A'.repeat(52);
+    await confirm(testEnv, session, { nonce: third, instance: INSTANCE_B });
+    expect((await poll(testEnv, third).then((r) => r.json())).state).toBe('approved');
+    expect(await sppBindings(account.accountId)).toEqual([INSTANCE_B]);
+  });
+
+  it('a second submit of the same turn-on does not replace the credential', async () => {
+    const testEnv = onSaleEnv();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    await seedScoutApplication({ accountId: account.accountId, status: 'approved' });
+    await confirm(testEnv, session);
+    const before = await workerEnv.DB.prepare('SELECT token_hash FROM spp_bindings WHERE account_id = ?').bind(account.accountId).first();
+    const again = await confirm(testEnv, session);
+    expect(again.status).toBe(200);
+    const after = await workerEnv.DB.prepare('SELECT token_hash FROM spp_bindings WHERE account_id = ?').bind(account.accountId).first();
+    expect(after.token_hash).toBe(before.token_hash);
+    const { credential } = await poll(testEnv).then((r) => r.json());
+    expect(await hashWithPepper(credential, testEnv)).toBe(before.token_hash);
+  });
+
+  it('a turn-on left waiting when the sale is switched off gets the before-sale answer', async () => {
+    const account = await seedAccount({ testEnv: onSaleEnv() });
+    const session = await seedSession(account.accountId, { testEnv: onSaleEnv() });
+    await confirm(onSaleEnv(), session);
+    expect(await poll(makeTestEnv()).then((r) => r.json())).toEqual({ state: 'early_access' });
+  });
+
   it('scouts are unchanged: approved at once, and not capped', async () => {
     const testEnv = onSaleEnv();
     const account = await seedAccount({ testEnv });

@@ -381,7 +381,7 @@ describe('/enable/spp', () => {
     await expect(entitlementRow(account.accountId)).resolves.toBeNull();
   });
 
-  it('fails closed without a minted audit when the handoff nonce already exists', async () => {
+  it('changes nothing, and mints nothing, when the handoff nonce already exists', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });
     const session = await seedSession(account.accountId, { testEnv });
@@ -391,7 +391,9 @@ describe('/enable/spp', () => {
 
     const response = await worker.fetch(confirmRequest({ cookie: session.cookie }), testEnv);
 
-    expect(response.status).toBe(503);
+    // A resubmitted turn-on: the answer already waiting for the journal is left as it is.
+    expect(response.status).toBe(200);
+    await expect(rowCount('spp_bindings')).resolves.toBe(0);
     await expect(sppMintAuditRow(account.accountId, VALID_INSTANCE)).resolves.toBeNull();
     await expect(rowCount('spp_mint_audit')).resolves.toBe(0);
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual(sentinel);

@@ -538,7 +538,7 @@ export function renderEnableSppJournalLimit() {
 <div class="card" data-enable-state="journal-limit">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">your subscription covers another journal</h2>
   <p>one subscription covers one journal, and yours already covers a different one, so nothing was turned on here.</p>
-  <p>to use confidential processing on this journal too, use a different sign-in and subscribe for this journal there.</p>
+  <p>to move your subscription to this journal, release the other one on your confidential processing page, then turn it on here again. to use both, use a different sign-in and subscribe for this journal there.</p>
   <a class="btn secondary" href="${escAttr(SPP_SERVICE_PATH)}">see your subscription</a>
 </div>`,
   });
@@ -1141,6 +1141,8 @@ export function renderServicesSpp({
   entitlement,
   menu,
   onSale = false,
+  serving = false,
+  journals = [],
   plan = null,
   withdrawal = null,
   startNowBox = false,
@@ -1203,6 +1205,19 @@ ${content}`,
     ? `<p class="notice">your confidential processing is scheduled to end on ${esc(paidThrough)}. manage billing to keep it.</p>`
     : '';
   const howItWorks = '<a href="/confidential-processing/data">what leaves your device</a> · <a href="/terms">terms</a>';
+  // The journals the subscription covers, each with its own release, so the owner can move it.
+  const journalList = journals.length
+    ? `<div class="card" style="margin-top:16px">
+  <p>${journals.length === 1 ? 'your subscription covers one journal.' : `your subscription covers ${journals.length} journals, turned on before the one-journal rule.`} to use it on a different journal, release this one, then turn confidential processing on from the other journal.</p>
+  <div class="group">
+  ${journals.map((j) => `<div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">journal first turned on ${esc(formatDate(j.created_at))}</div></div><div class="trail"><form method="post" action="${escAttr(`${SPP_SERVICE_PATH}/release`)}">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="instance" value="${escAttr(j.instance_id)}">
+    <button class="btn secondary" type="submit">release</button>
+  </form></div></div>`).join('\n  ')}
+  </div>
+</div>`
+    : '';
 
   if (entitlement?.source === 'comp' && status === 'active') {
     return page({
@@ -1220,6 +1235,7 @@ ${content}`,
       content: `${controlGroup}
 ${cancellationNotice}
 ${portalActions}
+${journalList}
 ${withdrawalDoor(withdrawal)}
 <p class="disclosure" style="margin-top:24px">${esc(SPP_ONE_JOURNAL)}</p>
 <p class="disclosure">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. ${howItWorks}</p>`,
@@ -1229,9 +1245,10 @@ ${withdrawalDoor(withdrawal)}
   if (status === 'past_due') {
     return page({
       flashes,
-      statusLine: 'your last payment needs attention',
+      statusLine: serving ? 'your last payment needs attention' : '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not covered</span>',
       content: `${controlGroup}
-<p class="notice">your last payment didn't go through. manage billing to fix it.</p>
+<p class="notice">${serving ? "your last payment didn't go through. manage billing to fix it." : "your last payment didn't go through, so confidential processing has stopped. manage billing to fix it."}</p>
+${journalList}
 ${cancellationNotice}
 ${portalActions}
 ${withdrawalDoor(withdrawal)}
@@ -1264,6 +1281,8 @@ function sppBillingFlashMessages(flash) {
   if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
   if (flash.checkout === 'comped') messages.push("confidential processing is already complimentary for you as an approved scout.");
   if (flash.checkout === 'covered') messages.push('this sign-in already has a subscription.');
+  if (flash.journal === 'released') messages.push('released. that journal no longer uses your subscription. turn confidential processing on from the journal you want it on.');
+  if (flash.journal === 'missing') messages.push('that journal was already released.');
   if (flash.billing === 'missing') messages.push('billing management is available once a payment has been made.');
   if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');

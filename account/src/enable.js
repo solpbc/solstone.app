@@ -21,6 +21,7 @@ import {
   insertServiceHandoff,
   insertSppMintAudit,
   hasOtherSppBinding,
+  hasSppBinding,
   listSpbBindings,
   peekServiceHandoff,
   rotateSpbBindingToken,
@@ -636,11 +637,14 @@ async function refuseSppToEarlyAccess({ env, nonce, accountId, instance, nowMs }
 // subscription already covers another journal, or not entitled.
 // Read-only, by the same rule reconcileSppEntitlement writes: a paid subscription that is still
 // serving decides; without one, an approved scout is entitled; otherwise not.
+// A journal already bound to this sign-in can always be turned on again; a new one under a paid
+// subscription is capped ('entitled_capped', enforced again atomically at bind).
 async function sppTurnOnStanding(env, { accountId, instance, nowMs }) {
   const entitlement = await getEntitlement(env.DB, { accountId, service: SPP_HOSTED_SERVICE });
   if (paidSignalFromRow(entitlement)) {
     if (!isSppEntitledToServe(entitlement, Math.floor(nowMs / 1000), env)) return 'not_entitled';
-    return await hasOtherSppBinding(env.DB, { accountId, instanceId: instance }) ? 'journal_limit' : 'entitled';
+    if (await hasSppBinding(env.DB, { accountId, instanceId: instance })) return 'entitled';
+    return await hasOtherSppBinding(env.DB, { accountId, instanceId: instance }) ? 'journal_limit' : 'entitled_capped';
   }
   const scout = await getScoutApplicationStatusByAccount(env.DB, { accountId });
   return scout?.status === 'approved' ? 'entitled' : 'not_entitled';
@@ -707,6 +711,12 @@ export async function handleEnableSppConfirm(req, env, ctx) {
   const nowMs = Date.now();
   const accountId = session.account_id;
 
+  // A second submit of the same turn-on (a double click, a resubmitted form) changes nothing: the
+  // first one's answer is already waiting for the journal, and binding again would replace the
+  // credential it carries.
+  const existing = await findServiceHandoffStatus(env.DB, { handoffHash: await hashServiceHandoffNonce(nonce, env), service: 'spp' });
+  if (existing) return existing.account_id === accountId ? noStoreHtml(renderEnableSppDone()) : sppError(409);
+
   // Entitlement gate, re-read at the head of the issuance branch. Before the sale, a sign-in
   // that may not turn it on gets the content-free terminal refusal, exactly as before, and
   // nothing is written for it.
@@ -725,7 +735,12 @@ export async function handleEnableSppConfirm(req, env, ctx) {
       env,
       nonce,
       accountId,
-      payload: { state: 'awaiting_subscription', instance_id: instance, consent_acked_at: nowMs },
+      payload: {
+        state: 'awaiting_subscription',
+        instance_id: instance,
+        consent_acked_at: nowMs,
+        consent_disclosure_version: SPP_CONSENT_DISCLOSURE_VERSION,
+      },
       nowMs,
       ttlMs: SPP_SUBSCRIBE_WAIT_MS,
     });
@@ -748,7 +763,16 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     return noStoreHtml(renderEnableSppJournalLimit());
   }
 
-  const payload = await bindAndMintSpp(env, { accountId, instance, consentAckedAt: nowMs, nowMs });
+  const payload = await bindAndMintSpp(env, {
+    accountId, instance, consentAckedAt: nowMs, nowMs, capped: standing === 'entitled_capped',
+  });
+  if (payload === 'journal_limit') {
+    const inserted = await insertSppHandoff({
+      env, nonce, accountId, payload: { state: 'journal_limit', subscribe_url: SPP_SUBSCRIBE_URL }, nowMs, ttlMs: HANDOFF_TTL_MS,
+    });
+    if (!inserted) return sppError(503);
+    return noStoreHtml(renderEnableSppJournalLimit());
+  }
   if (!payload) return sppError(409);
   // Paid first: a scout reconcile never lapses or overwrites a paying owner's subscription.
   await reconcileSppEntitlement(env, accountId, nowMs, ctx);
@@ -760,9 +784,17 @@ export async function handleEnableSppConfirm(req, env, ctx) {
   return noStoreHtml(renderEnableSppDone());
 }
 
-// Binds the journal to the sign-in and makes its credential. null when another active sign-in
-// already holds this journal: nothing is bound or issued.
-async function bindAndMintSpp(env, { accountId, instance, consentAckedAt, nowMs }) {
+// Binds the journal to the sign-in and makes its credential. 'journal_limit' when a paid
+// subscription already covers another journal (capped), null when another active sign-in already
+// holds this journal: either way nothing is bound or issued.
+async function bindAndMintSpp(env, {
+  accountId,
+  instance,
+  consentAckedAt,
+  nowMs,
+  capped = false,
+  consentDisclosureVersion = SPP_CONSENT_DISCLOSURE_VERSION,
+}) {
   const token = generateSessionToken();
   const tokenHash = await hashWithPepper(token, env);
   const bound = await upsertSppBinding(env.DB, {
@@ -771,9 +803,13 @@ async function bindAndMintSpp(env, { accountId, instance, consentAckedAt, nowMs 
     tokenHash,
     nowMs,
     consentAckedAt,
-    consentDisclosureVersion: SPP_CONSENT_DISCLOSURE_VERSION,
+    consentDisclosureVersion,
+    capped,
   });
-  if (!bound) return null;
+  if (!bound) {
+    if (capped && await hasOtherSppBinding(env.DB, { accountId, instanceId: instance })) return 'journal_limit';
+    return null;
+  }
   return {
     state: 'approved',
     endpoint_url: env.SPP_ENGINE_ENDPOINT,
@@ -812,21 +848,49 @@ async function resolveWaitingSpp(env, { handoffHash, accountId, waiting, nowMs }
     : null;
   if (!instance) return handoffJson({ error: 'gone' }, { status: 410 });
   const standing = await sppTurnOnStanding(env, { accountId, instance, nowMs });
+  const noCache = { headers: { Pragma: 'no-cache' } };
   if (standing === 'not_entitled') {
-    return handoffJson({ state: 'needs_subscription', subscribe_url: SPP_SUBSCRIBE_URL }, { headers: { Pragma: 'no-cache' } });
+    // The sale was switched off while this turn-on waited: the answer from before the sale.
+    if (!sppOnSale(env)) {
+      const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spp' });
+      if (!consumed) return handoffJson({ error: 'gone' }, { status: 410 });
+      return handoffJson({ state: 'early_access' }, noCache);
+    }
+    return handoffJson({ state: 'needs_subscription', subscribe_url: SPP_SUBSCRIBE_URL }, noCache);
   }
+  // Consumed once, atomically, before anything is bound: only one poll can mint.
   const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spp' });
   if (!consumed) return handoffJson({ error: 'gone' }, { status: 410 });
+  const limit = { state: 'journal_limit', subscribe_url: SPP_SUBSCRIBE_URL };
   if (standing === 'journal_limit') {
-    await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'refused_entitlement', nowMs });
-    return handoffJson({ state: 'journal_limit', subscribe_url: SPP_SUBSCRIBE_URL }, { headers: { Pragma: 'no-cache' } });
+    await bestEffort(() => insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'refused_entitlement', nowMs }));
+    return handoffJson(limit, noCache);
   }
   const consentAckedAt = Number.isInteger(waiting.consent_acked_at) ? waiting.consent_acked_at : nowMs;
-  const payload = await bindAndMintSpp(env, { accountId, instance, consentAckedAt, nowMs });
+  const payload = await bindAndMintSpp(env, {
+    accountId,
+    instance,
+    consentAckedAt,
+    nowMs,
+    capped: standing === 'entitled_capped',
+    consentDisclosureVersion: typeof waiting.consent_disclosure_version === 'string'
+      ? waiting.consent_disclosure_version
+      : SPP_CONSENT_DISCLOSURE_VERSION,
+  });
+  if (payload === 'journal_limit') return handoffJson(limit, noCache);
   if (!payload) return handoffJson({ error: 'gone' }, { status: 410 });
-  await reconcileSppEntitlement(env, accountId, nowMs);
-  await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'minted', nowMs });
-  return handoffJson(payload, { headers: { Pragma: 'no-cache' } });
+  // The credential is bound; from here nothing may stop it reaching the journal.
+  await bestEffort(() => reconcileSppEntitlement(env, accountId, nowMs));
+  await bestEffort(() => insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'minted', nowMs }));
+  return handoffJson(payload, noCache);
+}
+
+async function bestEffort(step) {
+  try {
+    await step();
+  } catch {
+    console.warn('spp_handoff_followup_failed');
+  }
 }
 
 export async function handleHandoffSpp(req, env) {

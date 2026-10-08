@@ -72,7 +72,7 @@ import {
 import { handleServicesSme, handleSmeCancel, handleSmeCheckout, handleSmePortal } from './sme-billing.js';
 import { SME_HOSTED_SERVICE, isSmeEntitledToServe } from './sme-entitlement.js';
 import { smeOnSale } from './sme-service.js';
-import { handleServicesSpp, handleSppCancel, handleSppCheckout, handleSppPortal } from './spp-billing.js';
+import { handleServicesSpp, handleSppCancel, handleSppCheckout, handleSppPortal, handleSppRelease } from './spp-billing.js';
 import { SPP_SERVICE_PATH, sppOnSale } from './spp-service.js';
 import {
   handleAddEmail,
@@ -684,6 +684,10 @@ async function routeRequest(req, env, ctx) {
 
       if (url.pathname === `${SPP_SERVICE_PATH}/cancel` && req.method === 'POST') {
         return handleSppCancel(req, env);
+      }
+
+      if (url.pathname === `${SPP_SERVICE_PATH}/release` && req.method === 'POST') {
+        return handleSppRelease(req, env);
       }
 
       if (url.pathname === '/confidential-processing/data' && req.method === 'GET') {

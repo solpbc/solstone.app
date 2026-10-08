@@ -1606,6 +1606,9 @@ export async function rotateSpbBindingToken(db, { accountId, instanceId, tokenHa
   return results[results.length - 1].meta.changes > 0;
 }
 
+// capped: one paid subscription covers one journal, so the insert also refuses when this sign-in
+// already has a journal bound. In the same statement, so two journals racing to turn on cannot
+// both get in.
 export async function upsertSppBinding(db, {
   accountId,
   instanceId,
@@ -1613,7 +1616,12 @@ export async function upsertSppBinding(db, {
   nowMs,
   consentAckedAt,
   consentDisclosureVersion,
+  capped = false,
 }) {
+  const cap = capped
+    ? `AND NOT EXISTS (SELECT 1 FROM spp_bindings mine WHERE mine.account_id = ? AND mine.instance_id != ?)`
+    : '';
+  const capBinds = capped ? [accountId, instanceId] : [];
   const result = await db
     .prepare(
       `INSERT INTO spp_bindings (
@@ -1621,6 +1629,7 @@ export async function upsertSppBinding(db, {
          consent_acked_at, consent_disclosure_version
        ) SELECT ?, ?, ?, ?, ?, ?, ?
        WHERE NOT ${otherActiveBindingSql('spp_bindings')}
+       ${cap}
        ON CONFLICT(account_id, instance_id) DO UPDATE SET
          token_hash = excluded.token_hash,
          last_seen_at = excluded.last_seen_at,
@@ -1636,7 +1645,8 @@ export async function upsertSppBinding(db, {
       consentAckedAt,
       consentDisclosureVersion,
       instanceId,
-      accountId
+      accountId,
+      ...capBinds
     )
     .run();
   return result.meta.changes > 0;
@@ -1747,6 +1757,33 @@ export async function findRetiredSpbToken(db, tokenHash) {
     .bind(tokenHash)
     .first();
   return row || null;
+}
+
+export async function hasSppBinding(db, { accountId, instanceId }) {
+  const row = await db
+    .prepare('SELECT 1 AS found FROM spp_bindings WHERE account_id = ? AND instance_id = ? LIMIT 1')
+    .bind(accountId, instanceId)
+    .first();
+  return Boolean(row);
+}
+
+// The journals this sign-in has confidential processing bound to, oldest first.
+export async function listSppBindingsWithDates(db, accountId) {
+  const { results } = await db
+    .prepare('SELECT instance_id, created_at FROM spp_bindings WHERE account_id = ? ORDER BY created_at ASC, instance_id ASC')
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+// The owner releases a journal from their subscription: its credential stops working at once,
+// and another journal can be turned on in its place.
+export async function deleteSppBinding(db, { accountId, instanceId }) {
+  const result = await db
+    .prepare('DELETE FROM spp_bindings WHERE account_id = ? AND instance_id = ?')
+    .bind(accountId, instanceId)
+    .run();
+  return result.meta.changes > 0;
 }
 
 // Whether this sign-in already has confidential processing bound to a journal other than
