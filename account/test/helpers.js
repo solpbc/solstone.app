@@ -64,6 +64,9 @@ export function makeTestEnv(overrides = {}) {
     SPP_AUTHORIZE_PUBLIC_LIMIT: Object.prototype.hasOwnProperty.call(overrides, 'SPP_AUTHORIZE_PUBLIC_LIMIT')
       ? overrides.SPP_AUTHORIZE_PUBLIC_LIMIT
       : makeFakeRateLimit(5),
+    SPP_ACCESS_LIMIT: Object.prototype.hasOwnProperty.call(overrides, 'SPP_ACCESS_LIMIT')
+      ? overrides.SPP_ACCESS_LIMIT
+      : makeFakeRateLimit(1000),
     SPP_AUTHORIZE_ENGINE_LIMIT: Object.prototype.hasOwnProperty.call(overrides, 'SPP_AUTHORIZE_ENGINE_LIMIT')
       ? overrides.SPP_AUTHORIZE_ENGINE_LIMIT
       : makeFakeRateLimit(1000),

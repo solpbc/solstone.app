@@ -193,13 +193,18 @@ async function authorizeByOwnerCredential(req, env, events) {
 
 // The journal's own content-free check: does the confidential processing credential it holds
 // still have access? It answers the same question the engine's authorize does, by the same
-// predicate, and adds where the owner can turn it back on. A journal asks only after the engine
-// has refused it, and then about every five minutes until access returns, so it learns nothing
-// about the owner that the engine's authorize does not already. Same public rate-limit tier.
+// predicate, and adds where the owner can turn it back on. A journal asks before the first
+// request on each new channel, which is when the engine authorizes too, so the portal learns
+// nothing about the owner that the engine's authorize does not already.
 export async function handleSppAccess(req, env) {
   try {
-    const admitted = await admitByCallerTier(req, env);
-    if (admitted !== true) return admitted;
+    const limiter = env.SPP_ACCESS_LIMIT;
+    if (!limiter || typeof limiter.limit !== 'function') {
+      console.error('spp_access_failed', 'Error', 'other', 'rate_limit_binding_missing');
+      return empty(503);
+    }
+    const { success } = await limiter.limit({ key: publicLimitKey(req.headers.get('CF-Connecting-IP') || '') });
+    if (!success) return empty(429);
     const entitlementCredential = req.headers.get('X-Sol-Entitlement') || '';
     if (!entitlementCredential || entitlementCredential.length > 4096) return empty(401);
     const tokenHash = await hashWithPepper(entitlementCredential, env);

@@ -204,6 +204,14 @@ name = "SPP_AUTHORIZE_ENGINE_LIMIT"
 namespace_id = "26100302"
 simple = { limit = 1000, period = 10 }
 
+# GET /spp/access: a journal asks before the first request on each new confidential channel,
+# and a journal catching up opens many, so this tier is per caller IP and well above the
+# public authorize tier. Counters are Cloudflare-local; nothing is stored or logged per caller.
+[[ratelimits]]
+name = "SPP_ACCESS_LIMIT"
+namespace_id = "26100801"
+simple = { limit = 120, period = 10 }
+
 [triggers]
 # 0 4 * * * is daily on purpose so the 15-day window cannot be missed; empty event.cron still falls through to retention.
 crons = ["0 */6 * * *", "0 3 * * *", "0 4 * * *", "*/15 * * * *"]

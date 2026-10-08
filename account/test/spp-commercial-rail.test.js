@@ -351,8 +351,8 @@ describe('confidential processing: the content-free access check', () => {
     expect((await check(testEnv, '')).status).toBe(401);
   });
 
-  it('is rate limited on the public tier', async () => {
-    const testEnv = onSaleEnv({ SPP_AUTHORIZE_PUBLIC_LIMIT: makeFakeRateLimit(0) });
+  it('is rate limited on its own tier', async () => {
+    const testEnv = onSaleEnv({ SPP_ACCESS_LIMIT: makeFakeRateLimit(0) });
     expect((await check(testEnv, 'x')).status).toBe(429);
   });
 });
