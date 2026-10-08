@@ -529,7 +529,7 @@ export function renderEnableSppError() {
 // with operator approval: the certificate-log mechanics are not owner education. The floor is the privacy policy's
 // own sentence: the address's existence stays public for good, which stays below.
 export const SME_PERMANENCE_PARTS = [
-  "the address is public once it's issued, and stays public for good, even after you turn this off, cancel, or close your sign-in. it's an identifier, not your data: eight random characters with nothing of yours in it.",
+  "the address is public once it's issued, and stays public for good, even after you turn this off, cancel, or close your sign-in. it's eight random characters with nothing of yours in it.",
 ];
 
 export function renderEnableSmeConsent({ csrf, nonce, instance }) {
@@ -828,7 +828,7 @@ ${BRANDLOCK}
     <div><div class="big">$5 <span class="price"><span class="per">/ year</span></span></div><div class="alt">annual only · tax included · per journal, not per device</div></div>
     <a class="btn primary" href="/?signin">sign in to enable</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">you never have to pay us. your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were your agent. look for a tunnel that says it only passes the bytes through; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>
+  <p class="free-note" style="margin:14px 0 0">you never have to pay us. your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control.</p>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });
@@ -1078,7 +1078,7 @@ ${withdrawalDoor(withdrawal)}
   </form>
   <p class="disclosure">tax included. billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
 </div>
-<p class="disclosure" style="margin-top:24px"><strong>you never have to pay us.</strong> your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. one warning: some free tunnels decrypt your traffic in order to move it. whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were your agent. look for a tunnel that says it only passes the bytes through; if its documentation doesn't say, assume it ends the encryption. the solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.</p>`,
+<p class="disclosure" style="margin-top:24px"><strong>you never have to pay us.</strong> your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control.</p>`,
   });
 }
 

@@ -13,7 +13,9 @@ export const SME_HOSTED_SERVICE = 'sme_hosted';
 // v2: turn-on-screens-one-pattern card text + calmed SME_PERMANENCE_PARTS
 // (the one-pattern turn-on screens adopted 2026-09-21 with operator approval).
 // v3: SME_PERMANENCE_PARTS says "close your sign-in" for the owner's act.
-export const SME_CONSENT_DISCLOSURE_VERSION = 'sme-consent-v3-close';
+// v4: SME_PERMANENCE_PARTS drops "an identifier, not your data"; the address is
+// "eight random characters with nothing of yours in it".
+export const SME_CONSENT_DISCLOSURE_VERSION = 'sme-consent-v4-nothing-of-yours';
 
 // A paid service keeps working through a failed payment for the same 14-day grace
 // spb uses (RELAY_GRACE_DAYS), counted from the end of the paid period. This is the

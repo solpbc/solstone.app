@@ -84,7 +84,7 @@ describe('/enable/solstone-me', () => {
     expect(body).toContain('the public record is permanent');
     expect(body).toContain('i understand that the public record of this address is permanent.');
     expect(body).toContain("the address is public once it's issued, and stays public for good");
-    expect(body).toContain("it's an identifier, not your data: eight random characters with nothing of yours in it.");
+    expect(body).toContain("it's eight random characters with nothing of yours in it.");
     // The operator-approved calm (2026-09-21) drops the certificate-log mechanics; only the
     // privacy policy's floor sentence, the address's existence stays public for good, remains.
     expect(body).not.toMatch(/certificate log/i);
@@ -169,7 +169,7 @@ describe('/enable/solstone-me', () => {
       account_id: account.accountId,
       instance_id: VALID_INSTANCE,
       consent_acked_at: expect.any(Number),
-      consent_disclosure_version: 'sme-consent-v3-close',
+      consent_disclosure_version: 'sme-consent-v4-nothing-of-yours',
     });
     expect(binding.consent_acked_at).toBe(binding.last_seen_at);
     const payload = await decryptedHandoff(VALID_NONCE, testEnv);
@@ -219,7 +219,7 @@ describe('/enable/solstone-me', () => {
     expect(body).toContain('turn solstone.me on again in your journal.');
     expect(body).not.toMatch(/won't be asked again/i);
     await expect(smeBindingRow(account.accountId, VALID_INSTANCE)).resolves.toMatchObject({
-      consent_disclosure_version: 'sme-consent-v3-close',
+      consent_disclosure_version: 'sme-consent-v4-nothing-of-yours',
     });
     await expect(decryptedHandoff(VALID_NONCE, testEnv)).resolves.toEqual({
       service: 'sme',
