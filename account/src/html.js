@@ -361,7 +361,7 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '' }) {
     <div class="n">2</div>
     <div>
       <div class="gt">what leaves your device</div>
-      <div class="gd">sol pbc keeps a copy of your journal, encrypted on your device before it leaves, so only you can read it. sol pbc holds no copy of your recovery key and can't open your encrypted copy without it. if you lose it, no one can restore your backup, not even sol pbc.</div>
+      <div class="gd">sol pbc keeps a copy of your journal, encrypted on your device before it leaves, so only you can read it. sol pbc holds no copy of your recovery key. restoring takes two things: your recovery key and a sign-in to the services portal. if you lose the key, no one can restore your backup, not even sol pbc.</div>
     </div>
   </div>
   <form method="post" action="/enable/backup/confirm">
