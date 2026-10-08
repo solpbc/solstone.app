@@ -77,8 +77,9 @@ describe('the solstone.me service page and its catalog row', () => {
       expect(form).toContain('i understand that the public record of this address is permanent.');
       expect(html).not.toMatch(/month/i);
       expect(html).toContain('complimentary for approved scouts');
-      // The always-free alternative is stated.
+      // The always-free alternative is stated, with its warning.
       expect(html).toContain('you never have to pay us.');
+      expect(html).toContain('some free tunnels decrypt your traffic in order to move it.');
       // The backstage code never reaches an owner's eyes.
       expect(visibleText(html)).not.toMatch(/\bsme\b/i);
       expect(visibleText(html)).not.toMatch(/subscribe/i);
