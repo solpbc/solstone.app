@@ -849,6 +849,9 @@ export async function handleEnableSppConfirm(req, env, ctx) {
         instance_id: instance,
         consent_acked_at: nowMs,
         consent_disclosure_version: SPP_CONSENT_DISCLOSURE_VERSION,
+        // Server-held authorization admitted by the verification above. Client fields
+        // never supply this marker, and no signed assertion needs to be retained.
+        possession_proved: proof.kind === 'supplied',
       },
       nowMs,
       ttlMs: SPP_SUBSCRIBE_WAIT_MS,
@@ -956,6 +959,13 @@ async function resolveWaitingSpp(env, { handoffHash, accountId, waiting, nowMs }
     ? waiting.instance_id
     : null;
   if (!instance) return handoffJson({ error: 'gone' }, { status: 410 });
+  // An unsigned consent admitted before enforcement cannot later create a first
+  // binding. A verified consent can finish within this handoff's existing TTL.
+  if (env.SERVICE_ENABLE_PROOF_REQUIRED === 'true'
+    && waiting.possession_proved !== true
+    && !await accountHoldsServiceBinding(env.DB, 'spp', accountId, instance)) {
+    return handoffJson({ error: 'invalid_request' }, { status: 400 });
+  }
   const standing = await sppTurnOnStanding(env, { accountId, instance, nowMs });
   const noCache = { headers: { Pragma: 'no-cache' } };
   if (standing === 'not_entitled') {
@@ -1244,7 +1254,14 @@ async function csrfToken(env) {
 
 async function readForm(req) {
   try {
-    return await req.formData();
+    const form = await req.formData();
+    // Native form encoding converts the canonical PEM's LF to CRLF.
+    // Keep multiplicity and all other malformed input intact for classification.
+    const keys = form.getAll('ca_pubkey');
+    if (keys.length === 1 && typeof keys[0] === 'string') {
+      form.set('ca_pubkey', keys[0].replace(/\r\n/g, '\n'));
+    }
+    return form;
   } catch {
     return null;
   }

@@ -1225,16 +1225,19 @@ async function handleSigninStart(req, env) {
     emailOk ? `/signin/verify?email=${encodeURIComponent(emailLower)}` : '/signin/verify',
     resume
   );
+  const verifyRedirect = () => applyProofHeaders(
+    redirect(verifyLocation), resumeCarriesProof(resume?.queryString)
+  );
 
-  if (!turnstileOk) return redirect(verifyLocation);
-  if (!emailOk) return redirect(verifyLocation);
-  if (env.EMAIL_PATH_DISABLED === 'true') return redirect(verifyLocation);
+  if (!turnstileOk) return verifyRedirect();
+  if (!emailOk) return verifyRedirect();
+  if (env.EMAIL_PATH_DISABLED === 'true') return verifyRedirect();
 
   const ipCount = await bumpRateBucket(env.DB, ipBucketKey, HOUR_MS, nowMs);
-  if (ipCount > IP_HOUR_LIMIT) return redirect(verifyLocation);
+  if (ipCount > IP_HOUR_LIMIT) return verifyRedirect();
 
   const emailCount = await bumpRateBucket(env.DB, emailBucketKey, DAY_MS, nowMs);
-  if (emailCount > EMAIL_DAY_LIMIT) return redirect(verifyLocation);
+  if (emailCount > EMAIL_DAY_LIMIT) return verifyRedirect();
 
   await upsertOtp(env.DB, { emailLowerHash, codeHash, nowMs, ttlMs: OTP_TTL_MS });
   try {
@@ -1244,7 +1247,7 @@ async function handleSigninStart(req, env) {
     await deleteOtp(env.DB, { emailLowerHash, codeHash });
   }
 
-  return redirect(verifyLocation);
+  return verifyRedirect();
 }
 
 async function handleSigninVerifyGet(req, env) {

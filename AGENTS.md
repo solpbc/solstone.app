@@ -24,13 +24,13 @@ its own directory. The root `Makefile` only deploys the root site.
 
 ## 2. The account portal (`account/`) — read before touching it
 
-This is the most security-sensitive code in the repo: it holds user account
+This is the most security-sensitive code in the repo: it holds owner account
 state and sits on sol pbc's money path. Treat it accordingly.
 
 **What it does:** email-OTP + passkey (WebAuthn) sign-in, sessions, multi-email
 management, device registration + dispatch tokens, APNs push, Stripe billing,
 SPL/SPB entitlement grants pushed to the relay, an R2 credential broker (SPB),
-a support-portal proxy, and a CF-Access-gated `/admin/*` surface. Three cron schedules run (see `[triggers]` in `account/wrangler.toml`); the
+a support-portal proxy, and a CF-Access-gated `/admin/*` surface. Four cron schedules run (see `[triggers]` in `account/wrangler.toml`); the
 6-hourly one runs retention.
 
 **Module map (`account/src/`):**
@@ -55,10 +55,10 @@ schema. Add a new numbered migration file for any schema change — never edit a
 shipped migration. When you tighten a column/constraint, ship the migration
 *with* forgiving read-side handling for legacy rows; don't strand existing data.
 
-**Tests:** vitest on `@cloudflare/vitest-pool-workers`, two configs run in
+**Tests:** vitest on `@cloudflare/vitest-plugin`, two configs run in
 sequence by `npm test` (`vitest.config.js` for worker tests,
 `vitest.static.config.js` for the static-asset checks). The suite is large
-(~140 files) and includes per-migration tests — keep it green and add coverage
+and includes per-migration tests — keep it green and add coverage
 for new routes/migrations.
 
 ## 3. Build / test / deploy
@@ -106,8 +106,7 @@ These are not optional. A change that weakens one is wrong regardless of size.
   never carries raw tokens or credentials — typed events only.
 - **Money-movement safety: never auto-mint a value a safety invariant depends
   on.** Verify Stripe webhook signatures (`STRIPE_WEBHOOK_SECRET`) before acting.
-  The SPB broker ships with a default-off kill switch (`SPB_MINT_ENABLED` unset
-  in prod). A loud fail-closed beats a quiet convenient default on the money path.
+  The SPB broker ships with a default-off kill switch (`SPB_MINT_ENABLED`). A loud fail-closed beats a quiet convenient default on the money path.
 - **Operator impersonation is available by default.** A Cloudflare Access-authenticated operator may mint a session for any existing account not under active deletion. Set `IMPERSONATE_DISABLED` to the exact string `"true"` only as a break-glass stop; leave it unset for normal operation. Other values do not disable impersonation.
 - **Encrypt PII at rest.** Emails are stored encrypted (`crypto.js`
   `encryptEmail`), compared via hashes with a pepper, and OTP/credential
@@ -133,7 +132,7 @@ These are not optional. A change that weakens one is wrong regardless of size.
   cookie alone. The session cookie is `SameSite=Lax` underneath
   all of it. Do not add a per-session token, and do not loosen the origin
   predicate.
-- **Service enablement requires proof of journal possession.** Set `SERVICE_ENABLE_PROOF_REQUIRED` to the exact string `"true"` to require a journal possession proof (`account/protocol/service-enable-proof.json`, mirrored in `core/contracts/service-enable-proof.json`) before a new binding; any other state stays compatible, and a presented proof is still verified.
+- **Service enablement accepts proof of journal possession.** Set `SERVICE_ENABLE_PROOF_REQUIRED` to the exact string `"true"` to require a journal possession proof (`account/protocol/service-enable-proof.json`, mirrored in `core/contracts/service-enable-proof.json`) before a new binding; any other state stays compatible, and a presented proof is still verified at consent POST, or before confidential processing's terminal GET handoff. Ordinary GETs preserve the proof until consent.
 
 ## 5. Coding principles (sol pbc engineering standards, inlined)
 
@@ -161,16 +160,13 @@ here so they stand on their own:
 - **No backwards-compat shims.** Update all call sites directly when you rename
   or move something; for stored-data changes, write a D1 migration. No deprecated
   aliases or re-exports.
-- **Reference, don't duplicate.** The portal experience-design rationale lives in
-  the private design record for the services portal design pass (per
-  `account/DESIGN.md`); don't copy it here. Point to the source of truth.
 
 ## 6. Conventions
 
 - **License: MIT** (root `LICENSE`). Source files in this repo do **not**
   currently carry SPDX headers — match the existing files; do not bulk-add
   headers as a side effect of other work.
-- **Runtime: Cloudflare Workers** via `wrangler` (v3 in `account/`, the root
+- **Runtime: Cloudflare Workers** via `wrangler` (v4 in `account/`, the root
   uses the global `wrangler`). Root tests use Node's built-in test runner;
   `account/` uses vitest on the Workers pool. Build interface is `make` at the
   root, `npm` scripts inside `account/` and `scouts/`.

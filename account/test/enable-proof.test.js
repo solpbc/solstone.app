@@ -1350,10 +1350,30 @@ describe('service enable proof of possession', () => {
       const next = location.searchParams.get('next');
       const nextSig = location.searchParams.get('next_sig');
 
+      const landingRes = await worker.fetch(new Request(location), testEnv);
+      expect(landingRes.status).toBe(200);
+      expect(landingRes.headers.get('Cache-Control')).toBe('no-store');
+      expect(landingRes.headers.get('Referrer-Policy')).toBe('no-referrer');
+
       // 3. Authenticate with OTP verify
       const email = `user-${svc}@example.com`;
       const account = await seedAccount({ email, testEnv });
       if (svc === 'spp') await seedScoutApplication({ accountId: account.accountId, status: 'approved' });
+
+      const verifyGetUrl = new URL('/signin/verify', 'https://services.solstone.app');
+      verifyGetUrl.search = new URLSearchParams({ email, next, next_sig: nextSig });
+      const verifyGetRes = await worker.fetch(new Request(verifyGetUrl), testEnv);
+      expect(verifyGetRes.status).toBe(200);
+      expect(verifyGetRes.headers.get('Cache-Control')).toBe('no-store');
+      expect(verifyGetRes.headers.get('Referrer-Policy')).toBe('no-referrer');
+      const errorRes = await worker.fetch(new Request('https://services.solstone.app/signin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ csrf: TEST_CSRF, email, code: 'invalid', next, next_sig: nextSig }),
+      }), testEnv);
+      expect(errorRes.status).toBe(200);
+      expect(errorRes.headers.get('Cache-Control')).toBe('no-store');
+      expect(errorRes.headers.get('Referrer-Policy')).toBe('no-referrer');
 
       // Sign-in OTP verify
       const { code } = await seedOtp({ email });
@@ -1413,7 +1433,8 @@ describe('service enable proof of possession', () => {
           action: 'allow',
           instance: kp.instanceId,
           assertion: readAssertion,
-          ca_pubkey: readCaPubkey,
+          // WHATWG native form encoding normalizes hidden PEM values to CRLF.
+          ca_pubkey: readCaPubkey.replace(/\n/g, '\r\n'),
           ...serviceFormExtra(svc),
         }),
       }), testEnv);
@@ -1459,6 +1480,8 @@ describe('service enable proof of possession', () => {
     }), testEnv);
 
     expect(finishRes.status).toBe(200);
+    expect(finishRes.headers.get('Cache-Control')).toBe('no-store');
+    expect(finishRes.headers.get('Referrer-Policy')).toBe('no-referrer');
     const body = await finishRes.json();
     expect(body.redirect).toContain('/enable/spl?');
     expect(body.redirect).toContain('assertion=');
@@ -1466,6 +1489,35 @@ describe('service enable proof of possession', () => {
   });
 
   // 12. HTML breakout on all four consent GETs
+  it.each(['spl', 'spb', 'spp', 'sme'])('%s: rejects a trailing PEM newline after native form normalization', async (svc) => {
+    const testEnv = makeTestEnv({ SERVICE_ENABLE_PROOF_REQUIRED: 'true' });
+    installRelayFetchMock();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+    const kp = await generateReachKeyPair();
+    const assertion = await validProofFor({ service: svc, instanceId: kp.instanceId, privateKey: kp.privateKey });
+    const before = await getRowCounts();
+    const response = await worker.fetch(new Request(`https://services.solstone.app${serviceConfirmPath(svc)}`, {
+      method: 'POST',
+      headers: {
+        Origin: 'https://services.solstone.app',
+        Cookie: session.cookie,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        csrf: TEST_CSRF,
+        nonce: VALID_NONCE,
+        action: 'allow',
+        instance: kp.instanceId,
+        assertion,
+        ca_pubkey: `${kp.publicKeyPem.replace(/\n/g, '\r\n')}\r\n`,
+        ...serviceFormExtra(svc),
+      }),
+    }), testEnv);
+    expect(response.status).toBe(400);
+    expect(await getRowCounts()).toEqual(before);
+  });
+
   it.each(['spl', 'spb', 'spp', 'sme'])('%s: HTML breakout characters are escaped and not echoed in error/done', async (svc) => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });

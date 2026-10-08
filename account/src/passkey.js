@@ -27,7 +27,7 @@ import {
   updatePasskeyCredentialCounter,
 } from './db.js';
 import { getValidSession, sessionCookie } from './session.js';
-import { verifyEnableResume } from './enable.js';
+import { applyProofHeaders, resumeCarriesProof, verifyEnableResume } from './enable.js';
 
 const RP_ID = 'solstone.app';
 const RP_NAME = 'solstone';
@@ -277,15 +277,19 @@ export async function passkeyAuthFinish(req, env) {
     let redirect = deletion ? '/account/delete' : '/';
     const next = body?.next;
     const nextSig = body?.next_sig;
+    let carriesProof = false;
     if (!deletion && next && nextSig) {
       const resume = await verifyEnableResume(next, nextSig, env);
-      if (resume) redirect = `${resume.path}${resume.queryString}`;
+      if (resume) {
+        redirect = `${resume.path}${resume.queryString}`;
+        carriesProof = resumeCarriesProof(resume.queryString);
+      }
     }
-    return jsonResponse(
+    return applyProofHeaders(jsonResponse(
       { ok: true, redirect },
       200,
       { 'Set-Cookie': sessionCookie(sessionToken) }
-    );
+    ), carriesProof);
   } catch {
     return fail('passkey_auth_finish_failed', 500, 'passkey request failed');
   }
