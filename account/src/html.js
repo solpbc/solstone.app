@@ -5,6 +5,7 @@ import { ENROLL_JS } from './inline/passkey-enroll.js';
 import { LANDING_JS } from './inline/passkey-landing.js';
 import { SUPPORT_DRAFT_JS } from './inline/support-draft.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
+import { SPP_SERVICE_PATH } from './spp-service.js';
 import { formatLongDate, formatMomentUtc } from './withdrawal-rules.js';
 
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
@@ -462,7 +463,7 @@ export function renderEnableSpbError() {
   return enableErrorTemplate('encrypted backup');
 }
 
-export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
+export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = false }) {
   const instanceInput = instance
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
@@ -498,7 +499,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '' }) {
     </div>
   </form>
 </div>
-${turnOnFooter({ paid: false, policyAnchor: 'confidential-processing' })}`,
+${turnOnFooter({ paid: onSale, policyAnchor: 'confidential-processing' })}`,
   });
 }
 
@@ -511,6 +512,34 @@ export function renderEnableSppApprovalRequired() {
   <p>confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on a model sol pbc runs itself, which keeps nothing: no content is retained, no human reviews it, nothing is used to train. your journal must verify the service before anything is sent. if it can't verify, nothing is sent. no third-party AI provider is in the path.</p>
   <p>confidential processing is available to approved scouts. your sign-in is not currently approved, so there is nothing to turn on here.</p>
   <a class="btn primary" href="/scout">request scout access</a>
+</div>`,
+  });
+}
+
+// Confidential processing waits for the subscription where solstone.me does not: a journal still
+// waiting on this turn-on finishes it by itself once the subscription is active.
+export function renderEnableSppNeedsSubscription() {
+  return layout({
+    title: 'a subscription is needed',
+    body: `${brandbar()}
+<div class="card" data-enable-state="needs-subscription">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
+  <p>confidential processing needs an active subscription before it can turn on. your consent is saved. subscribe, and your journal finishes turning it on by itself while it's still waiting, for up to an hour.</p>
+  <p>if your journal stopped waiting, turn confidential processing on again from your journal once you've subscribed.</p>
+  <a class="btn primary" href="${escAttr(SPP_SERVICE_PATH)}">subscribe</a>
+</div>`,
+  });
+}
+
+export function renderEnableSppJournalLimit() {
+  return layout({
+    title: 'your subscription covers another journal',
+    body: `${brandbar()}
+<div class="card" data-enable-state="journal-limit">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">your subscription covers another journal</h2>
+  <p>one subscription covers one journal, and yours already covers a different one, so nothing was turned on here.</p>
+  <p>to use confidential processing on this journal too, use a different sign-in and subscribe for this journal there.</p>
+  <a class="btn secondary" href="${escAttr(SPP_SERVICE_PATH)}">see your subscription</a>
 </div>`,
   });
 }
@@ -591,7 +620,7 @@ export function renderEnableSmeError() {
 
 // === services surfaces ===
 
-export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, networkActive = false, backupActive = false, sppActive = false, smeOnSale = false, smeActive = false } = {}) {
+export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, networkActive = false, backupActive = false, sppActive = false, smeOnSale = false, smeActive = false, sppOnSale = false } = {}) {
   if (!signedIn) {
     return layout({
       title: 'solstone services',
@@ -604,8 +633,10 @@ ${BRANDLOCK}
   ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
   ${smeOnSale ? row('/solstone-me', IC_GLOBE, 'solstone.me', 'an address for your journal, so an agent you already use can read from it.', '<span class="price">$5<span class="per">/yr</span></span>') : ''}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', "notifications reach you when there's something worth a look.", '<span class="tag builtin">built in</span>')}
-  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.', '<span class="tag free">scouts</span>')}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
+  ${sppOnSale
+    ? row(SPP_SERVICE_PATH, IC_CHIP, 'confidential processing', 'think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.', '<span class="price">$96<span class="per">/yr</span></span>')
+    : row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.', '<span class="tag free">scouts</span>')}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', sppOnSale ? 'the tester program. confidential processing is complimentary for approved scouts.' : 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
   <p class="disclosure">no analytics and no tracking. sign in only to manage what you've turned on. solstone itself never asks you to sign in.</p>`,
     });
@@ -617,7 +648,9 @@ ${BRANDLOCK}
   const networkPill = pill(networkActive ? 'on' : 'off', networkActive ? 'on' : 'off');
   const backupPill = pill(backupActive ? 'on' : 'off', backupActive ? 'on' : 'off');
   const notifPill = pill('on', 'on');
-  const sppPill = pill(sppActive ? 'on' : 'off', sppActive ? 'available' : 'not available');
+  const sppPill = sppOnSale
+    ? pill(sppActive ? 'on' : 'off', sppActive ? 'covered' : 'not covered')
+    : pill(sppActive ? 'on' : 'off', sppActive ? 'available' : 'not available');
   const smePill = pill(smeActive ? 'on' : 'off', smeActive ? 'covered' : 'not covered');
   const welcomePanel = welcome
     ? `<div class="card" style="margin-bottom:24px">
@@ -646,7 +679,7 @@ ${welcomePanel}
   ${smeOnSale ? row(SME_SERVICE_PATH, IC_GLOBE, 'solstone.me', 'an address for your journal, so an agent you already use can read from it.', smePill) : ''}
   ${row('/notifications', IC_PUSH_SVG, 'notifications', 'notifications are built into the app. turn them on or off per device inside the app, not here.', notifPill)}
   ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'confidential processing, off your device on confidential hardware.', sppPill)}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
+  ${row('/scout', IC_SCOUT_SVG, 'scout', sppOnSale ? 'the tester program. confidential processing is complimentary for approved scouts.' : 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
 </div>
 <div class="group" style="margin-top:22px">
   ${row('/sign-in', IC_SESSION_SVG, 'your sign-in', 'sessions, passkeys, and email addresses.', '')}
@@ -727,7 +760,18 @@ ${BRANDLOCK}
   });
 }
 
-export function renderConfidentialProcessingLanding() {
+export function renderConfidentialProcessingLanding({ onSale = false } = {}) {
+  const offer = onSale
+    ? `<div class="card">
+  <div class="pricecard">
+    <div><div class="big">$96 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $9.99 / month · tax included · per journal, not per device</div></div>
+    <a class="btn primary" href="/?signin">sign in to enable</a>
+  </div>
+  <p class="free-note" style="margin:14px 0 0">${esc(SPP_NEVER_PAY)}</p>
+</div>`
+    : `<div class="card">
+  <div class="statusline"><span class="tag free">available to approved scouts</span><span>confidential processing is available to approved scouts. enable it from the journal after approval.</span></div>
+</div>`;
   return layout({
     title: 'confidential processing',
     body: brandbarSignin()
@@ -741,9 +785,7 @@ ${BRANDLOCK}
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
 </div>
-<div class="card">
-  <div class="statusline"><span class="tag free">available to approved scouts</span><span>confidential processing is available to approved scouts. enable it from the journal after approval.</span></div>
-</div>
+${offer}
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });
 }
@@ -780,16 +822,22 @@ export function renderConfidentialProcessingData() {
   });
 }
 
-export function renderScoutLanding() {
+export function renderScoutLanding({ sppOnSale = false } = {}) {
+  const lead = sppOnSale
+    ? 'scout is the tester program. approved scouts get confidential processing complimentary, and share feedback that helps shape solstone.'
+    : 'scout is the tester program. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.';
+  const benefit = sppOnSale
+    ? 'complimentary for approved scouts. turn it on from your journal after approval.'
+    : 'confidential processing is available to approved scouts. enable it from the journal after approval.';
   return layout({
     title: 'scout',
     body: brandbarSignin()
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>scout</h1>
-<p class="lead">scout is the tester program. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.</p>
+<p class="lead">${esc(lead)}</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_CHIP, 'confidential processing', 'confidential processing is available to approved scouts. enable it from the journal after approval.')}
+  ${beat(IC_CHIP, 'confidential processing', esc(benefit))}
   ${beat(IC_NET, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
   ${beat(IC_SCOUT_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_GLOBE, 'help shape solstone', "share feedback through support and follow what's changing.")}
@@ -1082,39 +1130,143 @@ ${withdrawalDoor(withdrawal)}
   });
 }
 
-export function renderServicesSpp({ entitlement, menu }) {
+// Why no one has to pay for confidential processing: the same thinking runs on the owner's own
+// machine, or with their own provider, with sol pbc out of the path.
+export const SPP_NEVER_PAY = "you never have to pay us. your journal can think on your own computer with the local model, or with your own provider key, and sol pbc isn't in the path either way. this only covers the confidential hardware sol pbc runs for you.";
+
+// One subscription covers one journal (terms § 3: per journal, not per device).
+const SPP_ONE_JOURNAL = 'one subscription covers one journal. turn it on from that journal.';
+
+export function renderServicesSpp({
+  entitlement,
+  menu,
+  onSale = false,
+  plan = null,
+  withdrawal = null,
+  startNowBox = false,
+  csrf = '',
+  flash = {},
+  planTerms = '',
+}) {
   const status = entitlement?.status || '';
-  const page = ({ statusLine, content }) => layout({
+  const page = ({ statusLine, content, flashes = '' }) => layout({
     title: 'confidential processing',
     body: `${topbar(menu)}
 <a class="back" href="/">${BACK_SVG} your services</a>
+${flashes}
 <div class="pagehead">
   <h1>confidential processing</h1>
+  ${onSale ? '<p class="meta">operated by sol pbc</p>' : ''}
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
 ${content}`,
   });
 
-  if (status === 'active') {
-    return page({
-      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>available</span> &nbsp;confidential processing is available to this sign-in',
-      content: `<div class="group">
+  if (!onSale) {
+    if (status === 'active') {
+      return page({
+        statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>available</span> &nbsp;confidential processing is available to this sign-in',
+        content: `<div class="group">
   <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">available to enable from your journal</div></div></div>
 </div>
 <p class="disclosure" style="margin-top:24px">your journal must verify the service before anything is sent. if it can't verify, it doesn't send. <a href="/terms">terms</a></p>
 <p class="disclosure">the "transcribe audio on the service" switch lives in the journal's thinking app.</p>`,
-    });
-  }
+      });
+    }
 
-  return page({
-    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not available</span> &nbsp;confidential processing is not available to this sign-in',
-    content: `<p class="lead">confidential processing is available to approved scouts. this sign-in is not currently approved. visit <a href="/scout">scout</a> to request access.</p>
+    return page({
+      statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not available</span> &nbsp;confidential processing is not available to this sign-in',
+      content: `<p class="lead">confidential processing is available to approved scouts. this sign-in is not currently approved. visit <a href="/scout">scout</a> to request access.</p>
 <div class="card">
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
   ${beat(IC_CHIP, 'the thinking leaves', 'confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
 </div>
 <p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/terms">terms</a></p>`,
+    });
+  }
+
+  const flashes = sppBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'confidential processing');
+  const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
+  const cancelPending = Boolean(entitlement?.cancel_at_period_end);
+  const coveredPill = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>covered</span>';
+  const detailParts = [];
+  if (entitlement?.enabled_at != null) detailParts.push(`covered since ${formatDate(entitlement.enabled_at)}`);
+  detailParts.push('operated by sol pbc', 'turn it on from your journal');
+  const controlGroup = `<div class="group">
+  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">${esc(detailParts.join(' · '))}</div></div></div>
+</div>`;
+  const portalActions = `<div class="btn-row" style="margin-top:16px">
+  ${billingPortalForm({ csrf, action: `${SPP_SERVICE_PATH}/portal` })}
+  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel confidential processing', buttonClass: 'btn danger', action: `${SPP_SERVICE_PATH}/cancel` })}
+</div>`;
+  const cancellationNotice = cancelPending
+    ? `<p class="notice">your confidential processing is scheduled to end on ${esc(paidThrough)}. manage billing to keep it.</p>`
+    : '';
+  const howItWorks = '<a href="/confidential-processing/data">what leaves your device</a> · <a href="/terms">terms</a>';
+
+  if (entitlement?.source === 'comp' && status === 'active') {
+    return page({
+      flashes,
+      statusLine: coveredPill,
+      content: `${controlGroup}
+<p class="disclosure" style="margin-top:24px">complimentary while you're an approved scout. ${howItWorks}</p>`,
+    });
+  }
+
+  if (status === 'active') {
+    return page({
+      flashes,
+      statusLine: `${coveredPill} &nbsp;your payment is up to date`,
+      content: `${controlGroup}
+${cancellationNotice}
+${portalActions}
+${withdrawalDoor(withdrawal)}
+<p class="disclosure" style="margin-top:24px">${esc(SPP_ONE_JOURNAL)}</p>
+<p class="disclosure">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. ${howItWorks}</p>`,
+    });
+  }
+
+  if (status === 'past_due') {
+    return page({
+      flashes,
+      statusLine: 'your last payment needs attention',
+      content: `${controlGroup}
+<p class="notice">your last payment didn't go through. manage billing to fix it.</p>
+${cancellationNotice}
+${portalActions}
+${withdrawalDoor(withdrawal)}
+<p class="disclosure" style="margin-top:24px">billed through Stripe. ${howItWorks}</p>`,
+    });
+  }
+
+  return page({
+    flashes,
+    content: `<p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path. no content is retained · no human reviews it · nothing is used to train.</p>
+<div class="card">
+  <p>turn on confidential processing</p>
+  ${planTerms ? `<p class="disclosure" data-plan-terms>${esc(planTerms)}</p>` : ''}
+  ${checkoutGroup({ csrf, startNowBox, action: `${SPP_SERVICE_PATH}/checkout`, rows: [
+    { plan: 'annual', title: '$96 / year', buttonText: 'pay yearly', primary: true },
+    { plan: 'monthly', title: '$9.99 / month', buttonText: 'pay monthly', primary: false },
+  ] })}
+  <p class="disclosure">${esc(SPP_ONE_JOURNAL)} tax included. billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
+</div>
+<p class="disclosure" style="margin-top:24px">${esc(SPP_NEVER_PAY)}</p>`,
   });
+}
+
+function sppBillingFlashMessages(flash) {
+  const messages = [];
+  if (flash.checkout === 'success') messages.push("payment received. it can take a moment to show up here. if your journal is waiting to turn confidential processing on, it finishes by itself.");
+  if (flash.checkout === 'cancel') messages.push('no charge made.');
+  if (flash.checkout === 'invalid') messages.push('choose yearly or monthly billing.');
+  if (flash.checkout === 'email') messages.push('billing needs an email address on your sign-in.');
+  if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
+  if (flash.checkout === 'comped') messages.push("confidential processing is already complimentary for you as an approved scout.");
+  if (flash.checkout === 'covered') messages.push('this sign-in already has a subscription.');
+  if (flash.billing === 'missing') messages.push('billing management is available once a payment has been made.');
+  if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
+  return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
 // === billing ===
@@ -1136,11 +1288,12 @@ const BILLING_PAST_DUE = {
   spl_hosted: "the last payment didn't go through. reaching your journal on your own network stays free either way. manage billing to fix it.",
   spb_hosted: "the last payment didn't go through. manage billing to fix it. if the subscription ends, sol pbc keeps your encrypted copy for 30 days.",
   sme_hosted: "the last payment didn't go through. your address stays reserved for you either way. manage billing to fix it.",
+  spp_hosted: "the last payment didn't go through. manage billing to fix it.",
 };
 
 function billingStateLine({ service, entitlement, state, plan }, nowSeconds) {
   const date = formatUnixSecondsDate(entitlement.current_period_end);
-  if (state === 'scout') return "free while you're an approved scout";
+  if (state === 'scout') return service === 'spp_hosted' ? "complimentary while you're an approved scout" : "free while you're an approved scout";
   if (state === 'past_due') return BILLING_PAST_DUE[service];
   if (state === 'stopping') {
     return date ? `scheduled to stop on ${date}. manage billing to keep it.` : 'scheduled to stop at the end of the paid period. manage billing to keep it.';
@@ -1159,7 +1312,7 @@ function billingTrail({ state, plan }) {
   return `<span class="price">${formatPlanPrice(plan)}<span class="per">/${plan.interval === 'year' ? 'yr' : 'mo'}</span></span>`;
 }
 
-const BILLING_ICONS = { spl_hosted: IC_NET, spb_hosted: IC_BACKUP, sme_hosted: IC_GLOBE };
+const BILLING_ICONS = { spl_hosted: IC_NET, spb_hosted: IC_BACKUP, sme_hosted: IC_GLOBE, spp_hosted: IC_CHIP };
 
 export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, nowSeconds }) {
   const flashes = [];
@@ -2081,7 +2234,7 @@ ${groupHtml}
   });
 }
 
-export function renderServicesScout({ application, nowMs, flash = {}, menu }) {
+export function renderServicesScout({ application, nowMs, flash = {}, menu, sppOnSale = false }) {
   const flashes = flashMessages(flash);
   // the old standalone scouts program had a news feed and a feedback form;
   // the converged portal drops both, but their destinations live on, news →
@@ -2135,7 +2288,9 @@ ${scoutLinks}`,
       : '';
     return page({
       statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span> &nbsp;scout access is approved for this sign-in',
-      lead: 'confidential processing is available to approved scouts. enable it from the journal.',
+      lead: sppOnSale
+        ? "confidential processing is complimentary while you're an approved scout. turn it on from your journal."
+        : 'confidential processing is available to approved scouts. enable it from the journal.',
       content: ackForm,
     });
   }
@@ -2152,7 +2307,9 @@ ${scoutLinks}`,
 
   return page({
     statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not approved</span>',
-    lead: 'request scout access for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.',
+    lead: sppOnSale
+      ? 'request scout access for this sign-in. approved scouts get confidential processing complimentary, and share feedback that helps shape solstone.'
+      : 'request scout access for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.',
     content: `<div class="card">
   <h2>request access</h2>
   ${scoutApplyForm({ includeUseCase: true, buttonText: 'apply' })}

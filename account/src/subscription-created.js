@@ -62,7 +62,7 @@ export async function notifySubscriptionCreated(env, ctx, { service, nowMs, chec
   const url = env?.HUB_SUBSCRIPTION_CREATED_URL;
   if (typeof url !== 'string' || url.length === 0) return;
   if (typeof checkoutSessionId !== 'string' || checkoutSessionId.length === 0) return;
-  if (service !== 'spl' && service !== 'spb' && service !== 'sme') return;
+  if (service !== 'spl' && service !== 'spb' && service !== 'sme' && service !== 'spp') return;
 
   let claimResult;
   try {

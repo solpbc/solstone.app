@@ -14,6 +14,7 @@ import { sendRenewalNoticeEmail } from './email.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
+import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { getSubscription, subscriptionPeriodEnd } from './stripe.js';
 import { formatLongDate, formatMomentUtc, withdrawalOn } from './withdrawal-rules.js';
 
@@ -21,12 +22,14 @@ export const TAG_TO_HOSTED_SERVICE = Object.freeze({
   spl: SPL_HOSTED_SERVICE,
   spb: SPB_HOSTED_SERVICE,
   sme: SME_HOSTED_SERVICE,
+  spp: SPP_HOSTED_SERVICE,
 });
 
 export const SERVICE_HUMAN_NAMES = Object.freeze({
   [SPL_HOSTED_SERVICE]: 'private network',
   [SPB_HOSTED_SERVICE]: 'encrypted backup',
   [SME_HOSTED_SERVICE]: 'solstone.me',
+  [SPP_HOSTED_SERVICE]: 'confidential processing',
 });
 
 const L1_SUBJECT_TEMPLATE = 'your {{service}} subscription: keep this for your records';

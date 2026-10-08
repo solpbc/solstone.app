@@ -1,6 +1,7 @@
 import { hashWithPepper } from './crypto.js';
 import { findSppBindingByTokenHash, getActiveDeletionForAccount, getEntitlement } from './db.js';
 import { isSppEntitledToServe, SPP_HOSTED_SERVICE } from './spp-entitlement.js';
+import { SPP_SUBSCRIBE_URL } from './spp-service.js';
 
 const NO_STORE_HEADERS = {
   'Cache-Control': 'no-store',
@@ -188,6 +189,36 @@ async function authorizeByOwnerCredential(req, env, events) {
   }
 
   return empty(204);
+}
+
+// The journal's own content-free check: does the confidential processing credential it holds
+// still have access? It answers the same question the engine's authorize does, by the same
+// predicate, and adds where the owner can turn it back on. A journal asks only after the engine
+// has refused it, and then about every five minutes until access returns, so it learns nothing
+// about the owner that the engine's authorize does not already. Same public rate-limit tier.
+export async function handleSppAccess(req, env) {
+  try {
+    const admitted = await admitByCallerTier(req, env);
+    if (admitted !== true) return admitted;
+    const entitlementCredential = req.headers.get('X-Sol-Entitlement') || '';
+    if (!entitlementCredential || entitlementCredential.length > 4096) return empty(401);
+    const tokenHash = await hashWithPepper(entitlementCredential, env);
+    const binding = await withD1RetryOnce(() => findSppBindingByTokenHash(env.DB, tokenHash));
+    if (!binding) return empty(401);
+    if (await withD1RetryOnce(() => getActiveDeletionForAccount(env.DB, binding.account_id))) return empty(401);
+    const entitlement = await withD1RetryOnce(() =>
+      getEntitlement(env.DB, { accountId: binding.account_id, service: SPP_HOSTED_SERVICE })
+    );
+    const body = isSppEntitledToServe(entitlement, Math.floor(Date.now() / 1000), env)
+      ? { state: 'active' }
+      : { state: 'ended', subscribe_url: SPP_SUBSCRIBE_URL };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { ...NO_STORE_HEADERS, 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return failed(err, 'spp_access_failed');
+  }
 }
 
 function failed(err, eventName) {

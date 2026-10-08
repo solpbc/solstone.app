@@ -31,6 +31,7 @@ import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-
 import { TAG_TO_HOSTED_SERVICE, maybeSendSubscriptionAck } from './renewal-notices.js';
 import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
+import { reconcileSppEntitlement } from './spp-entitlement.js';
 import { notifySubscriptionCreated } from './subscription-created.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
 import { billingView } from './withdrawal.js';
@@ -42,6 +43,7 @@ const SERVICE_RECONCILERS = Object.freeze({
   spl: reconcileSplEntitlement,
   spb: reconcileSpbEntitlement,
   sme: reconcileSmeEntitlement,
+  spp: reconcileSppEntitlement,
 });
 
 const SOURCE = 'stripe';
@@ -288,7 +290,7 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
       cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     },
   });
-  if (tag === 'spl' || tag === 'spb' || tag === 'sme') {
+  if (tag) {
     const deletion = await getActiveDeletionForAccount(env.DB, accountId);
     const entitlement = deletion
       ? null
@@ -340,7 +342,7 @@ async function handleSubscriptionChanged(env, obj, nowMs, ctx) {
   const reconciled = await reconcileSubscription(env, accountId, obj, nowMs, ctx);
   if (!reconciled) return;
   const { status, paid, tag } = reconciled;
-  if (status === 'active' && (tag === 'spl' || tag === 'spb' || tag === 'sme') && paid?.sourceRef) {
+  if (status === 'active' && tag && paid?.sourceRef) {
     await maybeSendSubscriptionAck(env, {
       accountId,
       tag,

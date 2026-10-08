@@ -147,6 +147,13 @@ STRIPE_PRICE_SPB_MONTHLY = "price_1UJlcl3ew4P2jFrxtuVhPRtk"
 # not at all. Price ids are non-secret and belong here, in the committed file that a deploy
 # applies in full, rather than set in the dashboard, which a deploy silently wipes.
 STRIPE_PRICE_SME_ANNUAL = "price_1UJlcm3ew4P2jFrx8CtPttMM"
+# Confidential processing (spp) is on sale exactly when both price ids and SPP_PLAN_TERMS are
+# set (src/spp-service.js). All three stay empty until the launch: setting them is the launch.
+# SPP_PLAN_TERMS is what the plan includes and what happens when the owner reaches it, shown on
+# the price card and under the pay button at checkout; its words are the terms owner's.
+STRIPE_PRICE_SPP_ANNUAL = ""
+STRIPE_PRICE_SPP_MONTHLY = ""
+SPP_PLAN_TERMS = ""
 # Checkout collects the customer's agreement to the terms before any charge only when this is
 # exactly "required". Stripe refuses that field until a Terms of Service URL is set in the
 # Dashboard's public details, so set that first, then change this to "required" and deploy.

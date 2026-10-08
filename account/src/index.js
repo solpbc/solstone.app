@@ -72,6 +72,8 @@ import {
 import { handleServicesSme, handleSmeCancel, handleSmeCheckout, handleSmePortal } from './sme-billing.js';
 import { SME_HOSTED_SERVICE, isSmeEntitledToServe } from './sme-entitlement.js';
 import { smeOnSale } from './sme-service.js';
+import { handleServicesSpp, handleSppCancel, handleSppCheckout, handleSppPortal } from './spp-billing.js';
+import { SPP_SERVICE_PATH, sppOnSale } from './spp-service.js';
 import {
   handleAddEmail,
   handleMakeEmailPrimary,
@@ -107,7 +109,6 @@ import {
   renderPrivateNetworkLanding,
   renderScoutLanding,
   renderServicesCatalog,
-  renderServicesSpp,
   renderSmeLanding,
   renderServicesTerms,
   renderVerify,
@@ -137,8 +138,8 @@ import { runSpbLapseSweep } from './spb-sweep.js';
 import { runAccountDeletionCoordinator } from './deletion-coordinator.js';
 import { runSolstoneMeOrphanDnsSweep } from './solstone-me-dns-sweep.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
-import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
-import { handleSppAuthorize, handleSppAuthorizePublic } from './spp-authorize.js';
+import { SPP_HOSTED_SERVICE, isSppEntitledToServe } from './spp-entitlement.js';
+import { handleSppAccess, handleSppAuthorize, handleSppAuthorizePublic } from './spp-authorize.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -422,7 +423,7 @@ async function routeRequest(req, env, ctx) {
             headers: NOINDEX,
           });
         }
-        return html(renderServicesCatalog({ signedIn: false, smeOnSale: smeOnSale(env) }));
+        return html(renderServicesCatalog({ signedIn: false, smeOnSale: smeOnSale(env), sppOnSale: sppOnSale(env) }));
       }
 
       if (url.pathname === '/signin/start' && req.method === 'POST') {
@@ -517,7 +518,7 @@ async function routeRequest(req, env, ctx) {
         parts[2] === 'spp' &&
         req.method === 'GET'
       ) {
-        return handleEnableSppGet(req, env, ctx);
+        return handleEnableSppGet(req, env);
       }
 
       if (
@@ -618,6 +619,11 @@ async function routeRequest(req, env, ctx) {
         return handleSppAuthorizePublic(req, env);
       }
 
+      // The journal's content-free check of its own confidential processing access.
+      if (parts.length === 3 && parts[1] === 'spp' && parts[2] === 'access' && req.method === 'GET') {
+        return handleSppAccess(req, env);
+      }
+
       if (url.pathname === '/passkey/register/start') {
         return passkeyRegisterStart(req, env);
       }
@@ -664,8 +670,20 @@ async function routeRequest(req, env, ctx) {
 
       if (url.pathname === '/confidential-processing' && req.method === 'GET') {
         const session = await getValidSession(req, env, Date.now());
-        if (!session) return html(renderConfidentialProcessingLanding());
-        return handleServicesSpp(env, session);
+        if (!session) return html(renderConfidentialProcessingLanding({ onSale: sppOnSale(env) }));
+        return handleServicesSpp(req, env);
+      }
+
+      if (url.pathname === `${SPP_SERVICE_PATH}/checkout` && req.method === 'POST') {
+        return handleSppCheckout(req, env);
+      }
+
+      if (url.pathname === `${SPP_SERVICE_PATH}/portal` && req.method === 'POST') {
+        return handleSppPortal(req, env);
+      }
+
+      if (url.pathname === `${SPP_SERVICE_PATH}/cancel` && req.method === 'POST') {
+        return handleSppCancel(req, env);
       }
 
       if (url.pathname === '/confidential-processing/data' && req.method === 'GET') {
@@ -833,7 +851,7 @@ async function routeRequest(req, env, ctx) {
         req.method === 'GET'
       ) {
         const session = await getValidSession(req, env, Date.now());
-        if (!session) return html(renderScoutLanding());
+        if (!session) return html(renderScoutLanding({ sppOnSale: sppOnSale(env) }));
         return handleServicesScout(req, env);
       }
 
@@ -1159,25 +1177,13 @@ async function handleServicesCatalog(req, env, session) {
   ]);
   const networkActive = entitlement?.status === 'active' || entitlement?.status === 'past_due';
   const backupActive = spbEntitlement?.status === 'active' || spbEntitlement?.status === 'past_due';
-  const sppActive = sppEntitlement?.status === 'active';
+  const sppActive = isSppEntitledToServe(sppEntitlement, Math.floor(now / 1000), env);
   const smeActive = isSmeEntitledToServe(smeEntitlement, Math.floor(now / 1000), env);
   return html(renderServicesCatalog({
     signedIn: true,
     welcome: url.searchParams.get('welcome') === '1' || !hasPasskey,
     menu, networkActive, backupActive, sppActive,
-    smeOnSale: smeOnSale(env), smeActive,
-  }), { headers: { 'Cache-Control': 'no-store' } });
-}
-
-async function handleServicesSpp(env, session) {
-  const now = Date.now();
-  const [menu, sppEntitlement] = await Promise.all([
-    loadMenuContext(env, session.account_id, now),
-    getEntitlement(env.DB, { accountId: session.account_id, service: SPP_HOSTED_SERVICE }),
-  ]);
-  return html(renderServicesSpp({
-    menu,
-    entitlement: sppEntitlement,
+    smeOnSale: smeOnSale(env), smeActive, sppOnSale: sppOnSale(env),
   }), { headers: { 'Cache-Control': 'no-store' } });
 }
 

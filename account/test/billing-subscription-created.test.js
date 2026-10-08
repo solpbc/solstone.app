@@ -388,7 +388,7 @@ describe('subscription.created hub signal', () => {
     expect(rowsAfter.results[0].created_at).toBe(FROZEN);
   });
 
-  it('5. unknown service, spp, post-reconcile deletion, or unknown client_reference_id omit claim and Hub', async () => {
+  it('5. unknown service, post-reconcile deletion, or unknown client_reference_id omit claim and Hub', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(FROZEN);
     const testEnv = makeTestEnv({
       HUB_SUBSCRIPTION_CREATED_URL: HUB_URL,
@@ -412,13 +412,6 @@ describe('subscription.created hub signal', () => {
           current_period_end: Math.floor(FROZEN / 1000) + 365 * 86400,
           customer: 'cus_neg',
           metadata: {},
-        }),
-        'GET api.stripe.com/v1/subscriptions/sub_spp': async () => stripeJson({
-          id: 'sub_spp',
-          status: 'active',
-          current_period_end: Math.floor(FROZEN / 1000) + 365 * 86400,
-          customer: 'cus_neg',
-          metadata: { service: 'spp' },
         }),
         'GET api.stripe.com/v1/subscriptions/sub_deletion': async () => {
           await workerEnv.DB.prepare(
@@ -453,14 +446,6 @@ describe('subscription.created hub signal', () => {
       data: { object: { id: 'cs_2', client_reference_id: account.accountId, customer: 'cus_neg', subscription: 'sub_missing' } },
     }));
     await waitOnExecutionContext(r2.ctx);
-
-    // SPP service
-    const r3 = await postWebhook(testEnv, JSON.stringify({
-      id: 'evt_3',
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs_3', client_reference_id: account.accountId, customer: 'cus_neg', subscription: 'sub_spp' } },
-    }));
-    await waitOnExecutionContext(r3.ctx);
 
     // Post-reconcile deletion
     const r4 = await postWebhook(testEnv, JSON.stringify({

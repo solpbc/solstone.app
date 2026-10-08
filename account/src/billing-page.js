@@ -18,6 +18,8 @@ import {
 import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
+import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
+import { SPP_SERVICE_PATH, sppOnSale } from './spp-service.js';
 import { createPortalSession, readSubscriptionPlan } from './stripe.js';
 import { billingEntryView } from './withdrawal.js';
 
@@ -29,6 +31,7 @@ export const BILLING_SERVICES = Object.freeze([
   { service: SPL_HOSTED_SERVICE, name: 'private network', href: '/private-network' },
   { service: SPB_HOSTED_SERVICE, name: 'encrypted backup', href: '/services/backup' },
   { service: SME_HOSTED_SERVICE, name: 'solstone.me', href: SME_SERVICE_PATH },
+  { service: SPP_HOSTED_SERVICE, name: 'confidential processing', href: SPP_SERVICE_PATH },
 ]);
 
 // A stopped subscription shows no price, so only a live one is read.
@@ -57,6 +60,9 @@ export async function handleBilling(req, env) {
     const entitlement = entitlements[index];
     const state = billingEntryState(entitlement);
     if (!state) return null;
+    // Before confidential processing is on sale, a scout's complimentary row stays off this page,
+    // as it always has. A paid one always shows.
+    if (def.service === SPP_HOSTED_SERVICE && entitlement.source !== 'stripe' && !sppOnSale(env)) return null;
     const { plan, withdrawal } = await billingEntryView(env, entitlement, {
       priced: PRICED_STATES.has(state),
       readPlan: readSubscriptionPlan,

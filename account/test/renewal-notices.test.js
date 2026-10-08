@@ -714,13 +714,12 @@ sol pbc`;
       expect(testEnv.EMAIL.sent.length).toBe(2); // No second email
     });
 
-    // 4. Catch-up, L2, and one-off ignore comp, past_due, and spp_hosted
-    it('4. Catch-up, L2, and one-off each ignore source=comp, status=past_due, and spp_hosted', async () => {
+    // 4. Catch-up, L2, and one-off ignore comp and past_due
+    it('4. Catch-up, L2, and one-off each ignore source=comp and status=past_due', async () => {
       const testEnv = makeTestEnv();
       const qualAccount = await seedAccount({ email: 'qualifying@example.com', testEnv });
       const compAccount = await seedAccount({ email: 'comp@example.com', testEnv });
       const pastDueAccount = await seedAccount({ email: 'pastdue@example.com', testEnv });
-      const sppAccount = await seedAccount({ email: 'spp@example.com', testEnv });
 
       const nowSec = 1736899200;
       const renewalSec = nowSec + 30 * 86400;
@@ -752,16 +751,6 @@ sol pbc`;
         status: 'past_due',
         source: 'stripe',
         sourceRef: 'sub_past_due',
-        currentPeriodEnd: renewalSec,
-      });
-
-      // SPP hosted entitlement
-      await seedEntitlement({
-        accountId: sppAccount.accountId,
-        service: 'spp_hosted',
-        status: 'active',
-        source: 'stripe',
-        sourceRef: 'sub_spp',
         currentPeriodEnd: renewalSec,
       });
 

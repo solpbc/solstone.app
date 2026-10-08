@@ -500,7 +500,7 @@ CREATE TABLE IF NOT EXISTS renewal_notices (
   kind TEXT NOT NULL CHECK (kind IN ('ack', 'reminder', 'oneoff')),
   service TEXT NOT NULL CHECK (
     (kind = 'oneoff' AND service = '')
-    OR (kind IN ('ack', 'reminder') AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted'))
+    OR (kind IN ('ack', 'reminder') AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted'))
   ),
   renewal_at INTEGER NOT NULL CHECK (
     (kind = 'reminder' AND renewal_at > 0)
@@ -528,7 +528,7 @@ CREATE TABLE IF NOT EXISTS subscription_created_claims (
 CREATE TABLE IF NOT EXISTS subscription_withdrawals (
   subscription_ref TEXT PRIMARY KEY CHECK (substr(subscription_ref, 1, 4) = 'sub_' AND length(subscription_ref) > 4),
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')),
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted')),
   purchased_at INTEGER NOT NULL,
   submitted_at INTEGER NOT NULL,
   completed_at INTEGER,
@@ -545,7 +545,7 @@ CREATE INDEX IF NOT EXISTS idx_subscription_withdrawals_account_id
 CREATE TABLE IF NOT EXISTS subscription_start_requests (
   checkout_session_ref TEXT PRIMARY KEY CHECK (substr(checkout_session_ref, 1, 3) = 'cs_' AND length(checkout_session_ref) > 3),
   account_id TEXT NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')),
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted')),
   requested_at INTEGER NOT NULL,
   subscription_ref TEXT,
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE

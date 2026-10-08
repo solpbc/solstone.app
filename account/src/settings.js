@@ -28,6 +28,7 @@ import {
 import { forbidden, html, json, originAllowed, redirect } from './index.js';
 import { normalizeFriendlyName } from './passkey.js';
 import { clearSessionCookie, getValidSession } from './session.js';
+import { sppOnSale } from './spp-service.js';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const ZERO_AAGUID = '00000000-0000-0000-0000-000000000000';
@@ -111,6 +112,7 @@ export async function handleServicesScout(req, env) {
       apply: url.searchParams.get('apply') || '',
     },
     menu,
+    sppOnSale: sppOnSale(env),
   }));
 }
 

@@ -20,7 +20,7 @@ export function checkoutDisclosure({ withdrawal = false } = {}) {
 // The services a Stripe subscription can be sold as. Checkout stamps one of these on
 // the subscription as metadata.service, and the webhook reconciles by it. Adding a
 // service here without a reconciler in billing.js is caught by test/billing-stripe.test.js.
-export const BILLED_SERVICES = Object.freeze(['spl', 'spb', 'sme']);
+export const BILLED_SERVICES = Object.freeze(['spl', 'spb', 'sme', 'spp']);
 
 // Whether Checkout must collect the customer's agreement to the terms before any charge.
 // Stripe refuses `consent_collection[terms_of_service]` unless a terms URL is already set in
@@ -44,6 +44,7 @@ export async function createCheckoutSession(env, {
   service,
   termsAssent = false,
   withdrawal = false,
+  planTerms = '',
 }) {
   if (!idempotencyKey) throw new Error('stripe checkout requires idempotency key');
   if (!BILLED_SERVICES.includes(service)) throw new Error('stripe checkout requires a billed service');
@@ -57,6 +58,9 @@ export async function createCheckoutSession(env, {
   body.set('line_items[0][price]', priceId);
   body.set('line_items[0][quantity]', '1');
   body.set('custom_text[submit][message]', checkoutDisclosure({ withdrawal }));
+  // What a plan includes and what happens when the owner reaches it, shown under the pay
+  // button, for a service whose terms require checkout to say so.
+  if (planTerms) body.set('custom_text[after_submit][message]', planTerms);
   if (termsAssent) body.set('consent_collection[terms_of_service]', 'required');
   body.set('success_url', successUrl);
   body.set('cancel_url', cancelUrl);

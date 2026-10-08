@@ -831,6 +831,29 @@ export async function consumeServiceHandoff(db, { handoffHash, nowMs, service })
   return row || null;
 }
 
+// A live handoff's payload without consuming it, for a handoff whose answer can change while
+// the journal waits (confidential processing waiting on a subscription). Same liveness as
+// consumeServiceHandoff: unconsumed, unexpired, and no deletion in progress.
+export async function peekServiceHandoff(db, { handoffHash, nowMs, service }) {
+  const row = await db
+    .prepare(
+      `SELECT account_id, payload_encrypted
+       FROM service_handoffs
+       WHERE handoff_hash = ?
+         AND service = ?
+         AND consumed_at IS NULL
+         AND expires_at > ?
+         AND NOT EXISTS (
+           SELECT 1 FROM account_deletions d
+           WHERE d.account_id = service_handoffs.account_id
+             AND d.phase IN ('requested', 'frozen', 'purging')
+         )`
+    )
+    .bind(handoffHash, service, nowMs)
+    .first();
+  return row || null;
+}
+
 export async function findServiceHandoffStatus(db, { handoffHash, service }) {
   const row = await db
     .prepare(
@@ -1726,6 +1749,16 @@ export async function findRetiredSpbToken(db, tokenHash) {
   return row || null;
 }
 
+// Whether this sign-in already has confidential processing bound to a journal other than
+// instanceId. One paid subscription covers one journal.
+export async function hasOtherSppBinding(db, { accountId, instanceId }) {
+  const row = await db
+    .prepare('SELECT 1 AS found FROM spp_bindings WHERE account_id = ? AND instance_id != ? LIMIT 1')
+    .bind(accountId, instanceId)
+    .first();
+  return Boolean(row);
+}
+
 export async function findSppBindingByTokenHash(db, tokenHash) {
   const row = await db
     .prepare(
@@ -2057,7 +2090,7 @@ export async function selectRenewalCandidatePage(db, { afterAccountId = '', afte
        FROM entitlements
        WHERE status = 'active'
          AND source = 'stripe'
-         AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')
+         AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted')
          AND source_ref IS NOT NULL
          AND source_ref != ''
          AND (account_id > ?1 OR (account_id = ?1 AND service > ?2))
@@ -2076,7 +2109,7 @@ export async function selectRenewalCatchUpCandidatePage(db, { afterAccountId = '
        FROM entitlements e
        WHERE e.status = 'active'
          AND e.source = 'stripe'
-         AND e.service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')
+         AND e.service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted')
          AND e.source_ref IS NOT NULL
          AND e.source_ref != ''
          AND NOT EXISTS (
@@ -2102,7 +2135,7 @@ export async function selectRenewalOneOffCandidatePage(db, { afterAccountId = ''
        FROM entitlements
        WHERE status = 'active'
          AND source = 'stripe'
-         AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted')
+         AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted')
          AND source_ref IS NOT NULL
          AND source_ref != ''
          AND account_id > ?1
