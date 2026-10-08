@@ -764,7 +764,7 @@ export function renderConfidentialProcessingLanding({ onSale = false } = {}) {
   const offer = onSale
     ? `<div class="card">
   <div class="pricecard">
-    <div><div class="big">$96 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $9.99 / month · tax included · per journal, not per device</div></div>
+    <div><div class="big">$96 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $9.99 / month · tax included · per journal, not per device</div><div class="alt">${esc(SPP_SIZE)}</div></div>
     <a class="btn primary" href="/?signin">sign in to enable</a>
   </div>
   <p class="free-note" style="margin:14px 0 0">${esc(SPP_NEVER_PAY)}</p>
@@ -1132,7 +1132,10 @@ ${withdrawalDoor(withdrawal)}
 
 // Why no one has to pay for confidential processing: the same thinking runs on the owner's own
 // machine, or with their own provider, with sol pbc out of the path.
-export const SPP_NEVER_PAY = "you never have to pay us. your journal can think on your own computer with the local model, or with your own provider key, and sol pbc isn't in the path either way. this only covers the confidential hardware sol pbc runs for you.";
+export const SPP_NEVER_PAY = "you never have to pay us. your journal can think on your own computer with the local model, or with your own model, and sol pbc isn't in the path either way. a subscription is only for the confidential hardware sol pbc runs for you.";
+
+// What a plan is sized for. The unit is the journal; a desktop and a phone describe its size.
+const SPP_SIZE = 'sized for one journal with a desktop and a phone.';
 
 // One subscription covers one journal (terms § 3: per journal, not per device).
 const SPP_ONE_JOURNAL = 'one subscription covers one journal. turn it on from that journal.';
@@ -1267,7 +1270,7 @@ ${withdrawalDoor(withdrawal)}
     { plan: 'annual', title: '$96 / year', buttonText: 'pay yearly', primary: true },
     { plan: 'monthly', title: '$9.99 / month', buttonText: 'pay monthly', primary: false },
   ] })}
-  <p class="disclosure">${esc(SPP_ONE_JOURNAL)} tax included. billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
+  <p class="disclosure">${esc(SPP_ONE_JOURNAL)} ${esc(SPP_SIZE)} tax included. billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
 </div>
 <p class="disclosure" style="margin-top:24px">${esc(SPP_NEVER_PAY)}</p>`,
   });
