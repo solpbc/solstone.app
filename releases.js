@@ -40,7 +40,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=55a4d54b7b">
+    <link rel="stylesheet" href="/static/site.css?v=3196b7204a">
     <style>
         .page-intro .btn, .page-intro .store-badge { margin-top: 18px; }
         .stream-switch {
@@ -69,7 +69,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         .release li { margin-bottom: 8px; }
         .release li::marker { color: var(--ink-faint); }
         .release code { background: var(--cream-bright); padding: 1px 5px; border-radius: 4px; border: 0; }
-        .rel-links { margin-top: 0; padding: 10px clamp(22px, 4vw, 44px) 14px; }
+        .rel-links { margin-top: var(--band-gap); padding: 0 clamp(22px, 4vw, 44px); }
         @media (max-width: 640px) {
             .ss-lead { flex-basis: 100%; }
         }
@@ -127,7 +127,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             </div>
         </section>
 
-        <div class="band wrap">
+        <div class="wrap">
             <nav class="links rel-links" aria-label="more">
                 <a href="{{sourceUrl}}">source code on GitHub</a>
             </nav>

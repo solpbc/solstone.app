@@ -25,7 +25,7 @@
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=55a4d54b7b">
+    <link rel="stylesheet" href="/static/site.css?v=3196b7204a">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -129,7 +129,7 @@
         }
 
         .product { margin: 8px 0 22px; }
-        .frame { border-radius: 10px; overflow: hidden; border: 1px solid var(--hairline-2); background: var(--cream-bright); }
+        .frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--hairline-2); background: var(--cream-bright); box-shadow: 0 2px 4px rgb(90 60 20 / 0.04), 0 18px 40px -20px rgb(90 60 20 / 0.22); }
         .frame img { display: block; width: 100%; height: auto; }
         .product figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); max-width: 60em; }
 
@@ -142,13 +142,13 @@
 
         .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
         .addons-title { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--hairline); font-size: 20px; }
-        .services { list-style: none; margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 28px; }
-        .services li { padding: 14px 0 6px; border-top: 1px solid var(--hairline-2); font-size: 15px; color: var(--ink-soft); display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 8px; }
-        .services h4 { font-size: 16px; display: flex; justify-content: space-between; gap: 8px; }
+        .services { list-style: none; margin-top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .services li { padding: 16px 18px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--paper); font-size: 15px; color: var(--ink-soft); display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 8px; }
+        .services h4 { font-size: 16px; display: flex; justify-content: space-between; gap: 8px; margin: 0; }
         .services h4 span { font-weight: 500; color: var(--ink-soft); white-space: nowrap; }
         .services .byo { padding-top: 10px; border-top: 1px solid var(--hairline); color: var(--ink); }
         .services .byo strong { font-weight: 600; }
-        @media (max-width: 1000px) { .services { grid-template-columns: repeat(2, 1fr); row-gap: 18px; } }
+        @media (max-width: 1000px) { .services { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 560px) { .services { grid-template-columns: 1fr; } }
     </style>
 </head>

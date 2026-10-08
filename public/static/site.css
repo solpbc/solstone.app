@@ -1,5 +1,5 @@
 /* solstone.app — the shared site system: the sun-arc ground, the header, the
-   footer, three buttons, the sheet, the one early-days notice, and the
+   footer, three buttons, the panels, the one early-days notice, and the
    width scale. Load after tokens.css (and tokens-dark.css on a page that has a dark
    appearance), and after base.css where a page still uses it.
 
@@ -21,7 +21,8 @@
      no stack of floating cards. The sun shows around it, never through it. */
   --sheet: var(--cream-bright);
   --sheet-solid: var(--cream-bright);
-  --sheet-line: var(--hairline-2);
+  --sheet-line: var(--hairline);
+  --panel-shadow: 0 1px 2px rgb(90 60 20 / 0.04), 0 8px 24px -12px rgb(90 60 20 / 0.14);
   --pop-shadow: 0 1px 2px rgb(90 60 20 / 0.06), 0 10px 30px rgb(90 60 20 / 0.10);
 
   /* sun-arc engine values (read by sunarc.js) */
@@ -57,6 +58,7 @@
     --sheet: var(--cream);
     --sheet-solid: var(--cream);
     --sheet-line: var(--hairline);
+    --panel-shadow: 0 1px 2px rgb(0 0 0 / 0.20), 0 8px 24px -12px rgb(0 0 0 / 0.30);
     --pop-shadow: 0 1px 2px rgb(0 0 0 / 0.20), 0 10px 30px rgb(0 0 0 / 0.22);
   }
 }
@@ -78,19 +80,13 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 
 /* ---- layout ---- */
 .wrap { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin-inline: auto; }
-/* The sheet: every page's main is one paper sheet over the sun arc, so text never
-   sits on the sun. Sections inside it are divided by a hairline, never boxed, and
-   nothing is translucent-blurred or shadowed. Cards are for objects (a quoted
-   answer, a product shot), not for sections. Below 640px the sheet runs edge to edge. */
-main#main {
-  width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0;
-  background: var(--sheet); border: 1px solid var(--sheet-line); border-radius: 12px;
-}
-main#main > .wrap { width: auto; margin-inline: 0; }
-main#main > .band { margin-top: 0; }
-main#main > * + .band, main#main > * + .notice-wrap { border-top: 1px solid var(--hairline); }
-@media (max-width: 640px) {
-  main#main { width: 100%; border-inline: 0; border-radius: 0; }
+/* Panels: each band is its own paper panel, and the sun arc shows in the gaps
+   between them, so the page keeps a rhythm and text never sits on the sun. A panel
+   is an opaque surface with a quiet edge, not frosted glass; inside it, objects (a
+   quoted answer, a product shot, a service) may be cards, but nothing nests deeper. */
+.band, .notice-wrap {
+  background: var(--sheet); border: 1px solid var(--sheet-line); border-radius: 18px;
+  box-shadow: var(--panel-shadow);
 }
 
 /* ---- buttons: three and no more ---- */
@@ -149,15 +145,15 @@ main#main > * + .band, main#main > * + .notice-wrap { border-top: 1px solid var(
   .site-menu summary { padding: 0 10px; font-size: 14px; }
 }
 
-/* ---- the one early-days notice: a plain last section of the sheet ---- */
+/* ---- the one early-days notice: its own small panel on the orange wash ---- */
 .early-days {
   display: block; max-width: none; width: auto; margin: 0; text-align: left; font-style: normal;
   padding: clamp(18px, 3vw, 26px) clamp(22px, 4vw, 44px); border: 0; border-radius: 0;
-  background: none; color: var(--ink-soft); font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  background: none; color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55;
 }
 .early-days .stage-label { font-family: var(--font-display); font-weight: 700; color: var(--ink); margin-right: 6px; }
 .early-days a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.notice-wrap { width: auto; margin: 0; }
+.notice-wrap { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0; background: var(--orange-wash); border-color: var(--hairline-2); box-shadow: none; }
 
 /* ---- footer ---- */
 .site-footer { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0; padding: 0 0 28px; font-family: var(--font-body); text-align: left; color: var(--ink); }
