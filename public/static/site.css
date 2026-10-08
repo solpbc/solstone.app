@@ -1,5 +1,5 @@
 /* solstone.app — the shared site system: the sun-arc ground, the header, the
-   footer, three buttons, the glass container, the one early-days notice, and the
+   footer, three buttons, the sheet, the one early-days notice, and the
    width scale. Load after tokens.css (and tokens-dark.css on a page that has a dark
    appearance), and after base.css where a page still uses it.
 
@@ -17,10 +17,12 @@
   --gutter: clamp(16px, 4vw, 32px);
   --band-gap: clamp(20px, 4vw, 40px);
 
-  /* the container text sits in over the sun arc */
-  --glass: rgb(255 255 255 / 0.58);
-  --glass-line: rgb(255 255 255 / 0.70);
-  --glass-shadow: 0 1px 2px rgb(90 60 20 / 0.05), 0 10px 30px rgb(90 60 20 / 0.07);
+  /* the sheet text sits on over the sun arc: one opaque paper surface, no blur,
+     no stack of floating cards. The sun shows around it, never through it. */
+  --sheet: var(--cream-bright);
+  --sheet-solid: var(--cream-bright);
+  --sheet-line: var(--hairline-2);
+  --pop-shadow: 0 1px 2px rgb(90 60 20 / 0.06), 0 10px 30px rgb(90 60 20 / 0.10);
 
   /* sun-arc engine values (read by sunarc.js) */
   --sunarc-ground-light-day: #FEFCF8;
@@ -52,9 +54,10 @@
 /* a page with a dark appearance carries body.both; its containers follow the owner's setting */
 @media (prefers-color-scheme: dark) {
   body.both {
-    --glass: var(--panel);
-    --glass-line: rgb(252 243 228 / 0.08);
-    --glass-shadow: 0 1px 2px rgb(0 0 0 / 0.20), 0 10px 30px rgb(0 0 0 / 0.22);
+    --sheet: var(--cream);
+    --sheet-solid: var(--cream);
+    --sheet-line: var(--hairline);
+    --pop-shadow: 0 1px 2px rgb(0 0 0 / 0.20), 0 10px 30px rgb(0 0 0 / 0.22);
   }
 }
 
@@ -75,13 +78,19 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 
 /* ---- layout ---- */
 .wrap { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin-inline: auto; }
-.glass {
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  border: 1px solid var(--glass-line);
-  border-radius: 20px;
-  box-shadow: var(--glass-shadow);
+/* The sheet: every page's main is one paper sheet over the sun arc, so text never
+   sits on the sun. Sections inside it are divided by a hairline, never boxed, and
+   nothing is translucent-blurred or shadowed. Cards are for objects (a quoted
+   answer, a product shot), not for sections. Below 640px the sheet runs edge to edge. */
+main#main {
+  width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0;
+  background: var(--sheet); border: 1px solid var(--sheet-line); border-radius: 12px;
+}
+main#main > .wrap { width: auto; margin-inline: 0; }
+main#main > .band { margin-top: 0; }
+main#main > * + .band, main#main > * + .notice-wrap { border-top: 1px solid var(--hairline); }
+@media (max-width: 640px) {
+  main#main { width: 100%; border-inline: 0; border-radius: 0; }
 }
 
 /* ---- buttons: three and no more ---- */
@@ -91,8 +100,8 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
   font-family: var(--font-body); font-weight: 600; font-size: 17px; line-height: 1;
   text-decoration: none; white-space: nowrap; cursor: pointer;
 }
-.btn-primary { background: linear-gradient(135deg, var(--gold), var(--orange)); color: var(--ink-on-brand, #1A1A1A); }
-.btn-primary:hover { background: linear-gradient(135deg, #F2BF2B, #DB8330); color: var(--ink-on-brand, #1A1A1A); }
+.btn-primary { background: var(--orange); color: var(--ink-on-brand, #1A1A1A); }
+.btn-primary:hover { background: #DB8330; color: var(--ink-on-brand, #1A1A1A); }
 .btn-secondary { background: transparent; color: var(--ink); border: 1.5px solid var(--hairline-2); }
 .btn-secondary:hover { border-color: var(--ink-faint); color: var(--ink); }
 .btn-text { color: var(--ink); font-weight: 600; text-decoration: none; }
@@ -100,10 +109,15 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 .btn-sm { min-height: 40px; padding: 0 16px; font-size: 15px; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
+/* ---- store badges: the official App Store and Google Play artwork, unaltered.
+   Same visible height; Apple's minimum is 40px on screen. ---- */
+.store-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.store-badge { display: inline-block; line-height: 0; border-radius: 9px; }
+.store-badge img { height: 48px; width: auto; display: block; }
+
 /* ---- header ----
-   The header is its own stacking context above the content: a .glass card's
-   backdrop-filter makes a layer of its own, which would otherwise paint over the
-   open menu panel. */
+   A plain bar on the ground, no container. It is its own stacking context so the
+   open menu panel paints above the sheet. */
 .site-header { position: relative; z-index: 10; padding-top: 12px; width: min(var(--w-content), 100% - 2 * var(--gutter)); margin-inline: auto; }
 .site-header .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 12px 10px 18px; border-radius: 16px; }
 .site-header .lockup { display: block; line-height: 0; padding: 4px 0; }
@@ -111,14 +125,14 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 .site-nav { display: flex; align-items: center; gap: 4px; }
 .site-nav a:not(.btn), .site-menu nav a { color: var(--ink); text-decoration: none; font-family: var(--font-body); font-size: 15px; font-weight: 500; padding: 10px 12px; border-radius: 8px; }
 .site-nav a:not(.btn):hover { background: rgb(26 26 26 / 0.05); }
-.site-nav a[aria-current="page"] { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; text-decoration-color: var(--orange); }
+.site-nav a[aria-current="page"]:not(.btn) { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; text-decoration-color: var(--orange); }
 .site-nav .btn { margin-left: 8px; }
 .header-actions, .site-menu { display: none; }
 .site-menu { position: relative; }
 .site-header details.site-menu { border: 0; margin: 0; padding: 0; }
 .site-menu summary { list-style: none; cursor: pointer; min-height: 40px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--hairline-2); border-radius: var(--radius-sm, 9px); font: 600 15px var(--font-body); color: var(--ink); padding: 0 12px; }
 .site-menu summary::-webkit-details-marker { display: none; }
-.site-menu[open] nav { position: absolute; right: 0; top: 48px; z-index: 5; display: flex; flex-direction: column; min-width: 220px; padding: 8px; border-radius: 14px; background: var(--cream-bright); box-shadow: var(--glass-shadow); }
+.site-menu[open] nav { position: absolute; right: 0; top: 48px; z-index: 5; display: flex; flex-direction: column; min-width: 220px; padding: 8px; border-radius: 14px; background: var(--sheet-solid); border: 1px solid var(--sheet-line); box-shadow: var(--pop-shadow); }
 .site-menu[open] nav a { padding: 12px; }
 @media (max-width: 860px) {
   .site-nav { display: none; }
@@ -135,19 +149,19 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
   .site-menu summary { padding: 0 10px; font-size: 14px; }
 }
 
-/* ---- the one early-days notice ---- */
+/* ---- the one early-days notice: a plain last section of the sheet ---- */
 .early-days {
   display: block; max-width: none; width: auto; margin: 0; text-align: left; font-style: normal;
-  padding: 16px 20px; border-radius: 14px; border: 1px solid var(--hairline-2); border-left: 1px solid var(--hairline-2);
-  background: var(--orange-wash); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  padding: clamp(18px, 3vw, 26px) clamp(22px, 4vw, 44px); border: 0; border-radius: 0;
+  background: none; color: var(--ink-soft); font-family: var(--font-body); font-size: 16px; line-height: 1.55;
 }
 .early-days .stage-label { font-family: var(--font-display); font-weight: 700; color: var(--ink); margin-right: 6px; }
 .early-days a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.notice-wrap { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0; }
+.notice-wrap { width: auto; margin: 0; }
 
 /* ---- footer ---- */
 .site-footer { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0; padding: 0 0 28px; font-family: var(--font-body); text-align: left; color: var(--ink); }
-.site-footer .glass { padding: 22px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 24px; align-items: center; }
+.site-footer .footer-row { padding: 22px 0 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 24px; align-items: center; }
 .site-footer nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; }
 .site-footer nav a { color: var(--ink); text-decoration: none; padding: 6px 0; }
 .site-footer nav a:hover { text-decoration: underline; }

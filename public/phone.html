@@ -25,14 +25,14 @@
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
+    <link rel="stylesheet" href="/static/site.css?v=55a4d54b7b">
     <style>
-        .platforms { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
-        .platform { padding: 18px 20px; border-radius: 14px; background: var(--cream-bright); border: 1px solid var(--hairline); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+        .platforms { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 32px; margin-top: 26px; }
+        .platform { padding-top: 16px; border-top: 1px solid var(--hairline-2); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
         .platform h2 { margin: 0; font-size: 20px; }
         .platform .file-line { margin: 0; }
-        @media (max-width: 640px) { .platforms { grid-template-columns: 1fr; } }
-        h2.sub { margin-top: 26px; }
+        .two { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(20px, 4vw, 48px); }
+        @media (max-width: 760px) { .platforms, .two { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body class="sun both">
@@ -45,7 +45,7 @@
     <div class="page">
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
-            <div class="bar glass">
+            <div class="bar">
                 <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
@@ -69,36 +69,40 @@
             </div>
         </header>
         <main id="main" tabindex="-1">
-            <section class="band wrap glass" aria-labelledby="page-title">
+            <section class="band wrap" aria-labelledby="page-title">
                 <div class="band-inner">
                     <h1 id="page-title">solstone on your phone</h1>
                     <p class="lead">solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours.</p>
                     <div class="platforms">
                         <div class="platform">
                             <h2>iphone and ipad</h2>
-                            <a href="https://apps.apple.com/app/id6776850664" class="btn btn-primary btn-block-sm">get it on the App Store</a>
+                            <a class="store-badge" href="https://apps.apple.com/app/id6776850664"><img src="/static/badge-app-store.svg?v=a26fc5b383" alt="Download on the App Store" width="144" height="48"></a>
                             <p class="file-line">free on the App Store, where it's listed as solstone mobile. needs ios or ipados 26 or later.</p>
                         </div>
                         <div class="platform">
                             <h2>android</h2>
-                            <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone" class="btn btn-primary btn-block-sm">get it on Google Play</a>
+                            <a class="store-badge" href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone"><img src="/static/badge-google-play.png?v=6e629c8fa7" alt="Get it on Google Play" width="161" height="48"></a>
                             <p class="file-line">free on Google Play. needs android 8.0 or later. no Google Play on your phone? <a href="/download/android">download the signed app from us</a>.</p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section class="band wrap glass" aria-labelledby="needs-heading">
-                <div class="band-inner prose-col">
+            <section class="band wrap" aria-labelledby="needs-heading">
+                <div class="band-inner two">
+                    <div>
                     <h2 id="needs-heading">what the app needs</h2>
-                    <p>the solstone app on your phone pairs with your journal on a mac, windows or linux computer you own. set that up first if you haven't already; that's where your memories live. <a href="/install">get started →</a></p>
-                    <h2 class="sub" id="word-heading">you don't have to take our word for it</h2>
+                    <p>the solstone app on your phone pairs with your journal on a mac, windows or linux computer you own. set that up first if you haven't already; that's where your memories live. <a href="/install">get started</a></p>
+                    </div>
+                    <div>
+                    <h2 id="word-heading">you don't have to take our word for it</h2>
                     <p>solstone is open source. read the code, run it yourself, verify every claim. there's no telemetry, no analytics vendor, and no behavioral tracking. the only call solstone makes on its own is a check for newer versions, and it sends nothing about you or your device.</p>
                     <nav class="links" aria-label="more">
-                        <a href="https://github.com/solpbc/solstone-swift">iphone source on GitHub →</a>
-                        <a href="https://github.com/solpbc/solstone-android">android source on GitHub →</a>
-                        <a href="/download">every other device →</a>
+                        <a href="https://github.com/solpbc/solstone-swift">iphone source on GitHub</a>
+                        <a href="https://github.com/solpbc/solstone-android">android source on GitHub</a>
+                        <a href="/download">every other device</a>
                     </nav>
+                    </div>
                 </div>
             </section>
             <div class="notice-wrap">
@@ -106,7 +110,7 @@
             </div>
         </main>
         <footer class="site-footer">
-            <div class="glass">
+            <div class="footer-row">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
@@ -117,7 +121,7 @@
                     <a href="https://support.solstone.app">support</a>
                     <a href="https://solpbc.org">sol pbc</a>
                 </nav>
-                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc.</p>
+                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc. Apple and the Apple logo are trademarks of Apple Inc., registered in the U.S. and other countries. App Store is a service mark of Apple Inc. Google Play and the Google Play logo are trademarks of Google LLC.</p>
             </div>
         </footer>
     </div>

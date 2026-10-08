@@ -25,7 +25,7 @@
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
+    <link rel="stylesheet" href="/static/site.css?v=55a4d54b7b">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -98,8 +98,8 @@
         .hero .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
         .hero .spec { margin-top: 16px; }
         .answer { padding: 18px 20px; border-radius: 14px; border: 1px solid var(--hairline-2); background: var(--cream-bright); font-family: var(--font-body); }
-        .answer .answer-label { display: inline-block; font-size: 13px; font-weight: 600; color: var(--ink); background: var(--orange-wash); border-radius: 999px; padding: 3px 10px; }
-        .answer dl { margin-top: 12px; }
+        .answer .answer-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+        .answer dl { margin-top: 6px; }
         .answer dt { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
         .answer dd { font-size: 16px; line-height: 1.5; color: var(--ink); }
         .answer dd + dt { margin-top: 10px; }
@@ -129,27 +129,9 @@
         }
 
         .product { margin: 8px 0 22px; }
-        .frame { border-radius: 14px; overflow: hidden; border: 1px solid var(--hairline-2); background: var(--cream-bright); box-shadow: 0 18px 50px rgb(90 60 20 / 0.12); }
-        .frame-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--hairline); background: var(--cream); }
-        .frame-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--hairline-2); display: inline-block; }
-        .frame-bar .url { margin-left: 10px; font-size: 13px; color: var(--ink-soft); background: var(--cream-bright); border-radius: 6px; padding: 3px 10px; }
-        .frame-bar .demo-tag { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink); background: var(--orange-wash); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+        .frame { border-radius: 10px; overflow: hidden; border: 1px solid var(--hairline-2); background: var(--cream-bright); }
         .frame img { display: block; width: 100%; height: auto; }
-        .product figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); }
-        @media (max-width: 760px) {
-            .frame-bar i { display: none; }
-            .frame-bar .url { margin-left: 0; white-space: nowrap; }
-            .frame-bar .demo-tag { font-size: 11px; padding: 3px 8px; }
-        }
-        .nodes { list-style: none; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: stretch; margin-top: 8px; }
-        .node { padding: 16px 18px; border-radius: 14px; background: var(--cream-bright); border: 1px solid var(--hairline); }
-        .node.journal { background: var(--orange-wash); }
-        .node p { font-size: 16px; color: var(--ink-soft); }
-        .arrow { align-self: center; color: var(--ink-faint); font-size: 20px; }
-        @media (max-width: 760px) {
-            .nodes { grid-template-columns: 1fr; }
-            .arrow { transform: rotate(90deg); justify-self: center; line-height: 1; }
-        }
+        .product figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); max-width: 60em; }
 
         .two { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(20px, 4vw, 48px); }
         .list { list-style: none; margin-top: 10px; }
@@ -159,15 +141,14 @@
         @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
 
         .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-        .addons-title { margin-top: 32px; font-size: 20px; }
-        .services { list-style: none; margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .services li { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--hairline); background: var(--cream-bright); font-size: 15px; color: var(--ink-soft); display: flex; flex-direction: column; }
+        .addons-title { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--hairline); font-size: 20px; }
+        .services { list-style: none; margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 28px; }
+        .services li { padding: 14px 0 6px; border-top: 1px solid var(--hairline-2); font-size: 15px; color: var(--ink-soft); display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 8px; }
         .services h4 { font-size: 16px; display: flex; justify-content: space-between; gap: 8px; }
         .services h4 span { font-weight: 500; color: var(--ink-soft); white-space: nowrap; }
-        .services p + p { margin-top: 8px; }
-        .services .byo { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--hairline); color: var(--ink); }
+        .services .byo { padding-top: 10px; border-top: 1px solid var(--hairline); color: var(--ink); }
         .services .byo strong { font-weight: 600; }
-        @media (max-width: 1000px) { .services { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 1000px) { .services { grid-template-columns: repeat(2, 1fr); row-gap: 18px; } }
         @media (max-width: 560px) { .services { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -181,7 +162,7 @@
     <div class="page">
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
-            <div class="bar glass">
+            <div class="bar">
                 <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
@@ -207,14 +188,14 @@
 
         <main id="main" tabindex="-1">
 
-            <section class="band wrap glass hero" aria-labelledby="hero-title">
+            <section class="band wrap hero" aria-labelledby="hero-title">
                 <div class="band-inner">
                         <h1 id="hero-title">a memory your agents can work from.</h1>
                         <p class="lede">the solstone app takes in what you share with it, from your screen and your audio to the places you go and your terminal. all of it goes into your journal, on a computer you own, and the agents you choose work from it.</p>
                         <div class="actions">
                             <a class="btn btn-primary" href="/install">get started</a>
                         </div>
-                        <p class="spec">free and open source · your journal lives on an Apple silicon mac, a windows PC or a linux computer · phones pair with it</p>
+                        <p class="spec">free and open source. your journal lives on an Apple silicon mac, a windows PC or a linux computer, and phones pair with it.</p>
                     <figure class="answer" aria-labelledby="answer-label">
                         <figcaption><span class="answer-label" id="answer-label">demo output</span></figcaption>
                         <dl>
@@ -229,12 +210,11 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" id="how" aria-labelledby="how-title">
+            <section class="band wrap" id="how" aria-labelledby="how-title">
                 <div class="band-inner">
                     <h2 id="how-title">how it works</h2>
                     <figure class="product">
                         <div class="frame">
-                            <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span class="url">your journal</span><span class="demo-tag">demo journal · journal 2.0.34</span></div>
                             <picture>
                                 <source media="(max-width: 760px) and (prefers-color-scheme: dark)" srcset="/static/demo/week-eve-dark-phone-654.webp?v=d2ef1a2e73">
                                 <source media="(max-width: 760px)" srcset="/static/demo/week-eve-light-phone-654.webp?v=646defdc76">
@@ -244,26 +224,10 @@
                         </div>
                         <figcaption>a demo journal's week, as journal 2.0.34 shows it: one memory from each day that has one, word for word from the next morning's briefing. everyone in it is invented. this demo's thinking ran on Google's gemini-3.5-flash; your own journal's thinking stays on your computer unless you choose otherwise.</figcaption>
                     </figure>
-                    <ol class="nodes">
-                        <li class="node">
-                            <h3>what you share</h3>
-                            <p>your screen, your audio, your camera, the places you go, your terminal, and the files you import. you turn each one on, and you can pause it or turn it off.</p>
-                        </li>
-                        <li class="arrow" aria-hidden="true">→</li>
-                        <li class="node journal">
-                            <h3>your journal</h3>
-                            <p>a folder on a mac, windows or linux computer you own. it keeps the originals, transcribes and organizes them, and makes them searchable.</p>
-                        </li>
-                        <li class="arrow" aria-hidden="true">→</li>
-                        <li class="node">
-                            <h3>your agents</h3>
-                            <p>the ones you choose, connected and managed in your journal's agents app.</p>
-                        </li>
-                    </ol>
                 </div>
             </section>
 
-            <section class="band wrap glass" aria-labelledby="get-title">
+            <section class="band wrap" aria-labelledby="get-title">
                 <div class="band-inner two">
                     <div>
                         <h2 id="get-title">what you get</h2>
@@ -288,22 +252,21 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" aria-labelledby="yours-title">
-                <div class="band-inner prose">
-                    <h2 id="yours-title">yours, by structure</h2>
-                    <p>your journal keeps the originals in open formats, in a folder on your own disk. you can back it up, hand it down, and take it anywhere.</p>
-                    <p>sol pbc can't sell or license your data, even anonymized or aggregated, and can't use it for targeted advertising or behavioral profiling. that's written into our <a href="https://solpbc.org/articles">articles of incorporation</a>, and it can't be amended without the personal signature of our founder, jer miller. after him, the language can only get stronger, never weaker.</p>
-                    <p>there's no telemetry, no analytics vendor, and no behavioral tracking. the only call solstone makes on its own is a check for newer versions, and it sends nothing about you or your device. <a href="https://solpbc.org/privacy">the privacy policy</a></p>
-                </div>
-            </section>
-
-            <section class="band wrap glass" id="open-source" aria-labelledby="open-title">
+            <section class="band wrap" aria-label="yours, by structure, and open source">
                 <div class="band-inner">
-                    <div class="prose">
-                        <h2 id="open-title">open source</h2>
-                        <p class="lede">solstone is open source and free, all of it: the solstone app on every platform, your journal, and the connection between them, under the AGPL. solstone itself never asks you to sign in.</p>
-                        <p>you don't have to take our word for any of it. read the code and build it yourself. trust.solstone.app walks through the signed records we publish, including the journal's releases on mac and linux, and links back to the originals.</p>
-                        <p class="links"><a class="btn btn-secondary" href="https://github.com/solpbc">read the code&nbsp;→</a> <a class="btn btn-secondary" href="https://trust.solstone.app">check it's ours&nbsp;→</a></p>
+                    <div class="two">
+                        <div>
+                            <h2 id="yours-title">yours, by structure</h2>
+                            <p>your journal keeps the originals in open formats, in a folder on your own disk. you can back it up, hand it down, and take it anywhere.</p>
+                            <p>sol pbc can't sell or license your data, even anonymized or aggregated, and can't use it for targeted advertising or behavioral profiling. that's written into our <a href="https://solpbc.org/articles">articles of incorporation</a>, and it can't be amended without the personal signature of our founder, jer miller. after him, the language can only get stronger, never weaker.</p>
+                            <p>there's no telemetry, no analytics vendor, and no behavioral tracking. the only call solstone makes on its own is a check for newer versions, and it sends nothing about you or your device. <a href="https://solpbc.org/privacy">the privacy policy</a></p>
+                        </div>
+                        <div id="open-source">
+                            <h2 id="open-title">open source</h2>
+                            <p>solstone is open source and free, all of it: the solstone app on every platform, your journal, and the connection between them, under the AGPL. solstone itself never asks you to sign in.</p>
+                            <p>you don't have to take our word for any of it. read the code and build it yourself. trust.solstone.app walks through the signed records we publish, including the journal's releases on mac and linux, and links back to the originals.</p>
+                            <p class="links"><a class="btn btn-secondary" href="https://github.com/solpbc">read the code</a> <a class="btn btn-secondary" href="https://trust.solstone.app">check it's ours</a></p>
+                        </div>
                     </div>
                     <h3 class="addons-title">optional services</h3>
                     <p class="prose">sol pbc runs a few services, if you want them. each one has a free way to do it yourself that we fully support, there's no lock-in, and you never have to pay us.</p>
@@ -323,7 +286,7 @@
         </main>
 
         <footer class="site-footer">
-            <div class="glass">
+            <div class="footer-row">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>

@@ -25,7 +25,7 @@
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
+    <link rel="stylesheet" href="/static/site.css?v=55a4d54b7b">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
@@ -67,7 +67,7 @@
             .artifacts-scroll { overflow-x: visible; }
             .artifacts, .artifacts tbody, .artifacts tr, .artifacts th, .artifacts td { display: block; width: 100%; }
             .artifacts thead { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-            .artifacts tr { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--hairline-2); border-radius: 14px; background: var(--cream-bright); }
+            .artifacts tr { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--hairline-2); border-radius: 10px; background: var(--cream-bright); }
             .artifacts tbody th, .artifacts td { border-top: 0; padding: 0; }
             .artifacts tbody th { font-size: 18px; margin-bottom: 8px; }
             .artifacts td { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 4px 12px; padding: 5px 0; }
@@ -88,7 +88,7 @@
     <div class="page">
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
-            <div class="bar glass">
+            <div class="bar">
                 <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
@@ -113,7 +113,7 @@
         </header>
 
         <main id="main" tabindex="-1">
-            <section class="band wrap glass" aria-labelledby="page-title">
+            <section class="band wrap" aria-labelledby="page-title">
                 <div class="band-inner">
                     <h1 id="page-title">download</h1>
                     <p class="lede">every solstone download, with its version, size and how to check it. the solstone app takes in what you share with it, and all of it goes into your journal. new here? <a href="/install">get started</a> walks you through it.</p>
@@ -239,7 +239,7 @@
         </main>
 
         <footer class="site-footer">
-            <div class="glass">
+            <div class="footer-row">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>

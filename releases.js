@@ -40,13 +40,13 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
+    <link rel="stylesheet" href="/static/site.css?v=55a4d54b7b">
     <style>
-        .page-intro .btn { margin-top: 18px; }
+        .page-intro .btn, .page-intro .store-badge { margin-top: 18px; }
         .stream-switch {
             position: sticky; top: 8px; z-index: 5;
             display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-            padding: 8px 12px; border-radius: 16px;
+            padding: 10px clamp(22px, 4vw, 44px);
         }
         .ss-lead { font-size: 14px; color: var(--ink-soft); margin-right: 4px; }
         .ss-pill {
@@ -69,7 +69,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         .release li { margin-bottom: 8px; }
         .release li::marker { color: var(--ink-faint); }
         .release code { background: var(--cream-bright); padding: 1px 5px; border-radius: 4px; border: 0; }
-        .rel-links { margin-top: 18px; }
+        .rel-links { margin-top: 0; padding: 10px clamp(22px, 4vw, 44px) 14px; }
         @media (max-width: 640px) {
             .ss-lead { flex-basis: 100%; }
         }
@@ -85,7 +85,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <div class="page">
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
-            <div class="bar glass">
+            <div class="bar">
                 <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
@@ -109,7 +109,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
             </div>
         </header>
     <main id="main" tabindex="-1">
-        <section class="band wrap glass" aria-labelledby="page-title">
+        <section class="band wrap" aria-labelledby="page-title">
             <div class="band-inner page-intro">
                 <h1 id="page-title">{{heading}}</h1>
                 <p class="lead">{{intro}}</p>
@@ -121,7 +121,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         {{streamSwitcher}}
         </div>
 
-        <section class="band wrap glass releases" aria-label="release history">
+        <section class="band wrap releases" aria-label="release history">
             <div class="band-inner">
             <!-- per-version <article> blocks here, newest first -->
             </div>
@@ -129,12 +129,12 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
 
         <div class="band wrap">
             <nav class="links rel-links" aria-label="more">
-                <a href="{{sourceUrl}}">source code on GitHub &rarr;</a>
+                <a href="{{sourceUrl}}">source code on GitHub</a>
             </nav>
         </div>
     </main>
         <footer class="site-footer">
-            <div class="glass">
+            <div class="footer-row">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
@@ -145,7 +145,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
                     <a href="https://support.solstone.app">support</a>
                     <a href="https://solpbc.org">sol pbc</a>
                 </nav>
-                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc.</p>
+                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc.{{storeMarks}}</p>
             </div>
         </footer>
     </div>
@@ -168,7 +168,7 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "journal releases",
     intro:
       "what's new in the journal, newest first. the journal is the memory, on a computer you choose; these are the journal's own changes.",
-    primaryLink: { href: "/install", text: "get started →" },
+    primaryLink: { href: "/install", text: "get started" },
     sourceUrl: "https://github.com/solpbc/solstone-journal",
     unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
     unavailableLabel: "see journal releases on GitHub →",
@@ -186,7 +186,7 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "mac app releases",
     intro:
       "these are the mac app's own changes: installer, menu bar, settings, and auto-update. the solstone app runs on your mac.",
-    primaryLink: { href: "/download/macos", text: "download the solstone app for mac →" },
+    primaryLink: { href: "/download/macos", text: "download the solstone app for mac" },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
     unavailableLabel: "see mac app releases on GitHub →",
@@ -204,7 +204,7 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "journal app releases",
     intro:
       "these are the journal's own changes on mac: your journal, its window, and its updates.",
-    primaryLink: { href: "/download/journal", text: "download the journal app for mac →" },
+    primaryLink: { href: "/download/journal", text: "download the journal app for mac" },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
     unavailableLabel: "see journal app releases on GitHub →",
@@ -222,7 +222,7 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "linux app releases",
     intro:
       "these are the linux app's own changes: installation, systemd service, desktop integration, and how it reaches your journal. the solstone app runs on your linux desktop.",
-    primaryLink: { href: "/install#linux", text: "install the solstone app for linux →" },
+    primaryLink: { href: "/install#linux", text: "install the solstone app for linux" },
     sourceUrl: "https://github.com/solpbc/solstone-linux",
     unavailableUrl: "https://github.com/solpbc/solstone-linux/releases",
     unavailableLabel: "see linux app releases on GitHub →",
@@ -240,7 +240,7 @@ export const RELEASE_PAGE_CONFIGS = {
     heading: "windows app releases",
     intro:
       "these are the windows app's own changes: installer, tray, settings, and auto-update. the solstone app runs on your windows PC.",
-    primaryLink: { href: "/download/windows", text: "download the solstone app for windows →" },
+    primaryLink: { href: "/download/windows", text: "download the solstone app for windows" },
     sourceUrl: "https://github.com/solpbc/solstone-windows",
     unavailableUrl: "https://github.com/solpbc/solstone-windows/releases",
     unavailableLabel: "see windows app releases on GitHub →",
@@ -264,7 +264,7 @@ export const RELEASE_PAGE_CONFIGS = {
     // listing. The signed APK on our own origin stays as the second way in, for
     // a phone without Google Play, and the intro links its download page.
     introLink: { phrase: "its download page", href: "/download/android" },
-    primaryLink: { href: "https://play.google.com/store/apps/details?id=app.solstone.observer.phone", text: "get it on Google Play →" },
+    primaryLink: { href: "https://play.google.com/store/apps/details?id=app.solstone.observer.phone", text: "Get it on Google Play", badge: "google-play" },
     sourceUrl: "https://github.com/solpbc/solstone-android",
     unavailableUrl: "https://github.com/solpbc/solstone-android/releases",
     unavailableLabel: "see android app releases on GitHub →",
@@ -286,7 +286,7 @@ export const RELEASE_PAGE_CONFIGS = {
     // The App Store is the one public way in on iPhone, so the CTA is the store
     // listing. TestFlight builds are tagged here too, which is why the intro says
     // the newest notes can run ahead of the store.
-    primaryLink: { href: "https://apps.apple.com/app/id6776850664", text: "get it on the App Store →" },
+    primaryLink: { href: "https://apps.apple.com/app/id6776850664", text: "Download on the App Store", badge: "app-store" },
     sourceUrl: "https://github.com/solpbc/solstone-swift",
     unavailableUrl: "https://github.com/solpbc/solstone-swift/releases",
     unavailableLabel: "see iphone app releases on GitHub →",
@@ -502,6 +502,7 @@ function fillTemplate(template, config) {
     .replaceAll("{{heading}}", escapeHtml(config.heading))
     .replaceAll("{{intro}}", renderIntro(config))
     .replaceAll("{{primaryLink}}", renderPrimaryLink(config.primaryLink))
+    .replaceAll("{{storeMarks}}", config.primaryLink?.badge ? STORE_MARKS : "")
     .replaceAll("{{streamSwitcher}}", streamSwitcher(config.stream))
     .replaceAll("{{sourceUrl}}", escapeHtml(config.sourceUrl));
 }
@@ -517,8 +518,21 @@ function renderIntro(config) {
   return intro.replace(phrase, `<a href="${escapeHtml(link.href)}">${phrase}</a>`);
 }
 
+// A store listing is linked with the store's own official badge, unaltered, so
+// the text is the badge's alt text; the page then carries the stores' marks.
+const STORE_BADGES = {
+  "app-store": { src: "/static/badge-app-store.svg?v=a26fc5b383", width: 144 },
+  "google-play": { src: "/static/badge-google-play.png?v=6e629c8fa7", width: 161 },
+};
+const STORE_MARKS = " Apple and the Apple logo are trademarks of Apple Inc., registered in the U.S. and other countries. App Store is a service mark of Apple Inc. Google Play and the Google Play logo are trademarks of Google LLC.";
+
 function renderPrimaryLink(link) {
   if (!link) return "";
+  if (link.badge) {
+    const badge = STORE_BADGES[link.badge];
+    if (!badge) throw new Error(`unknown store badge: ${link.badge}`);
+    return `<a href="${escapeHtml(link.href)}" class="store-badge intro-dl"><img src="${badge.src}" alt="${escapeHtml(link.text)}" width="${badge.width}" height="48"></a>`;
+  }
   return `<a href="${escapeHtml(link.href)}" class="btn btn-primary btn-block-sm intro-dl">${escapeHtml(link.text)}</a>`;
 }
 
@@ -536,7 +550,7 @@ function streamSwitcher(currentStream) {
   };
 
   return [
-    '<nav class="stream-switch glass" aria-label="release streams">',
+    '<nav class="stream-switch" aria-label="release streams">',
     '            <span class="ss-lead">release notes for:</span>',
     pill("journal", "journal", "/releases", "ss-home"),
     pill("macos", "mac app", "/releases/macos"),

@@ -25,7 +25,7 @@
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
+    <link rel="stylesheet" href="/static/site.css?v=55a4d54b7b">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
@@ -40,17 +40,12 @@
         p + p { margin-top: 12px; }
         .lede { font-size: clamp(18px, 1.6vw, 20px); margin-top: 14px; max-width: 40em; }
         .more { margin-top: 14px; }
-        .step-no { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--orange-wash); font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+        .step-no { font-size: 15px; font-weight: 600; color: var(--ink-faint); margin-bottom: 4px; }
+        .step-no::before { content: "step "; }
         .step-no + p { margin-top: 0; }
 
-        .overview { display: grid; grid-template-columns: 1fr 2rem 1fr; align-items: stretch; margin-top: 24px; max-width: 760px; }
-        .overview-part { padding: 16px 18px; background: var(--cream-bright); border: 1px solid var(--hairline); border-radius: 14px; }
-        .overview-part.journal { background: var(--orange-wash); }
-        .overview-part h2 { font-size: 17px; margin-bottom: 4px; }
-        .overview-part p { font-size: 15px; color: var(--ink-soft); }
-        .connection { display: grid; place-items: center; color: var(--ink-faint); font-size: 1.3rem; }
-        .branches { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; max-width: 760px; }
-        .branch { display: block; padding: 16px 18px; border-radius: 14px; border: 1.5px solid var(--hairline-2); background: var(--cream-bright); text-decoration: none; color: var(--ink); }
+        .branches { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 26px; max-width: 760px; }
+        .branch { display: block; padding: 16px 18px; border-radius: 10px; border: 1.5px solid var(--hairline-2); background: var(--cream-bright); text-decoration: none; color: var(--ink); }
         .branch strong { display: block; font-size: 17px; }
         .branch span { display: block; font-size: 15px; color: var(--ink-soft); margin-top: 4px; }
         .branch:hover { border-color: var(--ink-faint); }
@@ -67,12 +62,12 @@
         .platform-panel h3 { margin-top: 8px; }
         .requirements { font-size: 15px; color: var(--ink-soft); margin-bottom: 16px; }
         .steps { list-style: none; counter-reset: step; }
-        .steps > li { position: relative; padding-left: 40px; counter-increment: step; }
-        .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--hairline-2); font-size: 14px; font-weight: 600; color: var(--ink); }
+        .steps > li { position: relative; padding-left: 28px; counter-increment: step; }
+        .steps > li::before { content: counter(step) "."; position: absolute; left: 0; top: 0; font-weight: 600; color: var(--ink-faint); }
         .steps > li + li { margin-top: 26px; }
         .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
         .copy-btn[hidden] { display: none; }
-        .ours { margin-top: 22px; padding: 12px 14px; border-radius: 12px; background: var(--cream-bright); border: 1px solid var(--hairline); font-size: 15px; }
+        .ours { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--hairline); font-size: 15px; }
         pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 0.87rem/1.65 var(--font-mono); background: var(--cream-bright); border: 1px solid var(--hairline-2); color: var(--ink); border-radius: 9px; padding: 14px; margin-top: 12px; }
         code { font-family: var(--font-mono); font-size: 0.9em; overflow-wrap: anywhere; }
         .setup details { border-top: 1px solid var(--hairline); margin-top: 18px; padding-top: 4px; }
@@ -91,10 +86,9 @@
         .asks dt { font-weight: 600; }
         .asks dd { color: var(--ink-soft); }
         @media (max-width: 640px) {
-            .overview, .branches { grid-template-columns: 1fr; }
-            .connection { transform: rotate(90deg); min-height: 1.8rem; }
+            .branches { grid-template-columns: 1fr; }
             .platform-link { flex: 1 1 28%; padding: 0 10px; }
-            .steps > li { padding-left: 36px; }
+            .steps > li { padding-left: 26px; }
             .asks { grid-template-columns: 1fr; gap: 4px; }
             .asks dd { margin-bottom: 10px; }
             .intro .band-inner { padding-top: 20px; }
@@ -111,7 +105,7 @@
     <div class="page">
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
-            <div class="bar glass">
+            <div class="bar">
                 <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
@@ -136,21 +130,10 @@
         </header>
 
         <main id="main" tabindex="-1">
-            <section class="band wrap glass intro" aria-labelledby="page-title">
+            <section class="band wrap intro" aria-labelledby="page-title">
                 <div class="band-inner">
                     <h1 id="page-title">get started</h1>
                     <p class="lede">what you share with the solstone app goes into your journal, on a computer you own. set up the journal first, then add the solstone app on each device you want to share from.</p>
-                    <div class="overview">
-                        <section class="overview-part" aria-labelledby="ov-app">
-                            <h2 id="ov-app">the solstone app</h2>
-                            <p>takes in what you choose to share from your devices.</p>
-                        </section>
-                        <div class="connection" aria-hidden="true">→</div>
-                        <section class="overview-part journal" aria-labelledby="ov-journal">
-                            <h2 id="ov-journal">your journal</h2>
-                            <p>keeps it organized and searchable on your mac, windows or linux computer.</p>
-                        </section>
-                    </div>
                     <nav class="branches" aria-label="how are you starting?">
                         <a class="branch" id="branch-start" href="#start"><strong>start a journal</strong><span>set up your journal on a mac, linux or windows computer you own, then add the solstone app.</span></a>
                         <a class="branch" id="branch-connect" href="#connect"><strong>connect to your journal</strong><span>already have one? add the solstone app on another computer, your phone, or your terminal.</span></a>
@@ -158,7 +141,7 @@
                 </div>
             </section>
 
-            <section class="band wrap glass setup" id="install" aria-labelledby="setup-heading">
+            <section class="band wrap setup" id="install" aria-labelledby="setup-heading">
                 <div class="band-inner">
                     <p class="step-no" aria-hidden="true">1</p>
                     <h2 id="setup-heading">install</h2>
@@ -257,7 +240,7 @@
                         <h3 id="ios-heading">on your iphone or ipad</h3>
                         <p class="requirements">ios or ipados 26 or later. free on the App Store, where it's listed as solstone mobile.</p>
                         <p>connect the app to a journal on your mac, windows or linux computer. your journal stays on that computer.</p>
-                        <div class="actions"><a class="btn btn-primary" href="https://apps.apple.com/app/id6776850664">get it on the App Store</a></div>
+                        <div class="actions store-badges"><a class="store-badge" href="https://apps.apple.com/app/id6776850664"><img src="/static/badge-app-store.svg?v=a26fc5b383" alt="Download on the App Store" width="144" height="48"></a></div>
                         <p class="ours"><strong>check it's ours.</strong> the App Store lists sol pbc as the developer.</p>
                     </section>
 
@@ -265,7 +248,7 @@
                         <h3 id="android-heading">on your android phone</h3>
                         <p class="requirements">android 8.0 or later. free on Google Play.</p>
                         <p>connect the app to a journal on your mac, windows or linux computer. your journal stays on that computer.</p>
-                        <div class="actions"><a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">get it on Google Play</a><a class="btn-text" href="/download/android">no Google Play? get it from us →</a></div>
+                        <div class="actions store-badges"><a class="store-badge" href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone"><img src="/static/badge-google-play.png?v=6e629c8fa7" alt="Get it on Google Play" width="161" height="48"></a><a class="btn-text" href="/download/android">no Google Play? get it from us →</a></div>
                         <p class="ours"><strong>check it's ours.</strong> Google Play lists sol pbc as the developer. getting it from us instead? <a href="/download/android#check">check the download yourself</a>.</p>
                     </section>
 
@@ -290,7 +273,7 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" id="asks" aria-labelledby="asks-heading">
+            <section class="band wrap" id="asks" aria-labelledby="asks-heading">
                 <div class="band-inner">
                     <p class="step-no" aria-hidden="true">2</p>
                     <h2 id="asks-heading">what your device will ask</h2>
@@ -312,7 +295,7 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" id="thinking" aria-labelledby="thinking-heading">
+            <section class="band wrap" id="thinking" aria-labelledby="thinking-heading">
                 <div class="band-inner prose">
                     <p class="step-no" aria-hidden="true">3</p>
                     <h2 id="thinking-heading">where does the thinking happen?</h2>
@@ -328,7 +311,7 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" id="agents" aria-labelledby="agents-heading">
+            <section class="band wrap" id="agents" aria-labelledby="agents-heading">
                 <div class="band-inner prose">
                     <p class="step-no" aria-hidden="true">4</p>
                     <h2 id="agents-heading">connect your agent</h2>
@@ -356,7 +339,7 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" id="phone" aria-labelledby="phone-heading">
+            <section class="band wrap" id="phone" aria-labelledby="phone-heading">
                 <div class="band-inner prose">
                     <p class="step-no" aria-hidden="true">5</p>
                     <h2 id="phone-heading">pair a phone, if you like</h2>
@@ -365,7 +348,7 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" id="first-days" aria-labelledby="days-heading">
+            <section class="band wrap" id="first-days" aria-labelledby="days-heading">
                 <div class="band-inner prose">
                     <p class="step-no" aria-hidden="true">6</p>
                     <h2 id="days-heading">day 1, and tomorrow morning</h2>
@@ -376,7 +359,7 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" id="updating" aria-labelledby="updating-heading">
+            <section class="band wrap" id="updating" aria-labelledby="updating-heading">
                 <div class="band-inner prose">
                     <h2 id="updating-heading">updating your journal</h2>
                     <p>update the journal on the computer that runs it. the solstone app and your journal update separately, so their version numbers can differ.</p>
@@ -393,7 +376,7 @@
         </main>
 
         <footer class="site-footer">
-            <div class="glass">
+            <div class="footer-row">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
@@ -404,7 +387,7 @@
                     <a href="https://support.solstone.app">support</a>
                     <a href="https://solpbc.org">sol pbc</a>
                 </nav>
-                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc.</p>
+                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc. Apple and the Apple logo are trademarks of Apple Inc., registered in the U.S. and other countries. App Store is a service mark of Apple Inc. Google Play and the Google Play logo are trademarks of Google LLC.</p>
             </div>
         </footer>
     </div>

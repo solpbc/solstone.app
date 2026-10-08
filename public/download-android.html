@@ -25,7 +25,7 @@
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=6c66ccd20d">
+    <link rel="stylesheet" href="/static/site.css?v=55a4d54b7b">
     <style>
         body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
         a { color: var(--ink); text-underline-offset: 3px; }
@@ -67,7 +67,7 @@
     <div class="page">
         <a href="#main" class="skip-link">skip to content</a>
         <header class="site-header">
-            <div class="bar glass">
+            <div class="bar">
                 <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/#how">how it works</a>
@@ -92,7 +92,7 @@
         </header>
 
         <main id="main" tabindex="-1">
-            <section class="band wrap glass" aria-labelledby="page-title">
+            <section class="band wrap" aria-labelledby="page-title">
                 <div class="band-inner">
                     <h1 id="page-title">download the solstone app for android</h1>
                     <p class="lead">solstone is on <a href="https://play.google.com/store/apps/details?id=app.solstone.observer.phone">Google Play</a>. this is the other way in: the same app, signed by us, on our own server, for a phone without Google Play or for anyone who would rather not use it. it doesn't come from a store, so android treats it as an app from a source it does not recognize, and asks you to allow it, in the steps below. if you would rather check the file yourself before you run it, that takes a computer and it is further down this page.</p>
@@ -108,7 +108,7 @@
                 <p class="early-days"><span class="stage-label">updates.</span> this copy does not update itself: what you install stays at that version until you come back here and install a newer one. a copy from here and a copy from Google Play are signed by different keys, so neither can update the other. to move from one to the other, uninstall the one you have, install the other, and pair it again. anything on the phone that hasn't reached your journal yet is lost when you uninstall.</p>
             </div>
 
-            <section class="band wrap glass" aria-labelledby="asked">
+            <section class="band wrap" aria-labelledby="asked">
                 <div class="band-inner">
                     <h2 id="asked">what you will be asked</h2>
                     <p>the quoted words below are android's own, taken off a samsung galaxy running android 16. phone makers change this wording, so yours may say it a little differently. the two things you allow are the same on every android since 8.0.</p>
@@ -140,7 +140,7 @@
                 </div>
             </section>
 
-            <section class="band wrap glass" id="check" aria-labelledby="check-title">
+            <section class="band wrap" id="check" aria-labelledby="check-title">
                 <div class="band-inner">
                     <h2 id="check-title">check the file is ours</h2>
                     <p>you do not have to take our word for what you downloaded. there are two things to check, and they check different things: the digest says you got the bytes we published, and the signing certificate says we are the ones who built them.</p>
@@ -167,7 +167,7 @@ sha256sum -c SHA256SUMS</code></pre>
                 </div>
             </section>
 
-            <section class="band wrap glass" aria-labelledby="asks-title">
+            <section class="band wrap" aria-labelledby="asks-title">
                 <div class="band-inner">
                     <h2 id="asks-title">what the app asks you for</h2>
                     <p>nothing, when you open it. the app starts with every source off and none of the four below granted, and each source asks for its own permission at the moment you turn that source on. the audio screen asks about the microphone and nothing else.</p>
@@ -237,9 +237,9 @@ sha256sum -c SHA256SUMS</code></pre>
                     </details>
                     <p>there is no analytics or tracking code in this app. the source is linked below, and the build refuses the analytics and crash-reporting dependencies it names. what the app takes in goes to the journal you paired it with, on a computer you keep. reaching that journal from off your own network goes over the private network, and if that is the relay sol pbc runs rather than a network you run yourself, it passes encrypted bytes it cannot read. sol pbc does see your devices' network addresses, when they connected, and how much passed. your journal is always private, only yours.</p>
                     <nav class="links" aria-label="more">
-                <a href="/releases/android">what's new in this version →</a>
-                <a href="https://github.com/solpbc/solstone-android">source code on GitHub →</a>
-                <a href="/download">every other device →</a>
+                <a href="/releases/android">what's new in this version</a>
+                <a href="https://github.com/solpbc/solstone-android">source code on GitHub</a>
+                <a href="/download">every other device</a>
 
             </nav>
                 </div>
@@ -247,7 +247,7 @@ sha256sum -c SHA256SUMS</code></pre>
         </main>
 
         <footer class="site-footer">
-            <div class="glass">
+            <div class="footer-row">
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>

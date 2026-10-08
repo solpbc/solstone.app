@@ -299,12 +299,12 @@ test("renderReleasesPage renders sticky stream switcher across streams", () => {
   };
 
   for (const html of [journalHtml, macosHtml, linuxHtml]) {
-    const switcherIndex = html.indexOf('<nav class="stream-switch glass" aria-label="release streams">');
+    const switcherIndex = html.indexOf('<nav class="stream-switch" aria-label="release streams">');
     const leadIndex = html.indexOf('<span class="ss-lead">release notes for:</span>');
     const firstPillIndex = html.indexOf('class="ss-pill', leadIndex);
     const introIndex = html.indexOf('<div class="band-inner page-intro">');
     const introCloseIndex = html.indexOf("</div>", introIndex);
-    const sectionIndex = html.indexOf('<section class="band wrap glass releases"', switcherIndex);
+    const sectionIndex = html.indexOf('<section class="band wrap releases"', switcherIndex);
 
     assert.notEqual(switcherIndex, -1);
     assert.ok(leadIndex > switcherIndex);
@@ -510,7 +510,7 @@ test("renderReleasesPage renders the windows stream from its origin CHANGELOG.md
   assert.match(html, /class="rel-date"/);
   assert.match(html, /<h2 id="v0\.2\.0">the solstone app for windows 0\.2\.0<\/h2>/);
   // download permalink + the Windows pill marked active on its own page.
-  assert.match(html, /<a href="\/download\/windows" class="btn btn-primary btn-block-sm intro-dl">download the solstone app for windows →<\/a>/);
+  assert.match(html, /<a href="\/download\/windows" class="btn btn-primary btn-block-sm intro-dl">/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">windows app<\/span>/);
 
   // and the Windows pill renders as a link in the desktop trio on other streams.
@@ -545,11 +545,13 @@ test("renderReleasesPage renders the android stream from github releases with an
   // listing, as the App Store is on iOS. The signed APK on our own origin stays
   // as the second way in, linked from the intro, and the page no longer calls
   // the app a beta.
+  // A store listing is linked with the store's own badge, and the page carries its mark.
   assert.match(
     html,
-    /<a href="https:\/\/play\.google\.com\/store\/apps\/details\?id=app\.solstone\.observer\.phone" class="btn btn-primary btn-block-sm intro-dl">get it on Google Play →<\/a>/,
+    /<a href="https:\/\/play\.google\.com\/store\/apps\/details\?id=app\.solstone\.observer\.phone" class="store-badge intro-dl"><img src="\/static\/badge-google-play\.png/,
   );
-  assert.doesNotMatch(html, /class="btn btn-primary btn-block-sm intro-dl">download solstone for android/);
+  assert.match(html, /Google Play and the Google Play logo are trademarks of Google LLC\./);
+  assert.doesNotMatch(html, /intro-dl">download solstone for android/);
   assert.match(html, /so <a href="\/download\/android">its download page<\/a> is always where the current one is/);
   assert.doesNotMatch(html, /in beta/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">android app<\/span>/);
@@ -584,7 +586,7 @@ test("renderReleasesPage renders the ios stream from github releases with an act
   assert.doesNotMatch(html, /## \[0\.1\.1\]/);
   // The App Store is the one public way in on iPhone, so the intro's primary
   // link is the store listing (not TestFlight, not a download).
-  assert.match(html, /<a href="https:\/\/apps\.apple\.com\/app\/id6776850664" class="btn btn-primary btn-block-sm intro-dl">/);
+  assert.match(html, /<a href="https:\/\/apps\.apple\.com\/app\/id6776850664" class="store-badge intro-dl"><img src="\/static\/badge-app-store\.svg/);
   assert.doesNotMatch(html, /testflight\.apple\.com/);
   assert.match(html, /<span class="ss-pill ss-active" aria-current="page">iphone app<\/span>/);
 
