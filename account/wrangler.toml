@@ -158,9 +158,9 @@ STRIPE_PRICE_SME_ANNUAL = "price_1UJlcm3ew4P2jFrx8CtPttMM"
 # set (src/spp-service.js). All three stay empty until the launch: setting them is the launch.
 # SPP_PLAN_TERMS is what the plan includes and what happens when the owner reaches it, shown on
 # the price card and under the pay button at checkout; its words are the terms owner's.
-STRIPE_PRICE_SPP_ANNUAL = ""
-STRIPE_PRICE_SPP_MONTHLY = ""
-SPP_PLAN_TERMS = ""
+STRIPE_PRICE_SPP_ANNUAL = "price_1UONOW3ew4P2jFrxm23PVAAS"
+STRIPE_PRICE_SPP_MONTHLY = "price_1UONOV3ew4P2jFrxnkVXhNrh"
+SPP_PLAN_TERMS = "your plan covers one journal and every device paired with it, and it's sized for one computer and one phone. there's no usage limit right now. if we ever add one to a plan you already have, we tell you first, as section 9 of the terms says. past a limit, your processing slows or waits its turn, and that never ends your access before the end of the period you paid for. it works with an up-to-date journal."
 # Checkout collects the customer's agreement to the terms before any charge only when this is
 # exactly "required". Stripe refuses that field until a Terms of Service URL is set in the
 # Dashboard's public details, so set that first, then change this to "required" and deploy.
