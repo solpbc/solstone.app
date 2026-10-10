@@ -352,7 +352,16 @@ export function renderEnableSplDone() {
 }
 
 export function renderEnableSplNeedsSubscription() {
-  return enableNeedsSubscriptionTemplate({ service: 'private network', href: '/private-network' });
+  return layout({
+    title: 'a subscription is needed',
+    body: `${brandbar()}
+<div class="card" data-enable-state="needs-subscription">
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
+  <p>private network needs an active subscription before it can turn on. your consent is saved. subscribe, and your journal finishes turning it on by itself while it's still waiting, for up to an hour.</p>
+  <p>if your journal stopped waiting, turn private network on again from your journal once you've subscribed.</p>
+  <a class="btn primary" href="/private-network">subscribe</a>
+</div>`,
+  });
 }
 
 export function renderEnableSplError() {

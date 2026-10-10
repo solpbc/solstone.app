@@ -88,6 +88,9 @@ import { SPP_SUBSCRIBE_URL, sppOnSale } from './spp-service.js';
 
 const HANDOFF_POLL_MS = 1500;
 const HANDOFF_POLL_BUDGET_MS = 30_000;
+// How long a turn-on that is waiting for a subscription stays open. The journal keeps asking
+// for this long once it hears needs_subscription.
+const SUBSCRIBE_WAIT_MS = 60 * 60 * 1000;
 const ENABLE_SPL_PATH = '/enable/spl';
 const ENABLE_SPB_PATH = '/enable/backup';
 const ENABLE_SPP_PATH = '/enable/spp';
@@ -276,11 +279,15 @@ export async function handleEnableSplConfirm(req, env, ctx) {
   await reconcileSplEntitlement(env, session.account_id, nowMs, ctx);
   const entitlement = await getEntitlement(env.DB, { accountId: session.account_id, service: SPL_HOSTED_SERVICE });
   const entitled = isSplEntitled(entitlement);
+  // Not entitled yet: the consent is kept on a waiting handoff, and each time the journal asks
+  // the answer is worked out again, so a journal that keeps waiting finishes turning on by itself
+  // once the subscription is active. A journal that stops at its first answer reads the same
+  // needs_subscription it always has.
   const payload = entitled
     ? { service: 'spl', state: 'approved', approved_at: new Date(nowMs).toISOString() }
     : {
         service: 'spl',
-        state: 'needs_subscription',
+        state: 'awaiting_subscription',
         subscribe_url: `${new URL(req.url).origin}/private-network`,
       };
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
@@ -292,7 +299,7 @@ export async function handleEnableSplConfirm(req, env, ctx) {
       service: 'spl',
       payloadEncrypted,
       createdAt: nowMs,
-      expiresAt: nowMs + HANDOFF_TTL_MS,
+      expiresAt: nowMs + (entitled ? HANDOFF_TTL_MS : SUBSCRIBE_WAIT_MS),
     });
   } catch {
     return splError(503);
@@ -310,10 +317,17 @@ export async function handleHandoffSpl(req, env) {
   const started = Date.now();
   while (Date.now() - started <= HANDOFF_POLL_BUDGET_MS) {
     const nowMs = Date.now();
-    const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spl' });
-    if (consumed) {
-      const plaintext = await decryptEmail(consumed.payload_encrypted, env);
-      return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
+    const live = await peekServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spl' });
+    if (live) {
+      const payload = JSON.parse(await decryptEmail(live.payload_encrypted, env));
+      if (payload?.state === 'awaiting_subscription') {
+        return resolveWaitingSpl(env, { handoffHash, accountId: live.account_id, waiting: payload, nowMs });
+      }
+      const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spl' });
+      if (consumed) {
+        const plaintext = await decryptEmail(consumed.payload_encrypted, env);
+        return handoffJson(JSON.parse(plaintext), { headers: { Pragma: 'no-cache' } });
+      }
     }
 
     const status = await findServiceHandoffStatus(env.DB, { handoffHash, service: 'spl' });
@@ -326,6 +340,20 @@ export async function handleHandoffSpl(req, env) {
     await sleep(Math.min(HANDOFF_POLL_MS, HANDOFF_POLL_BUDGET_MS - elapsed));
   }
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+}
+
+// A waiting private-network turn-on, asked again. Not entitled yet: needs_subscription, and the
+// handoff stays open. Entitled now: the handoff is consumed (once, atomically) and approved. The
+// binding was made at consent, so the purchase's own reconcile has already granted it.
+async function resolveWaitingSpl(env, { handoffHash, accountId, waiting, nowMs }) {
+  const noCache = { headers: { Pragma: 'no-cache' } };
+  const entitlement = await getEntitlement(env.DB, { accountId, service: SPL_HOSTED_SERVICE });
+  if (!isSplEntitled(entitlement)) {
+    return handoffJson({ service: 'spl', state: 'needs_subscription', subscribe_url: waiting.subscribe_url }, noCache);
+  }
+  const consumed = await consumeServiceHandoff(env.DB, { handoffHash, nowMs, service: 'spl' });
+  if (!consumed) return handoffJson({ error: 'gone' }, { status: 410 });
+  return handoffJson({ service: 'spl', state: 'approved', approved_at: new Date(nowMs).toISOString() }, noCache);
 }
 
 export async function handleEnableSpbGet(req, env) {
@@ -691,9 +719,6 @@ export async function handleHandoffSpb(req, env) {
   return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
 }
 
-// How long a turn-on that is waiting for a subscription stays open. The journal keeps asking
-// for this long once it hears needs_subscription.
-const SPP_SUBSCRIBE_WAIT_MS = 60 * 60 * 1000;
 
 async function refuseSppToEarlyAccess({ env, nonce, accountId, instance, nowMs }) {
   const handoffHash = await hashServiceHandoffNonce(nonce, env);
@@ -855,7 +880,7 @@ export async function handleEnableSppConfirm(req, env, ctx) {
         possession_proved: proof.kind === 'supplied',
       },
       nowMs,
-      ttlMs: SPP_SUBSCRIBE_WAIT_MS,
+      ttlMs: SUBSCRIBE_WAIT_MS,
     });
     if (!inserted) return sppError(503);
     await insertSppMintAudit(env.DB, { accountId, instanceId: instance, scope: 'inference', outcome: 'refused_entitlement', nowMs });

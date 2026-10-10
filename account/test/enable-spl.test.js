@@ -184,7 +184,9 @@ describe('/enable/spl', () => {
     await expectNoSplHandoff({ testEnv, nonce: VALID_NONCE });
   });
 
-  it('writes a needs-subscription handoff with a binding and no relay push when unentitled', async () => {
+  // A journal that stops at its first answer (every journal published before the wait) reads
+  // exactly the needs_subscription it always has.
+  it('answers needs-subscription with a binding and no relay push when unentitled', async () => {
     const testEnv = makeTestEnv();
     const { calls } = installRelayFetchMock();
     const account = await seedAccount({ testEnv });
@@ -199,7 +201,7 @@ describe('/enable/spl', () => {
     const binding = await splBindingRow(account.accountId, VALID_INSTANCE);
 
     expect(response.status).toBe(200);
-    expect(body).toContain('set up private network');
+    expect(body).toContain('data-enable-state="needs-subscription"');
     expect(payload).toEqual({
       service: 'spl',
       state: 'needs_subscription',
@@ -213,6 +215,37 @@ describe('/enable/spl', () => {
       status: 'lapsed',
       source: 'comp',
     });
+  });
+
+  it('keeps an unentitled turn-on waiting and approves it once the subscription is active', async () => {
+    const testEnv = makeTestEnv();
+    installRelayFetchMock();
+    const account = await seedAccount({ testEnv });
+    const session = await seedSession(account.accountId, { testEnv });
+
+    const response = await worker.fetch(confirmRequest({
+      cookie: session.cookie,
+      extraForm: { instance: VALID_INSTANCE },
+    }), testEnv);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('finishes turning it on by itself');
+
+    const waiting = {
+      service: 'spl',
+      state: 'needs_subscription',
+      subscribe_url: 'https://services.solstone.app/private-network',
+    };
+    await expect(pollSplHandoff({ testEnv, nonce: VALID_NONCE })).resolves.toEqual(waiting);
+    await expect(pollSplHandoff({ testEnv, nonce: VALID_NONCE })).resolves.toEqual(waiting);
+
+    // The purchase lands (the billing webhook's reconcile writes the entitlement).
+    await seedEntitlement({ accountId: account.accountId, status: 'active', currentPeriodEnd: 1_900_000_000 });
+
+    const approved = await pollSplHandoff({ testEnv, nonce: VALID_NONCE });
+    expect(approved).toMatchObject({ service: 'spl', state: 'approved' });
+    expect(Object.keys(approved).sort()).toEqual(['approved_at', 'service', 'state']);
+    const gone = await worker.fetch(new Request(`https://services.solstone.app/handoff/spl?nonce=${VALID_NONCE}`), testEnv);
+    expect(gone.status).toBe(410);
   });
 
   it('writes an approved handoff and pushes an inline relay grant when entitled with an instance', async () => {
