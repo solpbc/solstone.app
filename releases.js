@@ -138,6 +138,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/phone">phone</a>
+                    <a href="/integrate">integrate</a>
                     <a href="https://services.solstone.app">services</a>
                     <a href="https://solpbc.org/privacy">privacy</a>
                     <a href="/releases">releases</a>

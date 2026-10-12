@@ -13,6 +13,7 @@ the project is maintained by sol pbc (https://solpbc.org), a colorado public ben
 ## Docs
 
 - [Get started](https://solstone.app/install): every platform, from installing your journal to connecting your agent
+- [Integrate](https://solstone.app/integrate): connecting an agent over MCP or building an integration: every tool, what the owner controls, sign-in, limits, and links to the MCP server source
 - [Install guide](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md): install guide for a coding agent and human working together
 - [README](https://github.com/solpbc/solstone-journal/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
 - [Downloads](https://solstone.app/download): every solstone download, with its version, size and how to check it, plus the App Store and Google Play links. tmux is a separate install.
