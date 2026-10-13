@@ -206,8 +206,8 @@ export const RELEASE_PAGE_CONFIGS = {
     intro:
       "these are the journal's own changes on mac: your journal, its window, and its updates.",
     primaryLink: { href: "/download/journal", text: "download the journal app for mac" },
-    sourceUrl: "https://github.com/solpbc/solstone-macos",
-    unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
+    sourceUrl: "https://github.com/solpbc/solstone-journal/tree/main/platforms/macos",
+    unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
     unavailableLabel: "see journal app releases on GitHub →",
     articleTitle: (version) => `the journal app for mac ${version}`,
     linkifyBundledJournal: true,
