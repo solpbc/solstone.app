@@ -90,7 +90,6 @@ describe('/enable/spp', () => {
     expect(body).toContain('<a href="/confidential-processing/data">the text and images that go to a model for processing</a>');
     expect(body).toContain('when the audio switch is on (its default), your audio recordings for transcription go too');
     expect(body).toContain('voiceprints and speaker profiles are never created on the service.');
-    expect(body).toContain("turn it off any time in the journal's thinking app, in the confidential lane, and speech becomes text on your device instead.");
     expect(body).toContain("if it can't verify, nothing is sent, including recordings waiting to transcribe, and the solstone app tells you why.");
     expect(body).not.toContain('local handoff');
     expect(body).toContain('<label class="ack">');
@@ -346,7 +345,7 @@ describe('/enable/spp', () => {
       instance_id: VALID_INSTANCE,
       token_hash: await hashWithPepper(payload.credential, testEnv),
       consent_acked_at: expect.any(Number),
-      consent_disclosure_version: 'spp-consent-v3-pattern',
+      consent_disclosure_version: 'spp-consent-v4-audio-return',
     });
     expect(binding.consent_acked_at).toBe(binding.last_seen_at);
     expect(JSON.stringify(binding)).not.toContain(payload.credential);

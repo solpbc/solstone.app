@@ -499,7 +499,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = fa
     <div class="n">2</div>
     <div>
       <div class="gt">what leaves your device</div>
-      <div class="gd">when confidential processing is on, <a href="/confidential-processing/data">the text and images that go to a model for processing</a> leave your device. when the audio switch is on (its default), your audio recordings for transcription go too. turn it off any time in the journal's thinking app, in the confidential lane, and speech becomes text on your device instead. your journal itself never leaves; it stays on your computer. voiceprints and speaker profiles are never created on the service. it's processed on a model sol pbc runs itself, with no third-party AI provider in the path: no content is retained, no human reviews it, nothing is used to train.</div>
+      <div class="gd">when confidential processing is on, <a href="/confidential-processing/data">the text and images that go to a model for processing</a> leave your device. when the audio switch is on (its default), your audio recordings for transcription go too. that holds even for a device whose audio you've turned off: its recordings start going the day you turn its audio back on. turn the switch off any time in the journal's thinking app, in the confidential lane, and speech becomes text on your device instead. your journal itself never leaves; it stays on your computer. voiceprints and speaker profiles are never created on the service. it's processed on a model sol pbc runs itself, with no third-party AI provider in the path: no content is retained, no human reviews it, nothing is used to train.</div>
     </div>
   </div>
   <div class="grant">

@@ -8,7 +8,8 @@ import { paidSignalFromRow } from './relay-grant.js';
 
 export const SPP_HOSTED_SERVICE = 'spp_hosted';
 // v3: turn-on-screens-one-pattern card text (adopted 2026-09-21 with operator approval).
-export const SPP_CONSENT_DISCLOSURE_VERSION = 'spp-consent-v3-pattern';
+// v4: the card also says the audio default covers recordings from a device whose audio was off.
+export const SPP_CONSENT_DISCLOSURE_VERSION = 'spp-consent-v4-audio-return';
 
 // A paid subscription keeps working through a failed payment for the same 14-day grace
 // encrypted backup and solstone.me use (RELAY_GRACE_DAYS), counted from the end of the paid
