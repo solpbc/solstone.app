@@ -12,6 +12,7 @@ import {
   readDnsRecordCeiling,
   solstoneMeDnsReady,
 } from '../src/solstone-me-dns.js';
+import { replaceMcpBridgePin } from '../src/db.js';
 import { installFakeSolstoneMeZone } from './fake-solstone-me-zone.js';
 import {
   fetchWithCtx,
@@ -554,6 +555,41 @@ describe('solstone.me DNS management & ACME pin', () => {
         'SELECT acme_account_replaced_at FROM mcp_bridge_bindings WHERE account_id = ?'
       ).bind(account.accountId).first();
       expect(binding.acme_account_replaced_at).toBeNull();
+    });
+
+    it('a replace that read an old pin since moved loses the compare-and-swap and leaves the newer pin', async () => {
+      const env = dnsEnv();
+      const home = await generateReachKeyPair();
+      const account = await seedBoundAccount(env, home.instanceId);
+      const first = await fetchBridge(await validDnsInput({
+        home,
+        claims: { acme_account_uri: VALID_ACME_URI_1 },
+      }), env);
+      expect(first.status).toBe(200);
+
+      const moved = await replaceMcpBridgePin(workerEnv.DB, {
+        accountId: account.accountId,
+        instanceId: home.instanceId,
+        newAccountUri: VALID_ACME_URI_2,
+        oldAccountUri: VALID_ACME_URI_1,
+        nowMs: 1_000,
+      });
+      expect(moved).toBe(true);
+
+      // A second replace still holding URI1 as the pin it read.
+      const stale = await replaceMcpBridgePin(workerEnv.DB, {
+        accountId: account.accountId,
+        instanceId: home.instanceId,
+        newAccountUri: VALID_STAGING_URI,
+        oldAccountUri: VALID_ACME_URI_1,
+        nowMs: 2_000,
+      });
+      expect(stale).toBe(false);
+      const binding = await workerEnv.DB.prepare(
+        'SELECT acme_account_uri, acme_account_replaced_at FROM mcp_bridge_bindings WHERE account_id = ?'
+      ).bind(account.accountId).first();
+      expect(binding.acme_account_uri).toBe(VALID_ACME_URI_2);
+      expect(binding.acme_account_replaced_at).toBe(1_000);
     });
 
     it('two concurrent first pins with different URIs and no replace claim return 200 and 409 with only 1 ledger row', async () => {
