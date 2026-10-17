@@ -329,8 +329,8 @@ async function active(accountId) {
 }
 
 function authorise(token) {
-  return new Request('https://services.solstone.app/internal/spp/authorize', {
-    method: 'POST', headers: { Authorization: 'Bearer test-spp-engine-auth-secret', 'X-Sol-Entitlement': token },
+  return new Request('https://services.solstone.app/spp/authorize', {
+    method: 'POST', headers: { 'X-Sol-Entitlement': token },
   });
 }
 

@@ -28,9 +28,9 @@ async function accepted(service, payload, testEnv) {
       headers: { Authorization: `Bearer ${payload.broker_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ scope: 'backup' }),
     })
-    : new Request(`${ORIGIN}/internal/spp/authorize`, {
+    : new Request(`${ORIGIN}/spp/authorize`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${testEnv.SPP_ENGINE_AUTH_SECRET}`, 'X-Sol-Entitlement': payload.credential },
+      headers: { 'X-Sol-Entitlement': payload.credential },
     });
   const response = await worker.fetch(request, testEnv, { waitUntil() {} });
   expect(response.status).toBe(service === 'spb' ? 200 : 204);

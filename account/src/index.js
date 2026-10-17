@@ -141,7 +141,7 @@ import { runAccountDeletionCoordinator } from './deletion-coordinator.js';
 import { runSolstoneMeOrphanDnsSweep } from './solstone-me-dns-sweep.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE, isSppEntitledToServe } from './spp-entitlement.js';
-import { handleSppAccess, handleSppAuthorize, handleSppAuthorizePublic } from './spp-authorize.js';
+import { handleSppAccess, handleSppAuthorizePublic } from './spp-authorize.js';
 import { clearSessionCookie, getSessionToken, getValidSession, sessionCookie } from './session.js';
 import {
   handleRemovePasskey,
@@ -602,17 +602,7 @@ async function routeRequest(req, env, ctx) {
         return handleSmePortal(req, env);
       }
 
-      if (
-        parts.length === 4 &&
-        parts[1] === 'internal' &&
-        parts[2] === 'spp' &&
-        parts[3] === 'authorize' &&
-        req.method === 'POST'
-      ) {
-        return handleSppAuthorize(req, env);
-      }
-
-      // G3 / Shape C: additive, sealed-appliance-only route — no engine bearer required.
+      // G3 / Shape C: the engine's entitlement check — no engine bearer required.
       // See handleSppAuthorizePublic's own doc comment in spp-authorize.js.
       if (
         parts.length === 3 &&

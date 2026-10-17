@@ -8,7 +8,10 @@ import { makeFakeRateLimit, makeTestEnv, resetDb, seedAccount, seedEntitlement }
 const TOKEN = 'portal-issued-spp-token';
 const INSTANCE_ID = '11111111-1111-1111-1111-111111111111';
 
-describe('POST /internal/spp/authorize', () => {
+// The owner-credential predicate, reached through the engine's one authorize route. These
+// cases moved here from the bearer-gated /internal/spp/authorize route when it was retired
+// (cso-21, 2026-10-17), so the predicate keeps its coverage.
+describe('POST /spp/authorize owner-credential predicate', () => {
   beforeEach(async () => {
     await resetDb();
   });
@@ -25,15 +28,13 @@ describe('POST /internal/spp/authorize', () => {
   });
 
   it.each([
-    ['missing engine credential', {}, ''],
-    ['wrong engine credential', { Authorization: 'Bearer wrong-engine' }, TOKEN],
-    ['missing entitlement credential', engineHeaders(), ''],
-    ['unknown entitlement credential', engineHeaders(), 'unknown-token'],
-  ])('fails closed for %s', async (_label, headers, token) => {
+    ['missing entitlement credential', ''],
+    ['unknown entitlement credential', 'unknown-token'],
+  ])('fails closed for %s', async (_label, token) => {
     const testEnv = makeTestEnv();
     await seedActiveBinding(testEnv);
 
-    const response = await authorize(testEnv, { headers, token });
+    const response = await authorize(testEnv, { token });
 
     expect(response.status).toBe(401);
     expect(await response.text()).toBe('');
@@ -63,7 +64,7 @@ describe('POST /internal/spp/authorize', () => {
     expect(response.status).toBe(503);
     expect(await response.text()).toBe('');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(lines).toEqual([['spp_authorize_failed', 'Error', 'd1', 'network_lost']]);
+    expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'd1', 'network_lost']]);
     // the entitlement credential must never reach the log
     expect(JSON.stringify(lines)).not.toContain(TOKEN);
   });
@@ -85,12 +86,12 @@ describe('POST /internal/spp/authorize', () => {
     ['D1_ERROR: something nobody has seen yet', 'unclassified'],
   ])('classifies "%s" as %s', async (message, reason) => {
     const { lines } = await captureFailure(message);
-    expect(lines).toEqual([['spp_authorize_failed', 'Error', 'd1', reason]]);
+    expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'd1', reason]]);
   });
 
   it('reports a non-D1 throw as other, with no reason token', async () => {
     const { lines } = await captureFailure('cannot read property of undefined');
-    expect(lines).toEqual([['spp_authorize_failed', 'Error', 'other', 'n/a']]);
+    expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'other', 'n/a']]);
   });
 
   // The whole point of emitting fixed constants rather than any slice of the raw
@@ -102,7 +103,7 @@ describe('POST /internal/spp/authorize', () => {
       `D1_ERROR: no such table: spp_bindings near "${tokenHash}" and ${TOKEN}`
     );
 
-    expect(lines).toEqual([['spp_authorize_failed', 'Error', 'd1', 'schema']]);
+    expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'd1', 'schema']]);
     const serialized = JSON.stringify(lines);
     expect(serialized).not.toContain(tokenHash);
     expect(serialized).not.toContain(TOKEN);
@@ -148,7 +149,7 @@ describe('POST /internal/spp/authorize', () => {
     const { lines, response } = await captureFailure('D1_ERROR: Network connection lost.');
 
     expect(response.status).toBe(503);
-    expect(lines).toEqual([['spp_authorize_failed', 'Error', 'd1', 'network_lost']]);
+    expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'd1', 'network_lost']]);
   });
 
   it.each([
@@ -230,34 +231,7 @@ describe('POST /spp/authorize (G3 Shape C, no engine bearer)', () => {
     expect(response.status).toBe(204);
   });
 
-  it('fails closed for a missing or unknown entitlement credential, same as the internal route', async () => {
-    const testEnv = makeTestEnv();
-    await seedActiveBinding(testEnv);
-
-    const missing = await authorizePublic(testEnv, { token: '' });
-    expect(missing.status).toBe(401);
-
-    const unknown = await authorizePublic(testEnv, { token: 'unknown-token' });
-    expect(unknown.status).toBe(401);
-  });
-
-  it('rejects a real binding whose entitlement is no longer active', async () => {
-    const testEnv = makeTestEnv();
-    const account = await seedActiveBinding(testEnv);
-    await seedEntitlement({
-      accountId: account.accountId,
-      service: 'spp_hosted',
-      status: 'lapsed',
-      source: 'comp',
-      currentPeriodEnd: null,
-    });
-
-    const response = await authorizePublic(testEnv);
-
-    expect(response.status).toBe(401);
-  });
-
-  it('uses event names distinct from the internal route, so the two are never confused in logs', async () => {
+  it('logs a refusal under the public route\'s own bounded event name', async () => {
     const testEnv = makeTestEnv();
     await seedActiveBinding(testEnv);
     const lines = [];
@@ -271,29 +245,6 @@ describe('POST /spp/authorize (G3 Shape C, no engine bearer)', () => {
     }
 
     expect(lines).toEqual([['spp_authorize_public_refused_entitlement']]);
-  });
-
-  it('fails closed with 503 and a bounded reason code when the entitlement lookup throws', async () => {
-    const testEnv = makeTestEnv({
-      DB: {
-        prepare() {
-          throw Object.assign(new Error('D1_ERROR: Network connection lost.'), { name: 'Error' });
-        },
-      },
-    });
-    const lines = [];
-    const realError = console.error;
-    console.error = (...args) => lines.push(args);
-
-    let response;
-    try {
-      response = await authorizePublic(testEnv);
-    } finally {
-      console.error = realError;
-    }
-
-    expect(response.status).toBe(503);
-    expect(lines).toEqual([['spp_authorize_public_failed', 'Error', 'd1', 'network_lost']]);
   });
 });
 
@@ -423,19 +374,41 @@ describe('POST /spp/authorize two-tier rate limit', () => {
   ])('keys %s as %s on the ordinary tier', (ip, key) => {
     expect(publicLimitKey(ip)).toBe(key);
   });
+});
 
-  it('leaves the internal route unlimited by the worker tiers', async () => {
-    const testEnv = makeTestEnv({ SPP_AUTHORIZE_PUBLIC_LIMIT: makeFakeRateLimit(0) });
-    await seedActiveBinding(testEnv);
+// cso-21 (2026-10-17): the bearer-gated engine route and its SPP_ENGINE_AUTH_SECRET are
+// retired. The old path falls through to the router's not-found page, even with the old
+// bearer and a live owner credential, and never reaches the predicate.
+describe('POST /internal/spp/authorize (retired)', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
 
-    const response = await authorize(testEnv);
+  it('answers the not-found page, not a 401, and never reads D1', async () => {
+    let prepared = 0;
+    const testEnv = makeTestEnv({
+      DB: {
+        prepare() {
+          prepared += 1;
+          throw new Error('D1 must not be reached');
+        },
+      },
+    });
+    const response = await worker.fetch(
+      new Request('https://services.solstone.app/internal/spp/authorize', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-spp-engine-auth-secret', 'X-Sol-Entitlement': TOKEN },
+      }),
+      testEnv
+    );
 
-    expect(response.status).toBe(204);
-    expect(testEnv.SPP_AUTHORIZE_PUBLIC_LIMIT.calls).toHaveLength(0);
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(prepared).toBe(0);
   });
 });
 
-// Drives one authorize call whose first D1 read throws `message`, and returns the
+// Drives one public authorize call whose first D1 read throws `message`, and returns the
 // console.error lines it produced alongside the response.
 async function captureFailure(message) {
   const testEnv = makeTestEnv({
@@ -494,20 +467,8 @@ async function seedActiveBinding(testEnv) {
   return account;
 }
 
-function engineHeaders() {
-  return { Authorization: 'Bearer test-spp-engine-auth-secret' };
-}
-
-function authorize(testEnv, { headers = engineHeaders(), token = TOKEN } = {}) {
-  const requestHeaders = new Headers(headers);
-  if (token) requestHeaders.set('X-Sol-Entitlement', token);
-  return worker.fetch(
-    new Request('https://services.solstone.app/internal/spp/authorize', {
-      method: 'POST',
-      headers: requestHeaders,
-    }),
-    testEnv
-  );
+function authorize(testEnv, { token = TOKEN } = {}) {
+  return authorizePublic(testEnv, { token });
 }
 
 function authorizePublic(testEnv, { headers = {}, token = TOKEN } = {}) {

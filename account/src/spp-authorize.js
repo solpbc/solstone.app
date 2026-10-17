@@ -73,34 +73,12 @@ async function withD1RetryOnce(read) {
   }
 }
 
-export async function handleSppAuthorize(req, env) {
-  try {
-    const expected = env.SPP_ENGINE_AUTH_SECRET || '';
-    const serviceCredential = bearer(req.headers.get('Authorization'));
-    if (!expected || !(await fixedLengthSecretEqual(serviceCredential, expected))) {
-      console.warn('spp_authorize_refused_service');
-      return empty(401);
-    }
-
-    return await authorizeByOwnerCredential(req, env, {
-      refused: 'spp_authorize_refused_entitlement',
-      refusedDeletion: 'spp_authorize_refused_deletion',
-      failed: 'spp_authorize_failed',
-    });
-  } catch (err) {
-    return failed(err, 'spp_authorize_failed');
-  }
-}
-
-// G3 / Shape C (security-reviewed 2026-09-22: the sealed engine carries no portal
-// credential): the sealed appliance publishes no engine-side secret, so the engine
-// cannot present one. This route runs the identical owner-credential predicate as
-// handleSppAuthorize above with NO service-bearer check at all — reachable by anyone, exactly
-// like curling it with the real engine's own bearer already was in practice (the bearer never
-// protected an owner; only X-Sol-Entitlement does). It is additive: the sealed appliance's
-// gateway is the only intended caller, spp-engine-01 keeps using /internal/spp/authorize
-// unchanged until the operator-approved cutover, and this route uses distinct event names so its
-// traffic is never confused with the internal route's in logs or alerting.
+// The confidential-processing engine's entitlement check (G3 / Shape C, security-reviewed
+// 2026-09-22: the sealed engine carries no portal credential). It runs the owner-credential
+// predicate with no service-bearer check at all, because the sealed appliance publishes no
+// engine-side secret to present; only X-Sol-Entitlement ever protected an owner. The
+// bearer-gated /internal/spp/authorize route and its SPP_ENGINE_AUTH_SECRET were retired
+// 2026-10-17 (cso-21), after spp-engine-01, their only caller, was deleted on 2026-10-09.
 export async function handleSppAuthorizePublic(req, env) {
   try {
     const admitted = await admitByCallerTier(req, env);
@@ -239,24 +217,6 @@ function failed(err, eventName) {
   const reason = kind === 'd1' ? d1Reason(message) : 'n/a';
   console.error(eventName, name, kind, reason);
   return empty(503);
-}
-
-function bearer(value) {
-  const match = (value || '').match(/^Bearer ([^\s]+)$/i);
-  return match?.[1] || '';
-}
-
-async function fixedLengthSecretEqual(provided, expected) {
-  const encoder = new TextEncoder();
-  const [providedHash, expectedHash] = await Promise.all([
-    crypto.subtle.digest('SHA-256', encoder.encode(provided)),
-    crypto.subtle.digest('SHA-256', encoder.encode(expected)),
-  ]);
-  const left = new Uint8Array(providedHash);
-  const right = new Uint8Array(expectedHash);
-  let mismatch = 0;
-  for (let i = 0; i < left.length; i++) mismatch |= left[i] ^ right[i];
-  return mismatch === 0;
 }
 
 function empty(status) {
