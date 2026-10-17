@@ -170,7 +170,7 @@ sha256sum -c SHA256SUMS</code></pre>
             <section class="band wrap" aria-labelledby="asks-title">
                 <div class="band-inner">
                     <h2 id="asks-title">what the app asks you for</h2>
-                    <p>nothing, when you open it. the app starts with every source off and none of the four below granted, and each source asks for its own permission at the moment you turn that source on. the audio screen asks about the microphone and nothing else.</p>
+                    <p>nothing, when you open it. the app starts with every source off, and each source asks for its own permission at the moment you turn that source on. the audio screen asks about the microphone, not the camera or location.</p>
             <p>there are four of these, and android asks you about them one at a time:</p>
 
             <table>
@@ -188,14 +188,15 @@ sha256sum -c SHA256SUMS</code></pre>
                     </tr>
                     <tr>
                         <td>approximate location<span class="sysname">ACCESS_COARSE_LOCATION</span></td>
-                        <td>so a place can sit alongside what the app takes in, in your journal. android's dialog offers you <em>approximate</em> and no precise option, because the app never asks for precise.</td>
+                        <td>so a place can sit alongside what the app takes in, in your journal. the app asks only for approximate location, never precise.</td>
                     </tr>
                     <tr>
                         <td>notifications<span class="sysname">POST_NOTIFICATIONS</span></td>
-                        <td>so you can see the ongoing notice while a source is on, and hear about it when one stops. say no and the sources keep running; you lose the notices, and you can turn them on later in settings.</td>
+                        <td>so you can see the ongoing notice while a source is on, and hear about it when one stops. say no and the sources keep running; you lose the notices, and you can turn them on later in settings. android 12 and earlier doesn't ask, and allows them from install.</td>
                     </tr>
                 </tbody>
             </table>
+            <p>the screen source isn't on that list. android asks about it separately when you turn it on. after your phone restarts, it stays off until you turn it on again.</p>
                     <details>
                         <summary>the ones android grants at install, without asking</summary>
                         <div class="detail-body"><p>android grants these when the app installs. it does not ask about them, because none of them reaches anything private on its own.</p>
@@ -210,16 +211,16 @@ sha256sum -c SHA256SUMS</code></pre>
                         <td>to reach the journal you paired with, and to tell a network that's gone from a journal that's gone.</td>
                     </tr>
                     <tr>
-                        <td>ongoing work<span class="sysname">FOREGROUND_SERVICE · _MICROPHONE · _LOCATION · _CAMERA</span></td>
-                        <td>android makes an app declare what kind of work it keeps doing while you are in another app. these four are that declaration, and they grant nothing. the four permissions above are still the gate.</td>
+                        <td>ongoing work<span class="sysname">FOREGROUND_SERVICE · _MICROPHONE · _LOCATION · _CAMERA · _MEDIA_PROJECTION</span></td>
+                        <td>android makes an app declare what kind of work it keeps doing while you are in another app. these five are that declaration, and they grant nothing. microphone, camera and location, and android's question when you turn the screen source on, are still the gate.</td>
                     </tr>
                     <tr>
                         <td>keep the notice visible<span class="sysname">POST_PROMOTED_NOTIFICATIONS</span></td>
                         <td>so the notice saying a source is on stays where you can see it rather than collapsing out of the way.</td>
                     </tr>
                     <tr>
-                        <td>start again after a restart<span class="sysname">RECEIVE_BOOT_COMPLETED</span></td>
-                        <td>so a source you left on is on again after you restart your phone, instead of quietly not running.</td>
+                        <td>a reminder after a restart<span class="sysname">RECEIVE_BOOT_COMPLETED</span></td>
+                        <td>so the app can remind you, after you restart your phone, that a source you left on is waiting. opening the app starts it again.</td>
                     </tr>
                     <tr>
                         <td>keep the phone awake<span class="sysname">WAKE_LOCK</span></td>
