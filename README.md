@@ -21,3 +21,5 @@ public/          static assets served by CF Workers
 ├── index.html   landing page
 └── static/      styles, fonts, the mark, app icons and the share card
 ```
+
+See [changes](CHANGELOG.md) for site updates.
