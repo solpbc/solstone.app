@@ -5,7 +5,7 @@
 
 # Solstone POSIX Platform Installer
 
-INSTALLER_REVISION=8
+INSTALLER_REVISION=10
 EMBEDDED_MIN_INSTALLER_REVISION=8
 TEST_SEAM=0
 
@@ -223,87 +223,225 @@ parse_archive_identity() {
     esac
 }
 
-handle_install_pkg() {
-    pkg_type="$1"
-    archive_path="$2"
-    validate_path "$archive_path"
+preflight_package_archive() {
+    ppa_type="$1"
+    ppa_path="$2"
+    validate_path "$ppa_path"
 
-    if [ ! -f "$archive_path" ]; then
-        echo "ERROR:archive-missing" >&2
-        exit 1
+    if [ ! -f "$ppa_path" ]; then
+        echo "ERROR:archive-missing ${ppa_path##*/}"
+        return 1
     fi
 
-    if ! pkg_identity=$(parse_archive_identity "$pkg_type" "$archive_path"); then
-        echo "ERROR:install-failed"
+    if ! ppa_identity=$(parse_archive_identity "$ppa_type" "$ppa_path"); then
+        echo "ERROR:archive-unparseable ${ppa_path##*/}"
         return 1
     fi
     # Deliberate whitespace split of three identity fields; pathname expansion is disabled.
     # shellcheck disable=SC2086
-    set -- $pkg_identity
+    set -- $ppa_identity
     if [ $# -ne 3 ]; then
-        echo "ERROR:install-failed"
+        echo "ERROR:archive-unparseable ${ppa_path##*/}"
         return 1
     fi
+    PKG_ARCHIVE_NAME="$1"
+    PKG_ARCHIVE_VERSION="$2"
+    PKG_ARCHIVE_ARCH="$3"
+    validate_name "$PKG_ARCHIVE_NAME"
+}
+
+resolve_rpm_action() {
     pkg_name="$1"
-    pkg_version="$2"
-    pkg_arch="$3"
-    validate_name "$pkg_name"
-
-    if [ -n "$FAKE_PKG_DB" ] && [ -d "$FAKE_PKG_DB" ]; then
-        mkdir -p "${FAKE_PKG_DB}/${pkg_type}"
-        printf 'INSTALLED %s %s %s\n' "$pkg_name" "$pkg_version" "$pkg_arch" > "${FAKE_PKG_DB}/${pkg_type}/${pkg_name}"
-        if [ "$pkg_name" = "solstone-journal" ] && [ -n "$FAKE_ROOT" ]; then
-            if [ -z "$FAKE_JOURNAL_LAUNCHER" ] || [ ! -x "$FAKE_JOURNAL_LAUNCHER" ]; then
-                echo "ERROR:install-failed"
-                return 1
-            fi
-            fake_journal_dir="${FAKE_ROOT}/usr/bin"
-            if [ -L "$FAKE_ROOT" ] || [ -L "$fake_journal_dir" ] || [ -L "${fake_journal_dir}/journal" ]; then
-                echo "ERROR:install-failed"
-                return 1
-            fi
-            mkdir -p "$fake_journal_dir"
-            cp "$FAKE_JOURNAL_LAUNCHER" "${fake_journal_dir}/journal"
-            chmod 0755 "${fake_journal_dir}/journal"
+    target_identity="$2"
+    if ! existing_identity=$(handle_query_pkg rpm "$pkg_name"); then
+        if [ -n "$existing_identity" ]; then
+            printf '%s\n' "$existing_identity"
+        else
+            echo "ERROR:query-failed"
         fi
-        echo "$archive_path" >> "${FAKE_PKG_DB}/install.log"
-        if ! installed_identity=$(handle_query_pkg "$pkg_type" "$pkg_name"); then
-            echo "ERROR:install-failed"
-            return 1
-        fi
-        if [ "$installed_identity" != "INSTALLED $pkg_name $pkg_version $pkg_arch" ]; then
-            echo "ERROR:install-failed"
-            return 1
-        fi
-        echo "OK"
-        return 0
-    fi
-
-    if [ "$pkg_type" = "deb" ]; then
-        if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall --no-remove "$archive_path" >&2; then
-            echo "ERROR:install-failed"
-            return 1
-        fi
-    elif [ "$pkg_type" = "rpm" ]; then
-        rpm_action=install
-        existing_identity=$(handle_query_pkg rpm "$pkg_name") || return 1
-        if [ "$existing_identity" = "INSTALLED $pkg_name $pkg_version $pkg_arch" ]; then
-            rpm_action=reinstall
-        fi
-        # The installer verified this local artifact; repository dependency checks remain enabled.
-        if ! dnf -y --setopt=localpkg_gpgcheck=False "$rpm_action" "$archive_path" >&2; then
-            echo "ERROR:install-failed"
-            return 1
-        fi
-    else
-        echo "ERROR:unsupported-pkg-type"
         return 1
     fi
-    if ! installed_identity=$(handle_query_pkg "$pkg_type" "$pkg_name"); then
+    if [ "$existing_identity" = "$target_identity" ]; then
+        RESOLVED_ACTION="reinstall"
+    else
+        RESOLVED_ACTION="install"
+    fi
+    return 0
+}
+
+package_manager_command() {
+    pmc_mode="$1"
+    pmc_type="$2"
+    pmc_action="$3"
+    pmc_path="$4"
+    case "$pmc_type" in
+        deb)
+            if [ "$pmc_action" != "reinstall" ]; then
+                echo "ERROR:plan-invalid"
+                return 1
+            fi
+            set -- apt-get install -y --reinstall --no-remove "$pmc_path"
+            if [ "$pmc_mode" = "plan" ]; then
+                printf 'DEBIAN_FRONTEND=noninteractive %s %s %s %s %s %s\n' "$1" "$2" "$3" "$4" "$5" "$6"
+                return 0
+            elif [ "$pmc_mode" = "exec" ]; then
+                DEBIAN_FRONTEND=noninteractive "$@" >&2
+                return $?
+            fi
+            ;;
+        rpm)
+            case "$pmc_action" in
+                install|reinstall) ;;
+                *)
+                    echo "ERROR:plan-invalid"
+                    return 1
+                    ;;
+            esac
+            set -- dnf -y --setopt=localpkg_gpgcheck=False "$pmc_action" "$pmc_path"
+            if [ "$pmc_mode" = "plan" ]; then
+                printf '%s %s %s %s %s\n' "$1" "$2" "$3" "$4" "$5"
+                return 0
+            elif [ "$pmc_mode" = "exec" ]; then
+                "$@" >&2
+                return $?
+            fi
+            ;;
+        *)
+            echo "ERROR:plan-invalid"
+            return 1
+            ;;
+    esac
+}
+
+handle_fake_db_install() {
+    hf_type="$1"
+    hf_path="$2"
+    hf_name="$3"
+    hf_version="$4"
+    hf_arch="$5"
+    mkdir -p "${FAKE_PKG_DB}/${hf_type}"
+    printf 'INSTALLED %s %s %s\n' "$hf_name" "$hf_version" "$hf_arch" > "${FAKE_PKG_DB}/${hf_type}/${hf_name}"
+    if [ "$hf_name" = "solstone-journal" ] && [ -n "$FAKE_ROOT" ]; then
+        if [ -z "$FAKE_JOURNAL_LAUNCHER" ] || [ ! -x "$FAKE_JOURNAL_LAUNCHER" ]; then
+            echo "ERROR:install-failed"
+            return 1
+        fi
+        fake_journal_dir="${FAKE_ROOT}/usr/bin"
+        if [ -L "$FAKE_ROOT" ] || [ -L "$fake_journal_dir" ] || [ -L "${fake_journal_dir}/journal" ]; then
+            echo "ERROR:install-failed"
+            return 1
+        fi
+        mkdir -p "$fake_journal_dir"
+        cp "$FAKE_JOURNAL_LAUNCHER" "${fake_journal_dir}/journal"
+        chmod 0755 "${fake_journal_dir}/journal"
+    fi
+    echo "$hf_path" >> "${FAKE_PKG_DB}/install.log"
+    if ! installed_identity=$(handle_query_pkg "$hf_type" "$hf_name"); then
         echo "ERROR:install-failed"
         return 1
     fi
-    if [ "$installed_identity" != "INSTALLED $pkg_name $pkg_version $pkg_arch" ]; then
+    if [ "$installed_identity" != "INSTALLED $hf_name $hf_version $hf_arch" ]; then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    echo "OK"
+    return 0
+}
+
+handle_plan_pkg() {
+    hpp_type="$1"
+    hpp_path="$2"
+    preflight_package_archive "$hpp_type" "$hpp_path" || return 1
+    case "$hpp_type" in
+        deb)
+            hpp_action="reinstall"
+            ;;
+        rpm)
+            resolve_rpm_action "$PKG_ARCHIVE_NAME" "INSTALLED $PKG_ARCHIVE_NAME $PKG_ARCHIVE_VERSION $PKG_ARCHIVE_ARCH" || return 1
+            hpp_action="$RESOLVED_ACTION"
+            ;;
+        *)
+            echo "ERROR:unsupported-pkg-type"
+            return 1
+            ;;
+    esac
+    if ! plan_display=$(package_manager_command plan "$hpp_type" "$hpp_action" "$hpp_path"); then
+        return 1
+    fi
+    printf 'PLAN %s %s %s %s\n' "$hpp_type" "$hpp_action" "$hpp_path" "$plan_display"
+}
+
+handle_apply_pkg() {
+    hap_type="$1"
+    hap_path="$2"
+    hap_action="$3"
+    preflight_package_archive "$hap_type" "$hap_path" || return 1
+    case "$hap_type" in
+        deb)
+            current_action="reinstall"
+            ;;
+        rpm)
+            resolve_rpm_action "$PKG_ARCHIVE_NAME" "INSTALLED $PKG_ARCHIVE_NAME $PKG_ARCHIVE_VERSION $PKG_ARCHIVE_ARCH" || return 1
+            current_action="$RESOLVED_ACTION"
+            ;;
+        *)
+            echo "ERROR:unsupported-pkg-type"
+            return 1
+            ;;
+    esac
+    if [ "$current_action" != "$hap_action" ]; then
+        echo "ERROR:stale-plan"
+        return 1
+    fi
+    if [ -n "$FAKE_PKG_DB" ] && [ -d "$FAKE_PKG_DB" ]; then
+        handle_fake_db_install "$hap_type" "$hap_path" "$PKG_ARCHIVE_NAME" "$PKG_ARCHIVE_VERSION" "$PKG_ARCHIVE_ARCH"
+        return $?
+    fi
+    if ! package_manager_command exec "$hap_type" "$hap_action" "$hap_path"; then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    if ! installed_identity=$(handle_query_pkg "$hap_type" "$PKG_ARCHIVE_NAME"); then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    if [ "$installed_identity" != "INSTALLED $PKG_ARCHIVE_NAME $PKG_ARCHIVE_VERSION $PKG_ARCHIVE_ARCH" ]; then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    echo "OK"
+}
+
+handle_install_pkg() {
+    hip_type="$1"
+    hip_path="$2"
+    preflight_package_archive "$hip_type" "$hip_path" || return 1
+    case "$hip_type" in
+        deb)
+            hip_action="reinstall"
+            ;;
+        rpm)
+            resolve_rpm_action "$PKG_ARCHIVE_NAME" "INSTALLED $PKG_ARCHIVE_NAME $PKG_ARCHIVE_VERSION $PKG_ARCHIVE_ARCH" || return 1
+            hip_action="$RESOLVED_ACTION"
+            ;;
+        *)
+            echo "ERROR:unsupported-pkg-type"
+            return 1
+            ;;
+    esac
+    if [ -n "$FAKE_PKG_DB" ] && [ -d "$FAKE_PKG_DB" ]; then
+        handle_fake_db_install "$hip_type" "$hip_path" "$PKG_ARCHIVE_NAME" "$PKG_ARCHIVE_VERSION" "$PKG_ARCHIVE_ARCH"
+        return $?
+    fi
+    if ! package_manager_command exec "$hip_type" "$hip_action" "$hip_path"; then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    if ! installed_identity=$(handle_query_pkg "$hip_type" "$PKG_ARCHIVE_NAME"); then
+        echo "ERROR:install-failed"
+        return 1
+    fi
+    if [ "$installed_identity" != "INSTALLED $PKG_ARCHIVE_NAME $PKG_ARCHIVE_VERSION $PKG_ARCHIVE_ARCH" ]; then
         echo "ERROR:install-failed"
         return 1
     fi
@@ -434,6 +572,41 @@ while IFS= read -r line || [ -n "$line" ]; do
                 exit 1
             fi
             handle_install_pkg "$2" "$3"
+            ;;
+        PLAN_PKG)
+            if [ $# -ne 3 ]; then
+                echo "ERROR:invalid-plan-operands" >&2
+                exit 1
+            fi
+            handle_plan_pkg "$2" "$3"
+            ;;
+        APPLY_PKG)
+            if [ $# -ne 4 ]; then
+                echo "ERROR:invalid-apply-operands" >&2
+                exit 1
+            fi
+            case "$2" in
+                deb)
+                    if [ "$4" != "reinstall" ]; then
+                        echo "ERROR:invalid-apply-operands" >&2
+                        exit 1
+                    fi
+                    ;;
+                rpm)
+                    case "$4" in
+                        install|reinstall) ;;
+                        *)
+                            echo "ERROR:invalid-apply-operands" >&2
+                            exit 1
+                            ;;
+                    esac
+                    ;;
+                *)
+                    echo "ERROR:invalid-apply-operands" >&2
+                    exit 1
+                    ;;
+            esac
+            handle_apply_pkg "$2" "$3" "$4"
             ;;
         REMOVE_PKG)
             if [ $# -ne 3 ]; then
@@ -648,10 +821,18 @@ install_hint() {
 	_hint_file=${2:-/etc/os-release}
 	_hint_id=
 	_hint_like=
+	_hint_version=
 	if [ -r "$_hint_file" ]; then
 		_hint_id=$(awk -F= '$1 == "ID" {gsub(/^"|"$/, "", $2); print $2; exit}' "$_hint_file")
 		_hint_like=$(awk -F= '$1 == "ID_LIKE" {gsub(/^"|"$/, "", $2); print $2; exit}' "$_hint_file")
+		_hint_version=$(awk -F= '$1 == "VERSION_ID" {gsub(/^"|"$/, "", $2); print $2; exit}' "$_hint_file")
 	fi
+	case "${_hint_id}:${_hint_version}:${_hint_pkg}" in
+	ubuntu:22.04:minisign)
+		printf '%s' 'install minisign from https://jedisct1.github.io/minisign/'
+		return
+		;;
+	esac
 	case " ${_hint_id} " in
 	" fedora ") _hint_family=fedora ;;
 	" rhel ") _hint_family=rhel ;;
@@ -691,6 +872,7 @@ OPT_PREFIX="${HOME}/.local"
 OPT_ORIGIN="${DEFAULT_ORIGIN}"
 OPT_DRY_RUN=0
 OPT_NON_INTERACTIVE=0
+OPT_CONFIRM_PACKAGE_COMMAND=0
 OPT_YES=0
 OPT_NO_START=0
 OPT_NO_PATH=0
@@ -1664,7 +1846,7 @@ fetch_file_with_redirect_check() {
     rm -f "$hdr_file"
 
     if [ "$FETCH_TOOL" = "curl" ]; then
-        http_code=$(curl -q -s -S --connect-timeout 10 --max-time 120 --retry 0 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$src_url" 2>/dev/null) || http_code="000"
+        http_code=$(curl -q -s -S --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 1 --retry-max-time 30 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$src_url" 2>/dev/null) || http_code="000"
         if [ "$http_code" = "200" ]; then
             rm -f "$hdr_file"
             if [ -n "$max_bytes" ]; then
@@ -1684,7 +1866,7 @@ fetch_file_with_redirect_check() {
                 report_exit "refusal" "redirect-refused" "Redirect scheme or authority change forbidden"
             fi
 
-            hop2_code=$(curl -q -s -S --connect-timeout 10 --max-time 120 --retry 0 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$loc" 2>/dev/null) || hop2_code="000"
+            hop2_code=$(curl -q -s -S --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 1 --retry-max-time 30 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$loc" 2>/dev/null) || hop2_code="000"
             rm -f "$hdr_file"
             if [ "$hop2_code" = "200" ]; then
                 if [ -n "$max_bytes" ]; then
@@ -1700,7 +1882,7 @@ fetch_file_with_redirect_check() {
             report_exit "refusal" "fetch-failed" "HTTP status $http_code from $src_url"
         fi
     elif [ "$FETCH_TOOL" = "wget" ]; then
-        if ! wget --no-config --tries=1 --connect-timeout=10 --timeout=120 --max-redirect=0 -q -O "$dest_path" "$src_url" 2>/dev/null; then
+        if ! wget --no-config --tries=3 --waitretry=1 --retry-on-http-error=500,502,503,504 --connect-timeout=10 --timeout=120 --max-redirect=0 -q -O "$dest_path" "$src_url" 2>/dev/null; then
             report_exit "refusal" "fetch-failed" "Failed to download $src_url"
         fi
         if [ -n "$max_bytes" ]; then
@@ -2583,13 +2765,11 @@ acquire_installer_locks() {
 
 interactive_selection_menu() {
     if [ "$OPT_NON_INTERACTIVE" -eq 1 ] || [ "$OPT_JSON" -eq 1 ]; then
-        OPT_COMPONENTS="journal"
-        return 0
+        report_exit refusal no-selection "choose what to install with --components journal, cli, desktop, tmux, all, or capture. for example: sh install.sh --components journal"
     fi
 
     if ! { sh -c 'test -t 0' </dev/tty; } >/dev/null 2>&1; then
-        OPT_COMPONENTS="journal"
-        return 0
+        report_exit refusal no-selection "choose what to install with --components journal, cli, desktop, tmux, all, or capture. for example: sh install.sh --components journal"
     fi
 
     printf "\nsolstone for linux:\n" > /dev/tty
@@ -2663,6 +2843,12 @@ package_protocol_failure() {
     ppf_fallback="$2"
     ppf_message="$3"
     case "$ppf_output" in
+        ERROR:archive-missing\ *|ERROR:archive-unparseable\ *)
+            ppf_code=${ppf_output#ERROR:}
+            ppf_detail=${ppf_code#* }
+            ppf_code=${ppf_code%% *}
+            report_exit "refusal" "$ppf_code" "$ppf_message: $ppf_detail"
+            ;;
         ERROR:*) report_exit "refusal" "${ppf_output#ERROR:}" "$ppf_message" ;;
         *) report_exit "refusal" "$ppf_fallback" "$ppf_message" ;;
     esac
@@ -2963,11 +3149,102 @@ package_fetch_install() {
     pfi_path="${SCRATCH_DIR}/${PC_FILENAME}"
     fetch_file_with_redirect_check "${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}/${PC_FILENAME}" "$pfi_path"
     verify_sha256 "$pfi_path" "$PC_SHA"
-    # shellcheck disable=SC2086
-    if ! PINSTALL_OUT=$(printf "INSTALL_PKG %s %s\n" "$PKG_VARIANT" "$pfi_path" | $sudo_prefix "$helper_bin" $helper_flags); then
-        package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
+    if [ "$OPT_CONFIRM_PACKAGE_COMMAND" -eq 1 ]; then
+        # shellcheck disable=SC2086
+        if ! PPLAN_OUT=$(printf "PLAN_PKG %s %s\n" "$PKG_VARIANT" "$pfi_path" | $sudo_prefix "$helper_bin" $helper_flags); then
+            package_protocol_failure "$PPLAN_OUT" "package-install-failed" "Package helper failed to plan package $PC_FILENAME"
+        fi
+        case "$PPLAN_OUT" in
+            ERROR:*)
+                package_protocol_failure "$PPLAN_OUT" "package-install-failed" "Package helper failed to plan package $PC_FILENAME"
+                ;;
+        esac
+        # shellcheck disable=SC2086
+        set -- $PPLAN_OUT
+        plan_valid=1
+        [ "${1:-}" = "PLAN" ] || plan_valid=0
+        [ "${2:-}" = "$PKG_VARIANT" ] || plan_valid=0
+        case "$PKG_VARIANT" in
+            deb)
+                [ "${3:-}" = "reinstall" ] || plan_valid=0
+                [ "$#" -eq 11 ] || plan_valid=0
+                [ "${11:-}" = "$pfi_path" ] || plan_valid=0
+                ;;
+            rpm)
+                case "${3:-}" in
+                    install|reinstall) ;;
+                    *) plan_valid=0 ;;
+                esac
+                [ "$#" -eq 9 ] || plan_valid=0
+                [ "${9:-}" = "$pfi_path" ] || plan_valid=0
+                [ "${8:-}" = "${3:-}" ] || plan_valid=0
+                ;;
+            *) plan_valid=0 ;;
+        esac
+        [ "${4:-}" = "$pfi_path" ] || plan_valid=0
+
+        if [ "$plan_valid" -eq 0 ]; then
+            report_exit "refusal" "plan-invalid" "package command plan was not usable"
+        fi
+
+        plan_action="$3"
+        shift 4
+        display_cmd="$*"
+
+        if [ "$OPT_JSON" -eq 1 ]; then
+            consent_to_tty=0
+        elif { sh -c 'test -t 0' </dev/tty; } >/dev/null 2>&1; then
+            consent_to_tty=1
+        else
+            consent_to_tty=0
+        fi
+
+        if [ "$consent_to_tty" -eq 1 ]; then
+            printf '%s\n' "$display_cmd" > /dev/tty
+        else
+            printf '%s\n' "$display_cmd" >&2
+        fi
+
+        # Consent matrix
+        if [ "$OPT_YES" -eq 1 ]; then
+            : # approve
+        elif [ "$OPT_NON_INTERACTIVE" -eq 1 ]; then
+            report_exit refusal consent-required "package command needs approval before it can run"
+        elif ! { sh -c 'test -t 0' </dev/tty; } >/dev/null 2>&1; then
+            report_exit refusal consent-required "package command needs approval before it can run"
+        else
+            if [ "$consent_to_tty" -eq 1 ]; then
+                printf '%s\n' "run this package command? answer yes or no" > /dev/tty
+            else
+                printf '%s\n' "run this package command? answer yes or no" >&2
+            fi
+            if read -r consent_reply < /dev/tty; then
+                case "$consent_reply" in
+                    yes) ;; # approve
+                    *) report_exit refusal consent-declined "package command was not approved" ;;
+                esac
+            else
+                report_exit refusal consent-required "package command needs approval before it can run"
+            fi
+        fi
+
+        if [ "$PC_PUBLISH_INTENDED" -eq 1 ]; then
+            package_publish_phase "$PC_ROLE" intended intended
+        fi
+
+        # shellcheck disable=SC2086
+        if ! PINSTALL_OUT=$(printf "APPLY_PKG %s %s %s\n" "$PKG_VARIANT" "$pfi_path" "$plan_action" | $sudo_prefix "$helper_bin" $helper_flags); then
+            package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
+        fi
+        [ "$PINSTALL_OUT" = "OK" ] || package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
+    else
+        # shellcheck disable=SC2086
+        if ! PINSTALL_OUT=$(printf "INSTALL_PKG %s %s\n" "$PKG_VARIANT" "$pfi_path" | $sudo_prefix "$helper_bin" $helper_flags); then
+            package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
+        fi
+        [ "$PINSTALL_OUT" = "OK" ] || package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
     fi
-    [ "$PINSTALL_OUT" = "OK" ] || package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
+    PC_PUBLISH_INTENDED=0
     package_query_current "$PC_NAME"
     if [ "$PQUERY_STATE" != "INSTALLED" ] || [ "$PQUERY_NAME" != "$PC_NAME" ] \
         || [ "$PQUERY_VERSION" != "$PC_VERSION" ] || [ "$PQUERY_ARCH" != "$PC_ARCH" ]; then
@@ -3063,6 +3340,80 @@ package_candidate_is_older() {
     fi
     pcio_first=$(printf '%s\n%s\n' "$pcio_installed" "$pcio_candidate" | sort -V | head -n 1)
     [ "$pcio_first" = "$pcio_candidate" ] && [ "$pcio_installed" != "$pcio_candidate" ]
+}
+
+# Reject unsupported downgrades before any component or pending receipt changes.
+# The native journal owns compatibility; an absent declaration never permits it.
+preflight_journal_downgrade() {
+    [ "$OPT_UNINSTALL" -eq 0 ] || return 0
+    pjd_version=$(cat "${manifest_dir}/components/journal/version")
+    case " $PACKAGE_SELECTED_COMPONENTS " in
+        *" journal "*|*" cli "*)
+            pjd_name=$(cat "${manifest_dir}/components/journal/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/name")
+            pjd_package_version=$(cat "${manifest_dir}/components/journal/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/version")
+            package_probe_identity "$pjd_name"
+            if [ "$PPROBE_STATE" = INSTALLED ] && package_candidate_is_older "$PPROBE_VERSION" "$pjd_package_version"; then
+                report_exit refusal downgrade-route-unsupported "this package route cannot install an older journal. nothing was changed. run the installer again without --version to install the latest release."
+            fi
+            return 0
+            ;;
+    esac
+    case " $TREE_SELECTED_COMPONENTS " in
+        *" journal "*) pjd_role=journal ;;
+        *" cli "*) pjd_role=cli ;;
+        *) return 0 ;;
+    esac
+    tree_component_authority "$pjd_role" complete
+    [ -n "$TREE_JOURNAL_VERSION" ] || return 0
+    [ "$pjd_version" != "$TREE_JOURNAL_VERSION" ] || return 0
+    pjd_first=$(printf '%s\n%s\n' "$pjd_version" "$TREE_JOURNAL_VERSION" | sort -V | head -n 1)
+    [ "$pjd_first" = "$pjd_version" ] || return 0
+    pjd_release="${OPT_PREFIX}/current/.release"
+    pjd_min=$(plain_receipt_value "$pjd_release" state_reader_min 2>/dev/null || true)
+    pjd_max=$(plain_receipt_value "$pjd_release" state_reader_max 2>/dev/null || true)
+    pjd_state=$(plain_receipt_value "${OPT_PREFIX}/install-receipt" journal_state 2>/dev/null || true)
+    if [ "$pjd_state" != present ] || ! is_canonical_version "$pjd_min" || ! is_canonical_version "$pjd_max" \
+        || [ "$(printf '%s\n%s\n' "$pjd_version" "$pjd_min" | sort -V | head -n 1)" != "$pjd_min" ] \
+        || [ "$(printf '%s\n%s\n' "$pjd_version" "$pjd_max" | sort -V | tail -n 1)" != "$pjd_max" ]; then
+        report_exit refusal compatibility-unknown "the installed journal does not declare this older version able to read its state. nothing was changed. run the installer again without --version to install the latest release."
+    fi
+    pjd_epoch=$(plain_receipt_value "$pjd_release" upgrade_epoch 2>/dev/null || true)
+    pjd_target_epoch=$(cat "${manifest_dir}/components/journal/provenance/upgrade_epoch")
+    pjd_window=$(plain_receipt_value "$pjd_release" retention_window 2>/dev/null || true)
+    pjd_target_window=$(cat "${manifest_dir}/components/journal/provenance/retention_window")
+    pjd_recovery="this older journal cannot be safely installed here. nothing was changed. run the installer again without --version to install the latest release."
+    if [ "$pjd_epoch" != journal-v2 ] || [ "$pjd_target_epoch" != "$pjd_epoch" ]; then
+        report_exit refusal downgrade-epoch "$pjd_recovery"
+    fi
+    if [ "$pjd_window" != 3 ] || [ "$pjd_target_window" != "$pjd_window" ]; then
+        report_exit refusal retention-policy-unsupported "$pjd_recovery"
+    fi
+    pjd_sha=$(cat "${manifest_dir}/components/journal/arches/${HOST_ARCH}/tree/sha256")
+    pjd_dest="${OPT_PREFIX}/versions/${pjd_version}-$(printf '%s' "$pjd_sha" | cut -c1-12)"
+    if [ ! -d "$pjd_dest" ] || [ -L "$pjd_dest" ]; then
+        report_exit refusal downgrade-window "$pjd_recovery"
+    fi
+    # Match the native bootstrap's three-directory window, counting current
+    # first even when an interrupted install left a newer directory behind.
+    pjd_current=$(readlink "${OPT_PREFIX}/current")
+    pjd_kept=1
+    pjd_found=0
+    pjd_ifs=$IFS
+    IFS='
+'
+    # Prefix control characters are refused; owned names are version/digest.
+    # shellcheck disable=SC2045
+    for pjd_entry in $(ls -1dt -- "${OPT_PREFIX}"/versions/* 2>/dev/null); do
+        [ "$pjd_entry" != "${OPT_PREFIX}/${pjd_current}" ] || continue
+        pjd_kept=$((pjd_kept + 1))
+        if [ "$pjd_entry" = "$pjd_dest" ] && [ "$pjd_kept" -le "$pjd_window" ]; then
+            pjd_found=1
+            break
+        fi
+        [ "$pjd_kept" -lt "$pjd_window" ] || break
+    done
+    IFS=$pjd_ifs
+    [ "$pjd_found" -eq 1 ] || report_exit refusal downgrade-window "$pjd_recovery"
 }
 
 record_pointer_state() {
@@ -3837,6 +4188,8 @@ usage: sh install.sh [options]
   --no-start           leave service setup/start to you
   --no-path            leave shell PATH configuration to you
   --non-interactive    never open the component menu; select components explicitly
+  --confirm-package-command
+                       show each linux package installation command and wait for approval
   --yes, -y            accepted for unattended invocations
   --json               one JSON result on stdout; diagnostics on stderr
   --skip-signature     explicitly skip signatures; digests are still checked
@@ -3855,7 +4208,7 @@ examples (after saving https://solstone.app/install.sh as install.sh):
   sh install.sh --components tmux --uninstall --dry-run
 
 without a selection, an interactive terminal shows the component menu.
-without a terminal, the historical safe default is Journal only.
+on linux without a terminal, choose components with --components.
 SOLSTONE_HELP
 }
 
@@ -3945,6 +4298,10 @@ parse_args() {
                 OPT_NON_INTERACTIVE=1
                 shift 1
                 ;;
+            --confirm-package-command)
+                OPT_CONFIRM_PACKAGE_COMMAND=1
+                shift 1
+                ;;
             -y|--yes)
                 OPT_YES=1
                 shift 1
@@ -3986,7 +4343,6 @@ parse_args() {
                 ;;
         esac
     done
-    : "${OPT_YES}"
 }
 
 run_tree_install() {
@@ -4337,6 +4693,7 @@ run_package_install() {
 
     for comp in $SELECTED_COMPONENTS; do
         ATTEMPTED_COMPONENTS="${ATTEMPTED_COMPONENTS}${ATTEMPTED_COMPONENTS:+ }${comp}"
+        PC_PUBLISH_INTENDED=0
         if [ "$comp" = "cli" ]; then
             c_key="journal"
         else
@@ -4382,8 +4739,13 @@ run_package_install() {
                     PC_PRIOR_SHA="$PLS_PRIOR_SHA"
                     PC_PRIOR_BUILD="$PLS_PRIOR_BUILD"
                 fi
+                PC_PUBLISH_INTENDED=0
             else
-                package_publish_phase "$PC_ROLE" intended intended
+                if [ "$OPT_CONFIRM_PACKAGE_COMMAND" -eq 1 ]; then
+                    PC_PUBLISH_INTENDED=1
+                else
+                    package_publish_phase "$PC_ROLE" intended intended
+                fi
             fi
             package_fetch_install
             package_publish_phase "$PC_ROLE" payload payload
@@ -4397,6 +4759,7 @@ run_package_install() {
                 || [ "$PLS_ARCH" != "$PC_ARCH" ] || [ "$PLS_SHA" != "$PC_SHA" ] || [ "$PLS_BUILD" != "$PC_BUILD" ]; then
                 report_exit refusal ownership-unknown "unconfigured package $PC_NAME does not match the pending installation"
             fi
+            PC_PUBLISH_INTENDED=0
             package_fetch_install
             package_publish_phase "$PC_ROLE" payload payload
             package_complete_after_payload
@@ -4434,7 +4797,11 @@ run_package_install() {
                     continue
                 fi
                 package_set_prior_from_owner_target
-                package_publish_phase "$PC_ROLE" intended intended
+                if [ "$OPT_CONFIRM_PACKAGE_COMMAND" -eq 1 ]; then
+                    PC_PUBLISH_INTENDED=1
+                else
+                    package_publish_phase "$PC_ROLE" intended intended
+                fi
                 package_fetch_install
                 package_publish_phase "$PC_ROLE" payload payload
                 package_complete_after_payload
@@ -4451,6 +4818,7 @@ run_package_install() {
                             ;;
                         prior)
                             package_set_prior_from_owner_prior
+                            PC_PUBLISH_INTENDED=0
                             package_fetch_install
                             package_publish_phase "$PC_ROLE" payload payload
                             package_complete_after_payload
@@ -4462,7 +4830,11 @@ run_package_install() {
                         report_exit "refusal" "role-conflict" "Installed journal package is owned by role $PFO_PRIOR_ROLE"
                     fi
                     package_set_prior_from_owner_prior
-                    package_publish_phase "$PC_ROLE" intended intended
+                    if [ "$OPT_CONFIRM_PACKAGE_COMMAND" -eq 1 ]; then
+                        PC_PUBLISH_INTENDED=1
+                    else
+                        package_publish_phase "$PC_ROLE" intended intended
+                    fi
                     package_fetch_install
                     package_publish_phase "$PC_ROLE" payload payload
                     package_complete_after_payload
@@ -4979,6 +5351,8 @@ main() {
     VERIFICATION_LAYERS="minisign+digest"
     [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || VERIFICATION_LAYERS="digest-matched; signatures skipped"
 
+    preflight_journal_downgrade
+
     # A preview returns before any lock, helper, or mutation, including removal.
     if [ "$OPT_DRY_RUN" -eq 1 ]; then
         report_exit "success" "dry-run-completed" "preview complete; no changes made"
@@ -4999,6 +5373,7 @@ main() {
     init_bundled_runtime
     [ -z "$PACKAGE_SELECTED_COMPONENTS" ] || init_package_helper
     acquire_installer_locks
+    preflight_journal_downgrade
     if [ "$OPT_UNINSTALL" -eq 1 ]; then
         run_uninstall
     fi
