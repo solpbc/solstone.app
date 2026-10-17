@@ -207,7 +207,7 @@
                                 <pre id="linux-commands">curl -fsSL https://solstone.app/install.sh | sh</pre>
                                 <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-commands" hidden>copy command</button></div>
                                 <p class="copy-message" role="status" id="linux-commands-status"></p>
-                                <p>then open <a href="http://localhost:5015">your journal in your browser</a> and follow setup.</p>
+                                <p>the installer opens setup in your browser. if it cannot, use the link it prints. on a computer without a desktop, it also prints how to open setup from another computer.</p>
                             </li>
                             <li id="linux-app">
                                 <h4>add the desktop app</h4>
@@ -264,7 +264,7 @@
                         <summary>prefer to install with a coding agent?</summary>
                         <div class="detail-body">
                             <p>paste this into Claude Code, Codex CLI, Gemini CLI, or similar.</p>
-                            <pre id="agent-prompt">install solstone from https://solstone.app/install</pre>
+                            <pre id="agent-prompt">install solstone using https://solstone.app/llms.txt and https://solstone.app/.well-known/skills/default/SKILL.md</pre>
                             <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="agent-prompt" hidden>copy for your agent</button></div>
                             <p class="copy-message" role="status" id="agent-prompt-status"></p>
                         </div>
@@ -306,7 +306,6 @@
                     <p>bring your own provider key (Claude, Gemini, or GPT), or use an OpenAI-compatible endpoint you run. your provider sees what your journal sends it for thinking, under its own terms, and you pay it directly. sol pbc is never in the path.</p>
                     <h3>confidential processing</h3>
                     <p>think off your device on confidential hardware sol pbc runs, for $96 a year or $9.99 a month. no content is retained · no human reviews it · nothing is used to train. <a href="https://services.solstone.app/confidential-processing">how it works</a></p>
-                    <p>nothing is chosen for you silently. if no model is set, your journal tells you and waits.</p>
                 </div>
             </section>
 
@@ -328,7 +327,7 @@
                     <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="claude-mcp" hidden>copy command</button></div>
                     <p class="copy-message" role="status" id="claude-mcp-status"></p>
                     <p>then type <code>/mcp</code> in Claude Code, choose <strong>journal</strong>, and authenticate.</p>
-                    <p><strong>on linux</strong>, setting up your journal also adds a solstone skill for Claude Code, Codex and Gemini CLI, whether or not they're installed yet, so an agent you install later already has it. <code>solstone skills list</code> shows it. with the skill, an agent in any project can search your journal, look up a person, or read a transcript.</p>
+                    <p><strong>on linux</strong>, setting up your journal adds a solstone skill only where Claude Code, Codex or Gemini CLI is already set up. after setting up another agent, run <code>solstone skills install</code> to add it there too. <code>solstone skills list</code> shows it. with the skill, an agent in any project can search your journal, look up a person, or read a transcript.</p>
             <h3>on your wifi or VPN</h3>
             <p>turn it on in your journal's agents app. an agent pairs with a code from your journal, and it only works on the route it paired through.</p>
             <h3>from anywhere</h3>
