@@ -159,19 +159,31 @@
                     <section class="platform-panel" id="macos" aria-labelledby="macos-heading">
                         <h3 id="macos-heading">on your mac</h3>
                         <p class="requirements">an Apple silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
-                        <ol class="steps">
+                        <ol class="steps" id="mac-app">
                             <li data-branch="start">
-                                <h4>get both mac apps</h4>
-                                <p>one download has the journal app and the solstone app. drag both to Applications.</p>
+                                <h4>install both apps.</h4>
+                                <p>open the download and drag the solstone app and the journal app into Applications.</p>
                                 <div class="actions"><a class="btn btn-primary" href="/download/mac">get both mac apps</a></div>
                             </li>
                             <li data-branch="start">
-                                <h4>create your journal first</h4>
-                                <p>open the journal app and choose where your journal lives. setup finishes in your browser, where you lock in its mark: two shapes and two words that are your journal's own, so you can always tell which journal is yours. to read it later, choose <strong>open your journal</strong> in the journal app.</p>
+                                <h4>open either app.</h4>
+                                <p>one setup sequence takes you through both.</p>
                             </li>
-                            <li id="mac-app">
+                            <li data-branch="start">
+                                <h4>make your journal yours.</h4>
+                                <p>choose its folder, choose its permanent mark, and review where thinking happens. you can change the thinking choice or leave it for later.</p>
+                            </li>
+                            <li data-branch="start">
+                                <h4>choose what to share.</h4>
+                                <p>turn on your microphone and screen one at a time, or choose "not now". what you share goes into your journal.</p>
+                            </li>
+                            <li data-branch="start">
+                                <h4>open your journal.</h4>
+                                <p>once the solstone app connects, open your journal in your browser.</p>
+                            </li>
+                            <li data-branch="connect">
                                 <h4>connect the solstone app</h4>
-                                <p><span data-branch="connect">install and open the solstone app.</span><span data-branch="start">open the solstone app.</span> in settings, choose <strong>journal</strong> to connect. for a journal on your mac, confirm the one it finds. follow the prompts to choose what you share.</p>
+                                <p>install and open the solstone app. in settings, choose <strong>journal</strong> to connect. for a journal on your mac, confirm the one it finds. follow the prompts to choose what you share.</p>
                                 <div class="actions" data-branch="connect"><a class="btn btn-primary" href="/download/macos">get the solstone app</a></div>
                             </li>
                         </ol>

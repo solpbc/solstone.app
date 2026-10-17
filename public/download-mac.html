@@ -38,10 +38,6 @@
         .part .where { margin-top: 6px; font-size: 15px; line-height: 1.45; color: var(--ink-soft); max-width: 15rem; }
         .facts { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 15px; color: var(--ink-soft); }
         .facts span + span::before { content: "·"; margin-right: 14px; color: var(--ink-faint); }
-        .steps3 { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 28px; counter-reset: step; margin-top: 12px; }
-        .steps3 li { counter-increment: step; padding-top: 14px; border-top: 1px solid var(--hairline-2); font-size: 16px; color: var(--ink-soft); }
-        .steps3 li::before { content: counter(step) "."; display: block; font-weight: 600; font-size: 15px; color: var(--ink-faint); margin-bottom: 4px; }
-        .steps3 h3 { margin: 0 0 4px; font-size: 17px; }
         .rows { list-style: none; border: 1px solid var(--hairline); border-radius: 10px; background: var(--cream-bright); overflow: hidden; margin-top: 8px; }
         .rows li { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 14px; padding: 14px 16px; }
         .rows li + li { border-top: 1px solid var(--hairline); }
@@ -58,7 +54,7 @@
             .part img { width: 80px; height: 80px; }
             .facts { flex-direction: column; gap: 0; }
             .facts span + span::before { content: none; }
-            .steps3, .trust { grid-template-columns: 1fr; }
+            .trust { grid-template-columns: 1fr; }
             .rows li { grid-template-columns: 36px 1fr; }
             .rows img, .rows .glyph { width: 36px; height: 36px; }
             .rows .btn { grid-column: 1 / -1; white-space: normal; text-align: center; }
@@ -131,11 +127,7 @@
             <section class="band wrap" aria-labelledby="after-heading">
                 <div class="band-inner">
                     <h2 id="after-heading">after you open the download</h2>
-                    <ol class="steps3">
-                        <li><h3>drag both to Applications</h3>the window shows both apps and your Applications folder. drag each one across.</li>
-                        <li><h3>open the journal app first</h3>choose where your journal lives on your mac, then lock in its mark in your browser.</li>
-                        <li><h3>then open the solstone app</h3>it runs in your menu bar. choose what you share with it, then confirm the journal it finds on your mac by its mark.</li>
-                    </ol>
+                    <p class="after-actions">install both apps, then open either one. setup guides you through your journal's folder, permanent mark and thinking choice, then asks what you want to share. your microphone and screen stay off until you turn them on. your journal opens in your browser at the end.</p>
                 </div>
             </section>
 
