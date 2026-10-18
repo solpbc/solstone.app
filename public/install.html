@@ -202,7 +202,7 @@
                         <ol class="steps">
                             <li data-branch="start">
                                 <h4>set up your journal</h4>
-                                <p>the installer verifies its downloads with minisign, so add it first if you don't have it: <code>sudo apt install minisign</code>, <code>sudo dnf install minisign</code> or <code>sudo pacman -S minisign</code>. not sure which? run the command below. if minisign is missing, the installer stops before changing anything and says how to add it.</p>
+                                <p>the installer verifies its downloads with minisign, and your journal needs your system's OpenMP runtime. add both first if you don't have them: <code>sudo apt install minisign libgomp1</code>, <code>sudo dnf install minisign libgomp</code> or <code>sudo pacman -S minisign gcc-libs</code>. not sure which? run the command below. if either is missing, the installer stops before changing anything and says how to add it.</p>
                                 <p>run this command in your terminal. it installs your journal and starts it.</p>
                                 <pre id="linux-commands">curl -fsSL https://solstone.app/install.sh | sh</pre>
                                 <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-commands" hidden>copy command</button></div>
