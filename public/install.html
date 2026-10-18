@@ -161,24 +161,24 @@
                         <p class="requirements">an Apple silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
                         <ol class="steps" id="mac-app">
                             <li data-branch="start">
-                                <h4>install both apps.</h4>
+                                <h4>install both apps</h4>
                                 <p>open the download and drag the solstone app and the journal app into Applications.</p>
                                 <div class="actions"><a class="btn btn-primary" href="/download/mac">get both mac apps</a></div>
                             </li>
                             <li data-branch="start">
-                                <h4>open either app.</h4>
+                                <h4>open either app</h4>
                                 <p>one setup sequence takes you through both.</p>
                             </li>
                             <li data-branch="start">
-                                <h4>make your journal yours.</h4>
+                                <h4>make your journal yours</h4>
                                 <p>choose its folder, choose its permanent mark, and review where thinking happens. you can change the thinking choice or leave it for later.</p>
                             </li>
                             <li data-branch="start">
-                                <h4>choose what to share.</h4>
+                                <h4>choose what to share</h4>
                                 <p>turn on your microphone and screen one at a time, or choose "not now". what you share goes into your journal.</p>
                             </li>
                             <li data-branch="start">
-                                <h4>open your journal.</h4>
+                                <h4>open your journal</h4>
                                 <p>once the solstone app connects, open your journal in your browser.</p>
                             </li>
                             <li data-branch="connect">
@@ -232,17 +232,23 @@
 
                     <section class="platform-panel" id="windows" aria-labelledby="windows-heading">
                         <h3 id="windows-heading">on your windows computer</h3>
-                        <p class="requirements">windows 10 (22H2) or 11 on x86_64 (Intel or AMD, shown as x64 in windows settings). no administrator access needed to install. the journal installer is about 1.1 GB. the local model needs a compatible GPU; without one, thinking needs your own model. transcription runs on your PC.</p>
+                        <p class="requirements">windows 10 (22H2) or 11 on x86_64 (Intel or AMD, shown as x64 in windows settings). no administrator access needed to install. the journal installer is about 1.1 GB. transcription runs on your PC.</p>
                         <ol class="steps">
                             <li data-branch="start">
                                 <h4>set up your journal</h4>
-                                <p>download and run the journal installer. then open <strong>journal</strong> from the Start menu: it sets up your journal and shows its mark, and it's where you start or stop your journal and manage updates and paired devices.</p>
+                                <p>download and run the journal installer, then open <strong>journal</strong> from the Start menu. choose where your journal lives, make its mark yours, and choose where the thinking happens. the journal app shows each step and any downloads in its own window.</p>
                                 <div class="actions"><a class="btn btn-primary" href="/download/journal/windows">get the journal for windows</a></div>
                             </li>
                             <li id="windows-app">
-                                <h4>connect the solstone app</h4>
-                                <p>install the solstone app, then connect it to your journal and choose what you share.</p>
+                                <h4>choose what you share</h4>
+                                <p data-branch="start">continue into the solstone app. on the same PC, your journal's pairing link is already filled in. turn on microphone, system audio or screen one at a time, or leave any of them off. what you share goes into your journal. you can change these choices and start-at-login in settings.</p>
+                                <p data-branch="connect">open the installer, then follow the steps in the solstone app. microphone, system audio and screen start off on a new install. turn on each one you want to share with your journal, check that it works, or choose <strong>not now</strong>. you can finish with all three off.</p>
+                                <p data-branch="connect">setting up both on this PC? continue from the journal app with the pairing link filled in. already have a journal on another computer? open <strong>pair a device</strong> in your journal and use its link here, then compare the marks.</p>
                                 <div class="actions"><a class="btn btn-primary" href="/download/windows">get the windows app</a></div>
+                            </li>
+                            <li>
+                                <h4>open your journal</h4>
+                                <p>once connected, choose <strong>open your journal</strong>. your browser opens on your journal's home page.</p>
                             </li>
                         </ol>
                         <p class="ours"><strong>check it's ours.</strong> the journal installer and the solstone app for windows are both signed by sol pbc, and windows shows sol pbc as the publisher. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
@@ -295,7 +301,7 @@
                         <dt>linux</dt>
                         <dd>your desktop asks which screen to share when you turn on your screen as a source.</dd>
                         <dt>windows</dt>
-                        <dd>while our signing reputation builds, windows may warn that it couldn't verify the solstone app because it isn't commonly downloaded. the publisher it shows is sol pbc. after that, you choose what you share inside the solstone app. when you first open <strong>network</strong> in your journal to pair a device, windows asks whether to let it on your network; choose allow, so your devices can reach it.</dd>
+                        <dd>while our signing reputation builds, windows may warn that it couldn't verify the solstone app because it isn't commonly downloaded. the publisher it shows is sol pbc. after that, you choose what you share inside the solstone app.</dd>
                         <dt>iphone and ipad</dt>
                         <dd>the microphone and your location, each when you turn on the source that needs it; the camera, to scan your journal's pairing code; your local network, to reach your journal; and notifications, if you turn them on. the app asks for your precise location; you can choose approximate when it asks, or later in settings. your screen goes into your journal only while you broadcast it: you start it from the app, iphone shows its own screen-broadcast sheet, and you stop it there or from the red bar at the top of your screen.</dd>
                         <dt>android</dt>
@@ -312,7 +318,7 @@
                     <h2 id="thinking-heading">where does the thinking happen?</h2>
                     <p>you choose during setup. your journal stays on your computer whichever you choose; what each choice sends, and to whom, is below.</p>
                     <h3>local, the default</h3>
-                    <p>a model downloads and runs on your computer, which needs enough graphics memory for it.</p>
+                    <p>a model downloads and runs on your computer, which needs enough graphics memory for it. if your computer can't run it, setup says so and you choose another way.</p>
                     <h3>your own model</h3>
                     <p>bring your own provider key (Claude, Gemini, or GPT), or use an OpenAI-compatible endpoint you run. your provider sees what your journal sends it for thinking, under its own terms, and you pay it directly. sol pbc is never in the path.</p>
                     <h3>confidential processing</h3>
