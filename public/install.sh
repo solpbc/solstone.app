@@ -5,7 +5,7 @@
 
 # Solstone POSIX Platform Installer
 
-INSTALLER_REVISION=14
+INSTALLER_REVISION=15
 EMBEDDED_MIN_INSTALLER_REVISION=8
 TEST_SEAM=0
 
@@ -688,6 +688,43 @@ EOF
     fi
 fi
 
+LAUNCHER_MARK="X-Solstone-Installer=platform-v1"
+
+# The window's launcher lives inside the unpacked tree, where no app menu looks.
+# Publish a copy in the owner's applications folder with an absolute Exec, so
+# the menu entry works before the shell PATH change takes effect.
+if [ "$ROLE" = desktop ]; then
+    # A fresh install passes the unpacked binary; a converged one passes the
+    # public link. Exec always uses the public link, which tracks upgrades.
+    if [ -L "$BINARY" ]; then TREE_BIN=$(readlink "$BINARY" 2>/dev/null || true); else TREE_BIN="$BINARY"; fi
+    TREE_DIR=${TREE_BIN%/bin/*}
+    PUBLIC_BIN="${PREFIX}/bin/solstone-linux"
+    SOURCE_LAUNCHER="${TREE_DIR}/share/applications/org.solpbc.solstone.Window.desktop"
+    APPS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+    LAUNCHER="${APPS_DIR}/org.solpbc.solstone.Window.desktop"
+    ICON="${TREE_DIR}/share/icons/hicolor/256x256/apps/solstone-observer.png"
+    if [ -n "$TREE_BIN" ] && [ -f "$SOURCE_LAUNCHER" ] && [ ! -L "$LAUNCHER" ] \
+        && { [ ! -e "$LAUNCHER" ] || grep -qx "$LAUNCHER_MARK" "$LAUNCHER"; }; then
+        # Best effort: a menu entry that can't be written never fails the install.
+        LAUNCHER_NEXT="${LAUNCHER}.next.$$"
+        if mkdir -p "$APPS_DIR" 2>/dev/null && {
+            while IFS= read -r line || [ -n "$line" ]; do
+                case "$line" in
+                    Exec=*) printf 'Exec="%s" window\n' "$PUBLIC_BIN" ;;
+                    Icon=*) if [ -f "$ICON" ]; then printf 'Icon=%s\n' "$ICON"; else printf '%s\n' "$line"; fi ;;
+                    "$LAUNCHER_MARK") ;;
+                    *) printf '%s\n' "$line" ;;
+                esac
+            done < "$SOURCE_LAUNCHER"
+            printf '%s\n' "$LAUNCHER_MARK"
+        } > "$LAUNCHER_NEXT" 2>/dev/null && chmod 0644 "$LAUNCHER_NEXT" && mv -f "$LAUNCHER_NEXT" "$LAUNCHER"; then
+            :
+        else
+            rm -f "$LAUNCHER_NEXT" 2>/dev/null || true
+        fi
+    fi
+fi
+
 if [ "$NO_START" -eq 0 ]; then
     "$BINARY" install-service >&2
 fi
@@ -721,6 +758,14 @@ case "$ROLE" in desktop) NAME=solstone-linux ;; tmux) NAME=solstone-tmux ;; *) e
 [ -n "$BINARY" ] || BINARY="${PREFIX}/bin/${NAME}"
 [ "$ROUTE" = "tree" ] && [ -x "$BINARY" ] || exit 2
 "$BINARY" uninstall-service >&2
+
+# Remove the app-menu launcher only when the desktop install handler wrote it.
+if [ "$ROLE" = desktop ]; then
+    LAUNCHER="${XDG_DATA_HOME:-$HOME/.local/share}/applications/org.solpbc.solstone.Window.desktop"
+    if [ -f "$LAUNCHER" ] && [ ! -L "$LAUNCHER" ] && grep -qx 'X-Solstone-Installer=platform-v1' "$LAUNCHER"; then
+        rm -f "$LAUNCHER"
+    fi
+fi
 SOLSTONE_RUNTIME_FILE_2_END
     then report_exit refusal runtime-unavailable "could not write installer runtime"; fi
     chmod 0700 "$BUNDLED_RUNTIME/handlers/desktop/v1/uninstall-desktop-service" || report_exit refusal runtime-unavailable "could not prepare installer runtime"
@@ -774,6 +819,43 @@ EOF
     fi
 fi
 
+LAUNCHER_MARK="X-Solstone-Installer=platform-v1"
+
+# The window's launcher lives inside the unpacked tree, where no app menu looks.
+# Publish a copy in the owner's applications folder with an absolute Exec, so
+# the menu entry works before the shell PATH change takes effect.
+if [ "$ROLE" = desktop ]; then
+    # A fresh install passes the unpacked binary; a converged one passes the
+    # public link. Exec always uses the public link, which tracks upgrades.
+    if [ -L "$BINARY" ]; then TREE_BIN=$(readlink "$BINARY" 2>/dev/null || true); else TREE_BIN="$BINARY"; fi
+    TREE_DIR=${TREE_BIN%/bin/*}
+    PUBLIC_BIN="${PREFIX}/bin/solstone-linux"
+    SOURCE_LAUNCHER="${TREE_DIR}/share/applications/org.solpbc.solstone.Window.desktop"
+    APPS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+    LAUNCHER="${APPS_DIR}/org.solpbc.solstone.Window.desktop"
+    ICON="${TREE_DIR}/share/icons/hicolor/256x256/apps/solstone-observer.png"
+    if [ -n "$TREE_BIN" ] && [ -f "$SOURCE_LAUNCHER" ] && [ ! -L "$LAUNCHER" ] \
+        && { [ ! -e "$LAUNCHER" ] || grep -qx "$LAUNCHER_MARK" "$LAUNCHER"; }; then
+        # Best effort: a menu entry that can't be written never fails the install.
+        LAUNCHER_NEXT="${LAUNCHER}.next.$$"
+        if mkdir -p "$APPS_DIR" 2>/dev/null && {
+            while IFS= read -r line || [ -n "$line" ]; do
+                case "$line" in
+                    Exec=*) printf 'Exec="%s" window\n' "$PUBLIC_BIN" ;;
+                    Icon=*) if [ -f "$ICON" ]; then printf 'Icon=%s\n' "$ICON"; else printf '%s\n' "$line"; fi ;;
+                    "$LAUNCHER_MARK") ;;
+                    *) printf '%s\n' "$line" ;;
+                esac
+            done < "$SOURCE_LAUNCHER"
+            printf '%s\n' "$LAUNCHER_MARK"
+        } > "$LAUNCHER_NEXT" 2>/dev/null && chmod 0644 "$LAUNCHER_NEXT" && mv -f "$LAUNCHER_NEXT" "$LAUNCHER"; then
+            :
+        else
+            rm -f "$LAUNCHER_NEXT" 2>/dev/null || true
+        fi
+    fi
+fi
+
 if [ "$NO_START" -eq 0 ]; then
     "$BINARY" install-service >&2
 fi
@@ -807,6 +889,14 @@ case "$ROLE" in desktop) NAME=solstone-linux ;; tmux) NAME=solstone-tmux ;; *) e
 [ -n "$BINARY" ] || BINARY="${PREFIX}/bin/${NAME}"
 [ "$ROUTE" = "tree" ] && [ -x "$BINARY" ] || exit 2
 "$BINARY" uninstall-service >&2
+
+# Remove the app-menu launcher only when the desktop install handler wrote it.
+if [ "$ROLE" = desktop ]; then
+    LAUNCHER="${XDG_DATA_HOME:-$HOME/.local/share}/applications/org.solpbc.solstone.Window.desktop"
+    if [ -f "$LAUNCHER" ] && [ ! -L "$LAUNCHER" ] && grep -qx 'X-Solstone-Installer=platform-v1' "$LAUNCHER"; then
+        rm -f "$LAUNCHER"
+    fi
+fi
 SOLSTONE_RUNTIME_FILE_4_END
     then report_exit refusal runtime-unavailable "could not write installer runtime"; fi
     chmod 0700 "$BUNDLED_RUNTIME/handlers/tmux/v1/uninstall-tmux-service" || report_exit refusal runtime-unavailable "could not prepare installer runtime"
@@ -1010,13 +1100,32 @@ finish_journal_install() {
         log_info "  ssh -N -L ${fj_port}:127.0.0.1:${fj_port} -L 7659:127.0.0.1:7659 YOUR_LOGIN@JOURNAL_COMPUTER"
         log_info "replace YOUR_LOGIN and JOURNAL_COMPUTER with this computer's SSH login and address. keep that terminal open, then open $fj_url/init on the other computer. the second port lets an agent on this computer finish connecting from that browser."
     fi
-    if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
-        log_info "next: add the solstone app on this computer."
-    fi
     log_info "after setup, open $fj_url/app/network/ and choose pair a device to make its pairing link."
-    if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
-        log_info "linux app setup: https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md"
-    fi
+    case " ${REPORT_COMPONENTS:-$SELECTED_COMPONENTS} " in
+        *" desktop "*)
+            log_info "then open solstone from your app menu and paste the link in its journal tab."
+            ;;
+        *)
+            # Name the desktop app only where it can run: a computer with a
+            # desktop, on an architecture the app is published for.
+            if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && [ -d "${SCRATCH_DIR}/manifest/components/desktop/arches/${HOST_ARCH}" ]; then
+                log_info "to add the solstone app on this computer, run:"
+                log_info "  curl -fsSL https://solstone.app/install.sh | sh -s -- --components desktop"
+                log_info "then open solstone from your app menu and paste the link in its journal tab."
+            fi
+            ;;
+    esac
+}
+
+# A desktop-only install has no journal step to follow, so it names its own.
+finish_desktop_install() {
+    [ "$HOST_OS" = linux ] && [ "$OPT_UPGRADE" -eq 0 ] || return 0
+    case " ${REPORT_COMPONENTS:-$SELECTED_COMPONENTS} " in
+        *" journal "*) return 0 ;;
+        *" desktop "*) ;;
+        *) return 0 ;;
+    esac
+    log_info "next: open solstone from your app menu and paste your journal's pairing link in its journal tab."
 }
 
 report_exit() {
@@ -1155,6 +1264,7 @@ report_exit() {
                     log_info "to use the apps in this shell: . \"${XDG_CONFIG_HOME:-$HOME/.config}/solstone/env\""
                 fi
                 finish_journal_install
+                finish_desktop_install
             fi
         else
             log_err "$code: $message"
@@ -2808,6 +2918,14 @@ acquire_installer_locks() {
             report_exit "refusal" "tree-locked" "Another platform installation holds the tree lock at $OPT_PREFIX"
         fi
     fi
+}
+
+tmux_available() {
+    if [ "$TEST_SEAM" -eq 1 ]; then
+        [ "${SOLSTONE_TEST_TMUX_PRESENT:-1}" = 1 ]
+        return
+    fi
+    command -v tmux >/dev/null 2>&1
 }
 
 interactive_selection_menu() {
@@ -5227,24 +5345,29 @@ main() {
 
     if [ -z "$SELECTED_COMPONENTS" ]; then
     case "$OPT_COMPONENTS" in
-        all)
-            if [ -d "${manifest_dir}/components/desktop/arches/${HOST_ARCH}" ]; then
-                SELECTED_COMPONENTS="journal desktop tmux"
-            else
-                notice_msg="Solstone Desktop is not available for $HOST_ARCH; installing journal and tmux."
-                log_info "Notice: $notice_msg"
-                OPT_NOTICES_JSON="[\"$notice_msg\"]"
-                SELECTED_COMPONENTS="journal tmux"
+        all|capture)
+            bundle_base=journal
+            [ "$OPT_COMPONENTS" = all ] || bundle_base=cli
+            bundle_desktop=1
+            [ -d "${manifest_dir}/components/desktop/arches/${HOST_ARCH}" ] || bundle_desktop=0
+            # A bundle that starts services leaves out tmux where tmux isn't
+            # installed: its service can't start, which would fail the whole run.
+            bundle_tmux=1
+            if [ "$OPT_NO_START" -eq 0 ] && ! tmux_available; then bundle_tmux=0; fi
+            SELECTED_COMPONENTS="$bundle_base"
+            [ "$bundle_desktop" -eq 0 ] || SELECTED_COMPONENTS="$SELECTED_COMPONENTS desktop"
+            [ "$bundle_tmux" -eq 0 ] || SELECTED_COMPONENTS="$SELECTED_COMPONENTS tmux"
+            notice_msg=""
+            if [ "$bundle_desktop" -eq 0 ] && [ "$bundle_tmux" -eq 0 ]; then
+                notice_msg="the desktop app isn't available for $HOST_ARCH and tmux is not installed; installing $bundle_base."
+            elif [ "$bundle_desktop" -eq 0 ]; then
+                notice_msg="the desktop app isn't available for $HOST_ARCH; installing $bundle_base and tmux."
+            elif [ "$bundle_tmux" -eq 0 ]; then
+                notice_msg="tmux is not installed; installing $bundle_base and desktop. to add the tmux app later, install tmux and run: curl -fsSL https://solstone.app/install.sh | sh -s -- --components tmux"
             fi
-            ;;
-        capture)
-            if [ -d "${manifest_dir}/components/desktop/arches/${HOST_ARCH}" ]; then
-                SELECTED_COMPONENTS="cli desktop tmux"
-            else
-                notice_msg="Solstone Desktop is not available for $HOST_ARCH; installing cli and tmux."
+            if [ -n "$notice_msg" ]; then
                 log_info "Notice: $notice_msg"
                 OPT_NOTICES_JSON="[\"$notice_msg\"]"
-                SELECTED_COMPONENTS="cli tmux"
             fi
             ;;
         *)
@@ -5257,7 +5380,7 @@ main() {
                     cli) has_cli=1 ;;
                     desktop)
                         if [ ! -d "${manifest_dir}/components/desktop/arches/${HOST_ARCH}" ]; then
-                            report_exit "refusal" "desktop-aarch64" "Solstone Desktop is not supported on $HOST_ARCH"
+                            report_exit "refusal" "desktop-aarch64" "the desktop app isn't available for $HOST_ARCH"
                         fi
                         ;;
                     tmux) ;;
