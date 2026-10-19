@@ -223,11 +223,14 @@
                             </li>
                             <li id="linux-app">
                                 <h4>add the desktop app</h4>
-                                <p>the solstone app takes in what you share from your desktop, and all of it goes into your journal. its setup guide includes the packages your system needs.</p>
-                                <div class="actions"><a class="btn btn-primary" href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">set up the linux app</a></div>
+                                <p>the solstone app takes in what you share from your desktop, and all of it goes into your journal. run the same command and choose desktop, or run this one:</p>
+                                <pre id="linux-app-commands">curl -fsSL https://solstone.app/install.sh | sh -s -- --components desktop</pre>
+                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-app-commands" hidden>copy command</button></div>
+                                <p class="copy-message" role="status" id="linux-app-commands-status"></p>
+                                <p>then, in your journal, open <strong>network</strong> and choose <strong>pair a device</strong> to make a pairing link. open solstone from your app menu and paste the link in its journal tab. if solstone doesn't open from your app menu, the <a href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">linux app guide</a> lists the packages it needs, and it also covers pairing from a terminal.</p>
                             </li>
                         </ol>
-                        <p class="ours"><strong>check it's ours.</strong> the journal installer verifies every download with minisign before it installs anything, and the desktop app's setup guide has you check its signature yourself. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
+                        <p class="ours"><strong>check it's ours.</strong> the installer verifies every download with minisign before it installs anything. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
                     </section>
 
                     <section class="platform-panel" id="windows" aria-labelledby="windows-heading">
