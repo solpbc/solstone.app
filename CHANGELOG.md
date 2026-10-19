@@ -4,6 +4,8 @@
 
 ### fixed
 
+- the install page no longer says to set up the journal first. it says you can start with your journal or with the solstone app and connect the two later.
+- on the phone page, "get started" opens the steps to start a journal.
 - mac setup instructions follow the numbered sequence across both apps, with source choices before the journal opens in your browser.
 - windows setup instructions follow the steps in the solstone app, with sources off until you turn them on.
 - windows setup instructions say where to open your journal: the journal app in the Start menu.
