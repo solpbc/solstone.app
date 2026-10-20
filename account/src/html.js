@@ -51,7 +51,7 @@ function brandbar() {
 // pages leave out the footer links to /transparency and /support.
 function footer({ deletionActive = false } = {}) {
   const portalLinks = deletionActive ? '' : '<a href="/transparency">data transparency</a><a href="/support">support</a>';
-  return `<footer class="footer">${portalLinks}<a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
+  return `<footer class="footer">${portalLinks}<a href="https://status.solstone.app">service status</a><a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
 }
 
 // `deletion` is display context from loadDeletionMenuContext: present only while
