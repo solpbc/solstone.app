@@ -897,7 +897,11 @@ ${BRANDLOCK}
     <div><div class="big">$5 <span class="price"><span class="per">/ year</span></span></div><div class="alt">annual only · tax included · per journal, not per device</div></div>
     <a class="btn primary" href="/?signin">sign in to enable</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">you never have to pay us. your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control.</p>
+  <p class="free-note" style="margin:14px 0 0">you never have to pay us. your journal doesn't need sol pbc to be reachable.</p>
+</div>
+<div class="card">
+  <h2>or use your own domain</h2>
+  <p>free from us. your journal walks you through it and checks each step, so you reach your journal at an address on a domain you own and sol pbc isn't in the path at all. you pay for your domain and a small server of your own, and together they cost more than solstone.me. set it up in your journal's agents app.</p>
 </div>
 <p class="disclosure"><a href="/terms">terms</a></p>`,
   });

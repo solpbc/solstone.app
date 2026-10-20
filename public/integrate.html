@@ -142,7 +142,7 @@
                                     <tr><td>on the journal's computer</td><td><code>http://127.0.0.1:7659/mcp</code></td><td>on</td></tr>
                                     <tr><td>on your wifi or VPN</td><td><code>https://&lt;private address&gt;:7660/mcp</code></td><td>off. uses a certificate from your journal's own authority, which the agents page offers for download.</td></tr>
                                     <tr><td>anywhere, through solstone.me</td><td><code>https://&lt;8 characters&gt;.solstone.me/mcp</code></td><td>off. $5/yr. the relay passes encrypted bytes through, and the journal holds the certificate.</td></tr>
-                                    <tr><td>anywhere, at your own domain</td><td><code>https://&lt;your domain&gt;/mcp</code></td><td>off. the journal gets its own certificate. needs a CAA record.</td></tr>
+                                    <tr><td>anywhere, at your own domain</td><td><code>https://&lt;your domain&gt;/mcp</code></td><td>off. needs a linux server you run with a public IPv4 address, an SSH admin login and port 443 open, plus an A and a CAA record. the journal holds the connection to your server and its own certificate.</td></tr>
                                 </table>
                             </li>
                             <li><strong>make a pairing code</strong> for that route. it's 8 characters, works once, and expires after 10 minutes. until a code is open, the journal won't answer a sign-in from anyone.</li>
