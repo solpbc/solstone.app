@@ -22,7 +22,7 @@ export function renderSupportList({ sections, nowMs = Date.now(), csrf = '' }) {
   return supportLayout('your support', `${supportTopbar()}
 <a class="back" href="/">${BACK_SVG} your services</a>
 <h1>your support</h1>
-<p class="meta">if a service isn't working, the <a href="https://status.solstone.app">service status page</a> shows its latest check and any incident sol pbc has posted.</p>
+<p class="meta" style="margin:2px 0 18px">if a service isn't working, the <a href="https://status.solstone.app">service status page</a> shows its latest check and any incident sol pbc has posted.</p>
 ${renderActiveSection(sections.active, nowMs)}
 ${renderClosedSection(sections.closed)}
 ${renderCreateSection(sections.create, csrf)}`, Boolean(sections.create.createConfirmation || sections.create.attachmentRetry), sections.create.state !== 'hidden');
