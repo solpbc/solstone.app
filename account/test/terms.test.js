@@ -60,6 +60,11 @@ describe('terms page', () => {
     expect(body).not.toContain('<a href="/legal">terms</a>');
   });
 
+  it('links the shared footer to the separate service status page', async () => {
+    const body = await (await get('/', makeTestEnv())).text();
+    expect(body.match(/<footer class="footer">.*<\/footer>/s)[0]).toContain('href="https://status.solstone.app"');
+  });
+
   it('points the generic scout and notifications links at the combined Terms', async () => {
     const testEnv = makeTestEnv();
 
