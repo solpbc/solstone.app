@@ -1,4 +1,4 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=9';
+export const PORTAL_CSS_HREF = '/portal.css?v=10';
 export const SUNARC_JS_SRC = '/sunarc.js?v=3';
 
 export const PORTAL_CSS = `/* services.solstone.app — the account portal's own tokens.
@@ -193,8 +193,8 @@ h2 {
   color: var(--ink);
 }
 p { margin: 0 0 14px; color: var(--ink-soft); }
-a { color: var(--orange-text-aa); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a { color: var(--orange-text-aa); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+a:hover { text-decoration-thickness: 2px; }
 .meta { color: var(--ink-faint); font-size: 0.88rem; margin: 0 0 4px; }
 .section-label {
   font-size: 0.74rem; letter-spacing: 0.06em;
@@ -442,9 +442,11 @@ input.code {
 
 /* nav (sub-pages) */
 .subnav { display: flex; gap: 16px; flex-wrap: wrap; margin: 0 2px 18px; }
-.subnav a { color: var(--ink-soft); font-size: 0.9rem; }
+.subnav a { color: var(--ink-soft); font-size: 0.9rem; text-decoration: none; }
+.subnav a:hover { text-decoration: underline; }
 .back { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft);
-  font-size: 0.9rem; margin: 0 0 14px; }
+  font-size: 0.9rem; margin: 0 0 14px; text-decoration: none; }
+.back:hover { text-decoration: underline; }
 
 /* spinner / waiting */
 .waiting { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); }
