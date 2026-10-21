@@ -124,7 +124,11 @@ These are not optional. A change that weakens one is wrong regardless of size.
   POST is guarded by `originAllowed`, an exact match on the `Origin` header with
   no prefix match and no `Referer` fallback, tightened in 2026-09 after
   `https://services.solstone.app.evil.test` was found to pass the old prefix
-  check. Two families sit outside it on purpose: the four passkey ceremony
+  check. It admits `Origin: null` only with `Sec-Fetch-Site: same-origin`,
+  because a page served `Referrer-Policy: no-referrer` (the service-enable
+  consent pages) makes Chromium and Firefox send `null` on its own form POST,
+  while opaque-origin documents send `null` with `cross-site`. Two families sit
+  outside it on purpose: the four passkey ceremony
   endpoints use `passkeyOriginAllowed` (not dashboard `originAllowed`) as a
   pre-check that exact-matches `Origin` when present, admits header-less
   requests, and has no Referer arm, because the finish step still verifies the

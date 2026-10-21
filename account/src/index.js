@@ -239,9 +239,18 @@ const LEGACY_PREFIX_REDIRECTS = [
 // 2026-09 after that predicted fresh finding surfaced. The session cookie is
 // SameSite=Lax, so this is defence in depth over an already-unauthenticated
 // cross-site POST, not the only barrier.
+//
+// One exception, for `Origin: null`. A page served `Referrer-Policy:
+// no-referrer` (the service-enable consent pages, so a journal's possession
+// proof never rides a Referer) makes Chromium and Firefox send `Origin: null`
+// on its own same-origin form POST. Opaque-origin documents (sandboxed
+// iframes, `data:` pages) send `null` too, so `null` alone proves nothing.
+// The browser-set `Sec-Fetch-Site` header tells them apart: `same-origin` for
+// our own page, `cross-site` for every opaque origin, and a page cannot set it.
 export function originAllowed(req) {
   const origin = req.headers.get('Origin');
   if (typeof origin !== 'string') return false;
+  if (origin === 'null') return req.headers.get('Sec-Fetch-Site') === 'same-origin';
   try {
     return new URL(origin).origin === ORIGIN;
   } catch {
