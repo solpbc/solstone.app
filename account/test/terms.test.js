@@ -21,8 +21,8 @@ describe('terms page', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toContain('text/html');
     expect(body).toContain('<h1>solstone services · terms</h1>');
-    expect(body).toContain('part one · what applies to everything');
-    expect(body).toContain('part two · each service, one at a time');
+    expect(body).toContain('Part one · what applies to everything');
+    expect(body).toContain('Part two · each service, one at a time');
     expect(body).toContain('<hr>');
     expect(body).not.toContain('[ship date]');
     expect(body).not.toMatch(/<p>[^<]*---[^<]*<\/p>/);
