@@ -22,7 +22,7 @@ if you didn't request this, you can ignore this email.`;
   const html = `<!DOCTYPE html>
 <html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
   <p>your sol pbc sign-in code is</p>
-  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
+  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #1A1A1A; background: #FBEFDD; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
   <p>it expires in 10 minutes.</p>
   <p>if you didn't request this, you can ignore this email.</p>
 </body></html>`;
@@ -54,7 +54,7 @@ if you did not request this, you can ignore this email.`;
 <html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
   <p>you requested a copy of the data held with your solstone services sign-in.</p>
   <p>enter this code to continue:</p>
-  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
+  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #1A1A1A; background: #FBEFDD; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
   <p>it expires in 10 minutes.</p>
   <p>if you did not request this, you can ignore this email.</p>
 </body></html>`;
@@ -83,7 +83,7 @@ if you did not request this, you can ignore this email.`;
 <html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
   <p>you requested a change to your passkeys or email addresses.</p>
   <p>enter this code to continue:</p>
-  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
+  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #1A1A1A; background: #FBEFDD; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
   <p>it expires in 10 minutes.</p>
   <p>if you did not request this, you can ignore this email.</p>
 </body></html>`;
@@ -121,7 +121,7 @@ if you did not request this, you can ignore this email.`;
   const html = `<!DOCTYPE html>
 <html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
 ${lines.map((line) => (line === formatted
-    ? `  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>`
+    ? `  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #1A1A1A; background: #FBEFDD; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>`
     : `  <p>${line}</p>`)).join('\n')}
 </body></html>`;
   const response = await env.EMAIL.send({
@@ -148,7 +148,7 @@ if you didn't request this, you can ignore this email.`;
   const html = `<!DOCTYPE html>
 <html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">
   <p>to verify this email address for your sol pbc sign-in, enter this code:</p>
-  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #E8913A; background: #FBF6F0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
+  <pre style="font-family: ui-monospace, Menlo, monospace; font-size: 28px; font-weight: 700; color: #1A1A1A; background: #FBEFDD; padding: 16px 20px; border-radius: 8px; margin: 12px 0; letter-spacing: 4px; text-align: center;">${formatted}</pre>
   <p>it expires in 10 minutes.</p>
   <p>if you didn't request this, you can ignore this email.</p>
 </body></html>`;

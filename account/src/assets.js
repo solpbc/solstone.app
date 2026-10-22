@@ -1,4 +1,4 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=10';
+export const PORTAL_CSS_HREF = '/portal.css?v=11';
 export const SUNARC_JS_SRC = '/sunarc.js?v=3';
 
 export const PORTAL_CSS = `/* services.solstone.app — the account portal's own tokens.
@@ -385,7 +385,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline
 .ack input[type=checkbox] { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--orange); }
 .ack input[type=checkbox]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 input.code {
-  font-family: ui-monospace, Menlo, monospace; font-size: 1.5rem;
+  font-family: var(--font-mono); font-size: 1.5rem;
   letter-spacing: 8px; text-align: center;
 }
 .cf-turnstile { min-height: 65px; margin: 2px 0 16px; display: flex; align-items: center;

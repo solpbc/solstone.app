@@ -52,7 +52,7 @@ describe('/signin/start', () => {
     expect(message.replyTo).toBe('support@solstone.app');
     expect(message).not.toHaveProperty('List-Unsubscribe');
     expect(message.text).toMatch(/10 minute/i);
-    expect(message.html).toContain('#E8913A');
+    expect(message.html).toContain(message.subject.match(/\d{3} \d{3}$/)[0]);
     expect(body).not.toContain(finishPath);
     expect(body).not.toContain('http://');
     expect(body).not.toContain('https://');
