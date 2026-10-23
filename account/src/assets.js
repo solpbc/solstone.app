@@ -1,4 +1,4 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=12';
+export const PORTAL_CSS_HREF = '/portal.css?v=13';
 export const SUNARC_JS_SRC = '/sunarc.js?v=4';
 
 export const PORTAL_CSS = `/* services.solstone.app — the account portal's own tokens.
@@ -39,7 +39,7 @@ export const PORTAL_CSS = `/* services.solstone.app — the account portal's own
   --focus:        #B06A1A;
   --orange-text-aa: #A15F17; /* normal-size orange text; 4.58:1 on --cream, 4.92:1 on --cream-bright, 5.04:1 on --paper */
   --ink-on-brand: #1A1A1A; /* text on --orange (7.08:1) and --gold (11.55:1); same in both appearances */
-  --panel: rgb(254 252 248 / 0.90); /* content sheet; 90% cream-bright */
+  --panel: rgb(254 252 248 / 0.95); /* content sheet; 95% cream-bright preserves night contrast */
   --danger-wash: #F8E9E6; /* .error fill and the danger hovers; the token SOT value */
   --error-ink: #7d2525; /* 8.22:1 on --danger-wash */
   --success: #3F9D6A;
