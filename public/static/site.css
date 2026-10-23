@@ -157,7 +157,7 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 
 /* ---- footer ---- */
 .site-footer { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0; padding: 0 0 28px; font-family: var(--font-body); text-align: left; color: var(--ink); }
-.site-footer .footer-row { padding: 22px 0 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 24px; align-items: center; }
+.site-footer .footer-row { padding: 22px; background: var(--sheet); border: 1px solid var(--sheet-line); border-radius: 18px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 24px; align-items: center; }
 .site-footer nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; }
 .site-footer nav a { color: var(--ink); text-decoration: none; padding: 6px 0; }
 .site-footer nav a:hover { text-decoration: underline; }
