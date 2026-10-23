@@ -37,7 +37,7 @@ function sunriseGround() {
   document.documentElement.style.setProperty('--sunrise-day', String(day));
 }
 sunriseGround();
-window.setInterval(sunriseGround, 60000);
+// The controller owns the minute tick and updates --sunrise-day with its frame.
 if (darkCapable && window.matchMedia) {
   var mq = window.matchMedia('(prefers-color-scheme: dark)');
   if (mq.addEventListener) mq.addEventListener('change', function() { ctrl.tick(); sunriseGround(); });

@@ -1,3 +1,5 @@
+import { installNightSky } from './night-sky.js';
+import { installNightLayer } from './night-layer.js';
 // § 5 rung 2 — the system timezone's tzdb reference point. The table is bundled, never
 // fetched: § 12 accepts no network call attributable to this pattern.
 //
@@ -555,6 +557,14 @@ export function createSunarcController(deps) {
   let zoneTable = null;
   let solarPair = { rise: FALLBACK_RISE, set: FALLBACK_SET, lastDateKey: null, zoneId: null };
   let resizeTimer = null;
+  let nightLayer = null;
+  function nightSample() {
+    const date = now(), f = lastFrame, vp = deps.viewport();
+    return {W:vp.w,H:vp.h,minute:date.getHours()*60+date.getMinutes()+date.getSeconds()/60+date.getMilliseconds()/60000,
+      dark:f.appearance==='dark',sun:solarPair,
+      frame:{t:f.time.t,night:f.time.nightAmount,w:f.twilight.w,
+        glows:[f.halo,f.twilightGlow].filter(Boolean).map(g=>({x:g.x,y:g.y,r:g.radius,a:g.alpha}))}};
+  }
   let intervalId = null;
   let lastFrame = null;
 
@@ -619,7 +629,7 @@ export function createSunarcController(deps) {
   }
 
   function tick() {
-    if (!document) return;
+    if (!document || document.visibilityState === 'hidden') return;
     const container = document.getElementById('sunarc');
     if (!container) return;
     const sun = container.querySelector('.sunarc-sun');
@@ -664,6 +674,9 @@ export function createSunarcController(deps) {
     placeGlow(twilight, frame.twilightGlow);
     placeGlow(glow, frame.halo);
     lastFrame = frame;
+    if (!nightLayer && typeof document.createElement === 'function' && typeof globalThis.createNightLayer === 'function') nightLayer = globalThis.createNightLayer(container,{read:nightSample});
+    if (nightLayer) nightLayer.update();
+    document.documentElement.style.setProperty('--sunrise-day',String(frame.appearance==='light'?1-frame.time.nightAmount:0));
   }
 
   function onResize() {
@@ -674,16 +687,20 @@ export function createSunarcController(deps) {
   }
 
   function onVisibilityChange() {
-    if (document && document.visibilityState === 'visible') {
-      refreshSolarPair();
-      tick();
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = null;
+    if (document && document.visibilityState !== 'hidden') {
+      refreshSolarPair();tick();intervalId=setInterval(tick,60000);
     }
+    if (nightLayer) nightLayer.update();
   }
 
   return {
     start: function() {
       tick();
-      if (setInterval) {
+      if (setInterval && document.visibilityState !== 'hidden') {
         intervalId = setInterval(tick, 60000);
       }
       if (window && typeof window.addEventListener === 'function') {
@@ -698,6 +715,7 @@ export function createSunarcController(deps) {
       return this;
     },
     stop: function() {
+      if (nightLayer) {nightLayer.dispose();nightLayer=null;}
       if (intervalId && clearInterval) clearInterval(intervalId);
       if (resizeTimer && clearTimeout) clearTimeout(resizeTimer);
       if (window && typeof window.removeEventListener === 'function') {
@@ -722,6 +740,8 @@ export function createSunarcController(deps) {
 
 export const SUNARC_JS = `(function(){
 function __name(fn){return fn;}
+(${installNightSky.toString()})(globalThis);
+(${installNightLayer.toString()})(globalThis);
 var SUNARC_ZONE_TABLE = ${JSON.stringify(SUNARC_ZONE_TABLE)};
 var SUNARC_ZONE_COUNT = ${SUNARC_ZONE_COUNT};
 ${parseZoneTable.toString()}

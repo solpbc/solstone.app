@@ -40,7 +40,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=d24f6e142f">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=ae4a0814bb">
+    <link rel="stylesheet" href="/static/site.css?v=44f06bf5bf">
     <style>
         .page-intro .btn, .page-intro .store-badge { margin-top: 18px; }
         .stream-switch {
@@ -151,7 +151,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         </footer>
     </div>
     <script src="/static/site.js?v=21a0ea4d62" defer></script>
-    <script src="/static/sunarc.js?v=d677dfd20e" defer></script>
+    <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
 </body>
 </html>`;
 

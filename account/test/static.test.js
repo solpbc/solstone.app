@@ -47,6 +47,8 @@ describe('static source checks', () => {
       'inline/support-draft.js',
       'inline/support-forms.js',
       'mcp-bridge.js',
+      'night-layer.js',
+      'night-sky.js',
       'owner-data-inventory.js',
       'owner-export-compose.js',
       'owner-export-local.js',

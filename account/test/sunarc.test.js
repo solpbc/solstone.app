@@ -85,8 +85,8 @@ describe('content container (spec section 8)', () => {
     const expected = {
       '--sunarc-peak-opacity': '0.55',
       '--sunarc-peak-opacity-dark': '0.20',
-      '--sunarc-ground-light-night': '#E9DECC',
-      '--sunarc-ground-light-deep': '#D7C9B0',
+      '--sunarc-ground-light-night': '#AEA393',
+      '--sunarc-ground-light-deep': '#8C806E',
       '--sunarc-ground-dark-day': '#392E26',
       '--sunarc-ground-dark-night': '#2E241C',
       '--sunarc-ground-dark-deep': '#281E17',
@@ -643,18 +643,18 @@ describe('sun arc in both appearances (spec sections 4a, 6, 7, 8a, 12)', () => {
     },
     {
       t: [19, 41], w: 0.994, phase: 'evening', centre: [620.4, 1086.7],
-      light: { ground: '#E9DECC', sun: 0, alpha: 0.944, color: '#FFE294', corner: 0.416 },
+      light: { ground: '#AEA393', sun: 0, alpha: 0.944, color: '#FFE294', corner: 0.416 },
       dark: { ground: '#2E241C', sun: 0, alpha: 0.616, color: '#F8B836', corner: 0.272 },
     },
     {
       t: [22, 0], w: 0.434, phase: 'evening', centre: [642.3, 1176.8],
-      light: { ground: '#DFD2BC', sun: 0, alpha: 0.412, color: '#FFDC7F', corner: 0.152 },
+      light: { ground: '#9B8F7E', sun: 0, alpha: 0.412, color: '#FFDC7F', corner: 0.152 },
       dark: { ground: '#2B2119', sun: 0, alpha: 0.269, color: '#F1A739', corner: 0.099 },
     },
-    { t: [1, 0], w: 0, phase: 'true dark', light: { ground: '#D7C9B0', sun: 0, alpha: 0, corner: 0 }, dark: { ground: '#281E17', sun: 0, alpha: 0, corner: 0 } },
+    { t: [1, 0], w: 0, phase: 'true dark', light: { ground: '#8C806E', sun: 0, alpha: 0, corner: 0 }, dark: { ground: '#281E17', sun: 0, alpha: 0, corner: 0 } },
     {
       t: [5, 30], w: 0.938, phase: 'before dawn', centre: [-249.9, -245.0],
-      light: { ground: '#E8DDCA', sun: 0, alpha: 0.891, color: '#FFE08F', corner: 0.375 },
+      light: { ground: '#ACA191', sun: 0, alpha: 0.891, color: '#FFE08F', corner: 0.375 },
       dark: { ground: '#2E241C', sun: 0, alpha: 0.582, color: '#F6B437', corner: 0.245 },
     },
   ];
@@ -700,7 +700,7 @@ describe('sun arc in both appearances (spec sections 4a, 6, 7, 8a, 12)', () => {
 
   it('section 6: the portal draws its own tile cream as the light day ground, and the table from dusk on', () => {
     expect(calculateFrame(at(13, 0), RISE, SET, 'light', VP, defaultTokens).ground).toBe('#FCF3E4');
-    expect(calculateFrame(at(1, 0), RISE, SET, 'light', VP, defaultTokens).ground).toBe('#D7C9B0');
+    expect(calculateFrame(at(1, 0), RISE, SET, 'light', VP, defaultTokens).ground).toBe('#8C806E');
     expect(calculateFrame(at(13, 0), RISE, SET, 'dark', VP, defaultTokens).ground).toBe('#392E26');
   });
 
@@ -718,7 +718,7 @@ describe('sun arc in both appearances (spec sections 4a, 6, 7, 8a, 12)', () => {
         const f = calculateFrame(at(h, m), RISE, SET, appearance, VP, specTokens);
         expect(f.twilight.phase).toBe('true dark');
         expect(f.twilightGlow.alpha).toBe(0);
-        expect(f.ground).toBe(appearance === 'dark' ? '#281E17' : '#D7C9B0');
+        expect(f.ground).toBe(appearance === 'dark' ? '#281E17' : '#8C806E');
       }
     }
     expect(calculateFrame(at(23, 20), RISE, SET, 'dark', VP, specTokens).twilight.phase).toBe('evening');
@@ -775,7 +775,7 @@ describe('sun arc in both appearances (spec sections 4a, 6, 7, 8a, 12)', () => {
   });
 
   it('the appearance is the system\'s from the first tick, and follows a change at noon and at 01:00 on the event', () => {
-    for (const [h, m, lightGround, darkGround] of [[13, 0, '#FEFCF8', '#392E26'], [1, 0, '#D7C9B0', '#281E17']]) {
+    for (const [h, m, lightGround, darkGround] of [[13, 0, '#FEFCF8', '#392E26'], [1, 0, '#8C806E', '#281E17']]) {
       const doc = createMockDoc();
       const media = createMockMedia(true);
       const controller = createSunarcController({

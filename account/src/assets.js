@@ -1,5 +1,5 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=11';
-export const SUNARC_JS_SRC = '/sunarc.js?v=3';
+export const PORTAL_CSS_HREF = '/portal.css?v=12';
+export const SUNARC_JS_SRC = '/sunarc.js?v=4';
 
 export const PORTAL_CSS = `/* services.solstone.app — the account portal's own tokens.
    Derived from the design-system palette under the names this portal uses
@@ -85,8 +85,8 @@ export const PORTAL_CSS = `/* services.solstone.app — the account portal's own
   --sunarc-peak-opacity: 0.55;
   --sunarc-peak-opacity-dark: 0.20;
   --sunarc-twilight-minutes: 30;
-  --sunarc-ground-light-night: #E9DECC;
-  --sunarc-ground-light-deep: #D7C9B0;
+  --sunarc-ground-light-night: #AEA393;
+  --sunarc-ground-light-deep: #8C806E;
   --sunarc-ground-dark-day: #392E26;
   --sunarc-ground-dark-night: #2E241C;
   --sunarc-ground-dark-deep: #281E17;
