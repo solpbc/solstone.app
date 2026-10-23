@@ -125,7 +125,7 @@
  * --ink-on-brand is the label on an orange or gold fill. It does not follow the
  * dark appearance, where --ink turns cream (tokens-dark.css). */
 :root {
-  --panel: rgb(254 252 248 / 0.90);
+  --panel: rgb(254 252 248 / 0.95);
   --ink-on-brand: #1A1A1A;
   --ink-on-danger: #FFFFFF;
   --tone-1: #EFE4CF;
