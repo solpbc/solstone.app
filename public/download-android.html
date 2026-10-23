@@ -171,7 +171,7 @@ sha256sum -c SHA256SUMS</code></pre>
                 <div class="band-inner">
                     <h2 id="asks-title">what the app asks you for</h2>
                     <p>nothing, when you open it. the app starts with every source off, and each source asks for its own permission at the moment you turn that source on. the audio screen asks about the microphone, not the camera or location.</p>
-            <p>there are four of these, and android asks you about them one at a time:</p>
+            <p>android asks you about each of these on its own:</p>
 
             <table>
                 <thead>
@@ -191,8 +191,12 @@ sha256sum -c SHA256SUMS</code></pre>
                         <td>so a place can sit alongside what the app takes in, in your journal. the app asks only for approximate location, never precise.</td>
                     </tr>
                     <tr>
+                        <td>calendar<span class="sysname">READ_CALENDAR</span></td>
+                        <td>the calendar source reads the events this phone has stored. you choose which calendars and how far back, and nothing goes into your journal until you confirm. after that, the app checks again in the background, with no ongoing notice, and new or changed events go into your journal. it only reads: it never adds or changes an event. asked the first time you turn calendar on.</td>
+                    </tr>
+                    <tr>
                         <td>notifications<span class="sysname">POST_NOTIFICATIONS</span></td>
-                        <td>so you can see the ongoing notice while a source is on, and hear about it when one stops. say no and the sources keep running; you lose the notices, and you can turn them on later in settings. android 12 and earlier doesn't ask, and allows them from install.</td>
+                        <td>so you can see the ongoing notice while audio, camera, location or the screen is on, hear about it when one stops, and see notifications from your journal if you turn those on. say no and the sources keep running; you lose the notices, and you can turn them on later in settings. android 12 and earlier doesn't ask, and allows them from install.</td>
                     </tr>
                 </tbody>
             </table>
@@ -212,23 +216,23 @@ sha256sum -c SHA256SUMS</code></pre>
                     </tr>
                     <tr>
                         <td>ongoing work<span class="sysname">FOREGROUND_SERVICE · _MICROPHONE · _LOCATION · _CAMERA · _MEDIA_PROJECTION</span></td>
-                        <td>android makes an app declare what kind of work it keeps doing while you are in another app. these five are that declaration, and they grant nothing. microphone, camera and location, and android's question when you turn the screen source on, are still the gate.</td>
+                        <td>android makes an app declare what kind of work it keeps doing, with an ongoing notice, while you are in another app. these are that declaration, and they grant nothing. microphone, camera and location, and android's question when you turn the screen source on, are still the gate.</td>
                     </tr>
                     <tr>
                         <td>keep the notice visible<span class="sysname">POST_PROMOTED_NOTIFICATIONS</span></td>
-                        <td>so the notice saying a source is on stays where you can see it rather than collapsing out of the way.</td>
+                        <td>so the ongoing notice stays where you can see it rather than collapsing out of the way.</td>
                     </tr>
                     <tr>
                         <td>a reminder after a restart<span class="sysname">RECEIVE_BOOT_COMPLETED</span></td>
-                        <td>so the app can remind you, after you restart your phone, that a source you left on is waiting. opening the app starts it again.</td>
+                        <td>so the app can remind you, after you restart your phone, that audio, camera or location is waiting because you left it on. opening the app starts it again.</td>
                     </tr>
                     <tr>
                         <td>keep the phone awake<span class="sysname">WAKE_LOCK</span></td>
-                        <td>to finish a piece of work rather than leave it half done when the screen goes off. this one comes from androidx's background-work library, not from our code.</td>
+                        <td>to finish a piece of work rather than leave it half done when the screen goes off. this one comes from AndroidX's background-work library, not from our code.</td>
                     </tr>
                     <tr>
                         <td>a permission only this app can hold<span class="sysname">app.solstone.observer.phone.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION</span></td>
-                        <td>so the app's own internal messages cannot be read by other apps on your phone. the app defines it for itself, by way of an androidx library, and nothing else can ever hold it.</td>
+                        <td>so the app's own internal messages cannot be read by other apps on your phone. the app defines it for itself, by way of an AndroidX library, and nothing else can ever hold it.</td>
                     </tr>
                 </tbody>
             </table>
