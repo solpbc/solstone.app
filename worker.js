@@ -5,7 +5,11 @@ const JOURNAL_MACOS_APPCAST_URL = "https://updates.solstone.app/journal-macos/ap
 const MAC_BOTH_POINTER_URL = "https://updates.solstone.app/macos-both/latest.json";
 const MAC_BOTH_RELEASES_PREFIX = "https://updates.solstone.app/macos-both/releases/";
 const WIN_FEED_URL = "https://updates.solstone.app/solstone-windows/releases.win.json";
-const JOURNAL_WIN_FEED_URL = "https://updates.solstone.app/solstone-journal/release/windows/releases.win.json";
+const JOURNAL_WIN_ORIGIN = "https://updates.solstone.app/solstone-journal/release/windows";
+// The windows journal ships one installer per architecture, each from its own
+// Velopack feed, and names its artifacts by that architecture.
+const JOURNAL_WIN_X64 = { feedUrl: `${JOURNAL_WIN_ORIGIN}/releases.win.json`, arch: "x86_64" };
+const JOURNAL_WIN_ARM64 = { feedUrl: `${JOURNAL_WIN_ORIGIN}/releases.win-arm64.json`, arch: "aarch64" };
 const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/release";
 const JOURNAL_CHANGELOG_URL = "https://updates.solstone.app/solstone-journal/CHANGELOG.md";
 const LINUX_CHANGELOG_URL = "https://updates.solstone.app/solstone-linux/CHANGELOG.md";
@@ -179,15 +183,20 @@ async function latestWindowsSetupUrl() {
   return `https://updates.solstone.app/solstone-windows/solstone-setup-${version}.exe`;
 }
 
-// The Windows journal is its own per-user Velopack product with its own feed,
-// separate from the solstone app for windows. The newest Full asset names the
-// version; the Setup is published beside it under the journal's artifact name.
+// The Windows journal is its own per-user Velopack product with its own feeds,
+// separate from the solstone app for windows. The newest Full asset in an
+// architecture's feed names the version; the Setup is published beside it
+// under the journal's artifact name for that architecture.
+function journalWindowsSetupUrl(target, version) {
+  return `${JOURNAL_WIN_ORIGIN}/solstone-journal-${version}-windows-${target.arch}-setup.exe`;
+}
+
 // Only a plain x.y.z version is accepted, so the feed can never steer this
 // redirect anywhere but that one prefix.
-async function latestJournalWindowsSetupUrl() {
-  const version = await velopackFullVersion(JOURNAL_WIN_FEED_URL);
+async function latestJournalWindowsSetupUrl(target) {
+  const version = await velopackFullVersion(target.feedUrl);
   if (!version || !/^\d+\.\d+\.\d+$/.test(version)) return null;
-  return `https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64-setup.exe`;
+  return journalWindowsSetupUrl(target, version);
 }
 
 // A release pointer of the form `version=x.y.z`, one line. null when it can't
@@ -342,11 +351,11 @@ function macDmgDigest(feed, source) {
 
 // The windows journal publishes a .sha256 file beside its installer; take the
 // line for the Setup itself, not the update package listed with it.
-async function windowsJournalSetupDigest(version) {
+async function windowsJournalSetupDigest(target, version) {
   if (!version) return null;
   try {
-    const name = `solstone-journal-${version}-windows-x86_64-setup.exe`;
-    const res = await fetch(`https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64.sha256`, {
+    const name = `solstone-journal-${version}-windows-${target.arch}-setup.exe`;
+    const res = await fetch(`${JOURNAL_WIN_ORIGIN}/solstone-journal-${version}-windows-${target.arch}.sha256`, {
       cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
     });
     if (!res.ok) return null;
@@ -361,15 +370,13 @@ async function windowsJournalSetupDigest(version) {
 }
 
 async function downloadIndexSlots() {
-  const [macApp, macJournal, macBoth, winApp, winJournal, linuxJournal, linuxApp, tmux, android] = await Promise.all([
+  const [macApp, macJournal, macBoth, winApp, winJournal, winJournalArm, linuxJournal, linuxApp, tmux, android] = await Promise.all([
     latestAppcastDmg(APPCAST_URL),
     latestAppcastDmg(JOURNAL_MACOS_APPCAST_URL),
     latestMacBothImage(),
     windowsSetupFacts(WIN_FEED_URL, (version) => `https://updates.solstone.app/solstone-windows/solstone-setup-${version}.exe`),
-    windowsSetupFacts(
-      JOURNAL_WIN_FEED_URL,
-      (version) => `https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-${version}-windows-x86_64-setup.exe`,
-    ),
+    windowsSetupFacts(JOURNAL_WIN_X64.feedUrl, (version) => journalWindowsSetupUrl(JOURNAL_WIN_X64, version)),
+    windowsSetupFacts(JOURNAL_WIN_ARM64.feedUrl, (version) => journalWindowsSetupUrl(JOURNAL_WIN_ARM64, version)),
     catalogueJournalVersion(),
     releasePointerVersion(LINUX_APP_LATEST_URL),
     releasePointerVersion(TMUX_LATEST_URL),
@@ -405,7 +412,11 @@ async function downloadIndexSlots() {
 
   fill("journal-windows-version", winJournal?.version);
   fill("journal-windows-size", sizeCell(winJournal?.size));
-  fill("journal-windows-check", fingerprintCell("sha256", await windowsJournalSetupDigest(winJournal?.version)));
+  fill("journal-windows-check", fingerprintCell("sha256", await windowsJournalSetupDigest(JOURNAL_WIN_X64, winJournal?.version)));
+
+  fill("journal-windows-arm64-version", winJournalArm?.version);
+  fill("journal-windows-arm64-size", sizeCell(winJournalArm?.size));
+  fill("journal-windows-arm64-check", fingerprintCell("sha256", await windowsJournalSetupDigest(JOURNAL_WIN_ARM64, winJournalArm?.version)));
 
   fill("journal-linux-version", linuxJournal);
   fill("linux-version", linuxApp);
@@ -556,10 +567,12 @@ async function route(request, env) {
       return Response.redirect(dmgUrl, 302);
     }
 
-    // Windows journal installer permalink: resolve the current version from
-    // the journal's own Windows feed and 302 to the versioned Setup on R2.
-    if (url.pathname === "/download/journal/windows/latest") {
-      const setupUrl = await latestJournalWindowsSetupUrl();
+    // Windows journal installer permalinks: resolve the current version from
+    // the journal's own Windows feed for that architecture and 302 to the
+    // versioned Setup on R2. /latest stays the x64 installer; arm64 has its own.
+    if (url.pathname === "/download/journal/windows/latest" || url.pathname === "/download/journal/windows/arm64/latest") {
+      const target = url.pathname === "/download/journal/windows/latest" ? JOURNAL_WIN_X64 : JOURNAL_WIN_ARM64;
+      const setupUrl = await latestJournalWindowsSetupUrl(target);
       if (!setupUrl) {
         return new Response("Latest journal download for windows is temporarily unavailable. Try again shortly.", {
           status: 503,
@@ -578,9 +591,10 @@ async function route(request, env) {
     }
 
     // The windows journal's page: requirements first, then the button. Its
-    // binary stays at /download/journal/windows/latest above.
+    // binaries stay at /download/journal/windows/latest (x64) and
+    // /download/journal/windows/arm64/latest above. The size shown is x64's.
     if (url.pathname === "/download/journal/windows") {
-      const size = await installerSize(await latestJournalWindowsSetupUrl());
+      const size = await installerSize(await latestJournalWindowsSetupUrl(JOURNAL_WIN_X64));
       return sizedPageResponse(request, env, "/download-journal-windows", size ? gigabytes(size) : null);
     }
 

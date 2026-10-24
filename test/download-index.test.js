@@ -16,6 +16,7 @@ const FEEDS = {
   macBoth: `${ORIGIN}/macos-both/latest.json`,
   winApp: `${ORIGIN}/solstone-windows/releases.win.json`,
   winJournal: `${ORIGIN}/solstone-journal/release/windows/releases.win.json`,
+  winJournalArm: `${ORIGIN}/solstone-journal/release/windows/releases.win-arm64.json`,
   linuxJournal: `${ORIGIN}/solstone/release/latest`,
   linuxApp: `${ORIGIN}/solstone-linux/release/latest`,
   tmux: `${ORIGIN}/solstone-tmux/release/latest`,
@@ -31,6 +32,7 @@ const APP_SHA = "a".repeat(56) + "0c0c0c0c";
 const JRN_SHA = "b".repeat(56) + "0d0d0d0d";
 const WINJ_SHA = "e".repeat(56) + "0e0e0e0e";
 const WINJ_PKG_SHA = "9".repeat(64);
+const WINJ_ARM_SHA = "f".repeat(56) + "0f0f0f0f";
 const CATALOGUE = `${ORIGIN}/solstone/release/7.5.5-r2/platform.json`;
 
 // A platform catalogue at a schema 2 coordinate: its own version and revision
@@ -90,6 +92,11 @@ function healthyRoutes() {
     [`${ORIGIN}/solstone-journal/release/windows/solstone-journal-7.4.4-windows-x86_64-setup.exe`]: length(1_120_000_000),
     [`${ORIGIN}/solstone-journal/release/windows/solstone-journal-7.4.4-windows-x86_64.sha256`]: text(
       `${WINJ_SHA}  solstone-journal-7.4.4-windows-x86_64-setup.exe\n${WINJ_PKG_SHA}  SolstoneJournal-7.4.4-full.nupkg\n`,
+    ),
+    [FEEDS.winJournalArm]: text(velopack("7.4.5")),
+    [`${ORIGIN}/solstone-journal/release/windows/solstone-journal-7.4.5-windows-aarch64-setup.exe`]: length(1_160_000_000),
+    [`${ORIGIN}/solstone-journal/release/windows/solstone-journal-7.4.5-windows-aarch64.sha256`]: text(
+      `${WINJ_ARM_SHA}  solstone-journal-7.4.5-windows-aarch64-setup.exe\n${WINJ_PKG_SHA}  SolstoneJournal-7.4.5-win-arm64-full.nupkg\n`,
     ),
     // The catalogue pointer is a bare coordinate, with no `version=` prefix.
     [FEEDS.linuxJournal]: text("7.5.5-r2\n"),
@@ -154,11 +161,12 @@ const ROW = {
   macBoth: 2,
   winApp: 3,
   winJournal: 4,
-  linuxJournal: 5,
-  linuxApp: 6,
-  tmux: 7,
-  android: 8,
-  stores: 9,
+  winJournalArm: 5,
+  linuxJournal: 6,
+  linuxApp: 7,
+  tmux: 8,
+  android: 9,
+  stores: 10,
 };
 
 test("each feed's values reach their own row", async (t) => {
@@ -167,7 +175,7 @@ test("each feed's values reach their own row", async (t) => {
   assert.equal(res.status, 200);
   assert.equal(res.headers.get("content-type"), "text/html; charset=utf-8");
   const table = rows(await res.text());
-  assert.equal(table.length, 10);
+  assert.equal(table.length, 11);
 
   const mac = table[ROW.macApp];
   assert.match(mac.version, />7\.1\.1</);
@@ -198,6 +206,15 @@ test("each feed's values reach their own row", async (t) => {
   assert.match(winJournal.size, /about 1\.1 GB/);
   assert.ok(winJournal["check it"].includes(WINJ_SHA), "the Setup's own line from the published .sha256");
   assert.ok(!winJournal["check it"].includes(WINJ_PKG_SHA), "not the update package's line");
+  assert.match(winJournal.architecture, /x64/);
+
+  const winJournalArm = table[ROW.winJournalArm];
+  assert.match(winJournalArm.version, />7\.4\.5</, "the arm64 row reads its own feed");
+  assert.match(winJournalArm.size, /about 1\.2 GB/);
+  assert.match(winJournalArm.architecture, /arm64/);
+  assert.ok(winJournalArm["check it"].includes(WINJ_ARM_SHA), "the arm64 Setup's own line");
+  assert.ok(!winJournalArm["check it"].includes(WINJ_SHA), "each windows journal row carries its own digest");
+  assert.ok(!winJournalArm["check it"].includes(WINJ_PKG_SHA));
 
   assert.match(table[ROW.linuxJournal].version, />7\.5\.5</);
   assert.match(table[ROW.linuxApp].version, />7\.6\.6</);
@@ -251,6 +268,7 @@ test("one unreadable feed costs only its own row, and the page is not cached", a
     [CATALOGUE, ROW.linuxJournal],
     [FEEDS.macBoth, ROW.macBoth],
     [FEEDS.winJournal, ROW.winJournal],
+    [FEEDS.winJournalArm, ROW.winJournalArm],
     [FEEDS.android, ROW.android],
   ]) {
     for (const key of Object.keys(routes)) delete routes[key];
@@ -351,7 +369,7 @@ test("a feed value that isn't a plain version never reaches the page", async (t)
 });
 
 test("the feeds are read at the same time, not one after another", async (t) => {
-  // Hold every first read until all nine feeds have been asked for. Read one
+  // Hold every first read until all ten feeds have been asked for. Read one
   // after another, the first would wait forever; the fallback releases it so a
   // failure reads as a failed assertion rather than a hung test.
   const firstReads = new Set(Object.values(FEEDS));
@@ -414,6 +432,7 @@ test("each product links its own download page, and the old index URLs still arr
     "/download/journal",
     "/download/mac",
     "/download/windows",
+    "/download/journal/windows",
     "/download/journal/windows",
     null,
     null,

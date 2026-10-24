@@ -103,6 +103,7 @@ test("/download/journal/windows renders its page with the installer size in GB",
   const html = await res.text();
   assert.match(html, /about 1\.1 GB, and /);
   assert.match(html, /href="\/download\/journal\/windows\/latest"/);
+  assert.match(html, /href="\/download\/journal\/windows\/arm64\/latest"/);
 });
 
 test("an unreadable origin renders the page without a size, uncached", async (t) => {

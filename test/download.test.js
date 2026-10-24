@@ -608,6 +608,37 @@ test("/download/journal/windows/latest refuses an unreadable feed or an unexpect
   }
 });
 
+test("/download/journal/windows/arm64/latest 302s to the arm64 journal Setup from the arm64 feed", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  globalThis.fetch = async (url) => {
+    assert.equal(String(url), "https://updates.solstone.app/solstone-journal/release/windows/releases.win-arm64.json");
+    return new Response(JSON.stringify({ Assets: [{ PackageId: "SolstoneJournal", Version: "2.0.57", Type: "Full" }] }), { status: 200 });
+  };
+  const res = await fetchDownload("/download/journal/windows/arm64/latest");
+  assert.equal(res.status, 302);
+  assert.equal(
+    res.headers.get("location"),
+    "https://updates.solstone.app/solstone-journal/release/windows/solstone-journal-2.0.57-windows-aarch64-setup.exe",
+  );
+});
+
+test("/download/journal/windows/arm64/latest refuses an unreadable feed or an unexpected version", async (t) => {
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  for (const feed of [null, { Assets: [] }, { Assets: [{ Type: "Full", Version: "../../x" }] }, { Assets: [{ Type: "Full", Version: "2.0.57-rc.1" }] }]) {
+    globalThis.fetch = async () => (feed === null ? new Response("", { status: 500 }) : new Response(JSON.stringify(feed), { status: 200 }));
+    const res = await fetchDownload("/download/journal/windows/arm64/latest");
+    assert.equal(res.status, 503);
+    assert.equal(await res.text(), JOURNAL_WINDOWS_UNAVAILABLE);
+    assert.equal(res.headers.get("cache-control"), "no-store");
+  }
+});
+
 test("no served page links to TestFlight; iPhone links go to the App Store", async () => {
   const { readFileSync, readdirSync } = await import("node:fs");
   const dir = new URL("../public/", import.meta.url);
