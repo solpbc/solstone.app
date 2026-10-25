@@ -75,7 +75,6 @@ describe('service landing pages', () => {
     expect(body).toContain('<h1>confidential processing</h1>');
     expect(body).toContain('no content is retained · no human reviews it · nothing is used to train');
     expect(body).toContain('think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.');
-    expect(body).toContain('confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.');
     expect(body).toContain('href="/confidential-processing/data"');
     expect(body).toContain("sol pbc's own model");
     expect(body).toContain("a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.");

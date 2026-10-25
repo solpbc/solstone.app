@@ -499,7 +499,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = fa
     <div class="n">2</div>
     <div>
       <div class="gt">what leaves your device</div>
-      <div class="gd">when confidential processing is on, <a href="/confidential-processing/data">the text and images that go to a model for processing</a> leave your device. when the audio switch is on (its default), your audio recordings for transcription go too. that holds even for a device whose audio you've turned off: its recordings start going the day you turn its audio back on. turn the switch off any time in the journal's thinking app, in the confidential lane, and speech becomes text on your device instead. your journal itself never leaves; it stays on your computer. voiceprints and speaker profiles are never created on the service. it's processed on a model sol pbc runs itself, with no third-party AI provider in the path: no content is retained, no human reviews it, nothing is used to train.</div>
+      <div class="gd">when confidential processing is on, <a href="/confidential-processing/data">the text and images that go to a model for processing</a> leave your device. when the audio switch is on (its default), your audio recordings for transcription go too. that holds even for a device whose audio you've turned off: its recordings start going the day you turn its audio back on. turn the switch off any time in the journal's thinking app, in the confidential lane, and speech becomes text on your device instead. your journal itself never leaves the device it runs on. voiceprints and speaker profiles are never created on the service. it's processed on a model sol pbc runs itself, with no third-party AI provider in the path: no content is retained, no human reviews it, nothing is used to train.</div>
     </div>
   </div>
   <div class="grant">
@@ -530,7 +530,7 @@ export function renderEnableSppApprovalRequired() {
     body: `${brandbar()}
 <div class="card">
   <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">scout approval required</h2>
-  <p>confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on a model sol pbc runs itself, which keeps nothing: no content is retained, no human reviews it, nothing is used to train. your journal must verify the service before anything is sent. if it can't verify, nothing is sent. no third-party AI provider is in the path.</p>
+  <p>confidential processing sends your thinking off your device, never your journal, which stays on the device it runs on. it runs on a model sol pbc runs itself, which keeps nothing: no content is retained, no human reviews it, nothing is used to train. your journal must verify the service before anything is sent. if it can't verify, nothing is sent. no third-party AI provider is in the path.</p>
   <p>confidential processing is available to approved scouts. your sign-in is not currently approved, so there is nothing to turn on here.</p>
   <a class="btn primary" href="/scout">request scout access</a>
 </div>`,
@@ -798,7 +798,7 @@ export function renderConfidentialProcessingLanding({ onSale = false } = {}) {
     body: brandbarSignin()
       + `\n<a class="back" href="/">${BACK_SVG} services</a>
 <h1>confidential processing</h1>
-<p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.</p>
+<p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on the device it runs on. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.</p>
 ${BRANDLOCK}
 <div class="card">
   ${beat(IC_CHIP, 'on hardware sol pbc runs', 'think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.')}
@@ -820,7 +820,7 @@ export function renderConfidentialProcessingData() {
 <h2>what leaves your device</h2>
 <p>the text and images that go to a model for processing. when the audio switch is on (its default), your audio recordings for transcription go too.</p>
 <h2>what doesn't</h2>
-<p>your journal stays on your computer. voiceprints and speaker profiles are computed on your device and never leave. nothing goes to any third-party AI provider.</p>
+<p>your journal stays on the device it runs on. voiceprints and speaker profiles are computed on your device and never leave. nothing goes to any third-party AI provider.</p>
 <h2>audio</h2>
 <p>when confidential processing is on and the audio switch is on, your journal sends speech for transcription: segments up to five minutes each, prepared by your journal into one standard audio format. the service accepts exactly that format and rejects anything else. it travels only over the channel your journal has verified.</p>
 <p>the service turns speech to text in memory on confidential hardware sol pbc operates and returns the transcript to your journal. nothing is written, nothing is kept, no human review, nothing used to train.</p>
@@ -1210,7 +1210,7 @@ ${content}`,
       content: `<p class="lead">confidential processing is available to approved scouts. this sign-in is not currently approved. visit <a href="/scout">scout</a> to request access.</p>
 <div class="card">
   ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_CHIP, 'the thinking leaves', 'confidential processing sends your thinking off your device, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
+  ${beat(IC_CHIP, 'the thinking leaves', 'confidential processing sends your thinking off your device, never your journal, which stays on the device it runs on. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
 </div>
 <p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/terms">terms</a></p>`,
     });
@@ -1288,7 +1288,7 @@ ${withdrawalDoor(withdrawal)}
 
   return page({
     flashes,
-    content: `<p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on your computer. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path. no content is retained · no human reviews it · nothing is used to train.</p>
+    content: `<p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on the device it runs on. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path. no content is retained · no human reviews it · nothing is used to train.</p>
 <div class="card">
   <p>turn on confidential processing</p>
   ${planTerms ? `<p class="disclosure" data-plan-terms>${esc(planTerms)}</p>` : ''}
