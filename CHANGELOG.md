@@ -4,6 +4,7 @@
 
 ### fixed
 
+- the home page and install page call the journal's briefing the daily briefing, as the journal does.
 - the install page no longer says to set up the journal first. it says you can start with your journal or with the solstone app and connect the two later.
 - on the phone page, "get started" opens the steps to start a journal.
 - mac setup instructions follow the numbered sequence across both apps, with source choices before the journal opens in your browser.
