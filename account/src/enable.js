@@ -87,7 +87,11 @@ import {
 import { SPP_SUBSCRIBE_URL, sppOnSale } from './spp-service.js';
 
 const HANDOFF_POLL_MS = 1500;
-const HANDOFF_POLL_BUDGET_MS = 30_000;
+// How long one handoff poll stays open. It must end well inside the shortest journal client
+// timeout (15 s for backup): a poll still open after the journal has given up can consume the
+// owner's consent and answer nobody, and the journal's next poll then reads 410 (expired).
+// Sleeps are clamped to the budget, so a poll answers within this plus one round of D1 reads.
+const HANDOFF_POLL_BUDGET_MS = 10_000;
 // How long a turn-on that is waiting for a subscription stays open. The journal keeps asking
 // for this long once it hears needs_subscription.
 const SUBSCRIBE_WAIT_MS = 60 * 60 * 1000;
