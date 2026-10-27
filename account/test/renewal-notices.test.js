@@ -376,7 +376,7 @@ sol pbc`);
 
       expect(testEnv.EMAIL.sent.length).toBe(1);
       const email1 = testEnv.EMAIL.sent[0];
-      expect(email1.from).toBe('solstone services <services@solstone.app>');
+      expect(email1.from).toBe('solstone services <support@solstone.app>');
       expect(email1.to).toBe('spl-owner@example.com');
       expect(email1.subject).toBe('your private network subscription: keep this for your records');
       const expectedSplText = `you just subscribed to private network. here's what that means, in writing, so you can keep it. it doesn't expire, and it isn't the only copy: the current terms are always at https://services.solstone.app/terms.

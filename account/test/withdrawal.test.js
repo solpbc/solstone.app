@@ -273,6 +273,8 @@ describe('withdrawal from a paid subscription within 14 days', () => {
       const [ack, alert] = testEnv.EMAIL.sent;
       expect(ack.subject).toBe('you withdrew from your private network subscription');
       expect(alert.to).toBe('support@solstone.app');
+      expect(alert.from).toBe('solstone services <services@solstone.app>');
+      expect(ack.from).toBe('solstone services <support@solstone.app>');
       expect(alert.subject).toBe('a withdrawal needs a person: private network');
       // Only the service and the error code: nothing that identifies the owner or their subscription.
       expect(alert.text).not.toMatch(/sub_|cus_|subscriber@|20\d\d-\d\d-\d\d/);

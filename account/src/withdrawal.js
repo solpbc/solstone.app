@@ -26,7 +26,7 @@ import {
   releaseSubscriptionWithdrawalAlert,
   selectUnfinishedSubscriptionWithdrawals,
 } from './db.js';
-import { sendRenewalNoticeEmail } from './email.js';
+import { sendOperatorAlertEmail, sendRenewalNoticeEmail } from './email.js';
 import { renderNotFound, renderWithdrawal } from './html.js';
 import { forbidden, html, originAllowed } from './index.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
@@ -355,7 +355,7 @@ async function alertPerson(env, record, column, detail, nowMs) {
     ].join('\n'),
   ].join('\n\n');
   try {
-    await sendRenewalNoticeEmail({ env, address: ALERT_ADDRESS, subject, text, html: `<pre>${text.replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</pre>` });
+    await sendOperatorAlertEmail({ env, address: ALERT_ADDRESS, subject, text, html: `<pre>${text.replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</pre>` });
     await logWithdrawal(env, stuck ? 'withdrawal_stuck_alerted' : 'withdrawal_failure_alerted', record);
   } catch {
     await releaseSubscriptionWithdrawalAlert(env.DB, { subscriptionRef, column, nowMs });
