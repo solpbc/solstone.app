@@ -62,6 +62,8 @@ export function makeTestEnv(overrides = {}) {
       : makeDefaultPurgeBinding('support', overrides),
     SERVICES_AUTH_TOKEN: overrides.SERVICES_AUTH_TOKEN || 'test-services-auth-token',
     SPP_ENGINE_EGRESS_IPS: overrides.SPP_ENGINE_EGRESS_IPS ?? '203.0.113.10',
+    SPP_ALLOWANCE_ENABLED: overrides.SPP_ALLOWANCE_ENABLED,
+    SPP_ALLOWANCE_POLICY: overrides.SPP_ALLOWANCE_POLICY,
     SPP_AUTHORIZE_PUBLIC_LIMIT: Object.prototype.hasOwnProperty.call(overrides, 'SPP_AUTHORIZE_PUBLIC_LIMIT')
       ? overrides.SPP_AUTHORIZE_PUBLIC_LIMIT
       : makeFakeRateLimit(5),

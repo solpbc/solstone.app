@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
 import { publicLimitKey } from '../src/spp-authorize.js';
+import { sppAuthorizationHeaders } from '../src/spp-allowance.js';
 import { upsertSppBinding } from '../src/db.js';
 import { makeFakeRateLimit, makeTestEnv, resetDb, seedAccount, seedEntitlement } from './helpers.js';
 
@@ -25,6 +26,8 @@ describe('POST /spp/authorize owner-credential predicate', () => {
     expect(response.status).toBe(204);
     expect(await response.text()).toBe('');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(response.headers.get('X-Sol-SPP-Journal')).toBe(await hashWithPepper(`spp-journal-v1:${INSTANCE_ID}`, testEnv));
+    expect(response.headers.get('X-Sol-SPP-Allowance')).toBeNull();
   });
 
   it.each([
@@ -482,3 +485,63 @@ function authorizePublic(testEnv, { headers = {}, token = TOKEN } = {}) {
     testEnv
   );
 }
+
+// Values here are synthetic fixture sizes, not a configured plan allowance.
+const ALLOWANCE_FIXTURE = { v: 1, daily: 100, cooldown_ms: 5000, audio_per_second: 10, max_inflight: 2 };
+
+describe('authorization journal scope and optional allowance', () => {
+  beforeEach(async () => { await resetDb(); });
+
+  it('carries policy only after authorization, with no identity body or usage request', async () => {
+    const testEnv = makeTestEnv({ SPP_ALLOWANCE_ENABLED: 'true', SPP_ALLOWANCE_POLICY: JSON.stringify(ALLOWANCE_FIXTURE) });
+    await seedActiveBinding(testEnv);
+    const response = await authorize(testEnv);
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe('');
+    expect(JSON.parse(response.headers.get('X-Sol-SPP-Allowance'))).toEqual(ALLOWANCE_FIXTURE);
+    expect(response.headers.get('X-Sol-SPP-Journal')).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const refused = await authorize(testEnv, { token: 'unknown' });
+    expect(refused.status).toBe(401);
+    expect(refused.headers.get('X-Sol-SPP-Journal')).toBeNull();
+    expect(refused.headers.get('X-Sol-SPP-Allowance')).toBeNull();
+  });
+
+  it('keeps one journal scope across credential re-mints and separate worker environments', async () => {
+    const testEnv = makeTestEnv();
+    const account = await seedActiveBinding(testEnv);
+    const before = (await authorize(testEnv)).headers.get('X-Sol-SPP-Journal');
+    await upsertSppBinding(testEnv.DB, {
+      accountId: account.accountId, instanceId: INSTANCE_ID,
+      tokenHash: await hashWithPepper('replacement-credential', testEnv), nowMs: 2000,
+      consentAckedAt: 1000, consentDisclosureVersion: 'spp-consent-v2-audio',
+    });
+    const otherWorker = { ...testEnv, SPP_ALLOWANCE_ENABLED: 'true', SPP_ALLOWANCE_POLICY: JSON.stringify(ALLOWANCE_FIXTURE) };
+    const after = await authorize(otherWorker, { token: 'replacement-credential' });
+    expect(after.status).toBe(204);
+    expect(after.headers.get('X-Sol-SPP-Journal')).toBe(before);
+    const distinct = await sppAuthorizationHeaders({ instance_id: 'another-journal' }, otherWorker);
+    expect(distinct['X-Sol-SPP-Journal']).not.toBe(before);
+  });
+
+  it.each(['false', '', undefined, true, 'TRUE'])('stays off unless explicitly enabled: %s', async (enabled) => {
+    const result = await sppAuthorizationHeaders({ instance_id: INSTANCE_ID }, makeTestEnv({ SPP_ALLOWANCE_ENABLED: enabled, SPP_ALLOWANCE_POLICY: 'invalid' }));
+    expect(result['X-Sol-SPP-Allowance']).toBeUndefined();
+  });
+
+  it.each([
+    undefined, '', '{', 'x'.repeat(513), '[]', 'null',
+    JSON.stringify({ ...ALLOWANCE_FIXTURE, daily: 0 }),
+    JSON.stringify({ ...ALLOWANCE_FIXTURE, daily: true }),
+    JSON.stringify({ ...ALLOWANCE_FIXTURE, cooldown_ms: 30001 }),
+    JSON.stringify({ ...ALLOWANCE_FIXTURE, audio_per_second: 1.5 }),
+    JSON.stringify({ ...ALLOWANCE_FIXTURE, max_inflight: 33 }),
+    JSON.stringify({ ...ALLOWANCE_FIXTURE, extra: 'private-value' }),
+  ])('fails closed for an enabled invalid policy', async (raw) => {
+    const testEnv = makeTestEnv({ SPP_ALLOWANCE_ENABLED: 'true', SPP_ALLOWANCE_POLICY: raw });
+    await seedActiveBinding(testEnv);
+    const response = await authorize(testEnv);
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe('');
+    expect(response.headers.get('X-Sol-SPP-Journal')).toBeNull();
+  });
+});

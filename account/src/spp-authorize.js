@@ -2,6 +2,7 @@ import { hashWithPepper } from './crypto.js';
 import { findSppBindingByTokenHash, getActiveDeletionForAccount, getEntitlement } from './db.js';
 import { isSppEntitledToServe, SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { SPP_SUBSCRIBE_URL } from './spp-service.js';
+import { sppAuthorizationHeaders } from './spp-allowance.js';
 
 const NO_STORE_HEADERS = {
   'Cache-Control': 'no-store',
@@ -166,7 +167,10 @@ async function authorizeByOwnerCredential(req, env, events) {
     return empty(401);
   }
 
-  return empty(204);
+  return new Response(null, {
+    status: 204,
+    headers: { ...NO_STORE_HEADERS, ...await sppAuthorizationHeaders(binding, env) },
+  });
 }
 
 // The journal's own content-free check: does the confidential processing credential it holds
