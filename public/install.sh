@@ -5,7 +5,7 @@
 
 # Solstone POSIX Platform Installer
 
-INSTALLER_REVISION=16
+INSTALLER_REVISION=17
 EMBEDDED_MIN_INSTALLER_REVISION=8
 TEST_SEAM=0
 
@@ -3451,9 +3451,9 @@ package_run_setup() {
     [ "$PC_ROLE" = "journal" ] || return 0
     if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_PKG_DB:-}" ]; then
         [ -n "${SOLSTONE_FAKE_ROOT:-}" ] || report_exit "refusal" "setup-failed" "Fake package root is required for journal setup"
-        JOURNAL_LAUNCHER="${SOLSTONE_FAKE_ROOT}/usr/bin/journal"
+        JOURNAL_LAUNCHER=$(installed_journal_launcher "$PC_VERSION" "${SOLSTONE_FAKE_ROOT}/usr/bin")
     else
-        JOURNAL_LAUNCHER="/usr/bin/journal"
+        JOURNAL_LAUNCHER=$(installed_journal_launcher "$PC_VERSION" /usr/bin)
     fi
     [ -x "$JOURNAL_LAUNCHER" ] || report_exit "refusal" "setup-failed" "Package-owned journal launcher is unavailable"
     JOURNAL_COMMAND=$(installed_journal_command "$PC_VERSION" "${JOURNAL_LAUNCHER%/*}")
@@ -3474,6 +3474,16 @@ installed_journal_command() {
     case "${1%%-*}" in
         ''|0.*|1.*|2.0.[0-9]|2.0.[12][0-9]) printf '%s' "${2:+$2/}journal" ;;
         *) printf '%s' "${2:+$2/}solstone journal" ;;
+    esac
+}
+
+# The executable a payload's journal commands run through. Payloads before the
+# namespace ship only the journal launcher; later ones run solstone journal and
+# need not ship a journal launcher at all.
+installed_journal_launcher() {
+    case "$(installed_journal_command "$1")" in
+        journal) printf '%s/journal' "$2" ;;
+        *) printf '%s/solstone' "$2" ;;
     esac
 }
 
@@ -3966,7 +3976,12 @@ tree_component_authority() {
             [ "$tca_status" != pending ] || tca_required=0
             tca_native="${OPT_PREFIX}/install-receipt"
             tca_current="${OPT_PREFIX}/current"
-            tca_public="${OPT_PREFIX}/current/bin/journal"
+            # The selected payload's command entry: solstone, or the journal
+            # launcher in a payload from before the namespace that lacks it.
+            tca_public="${OPT_PREFIX}/current/bin/solstone"
+            if [ ! -e "$tca_public" ] && [ ! -L "$tca_public" ]; then
+                tca_public="${OPT_PREFIX}/current/bin/journal"
+            fi
             tca_native_version=""
             tca_entry=""
             tca_present=0
@@ -5151,7 +5166,7 @@ uninstall_tree_component() {
     fi
     case "$utc_component" in
         journal)
-            utc_journal="${OPT_PREFIX}/current/bin/journal"
+            utc_journal=$(installed_journal_launcher "$TREE_JOURNAL_VERSION" "${OPT_PREFIX}/current/bin")
             if [ -x "$utc_journal" ] && ! run_installed_journal "${utc_journal%/*}" "$TREE_JOURNAL_VERSION" setup --clean-uninstall --yes --installer-transaction >&2; then
                 report_exit "refusal" "handler-failed" "journal clean uninstall failed"
             fi
@@ -5212,7 +5227,8 @@ uninstall_package_component() {
     package_query_current "$upc_name"
     if [ "$PQUERY_STATE" != "ABSENT" ]; then
         if [ "$upc_component" = "journal" ]; then
-            if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_ROOT:-}" ]; then upc_journal="${SOLSTONE_FAKE_ROOT}/usr/bin/journal"; else upc_journal="/usr/bin/journal"; fi
+            if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_ROOT:-}" ]; then upc_bin="${SOLSTONE_FAKE_ROOT}/usr/bin"; else upc_bin=/usr/bin; fi
+            upc_journal=$(installed_journal_launcher "$PQUERY_VERSION" "$upc_bin")
             [ ! -x "$upc_journal" ] || run_installed_journal "${upc_journal%/*}" "$PQUERY_VERSION" setup --clean-uninstall --yes --installer-transaction >&2 \
                 || report_exit "refusal" "handler-failed" "journal clean uninstall failed"
         fi
