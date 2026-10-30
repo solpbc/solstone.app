@@ -1,11 +1,14 @@
 // OTP transactional email via Cloudflare Email Workers send_email binding.
-// FROM: services@solstone.app (display: "solstone services"). No List-Unsubscribe.
-// services@ has no inbound route, so every send carries Reply-To support@solstone.app:
-// a reply reaches the support mailbox, as the privacy policy says it does.
+// FROM: support@solstone.app (display: "solstone services"), the one address an owner
+// can also write to. No List-Unsubscribe. Every send carries Reply-To support@solstone.app,
+// so a reply reaches the support mailbox, as the privacy policy says it does.
+// The operator alert alone stays on services@ (no inbound route): support triage keys its
+// never-dropped withdrawal rule on that sender, which mail from support@ to itself would lose.
 
 import { CLOSE_TIMING_LINE } from './html.js';
 
-const FROM_ADDRESS = 'services@solstone.app';
+const FROM_ADDRESS = 'support@solstone.app';
+const ALERT_FROM_ADDRESS = 'services@solstone.app';
 const FROM_NAME = 'solstone services';
 const REPLY_TO = 'support@solstone.app';
 
@@ -167,6 +170,18 @@ export async function sendRenewalNoticeEmail({ env, address, subject, text, html
   const response = await env.EMAIL.send({
     to: address,
     from: `${FROM_NAME} <${FROM_ADDRESS}>`,
+    replyTo: REPLY_TO,
+    subject,
+    text,
+    html,
+  });
+  return { sent: true, messageId: response?.messageId };
+}
+
+export async function sendOperatorAlertEmail({ env, address, subject, text, html }) {
+  const response = await env.EMAIL.send({
+    to: address,
+    from: `${FROM_NAME} <${ALERT_FROM_ADDRESS}>`,
     replyTo: REPLY_TO,
     subject,
     text,

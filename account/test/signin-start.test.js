@@ -48,7 +48,7 @@ describe('/signin/start', () => {
     const finishPath = ['/signin', 'finish'].join('/');
 
     expect(message.subject).toMatch(/^your sol pbc sign-in code: \d{3} \d{3}$/);
-    expect(message.from).toBe('solstone services <services@solstone.app>');
+    expect(message.from).toBe('solstone services <support@solstone.app>');
     expect(message.replyTo).toBe('support@solstone.app');
     expect(message).not.toHaveProperty('List-Unsubscribe');
     expect(message.text).toMatch(/10 minute/i);
