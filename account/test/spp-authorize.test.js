@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index.js';
 import { hashWithPepper } from '../src/crypto.js';
-import { publicLimitKey } from '../src/spp-authorize.js';
+import { publicLimitKey, SPP_AUTHORIZE_STALL_MS } from '../src/spp-authorize.js';
 import { sppAuthorizationHeaders } from '../src/spp-allowance.js';
 import { upsertSppBinding } from '../src/db.js';
 import { makeFakeRateLimit, makeTestEnv, resetDb, seedAccount, seedEntitlement } from './helpers.js';
@@ -469,6 +469,50 @@ async function seedActiveBinding(testEnv) {
   });
   return account;
 }
+
+// The engine gives up at 10 s and a slow call throws nothing, so the stall line is the only
+// record of which step held it. It must name the step and carry nothing from the request.
+describe('a stalled authorization names the step it is waiting on', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('logs the pending step once, with no request value, and still answers', async () => {
+    vi.useFakeTimers();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let release;
+    const testEnv = makeTestEnv({
+      SPP_AUTHORIZE_PUBLIC_LIMIT: { limit: () => new Promise((resolve) => { release = resolve; }) },
+    });
+    try {
+      const pending = authorize(testEnv);
+      await vi.advanceTimersByTimeAsync(SPP_AUTHORIZE_STALL_MS);
+      const slow = warn.mock.calls.filter((call) => call[0] === 'spp_authorize_slow');
+      expect(slow).toEqual([['spp_authorize_slow', 'limit', SPP_AUTHORIZE_STALL_MS]]);
+      expect(JSON.stringify(slow)).not.toContain(TOKEN);
+      release({ success: false });
+      expect((await pending).status).toBe(429);
+    } finally {
+      warn.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('logs nothing for a call that answers before the stall mark', async () => {
+    vi.useFakeTimers();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const testEnv = makeTestEnv();
+    try {
+      await seedActiveBinding(testEnv);
+      expect((await authorize(testEnv)).status).toBe(204);
+      await vi.advanceTimersByTimeAsync(SPP_AUTHORIZE_STALL_MS * 2);
+      expect(warn.mock.calls.filter((call) => call[0] === 'spp_authorize_slow')).toEqual([]);
+    } finally {
+      warn.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+});
 
 function authorize(testEnv, { token = TOKEN } = {}) {
   return authorizePublic(testEnv, { token });

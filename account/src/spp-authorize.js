@@ -81,6 +81,7 @@ async function withD1RetryOnce(read) {
 // bearer-gated /internal/spp/authorize route and its SPP_ENGINE_AUTH_SECRET were retired
 // 2026-10-17 (cso-21), after spp-engine-01, their only caller, was deleted on 2026-10-09.
 export async function handleSppAuthorizePublic(req, env) {
+  const watch = stallWatch();
   try {
     const admitted = await admitByCallerTier(req, env);
     if (admitted !== true) return admitted;
@@ -88,10 +89,25 @@ export async function handleSppAuthorizePublic(req, env) {
       refused: 'spp_authorize_public_refused_entitlement',
       refusedDeletion: 'spp_authorize_public_refused_deletion',
       failed: 'spp_authorize_public_failed',
-    });
+    }, watch);
   } catch (err) {
     return failed(err, 'spp_authorize_public_failed');
+  } finally {
+    clearTimeout(watch.timer);
   }
+}
+
+// The engine gives up on this call at 10 s. A call that runs that long throws nothing, so it
+// logs nothing, and the edge records only a 499. Halfway there, name the step still waiting.
+// The line carries a fixed step name and elapsed milliseconds, never a request value.
+export const SPP_AUTHORIZE_STALL_MS = 5000;
+
+function stallWatch() {
+  const watch = { stage: 'limit', started: Date.now() };
+  watch.timer = setTimeout(() => {
+    console.warn('spp_authorize_slow', watch.stage, Date.now() - watch.started);
+  }, SPP_AUTHORIZE_STALL_MS);
+  return watch;
 }
 
 // CSO G3 condition 4: a high limit for our engines' egress IPs and a low one for every
@@ -138,24 +154,28 @@ export function publicLimitKey(ip) {
   return `${prefix.join(':')}::/64`;
 }
 
-async function authorizeByOwnerCredential(req, env, events) {
+async function authorizeByOwnerCredential(req, env, events, watch = {}) {
   const entitlementCredential = req.headers.get('X-Sol-Entitlement') || '';
   if (!entitlementCredential || entitlementCredential.length > 4096) {
     console.warn(events.refused);
     return empty(401);
   }
 
+  watch.stage = 'hash';
   const tokenHash = await hashWithPepper(entitlementCredential, env);
+  watch.stage = 'binding';
   const binding = await withD1RetryOnce(() => findSppBindingByTokenHash(env.DB, tokenHash));
   if (!binding) {
     console.warn(events.refused);
     return empty(401);
   }
+  watch.stage = 'deletion';
   if (await withD1RetryOnce(() => getActiveDeletionForAccount(env.DB, binding.account_id))) {
     console.warn(events.refusedDeletion);
     return empty(401);
   }
 
+  watch.stage = 'entitlement';
   const entitlement = await withD1RetryOnce(() =>
     getEntitlement(env.DB, {
       accountId: binding.account_id,
@@ -167,6 +187,7 @@ async function authorizeByOwnerCredential(req, env, events) {
     return empty(401);
   }
 
+  watch.stage = 'headers';
   return new Response(null, {
     status: 204,
     headers: { ...NO_STORE_HEADERS, ...await sppAuthorizationHeaders(binding, env) },
