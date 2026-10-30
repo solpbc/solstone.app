@@ -194,7 +194,8 @@ SPP_ENGINE_MODEL = "Qwen/Qwen3.5-4B"
 # one rate-limit rule cannot do this on our plan (ip.src is not an allowed field), so
 # the two-tier limit lives here. Add each new engine's static IP before it serves.
 # 52.185.109.20 = spp-engine-prod-cus-ip (centralus), reserved 2026-10-03 for the flip.
-SPP_ENGINE_EGRESS_IPS = "52.185.109.20"
+# 20.118.240.165 = spp-engine-05-ip (centralus), image 5 cutover 2026-10-30.
+SPP_ENGINE_EGRESS_IPS = "52.185.109.20,20.118.240.165"
 SPP_ALLOWANCE_ENABLED = "false"
 
 # Two-tier rate limit for POST /spp/authorize (CSO G3 condition 4), keyed on the
