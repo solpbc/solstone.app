@@ -40,7 +40,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=6ad5f4481b">
+    <link rel="stylesheet" href="/static/site.css?v=7a997aa1e2">
     <style>
         .page-intro .btn, .page-intro .store-badge { margin-top: 18px; }
         .stream-switch {
@@ -63,7 +63,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         .release:first-of-type { border-top: none; padding-top: 0; }
         .release h2 { margin-bottom: 2px; scroll-margin-top: 80px; overflow-wrap: anywhere; }
         .release .rel-date { font-size: 15px; color: var(--ink-soft); margin-bottom: 14px; }
-        .release h3.rel-section { font-size: 15px; font-weight: 600; color: var(--ink-soft); margin: 18px 0 6px; }
+        .release h3.rel-section { font-size: 15px; font-weight: 600; color: var(--ink-soft); margin: 18px 0 6px; text-transform: lowercase; }
         .release p { margin: 8px 0; }
         .release ul { margin: 4px 0 8px; padding-left: 1.25rem; }
         .release li { margin-bottom: 8px; }
