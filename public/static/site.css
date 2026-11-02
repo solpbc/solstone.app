@@ -191,10 +191,12 @@ a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1p
 :where(.links a:hover) { text-decoration: underline; }
 :where(.prose-col) { max-width: calc(var(--w-prose) + 2 * clamp(22px, 4vw, 44px)); }
 /* A band holding only a prose column is that column's width, on the shared left edge, with the sun beside it. */
-.band:has(> .band-inner.prose-col:only-child) {
-  width: min(calc(var(--w-prose) + 2 * clamp(22px, 4vw, 44px)), 100% - 2 * var(--gutter));
-  margin-left: calc((100% - min(var(--w-content), 100% - 2 * var(--gutter))) / 2);
-  margin-right: auto;
+@media (min-width: 861px) {
+  .band:has(> .band-inner.prose-col:only-child) {
+    width: calc(var(--w-prose) + 2 * clamp(22px, 4vw, 44px));
+    margin-left: calc((100% - min(var(--w-content), 100% - 2 * var(--gutter))) / 2);
+    margin-right: auto;
+  }
 }
 @media (max-width: 640px) {
   .btn-block-sm { width: 100%; white-space: normal; text-align: center; line-height: 1.25; padding-block: 12px; }
