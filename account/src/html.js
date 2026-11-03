@@ -242,8 +242,16 @@ const TURN_ON_CARD_1 = `<div class="grant">
     </div>
   </div>`;
 
-function turnOnLead(service) {
-  return `sol pbc received a request to turn on ${service} for your journal. it stays off until you allow it.`;
+// A surface that can't draw the mark names a journal by this label and its id.
+function journalIdLabel(id) {
+  return `journal <span style="${TRANSPARENCY_MONO}">${esc(id)}</span>`;
+}
+
+function turnOnLead(service, instance = '') {
+  const sentence = `sol pbc received a request to turn on ${service} for your journal. it stays off until you allow it.`;
+  return instance
+    ? `${sentence}<span style="display:block;margin-top:6px">${journalIdLabel(instance)}</span>`
+    : sentence;
 }
 
 // One shared footer for every turn-on screen: reversibility, the subscription
@@ -323,7 +331,7 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', proof = nul
     title: 'turn on private network',
     body: `${brandbar()}
 <h1>turn on private network</h1>
-<p class="lead">${turnOnLead('private network')}</p>
+<p class="lead">${turnOnLead('private network', instance)}</p>
 <div class="card">
   ${TURN_ON_CARD_1}
   <div class="grant">
@@ -376,7 +384,7 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', proof = nul
     title: 'turn on encrypted backup',
     body: `${brandbar()}
 <h1>turn on encrypted backup</h1>
-<p class="lead">${turnOnLead('encrypted backup')}</p>
+<p class="lead">${turnOnLead('encrypted backup', instance)}</p>
 <div class="card">
   ${TURN_ON_CARD_1}
   <div class="grant">
@@ -413,9 +421,9 @@ export function renderEnableSpbRestoreConsent({ csrf, nonce, candidates, error =
   const candidateRows = several
     ? candidates.map((candidate) => `<label class="row" style="cursor:pointer">
   <input type="radio" name="selected_instance" value="${escAttr(candidate.instanceId)}">
-  <span>${esc(restoreCandidateDetail(candidate))}</span>
+  <span>${restoreCandidateLines(candidate)}</span>
 </label>`).join('\n')
-    : `<p>${esc(restoreCandidateDetail(candidates[0]))}</p>`;
+    : `<p>${restoreCandidateLines(candidates[0])}</p>`;
   const selectedInput = several
     ? ''
     : `<input type="hidden" name="selected_instance" value="${escAttr(candidates[0].instanceId)}">`;
@@ -492,7 +500,7 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = fa
     title: 'turn on confidential processing',
     body: `${brandbar()}
 <h1>turn on confidential processing</h1>
-<p class="lead">${turnOnLead('confidential processing')}</p>
+<p class="lead">${turnOnLead('confidential processing', instance)}</p>
 <div class="card">
   ${TURN_ON_CARD_1}
   <div class="grant">
@@ -587,7 +595,7 @@ export function renderEnableSmeConsent({ csrf, nonce, instance, proof = null }) 
     title: 'turn on solstone.me',
     body: `${brandbar()}
 <h1>turn on solstone.me</h1>
-<p class="lead">${turnOnLead('solstone.me')}</p>
+<p class="lead">${turnOnLead('solstone.me', instance)}</p>
 <div class="card">
   ${TURN_ON_CARD_1}
   <div class="grant">
@@ -1241,7 +1249,7 @@ ${content}`,
     ? 'your subscription covers one journal. to use it on a different journal, release this one (it stops using confidential processing right away), then turn confidential processing on from the other journal.'
     : `your subscription covers ${journals.length} journals, turned on while you were an approved scout. to use it on a different journal, release one of them (it stops using confidential processing right away), then turn confidential processing on from the other journal.`}</p>
   <div class="group">
-  ${journals.map((j) => `<div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">journal first turned on ${esc(formatDate(j.created_at))}</div></div><div class="trail"><form method="post" action="${escAttr(`${SPP_SERVICE_PATH}/release`)}">
+  ${journals.map((j) => `<div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">${journalIdLabel(j.instance_id)}</div><div class="desc">first turned on ${esc(formatDate(j.created_at))}</div></div><div class="trail"><form method="post" action="${escAttr(`${SPP_SERVICE_PATH}/release`)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="instance" value="${escAttr(j.instance_id)}">
     <button class="btn secondary" type="submit">release</button>
@@ -2654,6 +2662,10 @@ export function formatByteSize(bytes) {
 
 function restoreCandidateDetail(candidate) {
   return `last backup ${formatRelativeTime(candidate.lastBackupMs, Date.now())} · size ${formatByteSize(candidate.sizeBytes)} · enabled ${formatDate(candidate.createdAt)}`;
+}
+
+function restoreCandidateLines(candidate) {
+  return `<span style="display:block">${journalIdLabel(candidate.instanceId)}</span>${esc(restoreCandidateDetail(candidate))}`;
 }
 
 function billingCheckoutRow({ csrf, plan, title, buttonText, primary, action = '/billing/checkout', restoreIntent = false }) {
