@@ -170,6 +170,36 @@ describe('service enable proof of possession', () => {
       }), testEnv);
 
       expect(response.status).toBe(400);
+      expect(await response.text()).toContain('data-notice="journal-update"');
+      expect(await rowCount('spl_bindings')).toBe(0);
+    });
+
+    it('spl: a presented proof that fails is not told to update', async () => {
+      const testEnv = makeTestEnv({ SERVICE_ENABLE_PROOF_REQUIRED: 'true' });
+      installRelayFetchMock();
+      const account = await seedAccount({ testEnv });
+      const session = await seedSession(account.accountId, { testEnv });
+      const kp = await generateReachKeyPair();
+
+      const response = await worker.fetch(new Request(`https://services.solstone.app${serviceConfirmPath('spl')}`, {
+        method: 'POST',
+        headers: {
+          Origin: 'https://services.solstone.app',
+          Cookie: session.cookie,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          csrf: TEST_CSRF,
+          nonce: VALID_NONCE,
+          action: 'allow',
+          instance: kp.instanceId,
+          assertion: 'not.a.proof',
+          ca_pubkey: 'not a key',
+        }),
+      }), testEnv);
+
+      expect(response.status).toBe(400);
+      expect(await response.text()).not.toContain('data-notice="journal-update"');
       expect(await rowCount('spl_bindings')).toBe(0);
     });
 

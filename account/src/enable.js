@@ -272,7 +272,7 @@ export async function handleEnableSplConfirm(req, env, ctx) {
     nonce,
     proof,
   });
-  if (!allowed) return splError(400);
+  if (!allowed) return splError(400, proof);
 
   const nowMs = Date.now();
   if (instance) {
@@ -432,7 +432,7 @@ export async function handleEnableSpbConfirm(req, env, ctx) {
     nonce,
     proof,
   });
-  if (!allowed) return spbError(400);
+  if (!allowed) return spbError(400, proof);
 
   const nowMs = Date.now();
   const accountId = session.account_id;
@@ -796,7 +796,7 @@ export async function handleEnableSppGet(req, env) {
       nonce,
       proof,
     });
-    if (!allowed) return applyProofHeaders(sppError(400), carries);
+    if (!allowed) return applyProofHeaders(sppError(400, proof), carries);
 
     return applyProofHeaders(
       await refuseSppToEarlyAccess({ env, nonce, accountId: session.account_id, instance, nowMs }),
@@ -848,7 +848,7 @@ export async function handleEnableSppConfirm(req, env, ctx) {
     nonce,
     proof,
   });
-  if (!allowed) return sppError(400);
+  if (!allowed) return sppError(400, proof);
 
   // A second submit of the same turn-on (a double click, a resubmitted form) changes nothing: the
   // first one's answer is already waiting for the journal, and binding again would replace the
@@ -1143,7 +1143,7 @@ export async function handleEnableSmeConfirm(req, env, ctx) {
     nonce,
     proof,
   });
-  if (!allowed) return smeError(400);
+  if (!allowed) return smeError(400, proof);
 
   const nowMs = Date.now();
   const accountId = session.account_id;
@@ -1361,20 +1361,20 @@ function validateSmeResumeParams(params) {
   return instanceValues.length === 1 && INSTANCE_ID_REGEX.test(instanceValues[0]);
 }
 
-function splError(status) {
-  return noStoreHtml(renderEnableSplError(), { status });
+function splError(status, proof = null) {
+  return noStoreHtml(renderEnableSplError({ journalUpdate: proof?.kind === 'absent' }), { status });
 }
 
-function spbError(status) {
-  return noStoreHtml(renderEnableSpbError(), { status });
+function spbError(status, proof = null) {
+  return noStoreHtml(renderEnableSpbError({ journalUpdate: proof?.kind === 'absent' }), { status });
 }
 
-function sppError(status) {
-  return noStoreHtml(renderEnableSppError(), { status });
+function sppError(status, proof = null) {
+  return noStoreHtml(renderEnableSppError({ journalUpdate: proof?.kind === 'absent' }), { status });
 }
 
-function smeError(status) {
-  return noStoreHtml(renderEnableSmeError(), { status });
+function smeError(status, proof = null) {
+  return noStoreHtml(renderEnableSmeError({ journalUpdate: proof?.kind === 'absent' }), { status });
 }
 
 function noStoreHtml(body, init = {}) {

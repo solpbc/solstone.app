@@ -299,14 +299,18 @@ function enableNeedsSubscriptionTemplate({ service, href }) {
   });
 }
 
-function enableErrorTemplate(service) {
+function enableErrorTemplate(service, { journalUpdate = false } = {}) {
+  const message = journalUpdate
+    ? `<p data-notice="journal-update">your journal needs an update before it can turn this on.</p>
+  <p>update your journal on the computer it runs on, then turn ${service} on again from your journal.</p>`
+    : `<p>something didn't look right with that link.</p>
+  <p>if you got here from your journal, try again from there. otherwise, you can close this tab.</p>`;
   return layout({
     title: `could not turn on ${service}`,
     body: `${brandbar()}
 <div class="card">
   <h1>could not turn on ${service}</h1>
-  <p>something didn't look right with that link.</p>
-  <p>if you got here from your journal, try again from there. otherwise, you can close this tab.</p>
+  ${message}
 </div>`,
   });
 }
@@ -372,8 +376,8 @@ export function renderEnableSplNeedsSubscription() {
   });
 }
 
-export function renderEnableSplError() {
-  return enableErrorTemplate('private network');
+export function renderEnableSplError(options) {
+  return enableErrorTemplate('private network', options);
 }
 
 export function renderEnableSpbConsent({ csrf, nonce, instance = '', proof = null }) {
@@ -488,8 +492,8 @@ export function renderEnableSpbRestoreNeedsSubscription() {
   });
 }
 
-export function renderEnableSpbError() {
-  return enableErrorTemplate('encrypted backup');
+export function renderEnableSpbError(options) {
+  return enableErrorTemplate('encrypted backup', options);
 }
 
 export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = false, proof = null }) {
@@ -577,8 +581,8 @@ export function renderEnableSppDone() {
   return enableDoneTemplate('confidential processing');
 }
 
-export function renderEnableSppError() {
-  return enableErrorTemplate('confidential processing');
+export function renderEnableSppError(options) {
+  return enableErrorTemplate('confidential processing', options);
 }
 
 // The disclosure that must reach an owner before any subscription is taken, and again where
@@ -643,8 +647,8 @@ export function renderEnableSmeDone() {
   return enableDoneTemplate('solstone.me');
 }
 
-export function renderEnableSmeError() {
-  return enableErrorTemplate('solstone.me');
+export function renderEnableSmeError(options) {
+  return enableErrorTemplate('solstone.me', options);
 }
 
 // === services surfaces ===
