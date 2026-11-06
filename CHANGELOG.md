@@ -4,6 +4,7 @@
 
 ### fixed
 
+- the install page says the linux and windows apps find a journal on the same computer, and that one press connects.
 - on a wide window, download pages with a single column of text use a panel that fits the text.
 - the home page and install page call the journal's briefing the daily briefing, as the journal does.
 - the install page no longer says to set up the journal first. it says you can start with your journal or with the solstone app and connect the two later.
