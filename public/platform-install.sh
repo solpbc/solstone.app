@@ -5,7 +5,7 @@
 
 # Solstone POSIX Platform Installer
 
-INSTALLER_REVISION=18
+INSTALLER_REVISION=19
 EMBEDDED_MIN_INSTALLER_REVISION=8
 TEST_SEAM=0
 
@@ -710,7 +710,7 @@ if [ "$ROLE" = desktop ]; then
         if mkdir -p "$APPS_DIR" 2>/dev/null && {
             while IFS= read -r line || [ -n "$line" ]; do
                 case "$line" in
-                    Exec=*) printf 'Exec="%s" window\n' "$PUBLIC_BIN" ;;
+                    Exec=*) printf 'Exec="%s" window %%u\n' "$PUBLIC_BIN" ;;
                     Icon=*) if [ -f "$ICON" ]; then printf 'Icon=%s\n' "$ICON"; else printf '%s\n' "$line"; fi ;;
                     "$LAUNCHER_MARK") ;;
                     *) printf '%s\n' "$line" ;;
@@ -718,7 +718,11 @@ if [ "$ROLE" = desktop ]; then
             done < "$SOURCE_LAUNCHER"
             printf '%s\n' "$LAUNCHER_MARK"
         } > "$LAUNCHER_NEXT" 2>/dev/null && chmod 0644 "$LAUNCHER_NEXT" && mv -f "$LAUNCHER_NEXT" "$LAUNCHER"; then
-            :
+            # Tells the desktop this app opens solstone: links. Without it a clicked
+            # link goes nowhere and pasting still works, so a missing tool isn't a failure.
+            if command -v update-desktop-database >/dev/null 2>&1; then
+                update-desktop-database "$APPS_DIR" >/dev/null 2>&1 || true
+            fi
         else
             rm -f "$LAUNCHER_NEXT" 2>/dev/null || true
         fi
@@ -764,6 +768,9 @@ if [ "$ROLE" = desktop ]; then
     LAUNCHER="${XDG_DATA_HOME:-$HOME/.local/share}/applications/org.solpbc.solstone.Window.desktop"
     if [ -f "$LAUNCHER" ] && [ ! -L "$LAUNCHER" ] && grep -qx 'X-Solstone-Installer=platform-v1' "$LAUNCHER"; then
         rm -f "$LAUNCHER"
+        if command -v update-desktop-database >/dev/null 2>&1; then
+            update-desktop-database "${LAUNCHER%/*}" >/dev/null 2>&1 || true
+        fi
     fi
 fi
 SOLSTONE_RUNTIME_FILE_2_END
@@ -841,7 +848,7 @@ if [ "$ROLE" = desktop ]; then
         if mkdir -p "$APPS_DIR" 2>/dev/null && {
             while IFS= read -r line || [ -n "$line" ]; do
                 case "$line" in
-                    Exec=*) printf 'Exec="%s" window\n' "$PUBLIC_BIN" ;;
+                    Exec=*) printf 'Exec="%s" window %%u\n' "$PUBLIC_BIN" ;;
                     Icon=*) if [ -f "$ICON" ]; then printf 'Icon=%s\n' "$ICON"; else printf '%s\n' "$line"; fi ;;
                     "$LAUNCHER_MARK") ;;
                     *) printf '%s\n' "$line" ;;
@@ -849,7 +856,11 @@ if [ "$ROLE" = desktop ]; then
             done < "$SOURCE_LAUNCHER"
             printf '%s\n' "$LAUNCHER_MARK"
         } > "$LAUNCHER_NEXT" 2>/dev/null && chmod 0644 "$LAUNCHER_NEXT" && mv -f "$LAUNCHER_NEXT" "$LAUNCHER"; then
-            :
+            # Tells the desktop this app opens solstone: links. Without it a clicked
+            # link goes nowhere and pasting still works, so a missing tool isn't a failure.
+            if command -v update-desktop-database >/dev/null 2>&1; then
+                update-desktop-database "$APPS_DIR" >/dev/null 2>&1 || true
+            fi
         else
             rm -f "$LAUNCHER_NEXT" 2>/dev/null || true
         fi
@@ -895,6 +906,9 @@ if [ "$ROLE" = desktop ]; then
     LAUNCHER="${XDG_DATA_HOME:-$HOME/.local/share}/applications/org.solpbc.solstone.Window.desktop"
     if [ -f "$LAUNCHER" ] && [ ! -L "$LAUNCHER" ] && grep -qx 'X-Solstone-Installer=platform-v1' "$LAUNCHER"; then
         rm -f "$LAUNCHER"
+        if command -v update-desktop-database >/dev/null 2>&1; then
+            update-desktop-database "${LAUNCHER%/*}" >/dev/null 2>&1 || true
+        fi
     fi
 fi
 SOLSTONE_RUNTIME_FILE_4_END
