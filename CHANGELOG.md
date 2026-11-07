@@ -4,6 +4,7 @@
 
 ### fixed
 
+- the install page and llms.txt say how to open your journal's agents app on each computer, instead of giving its address.
 - the mac download page shows the journal app's current icon.
 - the install page says the linux and windows apps find a journal on the same computer, and that one press connects.
 - on a wide window, download pages with a single column of text use a panel that fits the text.
