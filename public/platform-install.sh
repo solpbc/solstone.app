@@ -5,8 +5,8 @@
 
 # Solstone POSIX Platform Installer
 
-INSTALLER_REVISION=19
-EMBEDDED_MIN_INSTALLER_REVISION=8
+INSTALLER_REVISION=20
+EMBEDDED_MIN_INSTALLER_REVISION=20
 TEST_SEAM=0
 
 PLATFORM_KEY_ID="2938B1EBDC1E3876"
@@ -274,15 +274,24 @@ package_manager_command() {
     pmc_type="$2"
     pmc_action="$3"
     pmc_path="$4"
+    pmc_extra="${5:-}"
     case "$pmc_type" in
         deb)
             if [ "$pmc_action" != "reinstall" ]; then
                 echo "ERROR:plan-invalid"
                 return 1
             fi
-            set -- apt-get install -y --reinstall --no-remove "$pmc_path"
+            if [ "$pmc_extra" = "no-weak-deps" ]; then
+                set -- apt-get install -y --reinstall --no-remove --no-install-recommends "$pmc_path"
+            else
+                set -- apt-get install -y --reinstall --no-remove "$pmc_path"
+            fi
             if [ "$pmc_mode" = "plan" ]; then
-                printf 'DEBIAN_FRONTEND=noninteractive %s %s %s %s %s %s\n' "$1" "$2" "$3" "$4" "$5" "$6"
+                printf 'DEBIAN_FRONTEND=noninteractive'
+                for arg in "$@"; do
+                    printf ' %s' "$arg"
+                done
+                printf '\n'
                 return 0
             elif [ "$pmc_mode" = "exec" ]; then
                 DEBIAN_FRONTEND=noninteractive "$@" >&2
@@ -297,9 +306,22 @@ package_manager_command() {
                     return 1
                     ;;
             esac
-            set -- dnf -y --setopt=localpkg_gpgcheck=False "$pmc_action" "$pmc_path"
+            if [ "$pmc_extra" = "no-weak-deps" ]; then
+                set -- dnf -y --setopt=localpkg_gpgcheck=False --setopt=install_weak_deps=False "$pmc_action" "$pmc_path"
+            else
+                set -- dnf -y --setopt=localpkg_gpgcheck=False "$pmc_action" "$pmc_path"
+            fi
             if [ "$pmc_mode" = "plan" ]; then
-                printf '%s %s %s %s %s\n' "$1" "$2" "$3" "$4" "$5"
+                first=1
+                for arg in "$@"; do
+                    if [ $first -eq 1 ]; then
+                        printf '%s' "$arg"
+                        first=0
+                    else
+                        printf ' %s' "$arg"
+                    fi
+                done
+                printf '\n'
                 return 0
             elif [ "$pmc_mode" = "exec" ]; then
                 "$@" >&2
@@ -319,6 +341,7 @@ handle_fake_db_install() {
     hf_name="$3"
     hf_version="$4"
     hf_arch="$5"
+    hf_extra="${6:-}"
     mkdir -p "${FAKE_PKG_DB}/${hf_type}"
     printf 'INSTALLED %s %s %s\n' "$hf_name" "$hf_version" "$hf_arch" > "${FAKE_PKG_DB}/${hf_type}/${hf_name}"
     if [ "$hf_name" = "solstone-journal" ] && [ -n "$FAKE_ROOT" ]; then
@@ -335,7 +358,11 @@ handle_fake_db_install() {
         cp "$FAKE_JOURNAL_LAUNCHER" "${fake_journal_dir}/journal"
         chmod 0755 "${fake_journal_dir}/journal"
     fi
-    echo "$hf_path" >> "${FAKE_PKG_DB}/install.log"
+    if [ "$hf_extra" = "no-weak-deps" ]; then
+        echo "$hf_path no-weak-deps" >> "${FAKE_PKG_DB}/install.log"
+    else
+        echo "$hf_path" >> "${FAKE_PKG_DB}/install.log"
+    fi
     if ! installed_identity=$(handle_query_pkg "$hf_type" "$hf_name"); then
         echo "ERROR:install-failed"
         return 1
@@ -351,6 +378,7 @@ handle_fake_db_install() {
 handle_plan_pkg() {
     hpp_type="$1"
     hpp_path="$2"
+    hpp_extra="${3:-}"
     preflight_package_archive "$hpp_type" "$hpp_path" || return 1
     case "$hpp_type" in
         deb)
@@ -365,7 +393,7 @@ handle_plan_pkg() {
             return 1
             ;;
     esac
-    if ! plan_display=$(package_manager_command plan "$hpp_type" "$hpp_action" "$hpp_path"); then
+    if ! plan_display=$(package_manager_command plan "$hpp_type" "$hpp_action" "$hpp_path" "$hpp_extra"); then
         return 1
     fi
     printf 'PLAN %s %s %s %s\n' "$hpp_type" "$hpp_action" "$hpp_path" "$plan_display"
@@ -375,6 +403,7 @@ handle_apply_pkg() {
     hap_type="$1"
     hap_path="$2"
     hap_action="$3"
+    hap_extra="${4:-}"
     preflight_package_archive "$hap_type" "$hap_path" || return 1
     case "$hap_type" in
         deb)
@@ -394,10 +423,10 @@ handle_apply_pkg() {
         return 1
     fi
     if [ -n "$FAKE_PKG_DB" ] && [ -d "$FAKE_PKG_DB" ]; then
-        handle_fake_db_install "$hap_type" "$hap_path" "$PKG_ARCHIVE_NAME" "$PKG_ARCHIVE_VERSION" "$PKG_ARCHIVE_ARCH"
+        handle_fake_db_install "$hap_type" "$hap_path" "$PKG_ARCHIVE_NAME" "$PKG_ARCHIVE_VERSION" "$PKG_ARCHIVE_ARCH" "$hap_extra"
         return $?
     fi
-    if ! package_manager_command exec "$hap_type" "$hap_action" "$hap_path"; then
+    if ! package_manager_command exec "$hap_type" "$hap_action" "$hap_path" "$hap_extra"; then
         echo "ERROR:install-failed"
         return 1
     fi
@@ -415,6 +444,7 @@ handle_apply_pkg() {
 handle_install_pkg() {
     hip_type="$1"
     hip_path="$2"
+    hip_extra="${3:-}"
     preflight_package_archive "$hip_type" "$hip_path" || return 1
     case "$hip_type" in
         deb)
@@ -430,10 +460,10 @@ handle_install_pkg() {
             ;;
     esac
     if [ -n "$FAKE_PKG_DB" ] && [ -d "$FAKE_PKG_DB" ]; then
-        handle_fake_db_install "$hip_type" "$hip_path" "$PKG_ARCHIVE_NAME" "$PKG_ARCHIVE_VERSION" "$PKG_ARCHIVE_ARCH"
+        handle_fake_db_install "$hip_type" "$hip_path" "$PKG_ARCHIVE_NAME" "$PKG_ARCHIVE_VERSION" "$PKG_ARCHIVE_ARCH" "$hip_extra"
         return $?
     fi
-    if ! package_manager_command exec "$hip_type" "$hip_action" "$hip_path"; then
+    if ! package_manager_command exec "$hip_type" "$hip_action" "$hip_path" "$hip_extra"; then
         echo "ERROR:install-failed"
         return 1
     fi
@@ -524,6 +554,30 @@ handle_write_receipt() {
     echo "OK"
 }
 
+# Delete the receipt only when it records no component: zero bytes, or a
+# header alone. A receipt that still records a component is refused.
+handle_delete_receipt() {
+    receipt_dir=$(dirname "$RECEIPT_FILE")
+    if [ -L "$receipt_dir" ] || [ -L "$RECEIPT_FILE" ] || [ -d "$RECEIPT_FILE" ] || { [ -e "$RECEIPT_FILE" ] && [ ! -f "$RECEIPT_FILE" ]; }; then
+        echo "ERROR:receipt-dest-invalid"
+        return 1
+    fi
+    if [ -e "$RECEIPT_FILE" ]; then
+        if grep -q '^\[component:' "$RECEIPT_FILE"; then
+            echo "ERROR:receipt-not-empty"
+            return 1
+        elif [ "$?" -ne 1 ]; then
+            echo "ERROR:receipt-read-failed"
+            return 1
+        fi
+    fi
+    if ! rm -f "$RECEIPT_FILE"; then
+        echo "ERROR:receipt-dest-invalid"
+        return 1
+    fi
+    echo "OK"
+}
+
 handle_read_receipt() {
     if [ ! -e "$RECEIPT_FILE" ] && [ ! -L "$RECEIPT_FILE" ]; then
         return 0
@@ -567,21 +621,31 @@ while IFS= read -r line || [ -n "$line" ]; do
             handle_query_pkg "$2" "$3"
             ;;
         INSTALL_PKG)
-            if [ $# -ne 3 ]; then
+            if [ $# -eq 3 ]; then
+                handle_install_pkg "$2" "$3"
+            elif [ $# -eq 4 ] && [ "$4" = "no-weak-deps" ]; then
+                handle_install_pkg "$2" "$3" "$4"
+            else
                 echo "ERROR:invalid-install-operands" >&2
                 exit 1
             fi
-            handle_install_pkg "$2" "$3"
             ;;
         PLAN_PKG)
-            if [ $# -ne 3 ]; then
+            if [ $# -eq 3 ]; then
+                handle_plan_pkg "$2" "$3"
+            elif [ $# -eq 4 ] && [ "$4" = "no-weak-deps" ]; then
+                handle_plan_pkg "$2" "$3" "$4"
+            else
                 echo "ERROR:invalid-plan-operands" >&2
                 exit 1
             fi
-            handle_plan_pkg "$2" "$3"
             ;;
         APPLY_PKG)
-            if [ $# -ne 4 ]; then
+            if [ $# -eq 4 ]; then
+                extra_opt=""
+            elif [ $# -eq 5 ] && [ "$5" = "no-weak-deps" ]; then
+                extra_opt="$5"
+            else
                 echo "ERROR:invalid-apply-operands" >&2
                 exit 1
             fi
@@ -606,7 +670,11 @@ while IFS= read -r line || [ -n "$line" ]; do
                     exit 1
                     ;;
             esac
-            handle_apply_pkg "$2" "$3" "$4"
+            if [ -n "$extra_opt" ]; then
+                handle_apply_pkg "$2" "$3" "$4" "$extra_opt"
+            else
+                handle_apply_pkg "$2" "$3" "$4"
+            fi
             ;;
         REMOVE_PKG)
             if [ $# -ne 3 ]; then
@@ -621,6 +689,13 @@ while IFS= read -r line || [ -n "$line" ]; do
                 exit 1
             fi
             handle_write_receipt "$2"
+            ;;
+        DELETE_ETC_RECEIPT)
+            if [ $# -ne 1 ]; then
+                echo "ERROR:invalid-delete-receipt-operands" >&2
+                exit 1
+            fi
+            handle_delete_receipt
             ;;
         READ_ETC_RECEIPT)
             if [ $# -ne 1 ]; then
@@ -987,6 +1062,31 @@ OPT_UNINSTALL=0
 OPT_NOTICES_JSON="[]"
 OPT_PREFIX_EXPLICIT=0
 OPT_ORIGIN_EXPLICIT=0
+# The consented move of a recorded tmux app into the desktop app. The move's
+# desktop step and tmux removal carry their own route, prefix and service
+# policy; the invocation's options stay with every other component.
+TMUX_MOVE_STATUS=""
+TMUX_MOVE_REASON=""
+TMUX_MOVE_NO_REMEDY=0
+TMUX_MOVE_ACTIVE=0
+TMUX_OLD_ROUTE=""
+TMUX_OLD_PREFIX=""
+TMUX_OLD_PKG_NAME=""
+MOVE_DESKTOP_ROUTE=""
+MOVE_DESKTOP_FRESH=0
+MOVE_DESKTOP_PREFIX=""
+MOVE_DESKTOP_NO_START=0
+MOVE_DESKTOP_NO_PATH=0
+MOVE_DESKTOP_STEP=0
+MOVE_DESKTOP_WRITTEN=0
+MOVE_PACKAGE_DECLINED=0
+TMUX_MARKER_FILE=""
+HEADLESS_FRESH_MOVE=0
+TMUX_MOVE_FRESH_DESKTOP=0
+DESKTOP_PREFLIGHT_DONE=0
+PKG_EXTRA_OPT=""
+MOVE_ROOT_CODE=""
+MOVE_ROOT_MESSAGE=""
 
 SCRATCH_DIR=""
 SELECTED_COMPONENTS=""
@@ -1066,6 +1166,92 @@ native_recovery() {
     [ "$OPT_NO_PATH" -eq 0 ] || set -- "$@" --no-path
     [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || set -- "$@" --skip-signature
     for nr_arg do printf ' %s' "$(shell_quote "$nr_arg")"; done
+}
+
+is_headless_session() {
+    [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ] || return 1
+    if ! command -v loginctl >/dev/null 2>&1; then
+        return 0
+    fi
+    disp_val=$(loginctl show-user "$(id -un)" -p Display --value 2>/dev/null)
+    ret=$?
+    if [ "$ret" -ne 0 ] || [ -z "$disp_val" ]; then
+        return 0
+    fi
+    return 1
+}
+
+print_tmux_remedy() {
+    ptr_tree=$(tree_receipt_path)
+    ptr_package=$(package_receipt_path)
+
+    ptr_pkg_all_complete=1
+    if [ -f "$ptr_package" ] && [ -s "$ptr_package" ]; then
+        if grep -q '^phase=' "$ptr_package"; then
+            if grep '^phase=' "$ptr_package" | grep -v -q '^phase=complete$'; then
+                ptr_pkg_all_complete=0
+            fi
+        fi
+    fi
+
+    ptr_tree_journal_prefix=""
+    ptr_tree_lane=""
+    if [ -f "$ptr_tree" ]; then
+        if receipt_value "$ptr_tree" "component:journal" role >/dev/null 2>&1; then
+            ptr_tree_journal_prefix=$(receipt_value "$ptr_tree" "component:journal" prefix 2>/dev/null || echo "")
+            ptr_tree_lane=$(receipt_value "$ptr_tree" "solstone" lane 2>/dev/null || echo "$OPT_LANE")
+        elif receipt_value "$ptr_tree" "component:cli" role >/dev/null 2>&1; then
+            ptr_tree_journal_prefix=$(receipt_value "$ptr_tree" "component:cli" prefix 2>/dev/null || echo "")
+            ptr_tree_lane=$(receipt_value "$ptr_tree" "solstone" lane 2>/dev/null || echo "$OPT_LANE")
+        fi
+    fi
+
+    ptr_pkg_journal_lane=""
+    if [ -f "$ptr_package" ] && [ -s "$ptr_package" ]; then
+        if receipt_value "$ptr_package" "component:journal" role >/dev/null 2>&1 || receipt_value "$ptr_package" "component:cli" role >/dev/null 2>&1; then
+            ptr_pkg_journal_lane=$(receipt_value "$ptr_package" "solstone" lane 2>/dev/null || echo "$OPT_LANE")
+        fi
+    fi
+
+    if [ "$ptr_pkg_all_complete" -eq 1 ] && [ -n "$ptr_tree_journal_prefix" ]; then
+        remedy_bin="$(shell_quote "${ptr_tree_journal_prefix}/bin/solstone")"
+        printf '%s update --lane %s\n' "$remedy_bin" "$(shell_quote "$ptr_tree_lane")" >&2
+        return 0
+    fi
+
+    if [ "$ptr_pkg_all_complete" -eq 1 ] && [ -n "$ptr_pkg_journal_lane" ]; then
+        printf 'solstone update --lane %s\n' "$(shell_quote "$ptr_pkg_journal_lane")" >&2
+        return 0
+    fi
+
+    # Direct upgrade
+    ptr_lane="$OPT_LANE"
+    ptr_prefix=""
+    ptr_no_start=0
+    ptr_no_path=0
+    if [ -f "$ptr_tree" ] && receipt_value "$ptr_tree" "component:tmux" role >/dev/null 2>&1; then
+        ptr_lane=$(receipt_value "$ptr_tree" "solstone" lane 2>/dev/null || echo "$OPT_LANE")
+        ptr_prefix=$(receipt_value "$ptr_tree" "component:tmux" prefix 2>/dev/null || echo "")
+        [ "$(receipt_value "$ptr_tree" "component:tmux" no_start 2>/dev/null)" = "1" ] && ptr_no_start=1
+        [ "$(receipt_value "$ptr_tree" "component:tmux" no_path 2>/dev/null)" = "1" ] && ptr_no_path=1
+    elif [ -f "$ptr_package" ] && [ -s "$ptr_package" ] && receipt_value "$ptr_package" "component:tmux" role >/dev/null 2>&1; then
+        ptr_lane=$(receipt_value "$ptr_package" "solstone" lane 2>/dev/null || echo "$OPT_LANE")
+        pol=$(receipt_value "$ptr_package" "component:tmux" service_policy 2>/dev/null || echo "")
+        [ "$pol" = "skip-service" ] && ptr_no_start=1
+    fi
+
+    direct_line="curl -fsSL https://solstone.app/install.sh | sh -s -- --upgrade --components tmux --lane $(shell_quote "$ptr_lane")"
+    if [ -n "$ptr_prefix" ]; then
+        direct_line="${direct_line} --prefix $(shell_quote "$ptr_prefix")"
+    fi
+    if [ "$ptr_no_start" -eq 1 ]; then
+        direct_line="${direct_line} --no-start"
+    fi
+    if [ "$ptr_no_path" -eq 1 ]; then
+        direct_line="${direct_line} --no-path"
+    fi
+
+    printf '%s\n' "$direct_line" >&2
 }
 
 # A desktop or tmux install stopped mid-way is not rolled back, so it still
@@ -1162,12 +1348,12 @@ finish_journal_install() {
     fi
     case " ${REPORT_COMPONENTS:-$SELECTED_COMPONENTS} " in
         *" desktop "*)
-            log_info "or open solstone from your app menu: its journal tab finds your journal, and one press connects."
+            [ "${HEADLESS_FRESH_MOVE:-0}" -eq 1 ] || log_info "or open solstone from your app menu: its journal tab finds your journal, and one press connects."
             ;;
         *)
             # Name the desktop app only where it can run: a computer with a
             # desktop, on an architecture the app is published for.
-            if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && [ -d "${SCRATCH_DIR}/manifest/components/desktop/arches/${HOST_ARCH}" ]; then
+            if [ "${HEADLESS_FRESH_MOVE:-0}" -eq 0 ] && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && [ -d "${SCRATCH_DIR}/manifest/components/desktop/arches/${HOST_ARCH}" ]; then
                 log_info "to add the solstone app on this computer, run:"
                 log_info "  curl -fsSL https://solstone.app/install.sh | sh -s -- --components desktop"
                 log_info "then open solstone from your app menu: its journal tab finds your journal, and one press connects."
@@ -1178,7 +1364,11 @@ finish_journal_install() {
 
 # A desktop-only install has no journal step to follow, so it names its own.
 finish_desktop_install() {
-    [ "$HOST_OS" = linux ] && [ "$OPT_UPGRADE" -eq 0 ] || return 0
+    [ "$HOST_OS" = linux ] || return 0
+    if [ "$OPT_UPGRADE" -eq 1 ]; then
+        [ "${TMUX_MOVE_FRESH_DESKTOP:-0}" -eq 1 ] || return 0
+    fi
+    [ "${HEADLESS_FRESH_MOVE:-0}" -eq 0 ] || return 0
     case " ${REPORT_COMPONENTS:-$SELECTED_COMPONENTS} " in
         *" journal "*) return 0 ;;
         *" desktop "*) ;;
@@ -1202,6 +1392,9 @@ report_exit() {
             message="$message; recovery is incomplete; preserve the payload and receipts for inspection"
         fi
     fi
+    # A failure inside the move's desktop step reports with the invocation's
+    # own options, after the rollback above has used the desktop's.
+    [ "$MOVE_DESKTOP_STEP" -eq 0 ] || move_restore_options
     if [ "$status" != success ] && [ "$NATIVE_ATTEMPTED" -eq 1 ]; then
         # The journal is recorded as pending before the bootstrap runs, so the
         # same command resumes it. An interrupt has no problem to fix first.
@@ -1254,6 +1447,10 @@ report_exit() {
                 c_route="$OPT_ROUTE"
                 case " $TREE_SELECTED_COMPONENTS " in *" $comp "*) c_route="tree" ;; esac
                 case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) c_route="$PKG_VARIANT" ;; esac
+                case "$comp" in
+                    desktop) [ -z "$MOVE_DESKTOP_ROUTE" ] || c_route="$MOVE_DESKTOP_ROUTE" ;;
+                    tmux) [ -z "$TMUX_OLD_ROUTE" ] || c_route="$TMUX_OLD_ROUTE" ;;
+                esac
                 case " $REMOVED_COMPONENTS " in
                     *" $comp "*) c_status="removed"; c_phase="removed" ;;
                 esac
@@ -1264,7 +1461,12 @@ report_exit() {
                     c_version_file="${SCRATCH_DIR}/manifest/components/${c_key}/version"
                     [ ! -f "$c_version_file" ] || c_version_json=$(json_string "$(cat "$c_version_file")")
                 fi
-                c_block="\"$comp\":{\"role\":\"$c_role\",\"status\":\"$c_status\",\"route\":\"$c_route\",\"phase\":\"$c_phase\",\"target_version\":$c_version_json}"
+                if [ "$comp" = "tmux" ] && [ -n "$TMUX_MOVE_REASON" ]; then
+                    c_status="$TMUX_MOVE_STATUS"
+                    c_block="\"$comp\":{\"role\":\"$c_role\",\"status\":\"$c_status\",\"reason\":\"$TMUX_MOVE_REASON\",\"route\":\"$c_route\",\"phase\":\"$c_phase\",\"target_version\":$c_version_json}"
+                else
+                    c_block="\"$comp\":{\"role\":\"$c_role\",\"status\":\"$c_status\",\"route\":\"$c_route\",\"phase\":\"$c_phase\",\"target_version\":$c_version_json}"
+                fi
                 if [ $first_c -eq 1 ]; then
                     comp_json="$c_block"
                     first_c=0
@@ -1327,6 +1529,26 @@ report_exit() {
             fi
         else
             log_err "$code: $message"
+        fi
+    fi
+
+    if [ -n "$TMUX_MOVE_REASON" ] && [ "$TMUX_MOVE_NO_REMEDY" -eq 0 ]; then
+        case "$TMUX_MOVE_STATUS" in
+            kept|failed)
+                print_tmux_remedy
+                ;;
+        esac
+    fi
+
+    # The terminal-only marker this run created stays once any desktop
+    # receipt section has been written in this run, whatever happens after:
+    # that desktop may start, and must start terminal-only. It goes only when
+    # the run fails before such a write, or the owner declined the desktop's
+    # package command.
+    if [ -n "$TMUX_MARKER_FILE" ]; then
+        if [ "$MOVE_PACKAGE_DECLINED" -eq 1 ] \
+            || { [ "$status" != "success" ] && [ "$MOVE_DESKTOP_WRITTEN" -eq 0 ]; }; then
+            rm -f "$TMUX_MARKER_FILE" 2>/dev/null || true
         fi
     fi
 
@@ -2981,8 +3203,10 @@ acquire_installer_locks() {
         refuse_missing_prerequisite "lock-tool-missing" flock util-linux "it is needed so that two installs cannot run at once"
     fi
 
-    # Tree lock if tree route requested
-    if [ -n "$TREE_SELECTED_COMPONENTS" ]; then
+    # Tree lock if tree route requested, or if a recorded tmux on a catalogue
+    # without it leads this run to rewrite the tree receipt.
+    if [ -n "$TREE_SELECTED_COMPONENTS" ] \
+        || { [ -n "$TMUX_OLD_ROUTE" ] && [ -e "$(tree_receipt_path)" ]; }; then
         mkdir -p "$OPT_PREFIX" 2>/dev/null || true
         t_lock_file="${OPT_PREFIX}/.solstone-platform.lock"
         exec 8>>"$t_lock_file"
@@ -3001,6 +3225,37 @@ tmux_available() {
 }
 
 interactive_selection_menu() {
+    if [ "${catalogue_has_tmux:-1}" -eq 0 ]; then
+        if [ "$OPT_NON_INTERACTIVE" -eq 1 ] || [ "$OPT_JSON" -eq 1 ]; then
+            report_exit refusal no-selection "choose what to install with --components journal, cli, desktop, or all. for example: curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal"
+        fi
+
+        if ! { sh -c 'test -t 0' </dev/tty; } >/dev/null 2>&1; then
+            report_exit refusal no-selection "choose what to install with --components journal, cli, desktop, or all. for example: curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal"
+        fi
+
+        printf "\nsolstone for linux:\n" > /dev/tty
+        printf "  1) everything available (journal, desktop)\n" > /dev/tty
+        printf "  2) journal only\n" > /dev/tty
+        printf "  3) the solstone app only (includes terminal, with or without a desktop)\n" > /dev/tty
+        ism_tries=0
+        while :; do
+            printf "Select components by number (1-3), or press Enter for the journal only: " > /dev/tty
+            read -r choice < /dev/tty \
+                || report_exit "refusal" "invalid-selection" "No component selection was made (to skip the menu, run: curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal; choices: all, journal, desktop)"
+            case "$choice" in
+                1) OPT_COMPONENTS="all"; return 0 ;;
+                ""|2) OPT_COMPONENTS="journal"; return 0 ;;
+                3) OPT_COMPONENTS="desktop"; return 0 ;;
+            esac
+            ism_tries=$((ism_tries + 1))
+            [ "$ism_tries" -lt 3 ] \
+                || report_exit "refusal" "invalid-selection" "Invalid component selection '$choice' (to skip the menu, run: curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal; choices: all, journal, desktop)"
+            printf "'%s' is not one of the choices.\n" "$choice" > /dev/tty
+        done
+        return 0
+    fi
+
     if [ "$OPT_NON_INTERACTIVE" -eq 1 ] || [ "$OPT_JSON" -eq 1 ]; then
         report_exit refusal no-selection "choose what to install with --components journal, cli, desktop, tmux, or all. for example: curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal"
     fi
@@ -3349,6 +3604,7 @@ package_publish_phase() {
         fi
     done
     ppp_len=$(wc -c < "$ppp_receipt" | tr -d '[:space:]')
+    if [ "$MOVE_DESKTOP_STEP" -eq 1 ] && [ "$ppp_component" = desktop ]; then MOVE_DESKTOP_WRITTEN=1; fi
     # shellcheck disable=SC2086
     if ! ppp_result=$({ printf "WRITE_ETC_RECEIPT %s\n" "$ppp_len"; cat "$ppp_receipt"; } | $sudo_prefix "$helper_bin" $helper_flags); then
         package_protocol_failure "$ppp_result" "receipt-write-failed" "Could not publish package receipt"
@@ -3387,8 +3643,10 @@ package_fetch_install() {
     fetch_file_with_redirect_check "${OPT_ORIGIN}/solstone/${OPT_LANE}/${RESOLVED_VERSION}/${PC_FILENAME}" "$pfi_path"
     verify_sha256 "$pfi_path" "$PC_SHA"
     if [ "$OPT_CONFIRM_PACKAGE_COMMAND" -eq 1 ]; then
+        plan_req="PLAN_PKG $PKG_VARIANT $pfi_path"
+        [ -z "${PKG_EXTRA_OPT:-}" ] || plan_req="$plan_req $PKG_EXTRA_OPT"
         # shellcheck disable=SC2086
-        if ! PPLAN_OUT=$(printf "PLAN_PKG %s %s\n" "$PKG_VARIANT" "$pfi_path" | $sudo_prefix "$helper_bin" $helper_flags); then
+        if ! PPLAN_OUT=$(printf "%s\n" "$plan_req" | $sudo_prefix "$helper_bin" $helper_flags); then
             package_protocol_failure "$PPLAN_OUT" "package-install-failed" "Package helper failed to plan package $PC_FILENAME"
         fi
         case "$PPLAN_OUT" in
@@ -3401,23 +3659,44 @@ package_fetch_install() {
         plan_valid=1
         [ "${1:-}" = "PLAN" ] || plan_valid=0
         [ "${2:-}" = "$PKG_VARIANT" ] || plan_valid=0
-        case "$PKG_VARIANT" in
-            deb)
-                [ "${3:-}" = "reinstall" ] || plan_valid=0
-                [ "$#" -eq 11 ] || plan_valid=0
-                [ "${11:-}" = "$pfi_path" ] || plan_valid=0
-                ;;
-            rpm)
-                case "${3:-}" in
-                    install|reinstall) ;;
-                    *) plan_valid=0 ;;
-                esac
-                [ "$#" -eq 9 ] || plan_valid=0
-                [ "${9:-}" = "$pfi_path" ] || plan_valid=0
-                [ "${8:-}" = "${3:-}" ] || plan_valid=0
-                ;;
-            *) plan_valid=0 ;;
-        esac
+        if [ "${PKG_EXTRA_OPT:-}" = "no-weak-deps" ]; then
+            case "$PKG_VARIANT" in
+                deb)
+                    [ "${3:-}" = "reinstall" ] || plan_valid=0
+                    [ "$#" -eq 12 ] || plan_valid=0
+                    [ "${11:-}" = "--no-install-recommends" ] || plan_valid=0
+                    [ "${12:-}" = "$pfi_path" ] || plan_valid=0
+                    ;;
+                rpm)
+                    case "${3:-}" in
+                        install|reinstall) ;;
+                        *) plan_valid=0 ;;
+                    esac
+                    [ "$#" -eq 10 ] || plan_valid=0
+                    [ "${9:-}" = "${3:-}" ] || plan_valid=0
+                    [ "${10:-}" = "$pfi_path" ] || plan_valid=0
+                    ;;
+                *) plan_valid=0 ;;
+            esac
+        else
+            case "$PKG_VARIANT" in
+                deb)
+                    [ "${3:-}" = "reinstall" ] || plan_valid=0
+                    [ "$#" -eq 11 ] || plan_valid=0
+                    [ "${11:-}" = "$pfi_path" ] || plan_valid=0
+                    ;;
+                rpm)
+                    case "${3:-}" in
+                        install|reinstall) ;;
+                        *) plan_valid=0 ;;
+                    esac
+                    [ "$#" -eq 9 ] || plan_valid=0
+                    [ "${9:-}" = "$pfi_path" ] || plan_valid=0
+                    [ "${8:-}" = "${3:-}" ] || plan_valid=0
+                    ;;
+                *) plan_valid=0 ;;
+            esac
+        fi
         [ "${4:-}" = "$pfi_path" ] || plan_valid=0
 
         if [ "$plan_valid" -eq 0 ]; then
@@ -3446,9 +3725,9 @@ package_fetch_install() {
         if [ "$OPT_YES" -eq 1 ]; then
             : # approve
         elif [ "$OPT_NON_INTERACTIVE" -eq 1 ]; then
-            report_exit refusal consent-required "package command needs approval before it can run"
+            package_command_declined consent-required "package command needs approval before it can run"
         elif ! { sh -c 'test -t 0' </dev/tty; } >/dev/null 2>&1; then
-            report_exit refusal consent-required "package command needs approval before it can run"
+            package_command_declined consent-required "package command needs approval before it can run"
         else
             if [ "$consent_to_tty" -eq 1 ]; then
                 printf '%s\n' "run this package command? answer yes or no" > /dev/tty
@@ -3458,10 +3737,10 @@ package_fetch_install() {
             if read -r consent_reply < /dev/tty; then
                 case "$consent_reply" in
                     yes) ;; # approve
-                    *) report_exit refusal consent-declined "package command was not approved" ;;
+                    *) package_command_declined consent-declined "package command was not approved" ;;
                 esac
             else
-                report_exit refusal consent-required "package command needs approval before it can run"
+                package_command_declined consent-required "package command needs approval before it can run"
             fi
         fi
 
@@ -3469,14 +3748,18 @@ package_fetch_install() {
             package_publish_phase "$PC_ROLE" intended intended
         fi
 
+        apply_req="APPLY_PKG $PKG_VARIANT $pfi_path $plan_action"
+        [ -z "${PKG_EXTRA_OPT:-}" ] || apply_req="$apply_req $PKG_EXTRA_OPT"
         # shellcheck disable=SC2086
-        if ! PINSTALL_OUT=$(printf "APPLY_PKG %s %s %s\n" "$PKG_VARIANT" "$pfi_path" "$plan_action" | $sudo_prefix "$helper_bin" $helper_flags); then
+        if ! PINSTALL_OUT=$(printf "%s\n" "$apply_req" | $sudo_prefix "$helper_bin" $helper_flags); then
             package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
         fi
         [ "$PINSTALL_OUT" = "OK" ] || package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
     else
+        install_req="INSTALL_PKG $PKG_VARIANT $pfi_path"
+        [ -z "${PKG_EXTRA_OPT:-}" ] || install_req="$install_req $PKG_EXTRA_OPT"
         # shellcheck disable=SC2086
-        if ! PINSTALL_OUT=$(printf "INSTALL_PKG %s %s\n" "$PKG_VARIANT" "$pfi_path" | $sudo_prefix "$helper_bin" $helper_flags); then
+        if ! PINSTALL_OUT=$(printf "%s\n" "$install_req" | $sudo_prefix "$helper_bin" $helper_flags); then
             package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
         fi
         [ "$PINSTALL_OUT" = "OK" ] || package_protocol_failure "$PINSTALL_OUT" "package-install-failed" "Helper failed to install package $PC_FILENAME"
@@ -3487,6 +3770,25 @@ package_fetch_install() {
         || [ "$PQUERY_VERSION" != "$PC_VERSION" ] || [ "$PQUERY_ARCH" != "$PC_ARCH" ]; then
         report_exit "refusal" "package-install-failed" "Installed package identity did not match candidate $PC_NAME"
     fi
+}
+
+# A package command the owner did not approve stops the run, as it always has,
+# except for the desktop the consented move would install fresh: declining it
+# is declining the move, so nothing is installed and tmux stays as it is.
+package_command_declined() {
+    if [ "$MOVE_DESKTOP_STEP" -eq 1 ] && [ "$PC_ROLE" = desktop ]; then
+        MOVE_PACKAGE_DECLINED=1
+        if [ "$MOVE_DESKTOP_FRESH" -eq 1 ]; then
+            move_restore_options
+            TMUX_MOVE_STATUS="kept"
+            TMUX_MOVE_REASON="declined"
+            REPORT_COMPONENTS=$(remove_word "$REPORT_COMPONENTS" desktop)
+            MOVE_DESKTOP_ROUTE=""
+            settle_empty_package_receipt
+            report_exit "success" "installed" "All selected components installed successfully"
+        fi
+    fi
+    report_exit refusal "$1" "$2"
 }
 
 package_app_service() {
@@ -4114,7 +4416,11 @@ tree_component_authority() {
                 || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
             tca_sha=$(receipt_value "$tca_receipt" "component:${tca_component}" executable_sha256 2>/dev/null) \
                 || report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component is incomplete"
-            tca_name=$(cat "${manifest_dir}/components/${tca_component}/arches/${HOST_ARCH}/tree/executable/name")
+            if [ "${catalogue_has_tmux:-1}" -eq 0 ] && [ "$tca_component" = "tmux" ]; then
+                tca_name=$(basename "$tca_public")
+            else
+                tca_name=$(cat "${manifest_dir}/components/${tca_component}/arches/${HOST_ARCH}/tree/executable/name")
+            fi
             tca_root="${OPT_PREFIX}/opt/solstone/${tca_component}"
             case "$tca_target" in ''|*/*|.|..) report_exit "refusal" "ownership-unknown" "Tree receipt for $tca_component contains an unsafe target" ;; esac
             app_tree_relpath_valid "$tca_component" "$tca_version" "$tca_arch" "$tca_name" "$tca_rel" \
@@ -4167,6 +4473,18 @@ package_receipt_path() {
     else
         printf '%s\n' "/etc/solstone/install.conf"
     fi
+}
+
+# A package receipt that records no component reads as absent: zero bytes, as
+# an earlier revision left it, or its [solstone] header alone, as a removal
+# whose final delete did not complete leaves it.
+package_receipt_records_nothing() {
+    prn_receipt="$1"
+    [ -f "$prn_receipt" ] && [ ! -L "$prn_receipt" ] || return 1
+    [ -s "$prn_receipt" ] || return 0
+    [ -r "$prn_receipt" ] && [ "$(sed -n '1p' "$prn_receipt")" = "[solstone]" ] || return 1
+    grep -q '^\[component:' "$prn_receipt"
+    [ $? -eq 1 ]
 }
 
 package_route_tools() {
@@ -4257,7 +4575,8 @@ package_component_authority() {
     PACKAGE_CLAIM=0
     PACKAGE_STATE_PRESENT=0
     pca_receipt=$(package_receipt_path)
-    if [ ! -e "$pca_receipt" ] && [ ! -L "$pca_receipt" ]; then
+    if { [ ! -e "$pca_receipt" ] && [ ! -L "$pca_receipt" ]; } \
+        || package_receipt_records_nothing "$pca_receipt"; then
         pca_key="$pca_component"
         [ "$pca_component" = "cli" ] && pca_key="journal"
         pca_name=$(cat "${manifest_dir}/components/${pca_key}/arches/${HOST_ARCH}/${PKG_VARIANT}/package_identity/name" 2>/dev/null || true)
@@ -4324,6 +4643,9 @@ resolve_component_route() {
     rcr_require_existing="$2"
     rcr_mode="complete"
     [ "$OPT_UNINSTALL" -eq 0 ] || rcr_mode="removal"
+    # A catalogue without tmux never installs it, so a recorded tmux is read
+    # the way its removal reads it: a removal that stopped part-way resumes.
+    if [ "$rcr_component" = tmux ] && [ "${catalogue_has_tmux:-1}" -eq 0 ]; then rcr_mode="removal"; fi
     tree_component_authority "$rcr_component" "$rcr_mode"
     rcr_tree_claim="$TREE_CLAIM"
     rcr_tree_state="$TREE_STATE_PRESENT"
@@ -4390,6 +4712,7 @@ discover_upgrade_selection() {
             if [ -L "$dus_file" ] || [ ! -f "$dus_file" ] || [ ! -r "$dus_file" ]; then
                 report_exit "refusal" "receipt-read-failed" "Install receipt is not a readable regular file"
             fi
+
             for dus_component in journal cli desktop tmux; do
                 dus_count=$(receipt_section_count "$dus_file" "component:${dus_component}")
                 case "$dus_count" in
@@ -4432,7 +4755,7 @@ solstone installer for Linux and macOS
 
 usage: sh install.sh [options]
 
-  --components LIST    Linux: journal, cli, desktop, tmux
+  --components LIST    Linux: journal, cli, desktop (the solstone app, includes terminal)
                        macOS: journal, app
                        all selects the supported app set for this computer
   --all                select all available components
@@ -4945,6 +5268,7 @@ run_tree_component() {
             } >> "$receipt_tmp" || tree_receipt_failure "Could not stage the $comp receipt section"
         fi
     done
+    if [ "$MOVE_DESKTOP_STEP" -eq 1 ] && component_selected desktop; then MOVE_DESKTOP_WRITTEN=1; fi
     if ! mv -Tf "$receipt_tmp" "$receipt_file"; then
         tree_receipt_failure "Could not atomically publish the tree install receipt"
     fi
@@ -5126,7 +5450,7 @@ run_package_install() {
             *) all_pkg_selected_unchanged=0; break ;;
         esac
     done
-    if [ "$all_pkg_selected_unchanged" -eq 1 ] && [ -s "$PACKAGE_RECEIPT_FILE" ]; then
+    if [ "$all_pkg_selected_unchanged" -eq 1 ] && ! package_receipt_records_nothing "$PACKAGE_RECEIPT_FILE"; then
         pgr_staged="${SCRATCH_DIR}/package-receipt-global-refresh.$$"
         {
             printf "[solstone]\n"
@@ -5197,22 +5521,33 @@ publish_tree_uninstall_receipt() {
     fi
 }
 
-publish_package_uninstall_receipt() {
-    ppur_component="$1"
-    ppur_next="${SCRATCH_DIR}/package-uninstall-next.$$"
-    stage_receipt_without_component "$PACKAGE_RECEIPT_FILE" "$ppur_component" "$ppur_next" \
-        || report_exit "refusal" "receipt-write-failed" "Could not stage package uninstall receipt"
-    if [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_UNINSTALL_RECEIPT:-}" = "$ppur_component" ]; then
-        report_exit "refusal" "receipt-write-failed" "Could not publish package uninstall receipt"
+# Publish the package receipt without one component. A receipt left with no
+# component section is written as its header alone and then deleted: the
+# privileged side refuses to delete a receipt that still records a component.
+# Returns non-zero, with the helper's answer in PPWC_RESULT, on any failure.
+package_publish_without_component() {
+    ppwc_component="$1"
+    PPWC_RESULT=""
+    ppwc_next="${SCRATCH_DIR}/package-uninstall-next.$$"
+    stage_receipt_without_component "$PACKAGE_RECEIPT_FILE" "$ppwc_component" "$ppwc_next" || return 1
+    if [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_UNINSTALL_RECEIPT:-}" = "$ppwc_component" ]; then
+        return 1
     fi
-    if [ "$SRWC_REMAINING" -eq 0 ]; then : > "$ppur_next"; fi
-    ppur_len=$(wc -c < "$ppur_next" | tr -d '[:space:]')
+    ppwc_len=$(wc -c < "$ppwc_next" | tr -d '[:space:]')
     # shellcheck disable=SC2086
-    if ! ppur_result=$({ printf "WRITE_ETC_RECEIPT %s\n" "$ppur_len"; cat "$ppur_next"; } | $sudo_prefix "$helper_bin" $helper_flags); then
-        package_protocol_failure "$ppur_result" "receipt-write-failed" "Could not publish package uninstall receipt"
-    fi
-    [ "$ppur_result" = "OK" ] || package_protocol_failure "$ppur_result" "receipt-write-failed" "Could not publish package uninstall receipt"
-    cp "$ppur_next" "$PACKAGE_RECEIPT_FILE" || report_exit "refusal" "receipt-write-failed" "Could not retain package uninstall receipt state"
+    PPWC_RESULT=$({ printf "WRITE_ETC_RECEIPT %s\n" "$ppwc_len"; cat "$ppwc_next"; } | $sudo_prefix "$helper_bin" $helper_flags) || return 1
+    [ "$PPWC_RESULT" = "OK" ] || return 1
+    cp "$ppwc_next" "$PACKAGE_RECEIPT_FILE" || return 1
+    [ "$SRWC_REMAINING" -eq 0 ] || return 0
+    # shellcheck disable=SC2086
+    PPWC_RESULT=$(printf "DELETE_ETC_RECEIPT\n" | $sudo_prefix "$helper_bin" $helper_flags) || return 1
+    [ "$PPWC_RESULT" = "OK" ] || return 1
+    rm -f "$PACKAGE_RECEIPT_FILE" 2>/dev/null || true
+}
+
+publish_package_uninstall_receipt() {
+    package_publish_without_component "$1" \
+        || package_protocol_failure "$PPWC_RESULT" "receipt-write-failed" "Could not publish package uninstall receipt"
 }
 
 uninstall_tree_component() {
@@ -5250,10 +5585,17 @@ uninstall_tree_component() {
             [ -x "$utc_binary" ] \
                 || report_exit "refusal" "handler-missing" "selected binary is unavailable for $utc_component service removal"
             utc_handler="${utc_handlers}/${utc_component}/v1/uninstall-${utc_component}-service"
-            [ -f "$utc_handler" ] || report_exit "refusal" "handler-missing" "Uninstall handler is missing for $utc_component"
-            chmod 0755 "$utc_handler" || report_exit "refusal" "handler-failed" "Could not make the $utc_component uninstall handler executable"
-            "$utc_handler" --prefix "$OPT_PREFIX" --binary "$utc_binary" --route tree --role "$utc_component" >&2 \
-                || report_exit "refusal" "handler-failed" "Uninstall handler failed for $utc_component"
+            if [ -f "$utc_handler" ]; then
+                chmod 0755 "$utc_handler" || report_exit "refusal" "handler-failed" "Could not make the $utc_component uninstall handler executable"
+                "$utc_handler" --prefix "$OPT_PREFIX" --binary "$utc_binary" --route tree --role "$utc_component" >&2 \
+                    || report_exit "refusal" "handler-failed" "Uninstall handler failed for $utc_component"
+            elif [ "$utc_component" = "tmux" ]; then
+                # The installed binary owns its service, as the handler would ask it.
+                "$utc_binary" uninstall-service >&2 \
+                    || report_exit "refusal" "handler-failed" "Service removal failed for $utc_component"
+            else
+                report_exit "refusal" "handler-missing" "Uninstall handler is missing for $utc_component"
+            fi
             ;;
     esac
     case "$utc_component" in
@@ -5319,6 +5661,488 @@ uninstall_package_component() {
     SUCCEEDED_COMPONENTS="${SUCCEEDED_COMPONENTS}${SUCCEEDED_COMPONENTS:+ }${upc_component}"
 }
 
+remove_word() {
+    rw_out=""
+    for rw_item in $1; do
+        [ "$rw_item" = "$2" ] || rw_out="${rw_out}${rw_out:+ }${rw_item}"
+    done
+    printf '%s' "$rw_out"
+}
+
+# One owner-readable line about the move. The shipped updater shows only the
+# installer's stderr, so these lines print with --json too.
+move_say() {
+    printf '%s\n' "$1" >&2
+}
+
+# A package receipt that records nothing reads as absent. A run that already
+# has the privileged helper running removes it; any other run leaves it as it
+# is and says so.
+settle_empty_package_receipt() {
+    szb_receipt=$(package_receipt_path)
+    package_receipt_records_nothing "$szb_receipt" || return 0
+    if [ "$PACKAGE_HELPER_READY" -eq 1 ]; then
+        # shellcheck disable=SC2086
+        if szb_result=$(printf "DELETE_ETC_RECEIPT\n" | $sudo_prefix "$helper_bin" $helper_flags) && [ "$szb_result" = "OK" ]; then
+            return 0
+        fi
+    fi
+    printf 'an empty package receipt was left at %s\n' "$szb_receipt" >&2
+}
+
+# Bring each receipt's header to this run's coordinate with every canonical
+# header field, keeping every component section byte for byte. A receipt
+# whose only component is a tmux the run kept is otherwise never rewritten,
+# and the tree and package receipts must agree on lane and platform_version.
+refresh_receipt_headers() {
+    rrh_verification="minisign"
+    [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || rrh_verification="digest-matched; signatures skipped"
+    rrh_tree=$(tree_receipt_path)
+    if [ -f "$rrh_tree" ] && [ ! -L "$rrh_tree" ] && [ -s "$rrh_tree" ]; then
+        rrh_prefix=$(receipt_value "$rrh_tree" solstone prefix 2>/dev/null) || rrh_prefix=""
+        if [ -z "$rrh_prefix" ]; then
+            for rrh_component in journal cli desktop tmux; do
+                rrh_prefix=$(receipt_value "$rrh_tree" "component:${rrh_component}" prefix 2>/dev/null) && break
+                rrh_prefix=""
+            done
+        fi
+        [ -n "$rrh_prefix" ] || rrh_prefix="$OPT_PREFIX"
+        rrh_phase=$(receipt_value "$rrh_tree" solstone phase 2>/dev/null) || rrh_phase="complete"
+        rrh_next="${rrh_tree}.tmp.$$"
+        if ! printf '[solstone]\nschema_version=1\nplatform_version=%s\nlane=%s\norigin=%s\nroute=tree\nprefix=%s\narch=%s\nverification=%s\ninstaller_revision=%s\nphase=%s\n' \
+            "$RESOLVED_VERSION" "$OPT_LANE" "$OPT_ORIGIN" "$rrh_prefix" "$HOST_ARCH" "$rrh_verification" "$INSTALLER_REVISION" "$rrh_phase" > "$rrh_next"; then
+            rm -f "$rrh_next" 2>/dev/null || true
+            report_exit "refusal" "receipt-write-failed" "Could not stage the tree receipt header"
+        fi
+        for rrh_component in journal cli desktop tmux; do
+            if receipt_value "$rrh_tree" "component:${rrh_component}" role >/dev/null 2>&1; then
+                if ! append_receipt_section "$rrh_tree" "component:${rrh_component}" "$rrh_next"; then
+                    rm -f "$rrh_next" 2>/dev/null || true
+                    report_exit "refusal" "receipt-write-failed" "Could not preserve the $rrh_component receipt section"
+                fi
+            fi
+        done
+        if cmp -s "$rrh_next" "$rrh_tree"; then
+            rm -f "$rrh_next" 2>/dev/null || true
+        elif ! mv -Tf "$rrh_next" "$rrh_tree"; then
+            rm -f "$rrh_next" 2>/dev/null || true
+            report_exit "refusal" "receipt-write-failed" "Could not publish the tree receipt header"
+        fi
+    fi
+    rrh_package=$(package_receipt_path)
+    if [ -f "$rrh_package" ] && [ ! -L "$rrh_package" ] && ! package_receipt_records_nothing "$rrh_package"; then
+        init_package_helper
+        package_read_receipt
+        rrh_next="${SCRATCH_DIR}/package-receipt-header.$$"
+        printf '[solstone]\nschema_version=1\nplatform_version=%s\nlane=%s\norigin=%s\narch=%s\nverification=%s\ninstaller_revision=%s\n' \
+            "$RESOLVED_VERSION" "$OPT_LANE" "$OPT_ORIGIN" "$HOST_ARCH" "$rrh_verification" "$INSTALLER_REVISION" > "$rrh_next" \
+            || report_exit "refusal" "receipt-write-failed" "Could not stage the package receipt header"
+        for rrh_component in journal cli desktop tmux; do
+            if receipt_value "$PACKAGE_RECEIPT_FILE" "component:${rrh_component}" role >/dev/null 2>&1; then
+                append_receipt_section "$PACKAGE_RECEIPT_FILE" "component:${rrh_component}" "$rrh_next" \
+                    || report_exit "refusal" "receipt-write-failed" "Could not preserve package receipt section for $rrh_component"
+            fi
+        done
+        if ! cmp -s "$rrh_next" "$PACKAGE_RECEIPT_FILE"; then
+            rrh_len=$(wc -c < "$rrh_next" | tr -d '[:space:]')
+            # shellcheck disable=SC2086
+            if ! rrh_result=$({ printf "WRITE_ETC_RECEIPT %s\n" "$rrh_len"; cat "$rrh_next"; } | $sudo_prefix "$helper_bin" $helper_flags); then
+                package_protocol_failure "$rrh_result" "receipt-write-failed" "Could not publish the package receipt header"
+            fi
+            [ "$rrh_result" = "OK" ] || package_protocol_failure "$rrh_result" "receipt-write-failed" "Could not publish the package receipt header"
+            cp "$rrh_next" "$PACKAGE_RECEIPT_FILE" || report_exit "refusal" "receipt-write-failed" "Could not retain package receipt state"
+        fi
+    fi
+}
+
+# The move's desktop step runs with the desktop's own prefix and service
+# policy; every other component keeps the invocation's options.
+move_scope_options() {
+    MOVE_SAVED_PREFIX="$OPT_PREFIX"
+    MOVE_SAVED_NO_START="$OPT_NO_START"
+    MOVE_SAVED_NO_PATH="$OPT_NO_PATH"
+    MOVE_SAVED_SELECTED="$SELECTED_COMPONENTS"
+    MOVE_SAVED_EXTRA="$PKG_EXTRA_OPT"
+    OPT_PREFIX="$1"
+    OPT_NO_START="$2"
+    OPT_NO_PATH="$3"
+    MOVE_DESKTOP_STEP=1
+}
+
+move_restore_options() {
+    [ "$MOVE_DESKTOP_STEP" -eq 1 ] || return 0
+    OPT_PREFIX="$MOVE_SAVED_PREFIX"
+    OPT_NO_START="$MOVE_SAVED_NO_START"
+    OPT_NO_PATH="$MOVE_SAVED_NO_PATH"
+    SELECTED_COMPONENTS="$MOVE_SAVED_SELECTED"
+    PKG_EXTRA_OPT="$MOVE_SAVED_EXTRA"
+    MOVE_DESKTOP_STEP=0
+}
+
+# Whether the desktop app already has its own configuration, which makes it
+# ignore the terminal-only marker. Its service reads the configuration under
+# XDG_CONFIG_HOME when that is absolute in the user service manager's
+# environment, and under ~/.config otherwise; this shell's XDG_CONFIG_HOME
+# is checked as well.
+desktop_config_exists() {
+    [ ! -e "${HOME}/.config/solstone-linux/config.json" ] || return 0
+    case "${XDG_CONFIG_HOME:-}" in
+        /*) [ ! -e "${XDG_CONFIG_HOME}/solstone-linux/config.json" ] || return 0 ;;
+    esac
+    command -v systemctl >/dev/null 2>&1 || return 1
+    dce_manager=$(systemctl --user show-environment 2>/dev/null) || return 1
+    dce_manager=$(printf '%s\n' "$dce_manager" | sed -n 's/^XDG_CONFIG_HOME=//p')
+    case "$dce_manager" in
+        /*) [ ! -e "${dce_manager}/solstone-linux/config.json" ] || return 0 ;;
+    esac
+    return 1
+}
+
+# Decide, before locks or any change, what happens to a recorded tmux when
+# the selected catalogue no longer carries it. tmux itself is never installed
+# from such a catalogue; with consent, the move's desktop step, adopt and the
+# tmux removal run after the invocation's own components (run_tmux_move).
+handle_tmux_move() {
+    [ "$OPT_UPGRADE" -eq 1 ] && [ "$catalogue_has_tmux" -eq 0 ] || return 0
+    case " $TREE_SELECTED_COMPONENTS $PACKAGE_SELECTED_COMPONENTS " in
+        *" tmux "*) ;;
+        *) return 0 ;;
+    esac
+    htm_tree=$(tree_receipt_path)
+    htm_package=$(package_receipt_path)
+    case " $TREE_SELECTED_COMPONENTS " in
+        *" tmux "*)
+            TMUX_OLD_ROUTE="tree"
+            TMUX_OLD_PREFIX=$(receipt_value "$htm_tree" component:tmux prefix 2>/dev/null) || TMUX_OLD_PREFIX="$OPT_PREFIX"
+            htm_tmux_no_start=$(receipt_value "$htm_tree" component:tmux no_start 2>/dev/null) || htm_tmux_no_start=0
+            htm_tmux_no_path=$(receipt_value "$htm_tree" component:tmux no_path 2>/dev/null) || htm_tmux_no_path=0
+            ;;
+        *)
+            TMUX_OLD_ROUTE="$PKG_VARIANT"
+            TMUX_OLD_PREFIX="$OPT_PREFIX"
+            htm_tmux_no_start=0
+            if [ "$(receipt_value "$htm_package" component:tmux service_policy 2>/dev/null)" = "skip-service" ]; then
+                htm_tmux_no_start=1
+            fi
+            htm_tmux_no_path="$OPT_NO_PATH"
+            TMUX_OLD_PKG_NAME=$(receipt_value "$htm_package" component:tmux package_name 2>/dev/null) || TMUX_OLD_PKG_NAME="solstone-tmux"
+            ;;
+    esac
+    [ "$htm_tmux_no_start" = 1 ] || htm_tmux_no_start=0
+    [ "$htm_tmux_no_path" = 1 ] || htm_tmux_no_path=0
+    TREE_SELECTED_COMPONENTS=$(remove_word "$TREE_SELECTED_COMPONENTS" tmux)
+    PACKAGE_SELECTED_COMPONENTS=$(remove_word "$PACKAGE_SELECTED_COMPONENTS" tmux)
+    TMUX_MOVE_STATUS="kept"
+
+    # A root run would move root's home, not the owner's.
+    if [ "$(id -u)" -eq 0 ]; then
+        TMUX_MOVE_REASON="root"
+        TMUX_MOVE_NO_REMEDY=1
+        move_say "solstone for tmux was not moved into the solstone app. to move it, run this installer as yourself, not as root."
+        return 0
+    fi
+
+    # A desktop recorded in any phase is already installed: it is upgraded in
+    # place on its own route, under its own prefix and service policy.
+    if [ -f "$htm_tree" ] && receipt_value "$htm_tree" component:desktop role >/dev/null 2>&1; then
+        MOVE_DESKTOP_ROUTE="tree"
+        MOVE_DESKTOP_PREFIX=$(receipt_value "$htm_tree" component:desktop prefix 2>/dev/null) || MOVE_DESKTOP_PREFIX="$OPT_PREFIX"
+        MOVE_DESKTOP_NO_START=$(receipt_value "$htm_tree" component:desktop no_start 2>/dev/null) || MOVE_DESKTOP_NO_START="$OPT_NO_START"
+        MOVE_DESKTOP_NO_PATH=$(receipt_value "$htm_tree" component:desktop no_path 2>/dev/null) || MOVE_DESKTOP_NO_PATH="$OPT_NO_PATH"
+    elif [ -f "$htm_package" ] && receipt_value "$htm_package" component:desktop role >/dev/null 2>&1; then
+        MOVE_DESKTOP_ROUTE="$PKG_VARIANT"
+        MOVE_DESKTOP_PREFIX="$OPT_PREFIX"
+        MOVE_DESKTOP_NO_START=0
+        if [ "$(receipt_value "$htm_package" component:desktop service_policy 2>/dev/null)" = "skip-service" ]; then
+            MOVE_DESKTOP_NO_START=1
+        fi
+        MOVE_DESKTOP_NO_PATH="$OPT_NO_PATH"
+    else
+        MOVE_DESKTOP_FRESH=1
+        MOVE_DESKTOP_ROUTE="$TMUX_OLD_ROUTE"
+        MOVE_DESKTOP_PREFIX="$TMUX_OLD_PREFIX"
+        MOVE_DESKTOP_NO_START="$htm_tmux_no_start"
+        MOVE_DESKTOP_NO_PATH="$htm_tmux_no_path"
+    fi
+    [ "$MOVE_DESKTOP_NO_START" = 1 ] || MOVE_DESKTOP_NO_START=0
+    [ "$MOVE_DESKTOP_NO_PATH" = 1 ] || MOVE_DESKTOP_NO_PATH=0
+
+    if [ ! -d "${manifest_dir}/components/desktop/arches/${HOST_ARCH}/${MOVE_DESKTOP_ROUTE}" ]; then
+        MOVE_DESKTOP_ROUTE=""
+        MOVE_DESKTOP_FRESH=0
+        TMUX_MOVE_REASON="unavailable"
+        TMUX_MOVE_NO_REMEDY=1
+        move_say "solstone for tmux was not moved into the solstone app: the move is not available on this computer yet."
+        return 0
+    fi
+
+    htm_consent=0
+    if [ "$OPT_YES" -eq 1 ]; then
+        htm_consent=1
+    elif [ "$OPT_NON_INTERACTIVE" -eq 0 ] && { sh -c 'test -t 0' </dev/tty; } >/dev/null 2>&1; then
+        {
+            if [ "$MOVE_DESKTOP_FRESH" -eq 1 ]; then
+                printf '\n%s\n' "this installs the solstone app, moves solstone for tmux into it, and removes solstone for tmux. what it still has waiting goes into your journal through the solstone app, and anything that can't go stays on this computer."
+            else
+                printf '\n%s\n' "this moves solstone for tmux into the solstone app, and removes solstone for tmux. what it still has waiting goes into your journal through the solstone app, and anything that can't go stays on this computer. if the solstone app isn't paired yet, it pairs with the journal solstone for tmux uses."
+            fi
+            # The app records desktop capture off at its first start when this
+            # user has never configured it (the marker below).
+            if ! desktop_config_exists; then
+                printf '%s\n' "on this computer the solstone app won't take in your screen, audio or desktop activity until you turn them on in the app."
+            fi
+            printf '%s' "move solstone for tmux into the solstone app? answer yes or no: "
+        } > /dev/tty
+        if read -r htm_reply < /dev/tty && [ "$htm_reply" = "yes" ]; then
+            htm_consent=1
+        fi
+    fi
+    if [ "$htm_consent" -eq 0 ]; then
+        MOVE_DESKTOP_ROUTE=""
+        MOVE_DESKTOP_FRESH=0
+        TMUX_MOVE_REASON="declined"
+        return 0
+    fi
+
+    TMUX_MOVE_ACTIVE=1
+    TMUX_MOVE_FRESH_DESKTOP="$MOVE_DESKTOP_FRESH"
+    if [ "$MOVE_DESKTOP_FRESH" -eq 1 ] && is_headless_session; then
+        HEADLESS_FRESH_MOVE=1
+    fi
+    TREE_SELECTED_COMPONENTS=$(remove_word "$TREE_SELECTED_COMPONENTS" desktop)
+    PACKAGE_SELECTED_COMPONENTS=$(remove_word "$PACKAGE_SELECTED_COMPONENTS" desktop)
+    case " $REPORT_COMPONENTS " in
+        *" desktop "*) ;;
+        *) REPORT_COMPONENTS="${REPORT_COMPONENTS}${REPORT_COMPONENTS:+ }desktop" ;;
+    esac
+    case "$OPT_ROUTE:$MOVE_DESKTOP_ROUTE" in
+        tree:deb|tree:rpm|deb:tree|rpm:tree) OPT_ROUTE="mixed" ;;
+    esac
+}
+
+# Create the empty terminal-only marker as the invoking user, never through
+# the privileged helper. Missing directories are created 0700; an existing
+# directory is left exactly as it is.
+create_tmux_marker() {
+    ctm_dir="$HOME"
+    for ctm_part in .local share solstone-linux; do
+        ctm_dir="${ctm_dir}/${ctm_part}"
+        if [ ! -d "$ctm_dir" ]; then
+            mkdir -m 0700 "$ctm_dir" 2>/dev/null || [ -d "$ctm_dir" ] || return 1
+        fi
+    done
+    ctm_file="${ctm_dir}/desktop-capture-off"
+    if [ -e "$ctm_file" ] || [ -L "$ctm_file" ]; then
+        [ -f "$ctm_file" ] && [ ! -L "$ctm_file" ]
+        return
+    fi
+    ( umask 077 && : > "$ctm_file" ) 2>/dev/null || return 1
+    TMUX_MARKER_FILE="$ctm_file"
+}
+
+move_install_desktop() {
+    move_scope_options "$MOVE_DESKTOP_PREFIX" "$MOVE_DESKTOP_NO_START" "$MOVE_DESKTOP_NO_PATH"
+    SELECTED_COMPONENTS="desktop"
+    if [ "$MOVE_DESKTOP_ROUTE" = "tree" ]; then
+        if [ "$OPT_PREFIX" != "$MOVE_SAVED_PREFIX" ]; then
+            mkdir -p "$OPT_PREFIX" 2>/dev/null || true
+            exec 7>>"${OPT_PREFIX}/.solstone-platform.lock"
+            flock -n 7 || report_exit "refusal" "tree-locked" "Another platform installation holds the tree lock at $OPT_PREFIX"
+        fi
+        run_tree_install
+        MOVE_DESKTOP_BIN=$(receipt_value "$(tree_receipt_path)" component:desktop public_path 2>/dev/null) \
+            || MOVE_DESKTOP_BIN="${OPT_PREFIX}/bin/solstone-linux"
+    else
+        [ "$HEADLESS_FRESH_MOVE" -eq 0 ] || PKG_EXTRA_OPT="no-weak-deps"
+        run_package_install
+        MOVE_DESKTOP_BIN="/usr/bin/solstone-linux"
+        if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_ROOT:-}" ]; then
+            MOVE_DESKTOP_BIN="${SOLSTONE_FAKE_ROOT}/usr/bin/solstone-linux"
+        fi
+    fi
+    move_restore_options
+}
+
+# Remove the moved tmux tree under its own recorded prefix. Every failure
+# returns non-zero and leaves the receipt section in place.
+remove_moved_tree_tmux() {
+    rmt_saved_prefix="$OPT_PREFIX"
+    OPT_PREFIX="$TMUX_OLD_PREFIX"
+    rmt_status=0
+    rmt_receipt=$(tree_receipt_path)
+    rmt_public=$(receipt_value "$rmt_receipt" component:tmux public_path 2>/dev/null) || rmt_status=1
+    rmt_current=$(receipt_value "$rmt_receipt" component:tmux current 2>/dev/null) || rmt_status=1
+    rmt_target=$(receipt_value "$rmt_receipt" component:tmux current_target 2>/dev/null) || rmt_status=1
+    rmt_rel=$(receipt_value "$rmt_receipt" component:tmux executable_relpath 2>/dev/null) || rmt_status=1
+    rmt_root="${OPT_PREFIX}/opt/solstone/tmux"
+    if [ "$rmt_status" -eq 0 ]; then
+        rmt_binary="${rmt_root}/${rmt_target}/${rmt_rel}"
+        if [ -x "$rmt_binary" ]; then
+            if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_HANDLER_ROOT:-}" ]; then
+                rmt_handler="${SOLSTONE_HANDLER_ROOT}/tmux/v1/uninstall-tmux-service"
+            else
+                rmt_handler="${BUNDLED_RUNTIME}/handlers/tmux/v1/uninstall-tmux-service"
+            fi
+            if [ -f "$rmt_handler" ]; then
+                { chmod 0755 "$rmt_handler" && "$rmt_handler" --prefix "$OPT_PREFIX" --binary "$rmt_binary" --route tree --role tmux >&2; } || rmt_status=1
+            else
+                "$rmt_binary" uninstall-service >&2 || rmt_status=1
+            fi
+        elif [ -e "$rmt_root" ] || [ -L "$rmt_root" ] || [ -e "$rmt_public" ] || [ -L "$rmt_public" ]; then
+            # Files remain but nothing can stop their service.
+            rmt_status=1
+        fi
+    fi
+    if [ "$rmt_status" -eq 0 ]; then
+        rm -f "$rmt_public" "$rmt_current" 2>/dev/null || rmt_status=1
+    fi
+    if [ "$rmt_status" -eq 0 ]; then
+        rm -rf -- "${rmt_root:?}" 2>/dev/null || rmt_status=1
+    fi
+    if [ "$rmt_status" -eq 0 ]; then
+        rmt_next="${rmt_receipt}.tmp.$$"
+        if ! stage_receipt_without_component "$rmt_receipt" tmux "$rmt_next" \
+            || { [ "$TEST_SEAM" -eq 1 ] && [ "${SOLSTONE_TEST_FAIL_UNINSTALL_RECEIPT:-}" = "tmux" ]; }; then
+            rm -f "$rmt_next" 2>/dev/null || true
+            rmt_status=1
+        elif [ "$SRWC_REMAINING" -eq 0 ]; then
+            rm -f "$rmt_next" "$rmt_receipt" 2>/dev/null || rmt_status=1
+        elif ! mv -Tf "$rmt_next" "$rmt_receipt"; then
+            rm -f "$rmt_next" 2>/dev/null || true
+            rmt_status=1
+        fi
+    fi
+    OPT_PREFIX="$rmt_saved_prefix"
+    return "$rmt_status"
+}
+
+# Remove the moved tmux package through the consented package command.
+# run_tmux_move calls this in a subshell where report_exit fails the removal.
+remove_moved_package_tmux() {
+    if [ "$OPT_CONFIRM_PACKAGE_COMMAND" -eq 1 ]; then
+        case "$PKG_VARIANT" in
+            deb) rmp_cmd="dpkg -r ${TMUX_OLD_PKG_NAME}" ;;
+            *) rmp_cmd="rpm -e ${TMUX_OLD_PKG_NAME}" ;;
+        esac
+        rmp_tty=0
+        if [ "$OPT_JSON" -eq 0 ] && { sh -c 'test -t 0' </dev/tty; } >/dev/null 2>&1; then rmp_tty=1; fi
+        if [ "$rmp_tty" -eq 1 ]; then printf '%s\n' "$rmp_cmd" > /dev/tty; else printf '%s\n' "$rmp_cmd" >&2; fi
+        if [ "$OPT_YES" -eq 0 ]; then
+            [ "$OPT_NON_INTERACTIVE" -eq 0 ] || return 1
+            { sh -c 'test -t 0' </dev/tty; } >/dev/null 2>&1 || return 1
+            if [ "$rmp_tty" -eq 1 ]; then
+                printf '%s\n' "run this package command? answer yes or no" > /dev/tty
+            else
+                printf '%s\n' "run this package command? answer yes or no" >&2
+            fi
+            read -r rmp_reply < /dev/tty && [ "$rmp_reply" = "yes" ] || return 1
+        fi
+    fi
+    init_package_helper
+    package_read_receipt
+    package_query_current "$TMUX_OLD_PKG_NAME"
+    if [ "$PQUERY_STATE" != "ABSENT" ] && [ "$PQUERY_STATE" != "CONFIG_FILES" ]; then
+        rmp_binary="/usr/bin/solstone-tmux"
+        if [ "$TEST_SEAM" -eq 1 ] && [ -n "${SOLSTONE_FAKE_ROOT:-}" ]; then
+            rmp_binary="${SOLSTONE_FAKE_ROOT}/usr/bin/solstone-tmux"
+        fi
+        [ -x "$rmp_binary" ] || return 1
+        "$rmp_binary" uninstall-service >&2 || return 1
+        # shellcheck disable=SC2086
+        rmp_result=$(printf "REMOVE_PKG %s %s\n" "$PKG_VARIANT" "$TMUX_OLD_PKG_NAME" | $sudo_prefix "$helper_bin" $helper_flags) || return 1
+        [ "$rmp_result" = "OK" ] || return 1
+        package_query_current "$TMUX_OLD_PKG_NAME"
+        { [ "$PQUERY_STATE" = "ABSENT" ] || [ "$PQUERY_STATE" = "CONFIG_FILES" ]; } || return 1
+    fi
+    package_publish_without_component tmux
+}
+
+# The consented move, after the invocation's own components: make the
+# desktop current, hand the move to it, then remove the old tmux app.
+run_tmux_move() {
+    TMUX_MOVE_STATUS="kept"
+    TMUX_MOVE_REASON="desktop-failed"
+    check_var="tree"
+    [ "$MOVE_DESKTOP_ROUTE" = "tree" ] || check_var="$PKG_VARIANT"
+    rtm_verifier=$(cat "${manifest_dir}/components/desktop/arches/${HOST_ARCH}/${check_var}/authority/verifier_id" 2>/dev/null || echo "")
+    if [ "$rtm_verifier" != "minisign:${DESKTOP_KEY_ID}" ]; then
+        report_exit "refusal" "pin-mismatch" "Native authority verifier_id '$rtm_verifier' does not match expected pin 'minisign:${DESKTOP_KEY_ID}' for component desktop"
+    fi
+    [ "$DESKTOP_PREFLIGHT_DONE" -eq 1 ] || preflight_desktop_authority
+    if [ "$check_var" != "tree" ] && [ "$TEST_SEAM" -eq 0 ]; then
+        for package_tool in $(package_route_tools); do
+            command -v "$package_tool" >/dev/null 2>&1 || report_exit refusal missing-package-tool "package route requires $package_tool; install it or use the tree route"
+        done
+    fi
+
+    if ! create_tmux_marker; then
+        move_say "solstone for tmux was not moved into the solstone app: could not create $HOME/.local/share/solstone-linux/desktop-capture-off"
+        MOVE_ROOT_CODE="move-not-started"
+        MOVE_ROOT_MESSAGE="solstone for tmux was not moved: a setting it needs could not be saved"
+        TMUX_MOVE_FRESH_DESKTOP=0
+        case " $requested_components " in
+            *" desktop "*) move_install_desktop ;;
+            *) REPORT_COMPONENTS=$(remove_word "$REPORT_COMPONENTS" desktop) ;;
+        esac
+        return 0
+    fi
+
+    move_install_desktop
+
+    rtm_err="${SCRATCH_DIR}/adopt.err"
+    rtm_code=0
+    "$MOVE_DESKTOP_BIN" terminal adopt-tmux --yes </dev/null >&2 2>"$rtm_err" || rtm_code=$?
+    case "$rtm_code" in
+        0)
+            TMUX_MOVE_STATUS="moved"
+            # The move has happened, so nothing in the removal may stop the
+            # run: in this subshell a failure that would refuse the run only
+            # fails the removal.
+            rtm_removed=0
+            if (
+                report_exit() { exit 1; }
+                if [ "$TMUX_OLD_ROUTE" = "tree" ]; then
+                    remove_moved_tree_tmux
+                else
+                    remove_moved_package_tmux
+                fi
+            ); then
+                rtm_removed=1
+            fi
+            if [ "$rtm_removed" -eq 1 ]; then
+                TMUX_MOVE_REASON="moved"
+            else
+                TMUX_MOVE_REASON="removal-failed"
+                rtm_line="curl -fsSL https://solstone.app/install.sh | sh -s -- --uninstall --components tmux --lane $(shell_quote "$OPT_LANE")"
+                [ "$TMUX_OLD_ROUTE" != "tree" ] || rtm_line="${rtm_line} --prefix $(shell_quote "$TMUX_OLD_PREFIX")"
+                move_say "$rtm_line"
+            fi
+            ;;
+        75)
+            TMUX_MOVE_REASON="retry"
+            ;;
+        *)
+            TMUX_MOVE_STATUS="failed"
+            TMUX_MOVE_REASON="failed"
+            rtm_last=$(awk 'NF { line = $0 } END { print line }' "$rtm_err" 2>/dev/null || true)
+            if [ -n "$rtm_last" ]; then
+                move_say "the solstone app could not take over solstone for tmux: $rtm_last"
+            else
+                move_say "the solstone app could not take over solstone for tmux (exit $rtm_code)"
+            fi
+            ;;
+    esac
+}
+
+# After the invocation's own components: advance the receipt headers, then
+# run a consented move.
+tmux_move_finish() {
+    [ -n "$TMUX_OLD_ROUTE" ] || return 0
+    refresh_receipt_headers
+    [ "$TMUX_MOVE_ACTIVE" -eq 1 ] || return 0
+    run_tmux_move
+}
+
 run_uninstall() {
     manifest_dir="${SCRATCH_DIR}/manifest"
     for comp in $TREE_SELECTED_COMPONENTS; do
@@ -5331,6 +6155,7 @@ run_uninstall() {
             uninstall_package_component "$comp"
         done
     fi
+    settle_empty_package_receipt
     report_exit "success" "uninstalled" "Selected components uninstalled successfully"
 }
 
@@ -5416,20 +6241,33 @@ main() {
 
     validate_manifest_identity
 
+    catalogue_has_tmux=0
+    [ ! -d "${manifest_dir}/components/tmux" ] || catalogue_has_tmux=1
+
     # 5. Check catalogue list mode
     if [ "$OPT_LIST" -eq 1 ]; then
         if [ "$OPT_JSON" -eq 1 ]; then
-            printf '{"status":"success","root_code":"list","message":"Catalogue retrieved","lane":"%s","platform_version":"%s","arch":"%s","route":"%s","lock_state":"unlocked","snapshot_consistency":"unlocked","receipt_paths":[],"notices":[],"verification_layers":"%s","components":{"journal":{"version":"%s"},"desktop":{"version":"%s"},"tmux":{"version":"%s"}}}\n' \
-                "$OPT_LANE" "$RESOLVED_VERSION" "$HOST_ARCH" "$OPT_ROUTE" \
-                "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign+digest")" \
-                "$(cat "${manifest_dir}/components/journal/version" 2>/dev/null || echo "")" \
-                "$(cat "${manifest_dir}/components/desktop/version" 2>/dev/null || echo "")" \
-                "$(cat "${manifest_dir}/components/tmux/version" 2>/dev/null || echo "")"
+            if [ "$catalogue_has_tmux" -eq 1 ]; then
+                printf '{"status":"success","root_code":"list","message":"Catalogue retrieved","lane":"%s","platform_version":"%s","arch":"%s","route":"%s","lock_state":"unlocked","snapshot_consistency":"unlocked","receipt_paths":[],"notices":[],"verification_layers":"%s","components":{"journal":{"version":"%s"},"desktop":{"version":"%s"},"tmux":{"version":"%s"}}}\n' \
+                    "$OPT_LANE" "$RESOLVED_VERSION" "$HOST_ARCH" "$OPT_ROUTE" \
+                    "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign+digest")" \
+                    "$(cat "${manifest_dir}/components/journal/version" 2>/dev/null || echo "")" \
+                    "$(cat "${manifest_dir}/components/desktop/version" 2>/dev/null || echo "")" \
+                    "$(cat "${manifest_dir}/components/tmux/version" 2>/dev/null || echo "")"
+            else
+                printf '{"status":"success","root_code":"list","message":"Catalogue retrieved","lane":"%s","platform_version":"%s","arch":"%s","route":"%s","lock_state":"unlocked","snapshot_consistency":"unlocked","receipt_paths":[],"notices":[],"verification_layers":"%s","components":{"journal":{"version":"%s"},"desktop":{"version":"%s"}}}\n' \
+                    "$OPT_LANE" "$RESOLVED_VERSION" "$HOST_ARCH" "$OPT_ROUTE" \
+                    "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign+digest")" \
+                    "$(cat "${manifest_dir}/components/journal/version" 2>/dev/null || echo "")" \
+                    "$(cat "${manifest_dir}/components/desktop/version" 2>/dev/null || echo "")"
+            fi
         else
             printf "Solstone Platform Catalogue:\n"
             printf "  - journal: Solstone Journal (role: journal/cli, version: %s)\n" "$(cat "${manifest_dir}/components/journal/version" 2>/dev/null || echo "")"
             printf "  - desktop: Solstone Desktop (role: desktop, version: %s)\n" "$(cat "${manifest_dir}/components/desktop/version" 2>/dev/null || echo "")"
-            printf "  - tmux: Solstone Tmux Integration (role: tmux, version: %s)\n" "$(cat "${manifest_dir}/components/tmux/version" 2>/dev/null || echo "")"
+            if [ "$catalogue_has_tmux" -eq 1 ]; then
+                printf "  - tmux: Solstone Tmux Integration (role: tmux, version: %s)\n" "$(cat "${manifest_dir}/components/tmux/version" 2>/dev/null || echo "")"
+            fi
         fi
         cleanup_scratch
         exit 0
@@ -5453,17 +6291,27 @@ main() {
             # A bundle that starts services leaves out tmux where tmux isn't
             # installed: its service can't start, which would fail the whole run.
             bundle_tmux=1
-            if [ "$OPT_NO_START" -eq 0 ] && ! tmux_available; then bundle_tmux=0; fi
+            if [ "$catalogue_has_tmux" -eq 0 ]; then
+                bundle_tmux=0
+            elif [ "$OPT_NO_START" -eq 0 ] && ! tmux_available; then
+                bundle_tmux=0
+            fi
             SELECTED_COMPONENTS="$bundle_base"
             [ "$bundle_desktop" -eq 0 ] || SELECTED_COMPONENTS="$SELECTED_COMPONENTS desktop"
             [ "$bundle_tmux" -eq 0 ] || SELECTED_COMPONENTS="$SELECTED_COMPONENTS tmux"
             notice_msg=""
-            if [ "$bundle_desktop" -eq 0 ] && [ "$bundle_tmux" -eq 0 ]; then
-                notice_msg="the desktop app isn't available for $HOST_ARCH and tmux is not installed; installing $bundle_base."
-            elif [ "$bundle_desktop" -eq 0 ]; then
-                notice_msg="the desktop app isn't available for $HOST_ARCH; installing $bundle_base and tmux."
-            elif [ "$bundle_tmux" -eq 0 ]; then
-                notice_msg="tmux is not installed; installing $bundle_base and desktop. to add the tmux app later, install tmux and run: curl -fsSL https://solstone.app/install.sh | sh -s -- --components tmux"
+            if [ "$catalogue_has_tmux" -eq 1 ]; then
+                if [ "$bundle_desktop" -eq 0 ] && [ "$bundle_tmux" -eq 0 ]; then
+                    notice_msg="the desktop app isn't available for $HOST_ARCH and tmux is not installed; installing $bundle_base."
+                elif [ "$bundle_desktop" -eq 0 ]; then
+                    notice_msg="the desktop app isn't available for $HOST_ARCH; installing $bundle_base and tmux."
+                elif [ "$bundle_tmux" -eq 0 ]; then
+                    notice_msg="tmux is not installed; installing $bundle_base and desktop. to add solstone for tmux later, install tmux and run: curl -fsSL https://solstone.app/install.sh | sh -s -- --components tmux"
+                fi
+            else
+                if [ "$bundle_desktop" -eq 0 ]; then
+                    notice_msg="the desktop app isn't available for $HOST_ARCH; installing $bundle_base."
+                fi
             fi
             if [ -n "$notice_msg" ]; then
                 log_info "Notice: $notice_msg"
@@ -5483,7 +6331,11 @@ main() {
                             report_exit "refusal" "desktop-aarch64" "the desktop app isn't available for $HOST_ARCH"
                         fi
                         ;;
-                    tmux) ;;
+                    tmux)
+                        if [ "$catalogue_has_tmux" -eq 0 ] && [ "$OPT_UPGRADE" -eq 0 ] && [ "$OPT_UNINSTALL" -eq 0 ]; then
+                            report_exit "refusal" "invalid-selection" "terminal is part of the solstone app; choose desktop"
+                        fi
+                        ;;
                     *)
                         report_exit "refusal" "unknown-component" "Unrecognized component: $c"
                         ;;
@@ -5544,6 +6396,9 @@ main() {
         else
             c_key="$comp"
         fi
+        if [ "$c_key" = "tmux" ] && [ "$catalogue_has_tmux" -eq 0 ]; then
+            continue
+        fi
         check_var="tree"
         case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) check_var="$PKG_VARIANT" ;; esac
         if [ ! -d "${manifest_dir}/components/${c_key}/arches/${HOST_ARCH}/${check_var}" ]; then
@@ -5563,6 +6418,9 @@ main() {
                 expected_key_id="$DESKTOP_KEY_ID"
                 ;;
             tmux)
+                if [ "$catalogue_has_tmux" -eq 0 ]; then
+                    continue
+                fi
                 c_key="tmux"
                 expected_key_id="$TMUX_KEY_ID"
                 ;;
@@ -5601,6 +6459,7 @@ main() {
                 check_var="tree"
                 case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) check_var="$PKG_VARIANT" ;; esac
                 preflight_desktop_authority
+                DESKTOP_PREFLIGHT_DONE=1
                 break
                 ;;
         esac
@@ -5610,6 +6469,9 @@ main() {
     for comp in $SELECTED_COMPONENTS; do
         case "$comp" in
             tmux)
+                if [ "$catalogue_has_tmux" -eq 0 ]; then
+                    break
+                fi
                 check_var="tree"
                 case " $PACKAGE_SELECTED_COMPONENTS " in *" $comp "*) check_var="$PKG_VARIANT" ;; esac
                 preflight_tmux_authority
@@ -5627,6 +6489,8 @@ main() {
     if [ "$OPT_DRY_RUN" -eq 1 ]; then
         report_exit "success" "dry-run-completed" "preview complete; no changes made"
     fi
+
+    handle_tmux_move
 
     if [ -n "$PACKAGE_SELECTED_COMPONENTS" ]; then
         if [ "$TEST_SEAM" -eq 0 ]; then
@@ -5659,7 +6523,10 @@ main() {
     fi
     SELECTED_COMPONENTS="$requested_components"
 
-    report_exit "success" "installed" "All selected components installed successfully"
+    tmux_move_finish
+    settle_empty_package_receipt
+
+    report_exit "success" "${MOVE_ROOT_CODE:-installed}" "${MOVE_ROOT_MESSAGE:-All selected components installed successfully}"
 }
 
 main "$@"
