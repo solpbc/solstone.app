@@ -16,7 +16,7 @@ the project is maintained by sol pbc (https://solpbc.org), a colorado public ben
 - [Integrate](https://solstone.app/integrate): connecting an agent over MCP or building an integration: every tool, what the owner controls, sign-in, limits, and links to the MCP server source
 - [Install guide](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md): install guide for a coding agent and human working together
 - [README](https://github.com/solpbc/solstone-journal/blob/main/README.md): Project overview, architecture, quick start, and CLI reference
-- [Downloads](https://solstone.app/download): every solstone download, with its version, size and how to check it, plus the App Store and Google Play links. tmux is a separate install.
+- [Downloads](https://solstone.app/download): every solstone download, with its version, size and how to check it, plus the App Store and Google Play links. terminal, for tmux sessions, is a setting in the solstone app on mac and linux, not a separate download.
 - [Journal structure](https://github.com/solpbc/solstone-journal/blob/main/core/payload/solstone/talent/journal/SKILL.md): Data model and daily directory layout
 - [AI providers](https://github.com/solpbc/solstone-journal/blob/main/docs/PROVIDERS.md): provider setup
 - [Web interface](https://github.com/solpbc/solstone-journal/blob/main/docs/CONVEY.md): the web UI for browsing the journal

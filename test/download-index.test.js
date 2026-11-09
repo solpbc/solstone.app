@@ -19,7 +19,6 @@ const FEEDS = {
   winJournalArm: `${ORIGIN}/solstone-journal/release/windows/releases.win-arm64.json`,
   linuxJournal: `${ORIGIN}/solstone/release/latest`,
   linuxApp: `${ORIGIN}/solstone-linux/release/latest`,
-  tmux: `${ORIGIN}/solstone-tmux/release/latest`,
   android: `${ORIGIN}/solstone-android/release/latest`,
 };
 
@@ -105,7 +104,6 @@ function healthyRoutes() {
     // version here shows up if it ever does.
     [`${ORIGIN}/solstone-journal/release/latest`]: text("version=9.9.9\n"),
     [FEEDS.linuxApp]: text("version=7.6.6\n"),
-    [FEEDS.tmux]: text("version=7.7.7\n"),
     [FEEDS.android]: text("version=7.8.8\n"),
     [`${ORIGIN}/solstone-android/release/7.8.8/SHA256SUMS`]: text(`${ANDROID_SHA}  solstone-android-7.8.8.apk\n`),
     [`${ORIGIN}/solstone-android/release/7.8.8/solstone-android-7.8.8.apk`]: length(25_000_000),
@@ -164,9 +162,8 @@ const ROW = {
   winJournalArm: 5,
   linuxJournal: 6,
   linuxApp: 7,
-  tmux: 8,
-  android: 9,
-  stores: 10,
+  android: 8,
+  stores: 9,
 };
 
 test("each feed's values reach their own row", async (t) => {
@@ -175,7 +172,7 @@ test("each feed's values reach their own row", async (t) => {
   assert.equal(res.status, 200);
   assert.equal(res.headers.get("content-type"), "text/html; charset=utf-8");
   const table = rows(await res.text());
-  assert.equal(table.length, 11);
+  assert.equal(table.length, 10);
 
   const mac = table[ROW.macApp];
   assert.match(mac.version, />7\.1\.1</);
@@ -218,8 +215,7 @@ test("each feed's values reach their own row", async (t) => {
 
   assert.match(table[ROW.linuxJournal].version, />7\.5\.5</);
   assert.match(table[ROW.linuxApp].version, />7\.6\.6</);
-  assert.match(table[ROW.tmux].version, />7\.7\.7</);
-  for (const row of [ROW.linuxJournal, ROW.linuxApp, ROW.tmux]) {
+  for (const row of [ROW.linuxJournal, ROW.linuxApp]) {
     assert.match(table[row].size, DASH);
   }
 
@@ -263,7 +259,6 @@ test("one unreadable feed costs only its own row, and the page is not cached", a
   const routes = {};
   stubFetch(t, routes);
   for (const [feed, rowIndex] of [
-    [FEEDS.tmux, ROW.tmux],
     [FEEDS.linuxJournal, ROW.linuxJournal],
     [CATALOGUE, ROW.linuxJournal],
     [FEEDS.macBoth, ROW.macBoth],
@@ -434,7 +429,6 @@ test("each product links its own download page, and the old index URLs still arr
     "/download/windows",
     "/download/journal/windows",
     "/download/journal/windows",
-    null,
     null,
     null,
     "/download/android",

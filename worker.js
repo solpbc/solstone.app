@@ -20,10 +20,9 @@ const WIN_CHANGELOG_URL = "https://updates.solstone.app/solstone-windows/CHANGEL
 // to that coordinate's platform.json. So the journal's row reads the same two.
 const CATALOGUE_LATEST_URL = "https://updates.solstone.app/solstone/release/latest";
 const CATALOGUE_RELEASE_PREFIX = "https://updates.solstone.app/solstone/release/";
-// The linux app's and solstone-tmux's own release pointers: one line,
+// The linux app's own release pointer: one line,
 // `version=x.y.z`. Their install guides read these, not the catalogue.
 const LINUX_APP_LATEST_URL = "https://updates.solstone.app/solstone-linux/release/latest";
-const TMUX_LATEST_URL = "https://updates.solstone.app/solstone-tmux/release/latest";
 const ANDROID_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-android/releases";
 const IOS_RELEASES_URL = "https://api.github.com/repos/solpbc/solstone-swift/releases";
 const RELEASE_CACHE_TTL = 300; // 5 minutes at the edge
@@ -370,7 +369,7 @@ async function windowsJournalSetupDigest(target, version) {
 }
 
 async function downloadIndexSlots() {
-  const [macApp, macJournal, macBoth, winApp, winJournal, winJournalArm, linuxJournal, linuxApp, tmux, android] = await Promise.all([
+  const [macApp, macJournal, macBoth, winApp, winJournal, winJournalArm, linuxJournal, linuxApp, android] = await Promise.all([
     latestAppcastDmg(APPCAST_URL),
     latestAppcastDmg(JOURNAL_MACOS_APPCAST_URL),
     latestMacBothImage(),
@@ -379,7 +378,6 @@ async function downloadIndexSlots() {
     windowsSetupFacts(JOURNAL_WIN_ARM64.feedUrl, (version) => journalWindowsSetupUrl(JOURNAL_WIN_ARM64, version)),
     catalogueJournalVersion(),
     releasePointerVersion(LINUX_APP_LATEST_URL),
-    releasePointerVersion(TMUX_LATEST_URL),
     latestAndroidFacts(),
   ]);
 
@@ -420,7 +418,6 @@ async function downloadIndexSlots() {
 
   fill("journal-linux-version", linuxJournal);
   fill("linux-version", linuxApp);
-  fill("tmux-version", tmux);
 
   fill("android-version", plainVersion(android?.version));
   fill("android-size", sizeCell(android?.size));

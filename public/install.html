@@ -136,7 +136,7 @@
                     <p class="lede">what you share with the solstone app goes into your journal, on a computer you own. you can start with either one: set up your journal, or add the solstone app and connect the two later.</p>
                     <nav class="branches" aria-label="how are you starting?">
                         <a class="branch" id="branch-start" href="#start"><strong>start a journal</strong><span>set up your journal on a mac, linux or windows computer you own, then add the solstone app.</span></a>
-                        <a class="branch" id="branch-connect" href="#connect"><strong>connect to your journal</strong><span>already have one? add the solstone app on another computer, your phone, or your terminal.</span></a>
+                        <a class="branch" id="branch-connect" href="#connect"><strong>connect to your journal</strong><span>already have one? add the solstone app on another computer or your phone.</span></a>
                     </nav>
                 </div>
             </section>
@@ -278,10 +278,10 @@
 
                     <section class="platform-panel" id="tmux" aria-labelledby="tmux-heading" data-branch="connect">
                         <h3 id="tmux-heading">from your terminal</h3>
-                        <p class="requirements">for tmux on an Apple silicon mac (M1 or newer), or on x86_64 (Intel or AMD) or arm64 linux, with a journal already set up.</p>
-                        <p>solstone-tmux brings what you share from your terminal sessions into your journal. it can run alongside the desktop app.</p>
-                        <div class="actions"><a class="btn btn-primary" href="https://github.com/solpbc/solstone-tmux/blob/main/INSTALL.md">set up solstone-tmux</a></div>
-                        <p class="ours"><strong>check it's ours.</strong> its setup guide has you verify each download with minisign before you install it.</p>
+                        <p class="requirements">part of the solstone app on mac and linux, for a computer with tmux on it and a journal already set up.</p>
+                        <p>turn on terminal in the solstone app's settings and it takes in your tmux sessions, and all of it goes into your journal. on a linux computer with no desktop, the app runs with terminal alone. there, pair it with your journal, then run <code>solstone-linux terminal on</code>.</p>
+                        <p>already have solstone for tmux? on a mac, or if you set it up by hand from its guide, add the solstone app and turn on terminal; it asks before moving it in. otherwise, on linux, run <code>solstone update --lane release</code> and it asks before moving it into the solstone app. no <code>solstone</code> command on that computer? run <code>curl -fsSL https://solstone.app/install.sh | sh -s -- --upgrade --components tmux</code> instead.</p>
+                        <div class="actions"><a class="btn btn-primary" href="#macos">the solstone app for mac</a> <a class="btn btn-secondary" href="#linux">the solstone app for linux</a></div>
                     </section>
 
                     <details class="agent-install">
