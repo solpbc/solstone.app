@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
     <link rel="stylesheet" href="/static/site.css?v=334bd2feda">
+    <link rel="stylesheet" href="/static/surfaces/surfaces.css?v=28a41051c4">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -56,7 +57,7 @@
           "installUrl": "https://solstone.app/install",
           "downloadUrl": "https://solstone.app/download",
           "codeRepository": "https://github.com/solpbc/solstone-journal",
-          "screenshot": "https://solstone.app/static/demo/week-eve-2036-light-2000.webp?v=214916d847",
+          "screenshot": "https://solstone.app/static/surfaces/img/activities-2000.webp?v=76e3148d24",
           "isAccessibleForFree": true,
           "license": "https://www.gnu.org/licenses/agpl-3.0.html",
           "author": { "@id": "https://solpbc.org/#organization" },
@@ -218,21 +219,41 @@
             </section>
 
             <section class="band wrap" id="how" aria-labelledby="how-title">
-                <div class="band-inner">
-                    <h2 id="how-title">how it works</h2>
-                    <figure class="product">
-                        <div class="frame">
-                            <picture>
-                                <source media="(max-width: 760px) and (prefers-color-scheme: dark)" srcset="/static/demo/week-eve-2036-dark-phone-654.webp?v=fc86a3a7a4">
-                                <source media="(max-width: 760px)" srcset="/static/demo/week-eve-2036-light-phone-654.webp?v=b1003d6850">
-                                <source media="(prefers-color-scheme: dark)" srcset="/static/demo/week-eve-2036-dark-1000.webp?v=b6ecfbf655 1000w, /static/demo/week-eve-2036-dark-2000.webp?v=2f5531ca1e 2000w" sizes="(max-width: 1120px) 92vw, 1040px">
-                                <img src="/static/demo/week-eve-2036-light-1000.webp?v=945e92b408" srcset="/static/demo/week-eve-2036-light-1000.webp?v=945e92b408 1000w, /static/demo/week-eve-2036-light-2000.webp?v=214916d847 2000w" sizes="(max-width: 1120px) 92vw, 1040px" width="1000" height="732" loading="lazy" decoding="async" alt="a week in a demo journal: a row of days from sunday 27 to saturday 3, with a memory from monday to friday. the first reads: drafted the first 'Schema Bridge: draft 1' specification outlining core v1 inspection record schema fields including site identifiers, photos, findings, and signatures. each memory says which briefing it came from.">
-                            </picture>
-                        </div>
-                        <figcaption>a demo journal's week, as journal 2.0.36 shows it: one memory from each day that has one, word for word from its briefing. everyone in it is invented. this demo's thinking ran on Google's gemini-3.5-flash; your own journal's thinking stays on your computer unless you choose otherwise.</figcaption>
-                    </figure>
-                </div>
-            </section>
+<div class="band-inner">
+<h2 id="how-title">how your journal works</h2>
+<div class="sf" data-sf>
+<div class="sf-tabs" role="tablist" aria-label="how your journal works, in three parts">
+<button class="sf-tab" role="tab" id="sf-tab-journal" aria-controls="sf-journal" aria-selected="false" tabindex="-1"><span class="sf-num">1.</span>your days</button>
+<button class="sf-tab" role="tab" id="sf-tab-share" aria-controls="sf-share" aria-selected="false" tabindex="-1"><span class="sf-num">2.</span>what goes in</button>
+<button class="sf-tab" role="tab" id="sf-tab-agents" aria-controls="sf-agents" aria-selected="false" tabindex="-1"><span class="sf-num">3.</span>your agents</button>
+</div>
+<noscript><style>.sf-panel[hidden] { display: block; }</style></noscript>
+<div class="sf-panel" role="tabpanel" id="sf-journal" aria-labelledby="sf-tab-journal">
+<h3>your days</h3><p class="sf-lead">read back any day: what you did, who you were with and what was talked about, all written from what you share.</p>
+<figure class="sf-shot" id="sf-shot-activities"><div class="sf-wide"><div class="sf-laptop-wrap"><div class="sf-dev sf-laptop"><picture><source media="(prefers-color-scheme: dark)" srcset="/static/surfaces/img/activities-dark-1000.webp?v=cfaad4b5b1 1000w, /static/surfaces/img/activities-dark-2000.webp?v=b36f23ac31 2000w" sizes="(max-width: 1120px) 88vw, 960px"><img src="/static/surfaces/img/activities-1000.webp?v=8f056241b4" srcset="/static/surfaces/img/activities-1000.webp?v=8f056241b4 1000w, /static/surfaces/img/activities-2000.webp?v=76e3148d24 2000w" sizes="(max-width: 1120px) 88vw, 960px" width="1000" height="625" loading="lazy" decoding="async" alt="the journal&#x27;s activities for today, a wednesday, with the 3:00 PM sync with Romeo opened: its summary"></picture></div></div></div><div class="sf-narrow"><div class="sf-dev sf-phone"><picture><source media="(prefers-color-scheme: dark)" srcset="/static/surfaces/img/activities-narrow-dark-560.webp?v=2ef4cb0ff8 560w, /static/surfaces/img/activities-narrow-dark-840.webp?v=f776b1ece7 840w" sizes="280px"><img src="/static/surfaces/img/activities-narrow-560.webp?v=b0b009f645" srcset="/static/surfaces/img/activities-narrow-560.webp?v=b0b009f645 560w, /static/surfaces/img/activities-narrow-840.webp?v=6605d13ae2 840w" sizes="280px" width="560" height="1212" loading="lazy" decoding="async" alt="the journal&#x27;s activities for today, a wednesday, with the 3:00 PM sync with Romeo opened: its summary"></picture></div></div></figure>
+<p class="sf-source">a demo journal where everyone is invented, as journal 2.0.67 shows it on november 4, 2026.</p></div>
+<div class="sf-panel" role="tabpanel" id="sf-share" aria-labelledby="sf-tab-share" hidden>
+<h3>what goes in</h3><p class="sf-lead">on each of your own devices, you choose what the solstone app takes in for your journal, and you can pause it whenever you like.</p><div class="sf-row">
+<figure class="sf-item" data-w="watch"><div class="sf-dev sf-watch"><picture><img src="/static/surfaces/img/watch-240.webp?v=2ede66cce2" srcset="/static/surfaces/img/watch-240.webp?v=2ede66cce2 240w, /static/surfaces/img/watch-422.webp?v=d973c4bee7 422w" sizes="112px" width="240" height="292" loading="lazy" decoding="async" alt="solstone on an apple watch: 2m, running, and a stop button"></picture><span class="sf-crown" aria-hidden="true"></span></div><figcaption>apple watch</figcaption></figure>
+<figure class="sf-item" data-w="phone"><div class="sf-dev sf-phone"><picture><img src="/static/surfaces/img/iphone-400.webp?v=fc9827f150" srcset="/static/surfaces/img/iphone-400.webp?v=fc9827f150 400w, /static/surfaces/img/iphone-800.webp?v=6e5543dda5 800w" sizes="190px" width="400" height="869" loading="lazy" decoding="async" alt="solstone on an iphone: good afternoon, audio on, location, screen and calendar ready to set up, and the journal&#x27;s mark at the bottom"></picture></div><figcaption>iphone</figcaption></figure>
+<figure class="sf-item" data-w="phone"><div class="sf-dev sf-phone"><picture><img src="/static/surfaces/img/android-400.webp?v=625ac1840d" srcset="/static/surfaces/img/android-400.webp?v=625ac1840d 400w, /static/surfaces/img/android-800.webp?v=3b8100649c 800w" sizes="190px" width="400" height="867" loading="lazy" decoding="async" alt="solstone on an android phone: audio, on, taking it in, connected"></picture></div><figcaption>android</figcaption></figure>
+<figure class="sf-item" data-w="menu"><div class="sf-dev sf-menu"><picture><img src="/static/surfaces/img/mac-230.webp?v=51dbe17603" srcset="/static/surfaces/img/mac-230.webp?v=51dbe17603 230w, /static/surfaces/img/mac-230.webp?v=51dbe17603 230w" sizes="230px" width="230" height="274" loading="lazy" decoding="async" alt="the solstone menu on a mac: on, connected, pause, screen and system audio, browsers off, open journal, settings, about solstone, quit solstone"></picture></div><figcaption>mac</figcaption></figure>
+<figure class="sf-item" data-w="window"><div class="sf-dev sf-window"><picture><img src="/static/surfaces/img/windows-760.webp?v=b3a37323e9" srcset="/static/surfaces/img/windows-760.webp?v=b3a37323e9 760w, /static/surfaces/img/windows-822.webp?v=62db06f843 822w" sizes="380px" width="760" height="294" loading="lazy" decoding="async" alt="solstone on windows, settings, home: state on, next save in 1:57, journal 1 delivered, 0 pending, last reached just now, sources: screen and desktop activity on"></picture></div><figcaption>windows</figcaption></figure>
+</div>
+<p class="sf-source">the solstone app, as each release shows it: apple watch 2.0.11, iphone 2.0.11, android 2.1.36, mac 2.0.55 and windows 2.0.42. the iphone and apple watch are in their apps&#x27; screenshot mode, built from the release&#x27;s code, and the iphone has a test recording and a test pairing.</p></div>
+<div class="sf-panel" role="tabpanel" id="sf-agents" aria-labelledby="sf-tab-agents" hidden>
+<h3>your agents</h3><p class="sf-lead">you can let an agent you choose read from your journal, and your journal keeps a record of everything it asked for.</p>
+<div class="sf-agent">
+<figure class="sf-qa"><figcaption class="sf-who">Claude Code</figcaption><dl>
+<dt>asked</dt><dd>Who owns field versioning for Schema Bridge now, and how did we get there this week?</dd>
+<dt>answered</dt><dd><p>Ownership of field versioning is now split by layer, and neither side can make a change alone. You and Romeo agreed this at your 3:00 PM sync today (Nov 4):</p><ul><li><strong>Capulet owns the inspection record schema</strong>: site, inspector, photos, findings and sign time.</li><li><strong>Montague owns the routing envelope</strong>: destination, delivery and retries.</li><li><strong>Any change to either layer needs both sides to approve it.</strong></li><li><strong>Romeo will add a <code>schema_version</code> number to every event</strong>, so the receiver can tell which version an event is on, even when an old tablet sends old events.</li></ul></dd></dl>
+<details><summary>the whole answer, as it came back</summary><div class="sf-full"><p>Ownership of field versioning is now split by layer, and neither side can make a change alone. You and Romeo agreed this at your 3:00 PM sync today (Nov 4):</p><ul><li><strong>Capulet owns the inspection record schema</strong>: site, inspector, photos, findings and sign time.</li><li><strong>Montague owns the routing envelope</strong>: destination, delivery and retries.</li><li><strong>Any change to either layer needs both sides to approve it.</strong></li><li><strong>Romeo will add a <code>schema_version</code> number to every event</strong>, so the receiver can tell which version an event is on, even when an old tablet sends old events.</li></ul><p class="sf-h">How it got there</p><p><strong>Mon, Nov 2: kickoff with Benvolio and Romeo.</strong> Field versioning came up as one of the questions still open in your draft. You asked: &quot;who decides? Is it us? Is it you? Is it both?&quot; Romeo said not to answer it in the first meeting. Benvolio agreed, adding &quot;let&#x27;s not leave it open forever.&quot; Your action item was to write spec v2 by Wednesday and keep versioning in it as an open question.</p><p><strong>Tue, Nov 3: check-in with Friar.</strong> Friar asked who owns the shared format and told you to &quot;get that written down before Ducal sees a demo.&quot; Friar said it should be a single page covering who can change the format, who has to agree, and what happens when you disagree, because once Paris sees it working, the change requests will start. You said you&#x27;d take it to Romeo this week and put it in spec v2.</p><p><strong>Wed, Nov 4, 10:25 AM: #schema-bridge channel.</strong> Romeo offered to show you the demo at 3. You said you wanted to leave that meeting with an owner assigned for field versioning, and Romeo replied &quot;deal.&quot;</p><p><strong>Wed, Nov 4, 3:00 PM: sync with Romeo.</strong> You raised versioning as the one open question left and pointed to the empty owner line in the spec. Romeo proposed the two-layer split with joint approval. You replied &quot;Each side owns its part. Nobody changes anything alone… Okay, decided,&quot; and said you&#x27;d write it into the spec tonight. Romeo took on adding <code>schema_version</code>.</p><p class="sf-h">Afterward</p><ul><li>On screen, the owner line in the Schema Bridge: v2 doc now has the agreement written in.</li><li>Your notes also say to tell Tybalt that the rule covers only the inspection record, not Balcony&#x27;s internals. You started an email to Tybalt about this, and your Thursday list has &quot;10:00 Tybalt about the versioning rule… Listen first.&quot; I couldn&#x27;t find anything showing that conversation has happened yet.</li><li>Friar&#x27;s question about what happens when the two sides disagree didn&#x27;t come up today. The rule covers who owns each layer and that both must approve, but not how to settle a disagreement.</li></ul><p>The transcripts number speakers rather than naming them. I matched them to people by how they addressed each other: you&#x27;re called Juliet, and in today&#x27;s sync you say &quot;Thanks, Romeo.&quot;</p></div></details></figure>
+<figure class="sf-record" style="margin:0"><h4>what your journal recorded</h4>
+<div class="sf-dev sf-window"><picture><source media="(prefers-color-scheme: dark)" srcset="/static/surfaces/img/record-dark-900.webp?v=c29b2dbeb8 900w, /static/surfaces/img/record-dark-1600.webp?v=152599f7bb 1600w" sizes="(max-width: 900px) 88vw, 600px"><img src="/static/surfaces/img/record-900.webp?v=c3aba4f288" srcset="/static/surfaces/img/record-900.webp?v=c3aba4f288 900w, /static/surfaces/img/record-1600.webp?v=4632ee75ad 1600w" sizes="(max-width: 900px) 88vw, 600px" width="900" height="1239" loading="lazy" decoding="async" alt="the journal&#x27;s activity page, with nine requests from Claude Code, each served: search, get_week, get_transcript and fetch"></picture></div></figure>
+</div>
+<p class="sf-source">we asked Claude Code this, and it worked from the demo journal on journal 2.0.67, on november 4, 2026. the answer is shown as it came back, and the record beside it is the journal&#x27;s own, from the same run.</p>
+</div>
+</div></div></section>
 
             <section class="band wrap" aria-labelledby="get-title">
                 <div class="band-inner two">
@@ -310,5 +331,6 @@
     </div>
     <script src="/static/site.js?v=21a0ea4d62" defer></script>
     <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
+    <script src="/static/surfaces/surfaces.js?v=0c60176d05" defer></script>
 </body>
 </html>

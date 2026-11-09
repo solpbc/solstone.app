@@ -1,0 +1,120 @@
+/* the surfaces element: solstone on each device, the journal, and an agent with the journal's record.
+   Drops into a solstone.app page as one band and reads the site's own tokens (tokens.css,
+   tokens-dark.css, site.css). Nothing here sets a colour of its own except through those tokens.
+   The device outlines are faint traced shapes around a real capture, not imitation hardware. */
+
+.sf { --sf-line: color-mix(in srgb, var(--ink) 24%, transparent); --sf-gap: clamp(14px, 2.4vw, 28px); }
+
+/* chapter control: a real tablist, shown only once the script has wired it up */
+.sf-tabs { display: none; gap: 4px; margin: 4px 0 18px; border-bottom: 1px solid var(--hairline); }
+.sf.is-live .sf-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.sf-tabs::-webkit-scrollbar { display: none; }
+.sf-tab {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font: 600 16px/1 var(--font-body); color: var(--ink-soft); padding: 12px 10px 13px; min-height: 44px; cursor: pointer;
+  white-space: nowrap; flex: 0 0 auto;
+}
+@media (max-width: 520px) {
+  .sf.is-live .sf-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; overflow: visible; }
+  .sf-tab { font-size: 15px; line-height: 1.2; padding: 10px 4px 11px; white-space: normal; text-align: center; }
+  .sf-tab .sf-num { display: none; }
+}
+.sf-tab:hover { color: var(--ink); }
+.sf-tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--orange); }
+.sf-tab .sf-num { color: var(--ink-faint); font-weight: 500; margin-right: 6px; }
+
+/* a chapter: its one-line lead, its stage, and where the capture came from */
+.sf-panel + .sf-panel { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--hairline); }
+.sf.is-live .sf-panel + .sf-panel { margin-top: 0; padding-top: 0; border-top: 0; }
+.sf.is-live .sf-panel[hidden] { display: none; }
+.sf-panel h3 { margin: 0 0 4px; font-size: 18px; }
+.sf.is-live .sf-panel h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sf-lead { color: var(--ink-soft); max-width: 40em; margin: 0 0 18px; font-size: 17px; }
+.sf-source { margin-top: 14px; font-size: 14px; line-height: 1.5; color: var(--ink-soft); max-width: 60em; }
+
+/* the device row (chapter 1): each device at its own scale, bottoms aligned, labelled under */
+.sf-row { display: flex; align-items: flex-end; justify-content: center; gap: var(--sf-gap); }
+.sf-item { margin: 0; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.sf-item figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); text-align: center; white-space: nowrap; }
+.sf-item[data-w="watch"] { flex: 0 1 112px; }
+.sf-item[data-w="phone"] { flex: 0 1 190px; }
+.sf-item[data-w="window"] { flex: 0 1 380px; }
+.sf-item[data-w="menu"] { flex: 0 1 230px; }
+@media (max-width: 860px) {
+  .sf-row { justify-content: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 10px; -webkit-overflow-scrolling: touch; }
+  .sf-item, .sf-item[data-w] { scroll-snap-align: center; flex-shrink: 0; }
+  .sf-item[data-w="watch"] { flex-basis: 104px; }
+  .sf-item[data-w="phone"] { flex-basis: 168px; }
+  .sf-item[data-w="window"] { flex-basis: 300px; }
+  .sf-item[data-w="menu"] { flex-basis: 210px; }
+}
+
+/* the outlines. a capture keeps its own pixels; the outline is a faint stroke around it. */
+.sf-dev { position: relative; width: 100%; }
+.sf-dev img { display: block; width: 100%; height: auto; }
+.sf-phone { border: 1.5px solid var(--sf-line); border-radius: 15% / 7%; padding: 5%; }
+.sf-phone img { border-radius: 10% / 4.6%; }
+.sf-watch { border: 1.5px solid var(--sf-line); border-radius: 30%; padding: 10%; margin: 26% 0; }
+.sf-watch img { border-radius: 22%; }
+.sf-watch::before, .sf-watch::after {           /* the band, a stub above and below */
+  content: ""; position: absolute; left: 22%; right: 22%; height: 26%; border: 1.5px solid var(--sf-line);
+}
+.sf-watch::before { bottom: 100%; border-bottom: 0; border-radius: 12px 12px 0 0; }
+.sf-watch::after { top: 100%; border-top: 0; border-radius: 0 0 12px 12px; }
+.sf-watch .sf-crown { position: absolute; right: -6px; top: 32%; width: 4px; height: 16%; border: 1.5px solid var(--sf-line); border-left: 0; border-radius: 0 3px 3px 0; }
+.sf-window, .sf-menu { border: 1px solid var(--hairline-2); border-radius: 10px; overflow: hidden; background: var(--cream-bright); }
+.sf-menu { border-radius: 12px; }
+.sf-laptop { padding: 2.2% 2.2% 2.6%; border: 1.5px solid var(--sf-line); border-bottom: 0; border-radius: 14px 14px 0 0; }
+.sf-laptop img { border-radius: 4px; }
+.sf-laptop::after {                              /* the base: a thin deck, a little wider than the lid */
+  content: ""; position: absolute; left: -6%; right: -6%; top: 100%; height: 14px;
+  border: 1.5px solid var(--sf-line); border-radius: 0 0 16px 16px / 0 0 12px 12px;
+}
+.sf-laptop-wrap { padding: 0 6% 18px; }
+
+/* chapter 2: the journal in a laptop, and the views to switch between. On a phone-width page the
+   same view, captured by the journal at phone width, shows in a phone outline instead. */
+.sf-narrow { display: none; }
+@media (max-width: 760px) {
+  .sf-shot:has(.sf-narrow) .sf-wide { display: none; }
+  .sf-shot .sf-narrow { display: block; max-width: 280px; margin-inline: auto; }
+}
+.sf-views { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.sf-view {
+  appearance: none; font: 500 15px/1 var(--font-body); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--hairline-2); border-radius: 9px; padding: 10px 14px; min-height: 44px; cursor: pointer;
+}
+.sf-view:hover { border-color: var(--ink-faint); }
+.sf-view[aria-pressed="true"] { background: var(--orange-wash); border-color: var(--orange); }
+.sf-shot { margin: 0; }
+.sf-shot[hidden] { display: none; }
+.sf-shot figcaption { margin-top: 6px; font-size: 14px; color: var(--ink-soft); }
+.sf:not(.is-live) .sf-views { display: none; }
+
+/* chapter 3: the agent's answer beside the journal's record of what it asked */
+.sf-agent { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(18px, 3vw, 36px); align-items: start; }
+@media (max-width: 900px) { .sf-agent { grid-template-columns: 1fr; } }
+.sf-qa { margin: 0; padding: 18px 20px; border: 1px solid var(--hairline-2); border-radius: 14px; background: var(--cream-bright); }
+.sf-qa .sf-who { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.sf-qa dl { margin-top: 6px; }
+.sf-qa dt { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.sf-qa dd { margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink); }
+.sf-qa dd + dt { margin-top: 10px; }
+.sf-qa details { margin-top: 12px; font-size: 15px; }
+.sf-qa summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.sf-qa .sf-full { font-size: 15px; line-height: 1.55; color: var(--ink); max-height: 28em; overflow: auto; padding-right: 6px; }
+.sf-qa dd p + p, .sf-qa dd p + ul, .sf-qa .sf-full p + p, .sf-qa .sf-full ul + p, .sf-qa .sf-full p + ul { margin-top: 8px; }
+.sf-qa ul { margin: 6px 0 0; padding-left: 1.2em; }
+.sf-qa li + li { margin-top: 4px; }
+.sf-qa .sf-h { font-weight: 600; margin-top: 14px; }
+.sf-qa code { font-size: 0.9em; }
+.sf-record h4 { font-size: 15px; font-weight: 600; color: var(--ink-soft); margin: 0 0 10px; }
+.sf-empty-slot { margin-top: 14px; font-size: 14px; color: var(--ink-faint); }
+
+/* motion: a short fade when a chapter or view changes, and nothing under reduced motion */
+.sf.is-live .sf-panel:not([hidden]), .sf.is-live .sf-shot:not([hidden]) { animation: sf-in 180ms ease-out; }
+@keyframes sf-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .sf.is-live .sf-panel:not([hidden]), .sf.is-live .sf-shot:not([hidden]) { animation: none; }
+  .sf-row { scroll-behavior: auto; }
+}
