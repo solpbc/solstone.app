@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>solstone · a memory your agents can work from</title>
+    <title>solstone · the journal you've always wanted, kept for you</title>
     <meta name="description" content="solstone is a personal memory platform. what you share goes into your journal, on your device, owned by you. open source, by sol pbc.">
-    <meta property="og:title" content="solstone: a memory your agents can work from">
+    <meta property="og:title" content="solstone: the journal you've always wanted, kept for you">
     <meta property="og:description" content="solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal: an open source, local-first memory the agents you use can work from. your journal is always private, only yours.">
     <meta property="og:url" content="https://solstone.app">
     <meta property="og:type" content="website">
@@ -88,8 +88,12 @@
 
         /* hero: claim and proof as one unit, in one container in both appearances
            (text never sits on the sun, and the hero's left edge lines up with every band) */
-        .hero .band-inner { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "title card" "lede card" "actions card" "spec card"; column-gap: clamp(20px, 3.5vw, 44px); align-items: start; align-content: center; }
+        .hero .band-inner { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "title card" "subs card" "lede card" "actions card" "spec card"; column-gap: clamp(20px, 3.5vw, 44px); align-items: start; align-content: center; }
         .hero h1 { grid-area: title; }
+        /* lines break only between phrases, and the separator at the start of a line is clipped */
+        .hero .subs { grid-area: subs; display: flex; flex-wrap: wrap; margin-top: 12px; font-family: var(--font-body); font-size: 18px; font-weight: 600; line-height: 1.4; color: var(--ink); clip-path: inset(-6px -6px -6px 0); }
+        .hero .subs span { position: relative; white-space: nowrap; margin: 0 0.8em 0 -0.8em; padding-left: 0.8em; }
+        .hero .subs span::before { content: "·" / ""; position: absolute; left: 0.28em; }
         .hero .lede { grid-area: lede; }
         .hero .actions { grid-area: actions; }
         .hero .spec { grid-area: spec; }
@@ -105,10 +109,10 @@
         .answer dd + dt { margin-top: 10px; }
         .answer .answer-source { margin-top: 12px; font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
         .answer .btn-text { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; font-size: 16px; }
-        /* narrower than two columns: the proof comes straight after the claim, so the
-           two read as one unit in the first screen (the header keeps get started in view) */
+        /* narrower than two columns: who does the keeping is answered before the proof
+           (the header keeps get started in view) */
         @media (max-width: 1023px) {
-            .hero .band-inner { grid-template-columns: 1fr; grid-template-areas: "title" "card" "lede" "actions" "spec"; }
+            .hero .band-inner { grid-template-columns: 1fr; grid-template-areas: "title" "subs" "lede" "card" "actions" "spec"; }
             .hero .answer { margin-top: 18px; }
         }
         @media (max-width: 640px) {
@@ -116,6 +120,7 @@
             .hero .band-inner { padding: 20px 18px; }
             .hero .answer { margin-top: 14px; }
             .hero h1 { text-wrap: balance; }
+            .hero .subs { margin-top: 8px; font-size: 16px; }
             .hero .lede { margin-top: 10px; font-size: 17px; }
             .hero .actions { margin-top: 14px; flex-direction: column; align-items: stretch; gap: 8px; }
             .hero .spec { margin-top: 10px; font-size: 14px; }
@@ -190,12 +195,13 @@
 
             <section class="band wrap hero" aria-labelledby="hero-title">
                 <div class="band-inner">
-                        <h1 id="hero-title">a memory your agents can work from.</h1>
-                        <p class="lede">the solstone app takes in what you share with it, from your screen and your audio to the places you go and your terminal. all of it goes into your journal, on a computer you own, and the agents you choose work from it.</p>
+                        <h1 id="hero-title">the journal you've always wanted, kept for you.</h1>
+                        <p class="subs"><span>always local</span> <span><a href="https://github.com/solpbc">100% open source</a></span> <span>only yours</span></p>
+                        <p class="lede">your own devices do the keeping. you choose what to share, from your screen and your audio to the places you go, and all of it goes into your private journal, hosted only by you.</p>
                         <div class="actions">
                             <a class="btn btn-primary" href="/install">get started</a>
                         </div>
-                        <p class="spec">free and open source. your journal lives on an Apple silicon mac, a windows PC or a linux computer, and phones pair with it.</p>
+                        <p class="spec">free. your journal lives natively on your mac, windows PC, or linux system, and phones pair with it.</p>
                     <figure class="answer" aria-labelledby="answer-label">
                         <figcaption><span class="answer-label" id="answer-label">demo output</span></figcaption>
                         <dl>
