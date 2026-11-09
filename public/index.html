@@ -102,6 +102,7 @@
         .hero .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
         .hero .spec { margin-top: 16px; }
         .answer { padding: 18px 20px; border-radius: 14px; border: 1px solid var(--hairline-2); background: var(--cream-bright); font-family: var(--font-body); }
+        .answer .answer-title { margin-bottom: 8px; font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--ink); }
         .answer .answer-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
         .answer dl { margin-top: 6px; }
         .answer dt { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
@@ -202,8 +203,8 @@
                             <a class="btn btn-primary" href="/install">get started</a>
                         </div>
                         <p class="spec">free. your journal lives natively on your mac, windows PC, or linux system, and phones pair with it.</p>
-                    <figure class="answer" aria-labelledby="answer-label">
-                        <figcaption><span class="answer-label" id="answer-label">demo output</span></figcaption>
+                    <figure class="answer" aria-labelledby="answer-title">
+                        <figcaption><p class="answer-title" id="answer-title">safely let your agents read from your journal</p><span class="answer-label">demo output</span></figcaption>
                         <dl>
                             <dt>asked</dt>
                             <dd>What did Paris Duke ask for, and how did the versioning rule change during the week?</dd>
