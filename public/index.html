@@ -87,52 +87,31 @@
         .more { margin-top: 14px; }
         .note { margin-top: 12px; font-size: 15px; color: var(--ink-soft); }
 
-        /* hero: claim and proof as one unit, in one container in both appearances
-           (text never sits on the sun, and the hero's left edge lines up with every band) */
-        .hero .band-inner { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "title card" "subs card" "lede card" "actions card" "spec card"; column-gap: clamp(20px, 3.5vw, 44px); align-items: start; align-content: center; }
-        .hero h1 { grid-area: title; }
+        /* hero: one centered column of type that fills the screen below the header
+           (text never sits on the sun) */
+        .hero .band-inner { display: grid; justify-items: center; align-content: center; text-align: center; min-height: clamp(560px, calc(100svh - 158px), 860px); padding: clamp(28px, 7svh, 76px) clamp(28px, 7vw, 96px); }
+        .hero h1 { max-width: 11.5em; font-size: clamp(46px, min(7.2vw, 10.4svh), 100px); line-height: 1.06; text-wrap: balance; }
         /* lines break only between phrases, and the separator at the start of a line is clipped */
-        .hero .subs { grid-area: subs; display: flex; flex-wrap: wrap; margin-top: 12px; font-family: var(--font-body); font-size: 18px; font-weight: 600; line-height: 1.4; color: var(--ink); clip-path: inset(-6px -6px -6px 0); }
+        .hero .subs { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 24px; font-family: var(--font-body); font-size: clamp(17px, 1.5vw, 20px); font-weight: 600; line-height: 1.4; color: var(--ink); clip-path: inset(-6px -6px -6px 0); }
         .hero .subs span { position: relative; white-space: nowrap; margin: 0 0.8em 0 -0.8em; padding-left: 0.8em; }
+        .hero .subs span:last-child { margin-right: 0; }
         .hero .subs span::before { content: "·" / ""; position: absolute; left: 0.28em; }
-        .hero .lede { grid-area: lede; }
-        .hero .actions { grid-area: actions; }
-        .hero .spec { grid-area: spec; }
-        .hero .answer { grid-area: card; align-self: center; }
-        .hero .lede { margin-top: 16px; max-width: 34em; }
-        .hero .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
-        .hero .spec { margin-top: 16px; }
-        .answer { padding: 18px 20px; border-radius: 14px; border: 1px solid var(--hairline-2); background: var(--cream-bright); font-family: var(--font-body); }
-        .answer .answer-title { margin-bottom: 8px; font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--ink); }
-        .answer .answer-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
-        .answer dl { margin-top: 6px; }
-        .answer dt { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
-        .answer dd { font-size: 16px; line-height: 1.5; color: var(--ink); }
-        .answer dd + dt { margin-top: 10px; }
-        .answer .answer-source { margin-top: 12px; font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
-        .answer .btn-text { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; font-size: 16px; }
-        /* narrower than two columns: who does the keeping is answered before the proof
-           (the header keeps get started in view) */
+        .hero .lede { margin-top: 18px; max-width: 31em; font-size: clamp(18px, min(1.7vw, 2.5svh), 23px); line-height: 1.5; text-wrap: pretty; }
+        .hero .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+        .hero .actions .btn { font-size: 18px; padding: 16px 30px; }
+        .hero .spec { margin-top: 14px; max-width: 34em; }
+        /* narrower than a laptop: the same order, left-aligned, at its natural height */
         @media (max-width: 1023px) {
-            .hero .band-inner { grid-template-columns: 1fr; grid-template-areas: "title" "subs" "lede" "card" "actions" "spec"; }
-            .hero .answer { margin-top: 18px; }
+            .hero .band-inner { justify-items: start; text-align: left; min-height: 0; padding: 36px 22px; }
+            .hero h1 { font-size: clamp(38px, 9.8vw, 84px); }
+            .hero .subs { justify-content: flex-start; margin-top: 20px; }
+            .hero .lede { margin-top: 20px; }
+            .hero .actions { width: 100%; }
+            .hero .actions .btn { width: 100%; justify-content: center; text-align: center; }
+            .hero .spec { margin-top: 16px; }
         }
         @media (max-width: 640px) {
             body { font-size: 17px; }
-            .hero .band-inner { padding: 20px 18px; }
-            .hero .answer { margin-top: 14px; }
-            .hero h1 { text-wrap: balance; }
-            .hero .subs { margin-top: 8px; font-size: 16px; }
-            .hero .lede { margin-top: 10px; font-size: 17px; }
-            .hero .actions { margin-top: 14px; flex-direction: column; align-items: stretch; gap: 8px; }
-            .hero .spec { margin-top: 10px; font-size: 14px; }
-            .answer { padding: 14px 16px; }
-            .answer dd { font-size: 15px; }
-            .answer .answer-source { margin-top: 8px; font-size: 13px; }
-        }
-        @media (max-width: 360px) {
-            .hero h1 { font-size: 30px; }
-            .answer dd + dt { margin-top: 6px; }
         }
 
         .product { margin: 8px 0 22px; }
@@ -204,17 +183,6 @@
                             <a class="btn btn-primary" href="/install">get started</a>
                         </div>
                         <p class="spec">free. your journal lives natively on your mac, windows PC, or linux system, and phones pair with it.</p>
-                    <figure class="answer" aria-labelledby="answer-title">
-                        <figcaption><p class="answer-title" id="answer-title">safely let your agents read from your journal</p><span class="answer-label">demo output</span></figcaption>
-                        <dl>
-                            <dt>asked</dt>
-                            <dd>Are the Capulets and the Montagues getting along?</dd>
-                            <dt>answered</dt>
-                            <dd>Yes, as of Nov 4, the last day your journal has anything on this. Capulet and Montague are working well together on Schema Bridge. The one reservation is on your own side, from Tybalt.</dd>
-                        </dl>
-                        <p class="answer-source">the answer came from Claude Code, reading the demo journal on the same computer. this is the opening of its answer, as it came back.</p>
-                        <a class="btn-text" href="/install#agents">how your agents read it →</a>
-                    </figure>
                 </div>
             </section>
 
