@@ -31,6 +31,7 @@ import { renderNotFound, renderWithdrawal } from './html.js';
 import { forbidden, html, originAllowed } from './index.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { renderWithdrawalAck, resolvePrimaryAddress } from './renewal-notices.js';
+import { invoicesToRefund, withdrawalWindowStart } from './renewed-year.js';
 import {
   loadMenuContext,
   noStore,
@@ -91,7 +92,7 @@ export async function billingView(env, entitlement, nowSeconds = Math.floor(Date
   if (!withdrawalOn(env) || !withdrawable(entitlement)) return { plan: await renewalPlan(env, entitlement), withdrawal: null };
   const sub = await readSubscription(env, entitlement.source_ref);
   const renews = !entitlement.cancel_at_period_end && entitlement.status === 'active' && entitlement.current_period_end != null;
-  return { plan: renews && sub ? subscriptionPlan(sub) : null, withdrawal: door(entitlement, sub, nowSeconds) };
+  return { plan: renews && sub ? subscriptionPlan(sub) : null, withdrawal: door(env, entitlement, sub, nowSeconds) };
 }
 
 // The billing page's price and door for one paid service, from one read of its subscription.
@@ -100,13 +101,14 @@ export async function billingEntryView(env, entitlement, { priced, readPlan }, n
     return { plan: priced ? await readPlan(env, entitlement.source_ref) : null, withdrawal: null };
   }
   const sub = await readSubscription(env, entitlement.source_ref);
-  return { plan: priced && sub ? subscriptionPlan(sub) : null, withdrawal: door(entitlement, sub, nowSeconds) };
+  return { plan: priced && sub ? subscriptionPlan(sub) : null, withdrawal: door(env, entitlement, sub, nowSeconds) };
 }
 
-function door(entitlement, sub, nowSeconds) {
+// The window counts from the purchase or, in a renewed annual year, from the renewal.
+function door(env, entitlement, sub, nowSeconds) {
   const path = withdrawalPathFor(entitlement.service);
   if (!sub) return { path, purchasedAt: null };
-  const purchasedAt = subscriptionPurchasedAt(sub);
+  const purchasedAt = withdrawalWindowStart(env, sub);
   const until = withdrawalUntil(purchasedAt);
   if (until == null || nowSeconds >= until) return null;
   return { path, purchasedAt: withdrawalRuleShown(purchasedAt, nowSeconds) ? purchasedAt : null };
@@ -154,15 +156,18 @@ export async function handleWithdrawalPage(req, env, slug) {
 
   const sub = await readSubscription(env, entitlement.source_ref);
   const plan = sub ? subscriptionPlan(sub) : null;
-  const purchasedAt = sub ? subscriptionPurchasedAt(sub) : null;
+  // `purchasedAt` is when the window opened: the purchase, or the renewal of a renewed year.
+  const purchasedAt = sub ? withdrawalWindowStart(env, sub) : null;
   if (!sub || !plan || purchasedAt == null) return signedInHtml(renderWithdrawal({ ...base, state: 'unavailable' }));
+  const renewed = purchasedAt !== subscriptionPurchasedAt(sub);
   const nowSeconds = Math.floor(nowMs / 1000);
   if (nowSeconds >= withdrawalUntil(purchasedAt)) {
-    return signedInHtml(renderWithdrawal({ ...base, state: 'closed', purchasedAt }));
+    return signedInHtml(renderWithdrawal({ ...base, state: 'closed', purchasedAt, renewed }));
   }
   const statement = await signStatement(env, accountId, {
     subscriptionRef: entitlement.source_ref,
     purchasedAt,
+    renewed,
     unitAmount: plan.unitAmount,
     interval: plan.interval,
     issuedAt: nowMs,
@@ -171,6 +176,7 @@ export async function handleWithdrawalPage(req, env, slug) {
     ...base,
     state: 'open',
     purchasedAt,
+    renewed,
     ruleShown: withdrawalRuleShown(purchasedAt, nowSeconds),
     plan,
     statement,
@@ -233,10 +239,10 @@ export async function completeWithdrawal(env, ctx, record, { nowMs = Date.now(),
   let acknowledged = record.acknowledged_at != null;
   let sub = null;
   if (!acknowledged) {
-    let plan = statement ? { unitAmount: statement.unitAmount, interval: statement.interval } : null;
+    let plan = statement ? { unitAmount: statement.unitAmount, interval: statement.interval, renewed: statement.renewed } : null;
     if (!plan) {
       sub = await readSubscription(env, subscriptionRef);
-      plan = sub ? subscriptionPlan(sub) : null;
+      plan = sub && subscriptionPlan(sub) ? { ...subscriptionPlan(sub), renewed: subscriptionPurchasedAt(sub) !== record.purchased_at } : null;
     }
     acknowledged = plan ? await sendAcknowledgement(env, record, plan, nowMs) : false;
   }
@@ -246,14 +252,16 @@ export async function completeWithdrawal(env, ctx, record, { nowMs = Date.now(),
     try {
       sub = sub || await getSubscription(env, subscriptionRef);
       const customer = await getStripeCustomerByAccount(env.DB, { accountId: record.account_id });
-      // Ownership, the service, and the purchase time the page showed, all as Stripe records them.
+      // Ownership, the service, and the window's start the page showed (the purchase, or the
+      // renewal of a renewed year), all as Stripe records them.
       if (sub?.id !== subscriptionRef || !customer || sub.customer !== customer.stripe_customer_id || sub.metadata?.service !== def.tag
-        || subscriptionPurchasedAt(sub) !== record.purchased_at) {
+        || withdrawalWindowStart(env, sub) !== record.purchased_at) {
         const error = new Error('withdrawal subscription does not match the sign-in');
         error.code = 'withdrawal_mismatch';
         throw error;
       }
-      await refundSubscriptionInFull(env, subscriptionRef, await listPaidSubscriptionInvoices(env, subscriptionRef));
+      const invoices = await listPaidSubscriptionInvoices(env, subscriptionRef);
+      await refundSubscriptionInFull(env, subscriptionRef, invoicesToRefund(env, invoices, record.purchased_at));
       if (sub.status !== 'canceled') await cancelSubscriptionNow(env, subscriptionRef);
     } catch (error) {
       const detail = { status: error?.status ?? null, code: error?.code ?? null };
@@ -278,7 +286,8 @@ async function lapseEntitlement(env, ctx, record, def, nowMs) {
 }
 
 // Refunds every paid invoice of the subscription in full: the purchase, any change of plan since,
-// and a renewal that charged before the cancel landed.
+// and a renewal that charged before the cancel landed. In a renewed annual year, only the
+// renewal's (see invoicesToRefund).
 async function refundSubscriptionInFull(env, subscriptionRef, invoices) {
   for (const invoice of invoices) {
     if (!Number.isInteger(invoice?.amount_paid) || invoice.amount_paid <= 0) continue;
@@ -301,6 +310,7 @@ async function sendAcknowledgement(env, record, plan, nowMs) {
       interval: plan.interval,
       unitAmount: plan.unitAmount,
       purchasedAt: record.purchased_at,
+      renewed: Boolean(plan.renewed),
       submittedAtMs: record.submitted_at,
       primaryEmail,
     })
@@ -377,8 +387,11 @@ export async function runWithdrawalRecovery(env, ctx, nowMs = Date.now()) {
 
 // The page's statement of what it showed: which subscription, its price, and when it was bought,
 // signed to this sign-in so the confirm can record it without asking Stripe again.
-async function signStatement(env, accountId, { subscriptionRef, purchasedAt, unitAmount, interval, issuedAt }) {
-  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ s: subscriptionRef, p: purchasedAt, a: unitAmount, i: interval, t: issuedAt })));
+async function signStatement(env, accountId, { subscriptionRef, purchasedAt, renewed, unitAmount, interval, issuedAt }) {
+  const fields = { s: subscriptionRef, p: purchasedAt, a: unitAmount, i: interval, t: issuedAt };
+  // Only a renewed year's statement says so, so the first year's stays exactly as before.
+  if (renewed) fields.r = 1;
+  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify(fields)));
   return `${payload}.${await scopedHmac(payload, env.HMAC_PEPPER, `withdrawal-statement:${accountId}`)}`;
 }
 
@@ -393,10 +406,10 @@ async function verifyStatement(env, accountId, value, nowMs) {
   } catch {
     return null;
   }
-  const { s, p, a, i, t } = parsed || {};
+  const { s, p, a, i, t, r } = parsed || {};
   if (typeof s !== 'string' || !s.startsWith('sub_') || !Number.isInteger(p) || !Number.isInteger(a) || a <= 0) return null;
   if ((i !== 'year' && i !== 'month') || !Number.isInteger(t) || nowMs - t > STATEMENT_TTL_MS || t > nowMs + 60_000) return null;
-  return { subscriptionRef: s, purchasedAt: p, unitAmount: a, interval: i };
+  return { subscriptionRef: s, purchasedAt: p, unitAmount: a, interval: i, renewed: r === 1 };
 }
 
 // A peppered account reference, never the raw id: console lines are Logpush-retained.

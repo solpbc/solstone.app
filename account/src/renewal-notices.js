@@ -16,6 +16,7 @@ import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { getSubscription, subscriptionPeriodEnd } from './stripe.js';
+import { placeholder } from './subscription-rules.js';
 import { formatLongDate, formatMomentUtc, withdrawalOn } from './withdrawal-rules.js';
 
 export const TAG_TO_HOSTED_SERVICE = Object.freeze({
@@ -267,6 +268,13 @@ const WITHDRAWAL_ACK_BODY = [
   'sol pbc',
 ].join('\n\n');
 
+// The acknowledgement of a withdrawal in a renewed annual year: the window counts from the
+// renewal, and the refund is that renewal's.
+const WITHDRAWAL_ACK_RENEWED = {
+  subscription: ['**the subscription.** {{service}}, {{price}} every {{interval}}, bought on {{purchase_date}}.', placeholder('**the subscription.** {{service}}, {{price}} every {{interval}}, renewed on {{purchase_date}}.')],
+  refund: ["we're refunding everything you paid for this subscription", placeholder("we're refunding what you paid for this renewal")],
+};
+
 function keepBlock(template, tag, keep) {
   return keep
     ? template.replace(`[${tag}]`, '').replace(`[/${tag}]`, '')
@@ -274,11 +282,14 @@ function keepBlock(template, tag, keep) {
 }
 
 // null when a value the acknowledgement must state is missing, so nothing half-filled is sent.
-export function renderWithdrawalAck({ service, interval, unitAmount, purchasedAt, submittedAtMs, primaryEmail }) {
+export function renderWithdrawalAck({ service, interval, unitAmount, purchasedAt, renewed = false, submittedAtMs, primaryEmail }) {
   const serviceName = SERVICE_HUMAN_NAMES[service];
   const price = formatPrice(unitAmount);
   if (!serviceName || !price || (interval !== 'year' && interval !== 'month') || !primaryEmail) return null;
-  let body = keepBlock(WITHDRAWAL_ACK_BODY, 'BACKUP', service === SPB_HOSTED_SERVICE);
+  let body = renewed
+    ? Object.values(WITHDRAWAL_ACK_RENEWED).reduce((text, [first, renewal]) => text.replace(first, renewal), WITHDRAWAL_ACK_BODY)
+    : WITHDRAWAL_ACK_BODY;
+  body = keepBlock(body, 'BACKUP', service === SPB_HOSTED_SERVICE);
   body = keepBlock(body, 'SME', service === SME_HOSTED_SERVICE);
   const values = {
     service: serviceName,

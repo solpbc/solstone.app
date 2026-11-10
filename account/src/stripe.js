@@ -246,6 +246,44 @@ export function subscriptionPeriodEnd(sub) {
   return sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end ?? null;
 }
 
+export function subscriptionPeriodStart(sub) {
+  return sub?.current_period_start ?? sub?.items?.data?.[0]?.current_period_start ?? null;
+}
+
+// Sets an ordinary cancel on a subscription: at the end of its paid period, or at a moment
+// before that with no proration, where the months after it are refunded on their own. Setting
+// the same end again changes nothing, so a retry is safe.
+export async function scheduleSubscriptionCancel(env, subscriptionId, { atPeriodEnd, cancelAt }) {
+  const body = new URLSearchParams();
+  if (atPeriodEnd) {
+    body.set('cancel_at_period_end', 'true');
+  } else {
+    body.set('cancel_at', String(cancelAt));
+    body.set('proration_behavior', 'none');
+  }
+  return stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: 'POST', body });
+}
+
+// A part refund of one charge: the whole months a cancel leaves unused on a renewal. The
+// idempotency key names the renewal invoice, which gets one such refund, ever.
+export async function refundChargePart(env, { chargeId, amount, invoiceId }) {
+  const body = new URLSearchParams();
+  body.set('charge', chargeId);
+  body.set('amount', String(amount));
+  body.set('reason', 'requested_by_customer');
+  try {
+    return await stripeRequest(env, '/refunds', {
+      method: 'POST',
+      body,
+      idempotencyKey: `cancel-refund-${invoiceId}`,
+    });
+  } catch (error) {
+    // Refunded in full already, by a withdrawal of the same renewal.
+    if (error?.code === 'charge_already_refunded') return { already: true };
+    throw error;
+  }
+}
+
 export async function deleteStripeCustomer(env, stripeCustomerId) {
   try {
     const response = await fetch(`${STRIPE_API_BASE}/customers/${encodeURIComponent(stripeCustomerId)}`, {

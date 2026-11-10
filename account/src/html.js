@@ -6,6 +6,7 @@ import { LANDING_JS } from './inline/passkey-landing.js';
 import { SUPPORT_DRAFT_JS } from './inline/support-draft.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
 import { SPP_SERVICE_PATH } from './spp-service.js';
+import { placeholder } from './subscription-rules.js';
 import { formatLongDate, formatMomentUtc } from './withdrawal-rules.js';
 
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
@@ -2774,7 +2775,7 @@ function withdrawalFlashMessages(flash, serviceName) {
 // The owner's own withdrawal page: who is signed in, the subscription, where the acknowledgement
 // goes (all read-only, already known from the sign-in), one line on what happens, and one confirm
 // button. Nothing else goes on it.
-export function renderWithdrawal({ def, menu, csrf, primaryEmail, state, submittedAt = null, purchasedAt = null, ruleShown = false, plan = null, statement = '' }) {
+export function renderWithdrawal({ def, menu, csrf, primaryEmail, state, submittedAt = null, purchasedAt = null, renewed = false, ruleShown = false, plan = null, statement = '' }) {
   const title = `withdraw from your ${def.name} subscription`;
   const page = (content) => layout({
     title,
@@ -2800,16 +2801,25 @@ ${content}`,
   if (state === 'unavailable') {
     return page(`<p class="lead">${esc("your subscription details didn't load, so this page can't take the withdrawal right now. reload to try again, or email support@solstone.app saying you withdraw; a withdrawal sent within your 14 days counts.")}</p>`);
   }
+  if (state === 'closed' && renewed) {
+    return page(`<p class="lead">${esc(renewedWithdrawalWords.closed(def.name, formatLongDate(purchasedAt)))}</p>`);
+  }
   if (state === 'closed') {
     return page(`<p class="lead">${esc(`the 14 days to withdraw from this ${def.name} subscription, bought on ${formatLongDate(purchasedAt)}, are over. you can still cancel it from the service page, and it keeps working through the period you've paid for.`)}</p>`);
   }
   if (!primaryEmail) {
     return page(`<p class="lead">${esc('this sign-in has no email address to send the acknowledgement to. add one under sign-in and emails, or email support@solstone.app saying you withdraw; a withdrawal sent within your 14 days counts.')}</p>`);
   }
-  const lead = `if you withdraw, ${def.name} stops today and we refund everything you paid for this subscription.${ruleShown ? ` you have until the end of the 14th day after ${formatLongDate(purchasedAt)}.` : ''}`;
+  const until = ruleShown ? ` you have until the end of the 14th day after ${formatLongDate(purchasedAt)}.` : '';
+  const lead = renewed
+    ? `${renewedWithdrawalWords.lead(def.name)}${until}`
+    : `if you withdraw, ${def.name} stops today and we refund everything you paid for this subscription.${until}`;
+  const subscriptionLine = renewed
+    ? renewedWithdrawalWords.subscription(def.name, `${formatPlanPrice(plan)} every ${plan.interval}`, formatLongDate(purchasedAt))
+    : `subscription: ${def.name}, ${formatPlanPrice(plan)} every ${plan.interval}, bought on ${formatLongDate(purchasedAt)}`;
   return page(`<div class="card">
   <p class="signed-in">${esc(`signed in as ${primaryEmail}`)}</p>
-  <p>${esc(`subscription: ${def.name}, ${formatPlanPrice(plan)} every ${plan.interval}, bought on ${formatLongDate(purchasedAt)}`)}</p>
+  <p>${esc(subscriptionLine)}</p>
   <p>${esc(`we'll send the acknowledgement to ${primaryEmail}`)}</p>
   <p>${esc(lead)}</p>
   ${retention}
@@ -2822,6 +2832,14 @@ ${content}`,
   </form>
 </div>`);
 }
+
+// The withdraw page in a renewed annual year, where the window counts from the renewal and the
+// refund is that renewal's.
+const renewedWithdrawalWords = {
+  subscription: (name, price, date) => placeholder(`subscription: ${name}, ${price}, renewed on ${date}`),
+  lead: (name) => placeholder(`if you withdraw, ${name} stops today and we refund what you paid for this renewal.`),
+  closed: (name, date) => placeholder(`the 14 days to withdraw from this ${name} renewal, renewed on ${date}, are over. you can still cancel it with cancel contracts here.`),
+};
 
 function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary', action = '/billing/portal' }) {
   return `<form method="post" action="${escAttr(action)}">
