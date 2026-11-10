@@ -45,7 +45,7 @@ describe('billing stripe core', () => {
   it('creates customer mapping and active entitlement from checkout completion idempotently', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ email: 'stripe-owner@example.com', testEnv });
-    installStripeFetchMock({
+    const { calls } = installStripeFetchMock({
       'GET api.stripe.com/v1/subscriptions/sub_checkout': async () => stripeJson({
         id: 'sub_checkout',
         status: 'active',
@@ -53,6 +53,7 @@ describe('billing stripe core', () => {
         customer: 'cus_checkout',
         metadata: { service: 'spl' },
       }),
+      'POST api.stripe.com/v1/customers/cus_checkout': async () => stripeJson({ id: 'cus_checkout', preferred_locales: ['en'] }),
     });
 
     const raw = JSON.stringify({
@@ -66,6 +67,10 @@ describe('billing stripe core', () => {
       account_id: account.accountId,
       stripe_customer_id: 'cus_checkout',
     });
+    // Receipts and invoices follow the customer's preferred_locales, pinned to English.
+    const pins = calls.filter((call) => call.method === 'POST' && call.url.pathname === '/v1/customers/cus_checkout');
+    expect(pins).toHaveLength(2);
+    expect([...pins[0].body.entries()]).toEqual([['preferred_locales[0]', 'en']]);
     await expect(entitlementRow(account.accountId)).resolves.toMatchObject({
       account_id: account.accountId,
       service: 'spl_hosted',
@@ -424,6 +429,7 @@ describe('billing stripe core', () => {
     expect(calls[0].init.headers['Stripe-Version']).toBe('2024-09-30.acacia');
     expect(calls[0].init.headers['Idempotency-Key']).toMatch(/[0-9a-f-]{36}/i);
     expect(calls[0].body.get('mode')).toBe('subscription');
+    expect(calls[0].body.get('locale')).toBe('en');
     expect(calls[0].body.get('client_reference_id')).toBe(account.accountId);
     expect(calls[0].body.get('subscription_data[metadata][service]')).toBe('spl');
     expect(calls[0].body.get('subscription_data[metadata][account_id]')).toBe(account.accountId);
@@ -500,6 +506,7 @@ describe('billing stripe core', () => {
     expect(response.status).toBe(303);
     expect(response.headers.get('Location')).toBe('https://billing.stripe.test/session');
     expect(calls[0].body.get('customer')).toBe('cus_portal');
+    expect(calls[0].body.get('locale')).toBe('en');
     expect(calls[0].body.get('return_url')).toBe('https://services.solstone.app/private-network');
     expect(calls[0].body.has('flow_data[type]')).toBe(false);
   });

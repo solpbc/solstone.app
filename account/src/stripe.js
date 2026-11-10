@@ -10,6 +10,9 @@ const CHECKOUT_DISCLOSURE = 'by purchasing this service, you agree to enroll in 
 // disclosure above, which stays exactly as it is, and only while the withdrawal door is on.
 export const CHECKOUT_WITHDRAWAL_DISCLOSURE = 'you can also withdraw for a full refund, wherever you live, until the end of the 14th day after the day you buy: sign in at services.solstone.app and use "withdraw from contract here" on the service\'s page or at services.solstone.app/billing, then confirm; or email support@solstone.app saying you withdraw. a withdrawal sent within the 14 days counts. withdrawing stops the service that day and we refund everything you paid for it. a renewal does not start a new 14 days. the withdrawal form and the details are in the terms: services.solstone.app/terms#withdrawal.';
 
+// The one language of every contract surface: Checkout, the billing portal, and receipts.
+export const CONTRACT_LOCALE = 'en';
+
 // Stripe caps custom_text[submit][message] at 1,200 characters.
 export const CHECKOUT_SUBMIT_TEXT_LIMIT = 1200;
 
@@ -50,6 +53,10 @@ export async function createCheckoutSession(env, {
   if (!BILLED_SERVICES.includes(service)) throw new Error('stripe checkout requires a billed service');
   const body = new URLSearchParams();
   body.set('mode', 'subscription');
+  // The contract path is English until a language's legal review exists, whatever the buyer's
+  // browser asks for: Checkout itself, and the customer it creates, whose preferred_locales
+  // decides the language of receipts and invoices.
+  body.set('locale', CONTRACT_LOCALE);
   body.set('client_reference_id', accountId);
   body.set('subscription_data[metadata][service]', service);
   body.set('subscription_data[metadata][account_id]', accountId);
@@ -82,6 +89,7 @@ export async function createPortalSession(env, { customer, returnUrl, subscripti
   const body = new URLSearchParams();
   body.set('customer', customer);
   body.set('return_url', returnUrl);
+  body.set('locale', CONTRACT_LOCALE);
   if (subscriptionId) {
     body.set('flow_data[type]', 'subscription_cancel');
     body.set('flow_data[subscription_cancel][subscription]', subscriptionId);
@@ -89,6 +97,14 @@ export async function createPortalSession(env, { customer, returnUrl, subscripti
     body.set('flow_data[after_completion][redirect][return_url]', returnUrl);
   }
   return stripeRequest(env, '/billing_portal/sessions', { method: 'POST', body });
+}
+
+// Pins a customer's receipts and invoices to the contract language. Checkout otherwise stamps
+// the buyer's browser language on the customer it creates.
+export async function pinCustomerLocale(env, stripeCustomerId) {
+  const body = new URLSearchParams();
+  body.set('preferred_locales[0]', CONTRACT_LOCALE);
+  return stripeRequest(env, `/customers/${encodeURIComponent(stripeCustomerId)}`, { method: 'POST', body });
 }
 
 export async function getSubscription(env, subscriptionId) {

@@ -23,6 +23,7 @@ import {
   createCheckoutSession,
   createPortalSession,
   getSubscription,
+  pinCustomerLocale,
   subscriptionPeriodEnd,
   termsAssentRequired,
   verifyWebhookSignature,
@@ -276,6 +277,12 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   if (!accountId || !stripeCustomerId || !subscriptionId) return;
   if (await getActiveDeletionForAccount(env.DB, accountId)) return;
   await upsertStripeCustomer(env.DB, { accountId, stripeCustomerId, nowMs });
+  try {
+    await pinCustomerLocale(env, stripeCustomerId);
+  } catch (error) {
+    // Not worth failing the purchase over: Stripe retries the event, and the next purchase pins it.
+    console.warn(JSON.stringify({ event: 'stripe_customer_locale_pin_failed', status: error?.status ?? null }));
+  }
   if (typeof obj?.id === 'string' && obj.id) {
     await attachSubscriptionStartRequest(env.DB, { checkoutSessionRef: obj.id, accountId, subscriptionRef: subscriptionId });
   }

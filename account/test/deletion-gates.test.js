@@ -160,6 +160,7 @@ describe('deletion access gates', () => {
         customer: 'cus_control',
         metadata: { service: 'spl' },
       }),
+      'POST api.stripe.com/v1/customers/cus_control': async () => stripeJson({ id: 'cus_control' }),
     });
 
     const deletingResponse = await postStripeWebhook(env, {
@@ -188,7 +189,10 @@ describe('deletion access gates', () => {
 
     expect(controlResponse.status).toBe(200);
     expect(stripeCustomerWrites).toHaveLength(1);
-    expect(calls).toHaveLength(1);
+    expect(calls.map((call) => `${call.method} ${call.url.pathname}`)).toEqual([
+      'POST /v1/customers/cus_control',
+      'GET /v1/subscriptions/sub_control',
+    ]);
     await expect(stripeCustomer(control.accountId)).resolves.toMatchObject({ stripe_customer_id: 'cus_control' });
     await expect(entitlement(control.accountId)).resolves.toMatchObject({ status: 'active', source_ref: 'sub_control' });
   });
