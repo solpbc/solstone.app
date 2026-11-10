@@ -214,7 +214,7 @@
                         <ol class="steps">
                             <li data-branch="start">
                                 <h4>set up your journal</h4>
-                                <p>the installer verifies its downloads with minisign, and your journal needs your system's OpenMP runtime. add both first if you don't have them: <code>sudo apt install minisign libgomp1</code>, <code>sudo dnf install minisign libgomp</code> or <code>sudo pacman -S minisign gcc-libs</code>. not sure which? run the command below. if either is missing, the installer stops before changing anything and says how to add it.</p>
+                                <p>the installer verifies releases with minisign and downloads a pinned copy if you don't have it. your journal also needs your system's OpenMP runtime: <code>sudo apt install libgomp1</code>, <code>sudo dnf install libgomp</code> or <code>sudo pacman -S gcc-libs</code>. if it's missing, the installer shows you how to add it.</p>
                                 <p>run this command in your terminal. it installs your journal and starts it.</p>
                                 <pre id="linux-commands">curl -fsSL https://solstone.app/install.sh | sh</pre>
                                 <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-commands" hidden>copy command</button></div>
@@ -230,7 +230,7 @@
                                 <p>then open solstone from your app menu. with your journal on this computer, its <strong>journal</strong> tab finds it and one press connects. with a journal on another computer, open <strong>network</strong> in that journal, choose <strong>pair a device</strong> to make a pairing link, and paste it in the tab, or open the link and choose <strong>open in the solstone app</strong>. if solstone doesn't open from your app menu, the <a href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">linux app guide</a> lists the packages it needs, and it also covers pairing from a terminal.</p>
                             </li>
                         </ol>
-                        <p class="ours"><strong>check it's ours.</strong> the installer verifies every download with minisign before it installs anything. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
+                        <p class="ours"><strong>check it's ours.</strong> the installer checks release signatures with minisign and matches packages and archives to their signed checksums. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
                     </section>
 
                     <section class="platform-panel" id="windows" aria-labelledby="windows-heading">

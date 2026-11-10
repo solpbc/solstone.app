@@ -1038,6 +1038,41 @@ install_hint() {
 	esac
 }
 # END shared install_hint
+# BEGIN shared install_verifier
+# Keep this block in sync with solstone-journal core/distribution/install.sh.
+# The pins cover the unmodified Linux executables from minisign 0.12.
+select_minisign() {
+	MINISIGN=$(command -v minisign 2>/dev/null) && [ -x "$MINISIGN" ] && return 0
+	[ "$3" = online ] || return 1
+
+	case "$1" in
+	x86_64) _ms_sha=2c74dffcc1c9a5ee55957c60971998ace2b89f22585631594ec2152c588af8db ;;
+	aarch64) _ms_sha=cec9f88be8c975af76854a53b4d49c3d257feae38d916edb0d16fb55aacd3000 ;;
+	*) return 1 ;;
+	esac
+	_ms_dir="$2/verifier"
+	_ms_file="$_ms_dir/minisign"
+	_ms_url="https://solstone.app/install-tools/minisign/0.12/$1/minisign"
+	mkdir -m 0700 "$_ms_dir" || return 1
+	# Cap the write even if the server omits a content length.
+	(
+		ulimit -f 1024 || exit 1
+		if command -v curl >/dev/null 2>&1; then
+			_ms_status=$(curl -q --proto '=https' -fsS --connect-timeout 10 --max-time 60 \
+				-o "$_ms_file" -w '%{http_code}' "$_ms_url") && [ "$_ms_status" = 200 ]
+		else
+			wget --no-config --https-only --max-redirect=0 --tries=2 --timeout=30 -q -O "$_ms_file" "$_ms_url"
+		fi
+	) || return 1
+	_ms_actual=$(digest_file "$_ms_file") || return 1
+	[ "$_ms_actual" = "$_ms_sha" ] || return 1
+	chmod 0700 "$_ms_file" || return 1
+	MINISIGN=$_ms_file
+	# A catalogue can delegate to an older signed journal bootstrap.
+	PATH="$_ms_dir:$PATH"
+	export PATH
+}
+# END shared install_verifier
 
 # Global options
 OPT_COMPONENTS=""
@@ -1055,7 +1090,6 @@ OPT_CONFIRM_PACKAGE_COMMAND=0
 OPT_YES=0
 OPT_NO_START=0
 OPT_NO_PATH=0
-OPT_SKIP_SIGNATURE=0
 OPT_LIST=0
 OPT_JSON=0
 OPT_UNINSTALL=0
@@ -1164,7 +1198,6 @@ native_recovery() {
     set -- --prefix "$OPT_PREFIX" --role "$nr_role" --version "$nr_version" --origin "$OPT_ORIGIN" --lane "$OPT_LANE" --upgrade
     [ "$OPT_NO_START" -eq 0 ] || set -- "$@" --no-start
     [ "$OPT_NO_PATH" -eq 0 ] || set -- "$@" --no-path
-    [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || set -- "$@" --skip-signature
     for nr_arg do printf ' %s' "$(shell_quote "$nr_arg")"; done
 }
 
@@ -1284,7 +1317,7 @@ journal_opens_with_link() {
 
 # The installed journal owns its location and published browser port.
 finish_journal_install() {
-    [ "$HOST_OS" = linux ] && installer_owns_journal_handoff || return 0
+    [ "$HOST_OS" = linux ] && [ "${JOURNAL_REVERIFIED:-0}" -eq 0 ] && installer_owns_journal_handoff || return 0
     case " ${REPORT_COMPONENTS:-$SELECTED_COMPONENTS} " in *" journal "*) ;; *) return 0 ;; esac
     fj_bin="${OPT_PREFIX}/current/bin"
     fj_cmd="solstone journal"
@@ -1626,9 +1659,10 @@ detect_fetch_tool() {
 preflight_linux_prerequisites() {
     detect_fetch_tool
     plp_tools="awk"
-    # A catalogue listing checks no download digest; a preview, a listing and a
-    # removal unpack nothing.
-    [ "$OPT_LIST" -eq 1 ] || plp_tools="$plp_tools sha256sum"
+    # A preview, a listing and a removal unpack nothing.
+    if [ "$OPT_LIST" -eq 0 ] || ! command -v minisign >/dev/null 2>&1; then
+        plp_tools="$plp_tools sha256sum"
+    fi
     if [ "$OPT_DRY_RUN" -eq 0 ] && [ "$OPT_LIST" -eq 0 ] && [ "$OPT_UNINSTALL" -eq 0 ]; then
         plp_tools="$plp_tools tar"
     fi
@@ -1641,9 +1675,6 @@ preflight_linux_prerequisites() {
         esac
         refuse_missing_prerequisite "missing-tool" "$plp_tool" "$plp_package" "$plp_purpose"
     done
-    if [ "$OPT_SKIP_SIGNATURE" -eq 0 ] && ! command -v minisign >/dev/null 2>&1; then
-        refuse_missing_prerequisite "verifier-missing" minisign minisign "it is needed to verify what the installer downloads"
-    fi
     if [ "$OPT_DRY_RUN" -eq 0 ] && [ "$OPT_LIST" -eq 0 ] && ! command -v flock >/dev/null 2>&1; then
         refuse_missing_prerequisite "lock-tool-missing" flock util-linux "it is needed so that two installs cannot run at once"
     fi
@@ -1917,7 +1948,7 @@ run_macos() {
         macos_refuse unsupported-option "The mac app installer does not remove apps"
     fi
     if [ "$OPT_ROUTE_EXPLICIT" -eq 1 ] || [ "$OPT_PREFIX_EXPLICIT" -eq 1 ] || [ "$OPT_ORIGIN_EXPLICIT" -eq 1 ] \
-        || [ "$OPT_NO_START" -eq 1 ] || [ "$OPT_NO_PATH" -eq 1 ] || [ "$OPT_SKIP_SIGNATURE" -eq 1 ]; then
+        || [ "$OPT_NO_START" -eq 1 ] || [ "$OPT_NO_PATH" -eq 1 ]; then
         macos_refuse unsupported-option "That option applies only to linux installs"
     fi
 
@@ -2330,10 +2361,15 @@ fetch_file_with_redirect_check() {
     fi
 }
 
+digest_file() {
+    df_sum=$(sha256sum "$1") || return 1
+    printf '%s\n' "${df_sum%% *}"
+}
+
 verify_sha256() {
     file_path="$1"
     expected_hex="$2"
-    actual_hex=$(sha256sum "$file_path" | awk '{print $1}')
+    actual_hex=$(digest_file "$file_path") || report_exit refusal digest-mismatch "Could not read $file_path"
     if [ "$actual_hex" != "$expected_hex" ]; then
         report_exit "refusal" "digest-mismatch" "SHA256 mismatch for $file_path (expected $expected_hex, got $actual_hex)"
     fi
@@ -2344,16 +2380,8 @@ verify_minisign_signature() {
     sig_path="$2"
     pubkey="$3"
 
-    if [ "$OPT_SKIP_SIGNATURE" -eq 1 ]; then
-        return 0
-    fi
-
-    minisign_bin=$(command -v minisign 2>/dev/null || true)
-    if [ -z "$minisign_bin" ] || [ ! -x "$minisign_bin" ]; then
-        refuse_missing_prerequisite "verifier-missing" minisign minisign "it is needed to verify what the installer downloads"
-    fi
-
-    if ! "$minisign_bin" -V -P "$pubkey" -m "$artifact_path" -x "$sig_path" >/dev/null 2>&1; then
+    [ -x "$MINISIGN" ] || report_exit refusal verifier-missing "Minisign became unavailable during verification. Run the installer again."
+    if ! "$MINISIGN" -V -P "$pubkey" -m "$artifact_path" -x "$sig_path" >/dev/null 2>&1; then
         report_exit "refusal" "signature-invalid" "Cryptographic verification failed for $artifact_path"
     fi
 }
@@ -3591,7 +3619,7 @@ package_publish_phase() {
         printf "lane=%s\n" "$OPT_LANE"
         printf "origin=%s\n" "$OPT_ORIGIN"
         printf "arch=%s\n" "$HOST_ARCH"
-        printf "verification=%s\n" "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign")"
+        printf "verification=%s\n" "$(package_receipt_verification)"
         printf "installer_revision=%s\n" "$INSTALLER_REVISION"
     } > "$ppp_receipt" || report_exit "refusal" "receipt-write-failed" "Could not stage package receipt"
     for ppp_existing in journal cli desktop tmux; do
@@ -4156,7 +4184,6 @@ EOF
 global_receipt_matches_current() {
     gr_receipt="$1"
     gr_verification="minisign"
-    [ "$OPT_SKIP_SIGNATURE" -eq 1 ] && gr_verification="digest-matched; signatures skipped"
     [ "$(receipt_value "$gr_receipt" solstone schema_version 2>/dev/null || true)" = "1" ] || return 1
     [ "$(receipt_value "$gr_receipt" solstone platform_version 2>/dev/null || true)" = "$RESOLVED_VERSION" ] || return 1
     [ "$(receipt_value "$gr_receipt" solstone lane 2>/dev/null || true)" = "$OPT_LANE" ] || return 1
@@ -4201,7 +4228,6 @@ tree_component_converged() {
     [ -f "$tc_receipt" ] || return 1
 
     tc_verification="minisign"
-    [ "$OPT_SKIP_SIGNATURE" -eq 1 ] && tc_verification="digest-matched; signatures skipped"
     [ "$(receipt_value "$tc_receipt" solstone schema_version 2>/dev/null || true)" = "1" ] || return 1
     [ "$(receipt_value "$tc_receipt" solstone route 2>/dev/null || true)" = "tree" ] || return 1
     [ "$(receipt_value "$tc_receipt" solstone prefix 2>/dev/null || true)" = "$OPT_PREFIX" ] || return 1
@@ -4400,9 +4426,13 @@ tree_component_authority() {
                         report_exit refusal ownership-unknown "journal command does not match its owned tree"
                     fi
                 fi
-                tca_output=$(run_installed_journal "${tca_public%/*}" "$TREE_JOURNAL_VERSION" --version 2>/dev/null || run_installed_journal "${tca_public%/*}" "$TREE_JOURNAL_VERSION" 2>/dev/null || true)
-                printf '%s\n' "$tca_output" | awk -v wanted=" $tca_versions " '{ for (i=1; i<=NF; i++) if (index(wanted, " " $i " ")) found=1 } END { exit !found }' \
-                    || report_exit "refusal" "ownership-unknown" "journal launcher version does not match its receipt"
+                if [ "$(plain_receipt_value "$tca_native" signature_verification 2>/dev/null || true)" != skipped ]; then
+                    tca_output=$(run_installed_journal "${tca_public%/*}" "$TREE_JOURNAL_VERSION" --version 2>/dev/null || run_installed_journal "${tca_public%/*}" "$TREE_JOURNAL_VERSION" 2>/dev/null || true)
+                    printf '%s\n' "$tca_output" | awk -v wanted=" $tca_versions " '{ for (i=1; i<=NF; i++) if (index(wanted, " " $i " ")) found=1 } END { exit !found }' \
+                        || report_exit "refusal" "ownership-unknown" "journal launcher version does not match its receipt"
+                elif [ "$tca_mode" = removal ]; then
+                    report_exit refusal signature-invalid "Verify the Journal installation before removing it."
+                fi
             fi
             ;;
         desktop|tmux)
@@ -4775,10 +4805,10 @@ usage: sh install.sh [options]
                        show each linux package installation command and wait for approval
   --yes, -y            accepted for unattended invocations
   --json               one JSON result on stdout; diagnostics on stderr
-  --skip-signature     explicitly skip signatures; digests are still checked
   --help, -h           show this help; with --json, return it as JSON
 
-Linux requires curl or wget, minisign, awk, tar, sha256sum, and flock.
+Linux requires curl or wget, awk, tar, sha256sum, and flock.
+The installer uses minisign from PATH or downloads a pinned copy.
 macOS requires Apple Silicon and macOS 15 or later. It installs signed,
 notarized app bundles in /Applications; app updates remain inside each app.
 
@@ -4895,10 +4925,6 @@ parse_args() {
                 ;;
             --no-path)
                 OPT_NO_PATH=1
-                shift 1
-                ;;
-            --skip-signature)
-                OPT_SKIP_SIGNATURE=1
                 shift 1
                 ;;
             --list)
@@ -5061,10 +5087,22 @@ run_tree_component() {
 
             # Execute bootstrap
             b_component_version=$(cat "${manifest_dir}/components/journal/version")
+            b_native_receipt="${OPT_PREFIX}/install-receipt"
+            b_reverify_current=
+            if [ "$(plain_receipt_value "$b_native_receipt" signature_verification 2>/dev/null || true)" = skipped ]; then
+                if [ "$(plain_receipt_value "$b_native_receipt" setup_status 2>/dev/null || true)" = complete ]; then
+                    b_reverify_current=$(readlink "${OPT_PREFIX}/current" 2>/dev/null || true)
+                fi
+                b_archive_sha=$(cat "${manifest_dir}/components/journal/arches/${HOST_ARCH}/tree/sha256")
+                b_dest="${OPT_PREFIX}/versions/${b_component_version}-$(printf '%s' "$b_archive_sha" | cut -c1-12)"
+                if { [ -e "$b_dest" ] || [ -L "$b_dest" ]; } \
+                    && ! grep -Fqx 'BOOTSTRAP_RECOVERS_SKIPPED=1' "$b_script"; then
+                    report_exit refusal signature-invalid "This release cannot verify the installed journal program. To verify the current installation, use the journal installer from https://updates.solstone.app/solstone-journal/install.sh with the installed prefix, role, and journal version from its install receipt."
+                fi
+            fi
             set -- --role "$comp" --prefix "$OPT_PREFIX" --origin "$OPT_ORIGIN" --lane "$OPT_LANE" --version "$b_component_version"
             [ "$OPT_NO_START" -eq 0 ] || set -- "$@" --no-start
             [ "$OPT_NO_PATH" -eq 0 ] || set -- "$@" --no-path
-            [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || set -- "$@" --skip-signature
             [ "$OPT_UPGRADE" -eq 0 ] || set -- "$@" --upgrade
             record_journal_pending "$comp" "$b_component_version" "$receipt_file"
             NATIVE_ATTEMPTED=1
@@ -5080,6 +5118,12 @@ run_tree_component() {
             fi
             if [ "$b_status" -ne 0 ]; then
                 report_exit "refusal" "component-failed" "journal installation did not finish; see its output above"
+            fi
+            if [ "$(plain_receipt_value "$b_native_receipt" signature_verification 2>/dev/null || true)" = skipped ]; then
+                report_exit refusal signature-invalid "The Journal installer did not verify the existing files."
+            fi
+            if [ -n "$b_reverify_current" ] && [ "$(readlink "${OPT_PREFIX}/current" 2>/dev/null || true)" = "$b_reverify_current" ]; then
+                JOURNAL_REVERIFIED=1
             fi
             NATIVE_COMMITTED=1
 
@@ -5137,9 +5181,20 @@ run_tree_component() {
             if [ ! -e "$comp_root" ] && [ ! -L "$comp_root" ]; then
                 TREE_CREATED_ROOT="$comp_root"
             fi
-            mkdir -p "$comp_dest" || report_exit "refusal" "target-write-failed" "Could not create component destination $comp_dest"
-            if ! tar -xzf "$archive_path" -C "$comp_dest"; then
-                report_exit "refusal" "archive-extract-failed" "Could not extract $comp_archive_fn into its content-addressed destination"
+            if [ "$(receipt_value "$receipt_file" "component:$comp" verification 2>/dev/null || true)" = "digest-matched; signatures skipped" ] \
+                && { [ -e "$comp_dest" ] || [ -L "$comp_dest" ]; }; then
+                comp_recheck="${SCRATCH_DIR}/reverify-${comp}"
+                mkdir "$comp_recheck"
+                tar -xzf "$archive_path" -C "$comp_recheck" \
+                    || report_exit refusal archive-extract-failed "Could not extract the verified $comp archive."
+                if [ -L "$comp_dest" ] || ! diff -qr --no-dereference -- "$comp_recheck" "$comp_dest" >/dev/null 2>&1; then
+                    report_exit refusal digest-mismatch "Could not verify the installed $comp files against the signed release. Install a newer release."
+                fi
+            else
+                mkdir -p "$comp_dest" || report_exit "refusal" "target-write-failed" "Could not create component destination $comp_dest"
+                if ! tar -xzf "$archive_path" -C "$comp_dest"; then
+                    report_exit "refusal" "archive-extract-failed" "Could not extract $comp_archive_fn into its content-addressed destination"
+                fi
             fi
 
             # Verify executable
@@ -5238,7 +5293,7 @@ run_tree_component() {
         printf "route=tree\n"
         printf "prefix=%s\n" "$OPT_PREFIX"
         printf "arch=%s\n" "$HOST_ARCH"
-        printf "verification=%s\n" "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign")"
+        printf "verification=%s\n" "minisign"
         printf "installer_revision=%s\n" "$INSTALLER_REVISION"
         printf "phase=complete\n"
     } > "$receipt_tmp"; then
@@ -5288,7 +5343,7 @@ run_tree_component() {
                 printf "current=%s\n" "$c_current"
                 printf "current_target=%s-%s\n" "$c_version" "$c_digest12"
                 printf "public_path=%s\n" "$c_public"
-                printf "verification=%s\n" "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign")"
+                printf "verification=%s\n" "minisign"
                 printf "installer_revision=%s\n" "$INSTALLER_REVISION"
                 printf "no_start=%s\n" "$OPT_NO_START"
                 printf "no_path=%s\n" "$OPT_NO_PATH"
@@ -5299,6 +5354,14 @@ run_tree_component() {
     if [ "$MOVE_DESKTOP_STEP" -eq 1 ] && component_selected desktop; then MOVE_DESKTOP_WRITTEN=1; fi
     if ! mv -Tf "$receipt_tmp" "$receipt_file"; then
         tree_receipt_failure "Could not atomically publish the tree install receipt"
+    fi
+}
+
+package_receipt_verification() {
+    if [ "$(receipt_value "$PACKAGE_RECEIPT_FILE" solstone verification 2>/dev/null || true)" = "digest-matched; signatures skipped" ]; then
+        printf '%s\n' "digest-matched; signatures skipped"
+    else
+        printf '%s\n' minisign
     fi
 }
 
@@ -5487,7 +5550,7 @@ run_package_install() {
             printf "lane=%s\n" "$OPT_LANE"
             printf "origin=%s\n" "$OPT_ORIGIN"
             printf "arch=%s\n" "$HOST_ARCH"
-            printf "verification=%s\n" "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign")"
+            printf "verification=%s\n" "$(package_receipt_verification)"
             printf "installer_revision=%s\n" "$INSTALLER_REVISION"
         } > "$pgr_staged" || report_exit "refusal" "receipt-write-failed" "could not stage refreshed package receipt"
         for pgr_existing in journal cli desktop tmux; do
@@ -5724,7 +5787,6 @@ settle_empty_package_receipt() {
 # and the tree and package receipts must agree on lane and platform_version.
 refresh_receipt_headers() {
     rrh_verification="minisign"
-    [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || rrh_verification="digest-matched; signatures skipped"
     rrh_tree=$(tree_receipt_path)
     if [ -f "$rrh_tree" ] && [ ! -L "$rrh_tree" ] && [ -s "$rrh_tree" ]; then
         rrh_prefix=$(receipt_value "$rrh_tree" solstone prefix 2>/dev/null) || rrh_prefix=""
@@ -5763,7 +5825,7 @@ refresh_receipt_headers() {
         package_read_receipt
         rrh_next="${SCRATCH_DIR}/package-receipt-header.$$"
         printf '[solstone]\nschema_version=1\nplatform_version=%s\nlane=%s\norigin=%s\narch=%s\nverification=%s\ninstaller_revision=%s\n' \
-            "$RESOLVED_VERSION" "$OPT_LANE" "$OPT_ORIGIN" "$HOST_ARCH" "$rrh_verification" "$INSTALLER_REVISION" > "$rrh_next" \
+            "$RESOLVED_VERSION" "$OPT_LANE" "$OPT_ORIGIN" "$HOST_ARCH" "$(package_receipt_verification)" "$INSTALLER_REVISION" > "$rrh_next" \
             || report_exit "refusal" "receipt-write-failed" "Could not stage the package receipt header"
         for rrh_component in journal cli desktop tmux; do
             if receipt_value "$PACKAGE_RECEIPT_FILE" "component:${rrh_component}" role >/dev/null 2>&1; then
@@ -6231,6 +6293,9 @@ main() {
         done
     fi
 
+    select_minisign "$HOST_ARCH" "$SCRATCH_DIR" online \
+        || report_exit refusal verifier-missing "Could not download and verify minisign. Check your connection or $(install_hint minisign "$(os_release_path)"), then retry."
+
     # 1. Resolve version
     if [ -z "$OPT_VERSION" ]; then
         latest_file="${SCRATCH_DIR}/latest"
@@ -6278,14 +6343,14 @@ main() {
             if [ "$catalogue_has_tmux" -eq 1 ]; then
                 printf '{"status":"success","root_code":"list","message":"Catalogue retrieved","lane":"%s","platform_version":"%s","arch":"%s","route":"%s","lock_state":"unlocked","snapshot_consistency":"unlocked","receipt_paths":[],"notices":[],"verification_layers":"%s","components":{"journal":{"version":"%s"},"desktop":{"version":"%s"},"tmux":{"version":"%s"}}}\n' \
                     "$OPT_LANE" "$RESOLVED_VERSION" "$HOST_ARCH" "$OPT_ROUTE" \
-                    "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign+digest")" \
+                    "minisign+digest" \
                     "$(cat "${manifest_dir}/components/journal/version" 2>/dev/null || echo "")" \
                     "$(cat "${manifest_dir}/components/desktop/version" 2>/dev/null || echo "")" \
                     "$(cat "${manifest_dir}/components/tmux/version" 2>/dev/null || echo "")"
             else
                 printf '{"status":"success","root_code":"list","message":"Catalogue retrieved","lane":"%s","platform_version":"%s","arch":"%s","route":"%s","lock_state":"unlocked","snapshot_consistency":"unlocked","receipt_paths":[],"notices":[],"verification_layers":"%s","components":{"journal":{"version":"%s"},"desktop":{"version":"%s"}}}\n' \
                     "$OPT_LANE" "$RESOLVED_VERSION" "$HOST_ARCH" "$OPT_ROUTE" \
-                    "$([ "$OPT_SKIP_SIGNATURE" -eq 1 ] && echo "digest-matched; signatures skipped" || echo "minisign+digest")" \
+                    "minisign+digest" \
                     "$(cat "${manifest_dir}/components/journal/version" 2>/dev/null || echo "")" \
                     "$(cat "${manifest_dir}/components/desktop/version" 2>/dev/null || echo "")"
             fi
@@ -6434,7 +6499,7 @@ main() {
         fi
     done
 
-    # 9. Verify native authority pins even when signature execution is explicitly skipped.
+    # 9. Verify native authority pins for the selected routes.
     for comp in $SELECTED_COMPONENTS; do
         case "$comp" in
             journal|cli)
@@ -6509,7 +6574,6 @@ main() {
     done
 
     VERIFICATION_LAYERS="minisign+digest"
-    [ "$OPT_SKIP_SIGNATURE" -eq 0 ] || VERIFICATION_LAYERS="digest-matched; signatures skipped"
 
     preflight_journal_downgrade
 
