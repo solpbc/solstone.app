@@ -89,6 +89,7 @@ describe('static source checks', () => {
       'support-html.js',
       'support-wire.js',
       'support.js',
+      'subscription-rules.js',
       'withdrawal-rules.js',
       'withdrawal.js',
     ]);

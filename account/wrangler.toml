@@ -170,6 +170,7 @@ STRIPE_TERMS_ASSENT = "required"
 # (src/withdrawal-rules.js). "on" since 2026-09-26, with the Terms F6 text and the tax-included
 # prices; anything else turns them all off and the withdraw routes answer 404.
 WITHDRAWAL_DOOR = "on"
+SUBSCRIPTION_RULES = "off"
 # /terms serves the combined services Terms of Service.
 # /legal, /services/backup/terms, and /services/processing/terms permanently redirect there.
 RELAY_GRANT_URL = "https://link.solstone.app"
