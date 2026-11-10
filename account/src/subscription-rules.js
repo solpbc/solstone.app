@@ -10,9 +10,10 @@ export function subscriptionRulesOn(env) {
   return env?.SUBSCRIPTION_RULES === 'on';
 }
 
-// Marks owner-facing text that is a stand-in for the approved wording. Every string built with
-// it is replaced before the switch turns on; the static suite refuses a placeholder that would
-// render with the switch on.
+// Marks owner-facing text that is a stand-in for the approved wording: a string built with
+// placeholder(), or a block under a comment reading "PLACEHOLDER pending the approved
+// subscription-rules wording". Every one is replaced before the switch turns on, and the static
+// suite refuses wrangler.toml turning it on while any remains.
 export const PLACEHOLDER_TAG = '[placeholder]';
 export function placeholder(text) {
   return `${PLACEHOLDER_TAG} ${text}`;

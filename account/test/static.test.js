@@ -129,6 +129,16 @@ describe('static source checks', () => {
     expect(toml).not.toContain(['support', 'worker'].join('-'));
   });
 
+  it('refuses the subscription rules on while any of their placeholder wording remains', () => {
+    const toml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'wrangler.toml'), 'utf8');
+    if (!/^SUBSCRIPTION_RULES = "on"$/m.test(toml)) return;
+    const marked = sourceEntries
+      .filter((entry) => entry.name !== 'subscription-rules.js')
+      .filter((entry) => entry.text.includes('placeholder(') || entry.text.includes('PLACEHOLDER pending the approved subscription-rules wording'))
+      .map((entry) => entry.name);
+    expect(marked).toEqual([]);
+  });
+
   it('keeps logging to the audit stream only: logpush on, observability and tail consumers off', () => {
     const toml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'wrangler.toml'), 'utf8');
 

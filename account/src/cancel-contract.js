@@ -345,7 +345,7 @@ async function sendConfirmation(env, record, def, nowMs) {
   return true;
 }
 
-// PLACEHOLDER pending the approved wording: the confirmation email. Its subject and its first,
+// PLACEHOLDER pending the approved subscription-rules wording: the confirmation email. Its subject and its first,
 // largest line are the end date; then what the owner sent and when we received it.
 const EMAIL_WORDS = {
   subject: (service, end) => `your ${service} subscription ends on ${end}`,

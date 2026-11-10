@@ -70,6 +70,7 @@ export async function handleServicesSpl(req, env) {
     ...await billingView(env, entitlement),
     startNowBox: withdrawalOn(env),
     cancelContract: cancelContractHref(env, 'private-network'),
+    keyInfo: subscriptionRulesOn(env),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',
