@@ -34,6 +34,7 @@ import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
 import { reconcileSppEntitlement } from './spp-entitlement.js';
 import { notifySubscriptionCreated } from './subscription-created.js';
+import { subscriptionRulesOn } from './subscription-rules.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
 import { billingView } from './withdrawal.js';
 
@@ -67,6 +68,7 @@ export async function handleServicesSpl(req, env) {
     entitlement,
     ...await billingView(env, entitlement),
     startNowBox: withdrawalOn(env),
+    keyInfo: subscriptionRulesOn(env),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',

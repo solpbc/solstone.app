@@ -19,6 +19,7 @@ import {
   createPortalSession,
   termsAssentRequired,
 } from './stripe.js';
+import { subscriptionRulesOn } from './subscription-rules.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
 import { billingView } from './withdrawal.js';
 import { SPB_HOSTED_SERVICE as SERVICE } from './spb-entitlement.js';
@@ -45,6 +46,7 @@ export async function handleServicesSpb(req, env) {
     entitlement,
     ...await billingView(env, entitlement),
     startNowBox: withdrawalOn(env),
+    keyInfo: subscriptionRulesOn(env),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',

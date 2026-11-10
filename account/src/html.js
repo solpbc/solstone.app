@@ -6,6 +6,7 @@ import { LANDING_JS } from './inline/passkey-landing.js';
 import { SUPPORT_DRAFT_JS } from './inline/support-draft.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
 import { SPP_SERVICE_PATH } from './spp-service.js';
+import { placeholder } from './subscription-rules.js';
 import { formatLongDate, formatMomentUtc } from './withdrawal-rules.js';
 
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
@@ -919,7 +920,7 @@ ${BRANDLOCK}
   });
 }
 
-export function renderServicesSpl({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu }) {
+export function renderServicesSpl({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, csrf, flash = {}, menu }) {
   const flashes = billingFlashMessages(flash) + withdrawalFlashMessages(flash, 'private network');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -984,16 +985,16 @@ ${withdrawalDoor(withdrawal)}
     content: `<p class="lead">sol pbc runs a blind relay so your devices stay reachable when they're asleep or away from home.</p>
 <div class="card">
   <p>you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
-  ${checkoutGroup({ csrf, startNowBox, rows: [
-    { plan: 'annual', title: '$20 / year', buttonText: 'pay yearly', primary: true },
-    { plan: 'monthly', title: '$2.49 / month', buttonText: 'pay monthly', primary: false },
+  ${checkoutGroup({ csrf, startNowBox, keyInfo, rows: [
+    { plan: 'annual', unitAmount: 2000, buttonText: 'pay yearly', primary: true },
+    { plan: 'monthly', unitAmount: 249, buttonText: 'pay monthly', primary: false },
   ] })}
   <p class="disclosure">tax included. billed securely through Stripe. <a href="/terms">terms</a></p>
 </div>`,
   });
 }
 
-export function renderServicesSpb({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
+export function renderServicesSpb({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
   const flashes = spbBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'encrypted backup');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -1065,9 +1066,9 @@ ${retentionDisclosure}
     content: `<p class="lead">sol pbc keeps an encrypted copy of your journal for you. it's encrypted on your device before it leaves, so only you can read it.</p>
 <div class="card">
   <p>turn on encrypted backup</p>
-  ${checkoutGroup({ csrf, startNowBox, action: '/services/backup/checkout', restoreIntent, rows: [
-    { plan: 'annual', title: '$48 / year', buttonText: 'pay yearly', primary: true },
-    { plan: 'monthly', title: '$4.99 / month', buttonText: 'pay monthly', primary: false },
+  ${checkoutGroup({ csrf, startNowBox, keyInfo, action: '/services/backup/checkout', restoreIntent, rows: [
+    { plan: 'annual', unitAmount: 4800, buttonText: 'pay yearly', primary: true },
+    { plan: 'monthly', unitAmount: 499, buttonText: 'pay monthly', primary: false },
   ] })}
   <p class="disclosure">tax included. billed securely through Stripe. by paying, you agree to the <a href="/terms">terms</a>.</p>
 </div>
@@ -1077,7 +1078,10 @@ ${restoreCheckout ? '' : retentionDisclosure}`,
 
 export const SME_JOURNAL_UPDATE_NOTICE = 'your journal needs an update before it can use your solstone.me address. update your journal on the computer it runs on, and your address will turn on by itself.';
 
-export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu, journalUpdateNotice = false }) {
+// solstone.me is sold yearly only, from its own form.
+const SME_PLAN = { plan: 'annual', unitAmount: 500 };
+
+export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, csrf, flash = {}, menu, journalUpdateNotice = false }) {
   const flashes = smeBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'solstone.me');
   const updateNotice = journalUpdateNotice
     ? `<p class="notice" data-notice="sme-journal-update">${esc(SME_JOURNAL_UPDATE_NOTICE)}</p>`
@@ -1154,9 +1158,9 @@ ${withdrawalDoor(withdrawal)}
   <form method="post" action="${escAttr(`${SME_SERVICE_PATH}/checkout`)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="plan" value="annual">
-    <p><strong>$5 / year</strong></p>
+    <p><strong>${esc(planTitle(SME_PLAN))}</strong></p>
     ${ackField('i understand that the public record of this address is permanent.')}
-    ${startNowBox ? startNowField() : ''}
+    ${keyInfo ? keyInformation([SME_PLAN]) : ''}${startNowBox ? startNowField() : ''}
     <div class="btn-row" style="margin-top:16px">
       <button class="btn primary" type="submit">pay yearly</button>
     </div>
@@ -1187,6 +1191,7 @@ export function renderServicesSpp({
   plan = null,
   withdrawal = null,
   startNowBox = false,
+  keyInfo = false,
   csrf = '',
   flash = {},
   planTerms = '',
@@ -1304,9 +1309,9 @@ ${withdrawalDoor(withdrawal)}
 <div class="card">
   <p>turn on confidential processing</p>
   ${planTerms ? `<p class="disclosure" data-plan-terms>${esc(planTerms)}</p>` : ''}
-  ${checkoutGroup({ csrf, startNowBox, action: `${SPP_SERVICE_PATH}/checkout`, rows: [
-    { plan: 'annual', title: '$96 / year', buttonText: 'pay yearly', primary: true },
-    { plan: 'monthly', title: '$9.99 / month', buttonText: 'pay monthly', primary: false },
+  ${checkoutGroup({ csrf, startNowBox, keyInfo, action: `${SPP_SERVICE_PATH}/checkout`, rows: [
+    { plan: 'annual', unitAmount: 9600, buttonText: 'pay yearly', primary: true },
+    { plan: 'monthly', unitAmount: 999, buttonText: 'pay monthly', primary: false },
   ] })}
   <p class="disclosure">${esc(SPP_ONE_JOURNAL)} tax included. billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
 </div>
@@ -2694,6 +2699,55 @@ function formatPlanPrice(plan) {
   return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 }
 
+// A checkout plan's price line, "$20 / year" or "$2.49 / month", from its unit amount in cents.
+function planTitle(row) {
+  return `${formatPlanPrice(row)} / ${row.plan === 'annual' ? 'year' : 'month'}`;
+}
+
+// PLACEHOLDER pending the approved wording: the key information shown before checkout, all
+// together and apart from the rest of the page, for each plan offered. Nothing here renders
+// while the subscription rules are off.
+const KEY_INFO_HEADING = placeholder('key information');
+const KEY_INFO_LINES = Object.freeze({
+  continues: placeholder('it continues until you end it.'),
+  chargedYear: placeholder('{{price}} every year, about {{monthly}} a month.'),
+  chargedMonth: placeholder('{{price}} every month.'),
+  minimum: placeholder("the least you'll pay is {{price}}, for one {{interval}}."),
+  end: placeholder('end it any time at {{cancel_link}}. no notice needed.'),
+  remindYear: placeholder('we remind you 35 to 40 days before each renewal.'),
+  remindMonth: placeholder('we remind you every six months, before a renewal.'),
+  withdrawYear: placeholder('you can withdraw for a full refund within 14 days of buying, and again within 14 days after each renewal.'),
+  withdrawMonth: placeholder('you can withdraw for a full refund within 14 days of buying.'),
+});
+const CANCEL_CONTRACT_URL = 'https://services.solstone.app/billing/cancel-contract';
+
+function keyInformation(rows) {
+  const plans = rows.map((r) => {
+    const annual = r.plan === 'annual';
+    const values = {
+      price: formatPlanPrice(r),
+      monthly: formatPlanPrice({ unitAmount: Math.round(r.unitAmount / 12) }),
+      interval: annual ? 'year' : 'month',
+    };
+    const lines = annual
+      ? ['continues', 'chargedYear', 'minimum', 'end', 'remindYear', 'withdrawYear']
+      : ['continues', 'chargedMonth', 'minimum', 'end', 'remindMonth', 'withdrawMonth'];
+    const items = lines.map((key) => `<li>${esc(KEY_INFO_LINES[key].replaceAll(/\{\{(price|monthly|interval)\}\}/g, (m, k) => values[k]))
+      .replace('{{cancel_link}}', `<a href="${escAttr(CANCEL_CONTRACT_URL)}">services.solstone.app/billing/cancel-contract</a>`)}</li>`);
+    return `<div data-key-info-plan="${escAttr(r.plan)}">
+      <p><strong>${esc(planTitle(r))}</strong></p>
+      <ul>
+        ${items.join('\n        ')}
+      </ul>
+    </div>`;
+  });
+  return `<section class="card" data-key-info style="margin:0 0 16px">
+    <h2>${esc(KEY_INFO_HEADING)}</h2>
+    ${plans.join('\n    ')}
+  </section>
+    `;
+}
+
 // The lead of a service page's billing line: when it renews and at what price, or, once it is
 // set to stop, how far it is paid.
 function renewalLead({ paidThrough, cancelPending, plan }) {
@@ -2712,20 +2766,21 @@ function taxWords(plan) {
 // The checkout choices of a service page. With the withdrawal door on, the plans share one
 // form carrying the unticked "start my service now" box, each plan its own submit button;
 // with it off, each plan is its own form, as before.
-function checkoutGroup({ csrf, rows, startNowBox = false, action = '/billing/checkout', restoreIntent = false }) {
+function checkoutGroup({ csrf, rows, startNowBox = false, keyInfo = false, action = '/billing/checkout', restoreIntent = false }) {
+  const info = keyInfo ? keyInformation(rows) : '';
   if (!startNowBox) {
-    return `<div class="group">
-    ${rows.map((r) => billingCheckoutRow({ csrf, ...r, action, restoreIntent })).join('\n    ')}
+    return `${info}<div class="group">
+    ${rows.map((r) => billingCheckoutRow({ csrf, ...r, title: planTitle(r), action, restoreIntent })).join('\n    ')}
   </div>`;
   }
   return `<form method="post" action="${escAttr(action)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     ${restoreIntent ? '<input type="hidden" name="intent" value="restore">' : ''}
-    ${startNowField()}
+    ${info}${startNowField()}
     <div class="group">
     ${rows.map((r) => `<div class="row" style="cursor:default">
   <div class="body">
-    <div class="title">${esc(r.title)}</div>
+    <div class="title">${esc(planTitle(r))}</div>
   </div>
   <div class="trail"><button class="${r.primary ? 'btn primary' : 'btn secondary'}" type="submit" name="plan" value="${escAttr(r.plan)}">${esc(r.buttonText)}</button></div>
 </div>`).join('\n    ')}

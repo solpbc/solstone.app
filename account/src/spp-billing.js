@@ -24,6 +24,7 @@ import {
   createPortalSession,
   termsAssentRequired,
 } from './stripe.js';
+import { subscriptionRulesOn } from './subscription-rules.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
 import { billingView } from './withdrawal.js';
 
@@ -54,6 +55,7 @@ export async function handleServicesSpp(req, env) {
     ...await billingView(env, entitlement),
     onSale,
     startNowBox: withdrawalOn(env),
+    keyInfo: subscriptionRulesOn(env),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',
