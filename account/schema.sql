@@ -497,17 +497,17 @@ CREATE INDEX IF NOT EXISTS idx_spb_sweep_audit_account_id ON spb_sweep_audit(acc
 
 CREATE TABLE IF NOT EXISTS renewal_notices (
   account_id TEXT NOT NULL,
-  kind TEXT NOT NULL CHECK (kind IN ('ack', 'reminder', 'oneoff')),
+  kind TEXT NOT NULL CHECK (kind IN ('ack', 'reminder', 'oneoff', 'cooling_off')),
   service TEXT NOT NULL CHECK (
     (kind = 'oneoff' AND service = '')
-    OR (kind IN ('ack', 'reminder') AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted'))
+    OR (kind IN ('ack', 'reminder', 'cooling_off') AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted'))
   ),
   renewal_at INTEGER NOT NULL CHECK (
-    (kind = 'reminder' AND renewal_at > 0)
+    (kind IN ('reminder', 'cooling_off') AND renewal_at > 0)
     OR (kind IN ('ack', 'oneoff') AND renewal_at = 0)
   ),
   content_key TEXT NOT NULL CHECK (
-    (kind = 'reminder' AND content_key = '')
+    (kind IN ('reminder', 'cooling_off') AND content_key = '')
     OR (kind = 'ack' AND (content_key = '' OR (substr(content_key, 1, 4) = 'sub_' AND length(content_key) > 4)))
     OR (kind = 'oneoff' AND length(content_key) = 64)
   ),

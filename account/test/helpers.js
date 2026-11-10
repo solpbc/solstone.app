@@ -96,6 +96,7 @@ export function makeTestEnv(overrides = {}) {
     SPP_PLAN_TERMS: overrides.SPP_PLAN_TERMS,
     STRIPE_TERMS_ASSENT: overrides.STRIPE_TERMS_ASSENT,
     WITHDRAWAL_DOOR: overrides.WITHDRAWAL_DOOR,
+    SUBSCRIPTION_RULES: overrides.SUBSCRIPTION_RULES,
     RELAY_GRANT_URL: overrides.RELAY_GRANT_URL || 'https://link.solstone.app',
     RELAY_GRACE_DAYS: overrides.RELAY_GRACE_DAYS || '14',
     RELAY_GRANT_SECRET: overrides.RELAY_GRANT_SECRET || 'test-relay-grant-secret',
