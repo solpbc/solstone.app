@@ -155,6 +155,23 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 .early-days a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .notice-wrap { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0; background: var(--orange-wash); border-color: var(--hairline-2); box-shadow: none; }
 
+/* ---- the founder note: the home page's sign-off, a portrait beside a few words ---- */
+.founder-note { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0; background: var(--orange-wash); border-color: var(--hairline-2); box-shadow: none;
+  display: flex; gap: clamp(16px, 3vw, 28px); align-items: center; padding: clamp(18px, 3vw, 28px) clamp(18px, 3.4vw, 32px); }
+.founder-note img { display: block; flex: none; width: clamp(72px, 10vw, 104px); height: clamp(72px, 10vw, 104px); border-radius: 50%; object-fit: cover; background: var(--orange-wash); box-shadow: 0 0 0 3px var(--cream-bright); }
+.founder-note .note-body { max-width: 760px; }
+.founder-note p { margin: 0; color: var(--ink); }
+.founder-note .note-words { font-size: 18px; line-height: 1.55; }
+.founder-note .note-ask { margin-top: 12px; color: var(--ink-soft); font-size: 16px; }
+.founder-note a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.founder-note .note-sig { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.founder-note .note-name { font-family: var(--font-display); font-weight: 700; }
+.founder-note .note-title { color: var(--ink-faint); font-size: 15px; }
+@media (max-width: 560px) {
+  .founder-note { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .founder-note img { width: 84px; height: 84px; }
+}
+
 /* ---- footer ---- */
 .site-footer { width: min(var(--w-content), 100% - 2 * var(--gutter)); margin: var(--band-gap) auto 0; padding: 0 0 28px; font-family: var(--font-body); text-align: left; color: var(--ink); }
 .site-footer .footer-row { padding: 22px; background: var(--sheet); border: 1px solid var(--sheet-line); border-radius: 18px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 24px; align-items: center; }
