@@ -66,6 +66,13 @@ import {
 import { handleBilling, handleBillingManage } from './billing-page.js';
 import { handleWithdrawalConfirm, handleWithdrawalPage, runWithdrawalRecovery } from './withdrawal.js';
 import {
+  CANCEL_CONTRACT_PATH,
+  handleCancelContractConfirm,
+  handleCancelContractForm,
+  handleCancelContractReview,
+  runCancellationRecovery,
+} from './cancel-contract.js';
+import {
   handleServicesSpb,
   handleSpbCheckout,
   handleSpbCancel,
@@ -1068,6 +1075,16 @@ async function routeRequest(req, env, ctx) {
         return handleBilling(req, env);
       }
 
+      if (url.pathname === CANCEL_CONTRACT_PATH && (req.method === 'GET' || req.method === 'POST')) {
+        return handleCancelContractForm(req, env);
+      }
+      if (url.pathname === `${CANCEL_CONTRACT_PATH}/review` && req.method === 'POST') {
+        return handleCancelContractReview(req, env);
+      }
+      if (url.pathname === `${CANCEL_CONTRACT_PATH}/confirm` && req.method === 'POST') {
+        return handleCancelContractConfirm(req, env, ctx);
+      }
+
       if (parts.length === 4 && parts[1] === 'billing' && parts[2] === 'withdraw') {
         if (req.method === 'GET') return handleWithdrawalPage(req, env, parts[3]);
         if (req.method === 'POST') return handleWithdrawalConfirm(req, env, ctx, parts[3]);
@@ -1160,6 +1177,7 @@ export default {
     if (event.cron === DELETION_CRON) {
       await runAccountDeletionCoordinator(env);
       await runWithdrawalRecovery(env, ctx);
+      await runCancellationRecovery(env, ctx);
       await runSolstoneMeOrphanDnsSweep(env);
     } else if (event.cron === SWEEP_CRON) {
       await runSpbLapseSweep(env, ctx);

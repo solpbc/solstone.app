@@ -9,6 +9,9 @@ import { SPP_SERVICE_PATH } from './spp-service.js';
 import { placeholder } from './subscription-rules.js';
 import { formatLongDate, formatMomentUtc } from './withdrawal-rules.js';
 
+// The cancel function's path, as cancel-contract.js serves it.
+const CANCEL_CONTRACT_PATH_HTML = '/billing/cancel-contract';
+
 export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
 const MARK_SVG = '<svg class="mark" viewBox="2.5 2.5 27 27" role="img" aria-label="solstone"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg>'
 const CHEVRON_SVG = '<svg class="chevron" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"/></svg>';
@@ -920,7 +923,7 @@ ${BRANDLOCK}
   });
 }
 
-export function renderServicesSpl({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu }) {
+export function renderServicesSpl({ entitlement, plan = null, withdrawal = null, startNowBox = false, cancelContract = '', csrf, flash = {}, menu }) {
   const flashes = billingFlashMessages(flash) + withdrawalFlashMessages(flash, 'private network');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -941,8 +944,9 @@ ${flashes}
   <h1>private network</h1>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}`,
+${content}${cancelContractLink(cancelContract)}`,
   });
+  const turnOff = cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' });
 
   if (entitlement?.source === 'comp' && status === 'active') {
     return page({
@@ -959,7 +963,7 @@ ${content}`,
 ${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>` : ''}
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
-  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' })}
+  ${turnOff}
 </div>
 ${withdrawalDoor(withdrawal)}
 <p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
@@ -974,7 +978,7 @@ ${withdrawalDoor(withdrawal)}
 ${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>` : ''}
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
-  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' })}
+  ${turnOff}
 </div>
 ${withdrawalDoor(withdrawal)}
 <p class="disclosure" style="margin-top:24px">billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
@@ -994,7 +998,7 @@ ${withdrawalDoor(withdrawal)}
   });
 }
 
-export function renderServicesSpb({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
+export function renderServicesSpb({ entitlement, plan = null, withdrawal = null, startNowBox = false, cancelContract = '', csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
   const flashes = spbBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'encrypted backup');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -1009,7 +1013,7 @@ export function renderServicesSpb({ entitlement, plan = null, withdrawal = null,
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: '/services/backup/portal' })}
-  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/services/backup/cancel' })}
+  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/services/backup/cancel' })}
 </div>`;
   const cancellationNotice = cancelPending
     ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>`
@@ -1026,7 +1030,7 @@ ${restoreCheckout ? '<p class="notice">if you\'re restoring a journal, return to
   <p class="meta">operated by sol pbc</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}`,
+${content}${cancelContractLink(cancelContract)}`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
@@ -1078,7 +1082,7 @@ ${restoreCheckout ? '' : retentionDisclosure}`,
 
 export const SME_JOURNAL_UPDATE_NOTICE = 'your journal needs an update before it can use your solstone.me address. update your journal on the computer it runs on, and your address will turn on by itself.';
 
-export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, csrf, flash = {}, menu, journalUpdateNotice = false }) {
+export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, cancelContract = '', csrf, flash = {}, menu, journalUpdateNotice = false }) {
   const flashes = smeBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'solstone.me');
   const updateNotice = journalUpdateNotice
     ? `<p class="notice" data-notice="sme-journal-update">${esc(SME_JOURNAL_UPDATE_NOTICE)}</p>`
@@ -1095,7 +1099,7 @@ export function renderServicesSme({ entitlement, plan = null, withdrawal = null,
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: `${SME_SERVICE_PATH}/portal` })}
-  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel solstone.me', buttonClass: 'btn danger', action: `${SME_SERVICE_PATH}/cancel` })}
+  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel solstone.me', buttonClass: 'btn danger', action: `${SME_SERVICE_PATH}/cancel` })}
 </div>`;
   const cancellationNotice = cancelPending
     ? `<p class="notice">your solstone.me coverage is scheduled to end on ${esc(paidThrough)}. manage billing to keep it.</p>`
@@ -1111,7 +1115,7 @@ ${updateNotice}
   <p class="meta">operated by sol pbc</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}`,
+${content}${cancelContractLink(cancelContract)}`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
@@ -1188,6 +1192,7 @@ export function renderServicesSpp({
   plan = null,
   withdrawal = null,
   startNowBox = false,
+  cancelContract = '',
   csrf = '',
   flash = {},
   planTerms = '',
@@ -1203,7 +1208,7 @@ ${flashes}
   ${onSale ? '<p class="meta">operated by sol pbc</p>' : ''}
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}`,
+${content}${cancelContractLink(cancelContract)}`,
   });
 
   if (!onSale) {
@@ -1241,7 +1246,7 @@ ${content}`,
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: `${SPP_SERVICE_PATH}/portal` })}
-  ${cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel confidential processing', buttonClass: 'btn danger', action: `${SPP_SERVICE_PATH}/cancel` })}
+  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel confidential processing', buttonClass: 'btn danger', action: `${SPP_SERVICE_PATH}/cancel` })}
 </div>`;
   const cancellationNotice = cancelPending
     ? `<p class="notice">your confidential processing is scheduled to end on ${esc(paidThrough)}. manage billing to keep it.</p>`
@@ -1376,7 +1381,7 @@ function billingTrail({ state, plan }) {
 
 const BILLING_ICONS = { spl_hosted: IC_NET, spb_hosted: IC_BACKUP, sme_hosted: IC_GLOBE, spp_hosted: IC_CHIP };
 
-export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, nowSeconds }) {
+export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, nowSeconds, cancelContract = '' }) {
   const flashes = [];
   if (flash.billing === 'missing') flashes.push("billing management opens once you've paid for a service.");
   if (flash.billing === 'error') flashes.push("billing management didn't open. try again.");
@@ -1411,7 +1416,7 @@ ${flashes.map((message) => `<p class="notice">${esc(message)}</p>`).join('')}
 </div>
 <p class="intro">the services you pay sol pbc for, what each one costs, and when it renews.</p>
 ${list}
-${manage}`,
+${manage}${cancelContractLink(cancelContract)}`,
   });
 }
 
@@ -1655,7 +1660,7 @@ ${exportEnabled ? '<p style="margin-top:28px"><a class="btn secondary block" hre
 // a class or column added to the inventory reaches this page without an edit here.
 
 const TRANSPARENCY_GROUPS = [
-  { heading: 'services and billing', classes: ['entitlements', 'renewal_notices', 'subscription_withdrawals', 'subscription_start_requests', 'stripe_customers'] },
+  { heading: 'services and billing', classes: ['entitlements', 'renewal_notices', 'subscription_withdrawals', 'subscription_start_requests', 'subscription_cancellations', 'stripe_customers'] },
   { heading: 'private network', href: '/private-network', classes: ['spl_bindings'] },
   { heading: 'private network relay', classes: [], relay: true },
   { heading: 'encrypted backup', href: '/services/backup', classes: ['spb_bindings', 'spb_mint_audit', 'spb_sweep_audit'] },
@@ -1687,6 +1692,7 @@ const TRANSPARENCY_TITLE_FIELD = {
   renewal_notices: 'subject',
   subscription_withdrawals: 'service',
   subscription_start_requests: 'service',
+  subscription_cancellations: 'service',
   stripe_customers: 'stripe_customer_id',
   scout_applications: 'status',
   scout_lifecycle_events: 'to_status',
@@ -2830,6 +2836,161 @@ ${content}`,
       <button class="btn danger" type="submit">${esc(WITHDRAWAL_CONFIRM_LABEL)}</button>
     </div>
   </form>
+</div>`);
+}
+
+// PLACEHOLDER pending the approved wording: the cancel function's link, its form, its summary and
+// its done page. Nothing here renders while the subscription rules are off.
+export const CANCEL_CONTRACT_LABEL = 'cancel contracts here';
+export const CANCEL_NOW_LABEL = 'cancel now';
+const CANCEL_WORDS = {
+  title: 'cancel a subscription',
+  intro: 'cancel a paid subscription on this sign-in. you check everything on the next page before it goes.',
+  name: 'your name',
+  emailLabel: 'email',
+  email: (address) => `your email: ${address}. we send the confirmation there.`,
+  noEmail: 'this sign-in has no email address to send the confirmation to. add one under sign-in and emails, or email support@solstone.app saying you cancel.',
+  subscription: 'which subscription',
+  none: 'there is no paid subscription on this sign-in to cancel.',
+  pending: (name, date) => `${name}: already set to end on ${date}.`,
+  unavailable: (name) => `${name}: its details didn't load. reload to try again.`,
+  earliestOn: (date) => `earliest possible: ${date}`,
+  periodEndOn: (date) => `at the end of the paid period: ${date}`,
+  when: 'when it ends',
+  earliest: 'earliest possible',
+  periodEnd: 'at the end of the paid period',
+  next: 'continue',
+  errors: {
+    name: 'enter your name.',
+    subscription: 'choose a subscription to cancel.',
+    unavailable: "your subscription details didn't load. try again.",
+  },
+  summaryTitle: 'check your cancellation',
+  summaryLead: 'this is what you are sending. if anything is wrong, change it first.',
+  change: 'change something',
+  refund: 'refund',
+  refundLine: (amount) => `${amount}, for the whole months after the one you're in`,
+  doneTitle: 'your cancellation',
+  doneLead: 'we received your cancellation. save or print this page to keep it.',
+  received: 'we received it',
+  emailed: (address) => `we've emailed this to ${address}.`,
+  emailing: (address) => `we're emailing this to ${address}. it hasn't gone yet, and we'll keep trying.`,
+};
+
+function cancelContractLink(href) {
+  if (!href) return '';
+  return `\n<p style="margin-top:24px"><a class="btn secondary" href="${escAttr(href)}">${esc(CANCEL_CONTRACT_LABEL)}</a></p>`;
+}
+
+function cancelContractPage(menu, title, content, notice = '') {
+  return layout({
+    title,
+    body: `${topbar(menu)}
+<a class="back" href="/billing">${BACK_SVG} billing</a>
+${notice ? `<p class="notice">${esc(notice)}</p>` : ''}
+<div class="pagehead">
+  <h1>${esc(title)}</h1>
+</div>
+${content}`,
+  });
+}
+
+function cancelEndLine({ endsAt, atPeriodEnd }) {
+  const date = formatMomentUtc(endsAt);
+  return atPeriodEnd ? CANCEL_WORDS.periodEndOn(date) : CANCEL_WORDS.earliestOn(date);
+}
+
+// The declaration as a list: what the owner sent, and when we received it once we have.
+function cancelDeclarationList(d) {
+  const rows = [
+    [CANCEL_WORDS.name, d.name],
+    [CANCEL_WORDS.emailLabel, d.email || ''],
+    [CANCEL_WORDS.subscription, d.serviceName],
+    [CANCEL_WORDS.when, cancelEndLine(d)],
+    ...(d.refundAmount ? [[CANCEL_WORDS.refund, CANCEL_WORDS.refundLine(formatPlanPrice({ unitAmount: d.refundAmount }))]] : []),
+    ...(d.submittedAt != null ? [[CANCEL_WORDS.received, formatMomentUtc(Math.floor(d.submittedAt / 1000))]] : []),
+  ];
+  return rows.map(([label, value]) => `<p>${esc(`${label}: ${value}`)}</p>`).join('\n  ');
+}
+
+// The form: name, the sign-in's email (shown, not editable), which subscription, and when it ends.
+export function renderCancelContract({ menu, csrf, primaryEmail, choices, input = {}, error = '' }) {
+  const page = (content) => cancelContractPage(menu, CANCEL_WORDS.title, content, CANCEL_WORDS.errors[error] || '');
+  if (!primaryEmail) return page(`<p class="lead">${esc(CANCEL_WORDS.noEmail)}</p>`);
+  const offered = choices.filter((choice) => choice.offered);
+  const others = choices.filter((choice) => !choice.offered).map((choice) => `<p>${esc(choice.unavailable
+    ? CANCEL_WORDS.unavailable(choice.def.name)
+    : CANCEL_WORDS.pending(choice.def.name, formatMomentUtc(choice.endsAt)))}</p>`).join('\n  ');
+  if (!offered.length) return page(`<p class="lead">${esc(CANCEL_WORDS.none)}</p>${others ? `\n<div class="card">\n  ${others}\n</div>` : ''}`);
+
+  const selected = offered.some((choice) => choice.def.slug === input.slug) ? input.slug : (offered.length === 1 ? offered[0].def.slug : '');
+  const differs = (choice) => choice.earliest.endsAt !== choice.periodEnd.endsAt;
+  const single = offered.length === 1 ? offered[0] : null;
+  const subscriptionRows = offered.map((choice) => {
+    const dates = [CANCEL_WORDS.earliestOn(formatMomentUtc(choice.earliest.endsAt))];
+    if (differs(choice)) dates.push(CANCEL_WORDS.periodEndOn(formatMomentUtc(choice.periodEnd.endsAt)));
+    return `<label class="ack">
+      <input type="radio" name="service" value="${escAttr(choice.def.slug)}" required${choice.def.slug === selected ? ' checked' : ''}>
+      <span><strong>${esc(choice.def.name)}</strong> · ${esc(dates.join(' · '))}</span>
+    </label>`;
+  }).join('\n    ');
+  const endRows = offered.some(differs)
+    ? `<p>${esc(CANCEL_WORDS.when)}</p>
+    <label class="ack">
+      <input type="radio" name="end" value="earliest"${input.end === 'period_end' ? '' : ' checked'}>
+      <span>${esc(single ? CANCEL_WORDS.earliestOn(formatMomentUtc(single.earliest.endsAt)) : CANCEL_WORDS.earliest)}</span>
+    </label>
+    <label class="ack">
+      <input type="radio" name="end" value="period_end"${input.end === 'period_end' ? ' checked' : ''}>
+      <span>${esc(single ? CANCEL_WORDS.periodEndOn(formatMomentUtc(single.periodEnd.endsAt)) : CANCEL_WORDS.periodEnd)}</span>
+    </label>`
+    : '<input type="hidden" name="end" value="earliest">';
+  return page(`<p class="lead">${esc(CANCEL_WORDS.intro)}</p>
+<div class="card">
+  <form method="post" action="${escAttr(`${CANCEL_CONTRACT_PATH_HTML}/review`)}">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <label for="cancel-name">${esc(CANCEL_WORDS.name)}</label>
+    <input id="cancel-name" type="text" name="name" value="${escAttr(input.name || '')}" required maxlength="200" autocomplete="name">
+    <p>${esc(CANCEL_WORDS.email(primaryEmail))}</p>
+    <p>${esc(CANCEL_WORDS.subscription)}</p>
+    ${subscriptionRows}
+    ${endRows}
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn primary" type="submit">${esc(CANCEL_WORDS.next)}</button>
+    </div>
+  </form>
+  ${others}
+</div>`);
+}
+
+// The summary: everything entered, a way back to correct it, and one cancel button. Nothing else.
+export function renderCancelContractReview({ menu, csrf, statement, input, declaration }) {
+  return cancelContractPage(menu, CANCEL_WORDS.summaryTitle, `<div class="card">
+  <p>${esc(CANCEL_WORDS.summaryLead)}</p>
+  ${cancelDeclarationList(declaration)}
+  <form method="post" action="${escAttr(CANCEL_CONTRACT_PATH_HTML)}">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="name" value="${escAttr(input.name)}">
+    <input type="hidden" name="service" value="${escAttr(input.slug)}">
+    <input type="hidden" name="end" value="${escAttr(input.end)}">
+    <button class="btn secondary" type="submit">${esc(CANCEL_WORDS.change)}</button>
+  </form>
+  <form method="post" action="${escAttr(`${CANCEL_CONTRACT_PATH_HTML}/confirm`)}">
+    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="statement" value="${escAttr(statement)}">
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn danger" type="submit">${esc(CANCEL_NOW_LABEL)}</button>
+    </div>
+  </form>
+</div>`);
+}
+
+// The done page: the whole declaration, to save or print, and whether its email has gone.
+export function renderCancelContractDone({ menu, declaration, emailed }) {
+  return cancelContractPage(menu, CANCEL_WORDS.doneTitle, `<div class="card">
+  <p class="lead">${esc(CANCEL_WORDS.doneLead)}</p>
+  ${cancelDeclarationList(declaration)}
+  <p>${esc(emailed ? CANCEL_WORDS.emailed(declaration.email) : CANCEL_WORDS.emailing(declaration.email || ''))}</p>
 </div>`);
 }
 

@@ -554,6 +554,30 @@ CREATE TABLE IF NOT EXISTS subscription_start_requests (
 CREATE INDEX IF NOT EXISTS idx_subscription_start_requests_account_id
   ON subscription_start_requests(account_id);
 
+-- A cancellation declared through the cancel function, one row per declaration (see migration 0050).
+CREATE TABLE IF NOT EXISTS subscription_cancellations (
+  subscription_ref TEXT NOT NULL CHECK (substr(subscription_ref, 1, 4) = 'sub_' AND length(subscription_ref) > 4),
+  issued_at INTEGER NOT NULL,
+  account_id TEXT NOT NULL,
+  service TEXT NOT NULL CHECK (service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted')),
+  name TEXT NOT NULL,
+  ends_at INTEGER NOT NULL,
+  at_period_end INTEGER NOT NULL CHECK (at_period_end IN (0, 1)),
+  refund_invoice_ref TEXT UNIQUE CHECK (refund_invoice_ref IS NULL OR (substr(refund_invoice_ref, 1, 3) = 'in_' AND length(refund_invoice_ref) > 3)),
+  refund_amount INTEGER CHECK ((refund_invoice_ref IS NULL AND refund_amount IS NULL) OR (refund_invoice_ref IS NOT NULL AND refund_amount > 0)),
+  submitted_at INTEGER NOT NULL,
+  refunded_at INTEGER,
+  completed_at INTEGER,
+  acknowledged_at INTEGER,
+  failure_alerted_at INTEGER,
+  stuck_alerted_at INTEGER,
+  PRIMARY KEY (subscription_ref, issued_at),
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscription_cancellations_account_id
+  ON subscription_cancellations(account_id);
+
 CREATE TABLE IF NOT EXISTS solstone_me_dns_capacity_alerts (
   slot TEXT PRIMARY KEY CHECK (slot = 'capacity'),
   alerted_at INTEGER NOT NULL

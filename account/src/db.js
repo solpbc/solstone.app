@@ -2345,3 +2345,104 @@ export async function attachSubscriptionStartRequest(db, { checkoutSessionRef, a
     .bind(subscriptionRef, checkoutSessionRef, accountId)
     .run();
 }
+
+// A declared cancellation, recorded once per summary page. A second confirm of the same page finds
+// the first row. The refund rides the row only while no other declaration has claimed that renewal
+// invoice's refund: one cancel refund per renewal invoice, ever, so a later declaration that would
+// claim it again is recorded without one.
+export async function claimSubscriptionCancellation(db, {
+  subscriptionRef, issuedAt, accountId, service, name, endsAt, atPeriodEnd, refundInvoiceRef, refundAmount, nowMs,
+}) {
+  const insert = (invoiceRef, amount) => db
+    .prepare(
+      `INSERT INTO subscription_cancellations (
+         subscription_ref, issued_at, account_id, service, name, ends_at, at_period_end,
+         refund_invoice_ref, refund_amount, submitted_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT DO NOTHING`
+    )
+    .bind(subscriptionRef, issuedAt, accountId, service, name, endsAt, atPeriodEnd ? 1 : 0, invoiceRef, amount, nowMs)
+    .run();
+  await insert(refundInvoiceRef || null, refundInvoiceRef ? refundAmount : null);
+  let row = await getSubscriptionCancellation(db, { subscriptionRef, issuedAt });
+  if (!row && refundInvoiceRef) {
+    await insert(null, null);
+    row = await getSubscriptionCancellation(db, { subscriptionRef, issuedAt });
+  }
+  return row;
+}
+
+const CANCELLATION_COLUMNS = `subscription_ref, issued_at, account_id, service, name, ends_at, at_period_end,
+              refund_invoice_ref, refund_amount, submitted_at, refunded_at, completed_at, acknowledged_at,
+              failure_alerted_at, stuck_alerted_at`;
+
+export async function getSubscriptionCancellation(db, { subscriptionRef, issuedAt }) {
+  return db
+    .prepare(`SELECT ${CANCELLATION_COLUMNS} FROM subscription_cancellations WHERE subscription_ref = ? AND issued_at = ?`)
+    .bind(subscriptionRef, issuedAt)
+    .first();
+}
+
+// Whether a renewal invoice's months-left refund has already been claimed by a declaration.
+export async function isCancellationRefundClaimed(db, refundInvoiceRef) {
+  const row = await db
+    .prepare('SELECT 1 FROM subscription_cancellations WHERE refund_invoice_ref = ?')
+    .bind(refundInvoiceRef)
+    .first();
+  return Boolean(row);
+}
+
+// The newest declaration on this sign-in whose Stripe change has not landed yet, per subscription:
+// such a subscription is cancel-pending even before Stripe says so.
+export async function listUnfinishedCancellationsFor(db, { accountId }) {
+  const { results } = await db
+    .prepare(
+      `SELECT ${CANCELLATION_COLUMNS} FROM subscription_cancellations
+       WHERE account_id = ? AND completed_at IS NULL
+       ORDER BY submitted_at DESC`
+    )
+    .bind(accountId)
+    .all();
+  return results || [];
+}
+
+export async function markSubscriptionCancellation(db, { subscriptionRef, issuedAt, column, nowMs }) {
+  if (column !== 'refunded_at' && column !== 'completed_at') throw new Error('unknown cancellation mark');
+  await db
+    .prepare(`UPDATE subscription_cancellations SET ${column} = ? WHERE subscription_ref = ? AND issued_at = ? AND ${column} IS NULL`)
+    .bind(nowMs, subscriptionRef, issuedAt)
+    .run();
+}
+
+// Claims a send (`acknowledged_at`) or one of the two person-alerts; true once. The caller
+// releases a claim whose send failed.
+export async function claimSubscriptionCancellationSend(db, { subscriptionRef, issuedAt, column, nowMs }) {
+  if (!['acknowledged_at', 'failure_alerted_at', 'stuck_alerted_at'].includes(column)) throw new Error('unknown cancellation send');
+  const result = await db
+    .prepare(`UPDATE subscription_cancellations SET ${column} = ? WHERE subscription_ref = ? AND issued_at = ? AND ${column} IS NULL`)
+    .bind(nowMs, subscriptionRef, issuedAt)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function releaseSubscriptionCancellationSend(db, { subscriptionRef, issuedAt, column, nowMs }) {
+  if (!['acknowledged_at', 'failure_alerted_at', 'stuck_alerted_at'].includes(column)) throw new Error('unknown cancellation send');
+  await db
+    .prepare(`UPDATE subscription_cancellations SET ${column} = NULL WHERE subscription_ref = ? AND issued_at = ? AND ${column} = ?`)
+    .bind(subscriptionRef, issuedAt, nowMs)
+    .run();
+}
+
+// Declarations still owed a Stripe change, a refund or their email, oldest first.
+export async function selectUnfinishedSubscriptionCancellations(db, { submittedAfterMs, limit = 50 }) {
+  const { results } = await db
+    .prepare(
+      `SELECT ${CANCELLATION_COLUMNS} FROM subscription_cancellations
+       WHERE (completed_at IS NULL OR acknowledged_at IS NULL) AND submitted_at > ?
+       ORDER BY submitted_at ASC
+       LIMIT ?`
+    )
+    .bind(submittedAfterMs, limit)
+    .all();
+  return results || [];
+}

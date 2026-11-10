@@ -22,6 +22,7 @@ describe('static source checks', () => {
       'assets.js',
       'billing-page.js',
       'billing.js',
+      'cancel-contract.js',
       'credential-change.js',
       'crypto.js',
       'db.js',

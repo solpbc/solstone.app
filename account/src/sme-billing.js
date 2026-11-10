@@ -23,6 +23,7 @@ import {
   termsAssentRequired,
 } from './stripe.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
+import { cancelContractHref, cancelContractRedirect } from './cancel-contract.js';
 import { billingView } from './withdrawal.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
@@ -49,6 +50,7 @@ export async function handleServicesSme(req, env) {
   return signedInHtml(renderServicesSme({
     entitlement,
     ...await billingView(env, entitlement),
+    cancelContract: cancelContractHref(env, 'solstone-me'),
     startNowBox: withdrawalOn(env),
     csrf,
     flash: {
@@ -147,6 +149,8 @@ export async function handleSmePortal(req, env) {
 }
 
 export async function handleSmeCancel(req, env) {
+  const moved = cancelContractRedirect(env, 'solstone-me');
+  if (moved) return moved;
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;

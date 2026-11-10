@@ -20,6 +20,7 @@ import {
   termsAssentRequired,
 } from './stripe.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
+import { cancelContractHref, cancelContractRedirect } from './cancel-contract.js';
 import { billingView } from './withdrawal.js';
 import { SPB_HOSTED_SERVICE as SERVICE } from './spb-entitlement.js';
 
@@ -44,6 +45,7 @@ export async function handleServicesSpb(req, env) {
   return signedInHtml(renderServicesSpb({
     entitlement,
     ...await billingView(env, entitlement),
+    cancelContract: cancelContractHref(env, 'backup'),
     startNowBox: withdrawalOn(env),
     csrf,
     flash: {
@@ -142,6 +144,8 @@ export async function handleSpbPortal(req, env) {
 }
 
 export async function handleSpbCancel(req, env) {
+  const moved = cancelContractRedirect(env, 'backup');
+  if (moved) return moved;
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;

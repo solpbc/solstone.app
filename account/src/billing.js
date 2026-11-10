@@ -34,6 +34,8 @@ import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
 import { reconcileSppEntitlement } from './spp-entitlement.js';
 import { notifySubscriptionCreated } from './subscription-created.js';
+import { cancelContractHref, cancelContractRedirect } from './cancel-contract.js';
+import { subscriptionRulesOn } from './subscription-rules.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
 import { billingView } from './withdrawal.js';
 
@@ -67,6 +69,7 @@ export async function handleServicesSpl(req, env) {
     entitlement,
     ...await billingView(env, entitlement),
     startNowBox: withdrawalOn(env),
+    cancelContract: cancelContractHref(env, 'private-network'),
     csrf,
     flash: {
       checkout: url.searchParams.get('checkout') || '',
@@ -161,6 +164,8 @@ export async function handleBillingPortal(req, env) {
 }
 
 export async function handleBillingCancel(req, env) {
+  const moved = cancelContractRedirect(env, 'private-network');
+  if (moved) return moved;
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
@@ -291,10 +296,9 @@ async function handleCheckoutCompleted(env, obj, nowMs, ctx) {
   await reconcileForService(tag, env, accountId, nowMs, ctx, {
     paid: {
       status: 'active',
-      currentPeriodEnd: subscriptionPeriodEnd(subscription),
+      ...paidEnd(env, subscription),
       source: SOURCE,
       sourceRef: subscription.id,
-      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     },
   });
   if (tag) {
@@ -332,10 +336,9 @@ export async function reconcileSubscription(env, accountId, obj, nowMs, ctx) {
     ? null
     : {
         status,
-        currentPeriodEnd: subscriptionPeriodEnd(obj),
+        ...paidEnd(env, obj),
         source: SOURCE,
         sourceRef: obj?.id || null,
-        cancelAtPeriodEnd: Boolean(obj?.cancel_at_period_end),
       };
   const tag = serviceTag(obj);
   await reconcileForService(tag, env, accountId, nowMs, ctx, { paid });
@@ -391,10 +394,9 @@ async function handleInvoicePaid(env, obj, nowMs, ctx) {
   await reconcileForService(tag, env, accountId, nowMs, ctx, {
     paid: {
       status: 'active',
-      currentPeriodEnd: subscriptionPeriodEnd(subscription),
+      ...paidEnd(env, subscription),
       source: SOURCE,
       sourceRef: subscription.id,
-      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     },
   });
   await maybeSendSubscriptionAck(env, {
@@ -420,6 +422,17 @@ async function handleInvoicePaymentFailed(env, obj, nowMs, ctx) {
       sourceRef: null,
     },
   });
+}
+
+// How far a subscription is paid and whether a cancel is pending. With the subscription rules on,
+// a subscription set to cancel at a moment (cancel_at), as a cancel in a renewed annual year is, is
+// cancel-pending too, and is paid through that moment where it comes before the period's end. With
+// them off, only an at-period-end cancel counts, as before.
+function paidEnd(env, sub) {
+  const periodEnd = subscriptionPeriodEnd(sub);
+  const atPeriodEnd = Boolean(sub?.cancel_at_period_end);
+  if (!subscriptionRulesOn(env) || !Number.isInteger(sub?.cancel_at)) return { currentPeriodEnd: periodEnd, cancelAtPeriodEnd: atPeriodEnd };
+  return { currentPeriodEnd: Number.isInteger(periodEnd) ? Math.min(periodEnd, sub.cancel_at) : sub.cancel_at, cancelAtPeriodEnd: true };
 }
 
 function mapSubscriptionStatus(status) {

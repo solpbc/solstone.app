@@ -21,6 +21,7 @@ import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { SPP_SERVICE_PATH, sppOnSale } from './spp-service.js';
 import { createPortalSession, readSubscriptionPlan } from './stripe.js';
+import { cancelContractHref } from './cancel-contract.js';
 import { billingEntryView } from './withdrawal.js';
 
 const BILLING_PATH = '/billing';
@@ -77,6 +78,7 @@ export async function handleBilling(req, env) {
     flash: { billing: url.searchParams.get('billing') || '' },
     menu,
     nowSeconds,
+    cancelContract: cancelContractHref(env),
   }));
 }
 

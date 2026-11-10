@@ -25,6 +25,7 @@ import {
   termsAssentRequired,
 } from './stripe.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
+import { cancelContractHref, cancelContractRedirect } from './cancel-contract.js';
 import { billingView } from './withdrawal.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
@@ -52,6 +53,7 @@ export async function handleServicesSpp(req, env) {
     serving: isSppEntitledToServe(entitlement, Math.floor(nowMs / 1000), env),
     journals: entitlement?.source === 'stripe' ? journals : [],
     ...await billingView(env, entitlement),
+    cancelContract: cancelContractHref(env, 'confidential-processing'),
     onSale,
     startNowBox: withdrawalOn(env),
     csrf,
@@ -161,6 +163,8 @@ export async function handleSppPortal(req, env) {
 // Its own cancel door: Stripe's cancel flow for this subscription, which ends it at the end of
 // the paid period.
 export async function handleSppCancel(req, env) {
+  const moved = cancelContractRedirect(env, 'confidential-processing');
+  if (moved) return moved;
   if (!originAllowed(req)) return noStore(forbidden());
   const guard = await requireSignedInSession(req, env);
   if (guard instanceof Response) return guard;
