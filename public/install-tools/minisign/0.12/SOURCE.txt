@@ -1,0 +1,14 @@
+Minisign 0.12, unmodified Linux binaries from the upstream release
+https://github.com/jedisct1/minisign/releases/tag/0.12
+
+Release source commit: b85e15d45ac9eab34e44596fd309f5b07db9545c
+Release archive: minisign-0.12-linux.tar.gz
+SHA256: 9a599b48ba6eb7b1e80f12f36b94ceca7c00b7a5173c95c3efc88d9822957e73
+
+The archive was verified against minisign-0.12-linux.tar.gz.minisig and
+the upstream release key in the Minisign README:
+RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3
+
+The ELF compiler metadata identifies Zig bootstrap
+1ad232c5a2e1ebbdad2cfbb86ad8fe7f73c7e4d4. The executables are static
+and contain libsodium. License notices are in licenses/.
