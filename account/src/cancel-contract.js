@@ -114,7 +114,9 @@ async function loadChoice(env, accountId, def, nowSeconds) {
   const subscriptionRef = entitlement.source_ref;
   const declared = unfinished.find((row) => row.subscription_ref === subscriptionRef);
   if (declared || entitlement.cancel_at_period_end) {
-    return { def, subscriptionRef, offered: false, endsAt: declared ? declared.ends_at : entitlement.current_period_end };
+    // The last day of service, as the confirmation email gives it.
+    const endsAt = declared ? declared.ends_at : entitlement.current_period_end;
+    return { def, subscriptionRef, offered: false, endDate: lastServiceDay(endsAt, declared?.ends_today === 1) };
   }
   const unavailable = { def, subscriptionRef, offered: false, unavailable: true };
   let sub = null;
@@ -537,7 +539,7 @@ function emailView(env, record, def, email, statement, plan, nowMs) {
 }
 
 // The confirmation email, in the approved wording. Each paragraph is a list of parts: plain text,
-// or { b } bold, or { i } italic; branches that don't apply are left out.
+// or { b } bold, or { i } italic (quoted in the text part); branches that don't apply are left out.
 const EMAIL_WORDS = {
   subject: (v) => `your ${v.serviceName} subscription ends on ${v.endDate}`,
   heading: (v) => `${v.serviceName} ends on ${v.endDate}`,
@@ -566,7 +568,8 @@ const EMAIL_WORDS = {
   signoff: 'sol pbc',
 };
 
-const partText = (part) => (typeof part === 'string' ? part : (part.b ?? part.i));
+// Plain text has no italic, so an italic label is quoted there instead.
+const partText = (part) => (typeof part === 'string' ? part : part.b ?? `"${part.i}"`);
 const partHtml = (part) => (typeof part === 'string' ? esc(part) : part.b != null ? `<strong>${esc(part.b)}</strong>` : `<em>${esc(part.i)}</em>`);
 
 export function renderCancellationEmail(v) {

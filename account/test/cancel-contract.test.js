@@ -205,7 +205,9 @@ describe('the cancel function', () => {
       const { session } = await subscriber(testEnv, { cancelAtPeriodEnd: true, periodEnd: NOW_S + 20 * DAY });
       fakeStripe({});
       const form = await (await get(`${PATH}?service=private-network`, testEnv, session.cookie)).text();
-      expect(form).toContain(formatMomentUtc(NOW_S + 20 * DAY));
+      // The last day of service, as the email gives it: the stored end minus a day, with no time.
+      expect(form).toContain(`private network: already set to end on ${formatLongDate(NOW_S + 19 * DAY)}.`);
+      expect(form).not.toContain(formatMomentUtc(NOW_S + 20 * DAY));
       expect(form).not.toContain('name="type"');
       const review = await (await post(`${PATH}/review`, testEnv, { service: 'private-network' }, session.cookie)).text();
       expect(review).not.toContain('name="statement"');
@@ -457,7 +459,7 @@ describe('the cancel function', () => {
       const { session } = await subscriber(testEnv);
       fakeStripe({ renewed: false, start: NOW_S - daysAgo * DAY });
       await confirm(testEnv, session);
-      const line = `you can still withdraw for a full refund until the end of the 14th day after ${formatLongDate(NOW_S - daysAgo * DAY)}, with withdraw from contract here.`;
+      const line = `you can still withdraw for a full refund until the end of the 14th day after ${formatLongDate(NOW_S - daysAgo * DAY)}, with "withdraw from contract here".`;
       expect(testEnv.EMAIL.sent[0].text.includes(line)).toBe(shown);
       expect(testEnv.EMAIL.sent[0].html.includes('with <em>withdraw from contract here</em>.')).toBe(shown);
     });
@@ -468,7 +470,7 @@ describe('the cancel function', () => {
       const renewal = NOW_S - 3 * DAY;
       fakeStripe({ renewed: true, renewal, paidAt: renewal + DAY });
       await confirm(testEnv, session);
-      expect(testEnv.EMAIL.sent[0].text).toContain(`until the end of the 14th day after ${formatLongDate(renewal + DAY)}, with withdraw from contract here.`);
+      expect(testEnv.EMAIL.sent[0].text).toContain(`until the end of the 14th day after ${formatLongDate(renewal + DAY)}, with "withdraw from contract here".`);
     });
   });
 
@@ -531,8 +533,11 @@ describe('the cancel function', () => {
       expect(alert.text).not.toMatch(/sub_|cus_|in_renewal|outage@|Ada/);
       const lookup = alert.text.match(/^npx wrangler d1 execute account-portal --remote --command "(.+)"$/m)[1];
       expect((await workerEnv.DB.prepare(lookup).all()).results).toEqual([expect.objectContaining({ subscription_ref: 'sub_c1', stripe_customer_id: 'cus_c1' })]);
-      // A pending declaration is not offered again.
-      expect(await (await get(`${PATH}?service=private-network`, testEnv, session.cookie)).text()).not.toContain('name="type"');
+      // A pending declaration is not offered again, and shows the date its email gave.
+      const pending = await (await get(`${PATH}?service=private-network`, testEnv, session.cookie)).text();
+      expect(pending).not.toContain('name="type"');
+      expect(pending).toContain(`private network: already set to end on ${formatLongDate(MONTH_END - DAY)}.`);
+      expect(mail.subject).toBe(`your private network subscription ends on ${formatLongDate(MONTH_END - DAY)}`);
 
       await runScheduled(testEnv);
       expect(testEnv.EMAIL.sent).toHaveLength(2);
