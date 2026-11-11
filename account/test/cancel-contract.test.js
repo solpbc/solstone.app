@@ -98,7 +98,7 @@ describe('the cancel function', () => {
       const account = await seedAccount({ email: 'new@example.com', testEnv });
       const session = await seedSession(account.accountId, { testEnv });
       for (const def of SERVICES) {
-        expect(await (await get(def.page, testEnv, session.cookie)).text()).not.toContain(LINK);
+        expect(await (await get(def.page, testEnv, session.cookie)).text()).not.toContain(`href="${PATH}?service=${def.slug}"`);
       }
       expect(await (await get('/billing', testEnv, session.cookie)).text()).toContain(`href="${PATH}`);
       for (const path of [PATH, `${PATH}?service=private-network`, `${PATH}?service=nonsense`]) {

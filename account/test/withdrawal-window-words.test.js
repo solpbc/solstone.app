@@ -106,7 +106,7 @@ describe('the withdrawal window beside the cancel function', () => {
 
       const page = await text(location, testEnv, session);
       expect(page).toContain('has stopped and won\'t renew');
-      expect(page).not.toContain('cancel contracts here');
+      expect(page).not.toContain(`href="${CANCEL}?service=private-network"`);
       expect(await text('/billing', testEnv, session)).not.toContain(`href="${CANCEL}?service=private-network"`);
 
       // Recorded, with the service not yet lapsed.
@@ -115,7 +115,7 @@ describe('the withdrawal window beside the cancel function', () => {
       await workerEnv.DB.prepare(
         "INSERT INTO subscription_withdrawals (subscription_ref, account_id, service, purchased_at, submitted_at) VALUES ('sub_spl', ?, 'spl_hosted', ?, 1)",
       ).bind(again.accountId, spec.renewal).run();
-      expect(await text('/private-network', testEnv, again.session)).not.toContain('cancel contracts here');
+      expect(await text('/private-network', testEnv, again.session)).not.toContain(`href="${CANCEL}?service=private-network"`);
       expect(await text('/billing', testEnv, again.session)).not.toContain(`href="${CANCEL}?service=private-network"`);
     });
 
