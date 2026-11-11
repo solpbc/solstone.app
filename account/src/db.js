@@ -2352,19 +2352,19 @@ export async function attachSubscriptionStartRequest(db, { checkoutSessionRef, a
 // claim it again is recorded without one. Neither the name an owner may type nor a serious
 // reason is ever stored.
 export async function claimSubscriptionCancellation(db, {
-  subscriptionRef, issuedAt, accountId, service, cause, endsToday, planAmount, planInterval,
+  subscriptionRef, issuedAt, accountId, service, cause, endsToday,
   endsAt, atPeriodEnd, refundInvoiceRef, refundAmount, refundMonths, windowAt, nowMs,
 }) {
   const insert = (invoiceRef, amount, months) => db
     .prepare(
       `INSERT INTO subscription_cancellations (
-         subscription_ref, issued_at, account_id, service, cause, ends_today, plan_amount, plan_interval,
+         subscription_ref, issued_at, account_id, service, cause, ends_today,
          ends_at, at_period_end, refund_invoice_ref, refund_amount, refund_months, window_at, submitted_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT DO NOTHING`
     )
     .bind(
-      subscriptionRef, issuedAt, accountId, service, cause ? 1 : 0, endsToday ? 1 : 0, planAmount, planInterval,
+      subscriptionRef, issuedAt, accountId, service, cause ? 1 : 0, endsToday ? 1 : 0,
       endsAt, atPeriodEnd ? 1 : 0, invoiceRef, amount, months, windowAt ?? null, nowMs,
     )
     .run();
@@ -2377,7 +2377,7 @@ export async function claimSubscriptionCancellation(db, {
   return row;
 }
 
-const CANCELLATION_COLUMNS = `subscription_ref, issued_at, account_id, service, cause, ends_today, plan_amount, plan_interval,
+const CANCELLATION_COLUMNS = `subscription_ref, issued_at, account_id, service, cause, ends_today,
               ends_at, at_period_end, refund_invoice_ref, refund_amount, refund_months, window_at,
               submitted_at, refunded_at, completed_at, acknowledged_at, failure_alerted_at, stuck_alerted_at`;
 
@@ -2386,6 +2386,17 @@ export async function getSubscriptionCancellation(db, { subscriptionRef, issuedA
     .prepare(`SELECT ${CANCELLATION_COLUMNS} FROM subscription_cancellations WHERE subscription_ref = ? AND issued_at = ?`)
     .bind(subscriptionRef, issuedAt)
     .first();
+}
+
+// Whether a declared cancellation ended this subscription the day it was made. Such a
+// subscription stays ended, whatever Stripe reports before its cancel lands, as a withdrawn one does.
+export async function isSubscriptionEndedToday(db, subscriptionRef) {
+  if (typeof subscriptionRef !== 'string' || !subscriptionRef) return false;
+  const row = await db
+    .prepare('SELECT 1 FROM subscription_cancellations WHERE subscription_ref = ? AND ends_today = 1')
+    .bind(subscriptionRef)
+    .first();
+  return Boolean(row);
 }
 
 // Whether a renewal invoice's months-left refund has already been claimed by a declaration.

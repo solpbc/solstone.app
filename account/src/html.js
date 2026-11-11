@@ -2987,7 +2987,7 @@ export function renderCancelContract({ menu, csrf, primaryEmail, choice, view = 
 </div>`);
   }
   const cause = input.type === 'cause';
-  const end = cause && input.end === 'today' ? 'today' : (view.yearEndDate && input.end === 'period_end' ? 'period_end' : 'earliest');
+  const end = cause && input.end === 'today' && !view.earliestToday ? 'today' : (view.yearEndDate && input.end === 'period_end' ? 'period_end' : 'earliest');
   const radio = (value, extra = '') => `<input type="radio" name="end" value="${value}"${end === value ? ' checked' : ''}${extra}>`;
   const earliestNote = view.refund
     ? CANCEL_WORDS.keepsRenewed(def.name, view.refundMonths, view.refund)
@@ -3019,11 +3019,11 @@ export function renderCancelContract({ menu, csrf, primaryEmail, choice, view = 
         ${radio('period_end')}
         <span>${esc(CANCEL_WORDS.yearEnd(view.yearEndDate))}</span>
       </label>` : ''}
-      <label class="ack cc-if-cause">
+      ${view.earliestToday ? '' : `<label class="ack cc-if-cause">
         ${radio('today')}
         <span>${esc(CANCEL_WORDS.today)}</span>
       </label>
-      <p class="cc-note cc-if-cause">${esc(todayNote)}</p>
+      <p class="cc-note cc-if-cause">${esc(todayNote)}</p>`}
     </div>
     <div class="btn-row" style="margin-top:16px">
       <button class="btn primary" type="submit">${esc(CANCEL_WORDS.next)}</button>

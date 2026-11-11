@@ -90,6 +90,17 @@ function lastServiceDay(endsAt, today = false) {
   return formatLongDate(today ? endsAt : endsAt - DAY);
 }
 
+// The plan as Stripe has it, or null when it can't be read: a resend then waits for the next pass.
+async function readPlan(env, subscriptionRef) {
+  try {
+    const sub = await getSubscription(env, subscriptionRef);
+    return sub?.id === subscriptionRef ? subscriptionPlan(sub) : null;
+  } catch {
+    console.warn('stripe_plan_read_failed');
+    return null;
+  }
+}
+
 // The one paid subscription a page is for: offered (with its plan, when a cancel would end it, the
 // refund in a renewed year, and an open withdrawal window), already set to end (with its date),
 // or unavailable when its details didn't load. null when the sign-in has no paid subscription to
@@ -126,14 +137,20 @@ async function loadChoice(env, accountId, def, nowSeconds) {
       return unavailable;
     }
   }
+  const renewal = ends.renewal != null ? renewalInvoice(invoices || [], ends.renewal) : null;
+  // A renewed year whose renewal is unpaid, while Stripe retries it, has paid for nothing past
+  // today: it ends today, so a retry that succeeds later can't charge for a year it won't give.
+  // Ending the subscription stops Stripe collecting its open invoice.
+  const earliest = ends.renewal != null && !renewal
+    ? { endsAt: nowSeconds, atPeriodEnd: false, monthsLeft: 0, today: true }
+    : ends.earliest;
   // The whole months after the current plan month, refunded on a cancel that ends at its end or
   // today: only in a renewed year, with a paid renewal whose refund no declaration has claimed.
   let refund = null;
-  if (ends.renewal != null && !ends.earliest.atPeriodEnd && ends.earliest.monthsLeft > 0) {
-    const invoice = renewalInvoice(invoices || [], ends.renewal);
-    const amount = invoice ? monthsLeftRefund(invoice.amount_paid, ends.earliest.monthsLeft) : 0;
-    if (amount > 0 && !await isCancellationRefundClaimed(env.DB, invoice.id)) {
-      refund = { invoiceRef: invoice.id, amount, months: ends.earliest.monthsLeft };
+  if (renewal && !earliest.atPeriodEnd && earliest.monthsLeft > 0) {
+    const amount = monthsLeftRefund(renewal.amount_paid, earliest.monthsLeft);
+    if (amount > 0 && !await isCancellationRefundClaimed(env.DB, renewal.id)) {
+      refund = { invoiceRef: renewal.id, amount, months: earliest.monthsLeft };
     }
   }
   const windowStart = withdrawalWindowStart(env, sub, invoices);
@@ -143,7 +160,7 @@ async function loadChoice(env, accountId, def, nowSeconds) {
     offered: true,
     plan,
     purchasedAt,
-    earliest: ends.earliest,
+    earliest,
     periodEnd: ends.periodEnd,
     refund,
     windowAt: windowShown(env, windowStart, nowSeconds) ? windowStart : null,
@@ -163,8 +180,10 @@ function formView(choice) {
     price: formatPrice(choice.plan.unitAmount),
     interval: choice.plan.interval,
     purchaseDate: formatLongDate(choice.purchasedAt),
-    earliestDate: lastServiceDay(choice.earliest.endsAt),
+    earliestDate: lastServiceDay(choice.earliest.endsAt, choice.earliest.today),
     earliestIsPeriodEnd: choice.earliest.atPeriodEnd,
+    // When the earliest end is already today, there is no separate "today" to offer.
+    earliestToday: Boolean(choice.earliest.today),
     refund: choice.refund ? formatPrice(choice.refund.amount) : null,
     refundMonths: choice.refund?.months ?? null,
     // The year-end option only when there is a month to refund.
@@ -241,7 +260,7 @@ export async function handleCancelContractReview(req, env) {
   if (input.type === 'cause' && !input.reason) return renderForm(env, guard, choice, input, { focusReason: true });
 
   const cause = input.type === 'cause';
-  const today = cause && input.end === 'today';
+  const today = Boolean(choice.earliest.today) || (cause && input.end === 'today');
   const yearEnd = !today && input.end === 'period_end' && choice.refund != null;
   const ends = today
     ? { endsAt: nowSeconds, atPeriodEnd: false }
@@ -295,7 +314,6 @@ export async function handleCancelContractConfirm(req, env, ctx) {
   // A second press of the same summary finds the first declaration.
   let record = await getSubscriptionCancellation(env.DB, { subscriptionRef: statement.subscriptionRef, issuedAt: statement.issuedAt });
   if (record && record.account_id !== accountId) return signedInRedirect(CANCEL_CONTRACT_PATH);
-  let fresh = false;
   if (!record) {
     // Checked against what we hold, with no Stripe call, so an outage still records the cancel: the
     // subscription is still this service's, has no cancel pending, and the end has not passed.
@@ -316,8 +334,6 @@ export async function handleCancelContractConfirm(req, env, ctx) {
       service: def.service,
       cause: statement.cause,
       endsToday: statement.today,
-      planAmount: statement.planAmount,
-      planInterval: statement.planInterval,
       endsAt: statement.endsAt,
       atPeriodEnd: statement.atPeriodEnd,
       refundInvoiceRef: statement.refundInvoiceRef,
@@ -327,11 +343,10 @@ export async function handleCancelContractConfirm(req, env, ctx) {
       nowMs,
     });
     if (!record || record.account_id !== accountId) return signedInRedirect(CANCEL_CONTRACT_PATH);
-    fresh = true;
     await logCancellation(env, 'cancellation_recorded', record);
   }
 
-  const outcome = await completeCancellation(env, ctx, record, { nowMs, statement, openTicket: fresh });
+  const outcome = await completeCancellation(env, ctx, record, { nowMs, statement });
   const [menu, email] = await Promise.all([loadMenuContext(env, accountId, nowMs), resolvePrimaryAddress(env, accountId)]);
   return signedInHtml(renderCancelContractDone({
     menu,
@@ -362,9 +377,9 @@ function summaryView(def, d, email) {
 // Finishes a recorded declaration, as far as it has not got yet. Safe to run again at any point:
 // the email is claimed before it is sent, setting the same end at Stripe again changes nothing,
 // and the refund is marked once made and carries an idempotency key naming its invoice. At the
-// confirm, `statement` carries the name and reason for the email, and a fresh cancel for a
-// serious reason opens its support request.
-export async function completeCancellation(env, ctx, record, { nowMs = Date.now(), statement = null, openTicket = false } = {}) {
+// confirm, `statement` carries the name and reason for the email and a cancel for a serious
+// reason's support request.
+export async function completeCancellation(env, ctx, record, { nowMs = Date.now(), statement = null } = {}) {
   const def = byService(record.service);
   if (!def) return { completed: false, acknowledged: false };
   const subscriptionRef = record.subscription_ref;
@@ -375,8 +390,9 @@ export async function completeCancellation(env, ctx, record, { nowMs = Date.now(
   let acknowledged = record.acknowledged_at != null;
   if (!acknowledged) acknowledged = await sendConfirmation(env, record, def, nowMs, statement);
 
-  // 2 · a cancel for a serious reason: its reason goes to support, once.
-  if (openTicket && record.cause === 1 && statement?.reason) await openCauseTicket(env, record, def, statement);
+  // 2 · a cancel for a serious reason: its reason goes to support. Tried on every press of the
+  // summary, since only the statement carries the reason; the request's key opens it once.
+  if (record.cause === 1 && statement?.reason) await openCauseTicket(env, record, def, statement);
 
   // 3 · a cancel that ends today ends the service now, as a withdrawal does; then the end at
   // Stripe, then the refund of the whole months left, checked against Stripe first.
@@ -452,6 +468,8 @@ async function openCauseTicket(env, record, def, statement) {
     await logCancellation(env, 'cancellation_ticket_opened', record);
     return;
   }
+  // Opened and acknowledged by an earlier press.
+  if (result.classification === 'operationRetired') return;
   await logCancellation(env, 'cancellation_ticket_failed', record, { classification: result.classification ?? null });
   const subject = `a cancellation for a serious reason did not reach support: ${def.name}`;
   const text = [
@@ -472,11 +490,17 @@ async function openCauseTicket(env, record, def, statement) {
 async function sendConfirmation(env, record, def, nowMs, statement) {
   const key = { subscriptionRef: record.subscription_ref, issuedAt: record.issued_at };
   const email = await resolvePrimaryAddress(env, record.account_id);
-  if (!email || !formatPrice(record.plan_amount) || !record.plan_interval) {
-    await logCancellation(env, 'cancellation_email_skipped', record, { reason: email ? 'no_plan' : 'no_email' });
+  if (!email) {
+    await logCancellation(env, 'cancellation_email_skipped', record, { reason: 'no_email' });
     return false;
   }
-  const rendered = renderCancellationEmail(emailView(env, record, def, email, statement, nowMs));
+  // The plan the summary showed or, on a resend, the plan as Stripe has it; the row keeps no price.
+  const plan = statement ? { unitAmount: statement.planAmount, interval: statement.planInterval } : await readPlan(env, record.subscription_ref);
+  if (!plan) {
+    await logCancellation(env, 'cancellation_email_skipped', record, { reason: 'no_plan' });
+    return false;
+  }
+  const rendered = renderCancellationEmail(emailView(env, record, def, email, statement, plan, nowMs));
   if (!await claimSubscriptionCancellationSend(env.DB, { ...key, column: 'acknowledged_at', nowMs })) return true;
   try {
     await sendRenewalNoticeEmail({ env, address: email, ...rendered });
@@ -492,7 +516,7 @@ async function sendConfirmation(env, record, def, nowMs, statement) {
 // The email's values. The name and the reason come only from the statement, so a resend from the
 // schedule has neither. The withdrawal line shows only while that window is open and the cancel
 // leaves the service running.
-function emailView(env, record, def, email, statement, nowMs) {
+function emailView(env, record, def, email, statement, plan, nowMs) {
   const endsToday = record.ends_today === 1;
   const windowAt = !endsToday && windowShown(env, record.window_at, Math.floor(nowMs / 1000)) ? record.window_at : null;
   return {
@@ -502,8 +526,8 @@ function emailView(env, record, def, email, statement, nowMs) {
     cause: record.cause === 1,
     reason: record.cause === 1 ? (statement?.reason || '') : '',
     email,
-    price: formatPrice(record.plan_amount),
-    interval: record.plan_interval,
+    price: formatPrice(plan.unitAmount),
+    interval: plan.interval,
     endDate: lastServiceDay(record.ends_at, endsToday),
     refund: record.refund_amount ? formatPrice(record.refund_amount) : null,
     refundMonths: record.refund_months,
@@ -593,7 +617,7 @@ async function alertPerson(env, record, column, detail, nowMs) {
       'each row is an unfinished cancellation of this service. ends_at is in seconds; the other times are in milliseconds. for each row:',
       "1. open the row's subscription_ref in the Stripe Dashboard, and check that the subscription's customer is the row's stripe_customer_id. if it isn't, or the last error is cancellation_mismatch, change nothing until you know why.",
       '2. otherwise, if the schedule keeps failing: if ends_today is 1, cancel the subscription now, with no proration. if at_period_end is 1, set it to cancel at the end of its period. otherwise, set it to cancel at ends_at, with no proration.',
-      "3. if refund_invoice_ref is set and refunded_at is empty, first mark it refunded, so the schedule never refunds it again, with the same wrangler command running: UPDATE subscription_cancellations SET refunded_at = <now, in milliseconds> WHERE subscription_ref = '<subscription_ref>' AND issued_at = <issued_at>. then refund refund_amount cents, once, on that invoice's payment in the Stripe Dashboard.",
+      "3. if refund_invoice_ref is set and refunded_at is empty, open that invoice's payment in the Stripe Dashboard first. whatever it shows, mark the row refunded, so the schedule never refunds it again, with the same wrangler command running: UPDATE subscription_cancellations SET refunded_at = <now, in milliseconds> WHERE subscription_ref = '<subscription_ref>' AND issued_at = <issued_at>. if the payment already shows a refund, stop there: only mark the row. otherwise refund refund_amount cents, once, on that payment.",
       "4. the schedule then finds the end already set and marks the row finished on its next pass. if it is still unfinished an hour later, or is more than 30 days old, finish it by hand: UPDATE subscription_cancellations SET completed_at = <now, in milliseconds> WHERE subscription_ref = '<subscription_ref>' AND issued_at = <issued_at>",
     ].join('\n'),
   ].join('\n\n');
@@ -655,7 +679,7 @@ async function verifyStatement(env, accountId, value, nowMs) {
   }
   const { s, v, n, c, q, d, a, l, x, p, i, r, m, w, t } = parsed || {};
   if (typeof s !== 'string' || !s.startsWith('sub_') || typeof v !== 'string' || typeof n !== 'string') return null;
-  if ((c !== 0 && c !== 1) || typeof q !== 'string' || (c === 1 && !q) || (d !== 0 && d !== 1) || (d === 1 && c !== 1)) return null;
+  if ((c !== 0 && c !== 1) || typeof q !== 'string' || (c === 1 && !q) || (d !== 0 && d !== 1)) return null;
   if (!Number.isInteger(a) || a <= 0 || (l !== 'year' && l !== 'month')) return null;
   if (!Number.isInteger(x) || (p !== 0 && p !== 1)) return null;
   if (i !== null && !(typeof i === 'string' && i.startsWith('in_') && Number.isInteger(r) && r > 0 && Number.isInteger(m) && m >= 1 && m <= 11)) return null;

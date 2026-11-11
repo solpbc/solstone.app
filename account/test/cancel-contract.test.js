@@ -226,7 +226,8 @@ describe('the cancel function', () => {
       expect(stripe.refunds).toEqual([]);
       const row = await workerEnv.DB.prepare('SELECT * FROM subscription_cancellations').first();
       expect(row).not.toHaveProperty('name');
-      expect(row).toMatchObject({ cause: 0, ends_today: 0, plan_amount: 2000, plan_interval: 'year', ends_at: periodEnd, at_period_end: 1, refund_invoice_ref: null, refund_amount: null });
+      expect(row).not.toHaveProperty('plan_amount');
+      expect(row).toMatchObject({ cause: 0, ends_today: 0, ends_at: periodEnd, at_period_end: 1, refund_invoice_ref: null, refund_amount: null });
       expect(row.submitted_at).toBeGreaterThanOrEqual(before);
       expect(row.completed_at).not.toBeNull();
 
@@ -373,12 +374,77 @@ describe('the cancel function', () => {
       expect(done).not.toContain("we've emailed you a copy.");
       expect(done).toContain('for a serious reason: "you lost my data"');
       testEnv.EMAIL.send = send;
+      // The row keeps no price: the resend reads the plan from Stripe, and waits while it can't.
+      installStripeFetchMock({ default: async () => json({ error: { type: 'api_error' } }, 500) });
+      await runScheduled(testEnv);
+      expect(testEnv.EMAIL.sent).toHaveLength(0);
+      fakeStripe({ renewed: false });
       await runScheduled(testEnv);
       const [mail] = testEnv.EMAIL.sent;
+      expect(mail.text).toContain('a cancellation of your private network subscription ($20 every year)');
       expect(mail.text).not.toContain('Ada');
       expect(mail.text).not.toContain('you gave a serious reason');
       expect(mail.text).toContain("from. owner@example.com, the address you're signed in with.");
       expect(mail.text).toContain("we'll answer your reason, and whether we refund more.");
+    });
+
+    it('a second press of the summary opens the support request the first could not', async () => {
+      let up = false;
+      const support = makeSupportWorker({
+        'POST /api/services/tickets': () => (up ? supportJson({ id: '101', created_at: Date.now(), status: 'open' }, 201) : supportJson({ error: 'unavailable' }, 503)),
+        'POST /api/services/idempotency/ack': () => new Response(null, { status: 204 }),
+      });
+      const testEnv = makeTestEnv({ ...ON, SUPPORT_WORKER: support });
+      const { session } = await subscriber(testEnv);
+      fakeStripe({ renewed: false });
+      const statement = await summaryStatement(testEnv, session, { type: 'cause', reason: 'you lost my data' });
+      await post(`${PATH}/confirm`, testEnv, { statement }, session.cookie);
+      up = true;
+      await post(`${PATH}/confirm`, testEnv, { statement }, session.cookie);
+      const tickets = support.requests.filter((r) => r.pathname === '/api/services/tickets');
+      expect(tickets).toHaveLength(2);
+      expect(tickets[1].headers.idempotencyKey).toBe(tickets[0].headers.idempotencyKey);
+      expect(tickets[1].body.description).toContain('"you lost my data"');
+      expect(support.requests.at(-1).pathname).toBe('/api/services/idempotency/ack');
+      expect(await count()).toBe(1);
+    });
+
+    it('ending today stays ended while Stripe\'s cancel keeps failing, whatever Stripe reports meanwhile', async () => {
+      const testEnv = makeTestEnv({ ...ON, SUPPORT_WORKER: causeSupport() });
+      const { session } = await subscriber(testEnv);
+      const stripe = fakeStripe({ renewed: false, deleteFails: true });
+      await confirm(testEnv, session, { type: 'cause', reason: 'it never worked', end: 'today' });
+      expect(stripe.deletes).toHaveLength(1);
+      expect(await entitlement()).toMatchObject({ status: 'lapsed' });
+      await webhook(testEnv, 'customer.subscription.updated', stripe.state());
+      expect(await entitlement()).toMatchObject({ status: 'lapsed' });
+    });
+  });
+
+  describe('a renewed year whose renewal is unpaid', () => {
+    it('ends today, with no refund and no year-end option, and Stripe ends it now', async () => {
+      const testEnv = makeTestEnv(ON);
+      const { session } = await subscriber(testEnv);
+      const stripe = fakeStripe({ renewed: true, renewalPaid: false, status: 'past_due' });
+      const today = formatLongDate(NOW_S);
+
+      const form = await (await get(`${PATH}?service=private-network`, testEnv, session.cookie)).text();
+      expect(form).toContain(`it ends on ${today}, the earliest it can.`);
+      expect(form).toContain(`it ends on ${today}, the earliest an ordinary cancel can.`);
+      expect(form).not.toContain('value="period_end"');
+      expect(form).not.toContain('value="today"');
+      expect(form).not.toContain('whole month');
+      expect(form).not.toContain('keeps working until then');
+
+      const done = await (await confirm(testEnv, session)).text();
+      expect(done).toContain(`you're canceling private network ($20 every year). it ends on ${today}. we'll send the confirmation to owner@example.com.`);
+      expect(stripe.deletes).toEqual(['cancel-today-sub_c1']);
+      expect(stripe.writes).toEqual([]);
+      expect(stripe.refunds).toEqual([]);
+      expect(await entitlement()).toMatchObject({ status: 'lapsed' });
+      const row = await workerEnv.DB.prepare('SELECT * FROM subscription_cancellations').first();
+      expect(row).toMatchObject({ cause: 0, ends_today: 1, refund_invoice_ref: null });
+      expect(testEnv.EMAIL.sent[0].subject).toBe(`your private network subscription ends on ${today}`);
     });
   });
 
@@ -437,8 +503,8 @@ describe('the cancel function', () => {
       const stale = await summaryStatement(testEnv, session);
       expect(JSON.parse(Buffer.from(stale.split('.')[0], 'base64url').toString())).toMatchObject({ i: 'in_renewal' });
       // Meanwhile another declaration claims that renewal's refund.
-      await workerEnv.DB.prepare(`INSERT INTO subscription_cancellations (subscription_ref, issued_at, account_id, service, cause, ends_today, plan_amount, plan_interval, ends_at, at_period_end, refund_invoice_ref, refund_amount, refund_months, submitted_at, refunded_at, completed_at, acknowledged_at)
-        SELECT 'sub_c1', 1, id, 'spl_hosted', 0, 0, 2000, 'year', ?, 0, 'in_renewal', 100, 1, 1, 1, 1, 1 FROM accounts`).bind(MONTH_END).run();
+      await workerEnv.DB.prepare(`INSERT INTO subscription_cancellations (subscription_ref, issued_at, account_id, service, cause, ends_today, ends_at, at_period_end, refund_invoice_ref, refund_amount, refund_months, submitted_at, refunded_at, completed_at, acknowledged_at)
+        SELECT 'sub_c1', 1, id, 'spl_hosted', 0, 0, ?, 0, 'in_renewal', 100, 1, 1, 1, 1, 1 FROM accounts`).bind(MONTH_END).run();
       const done = await (await post(`${PATH}/confirm`, testEnv, { statement: stale }, session.cookie)).text();
       expect(stripe.refunds).toHaveLength(1);
       expect(done).not.toContain('we refund');
@@ -555,12 +621,12 @@ async function subscriber(testEnv, { email = 'owner@example.com', service = 'spl
 }
 
 // A Stripe that keeps the subscription's cancel state, and records every write, cancel and refund.
-function fakeStripe({ renewed = false, tag = 'spl', amount = 2000, tax = 0, cancelAt = null, renewal = RENEWAL, start: firstStart = null, paidAt = null }) {
+function fakeStripe({ renewed = false, tag = 'spl', amount = 2000, tax = 0, cancelAt = null, renewal = RENEWAL, start: firstStart = null, paidAt = null, renewalPaid = true, status: initialStatus = 'active', deleteFails = false }) {
   const start = firstStart ?? (renewed ? START : NOW_S - 30 * DAY);
   const periodStart = renewed ? renewal : start;
   const periodEnd = renewed ? serviceMonthStart(renewal, 12) : serviceMonthStart(start, 12);
   let cancel = { cancel_at: cancelAt, cancel_at_period_end: false };
-  let status = 'active';
+  let status = initialStatus;
   const out = { writes: [], refunds: [], deletes: [] };
   const state = () => ({
     id: 'sub_c1',
@@ -577,7 +643,7 @@ function fakeStripe({ renewed = false, tag = 'spl', amount = 2000, tax = 0, canc
   });
   const invoices = [
     { id: 'in_first', amount_paid: amount + tax, charge: 'ch_first', created: start, billing_reason: 'subscription_create', status_transitions: { paid_at: start } },
-    ...(renewed ? [{ id: 'in_renewal', amount_paid: amount + tax, charge: 'ch_renewal', created: renewal + 30, billing_reason: 'subscription_cycle', status_transitions: { paid_at: paidAt ?? renewal + 30 } }] : []),
+    ...(renewed && renewalPaid ? [{ id: 'in_renewal', amount_paid: amount + tax, charge: 'ch_renewal', created: renewal + 30, billing_reason: 'subscription_cycle', status_transitions: { paid_at: paidAt ?? renewal + 30 } }] : []),
   ];
   installStripeFetchMock({
     'GET api.stripe.com/v1/subscriptions/sub_c1': async () => json(state()),
@@ -590,6 +656,7 @@ function fakeStripe({ renewed = false, tag = 'spl', amount = 2000, tax = 0, canc
     },
     'DELETE api.stripe.com/v1/subscriptions/sub_c1': async ({ init }) => {
       out.deletes.push(init.headers['Idempotency-Key']);
+      if (deleteFails) return json({ error: { type: 'api_error' } }, 500);
       status = 'canceled';
       return json(state());
     },
