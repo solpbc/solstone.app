@@ -168,9 +168,10 @@ export async function listPaidSubscriptionInvoices(env, subscriptionId) {
   return Array.isArray(list?.data) ? list.data : [];
 }
 
-// A full refund of one charge. The idempotency key and Stripe's own refusal to refund a
-// charge twice both make a repeat of this call refund nothing more. Nothing is sent beyond
-// the charge and Stripe's own reason code: the refund is already tied to its charge.
+// A full refund of one charge, or of what is left of it after a part refund: with no amount,
+// Stripe refunds exactly the unrefunded remainder. The idempotency key and Stripe's own refusal
+// to refund a charge twice both make a repeat of this call refund nothing more. Nothing is sent
+// beyond the charge and Stripe's own reason code: the refund is already tied to its charge.
 export async function refundChargeInFull(env, { chargeId }) {
   const body = new URLSearchParams();
   body.set('charge', chargeId);
@@ -282,6 +283,22 @@ export async function refundChargePart(env, { chargeId, amount, invoiceId }) {
     if (error?.code === 'charge_already_refunded') return { already: true };
     throw error;
   }
+}
+
+// One charge, for how much of it is already refunded (`amount_refunded`, in cents).
+export async function getCharge(env, chargeId) {
+  return stripeRequest(env, `/charges/${encodeURIComponent(chargeId)}`, { method: 'GET' });
+}
+
+// A part refund of one charge when a sign-in closes in a renewed annual year: the whole months
+// left on its renewal, as a cancel would refund them. The idempotency key names the renewal
+// invoice, which gets one such refund, ever.
+export async function refundChargeAtDeletion(env, { chargeId, amount, invoiceId }) {
+  const body = new URLSearchParams();
+  body.set('charge', chargeId);
+  body.set('amount', String(amount));
+  body.set('reason', 'requested_by_customer');
+  return stripeRequest(env, '/refunds', { method: 'POST', body, idempotencyKey: `deletion-refund-${invoiceId}` });
 }
 
 export async function deleteStripeCustomer(env, stripeCustomerId) {

@@ -1,7 +1,7 @@
 import { decryptEmail, generateSessionToken, hashKey, hashWithPepper } from './crypto.js';
 import { captureDeletionSnapshotForAccount } from './deletion.js';
 import { advanceDeletionServiceOperation, remintExpiredDeletionServiceOperation } from './deletion-contract.js';
-import { applyDeletionHold, runOwedKeepRestores } from './deletion-hold.js';
+import { applyDeletionHold, refundRenewedYearsAtPurge, runOwedKeepRestores } from './deletion-hold.js';
 import { DELETION_SERVICES } from './deletion-services.js';
 import { mintScopedCredential } from './r2-credential.js';
 import { listMultipartUploads, listObjectsV2 } from './s3.js';
@@ -236,6 +236,8 @@ async function advanceDeletionStripePurge(env, deletion, nowMs) {
   }
   if (!stripeCustomerId) return 'complete';
 
+  // A renewed annual year's whole months left are refunded first, while the customer still exists.
+  if (await refundRenewedYearsAtPurge(env, deletion, stripeCustomerId, nowMs) !== 'complete') return 'retryable';
   const disposition = await deleteStripeCustomer(env, stripeCustomerId);
   const result = await env.DB.prepare(
     `UPDATE account_deletions
