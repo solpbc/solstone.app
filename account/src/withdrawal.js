@@ -31,7 +31,7 @@ import { renderNotFound, renderWithdrawal } from './html.js';
 import { forbidden, html, originAllowed } from './index.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { renderWithdrawalAck, resolvePrimaryAddress } from './renewal-notices.js';
-import { invoicesToRefund, withdrawalWindowStart } from './renewed-year.js';
+import { invoicesToRefund, windowNeedsInvoices, withdrawalWindowStart } from './renewed-year.js';
 import {
   loadMenuContext,
   noStore,
@@ -92,7 +92,7 @@ export async function billingView(env, entitlement, nowSeconds = Math.floor(Date
   if (!withdrawalOn(env) || !withdrawable(entitlement)) return { plan: await renewalPlan(env, entitlement), withdrawal: null };
   const sub = await readSubscription(env, entitlement.source_ref);
   const renews = !entitlement.cancel_at_period_end && entitlement.status === 'active' && entitlement.current_period_end != null;
-  return { plan: renews && sub ? subscriptionPlan(sub) : null, withdrawal: door(env, entitlement, sub, nowSeconds) };
+  return { plan: renews && sub ? subscriptionPlan(sub) : null, withdrawal: await door(env, entitlement, sub, nowSeconds) };
 }
 
 // The billing page's price and door for one paid service, from one read of its subscription.
@@ -101,17 +101,33 @@ export async function billingEntryView(env, entitlement, { priced, readPlan }, n
     return { plan: priced ? await readPlan(env, entitlement.source_ref) : null, withdrawal: null };
   }
   const sub = await readSubscription(env, entitlement.source_ref);
-  return { plan: priced && sub ? subscriptionPlan(sub) : null, withdrawal: door(env, entitlement, sub, nowSeconds) };
+  return { plan: priced && sub ? subscriptionPlan(sub) : null, withdrawal: await door(env, entitlement, sub, nowSeconds) };
 }
 
-// The window counts from the purchase or, in a renewed annual year, from the renewal.
-function door(env, entitlement, sub, nowSeconds) {
+// The window counts from the purchase or, in a renewed annual year, from when the renewal was
+// paid. A renewal not yet paid opens no window, and one whose invoices didn't load shows the door
+// with no date, as a failed subscription read does.
+async function door(env, entitlement, sub, nowSeconds) {
   const path = withdrawalPathFor(entitlement.service);
   if (!sub) return { path, purchasedAt: null };
-  const purchasedAt = withdrawalWindowStart(env, sub);
+  let invoices = null;
+  if (windowNeedsInvoices(env, sub)) {
+    invoices = await readPaidInvoices(env, entitlement.source_ref);
+    if (!invoices) return { path, purchasedAt: null };
+  }
+  const purchasedAt = withdrawalWindowStart(env, sub, invoices);
   const until = withdrawalUntil(purchasedAt);
   if (until == null || nowSeconds >= until) return null;
   return { path, purchasedAt: withdrawalRuleShown(purchasedAt, nowSeconds) ? purchasedAt : null };
+}
+
+async function readPaidInvoices(env, subscriptionRef) {
+  try {
+    return await listPaidSubscriptionInvoices(env, subscriptionRef);
+  } catch {
+    console.warn('stripe_invoice_read_failed');
+    return null;
+  }
 }
 
 async function readSubscription(env, subscriptionRef) {
@@ -157,7 +173,13 @@ export async function handleWithdrawalPage(req, env, slug) {
   const sub = await readSubscription(env, entitlement.source_ref);
   const plan = sub ? subscriptionPlan(sub) : null;
   // `purchasedAt` is when the window opened: the purchase, or the renewal of a renewed year.
-  const purchasedAt = sub ? withdrawalWindowStart(env, sub) : null;
+  const invoices = sub && windowNeedsInvoices(env, sub) ? await readPaidInvoices(env, entitlement.source_ref) : null;
+  if (sub && windowNeedsInvoices(env, sub) && !invoices) return signedInHtml(renderWithdrawal({ ...base, state: 'unavailable' }));
+  const purchasedAt = sub ? withdrawalWindowStart(env, sub, invoices) : null;
+  // A renewal not yet paid has opened no window, and the purchase's closed long ago.
+  if (sub && plan && invoices && purchasedAt == null) {
+    return signedInHtml(renderWithdrawal({ ...base, state: 'closed', purchasedAt: subscriptionPurchasedAt(sub), renewed: false }));
+  }
   if (!sub || !plan || purchasedAt == null) return signedInHtml(renderWithdrawal({ ...base, state: 'unavailable' }));
   const renewed = purchasedAt !== subscriptionPurchasedAt(sub);
   const nowSeconds = Math.floor(nowMs / 1000);
@@ -254,14 +276,14 @@ export async function completeWithdrawal(env, ctx, record, { nowMs = Date.now(),
       const customer = await getStripeCustomerByAccount(env.DB, { accountId: record.account_id });
       // Ownership, the service, and the window's start the page showed (the purchase, or the
       // renewal of a renewed year), all as Stripe records them.
+      const invoices = await listPaidSubscriptionInvoices(env, subscriptionRef);
       if (sub?.id !== subscriptionRef || !customer || sub.customer !== customer.stripe_customer_id || sub.metadata?.service !== def.tag
-        || withdrawalWindowStart(env, sub) !== record.purchased_at) {
+        || withdrawalWindowStart(env, sub, invoices) !== record.purchased_at) {
         const error = new Error('withdrawal subscription does not match the sign-in');
         error.code = 'withdrawal_mismatch';
         throw error;
       }
-      const invoices = await listPaidSubscriptionInvoices(env, subscriptionRef);
-      await refundSubscriptionInFull(env, subscriptionRef, invoicesToRefund(env, invoices, record.purchased_at));
+      await refundSubscriptionInFull(env, subscriptionRef, invoicesToRefund(env, sub, invoices));
       if (sub.status !== 'canceled') await cancelSubscriptionNow(env, subscriptionRef);
     } catch (error) {
       const detail = { status: error?.status ?? null, code: error?.code ?? null };

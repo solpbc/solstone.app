@@ -113,7 +113,10 @@ describe('the renewed annual year', () => {
       const testEnv = makeTestEnv({ WITHDRAWAL_DOOR: 'on', ...RULES });
       const { session, accountId } = await subscriber(testEnv);
       const stripe = fakeStripe(annual({ startDate, periodStart: renewal, unitAmount: 2000 }));
-      expect(withdrawalWindowStart(testEnv, annual({ startDate, periodStart: renewal }))).toBe(renewal);
+      expect(withdrawalWindowStart(testEnv, annual({ startDate, periodStart: renewal }))).toBeNull();
+      expect(withdrawalWindowStart(testEnv, annual({ startDate, periodStart: renewal }), [
+        { id: 'in_renewal', amount_paid: 2000, created: renewal, billing_reason: 'subscription_cycle', status_transitions: { paid_at: renewal } },
+      ])).toBe(renewal);
 
       const pageHtml = await (await get('/private-network', testEnv, session.cookie)).text();
       expect(pageHtml).toContain(`you can withdraw until the end of the 14th day after ${formatLongDate(renewal)}`);
@@ -130,6 +133,26 @@ describe('the renewed annual year', () => {
       expect(row.completed_at).not.toBeNull();
       expect((await workerEnv.DB.prepare('SELECT status FROM entitlements WHERE account_id = ?').bind(accountId).first()).status).toBe('lapsed');
       expect(testEnv.EMAIL.sent[0].text).toContain(`renewed on ${formatLongDate(renewal)}`);
+    });
+
+    it('counts from when a retried renewal was paid, and opens no window before then', async () => {
+      const testEnv = makeTestEnv({ WITHDRAWAL_DOOR: 'on', ...RULES });
+      const { session } = await subscriber(testEnv);
+      const renewedSub = annual({ startDate, periodStart: renewal, unitAmount: 2000 });
+      const raised = { id: 'in_renewal', amount_paid: 2000, charge: 'ch_renewal', created: renewal, billing_reason: 'subscription_cycle' };
+      const paidLate = renewal + 2 * DAY;
+      expect(withdrawalWindowStart(testEnv, renewedSub, [{ ...raised, status_transitions: { paid_at: paidLate } }])).toBe(paidLate);
+
+      fakeStripe(renewedSub, { invoices: [{ id: 'in_first', amount_paid: 2000, charge: 'ch_first', created: startDate, billing_reason: 'subscription_create' }] });
+      expect(await (await get('/private-network', testEnv, session.cookie)).text()).not.toContain('withdraw from contract here');
+
+      const stripe = fakeStripe(renewedSub, { invoices: [{ ...raised, status_transitions: { paid_at: paidLate } }] });
+      const door = await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text();
+      const statement = door.match(/name="statement" value="([^"]+)"/)[1];
+      await post('/billing/withdraw/private-network', testEnv, { statement }, session.cookie);
+      expect(stripe.refunds).toEqual([{ charge: 'ch_renewal', amount: null }]);
+      const row = await workerEnv.DB.prepare('SELECT purchased_at FROM subscription_withdrawals').first();
+      expect(row.purchased_at).toBe(paidLate);
     });
 
     it('with the switch off, counts from the purchase, as before', async () => {
@@ -175,7 +198,7 @@ function fakeStripe(sub, { invoices = null } = {}) {
   const out = { refunds: [], cancels: 0 };
   const list = invoices || [
     { id: 'in_first', amount_paid: 2000, charge: 'ch_first', created: sub.start_date, billing_reason: 'subscription_create' },
-    { id: 'in_renewal', amount_paid: 2000, charge: 'ch_renewal', created: sub.current_period_start + 60, billing_reason: 'subscription_cycle' },
+    { id: 'in_renewal', amount_paid: 2000, charge: 'ch_renewal', created: sub.current_period_start, billing_reason: 'subscription_cycle', status_transitions: { paid_at: sub.current_period_start } },
   ];
   installStripeFetchMock({
     'GET api.stripe.com/v1/subscriptions/sub_r1': async () => json(out.cancels ? { ...sub, status: 'canceled' } : sub),

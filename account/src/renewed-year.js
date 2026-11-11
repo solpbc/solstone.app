@@ -24,18 +24,35 @@ export function renewalStart(sub) {
   return periodStart > purchasedAt + RENEWAL_TOLERANCE_SECONDS ? periodStart : null;
 }
 
-// When the withdrawal window opened: the renewal, in a renewed annual year while the rules are on;
-// otherwise the purchase, as before.
-export function withdrawalWindowStart(env, sub) {
-  const renewal = subscriptionRulesOn(env) ? renewalStart(sub) : null;
-  return renewal ?? subscriptionPurchasedAt(sub);
+// When a paid invoice was paid, in Unix seconds, or null.
+export function invoicePaidAt(invoice) {
+  const paidAt = invoice?.status_transitions?.paid_at;
+  return Number.isInteger(paidAt) && paidAt > 0 ? paidAt : null;
 }
 
-// The paid invoices a withdrawal refunds: with the rules on, those of the window it was made in
-// (in the first year, all of them); with them off, every one, as before.
-export function invoicesToRefund(env, invoices, windowStart) {
-  if (!subscriptionRulesOn(env)) return invoices;
-  return invoices.filter((invoice) => Number(invoice?.created) >= windowStart - RENEWAL_TOLERANCE_SECONDS);
+// Whether the window's start needs the subscription's paid invoices: only in a renewed annual
+// year with the rules on, where the window opens when the renewal is paid.
+export function windowNeedsInvoices(env, sub) {
+  return subscriptionRulesOn(env) && renewalStart(sub) != null;
+}
+
+// When the withdrawal window opened: in a renewed annual year while the rules are on, the moment
+// the renewal was paid, which is normally the renewal itself and later when a retried payment
+// succeeds, and null while it is unpaid or the invoices were not read; otherwise the purchase,
+// as before.
+export function withdrawalWindowStart(env, sub, invoices = null) {
+  const renewal = subscriptionRulesOn(env) ? renewalStart(sub) : null;
+  if (renewal == null) return subscriptionPurchasedAt(sub);
+  return invoicePaidAt(Array.isArray(invoices) ? renewalInvoice(invoices, renewal) : null);
+}
+
+// The paid invoices a withdrawal refunds: with the rules on, in a renewed annual year the renewal
+// invoice and any raised after it, and in the first year all of them; with them off, every one,
+// as before.
+export function invoicesToRefund(env, sub, invoices) {
+  const renewal = subscriptionRulesOn(env) ? renewalStart(sub) : null;
+  if (renewal == null) return invoices;
+  return invoices.filter((invoice) => Number(invoice?.created) >= renewal - RENEWAL_TOLERANCE_SECONDS);
 }
 
 // Service month k of a renewed year starts k calendar months after the renewal, at the same time
