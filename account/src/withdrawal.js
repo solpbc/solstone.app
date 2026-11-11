@@ -1,9 +1,9 @@
 // Withdrawal from a paid subscription within 14 days of buying it: the owner's own page, one
 // confirm, and then, in this order, the withdrawal recorded, the service ended, and an emailed
 // acknowledgement, none of which waits on Stripe. The full refund and the immediate end of the
-// Stripe subscription follow, and retry until they land. It sits beside the ordinary cancel,
-// which is untouched: that one goes through Stripe's billing portal and ends at the period's end
-// with no refund.
+// Stripe subscription follow, and retry until they land. It sits beside the ordinary cancel:
+// Stripe's billing portal, or with the subscription rules on the cancel function
+// (cancel-contract.js), and stays open while a cancel is pending.
 //
 // The page carries a signed statement of exactly what it showed the owner (the subscription, its
 // price and when it was bought), so the confirm records and acknowledges that without a Stripe
@@ -332,7 +332,8 @@ async function lapseEntitlement(env, ctx, record, def, nowMs) {
 
 // Refunds every paid invoice of the subscription in full: the purchase, any change of plan since,
 // and a renewal that charged before the cancel landed. In a renewed annual year, only the
-// renewal's (see invoicesToRefund).
+// renewal's (see invoicesToRefund). A charge a pending cancel already part-refunded gets only
+// what is left of it, so the whole is refunded once.
 async function refundSubscriptionInFull(env, subscriptionRef, invoices) {
   for (const invoice of invoices) {
     if (!Number.isInteger(invoice?.amount_paid) || invoice.amount_paid <= 0) continue;
