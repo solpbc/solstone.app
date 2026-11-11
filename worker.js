@@ -11,6 +11,7 @@ const JOURNAL_WIN_ORIGIN = "https://updates.solstone.app/solstone-journal/releas
 const JOURNAL_WIN_X64 = { feedUrl: `${JOURNAL_WIN_ORIGIN}/releases.win.json`, arch: "x86_64" };
 const JOURNAL_WIN_ARM64 = { feedUrl: `${JOURNAL_WIN_ORIGIN}/releases.win-arm64.json`, arch: "aarch64" };
 const ANDROID_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-android/release";
+const WEAR_ORIGIN_PREFIX = "https://updates.solstone.app/solstone-wear/release";
 const JOURNAL_CHANGELOG_URL = "https://updates.solstone.app/solstone-journal/CHANGELOG.md";
 const LINUX_CHANGELOG_URL = "https://updates.solstone.app/solstone-linux/CHANGELOG.md";
 const WIN_CHANGELOG_URL = "https://updates.solstone.app/solstone-windows/CHANGELOG.md";
@@ -635,6 +636,20 @@ async function route(request, env) {
       return Response.redirect(release.apkUrl, 302);
     }
 
+    if (url.pathname === "/download/wear/latest") {
+      const version = await releasePointerVersion(`${WEAR_ORIGIN_PREFIX}/latest`);
+      if (!version) {
+        return new Response("the wear os download is temporarily unavailable. try again shortly.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+        });
+      }
+      return Response.redirect(`${WEAR_ORIGIN_PREFIX}/${version}/solstone-wear-${version}.apk`, 302);
+    }
+    if (url.pathname === "/download/wear") {
+      return Response.redirect(`${url.origin}/download/android#wear`, 302);
+    }
+
     // Public requests for the template go to the rendered page. The ASSETS
     // binding still reads the template directly, bypassing this router.
     if (/^\/download-android(?:\.html)?\/?$/.test(url.pathname)) {
@@ -770,8 +785,13 @@ async function route(request, env) {
     // Android reads GitHub releases (same path as journal/linux) — per-release notes
     // ride in each release body (the cut CHANGELOG section), tag `vX.Y.Z`.
     if (url.pathname === "/releases/android") {
-      const items = await githubReleaseItems(ANDROID_RELEASES_URL);
+      const items = await githubReleaseItems(ANDROID_RELEASES_URL, "v");
       return releasesResponse(items, RELEASE_PAGE_CONFIGS.android);
+    }
+
+    if (url.pathname === "/releases/wear") {
+      const items = await githubReleaseItems(ANDROID_RELEASES_URL, "wear-v");
+      return releasesResponse(items, RELEASE_PAGE_CONFIGS.wear);
     }
 
     // iOS reads GitHub releases (same path as journal/linux/android). An external
@@ -886,7 +906,7 @@ function assetRequest(url, request) {
   });
 }
 
-async function githubReleaseItems(apiUrl) {
+async function githubReleaseItems(apiUrl, tagPrefix = null) {
   try {
     const res = await fetch(apiUrl, {
       headers: {
@@ -896,7 +916,7 @@ async function githubReleaseItems(apiUrl) {
       cf: { cacheTtl: RELEASE_CACHE_TTL, cacheEverything: true },
     });
     if (!res.ok) return [];
-    return parseGitHubReleaseItems(await res.json());
+    return parseGitHubReleaseItems(await res.json(), tagPrefix);
   } catch {
     return [];
   }

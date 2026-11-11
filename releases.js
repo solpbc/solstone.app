@@ -273,6 +273,23 @@ export const RELEASE_PAGE_CONFIGS = {
     // The Android app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
+  wear: {
+    pageTitle: "wear os app releases · solstone",
+    ogTitle: "wear os app releases · solstone",
+    metaDescription: "release notes for the solstone app for wear os.",
+    ogUrl: "https://solstone.app/releases/wear",
+    canonicalUrl: "https://solstone.app/releases/wear",
+    stream: "wear",
+    heading: "wear os app releases",
+    intro: "the watch app's own changes. it needs the solstone app on your android phone. get both from Google Play, or both directly from us. the direct copy does not update itself.",
+    introLink: { phrase: "directly from us", href: "/download/android#wear" },
+    primaryLink: { href: "/download/android#wear", text: "get the watch app →" },
+    sourceUrl: "https://github.com/solpbc/solstone-android",
+    unavailableUrl: "https://github.com/solpbc/solstone-android/releases?q=wear-v",
+    unavailableLabel: "see wear os app releases on GitHub →",
+    articleTitle: (version) => `the solstone app for wear os ${version}`,
+    linkifyBundledJournal: false,
+  },
   ios: {
     pageTitle: "iphone app releases · solstone",
     ogTitle: "iphone app releases · solstone",
@@ -348,12 +365,16 @@ function formatIsoReleaseDate(pubDate) {
   return `${month} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
 }
 
-export function parseGitHubReleaseItems(releases) {
+export function parseGitHubReleaseItems(releases, tagPrefix = null) {
   if (!Array.isArray(releases)) return [];
 
   return releases
     .map((release) => {
-      const version = normalizeTagVersion(release?.tag_name);
+      const tag = String(release?.tag_name ?? "").trim();
+      const version = tagPrefix === null
+        ? (tag.startsWith("v") ? tag.slice(1) : tag)
+        : (tag.startsWith(tagPrefix) ? tag.slice(tagPrefix.length) : "");
+      if (tagPrefix !== null && !/^\d+\.\d+\.\d+$/.test(version)) return null;
       const description = stripReleaseHeading(release?.body ?? "");
       if (!version || !description.trim()) return null;
 
@@ -435,12 +456,6 @@ export function parseWinFeedItems(feed) {
   }
 
   return items;
-}
-
-function normalizeTagVersion(tagName) {
-  const tag = String(tagName ?? "").trim();
-  if (!tag) return "";
-  return tag.startsWith("v") ? tag.slice(1) : tag;
 }
 
 function stripReleaseHeading(body) {
@@ -562,6 +577,7 @@ function streamSwitcher(currentStream) {
     pill("windows", "windows app", "/releases/windows"),
     pill("linux", "linux app", "/releases/linux"),
     pill("android", "android app", "/releases/android"),
+    pill("wear", "wear os app", "/releases/wear"),
     pill("ios", "iphone app", "/releases/ios"),
     "</nav>",
   ].join("\n");

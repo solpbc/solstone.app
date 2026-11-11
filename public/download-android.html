@@ -249,6 +249,28 @@ sha256sum -c SHA256SUMS</code></pre>
             </nav>
                 </div>
             </section>
+            <section class="band wrap" id="wear" aria-labelledby="wear-title">
+                <div class="band-inner prose-col">
+                    <h2 id="wear-title">wear os watch</h2>
+                    <p>the solstone app for wear os needs the solstone app on your android phone. get both from Google Play, or get both directly from us. a copy from Play and a direct copy cannot connect to each other, because the phone and watch apps must have matching signing certificates.</p>
+                    <p>installing this direct copy on your watch takes a computer and <a href="https://developer.android.com/tools/releases/platform-tools">android's platform tools</a>. like the phone's direct copy, it does not update itself.</p>
+                    <div class="primary-action">
+                        <a href="/download/wear/latest" class="btn btn-primary btn-block-sm">download the solstone app for wear os</a>
+                        <a href="/releases/wear" class="btn-text">watch release notes →</a>
+                    </div>
+                    <details>
+                        <summary>install it on your watch</summary>
+                        <div class="detail-body">
+                            <ol class="steps">
+                                <li>download the watch APK on your computer and install android's platform tools.</li>
+                                <li>connect your computer and watch to the same Wi-Fi network. on your watch, enable developer options and wireless debugging, then follow <a href="https://developer.android.com/training/wearables/get-started/debugging">Google's watch connection instructions</a> to pair and connect with <code>adb</code>.</li>
+                                <li>run <code>adb -s WATCH_ADDRESS:PORT install -r WATCH_APK</code>, replacing <code>WATCH_ADDRESS:PORT</code> with the watch's connected address and <code>WATCH_APK</code> with the downloaded file's path.</li>
+                                <li>turn wireless debugging and adb debugging back off when installation finishes.</li>
+                            </ol>
+                        </div>
+                    </details>
+                </div>
+            </section>
         </main>
 
         <footer class="site-footer">
