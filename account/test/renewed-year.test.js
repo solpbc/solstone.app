@@ -156,6 +156,24 @@ describe('the renewed annual year', () => {
       expect(row.purchased_at).toBe(paidLate);
     });
 
+    it('takes a year restarted after a kept sign-in as the renewal, and not a plan change later in it', async () => {
+      const testEnv = makeTestEnv({ WITHDRAWAL_DOOR: 'on', ...RULES });
+      const { session } = await subscriber(testEnv);
+      // A keep restarts the year with billing_cycle_anchor=now: Stripe bills it as a
+      // subscription_update raised at the new period's start (checked in test mode).
+      const restarted = { id: 'in_restart', amount_paid: 2000, charge: 'ch_restart', created: renewal, billing_reason: 'subscription_update', status_transitions: { paid_at: renewal } };
+      const planChange = { ...restarted, id: 'in_change', charge: 'ch_change', created: renewal + 40 * DAY, status_transitions: { paid_at: renewal + 40 * DAY } };
+      const sub = annual({ startDate, periodStart: renewal, unitAmount: 2000 });
+      expect(withdrawalWindowStart(testEnv, sub, [planChange])).toBeNull();
+      expect(withdrawalWindowStart(testEnv, sub, [restarted, planChange])).toBe(renewal);
+
+      const stripe = fakeStripe(sub, { invoices: [{ id: 'in_first', amount_paid: 2000, charge: 'ch_first', created: startDate, billing_reason: 'subscription_create' }, restarted] });
+      expect(await (await get('/private-network', testEnv, session.cookie)).text()).toContain(`after ${formatLongDate(renewal)}, the day your plan renewed`);
+      const door = await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text();
+      await post('/billing/withdraw/private-network', testEnv, { statement: door.match(/name="statement" value="([^"]+)"/)[1] }, session.cookie);
+      expect(stripe.refunds).toEqual([{ charge: 'ch_restart', amount: null }]);
+    });
+
     it('with the switch off, counts from the purchase, as before', async () => {
       const testEnv = makeTestEnv({ WITHDRAWAL_DOOR: 'on' });
       const { session } = await subscriber(testEnv);

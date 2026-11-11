@@ -97,11 +97,16 @@ export function cancelEnds(env, sub, nowSeconds) {
   return { earliest, periodEnd: paidPeriod, renewal };
 }
 
-// The invoice that paid for the current renewed year: the renewal Stripe raised at its start.
+// The invoice that paid for the current renewed year: the renewal Stripe raised at its start. A
+// year restarted when an owner keeps their sign-in after its renewal was voided in the deletion
+// hold (billing_cycle_anchor=now) is billed as a subscription_update raised at the new year's
+// start; a plan change later in the year is raised after it, and is not the renewal.
 export function renewalInvoice(invoices, renewal) {
   return invoices
-    .filter((invoice) => invoice?.billing_reason === 'subscription_cycle'
-      && Number(invoice.created) >= renewal - RENEWAL_TOLERANCE_SECONDS
+    .filter((invoice) => (invoice?.billing_reason === 'subscription_cycle'
+        ? Number(invoice.created) >= renewal - RENEWAL_TOLERANCE_SECONDS
+        : invoice?.billing_reason === 'subscription_update'
+          && Number(invoice.created) >= renewal && Number(invoice.created) < renewal + RENEWAL_TOLERANCE_SECONDS)
       && Number.isInteger(invoice.amount_paid) && invoice.amount_paid > 0)
     .sort((a, b) => Number(a.created) - Number(b.created))[0] || null;
 }

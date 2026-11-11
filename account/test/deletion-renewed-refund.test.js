@@ -51,10 +51,7 @@ describe('closing a sign-in in a renewed annual year', () => {
   it('refunds nothing more when the renewal is already refunded, or a cancel or a withdrawal holds it', async () => {
     const cases = [
       { stripe: { renewed: true, refunded: 1833 } },
-      { seed: (accountId) => workerEnv.DB.prepare(
-        `INSERT INTO subscription_cancellations (subscription_ref, issued_at, account_id, service, cause, ends_today, ends_at, at_period_end, refund_invoice_ref, refund_amount, submitted_at)
-         VALUES ('sub_d', 1, ?, 'spl_hosted', 0, 0, 1, 0, 'in_renewal', 1833, 1)`,
-      ).bind(accountId).run() },
+      { seed: (accountId) => claimedCancel(accountId, { refundedAt: 1 }) },
       { seed: (accountId) => workerEnv.DB.prepare(
         `INSERT INTO subscription_withdrawals (subscription_ref, account_id, service, purchased_at, submitted_at)
          VALUES ('sub_d', ?, 'spl_hosted', ?, 1)`,
@@ -70,6 +67,29 @@ describe('closing a sign-in in a renewed annual year', () => {
       expect(stripe.refunds).toEqual([]);
       expect(stripe.deleted).toBe(true);
     }
+  });
+
+  it('makes a cancel\'s refund still owed, its own amount under its own key, and marks it made', async () => {
+    const env = makeTestEnv(ON);
+    const accountId = await purging(env);
+    await claimedCancel(accountId, { refundedAt: null });
+    const stripe = fakeStripe({ renewed: true });
+
+    await expect(runAccountDeletionCoordinator(env, NOW)).resolves.toMatchObject({ stripe: 'complete' });
+    expect(stripe.refunds).toEqual([{ charge: 'ch_renewal', amount: 1833, key: 'cancel-refund-in_renewal' }]);
+    expect(stripe.deleted).toBe(true);
+  });
+
+  it('marks a cancel\'s claim made, and refunds nothing, when its refund already landed at Stripe', async () => {
+    const env = makeTestEnv(ON);
+    const accountId = await purging(env);
+    await claimedCancel(accountId, { refundedAt: null });
+    const stripe = fakeStripe({ renewed: true, refunded: 1833, keepDeletion: true });
+
+    await runAccountDeletionCoordinator(env, NOW);
+    expect(stripe.refunds).toEqual([]);
+    const row = await workerEnv.DB.prepare('SELECT refunded_at FROM subscription_cancellations').first();
+    expect(row.refunded_at).toBe(NOW);
   });
 
   it('holds the deletion and retries when the refund fails, alerts a person once with nothing about the owner, and goes on after 48 hours', async () => {
@@ -115,7 +135,25 @@ async function purging(env) {
   return account.accountId;
 }
 
-function fakeStripe({ renewed, interval = 'year', refunded = 0, refundFails = false }) {
+// A cancel that claimed the renewal's refund of 11 months, built from whatever columns the table
+// has, so it doesn't depend on which of the cancel's own fields it stores.
+async function claimedCancel(accountId, { refundedAt }) {
+  const { results } = await workerEnv.DB.prepare('PRAGMA table_info(subscription_cancellations)').all();
+  const values = {
+    subscription_ref: 'sub_d', issued_at: 1, account_id: accountId, service: 'spl_hosted', ends_at: 1, at_period_end: 0,
+    refund_invoice_ref: 'in_renewal', refund_amount: 1833, submitted_at: 1, refunded_at: refundedAt,
+  };
+  for (const column of results) {
+    if (!(column.name in values) && column.notnull && column.dflt_value == null) values[column.name] = column.type === 'INTEGER' ? 0 : 'x';
+  }
+  const names = Object.keys(values);
+  await workerEnv.DB
+    .prepare(`INSERT INTO subscription_cancellations (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`)
+    .bind(...names.map((name) => values[name]))
+    .run();
+}
+
+function fakeStripe({ renewed, interval = 'year', refunded = 0, refundFails = false, keepDeletion = false }) {
   const periodStart = renewed ? RENEWAL : Math.floor(CONFIRMED / 1000) - 30 * DAY;
   const start = renewed ? START : periodStart;
   const sub = {
@@ -147,6 +185,8 @@ function fakeStripe({ renewed, interval = 'year', refunded = 0, refundFails = fa
       return json({ id: 're_1' });
     },
     'DELETE api.stripe.com/v1/customers/cus_d': async () => {
+      // Held, so the test can read the cancel's record before the purge deletes it.
+      if (keepDeletion) throw new Error('timeout');
       out.deleted = true;
       return json({ id: 'cus_d', deleted: true });
     },
