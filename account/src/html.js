@@ -7,7 +7,6 @@ import { SUPPORT_DRAFT_JS } from './inline/support-draft.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
 import { SPP_SERVICE_PATH } from './spp-service.js';
 import { KEY_FACTS_PAGE_HEADING, KEY_FACTS_SHARED_LINES, keyFactsLines, keyFactsPlanLines } from './rules-words.js';
-import { placeholder } from './subscription-rules.js';
 import { formatLongDate, formatMomentUtc } from './withdrawal-rules.js';
 
 // The cancel function's path, as cancel-contract.js serves it.
@@ -2876,9 +2875,9 @@ ${content}`,
     return page(`<p class="lead">${esc("your subscription details didn't load, so this page can't take the withdrawal right now. reload to try again, or email support@solstone.app saying you withdraw; a withdrawal sent within your 14 days counts.")}</p>`);
   }
   if (state === 'closed' && renewed) {
-    const closed = monthsLeft > 0
-      ? `the 14 days to withdraw from ${def.name}'s renewal on ${formatLongDate(purchasedAt)} are over. you can still cancel it with "cancel contracts here": it ends at the end of your current plan month, and we refund the whole months left.`
-      : renewedWithdrawalWords.closedNoMonthsLeft(def.name, formatLongDate(purchasedAt));
+    // With no whole month left to refund, the refund clause drops, as every refund line does.
+    const refund = monthsLeft > 0 ? ', and we refund the whole months left' : '';
+    const closed = `the 14 days to withdraw from ${def.name}'s renewal on ${formatLongDate(purchasedAt)} are over. you can still cancel it with "cancel contracts here": it ends at the end of your current plan month${refund}.`;
     return page(`<p class="lead">${esc(closed)}</p>`);
   }
   if (state === 'closed') {
@@ -3107,13 +3106,6 @@ export function renderCancelContractDone({ menu, declaration, emailed, backHref 
   </div>
 </div>`, { back: cancelBackLink(backHref) });
 }
-
-// PLACEHOLDER pending the approved subscription-rules wording:
-// the withdraw page's closed state in the last month of a renewed annual year, where a cancel has
-// no whole months left to refund and the approved line's refund clause would not hold.
-const renewedWithdrawalWords = {
-  closedNoMonthsLeft: (name, date) => placeholder(`the 14 days to withdraw from this ${name} renewal, renewed on ${date}, are over. you can still cancel it with cancel contracts here.`),
-};
 
 function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary', action = '/billing/portal' }) {
   return `<form method="post" action="${escAttr(action)}">

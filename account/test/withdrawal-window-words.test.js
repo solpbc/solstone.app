@@ -173,7 +173,7 @@ describe('the withdrawal window beside the cancel function', () => {
       const { session } = await buyer(testEnv, [spec]);
       fakeStripe([spec]);
       const page = await text('/billing/withdraw/private-network', testEnv, session);
-      expect(page).toContain('are over');
+      expect(page).toContain(`the 14 days to withdraw from private network's renewal on ${formatLongDate(renewal)} are over. you can still cancel it with "cancel contracts here": it ends at the end of your current plan month.`);
       expect(page).not.toContain('we refund the whole months left');
     });
 
