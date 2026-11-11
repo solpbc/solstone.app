@@ -110,7 +110,7 @@ const RULES_REMINDER_BODY = [
 const COOLING_OFF_SUBJECT = 'your {{service}} subscription renewed: you can cancel it for a full refund for 14 days';
 const COOLING_OFF_BODY = [
   '**you can cancel this renewal for a full refund until the end of the 14th day after {{window_date}}**',
-  'your **{{service}}** subscription has renewed for another year, and you paid **{{renewal_paid}}** on {{window_date}}, and it continues.',
+  'your **{{service}}** subscription has renewed and continues for another year. you paid **{{renewal_paid}}** on {{window_date}}.',
   '**this is your right to withdraw, which cancels the renewal and refunds all of it.** it runs until the end of the 14th day after {{window_date}}, even if you keep using {{service}} until then. sign in at [services.solstone.app](https://services.solstone.app) and use *withdraw from contract here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), then confirm, or email support@solstone.app saying you withdraw or cancel. a withdrawal you send by then counts, even if it reaches us later.',
   "**if you withdraw,** {{service}} stops that day, and we refund everything you paid for this renewal, {{renewal_paid}}, the same way you paid, within 14 days. nothing is taken off that refund, and using {{service}} doesn't cost you this right.",
   '**if you use *cancel contracts here* instead,** now or after those 14 days, {{service}} keeps working to the end of your current plan month, and we refund the whole months left.',

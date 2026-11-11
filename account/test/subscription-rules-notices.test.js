@@ -39,16 +39,16 @@ describe('subscription rules: reminders, notices and key information', () => {
     // SHA-256 of each surface as rendered by the code before the switch existed. A switch-off
     // render that differs by one byte fails here.
     const BEFORE = {
-      'spl:false': 'c2d26bd7c374673b83c09f3caff0b5b8ba854ca0d5b15f58f11ce3f934e42d20',
-      'spb:false': 'f3798dbc45f37f53982e738a060ec52cc6ed37f73bfff22820cc40369a129c52',
-      'spb-restore:false': '719b8c671067ef1acd47ecebf3919fd8a279205654de35de90c9ee06b4164116',
-      'sme:false': '55c873a66dd1be3aa4131a0d2deed92e505f8ed5bb255631c3d1547c90afe922',
-      'spp:false': '9e2f8c0b38fd583de48acac54c626c8f302f6168cd56ae98d7ba9558d6ea31fd',
-      'spl:true': '292008f69418c3d681ec9c514bddcda801a4a0d92ae24f19ce8ab087c0109df5',
-      'spb:true': 'a0377043ff00307494026508e94a6d994e3af9f5b7ae3a85e0199e7e82815e00',
-      'spb-restore:true': 'c341a22c52d9bdede42d08a34047d5703964eb60a7b80528a46a7718f81f86f3',
-      'sme:true': 'a4a8e75958753a331fc72b20bba5e67bc2d481d73a68b6f2f5eaa4897796b4da',
-      'spp:true': '7b06e611332111ce69f17f3c97742cb66d60a9bb660ddcb826ed6185602d05da',
+      'spl:false': 'cbcf381a8cfbcbb2d7f242568760580f55d00bc63f05b15a78258cd0908ff402',
+      'spb:false': 'b266407f8ee019c871afeffbcbb40d1536ff93ef7f855e49a46c8cc89543b43f',
+      'spb-restore:false': 'd80a130016c97c66948a5ebfa48d51e4cb452573dec9f54e6e0c11879967c18d',
+      'sme:false': '9d31aef43fa5c245a46aa42733558f872fab0a2b029ca5813b0c03bf69b17931',
+      'spp:false': '5a121a1701afff46c1442a229342211f1e7aca692bf7412f473a50033f29935c',
+      'spl:true': '8a011c2dd2546a1d32ddb8067af1408eeef3102bc6e8b76195f9b7d6884fa7be',
+      'spb:true': '05990a2b03cce1fc835fda9b1de2305363cd55ff7f7ae4f21dc275fe5908306a',
+      'spb-restore:true': 'eb18cbfa13e02be4976259722a16dd99e606297085ff2eefd2aafb5a2136ac2e',
+      'sme:true': 'ed221db884c353725034a7846a44948469a70669f74218cf394c123aad22f360',
+      'spp:true': '7c7fc3e66f9cd2289345d72d132df81f997c4429704a5fb2c5a48dc697f289e2',
       notice0: '9bc36dca0bb32eadaa19eee5023dee97b9a6dc01df3c5e25c5d661ed2da968d9',
       notice1: '8e7f1aff8a15cdd699b6b0b2da374797e9d74f24949033a44f88f038dcdc3ee1',
       notice2: '3e8d9bb88b7c794cece976ed07a40b647de8097abf444473819df3acc267cdc1',
@@ -262,7 +262,7 @@ describe('subscription rules: reminders, notices and key information', () => {
       const [email] = testEnv.EMAIL.sent;
       expect(email.subject).toBe('your encrypted backup subscription renewed: you can cancel it for a full refund for 14 days');
       expect(email.text.startsWith('you can cancel this renewal for a full refund until the end of the 14th day after January 15, 2027\n\n')).toBe(true);
-      expect(email.text).toContain('your encrypted backup subscription has renewed for another year, and you paid $48 on January 15, 2027, and it continues.');
+      expect(email.text).toContain('your encrypted backup subscription has renewed and continues for another year. you paid $48 on January 15, 2027.');
       expect(email.text).toContain('we refund everything you paid for this renewal, $48, the same way you paid, within 14 days.');
       expect(email.html).toContain('<strong>if you use <em>cancel contracts here</em> instead,</strong>');
       // The text part quotes the button labels.
@@ -281,7 +281,7 @@ describe('subscription rules: reminders, notices and key information', () => {
       await customerWithConfirmation(accountId, 'spb_hosted');
       await webhookAt(testEnv, paidAt + 60, 'invoice.paid', invoice);
       expect(testEnv.EMAIL.sent).toHaveLength(1);
-      expect(testEnv.EMAIL.sent[0].text).toContain('you paid $43.20 on January 21, 2027, and it continues.');
+      expect(testEnv.EMAIL.sent[0].text).toContain('you paid $43.20 on January 21, 2027.');
       expect(testEnv.EMAIL.sent[0].text).toContain('until the end of the 14th day after January 21, 2027');
     });
 

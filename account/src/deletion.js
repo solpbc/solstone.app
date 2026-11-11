@@ -55,6 +55,7 @@ import { checkDeletionReadiness } from './deletion-readiness.js';
 import { originAllowed } from './index.js';
 import { rateBucketFamily } from './owner-data-inventory.js';
 import { loadMenuContext, requireSignedInSession, signedInHtml } from './settings.js';
+import { subscriptionRulesOn } from './subscription-rules.js';
 
 const CANCELLATION_WINDOW_MS = 72 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -265,7 +266,7 @@ export async function handleAccountDeletionPage(req, env) {
       deadline: formatDeadline(active.cancellation_deadline_at),
     }));
   }
-  return signedInHtml(renderDeletionPage({ menu }));
+  return signedInHtml(renderDeletionPage({ menu, rulesOn: subscriptionRulesOn(env) }));
 }
 
 export async function handleDeletionOtpStart(req, env) {

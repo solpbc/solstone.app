@@ -18,6 +18,20 @@ describe('deletion routes', () => {
     expect(body).toContain("the journal on your devices isn't touched, and neither is a backup in your own bucket.");
   });
 
+  it('says what closing does to a paid subscription: as before with the subscription rules off, and under them a renewed year\'s refund and the cancel page', async () => {
+    const before = "the subscription ends when the 72 hours are up, with no refund for the time left. to use what you've paid for, cancel in the billing portal instead.";
+    const under = 'the time left isn\'t refunded, except the whole months left once an annual plan has renewed. instead, on the service\'s page, you can withdraw within your 14 days for a full refund, or cancel with "cancel contracts here" to use what you\'ve paid for.';
+    for (const [env, shown, hidden] of [[{}, before, under], [{ SUBSCRIPTION_RULES: 'on' }, under, before]]) {
+      await resetDb();
+      const testEnv = makeTestEnv(env);
+      const account = await seedAccount({ testEnv });
+      const session = await seedSession(account.accountId, { testEnv });
+      const body = await (await worker.fetch(request('/account/delete', { cookie: session.cookie }), testEnv)).text();
+      expect(body).toContain(shown);
+      expect(body).not.toContain(hidden);
+    }
+  });
+
   it('rejects a deletion proof request without an exact origin', async () => {
     const testEnv = makeTestEnv();
     const account = await seedAccount({ testEnv });

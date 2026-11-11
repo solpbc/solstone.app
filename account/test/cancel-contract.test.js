@@ -347,6 +347,8 @@ describe('the cancel function', () => {
       expect(row).toMatchObject({ cause: 1, ends_today: 1, refund_invoice_ref: null });
       expect(row.completed_at).not.toBeNull();
       expect(testEnv.EMAIL.sent[0].subject).toBe(`your private network subscription ends on ${today}`);
+      expect(testEnv.EMAIL.sent[0].text).toContain('what happens now. private network stopped when you canceled, and it won\'t renew.');
+      expect(testEnv.EMAIL.sent[0].text).not.toContain('keeps working until');
       expect(done).toContain(`for a serious reason: "it never worked". it ends on ${today}. we'll send`);
       expect(support.requests[0].body.description).toContain('"it never worked"');
     });
@@ -447,6 +449,8 @@ describe('the cancel function', () => {
       const row = await workerEnv.DB.prepare('SELECT * FROM subscription_cancellations').first();
       expect(row).toMatchObject({ cause: 0, ends_today: 1, refund_invoice_ref: null });
       expect(testEnv.EMAIL.sent[0].subject).toBe(`your private network subscription ends on ${today}`);
+      expect(testEnv.EMAIL.sent[0].text).toContain('private network stopped when you canceled, and it won\'t renew.');
+      expect(testEnv.EMAIL.sent[0].text).not.toContain('withdraw from contract here');
     });
   });
 

@@ -1946,7 +1946,12 @@ ${extra}
 // 15 minutes, the bound the services Terms (section 14) and the close notice state; 600 s sits inside it.
 export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup or restore already running can finish, and a solstone.me address can keep working for up to 15 minutes.';
 
-export function renderDeletionPage({ menu, error = '', status = '' }) {
+// What closing does to a paid subscription: before the subscription rules, and under them, where a
+// renewed annual year's whole months left are refunded and the cancel is "cancel contracts here".
+const CLOSE_PAID_LINE = "if you pay for a service, nothing renews while your sign-in is closing, and the subscription ends when the 72 hours are up, with no refund for the time left. to use what you've paid for, cancel in the billing portal instead.";
+const CLOSE_PAID_LINE_RULES = 'if you pay for a service, nothing renews while your sign-in is closing, and the subscription ends when the 72 hours are up. the time left isn\'t refunded, except the whole months left once an annual plan has renewed. instead, on the service\'s page, you can withdraw within your 14 days for a full refund, or cancel with "cancel contracts here" to use what you\'ve paid for.';
+
+export function renderDeletionPage({ menu, error = '', status = '', rulesOn = false }) {
   return layout({
     title: 'close your sign-in and services',
     mainClass: 'deletion-surface',
@@ -1965,7 +1970,7 @@ ${renderDeletionForm({
 })}
 <p>the journal on your devices isn't touched, and neither is a backup in your own bucket.</p>
 <p>${esc(CLOSE_TIMING_LINE)} from the moment you confirm, you have 72 hours to change your mind.</p>
-<p class="notice">if you pay for a service, nothing renews while your sign-in is closing, and the subscription ends when the 72 hours are up, with no refund for the time left. to use what you've paid for, cancel in the billing portal instead.</p>
+<p class="notice">${esc(rulesOn ? CLOSE_PAID_LINE_RULES : CLOSE_PAID_LINE)}</p>
 <p class="notice">if sol pbc runs your encrypted backup, closing deletes the encrypted copy in its storage too, instead of keeping it for the 30 days after a subscription ends. if you've offloaded media into that copy, it's the only copy of that media, and it will be gone for good, so restore it to your devices before you confirm.</p>
 <p class="disclosure"><a href="https://solpbc.org/privacy#your-rights">what sol pbc deletes, and the few things that outlast it</a></p>`,
   });

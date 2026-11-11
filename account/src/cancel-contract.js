@@ -524,6 +524,7 @@ function emailView(env, record, def, email, statement, plan, nowMs) {
   return {
     service: def.service,
     serviceName: def.name,
+    endsToday,
     name: statement?.name || '',
     cause: record.cause === 1,
     reason: record.cause === 1 ? (statement?.reason || '') : '',
@@ -556,7 +557,7 @@ const EMAIL_WORDS = {
   received: (v) => [{ b: 'received.' }, ` ${v.submitted}.`],
   now: (v) => [
     { b: 'what happens now.' },
-    ` ${v.serviceName} keeps working until ${v.endDate}, then stops, and it won't renew.`,
+    v.endsToday ? ` ${v.serviceName} stopped when you canceled, and it won't renew.` : ` ${v.serviceName} keeps working until ${v.endDate}, then stops, and it won't renew.`,
     v.refund ? ` we're refunding ${v.refund} for the ${v.refundMonths} whole ${v.refundMonths === 1 ? 'month' : 'months'} left, the same way you paid, within 14 days.` : '',
     v.cause ? " we'll answer your reason, and whether we refund more." : '',
     ...(v.windowDate ? [` you can still withdraw for a full refund until the end of the 14th day after ${v.windowDate}, with `, { i: 'withdraw from contract here' }, '.'] : []),

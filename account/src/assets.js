@@ -1,4 +1,4 @@
-export const PORTAL_CSS_HREF = '/portal.css?v=13';
+export const PORTAL_CSS_HREF = '/portal.css?v=14';
 export const SUNARC_JS_SRC = '/sunarc.js?v=4';
 
 export const PORTAL_CSS = `/* services.solstone.app — the account portal's own tokens.
@@ -399,6 +399,7 @@ input.code {
   color: var(--ink-soft); font-size: 0.92rem;
 }
 .notice:empty { background: transparent; border: 0; padding: 0; margin: 0; }
+.terms-box { border: 2px solid var(--ink); border-radius: var(--radius-sm); padding: 12px 14px; margin: 0 0 16px; }
 .error {
   background: var(--danger-wash); border-left: 3px solid var(--danger);
   border-radius: var(--radius-sm); padding: 12px 14px; margin: 0 0 16px;
