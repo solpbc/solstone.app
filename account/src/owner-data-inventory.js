@@ -193,8 +193,6 @@ const TABLES = [
     exported('service'),
     exported('cause', 'sqlite_boolean', 'whether it was a cancel for a serious reason'),
     exported('ends_today', 'sqlite_boolean', 'whether it ended the subscription the day it was made'),
-    exported('plan_amount', 'identity', 'cents'),
-    exported('plan_interval'),
     exported('ends_at', 'epoch_s_to_iso', 'seconds since Unix epoch'),
     exported('at_period_end', 'sqlite_boolean', 'whether it ends at the end of the paid period'),
     exported('refund_invoice_ref', 'identity', 'Stripe invoice reference'),

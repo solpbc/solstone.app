@@ -6,6 +6,7 @@ import {
   getEntitlement,
   getScoutApplicationStatusByAccount,
   getStripeCustomerByAccount,
+  isSubscriptionEndedToday,
   isSubscriptionWithdrawn,
   recordSubscriptionStartRequest,
   upsertStripeCustomer,
@@ -265,11 +266,12 @@ export async function reconcileForService(service, env, accountId, nowMs, ctx, o
     return;
   }
   if (await getActiveDeletionForAccount(env.DB, accountId)) return;
-  // A subscription the owner withdrew from stays ended, whatever Stripe reports before its
-  // cancel lands: the withdrawal ended the service when it was recorded.
+  // A subscription the owner withdrew from, or cancelled to end that day, stays ended, whatever
+  // Stripe reports before its cancel lands: it ended the service when it was recorded.
   // Only while the entitlement is still that subscription's: an owner who subscribed again has a
   // new one, which a late event about the old one must not touch.
-  if (opts?.paid?.sourceRef && await isSubscriptionWithdrawn(env.DB, opts.paid.sourceRef)) {
+  if (opts?.paid?.sourceRef && (await isSubscriptionWithdrawn(env.DB, opts.paid.sourceRef)
+    || await isSubscriptionEndedToday(env.DB, opts.paid.sourceRef))) {
     const entitlement = await getEntitlement(env.DB, { accountId, service: TAG_TO_HOSTED_SERVICE[service] });
     if (entitlement?.source_ref !== opts.paid.sourceRef) return;
     return SERVICE_RECONCILERS[service](env, accountId, nowMs, ctx, { ...opts, paid: null });
