@@ -1,4 +1,5 @@
 import { timingSafeEqual } from './crypto.js';
+import { subscriptionRulesOn } from './subscription-rules.js';
 
 export const STRIPE_API_VERSION = '2024-09-30.acacia';
 
@@ -10,14 +11,21 @@ const CHECKOUT_DISCLOSURE = 'by purchasing this service, you agree to enroll in 
 // disclosure above, which stays exactly as it is, and only while the withdrawal door is on.
 export const CHECKOUT_WITHDRAWAL_DISCLOSURE = 'you can also withdraw for a full refund, wherever you live, until the end of the 14th day after the day you buy: sign in at services.solstone.app and use "withdraw from contract here" on the service\'s page or at services.solstone.app/billing, then confirm; or email support@solstone.app saying you withdraw. a withdrawal sent within the 14 days counts. withdrawing stops the service that day and we refund everything you paid for it. a renewal does not start a new 14 days. the withdrawal form and the details are in the terms: services.solstone.app/terms#withdrawal.';
 
+// The approved wording under the subscription rules: the renewal disclosure, and the withdrawal
+// disclosure appended to it while the withdrawal door is on.
+const RULES_CHECKOUT_DISCLOSURE = 'by purchasing this service, you agree to enroll in an automatic renewal contract: it renews automatically at the end of each billing period, until you cancel. cancel anytime: sign in at services.solstone.app and use "cancel contracts here" on the service\'s page or at services.solstone.app/billing, or email support@solstone.app saying you cancel. when you cancel, the service keeps working through the end of the period you have already paid for, then stops. on an annual plan that has renewed, it stops at the end of your current plan month instead, and we refund the whole months left.';
+const RULES_CHECKOUT_WITHDRAWAL_DISCLOSURE = 'you can also withdraw for a full refund, wherever you live, until the end of the 14th day after the day you buy, and again after each annual renewal: sign in at services.solstone.app and use "withdraw from contract here" on the service\'s page or at services.solstone.app/billing, then confirm; or email support@solstone.app saying you withdraw or cancel. a withdrawal sent within the 14 days counts. withdrawing stops the service that day and we refund everything you paid for that purchase or renewal. the withdrawal form and the details are in the terms: services.solstone.app/terms#withdrawal.';
+
 // The one language of every contract surface: Checkout, the billing portal, and receipts.
 export const CONTRACT_LOCALE = 'en';
 
 // Stripe caps custom_text[submit][message] at 1,200 characters.
 export const CHECKOUT_SUBMIT_TEXT_LIMIT = 1200;
 
-export function checkoutDisclosure({ withdrawal = false } = {}) {
-  return withdrawal ? `${CHECKOUT_DISCLOSURE} ${CHECKOUT_WITHDRAWAL_DISCLOSURE}` : CHECKOUT_DISCLOSURE;
+export function checkoutDisclosure({ withdrawal = false, rules = false } = {}) {
+  const renewal = rules ? RULES_CHECKOUT_DISCLOSURE : CHECKOUT_DISCLOSURE;
+  if (!withdrawal) return renewal;
+  return `${renewal} ${rules ? RULES_CHECKOUT_WITHDRAWAL_DISCLOSURE : CHECKOUT_WITHDRAWAL_DISCLOSURE}`;
 }
 
 // The services a Stripe subscription can be sold as. Checkout stamps one of these on
@@ -60,11 +68,14 @@ export async function createCheckoutSession(env, {
   body.set('client_reference_id', accountId);
   body.set('subscription_data[metadata][service]', service);
   body.set('subscription_data[metadata][account_id]', accountId);
-  body.set('allow_promotion_codes', 'true');
+  // The approved wording under the subscription rules carries no discounted first period, so
+  // with them on a paid plan takes no promotion code.
+  const rules = subscriptionRulesOn(env);
+  body.set('allow_promotion_codes', rules ? 'false' : 'true');
   body.set('automatic_tax[enabled]', 'true');
   body.set('line_items[0][price]', priceId);
   body.set('line_items[0][quantity]', '1');
-  body.set('custom_text[submit][message]', checkoutDisclosure({ withdrawal }));
+  body.set('custom_text[submit][message]', checkoutDisclosure({ withdrawal, rules }));
   // What a plan includes and what happens when the owner reaches it, shown under the pay
   // button, for a service whose terms require checkout to say so.
   if (planTerms) body.set('custom_text[after_submit][message]', planTerms);
