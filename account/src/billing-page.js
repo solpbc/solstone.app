@@ -22,7 +22,7 @@ import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { SPP_SERVICE_PATH, sppOnSale } from './spp-service.js';
 import { createPortalSession, readSubscriptionPlan } from './stripe.js';
 import { cancelContractHref } from './cancel-contract.js';
-import { billingEntryView } from './withdrawal.js';
+import { WITHDRAWAL_SERVICES, billingEntryView, withdrawable } from './withdrawal.js';
 
 const BILLING_PATH = '/billing';
 const PORTAL_RETURN_URL = `https://services.solstone.app${BILLING_PATH}`;
@@ -68,7 +68,10 @@ export async function handleBilling(req, env) {
       priced: PRICED_STATES.has(state),
       readPlan: readSubscriptionPlan,
     }, nowSeconds);
-    return { ...def, entitlement, state, plan, withdrawal };
+    // Each paid subscription carries its own way to the cancel function ('' with the rules off).
+    const slug = WITHDRAWAL_SERVICES.find((service) => service.service === def.service)?.slug;
+    const cancelContract = withdrawable(entitlement) ? cancelContractHref(env, slug) : '';
+    return { ...def, entitlement, state, plan, withdrawal, cancelContract };
   }));
   const url = new URL(req.url);
   return signedInHtml(renderBilling({

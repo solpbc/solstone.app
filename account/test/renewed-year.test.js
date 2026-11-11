@@ -121,18 +121,19 @@ describe('the renewed annual year', () => {
       const pageHtml = await (await get('/private-network', testEnv, session.cookie)).text();
       expect(pageHtml).toContain(`you can withdraw until the end of the 14th day after ${formatLongDate(renewal)}`);
       const door = await (await get('/billing/withdraw/private-network', testEnv, session.cookie)).text();
-      expect(door).toContain(`renewed on ${formatLongDate(renewal)}`);
+      expect(door).toContain(`bought on ${formatLongDate(startDate)}`);
+      expect(door).toContain(`we refund everything you paid for its renewal on ${formatLongDate(renewal)}`);
       const statement = door.match(/name="statement" value="([^"]+)"/)[1];
 
       const response = await post('/billing/withdraw/private-network', testEnv, { statement }, session.cookie);
-      expect(response.headers.get('Location')).toBe('/private-network?withdrawal=done');
+      expect(response.headers.get('Location')).toBe(`/private-network?withdrawal=done&renewed=${renewal}`);
       expect(stripe.refunds).toEqual([{ charge: 'ch_renewal', amount: null }]);
       expect(stripe.cancels).toBe(1);
       const row = await workerEnv.DB.prepare('SELECT purchased_at, completed_at FROM subscription_withdrawals').first();
       expect(row.purchased_at).toBe(renewal);
       expect(row.completed_at).not.toBeNull();
       expect((await workerEnv.DB.prepare('SELECT status FROM entitlements WHERE account_id = ?').bind(accountId).first()).status).toBe('lapsed');
-      expect(testEnv.EMAIL.sent[0].text).toContain(`renewed on ${formatLongDate(renewal)}`);
+      expect(testEnv.EMAIL.sent[0].text).toContain(`bought on ${formatLongDate(startDate)}, renewed on ${formatLongDate(renewal)}.`);
     });
 
     it('counts from when a retried renewal was paid, and opens no window before then', async () => {

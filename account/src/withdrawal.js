@@ -1,9 +1,9 @@
 // Withdrawal from a paid subscription within 14 days of buying it: the owner's own page, one
 // confirm, and then, in this order, the withdrawal recorded, the service ended, and an emailed
 // acknowledgement, none of which waits on Stripe. The full refund and the immediate end of the
-// Stripe subscription follow, and retry until they land. It sits beside the ordinary cancel,
-// which is untouched: that one goes through Stripe's billing portal and ends at the period's end
-// with no refund.
+// Stripe subscription follow, and retry until they land. It sits beside the ordinary cancel:
+// Stripe's billing portal, or with the subscription rules on the cancel function
+// (cancel-contract.js), and stays open while a cancel is pending.
 //
 // The page carries a signed statement of exactly what it showed the owner (the subscription, its
 // price and when it was bought), so the confirm records and acknowledges that without a Stripe
@@ -31,7 +31,14 @@ import { renderNotFound, renderWithdrawal } from './html.js';
 import { forbidden, html, originAllowed } from './index.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { renderWithdrawalAck, resolvePrimaryAddress } from './renewal-notices.js';
-import { invoicesToRefund, windowNeedsInvoices, withdrawalWindowStart } from './renewed-year.js';
+import {
+  cancelEnds,
+  invoicesToRefund,
+  renewalInvoice,
+  renewalStart,
+  windowNeedsInvoices,
+  withdrawalWindowStart,
+} from './renewed-year.js';
 import {
   loadMenuContext,
   noStore,
@@ -106,7 +113,8 @@ export async function billingEntryView(env, entitlement, { priced, readPlan }, n
 
 // The window counts from the purchase or, in a renewed annual year, from when the renewal was
 // paid. A renewal not yet paid opens no window, and one whose invoices didn't load shows the door
-// with no date, as a failed subscription read does.
+// with no date, as a failed subscription read does. A renewed year's door also says so, with what
+// its renewal paid, from the same read of the invoices.
 async function door(env, entitlement, sub, nowSeconds) {
   const path = withdrawalPathFor(entitlement.service);
   if (!sub) return { path, purchasedAt: null };
@@ -118,7 +126,10 @@ async function door(env, entitlement, sub, nowSeconds) {
   const purchasedAt = withdrawalWindowStart(env, sub, invoices);
   const until = withdrawalUntil(purchasedAt);
   if (until == null || nowSeconds >= until) return null;
-  return { path, purchasedAt: withdrawalRuleShown(purchasedAt, nowSeconds) ? purchasedAt : null };
+  const shown = withdrawalRuleShown(purchasedAt, nowSeconds) ? purchasedAt : null;
+  if (!invoices) return { path, purchasedAt: shown };
+  const paid = renewalInvoice(invoices, renewalStart(sub))?.amount_paid ?? null;
+  return { path, purchasedAt: shown, renewed: true, renewalPaid: paid };
 }
 
 async function readPaidInvoices(env, subscriptionRef) {
@@ -139,7 +150,8 @@ async function readSubscription(env, subscriptionRef) {
   }
 }
 
-function withdrawable(entitlement) {
+// A paid subscription on one of the services a withdrawal or a cancel can be made from.
+export function withdrawable(entitlement) {
   return entitlement?.source === 'stripe'
     && typeof entitlement.source_ref === 'string'
     && entitlement.source_ref.startsWith('sub_')
@@ -181,15 +193,19 @@ export async function handleWithdrawalPage(req, env, slug) {
     return signedInHtml(renderWithdrawal({ ...base, state: 'closed', purchasedAt: subscriptionPurchasedAt(sub), renewed: false }));
   }
   if (!sub || !plan || purchasedAt == null) return signedInHtml(renderWithdrawal({ ...base, state: 'unavailable' }));
-  const renewed = purchasedAt !== subscriptionPurchasedAt(sub);
+  const boughtAt = subscriptionPurchasedAt(sub);
+  const renewed = purchasedAt !== boughtAt;
   const nowSeconds = Math.floor(nowMs / 1000);
   if (nowSeconds >= withdrawalUntil(purchasedAt)) {
-    return signedInHtml(renderWithdrawal({ ...base, state: 'closed', purchasedAt, renewed }));
+    // What a cancel made now would refund, which the renewed year's closed page speaks of.
+    const monthsLeft = renewed ? cancelEnds(env, sub, nowSeconds).earliest.monthsLeft : 0;
+    return signedInHtml(renderWithdrawal({ ...base, state: 'closed', purchasedAt, renewed, monthsLeft }));
   }
   const statement = await signStatement(env, accountId, {
     subscriptionRef: entitlement.source_ref,
     purchasedAt,
     renewed,
+    boughtAt,
     unitAmount: plan.unitAmount,
     interval: plan.interval,
     issuedAt: nowMs,
@@ -199,6 +215,7 @@ export async function handleWithdrawalPage(req, env, slug) {
     state: 'open',
     purchasedAt,
     renewed,
+    boughtAt,
     ruleShown: withdrawalRuleShown(purchasedAt, nowSeconds),
     plan,
     statement,
@@ -242,7 +259,10 @@ export async function handleWithdrawalConfirm(req, env, ctx, slug) {
 
   const outcome = await completeWithdrawal(env, ctx, record, { nowMs, statement });
   if (!outcome.completed) return signedInRedirect(`${pagePath}?withdrawal=error`);
-  return signedInRedirect(`${def.path}?withdrawal=${outcome.acknowledged ? 'done' : 'done_unsent'}`);
+  // A renewed year's notice names the renewal it refunds, from the statement the page showed.
+  const shown = statement || await verifyStatement(env, accountId, form.get('statement')?.toString() || '', nowMs);
+  const renewed = shown?.renewed && shown.subscriptionRef === record.subscription_ref ? `&renewed=${record.purchased_at}` : '';
+  return signedInRedirect(`${def.path}?withdrawal=${outcome.acknowledged ? 'done' : 'done_unsent'}${renewed}`);
 }
 
 // Finishes a recorded withdrawal, as far as it has not got yet. Safe to run again at any point:
@@ -261,10 +281,13 @@ export async function completeWithdrawal(env, ctx, record, { nowMs = Date.now(),
   let acknowledged = record.acknowledged_at != null;
   let sub = null;
   if (!acknowledged) {
-    let plan = statement ? { unitAmount: statement.unitAmount, interval: statement.interval, renewed: statement.renewed } : null;
+    let plan = statement
+      ? { unitAmount: statement.unitAmount, interval: statement.interval, renewed: statement.renewed, boughtAt: statement.boughtAt }
+      : null;
     if (!plan) {
       sub = await readSubscription(env, subscriptionRef);
-      plan = sub && subscriptionPlan(sub) ? { ...subscriptionPlan(sub), renewed: subscriptionPurchasedAt(sub) !== record.purchased_at } : null;
+      const boughtAt = subscriptionPurchasedAt(sub);
+      plan = sub && subscriptionPlan(sub) ? { ...subscriptionPlan(sub), renewed: boughtAt !== record.purchased_at, boughtAt } : null;
     }
     acknowledged = plan ? await sendAcknowledgement(env, record, plan, nowMs) : false;
   }
@@ -309,7 +332,8 @@ async function lapseEntitlement(env, ctx, record, def, nowMs) {
 
 // Refunds every paid invoice of the subscription in full: the purchase, any change of plan since,
 // and a renewal that charged before the cancel landed. In a renewed annual year, only the
-// renewal's (see invoicesToRefund).
+// renewal's (see invoicesToRefund). A charge a pending cancel already part-refunded gets only
+// what is left of it, so the whole is refunded once.
 async function refundSubscriptionInFull(env, subscriptionRef, invoices) {
   for (const invoice of invoices) {
     if (!Number.isInteger(invoice?.amount_paid) || invoice.amount_paid <= 0) continue;
@@ -333,6 +357,7 @@ async function sendAcknowledgement(env, record, plan, nowMs) {
       unitAmount: plan.unitAmount,
       purchasedAt: record.purchased_at,
       renewed: Boolean(plan.renewed),
+      boughtAt: plan.boughtAt ?? null,
       submittedAtMs: record.submitted_at,
       primaryEmail,
     })
@@ -409,10 +434,14 @@ export async function runWithdrawalRecovery(env, ctx, nowMs = Date.now()) {
 
 // The page's statement of what it showed: which subscription, its price, and when it was bought,
 // signed to this sign-in so the confirm can record it without asking Stripe again.
-async function signStatement(env, accountId, { subscriptionRef, purchasedAt, renewed, unitAmount, interval, issuedAt }) {
+async function signStatement(env, accountId, { subscriptionRef, purchasedAt, renewed, boughtAt, unitAmount, interval, issuedAt }) {
   const fields = { s: subscriptionRef, p: purchasedAt, a: unitAmount, i: interval, t: issuedAt };
-  // Only a renewed year's statement says so, so the first year's stays exactly as before.
-  if (renewed) fields.r = 1;
+  // Only a renewed year's statement says so, with when it was first bought, so the first year's
+  // stays exactly as before.
+  if (renewed) {
+    fields.r = 1;
+    fields.b = boughtAt;
+  }
   const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify(fields)));
   return `${payload}.${await scopedHmac(payload, env.HMAC_PEPPER, `withdrawal-statement:${accountId}`)}`;
 }
@@ -428,10 +457,10 @@ async function verifyStatement(env, accountId, value, nowMs) {
   } catch {
     return null;
   }
-  const { s, p, a, i, t, r } = parsed || {};
+  const { s, p, a, i, t, r, b } = parsed || {};
   if (typeof s !== 'string' || !s.startsWith('sub_') || !Number.isInteger(p) || !Number.isInteger(a) || a <= 0) return null;
   if ((i !== 'year' && i !== 'month') || !Number.isInteger(t) || nowMs - t > STATEMENT_TTL_MS || t > nowMs + 60_000) return null;
-  return { subscriptionRef: s, purchasedAt: p, unitAmount: a, interval: i, renewed: r === 1 };
+  return { subscriptionRef: s, purchasedAt: p, unitAmount: a, interval: i, renewed: r === 1, boughtAt: r === 1 && Number.isInteger(b) ? b : null };
 }
 
 // A peppered account reference, never the raw id: console lines are Logpush-retained.
