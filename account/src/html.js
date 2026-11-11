@@ -2742,6 +2742,7 @@ function keyInformation(rows, service) {
       <p><strong>${esc(planTitle(r))}</strong></p>
       ${keyFactsList(keyFactsPlanLines({ interval: interval(r), values: planValues(r) }))}
     </div>`).join('\n    ')}
+    <hr>
     <div data-key-info-shared>
       ${keyFactsList(KEY_FACTS_SHARED_LINES)}
     </div>`;

@@ -154,7 +154,7 @@ function renderFilled(subjectTemplate, bodyTemplate, values) {
   const subject = fill(subjectTemplate);
   const rawBody = fill(bodyTemplate);
   if (/\{\{[a-z_]+\}\}/.test(rawBody) || /\{\{[a-z_]+\}\}/.test(subject)) return null;
-  return { subject, ...renderMarkdownEmail(rawBody) };
+  return { subject, ...renderMarkdownEmail(rawBody, { quoteLabels: true }) };
 }
 
 // The next renewal after `renewal`, the way Stripe steps a period from its anchor: the anchor's
@@ -170,7 +170,7 @@ export function nextRenewalAfter(anchor, renewal, interval) {
 // The renewal reminder under the subscription rules. `previousAmount` is the last payment, or
 // null when none has been made; `early` is the earlier of an annual plan's two reminders. The
 // cancel-by date is two days before the renewal's UTC date, so its end falls before the charge
-// wherever the buyer is.
+// wherever the buyer is. Its dates are written out, in UTC, as the cooling-off notice's are.
 export function renderRulesReminder({ service, interval, unitAmount, previousAmount = null, renewalSeconds, nextRenewalSeconds, early = false }) {
   if ((interval !== 'year' && interval !== 'month') || !Number.isInteger(renewalSeconds) || !Number.isInteger(nextRenewalSeconds)) return null;
   const prev = Number.isInteger(previousAmount) && previousAmount > 0;
@@ -190,9 +190,9 @@ export function renderRulesReminder({ service, interval, unitAmount, previousAmo
     previous_price: prev ? formatPrice(previousAmount) : null,
     increase: higher ? formatPrice(unitAmount - previousAmount) : null,
     monthly_equivalent: formatPrice(Math.round(unitAmount / 12)),
-    renewal_date: formatRenewalDate(renewalSeconds),
-    cancel_by_date: formatRenewalDate(renewalSeconds - 2 * 86400),
-    next_renewal_date: formatRenewalDate(nextRenewalSeconds),
+    renewal_date: formatLongDate(renewalSeconds),
+    cancel_by_date: formatLongDate(renewalSeconds - 2 * 86400),
+    next_renewal_date: formatLongDate(nextRenewalSeconds),
   });
 }
 
@@ -331,11 +331,13 @@ function unbox(para) {
 
 // The notices' small markdown: **bold**, *italic*, and links to services.solstone.app (the root
 // or the terms). Plain text drops the marks and keeps a link's address; HTML escapes and marks up.
-function renderMarkdownEmail(rawBody) {
+// Under the subscription rules an *italic* span is a button label, which the plain text quotes
+// ("cancel contracts here") so it still reads as one; otherwise the plain text drops the marks.
+function renderMarkdownEmail(rawBody, { quoteLabels = false } = {}) {
   const plainParagraphs = rawBody.split('\n\n').map((para) => {
     const { inner, boxed } = unbox(para);
     let p = inner.replaceAll('**', '');
-    p = p.replaceAll(/\*([^*\n]+)\*/g, '$1');
+    p = p.replaceAll(/\*([^*\n]+)\*/g, quoteLabels ? '"$1"' : '$1');
     p = p.replaceAll(/\[([^\]]+)\]\((https:\/\/[^\)]+)\)/g, '$2');
     p = p.trim();
     return boxed ? `${TEXT_BOX_RULE}\n${p}\n${TEXT_BOX_RULE}` : p;
@@ -424,7 +426,7 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
 
   if (/\{\{[a-z_]+\}\}/.test(rawBody) || /\{\{[a-z_]+\}\}/.test(subject)) return null;
 
-  const { text, html } = renderMarkdownEmail(rawBody);
+  const { text, html } = renderMarkdownEmail(rawBody, { quoteLabels: kind === 'ack' && rules });
   return { subject, text, html };
 }
 
