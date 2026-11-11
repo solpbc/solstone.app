@@ -2349,32 +2349,37 @@ export async function attachSubscriptionStartRequest(db, { checkoutSessionRef, a
 // A declared cancellation, recorded once per summary page. A second confirm of the same page finds
 // the first row. The refund rides the row only while no other declaration has claimed that renewal
 // invoice's refund: one cancel refund per renewal invoice, ever, so a later declaration that would
-// claim it again is recorded without one.
+// claim it again is recorded without one. Neither the name an owner may type nor a serious
+// reason is ever stored.
 export async function claimSubscriptionCancellation(db, {
-  subscriptionRef, issuedAt, accountId, service, name, endsAt, atPeriodEnd, refundInvoiceRef, refundAmount, nowMs,
+  subscriptionRef, issuedAt, accountId, service, cause, endsToday, planAmount, planInterval,
+  endsAt, atPeriodEnd, refundInvoiceRef, refundAmount, refundMonths, windowAt, nowMs,
 }) {
-  const insert = (invoiceRef, amount) => db
+  const insert = (invoiceRef, amount, months) => db
     .prepare(
       `INSERT INTO subscription_cancellations (
-         subscription_ref, issued_at, account_id, service, name, ends_at, at_period_end,
-         refund_invoice_ref, refund_amount, submitted_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         subscription_ref, issued_at, account_id, service, cause, ends_today, plan_amount, plan_interval,
+         ends_at, at_period_end, refund_invoice_ref, refund_amount, refund_months, window_at, submitted_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT DO NOTHING`
     )
-    .bind(subscriptionRef, issuedAt, accountId, service, name, endsAt, atPeriodEnd ? 1 : 0, invoiceRef, amount, nowMs)
+    .bind(
+      subscriptionRef, issuedAt, accountId, service, cause ? 1 : 0, endsToday ? 1 : 0, planAmount, planInterval,
+      endsAt, atPeriodEnd ? 1 : 0, invoiceRef, amount, months, windowAt ?? null, nowMs,
+    )
     .run();
-  await insert(refundInvoiceRef || null, refundInvoiceRef ? refundAmount : null);
+  await insert(refundInvoiceRef || null, refundInvoiceRef ? refundAmount : null, refundInvoiceRef ? refundMonths : null);
   let row = await getSubscriptionCancellation(db, { subscriptionRef, issuedAt });
   if (!row && refundInvoiceRef) {
-    await insert(null, null);
+    await insert(null, null, null);
     row = await getSubscriptionCancellation(db, { subscriptionRef, issuedAt });
   }
   return row;
 }
 
-const CANCELLATION_COLUMNS = `subscription_ref, issued_at, account_id, service, name, ends_at, at_period_end,
-              refund_invoice_ref, refund_amount, submitted_at, refunded_at, completed_at, acknowledged_at,
-              failure_alerted_at, stuck_alerted_at`;
+const CANCELLATION_COLUMNS = `subscription_ref, issued_at, account_id, service, cause, ends_today, plan_amount, plan_interval,
+              ends_at, at_period_end, refund_invoice_ref, refund_amount, refund_months, window_at,
+              submitted_at, refunded_at, completed_at, acknowledged_at, failure_alerted_at, stuck_alerted_at`;
 
 export async function getSubscriptionCancellation(db, { subscriptionRef, issuedAt }) {
   return db

@@ -554,17 +554,24 @@ CREATE TABLE IF NOT EXISTS subscription_start_requests (
 CREATE INDEX IF NOT EXISTS idx_subscription_start_requests_account_id
   ON subscription_start_requests(account_id);
 
--- A cancellation declared through the cancel function, one row per declaration (see migration 0050).
+-- A cancellation declared through the cancel function, one row per declaration (see migrations
+-- 0050 and 0052). The name an owner may type and the reason for a serious-reason cancel are
+-- never stored.
 CREATE TABLE IF NOT EXISTS subscription_cancellations (
   subscription_ref TEXT NOT NULL CHECK (substr(subscription_ref, 1, 4) = 'sub_' AND length(subscription_ref) > 4),
   issued_at INTEGER NOT NULL,
   account_id TEXT NOT NULL,
   service TEXT NOT NULL CHECK (service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted')),
-  name TEXT NOT NULL,
+  cause INTEGER NOT NULL CHECK (cause IN (0, 1)),
+  ends_today INTEGER NOT NULL CHECK (ends_today IN (0, 1) AND (ends_today = 0 OR cause = 1)),
+  plan_amount INTEGER CHECK (plan_amount IS NULL OR plan_amount > 0),
+  plan_interval TEXT CHECK (plan_interval IS NULL OR plan_interval IN ('year', 'month')),
   ends_at INTEGER NOT NULL,
   at_period_end INTEGER NOT NULL CHECK (at_period_end IN (0, 1)),
   refund_invoice_ref TEXT UNIQUE CHECK (refund_invoice_ref IS NULL OR (substr(refund_invoice_ref, 1, 3) = 'in_' AND length(refund_invoice_ref) > 3)),
   refund_amount INTEGER CHECK ((refund_invoice_ref IS NULL AND refund_amount IS NULL) OR (refund_invoice_ref IS NOT NULL AND refund_amount > 0)),
+  refund_months INTEGER CHECK (refund_months IS NULL OR (refund_invoice_ref IS NOT NULL AND refund_months BETWEEN 1 AND 11)),
+  window_at INTEGER,
   submitted_at INTEGER NOT NULL,
   refunded_at INTEGER,
   completed_at INTEGER,
