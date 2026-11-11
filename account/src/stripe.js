@@ -188,12 +188,12 @@ export async function refundChargeInFull(env, { chargeId }) {
 }
 
 // Ends a subscription now. Stripe's defaults are the ones wanted: no proration and no final
-// invoice. This is only the withdrawal path; an ordinary cancel goes through the billing portal
-// and ends at the period's end.
-export async function cancelSubscriptionNow(env, subscriptionId) {
+// invoice. The withdrawal uses it, and so does a cancel for a serious reason that ends today,
+// under its own idempotency key.
+export async function cancelSubscriptionNow(env, subscriptionId, { idempotencyKey = `withdrawal-cancel-${subscriptionId}` } = {}) {
   return stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`, {
     method: 'DELETE',
-    idempotencyKey: `withdrawal-cancel-${subscriptionId}`,
+    idempotencyKey,
   });
 }
 
