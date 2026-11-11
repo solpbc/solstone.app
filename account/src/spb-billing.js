@@ -22,7 +22,7 @@ import {
 import { subscriptionRulesOn } from './subscription-rules.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
 import { cancelContractHref, cancelContractRedirect } from './cancel-contract.js';
-import { billingView } from './withdrawal.js';
+import { billingView, cancelOffered } from './withdrawal.js';
 import { SPB_HOSTED_SERVICE as SERVICE } from './spb-entitlement.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
@@ -47,6 +47,7 @@ export async function handleServicesSpb(req, env) {
     entitlement,
     ...await billingView(env, entitlement),
     cancelContract: cancelContractHref(env, 'backup'),
+    cancelOffered: await cancelOffered(env, entitlement),
     startNowBox: withdrawalOn(env),
     keyInfo: subscriptionRulesOn(env),
     csrf,

@@ -25,7 +25,7 @@ import {
 import { subscriptionRulesOn } from './subscription-rules.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
 import { cancelContractHref, cancelContractRedirect } from './cancel-contract.js';
-import { billingView } from './withdrawal.js';
+import { billingView, cancelOffered } from './withdrawal.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
 const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}${SME_SERVICE_PATH}?checkout=success`;
@@ -52,6 +52,7 @@ export async function handleServicesSme(req, env) {
     entitlement,
     ...await billingView(env, entitlement),
     cancelContract: cancelContractHref(env, 'solstone-me'),
+    cancelOffered: await cancelOffered(env, entitlement),
     startNowBox: withdrawalOn(env),
     keyInfo: subscriptionRulesOn(env),
     csrf,

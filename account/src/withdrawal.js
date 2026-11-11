@@ -47,6 +47,7 @@ import {
   signedInRedirect,
 } from './settings.js';
 import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
+import { subscriptionRulesOn } from './subscription-rules.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
@@ -157,6 +158,14 @@ export function withdrawable(entitlement) {
     && entitlement.source_ref.startsWith('sub_')
     && (entitlement.status === 'active' || entitlement.status === 'past_due')
     && BY_SERVICE.has(entitlement.service);
+}
+
+// Whether a service page or its billing entry shows "cancel contracts here": with the rules on,
+// while there is a paid subscription and no withdrawal from it is recorded, so it goes when the
+// door does.
+export async function cancelOffered(env, entitlement) {
+  if (!subscriptionRulesOn(env) || !withdrawable(entitlement)) return false;
+  return !await getSubscriptionWithdrawal(env.DB, { subscriptionRef: entitlement.source_ref });
 }
 
 export async function handleWithdrawalPage(req, env, slug) {
