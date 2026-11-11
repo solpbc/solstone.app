@@ -37,6 +37,7 @@ const PAGES = [
   ["/releases/windows", "releases.js"],
   ["/releases/linux", "releases.js"],
   ["/releases/android", "releases.js"],
+  ["/releases/wear", "releases.js"],
   ["/releases/ios", "releases.js"],
 ];
 
