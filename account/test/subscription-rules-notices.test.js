@@ -152,7 +152,7 @@ describe('subscription rules: reminders, notices and key information', () => {
       const [early, main] = testEnv.EMAIL.sent;
       for (const email of [early, main]) {
         expect(email.to).toBe('rules@example.com');
-        expect(email.subject).toBe('your private network subscription renews on 2027-01-15');
+        expect(email.subject).toBe('your private network subscription renews on January 15, 2027');
         expect(email.text).not.toContain('sol pbc runs your');
       }
       expect(early.text).toContain("we'll remind you again closer to the date. if you want to keep it, there's nothing to do.");
@@ -167,24 +167,24 @@ describe('subscription rules: reminders, notices and key information', () => {
       await subscriber(testEnv, { sub: { start, periodStart: start, periodEnd: renewal } });
       await runAt(testEnv, renewal - 37 * DAY);
       const [email] = testEnv.EMAIL.sent;
-      expect(email.text.startsWith('private network renews on 2027-01-15\n\n----------------------------------------\nto stop it renewing, cancel by 2027-01-13.\n----------------------------------------\n\n')).toBe(true);
-      expect(email.html).toContain('<p><strong>private network renews on 2027-01-15</strong></p>\n  <p style="border: 2px solid #222; border-radius: 6px; padding: 12px 16px;"><strong>to stop it renewing, cancel by 2027-01-13.</strong></p>');
-      expect(email.text).toContain("this is a reminder: your private network subscription renews on 2027-01-15, and you'll be charged $20 for another year, using the payment method on file, unless you cancel before then. you paid $20 last time. the renewal after it is on 2028-01-15.");
+      expect(email.text.startsWith('private network renews on January 15, 2027\n\n----------------------------------------\nto stop it renewing, cancel by January 13, 2027.\n----------------------------------------\n\n')).toBe(true);
+      expect(email.html).toContain('<p><strong>private network renews on January 15, 2027</strong></p>\n  <p style="border: 2px solid #222; border-radius: 6px; padding: 12px 16px;"><strong>to stop it renewing, cancel by January 13, 2027.</strong></p>');
+      expect(email.text).toContain("this is a reminder: your private network subscription renews on January 15, 2027, and you'll be charged $20 for another year, using the payment method on file, unless you cancel before then. you paid $20 last time. the renewal after it is on January 15, 2028.");
       expect(email.text).toContain("if it renews, you can still withdraw for a full refund until the end of the 14th day after it does. after that, the least you'll pay is one month of it, $1.67: a cancel ends it at the end of your current plan month, and we refund the whole months left.");
-      expect(email.text).toContain('to cancel by 2027-01-13, sign in at https://services.solstone.app and use cancel contracts here on your private network page there or at https://services.solstone.app/billing, or email support@solstone.app saying you cancel.');
+      expect(email.text).toContain('to cancel by January 13, 2027, sign in at https://services.solstone.app and use "cancel contracts here" on your private network page there or at https://services.solstone.app/billing, or email support@solstone.app saying you cancel.');
     });
 
     it('names a higher price and the difference, and leaves out the last payment when there was none', async () => {
       const higher = makeTestEnv(RULES_ON);
       await subscriber(higher, { sub: { start, periodStart: start, periodEnd: renewal, amount: 2400 }, lastPaid: 2000 });
       await runAt(higher, renewal - 37 * DAY);
-      expect(higher.EMAIL.sent[0].text).toContain("you'll be charged $24 for another year, using the payment method on file, unless you cancel before then. you paid $20 last time. this renewal is $4 more. the renewal after it is on 2028-01-15.");
+      expect(higher.EMAIL.sent[0].text).toContain("you'll be charged $24 for another year, using the payment method on file, unless you cancel before then. you paid $20 last time. this renewal is $4 more. the renewal after it is on January 15, 2028.");
 
       await resetDb();
       const none = makeTestEnv(RULES_ON);
       await subscriber(none, { sub: { start, periodStart: start, periodEnd: renewal }, lastPaid: null });
       await runAt(none, renewal - 37 * DAY);
-      expect(none.EMAIL.sent[0].text).toContain('unless you cancel before then. the renewal after it is on 2028-01-15.');
+      expect(none.EMAIL.sent[0].text).toContain('unless you cancel before then. the renewal after it is on January 15, 2028.');
       expect(none.EMAIL.sent[0].text).not.toContain('last time');
       expect(none.EMAIL.sent[0].text).not.toContain('more.');
     });
@@ -220,8 +220,8 @@ describe('subscription rules: reminders, notices and key information', () => {
       expect(sentAt).toEqual([6, 12, 18]);
       expect(testEnv.EMAIL.sent).toHaveLength(3);
       const [first] = testEnv.EMAIL.sent;
-      const renewalDate = new Date(stripeMonthly(start, 6) * 1000).toISOString().slice(0, 10);
-      const nextDate = new Date(stripeMonthly(start, 7) * 1000).toISOString().slice(0, 10);
+      const renewalDate = longDate(stripeMonthly(start, 6));
+      const nextDate = longDate(stripeMonthly(start, 7));
       expect(first.subject).toBe(`your private network subscription renews on ${renewalDate}`);
       expect(first.text).toContain(`for another month, using the payment method on file, unless you cancel before then. you paid $2.49 last time. the renewal after it is on ${nextDate}.`);
       expect(first.text).toContain("\n\nif it renews, the least you'll pay is that $2.49.\n\n");
@@ -265,6 +265,9 @@ describe('subscription rules: reminders, notices and key information', () => {
       expect(email.text).toContain('your encrypted backup subscription has renewed for another year, and you paid $48 on January 15, 2027, and it continues.');
       expect(email.text).toContain('we refund everything you paid for this renewal, $48, the same way you paid, within 14 days.');
       expect(email.html).toContain('<strong>if you use <em>cancel contracts here</em> instead,</strong>');
+      // The text part quotes the button labels.
+      expect(email.text).toContain('use "withdraw from contract here" on your encrypted backup page there');
+      expect(email.text).toContain('if you use "cancel contracts here" instead, now or after those 14 days,');
       const rows = await workerEnv.DB.prepare("SELECT renewal_at FROM renewal_notices WHERE kind = 'cooling_off'").all();
       expect(rows.results).toEqual([{ renewal_at: renewed1 }]);
     });
@@ -354,6 +357,10 @@ describe('subscription rules: reminders, notices and key information', () => {
         expect(part).not.toContain('services.solstone.app/terms');
       }
       expect(count(block, 'how to end it')).toBe(1);
+      // The lines no plan changes sit apart from the plan lists, after a rule.
+      expect(block.indexOf('<hr>')).toBeGreaterThan(block.indexOf('data-key-info-plan="monthly"'));
+      expect(block.indexOf('<hr>')).toBeLessThan(block.indexOf('data-key-info-shared'));
+      expect(block.slice(block.indexOf('data-key-info-shared'))).toContain('how to end it');
       expect(count(block, 'href="https://services.solstone.app/terms"')).toBe(1);
       expect(block).toContain('<li><strong>how to end it.</strong> sign in at services.solstone.app and use <em>cancel contracts here</em>, on this page or at services.solstone.app/billing, or email support@solstone.app saying you cancel.</li>');
       expect(block).toContain('<li>the details are in the terms, with everything else: <a href="https://services.solstone.app/terms">services.solstone.app/terms</a>.</li>');
@@ -414,14 +421,16 @@ describe('subscription rules: reminders, notices and key information', () => {
         '- it continues until you end it. private network is a subscription, and you keep paying until you cancel. the first year runs to its end. once it has renewed, a cancel takes effect at the end of your current plan month, and we refund the whole months left.',
         "- what you pay. $20 every year, tax included. that's $1.67 a month. the price can change only from a renewal, and we tell you before it does.",
         "- the least you'll pay is $20, for the first year, unless you withdraw within 14 days.",
-        '- how to end it. sign in at services.solstone.app and use cancel contracts here, on your private network page there or at services.solstone.app/billing, or email support@solstone.app saying you cancel.',
+        '- how to end it. sign in at services.solstone.app and use "cancel contracts here", on your private network page there or at services.solstone.app/billing, or email support@solstone.app saying you cancel.',
         '- renewal reminders. 60 to 70 days, and again 35 to 40 days, before each renewal.',
         '- you can change your mind. you can withdraw for a full refund until the end of the 14th day after you buy; an email saying you cancel in that time counts too. you can do it again after each renewal. the details are in the terms, with everything else: https://services.solstone.app/terms.',
       ]);
       expect(paragraphs[4]).toBe("it renews on its own. at the end of each year, private network renews automatically at the plan's then-current price, using the payment method on file, until you cancel. we'll email you twice before each renewal, 60 to 70 days and 35 to 40 days before it, with the date to cancel by and how to cancel.");
-      expect(paragraphs[5]).toBe("canceling takes as few steps as subscribing did. sign in at https://services.solstone.app and use cancel contracts here on your private network page there or at https://services.solstone.app/billing, or email support@solstone.app saying you cancel. within your 14 days to withdraw (below), an email saying you cancel counts as a withdrawal, unless you tell us to keep private network running. no phone call, no retention maze. if you cancel in this first year, private network keeps working through the end of the year you've paid for, then stops. once it has renewed, a cancel ends it at the end of your current plan month, and we refund the whole months left.");
+      expect(paragraphs[5]).toBe("canceling takes as few steps as subscribing did. sign in at https://services.solstone.app and use \"cancel contracts here\" on your private network page there or at https://services.solstone.app/billing, or email support@solstone.app saying you cancel. within your 14 days to withdraw (below), an email saying you cancel counts as a withdrawal, unless you tell us to keep private network running. no phone call, no retention maze. if you cancel in this first year, private network keeps working through the end of the year you've paid for, then stops. once it has renewed, a cancel ends it at the end of your current plan month, and we refund the whole months left.");
       expect(paragraphs[6].endsWith('the same way you paid. each renewal gives you 14 more days to withdraw, counted from the day you pay for it, for a refund of that renewal.')).toBe(true);
       expect(text).toContain('withdrawal form (fill this in and send it only if you want to withdraw):');
+      expect(text).toContain('and use "withdraw from contract here" on your private network page there');
+      expect(html).toContain('<em>withdraw from contract here</em>');
       expect(paragraphs.slice(-4)).toEqual([
         "who we are. sol pbc, 16095 East 109th Place, Commerce City, CO 80022, United States · support@solstone.app · +1 563 663 5487. questions and complaints go to either, and an answer to a complaint says what we'll do about it.",
         "your rights. if private network isn't as described or doesn't work, the law where you live may give you rights about it, and nothing here limits them. private network works with the solstone software on your own devices; section 11 of the terms says what it does and anything it needs.",
@@ -495,6 +504,10 @@ function planPart(block, plan) {
   const start = block.indexOf(`data-key-info-plan="${plan}"`);
   expect(start).toBeGreaterThan(-1);
   return block.slice(start, block.indexOf('</div>', start));
+}
+
+function longDate(seconds) {
+  return new Date(seconds * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 function count(text, needle) {
