@@ -66,6 +66,7 @@ describe('static source checks', () => {
       'renewal-notices.js',
       'renewed-year.js',
       'retention.js',
+      'rules-words.js',
       's3.js',
       'session.js',
       'settings.js',

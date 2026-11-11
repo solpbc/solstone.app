@@ -16,8 +16,9 @@ import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
 import { getSubscription, listPaidSubscriptionInvoices, subscriptionPeriodEnd } from './stripe.js';
+import { invoicePaidAt, renewalInvoice, renewalStart, serviceMonthStart } from './renewed-year.js';
+import { KEY_FACTS_EMAIL_HEADING, keyFactsLines, resolveBranches } from './rules-words.js';
 import { placeholder, subscriptionRulesOn } from './subscription-rules.js';
-import { WITHDRAWAL_SERVICES, withdrawalPathFor } from './withdrawal.js';
 import { formatLongDate, formatMomentUtc, withdrawalOn } from './withdrawal-rules.js';
 
 export const TAG_TO_HOSTED_SERVICE = Object.freeze({
@@ -89,73 +90,138 @@ questions: support@solstone.app.
 
 sol pbc`;
 
-// PLACEHOLDER pending the approved subscription-rules wording: the renewal reminder and the renewal cooling-off
-// notice under the subscription rules. Each string is the one place it is swapped; none of them
-// is sent while the switch is off. A [box] paragraph renders set apart in both parts.
-const RULES_REMINDER_SUBJECT = placeholder('reminder: your {{service}} subscription renews on {{renewal_date}}');
+// The approved wording under the subscription rules: the renewal reminder (one template for the
+// early and the main annual reminder and the six-monthly one), the renewal cooling-off notice,
+// and the written confirmation's changes. None of it is sent while the switch is off. A [box]
+// paragraph renders set apart in both parts; a paragraph of "- " lines renders as a list.
+// It keeps the subject of the reminder it replaces.
+const RULES_REMINDER_SUBJECT = L2_SUBJECT_TEMPLATE;
 const RULES_REMINDER_BODY = [
-  placeholder('**this is a reminder.** your **{{service}}** subscription renews on its own on **{{renewal_date}}** for another {{interval}}, at **{{price}}**, using the payment method on file.'),
-  placeholder('**last time** you paid {{previous_price}}.'),
-  placeholder("**the least you'll pay** if it renews is {{price}}, for the next {{interval}}."),
-  `[box]${placeholder('**to stop it renewing, cancel by {{cancel_by}}.**')}[/box]`,
-  placeholder('**to cancel**, go to [services.solstone.app/billing/cancel-contract]({{cancel_url}}). no notice needed. to keep it, do nothing.'),
+  '**{{service}} renews on {{renewal_date}}**',
+  '[box]**to stop it renewing, cancel by {{cancel_by_date}}.**[/box]',
+  "this is a reminder: your **{{service}}** subscription renews on **{{renewal_date}}**, and you'll be charged **{{price}}** for another {{interval}}, using the payment method on file, unless you cancel before then. [PREV] you paid {{previous_price}} last time. [/PREV] [HIGHER] this renewal is {{increase}} more. [/HIGHER] the renewal after it is on {{next_renewal_date}}.",
+  "[MONTHLY] if it renews, the least you'll pay is that {{price}}. [/MONTHLY] [ANNUAL] if it renews, you can still withdraw for a full refund until the end of the 14th day after it does. after that, the least you'll pay is one month of it, {{monthly_equivalent}}: a cancel ends it at the end of your current plan month, and we refund the whole months left. [/ANNUAL]",
+  '**to cancel by {{cancel_by_date}},** sign in at [services.solstone.app](https://services.solstone.app) and use *cancel contracts here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), or email support@solstone.app saying you cancel.',
+  "[EARLY] we'll remind you again closer to the date. [/EARLY] if you want to keep it, there's nothing to do.",
   'questions: support@solstone.app.',
   'sol pbc',
 ].join('\n\n');
 
-const COOLING_OFF_SUBJECT = placeholder('your {{service}} subscription renewed: 14 days to withdraw');
+const COOLING_OFF_SUBJECT = 'your {{service}} subscription renewed: you can cancel it for a full refund for 14 days';
 const COOLING_OFF_BODY = [
-  placeholder('your **{{service}}** subscription renewed on {{renewal_date}} for another year, at {{price}}.'),
-  placeholder('**your 14 days to withdraw have started again.** until the end of the 14th day after {{renewal_date}}, you can withdraw for a full refund at [services.solstone.app{{withdraw_path}}]({{withdraw_url}}).'),
-  placeholder('**after those 14 days**, a cancel at [services.solstone.app/billing/cancel-contract]({{cancel_url}}) ends {{service}} at the end of the current month, and we refund the whole months left.'),
+  '**you can cancel this renewal for a full refund until the end of the 14th day after {{window_date}}**',
+  'your **{{service}}** subscription has renewed for another year, and you paid **{{renewal_paid}}** on {{window_date}}, and it continues.',
+  '**this is your right to withdraw, which cancels the renewal and refunds all of it.** it runs until the end of the 14th day after {{window_date}}, even if you keep using {{service}} until then. sign in at [services.solstone.app](https://services.solstone.app) and use *withdraw from contract here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), then confirm, or email support@solstone.app saying you withdraw or cancel. a withdrawal you send by then counts, even if it reaches us later.',
+  "**if you withdraw,** {{service}} stops that day, and we refund everything you paid for this renewal, {{renewal_paid}}, the same way you paid, within 14 days. nothing is taken off that refund, and using {{service}} doesn't cost you this right.",
+  '**if you use *cancel contracts here* instead,** now or after those 14 days, {{service}} keeps working to the end of your current plan month, and we refund the whole months left.',
   'questions: support@solstone.app.',
   'sol pbc',
 ].join('\n\n');
 
-const PUBLIC_ORIGIN = 'https://services.solstone.app';
-const CANCEL_CONTRACT_PATH = '/billing/cancel-contract';
+// The written confirmation under the subscription rules. {{key_facts}} is the key facts block,
+// the withdrawal block goes before {{who_we_are}} while the door is on, and the Terms section
+// named in "your rights" is the service's own.
+const RULES_L1_BODY_TEMPLATE = [
+  "you just subscribed to **{{service}}**. here's what that means, in writing, so you can keep it. it doesn't expire, and it isn't the only copy: the current terms are always at [services.solstone.app/terms](https://services.solstone.app/terms).",
+  '**the plan.** {{service}}, {{price}} every {{interval}}.',
+  '{{key_facts}}',
+  "**it renews on its own.** at the end of each {{interval}}, {{service}} renews automatically at the plan's then-current price, using the payment method on file, until you cancel. [ANNUAL] we'll email you twice before each renewal, 60 to 70 days and 35 to 40 days before it, with the date to cancel by and how to cancel. [/ANNUAL] [MONTHLY] we'll email you 25 to 28 days before the renewal at each six-month mark, to say it's coming and how to cancel. [/MONTHLY]",
+  '**canceling takes as few steps as subscribing did.** sign in at [services.solstone.app](https://services.solstone.app) and use *cancel contracts here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), or email support@solstone.app saying you cancel. within your 14 days to withdraw (below), an email saying you cancel counts as a withdrawal, unless you tell us to keep {{service}} running. no phone call, no retention maze. [MONTHLY] if you cancel, {{service}} keeps working through the end of the month you\'ve paid for, then stops. [/MONTHLY] [ANNUAL] if you cancel in this first year, {{service}} keeps working through the end of the year you\'ve paid for, then stops. once it has renewed, a cancel ends it at the end of your current plan month, and we refund the whole months left. [/ANNUAL]',
+  '{{who_we_are}}',
+].join('\n\n');
 
-function cancelUrlFor(service) {
-  const def = WITHDRAWAL_SERVICES.find((d) => d.service === service);
-  return def ? `${PUBLIC_ORIGIN}${CANCEL_CONTRACT_PATH}?service=${def.slug}` : null;
-}
+const RULES_L1_WHO_WE_ARE = [
+  '**who we are.** sol pbc, 16095 East 109th Place, Commerce City, CO 80022, United States · support@solstone.app · +1 563 663 5487. questions and complaints go to either, and an answer to a complaint says what we\'ll do about it.',
+  "**your rights.** if {{service}} isn't as described or doesn't work, the law where you live may give you rights about it, and nothing here limits them. {{service}} works with the solstone software on your own devices; section {{section}} of the terms says what it does and anything it needs.",
+  'questions: support@solstone.app.',
+  'sol pbc',
+].join('\n\n');
 
-// Fills {{name}} from values and renders; null if any value is missing or any slot is left.
+const L1_WITHDRAWAL_LAST_SENTENCE = "you get this once, counted from this purchase; a renewal doesn't start a new one.";
+const RULES_L1_WITHDRAWAL_LAST_SENTENCE = "[ANNUAL] each renewal gives you 14 more days to withdraw, counted from the day you pay for it, for a refund of that renewal. [/ANNUAL] [MONTHLY] you get this once, counted from this purchase; a monthly renewal doesn't start a new one. [/MONTHLY]";
+
+// The section of the terms that describes each service.
+const TERMS_SECTIONS = Object.freeze({
+  [SPL_HOSTED_SERVICE]: '11',
+  [SPB_HOSTED_SERVICE]: '12',
+  [SPP_HOSTED_SERVICE]: '13',
+  [SME_HOSTED_SERVICE]: '14',
+});
+
+// Fills {{name}} from values and renders; null if a value it needs is missing or a slot is left.
 function renderFilled(subjectTemplate, bodyTemplate, values) {
-  if (Object.values(values).some((v) => !v)) return null;
-  const fill = (t) => t.replaceAll(/\{\{([a-z_]+)\}\}/g, (m, key) => values[key] ?? m);
+  const fill = (t) => t.replaceAll(/\{\{([a-z_]+)\}\}/g, (m, key) => values[key] || m);
   const subject = fill(subjectTemplate);
   const rawBody = fill(bodyTemplate);
   if (/\{\{[a-z_]+\}\}/.test(rawBody) || /\{\{[a-z_]+\}\}/.test(subject)) return null;
   return { subject, ...renderMarkdownEmail(rawBody) };
 }
 
-// The renewal reminder under the subscription rules. The cancel-by date is the last day before
-// the renewal, in UTC, as the renewal date is shown.
-export function renderRulesReminder({ service, interval, unitAmount, previousAmount, renewalSeconds }) {
-  if ((interval !== 'year' && interval !== 'month') || !Number.isInteger(renewalSeconds)) return null;
-  return renderFilled(RULES_REMINDER_SUBJECT, RULES_REMINDER_BODY, {
+// The next renewal after `renewal`, the way Stripe steps a period from its anchor: the anchor's
+// day of the month, or a shorter month's last day.
+export function nextRenewalAfter(anchor, renewal, interval) {
+  if (!Number.isInteger(anchor) || !Number.isInteger(renewal)) return null;
+  const a = new Date(anchor * 1000);
+  const r = new Date(renewal * 1000);
+  const months = (r.getUTCFullYear() - a.getUTCFullYear()) * 12 + r.getUTCMonth() - a.getUTCMonth();
+  return serviceMonthStart(anchor, months + (interval === 'year' ? 12 : 1));
+}
+
+// The renewal reminder under the subscription rules. `previousAmount` is the last payment, or
+// null when none has been made; `early` is the earlier of an annual plan's two reminders. The
+// cancel-by date is two days before the renewal's UTC date, so its end falls before the charge
+// wherever the buyer is.
+export function renderRulesReminder({ service, interval, unitAmount, previousAmount = null, renewalSeconds, nextRenewalSeconds, early = false }) {
+  if ((interval !== 'year' && interval !== 'month') || !Number.isInteger(renewalSeconds) || !Number.isInteger(nextRenewalSeconds)) return null;
+  const prev = Number.isInteger(previousAmount) && previousAmount > 0;
+  const higher = prev && unitAmount > previousAmount;
+  const body = resolveBranches(RULES_REMINDER_BODY, {
+    ANNUAL: interval === 'year',
+    MONTHLY: interval === 'month',
+    EARLY: early && interval === 'year',
+    PREV: prev,
+    HIGHER: higher,
+  });
+  if (!body) return null;
+  return renderFilled(RULES_REMINDER_SUBJECT, body, {
     service: SERVICE_HUMAN_NAMES[service],
     interval,
     price: formatPrice(unitAmount),
-    previous_price: formatPrice(previousAmount),
+    previous_price: prev ? formatPrice(previousAmount) : null,
+    increase: higher ? formatPrice(unitAmount - previousAmount) : null,
+    monthly_equivalent: formatPrice(Math.round(unitAmount / 12)),
     renewal_date: formatRenewalDate(renewalSeconds),
-    cancel_by: formatRenewalDate(renewalSeconds - 86400),
-    cancel_url: cancelUrlFor(service),
+    cancel_by_date: formatRenewalDate(renewalSeconds - 2 * 86400),
+    next_renewal_date: formatRenewalDate(nextRenewalSeconds),
   });
 }
 
-// The notice sent on the first day of a renewed annual period.
-export function renderCoolingOffNotice({ service, unitAmount, renewedAt }) {
-  const withdrawPath = withdrawalPathFor(service);
+// The notice sent when an annual renewal is paid: its 14 days to withdraw run from that payment.
+export function renderCoolingOffNotice({ service, amountPaid, paidAt }) {
+  if (!Number.isInteger(paidAt)) return null;
   return renderFilled(COOLING_OFF_SUBJECT, COOLING_OFF_BODY, {
     service: SERVICE_HUMAN_NAMES[service],
-    price: formatPrice(unitAmount),
-    renewal_date: formatLongDate(renewedAt),
-    withdraw_path: withdrawPath,
-    withdraw_url: withdrawPath && `${PUBLIC_ORIGIN}${withdrawPath}`,
-    cancel_url: cancelUrlFor(service),
+    renewal_paid: formatPrice(amountPaid),
+    window_date: formatLongDate(paidAt),
   });
+}
+
+// The written confirmation's body under the subscription rules, before its values are filled.
+function rulesAckTemplate({ service, interval, unitAmount, withdrawal }) {
+  const serviceName = SERVICE_HUMAN_NAMES[service];
+  const facts = keyFactsLines({
+    interval,
+    email: true,
+    values: { service: serviceName, price: formatPrice(unitAmount), monthly_equivalent: formatPrice(Math.round(unitAmount / 12)) },
+  });
+  if (!facts) return null;
+  let template = RULES_L1_BODY_TEMPLATE
+    .replace('{{key_facts}}', `**${KEY_FACTS_EMAIL_HEADING}**\n\n${facts.map((line) => `- ${line}`).join('\n')}`)
+    .replace('{{who_we_are}}', withdrawal
+      ? `${L1_WITHDRAWAL_BLOCK.replace(L1_WITHDRAWAL_LAST_SENTENCE, RULES_L1_WITHDRAWAL_LAST_SENTENCE)}\n\n${RULES_L1_WHO_WE_ARE}`
+      : RULES_L1_WHO_WE_ARE);
+  template = resolveBranches(template, { ANNUAL: interval === 'year', MONTHLY: interval === 'month' });
+  return template && template.replaceAll('{{section}}', TERMS_SECTIONS[service]);
 }
 
 export function selectInterval(template, interval) {
@@ -277,23 +343,34 @@ function renderMarkdownEmail(rawBody) {
   const text = plainParagraphs.join('\n\n');
 
   const htmlParagraphs = rawBody.split('\n\n').map((para) => {
+    if (isList(para)) return `<ul>${para.split('\n').map((line) => `<li>${inlineHtml(line.slice(2))}</li>`).join('')}</ul>`;
     const { inner, boxed } = unbox(para);
-    let p = esc(inner);
-    // Convert escaped markdown link [services.solstone.app/terms](https://services.solstone.app/terms)
-    p = p.replaceAll(
-      /\[(services\.solstone\.app(?:\/[a-z\/-]+)?)\]\((https:\/\/services\.solstone\.app(?:\/[a-z\/-]+(?:\?service=[a-z-]+)?)?)\)/g,
-      '<a href="$2">$1</a>'
-    );
-    // Convert **span** to <strong>span</strong>, then *span* to <em>span</em>
-    p = p.replaceAll(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    p = p.replaceAll(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    const p = inlineHtml(inner);
     return boxed ? `<p style="${HTML_BOX_STYLE}">${p}</p>` : `<p>${p}</p>`;
   });
   const html = `<!DOCTYPE html>\n<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">\n  ${htmlParagraphs.join('\n  ')}\n</body></html>`;
   return { text, html };
 }
 
-export function renderLegalNotice({ kind, service, interval, unitAmount, renewalSeconds, withdrawal = null }) {
+// A paragraph whose every line starts "- " is a list.
+function isList(para) {
+  return para.split('\n').every((line) => line.startsWith('- '));
+}
+
+function inlineHtml(source) {
+  let p = esc(source);
+  // Convert escaped markdown link [services.solstone.app/terms](https://services.solstone.app/terms)
+  p = p.replaceAll(
+    /\[(services\.solstone\.app(?:\/[a-z\/-]+)?)\]\((https:\/\/services\.solstone\.app(?:\/[a-z\/-]+(?:\?service=[a-z-]+)?)?)\)/g,
+    '<a href="$2">$1</a>'
+  );
+  // Convert **span** to <strong>span</strong> (an *italic* may sit inside it), then *span* to <em>span</em>
+  p = p.replaceAll(/\*\*((?:[^*]|\*(?!\*))+)\*\*/g, '<strong>$1</strong>');
+  p = p.replaceAll(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  return p;
+}
+
+export function renderLegalNotice({ kind, service, interval, unitAmount, renewalSeconds, withdrawal = null, rules = false }) {
   const serviceName = SERVICE_HUMAN_NAMES[service];
   if (!serviceName) return null;
   const price = formatPrice(unitAmount);
@@ -321,11 +398,16 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
     .replaceAll('{{renewal_date}}', renewalDate);
 
   let templateWithInterval = bodyTemplate;
-  if (kind === 'ack' || kind === 'catch_up') {
+  if (kind === 'ack' && rules) {
+    if (withdrawal && !Number.isInteger(withdrawal.purchasedAt)) return null;
+    templateWithInterval = rulesAckTemplate({ service, interval, unitAmount, withdrawal });
+    if (!templateWithInterval) return null;
+    if (withdrawal) templateWithInterval = templateWithInterval.replaceAll('{{purchase_date}}', formatLongDate(withdrawal.purchasedAt));
+  } else if (kind === 'ack' || kind === 'catch_up') {
     templateWithInterval = selectInterval(bodyTemplate, interval);
     if (!templateWithInterval) return null;
   }
-  if (kind === 'ack' && withdrawal) {
+  if (kind === 'ack' && withdrawal && !rules) {
     if (!Number.isInteger(withdrawal.purchasedAt)) return null;
     templateWithInterval = templateWithInterval.replace(
       `\n\n${L1_CLOSING}`,
@@ -516,6 +598,7 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       withdrawal: withdrawalOn(env)
         ? { purchasedAt: parsed.startDate }
         : null,
+      rules: subscriptionRulesOn(env),
     });
     if (!rendered) {
       await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
@@ -600,9 +683,10 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
           continue;
         }
 
-        // A renewed annual year opens the 14 days to withdraw again, and says so on its first day.
+        // A renewed annual year's cooling-off notice goes when the renewal is paid, from the
+        // webhook; this sends it if that was missed.
         if (rulesOn) {
-          await maybeSendCoolingOffNotice(env, { accountId, service: hostedService, sub, parsed, address, nowSec, nowMs });
+          await maybeSendCoolingOffNotice(env, { accountId, service: hostedService, sub, parsed, address, nowSec, nowMs, invoice: null });
         }
 
         // A subscription set to end is not going to renew, so it gets no notice saying it will.
@@ -613,51 +697,59 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
 
         const renewal = parsed.periodEnd;
         const diff = renewal - nowSec;
-        const earliestDays = rulesOn && parsed.interval === 'year' ? 35 : 25;
-        if (diff < earliestDays * 86400 || diff > 40 * 86400) {
-          continue;
-        }
-
-        const due = rulesOn && parsed.interval === 'month'
-          ? isSixMonthRenewal(parsed.startDate, renewal)
-          : isAnniversaryRenewal(parsed.startDate, renewal, parsed.interval);
-        if (!due) {
-          continue;
-        }
-
-        let rendered;
-        if (rulesOn) {
-          // The previous amount is what the last paid invoice charged; the price, if none is paid.
-          let paid;
-          try {
-            paid = await listPaidSubscriptionInvoices(env, sourceRef);
-          } catch {
-            await logSkip(env, { kind: 'reminder', accountId, service: hostedService, renewalAt: renewal, reason: 'stripe_unusable' });
-            continue;
-          }
-          const lastPaid = paid[0]?.amount_paid;
-          rendered = renderRulesReminder({
-            service: hostedService,
-            interval: parsed.interval,
-            unitAmount: parsed.unitAmount,
-            previousAmount: Number.isInteger(lastPaid) && lastPaid > 0 ? lastPaid : parsed.unitAmount,
-            renewalSeconds: renewal,
-          });
-        } else {
-          rendered = renderLegalNotice({
+        if (!rulesOn) {
+          if (diff < 25 * 86400 || diff > 40 * 86400) continue;
+          if (!isAnniversaryRenewal(parsed.startDate, renewal, parsed.interval)) continue;
+          const rendered = renderLegalNotice({
             kind: 'reminder',
             service: hostedService,
             interval: parsed.interval,
             unitAmount: parsed.unitAmount,
             renewalSeconds: renewal,
           });
-        }
-        if (!rendered) {
-          await logSkip(env, { kind: 'reminder', accountId, service: hostedService, renewalAt: renewal, reason: 'stripe_unusable' });
+          if (!rendered) {
+            await logSkip(env, { kind: 'reminder', accountId, service: hostedService, renewalAt: renewal, reason: 'stripe_unusable' });
+            continue;
+          }
+          await claimAndSend(env, { accountId, kind: 'reminder', service: hostedService, renewalAt: renewal, rendered, address, nowMs });
           continue;
         }
 
-        await claimAndSend(env, { accountId, kind: 'reminder', service: hostedService, renewalAt: renewal, rendered, address, nowMs });
+        // Under the subscription rules: an annual plan is reminded 60 to 70 days before each
+        // renewal and again 35 to 40 days before it; a monthly plan 25 to 28 days before the
+        // renewal at each six-month mark. Each is claimed once per renewal.
+        const within = (from, to) => diff >= from * 86400 && diff <= to * 86400;
+        let kind = null;
+        if (parsed.interval === 'year') {
+          if (within(60, 70)) kind = 'early_reminder';
+          else if (within(35, 40)) kind = 'reminder';
+        } else if (within(25, 28) && isSixMonthRenewal(parsed.startDate, renewal)) {
+          kind = 'reminder';
+        }
+        if (!kind) continue;
+
+        let paid;
+        try {
+          paid = await listPaidSubscriptionInvoices(env, sourceRef);
+        } catch {
+          await logSkip(env, { kind, accountId, service: hostedService, renewalAt: renewal, reason: 'stripe_unusable' });
+          continue;
+        }
+        const rendered = renderRulesReminder({
+          service: hostedService,
+          interval: parsed.interval,
+          unitAmount: parsed.unitAmount,
+          previousAmount: lastPayment(paid),
+          renewalSeconds: renewal,
+          nextRenewalSeconds: nextRenewalAfter(sub.billing_cycle_anchor ?? parsed.startDate, renewal, parsed.interval),
+          early: kind === 'early_reminder',
+        });
+        if (!rendered) {
+          await logSkip(env, { kind, accountId, service: hostedService, renewalAt: renewal, reason: 'stripe_unusable' });
+          continue;
+        }
+
+        await claimAndSend(env, { accountId, kind, service: hostedService, renewalAt: renewal, rendered, address, nowMs });
       } catch {
         // Continue processing other candidates
       }
@@ -701,22 +793,81 @@ async function claimAndSend(env, { accountId, kind, service, renewalAt, rendered
   await logSent(env, { kind, accountId, service, renewalAt });
 }
 
-// An annual plan whose current period started within the last day, and not at the purchase,
-// has just renewed: its cooling-off notice goes out once for that renewal.
-async function maybeSendCoolingOffNotice(env, { accountId, service, sub, parsed, address, nowSec, nowMs }) {
-  const renewedAt = sub.current_period_start ?? sub.items?.data?.[0]?.current_period_start;
-  if (parsed.interval !== 'year' || !Number.isInteger(renewedAt)) return;
-  if (renewedAt <= parsed.startDate + 86400) return;
-  if (nowSec < renewedAt || nowSec - renewedAt > 86400) return;
-  const rendered = renderCoolingOffNotice({ service, unitAmount: parsed.unitAmount, renewedAt });
-  if (!rendered) {
-    await logSkip(env, { kind: 'cooling_off', accountId, service, renewalAt: renewedAt, reason: 'stripe_unusable' });
+// The amount of the last payment on a subscription, the purchase included, or null if none
+// has been made.
+function lastPayment(invoices) {
+  const paid = invoices
+    .filter((invoice) => Number.isInteger(invoice?.amount_paid) && invoice.amount_paid > 0)
+    .sort((a, b) => Number(b.created ?? 0) - Number(a.created ?? 0));
+  return paid[0]?.amount_paid ?? null;
+}
+
+// How long after a renewal the cron still looks for its payment, to send a cooling-off notice the
+// webhook missed: past the longest retry schedule Stripe offers for a failed renewal payment.
+const COOLING_OFF_BACKSTOP_SECONDS = 62 * 86400;
+
+// An annual plan's renewal has been paid: its cooling-off notice goes out once for that renewal,
+// in an email of its own, dated by the payment. From the webhook `invoice` is the paid renewal
+// invoice; from the cron it is read, and the notice goes only if the payment was in the last day.
+async function maybeSendCoolingOffNotice(env, { accountId, service, sub, parsed, address, nowSec, nowMs, invoice }) {
+  const renewal = renewalStart(sub);
+  if (parsed.interval !== 'year' || renewal == null || nowSec < renewal) return;
+  let paidInvoice = invoice;
+  if (!paidInvoice) {
+    if (nowSec - renewal > COOLING_OFF_BACKSTOP_SECONDS) return;
+    let invoices;
+    try {
+      invoices = await listPaidSubscriptionInvoices(env, sub.id);
+    } catch {
+      await logSkip(env, { kind: 'cooling_off', accountId, service, renewalAt: renewal, reason: 'stripe_unusable' });
+      return;
+    }
+    paidInvoice = renewalInvoice(invoices, renewal);
+    const paidAt = invoicePaidAt(paidInvoice);
+    if (paidAt == null || nowSec - paidAt > 86400) return;
+  } else if (renewalInvoice([paidInvoice], renewal) !== paidInvoice) {
     return;
   }
-  await claimAndSend(env, { accountId, kind: 'cooling_off', service, renewalAt: renewedAt, rendered, address, nowMs });
+  const rendered = renderCoolingOffNotice({ service, amountPaid: paidInvoice.amount_paid, paidAt: invoicePaidAt(paidInvoice) });
+  if (!rendered) {
+    await logSkip(env, { kind: 'cooling_off', accountId, service, renewalAt: renewal, reason: 'stripe_unusable' });
+    return;
+  }
+  await claimAndSend(env, { accountId, kind: 'cooling_off', service, renewalAt: renewal, rendered, address, nowMs });
+}
+
+// From the webhook, when an invoice is paid: with the subscription rules on, an annual renewal's
+// invoice sends that renewal's cooling-off notice. Errors are its own, so the webhook finishes.
+export async function maybeSendRenewalPaidNotice(env, { accountId, tag, subscription, invoice, nowMs = Date.now() }) {
+  if (!subscriptionRulesOn(env) || invoice?.billing_reason !== 'subscription_cycle') return;
+  const service = TAG_TO_HOSTED_SERVICE[tag];
+  if (!service) return;
+  try {
+    const parsed = validateSubscription(subscription);
+    if (!parsed || parsed.interval !== 'year') return;
+    const ent = await getEntitlement(env.DB, { accountId, service });
+    if (!ent || ent.status !== 'active' || ent.source !== 'stripe' || ent.source_ref !== subscription.id) return;
+    if (await getActiveDeletionForAccount(env.DB, accountId)) {
+      await logSkip(env, { kind: 'cooling_off', accountId, service, reason: 'deletion' });
+      return;
+    }
+    const address = await resolvePrimaryAddress(env, accountId);
+    if (!address) {
+      await logSkip(env, { kind: 'cooling_off', accountId, service, reason: 'no_email' });
+      return;
+    }
+    await maybeSendCoolingOffNotice(env, {
+      accountId, service, sub: subscription, parsed, address, nowSec: Math.floor(nowMs / 1000), nowMs, invoice,
+    });
+  } catch {
+    // The webhook always finishes; the cron sends it if this did not.
+  }
 }
 
 export async function runRenewalCatchUp(env, nowMs = Date.now()) {
+  // Its words predate the subscription rules and no wording for it is approved under them, so
+  // with the rules on it sends nothing.
+  if (subscriptionRulesOn(env)) return { sent: 0, skipped: 0 };
   let sent = 0;
   let skipped = 0;
   let afterAccountId = '';

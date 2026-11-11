@@ -29,7 +29,7 @@ import {
   verifyWebhookSignature,
 } from './stripe.js';
 import { SPL_HOSTED_SERVICE as SERVICE, reconcileSplEntitlement } from './relay-grant.js';
-import { TAG_TO_HOSTED_SERVICE, maybeSendSubscriptionAck } from './renewal-notices.js';
+import { TAG_TO_HOSTED_SERVICE, maybeSendRenewalPaidNotice, maybeSendSubscriptionAck } from './renewal-notices.js';
 import { reconcileSmeEntitlement } from './sme-entitlement.js';
 import { reconcileSpbEntitlement } from './spb-entitlement.js';
 import { reconcileSppEntitlement } from './spp-entitlement.js';
@@ -407,6 +407,8 @@ async function handleInvoicePaid(env, obj, nowMs, ctx) {
     sourceRef: subscription.id,
     subscription,
   });
+  // An annual renewal, once paid, reopens the 14 days to withdraw, and its notice says so.
+  await maybeSendRenewalPaidNotice(env, { accountId, tag, subscription, invoice: obj, nowMs });
 }
 
 async function handleInvoicePaymentFailed(env, obj, nowMs, ctx) {

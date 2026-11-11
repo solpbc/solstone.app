@@ -6,6 +6,7 @@ import { LANDING_JS } from './inline/passkey-landing.js';
 import { SUPPORT_DRAFT_JS } from './inline/support-draft.js';
 import { SME_SERVICE_PATH } from './sme-service.js';
 import { SPP_SERVICE_PATH } from './spp-service.js';
+import { KEY_FACTS_PAGE_HEADING, KEY_FACTS_SHARED_LINES, keyFactsLines, keyFactsPlanLines } from './rules-words.js';
 import { placeholder } from './subscription-rules.js';
 import { formatLongDate, formatMomentUtc } from './withdrawal-rules.js';
 
@@ -989,7 +990,7 @@ ${withdrawalDoor(withdrawal)}
     content: `<p class="lead">sol pbc runs a blind relay so your devices stay reachable when they're asleep or away from home.</p>
 <div class="card">
   <p>you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
-  ${checkoutGroup({ csrf, startNowBox, keyInfo, rows: [
+  ${checkoutGroup({ csrf, service: 'private network', startNowBox, keyInfo, rows: [
     { plan: 'annual', unitAmount: 2000, buttonText: 'pay yearly', primary: true },
     { plan: 'monthly', unitAmount: 249, buttonText: 'pay monthly', primary: false },
   ] })}
@@ -1070,7 +1071,7 @@ ${retentionDisclosure}
     content: `<p class="lead">sol pbc keeps an encrypted copy of your journal for you. it's encrypted on your device before it leaves, so only you can read it.</p>
 <div class="card">
   <p>turn on encrypted backup</p>
-  ${checkoutGroup({ csrf, startNowBox, keyInfo, action: '/services/backup/checkout', restoreIntent, rows: [
+  ${checkoutGroup({ csrf, service: 'encrypted backup', startNowBox, keyInfo, action: '/services/backup/checkout', restoreIntent, rows: [
     { plan: 'annual', unitAmount: 4800, buttonText: 'pay yearly', primary: true },
     { plan: 'monthly', unitAmount: 499, buttonText: 'pay monthly', primary: false },
   ] })}
@@ -1164,7 +1165,7 @@ ${withdrawalDoor(withdrawal)}
     <input type="hidden" name="plan" value="annual">
     <p><strong>${esc(planTitle(SME_PLAN))}</strong></p>
     ${ackField('i understand that the public record of this address is permanent.')}
-    ${keyInfo ? keyInformation([SME_PLAN]) : ''}${startNowBox ? startNowField() : ''}
+    ${keyInfo ? keyInformation([SME_PLAN], 'solstone.me') : ''}${startNowBox ? startNowField() : ''}
     <div class="btn-row" style="margin-top:16px">
       <button class="btn primary" type="submit">pay yearly</button>
     </div>
@@ -1314,7 +1315,7 @@ ${withdrawalDoor(withdrawal)}
 <div class="card">
   <p>turn on confidential processing</p>
   ${planTerms ? `<p class="disclosure" data-plan-terms>${esc(planTerms)}</p>` : ''}
-  ${checkoutGroup({ csrf, startNowBox, keyInfo, action: `${SPP_SERVICE_PATH}/checkout`, rows: [
+  ${checkoutGroup({ csrf, service: 'confidential processing', startNowBox, keyInfo, action: `${SPP_SERVICE_PATH}/checkout`, rows: [
     { plan: 'annual', unitAmount: 9600, buttonText: 'pay yearly', primary: true },
     { plan: 'monthly', unitAmount: 999, buttonText: 'pay monthly', primary: false },
   ] })}
@@ -2710,46 +2711,43 @@ function planTitle(row) {
   return `${formatPlanPrice(row)} / ${row.plan === 'annual' ? 'year' : 'month'}`;
 }
 
-// PLACEHOLDER pending the approved subscription-rules wording: the key information shown before checkout, all
-// together and apart from the rest of the page, for each plan offered. Nothing here renders
-// while the subscription rules are off.
-const KEY_INFO_HEADING = placeholder('key information');
-const KEY_INFO_LINES = Object.freeze({
-  continues: placeholder('it continues until you end it.'),
-  chargedYear: placeholder('{{price}} every year, about {{monthly}} a month.'),
-  chargedMonth: placeholder('{{price}} every month.'),
-  minimum: placeholder("the least you'll pay is {{price}}, for one {{interval}}."),
-  end: placeholder('end it any time at {{cancel_link}}. no notice needed.'),
-  remindYear: placeholder('we remind you 35 to 40 days before each renewal.'),
-  remindMonth: placeholder('we remind you every six months, before a renewal.'),
-  withdrawYear: placeholder('you can withdraw for a full refund within 14 days of buying, and again within 14 days after each renewal.'),
-  withdrawMonth: placeholder('you can withdraw for a full refund within 14 days of buying.'),
-});
-const CANCEL_CONTRACT_URL = 'https://services.solstone.app/billing/cancel-contract';
+// The key facts shown before checkout, all together and apart from the rest of the page, beside
+// the start-now box. A page offering two plans shows each plan's facts, then the lines no plan
+// changes once. Nothing here renders while the subscription rules are off.
+function keyFactsHtml(line) {
+  return esc(line)
+    .replaceAll(/\[(services\.solstone\.app\/terms)\]\((https:\/\/services\.solstone\.app\/terms)\)/g, '<a href="$2">$1</a>')
+    .replaceAll(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replaceAll(/\*([^*\n]+)\*/g, '<em>$1</em>');
+}
 
-function keyInformation(rows) {
-  const plans = rows.map((r) => {
-    const annual = r.plan === 'annual';
-    const values = {
-      price: formatPlanPrice(r),
-      monthly: formatPlanPrice({ unitAmount: Math.round(r.unitAmount / 12) }),
-      interval: annual ? 'year' : 'month',
-    };
-    const lines = annual
-      ? ['continues', 'chargedYear', 'minimum', 'end', 'remindYear', 'withdrawYear']
-      : ['continues', 'chargedMonth', 'minimum', 'end', 'remindMonth', 'withdrawMonth'];
-    const items = lines.map((key) => `<li>${esc(KEY_INFO_LINES[key].replaceAll(/\{\{(price|monthly|interval)\}\}/g, (m, k) => values[k]))
-      .replace('{{cancel_link}}', `<a href="${escAttr(CANCEL_CONTRACT_URL)}">services.solstone.app/billing/cancel-contract</a>`)}</li>`);
-    return `<div data-key-info-plan="${escAttr(r.plan)}">
-      <p><strong>${esc(planTitle(r))}</strong></p>
-      <ul>
-        ${items.join('\n        ')}
-      </ul>
-    </div>`;
+function keyFactsList(lines) {
+  return `<ul>
+        ${lines.map((line) => `<li>${keyFactsHtml(line)}</li>`).join('\n        ')}
+      </ul>`;
+}
+
+function keyInformation(rows, service) {
+  const planValues = (r) => ({
+    service,
+    price: formatPlanPrice(r),
+    monthly_equivalent: formatPlanPrice({ unitAmount: Math.round(r.unitAmount / 12) }),
   });
+  const interval = (r) => (r.plan === 'annual' ? 'year' : 'month');
+  const body = rows.length === 1
+    ? `<div data-key-info-plan="${escAttr(rows[0].plan)}">
+      ${keyFactsList(keyFactsLines({ interval: interval(rows[0]), values: planValues(rows[0]) }))}
+    </div>`
+    : `${rows.map((r) => `<div data-key-info-plan="${escAttr(r.plan)}">
+      <p><strong>${esc(planTitle(r))}</strong></p>
+      ${keyFactsList(keyFactsPlanLines({ interval: interval(r), values: planValues(r) }))}
+    </div>`).join('\n    ')}
+    <div data-key-info-shared>
+      ${keyFactsList(KEY_FACTS_SHARED_LINES)}
+    </div>`;
   return `<section class="card" data-key-info style="margin:0 0 16px">
-    <h2>${esc(KEY_INFO_HEADING)}</h2>
-    ${plans.join('\n    ')}
+    <h2>${esc(KEY_FACTS_PAGE_HEADING)}</h2>
+    ${body}
   </section>
     `;
 }
@@ -2772,8 +2770,8 @@ function taxWords(plan) {
 // The checkout choices of a service page. With the withdrawal door on, the plans share one
 // form carrying the unticked "start my service now" box, each plan its own submit button;
 // with it off, each plan is its own form, as before.
-function checkoutGroup({ csrf, rows, startNowBox = false, keyInfo = false, action = '/billing/checkout', restoreIntent = false }) {
-  const info = keyInfo ? keyInformation(rows) : '';
+function checkoutGroup({ csrf, rows, service, startNowBox = false, keyInfo = false, action = '/billing/checkout', restoreIntent = false }) {
+  const info = keyInfo ? keyInformation(rows, service) : '';
   if (!startNowBox) {
     return `${info}<div class="group">
     ${rows.map((r) => billingCheckoutRow({ csrf, ...r, title: planTitle(r), action, restoreIntent })).join('\n    ')}
