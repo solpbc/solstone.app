@@ -227,6 +227,28 @@ test("renderNotesMarkdown escapes raw HTML and prevents attribute breakout", () 
   assert.doesNotMatch(link, /"onmouseover/);
 });
 
+test("renderNotesMarkdown keeps an entity inside a code span literal", () => {
+  // Journal 2.0.75: "codes such as `&amp;`" read "codes such as &." on /releases.
+  assert.equal(
+    renderNotesMarkdown("- codes such as `&amp;`."),
+    "<ul>\n<li>codes such as <code>&amp;amp;</code>.</li>\n</ul>",
+  );
+  assert.equal(renderNotesMarkdown("`&lt;export&gt;`"), "<p><code>&amp;lt;export&amp;gt;</code></p>");
+});
+
+test("parseAppcastItems decodes the XML entities of a description, once", () => {
+  const xml = `<rss><channel><item>
+    <sparkle:shortVersionString>2.0.75</sparkle:shortVersionString>
+    <description>- \`&lt;export&gt;\` &amp; \`&amp;amp;\`</description>
+  </item></channel></rss>`;
+  const [item] = parseAppcastItems(xml);
+  assert.equal(item.description, "- `<export>` & `&amp;`");
+  assert.equal(
+    renderNotesMarkdown(item.description),
+    "<ul>\n<li><code>&lt;export&gt;</code> &amp; <code>&amp;amp;</code></li>\n</ul>",
+  );
+});
+
 test("renderReleasesPage renders graceful fallback inside full chrome", () => {
   const html = renderReleasesPage([]);
 

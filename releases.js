@@ -316,7 +316,10 @@ export function parseAppcastItems(xml) {
     items.push({
       version,
       pubDate: pubDate || null,
-      description: descriptionMatch[1],
+      // An appcast <description> is XML text, so its entities are decoded here, once,
+      // and only here: CHANGELOG.md, release bodies and NotesMarkdown are markdown,
+      // where a code span keeps `&amp;` literal (Journal 2.0.75's notes).
+      description: xmlUnescape(descriptionMatch[1]),
     });
   }
 
@@ -445,7 +448,7 @@ function stripReleaseHeading(body) {
 }
 
 export function renderNotesMarkdown(md, options = {}) {
-  const source = xmlUnescape(md ?? "");
+  const source = String(md ?? "");
   const lines = source.split(/\r?\n/);
   const blocks = [];
   let listItems = [];
