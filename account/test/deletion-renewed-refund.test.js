@@ -52,8 +52,8 @@ describe('closing a sign-in in a renewed annual year', () => {
     const cases = [
       { stripe: { renewed: true, refunded: 1833 } },
       { seed: (accountId) => workerEnv.DB.prepare(
-        `INSERT INTO subscription_cancellations (subscription_ref, issued_at, account_id, service, name, ends_at, at_period_end, refund_invoice_ref, refund_amount, submitted_at)
-         VALUES ('sub_d', 1, ?, 'spl_hosted', 'Ada', 1, 0, 'in_renewal', 1833, 1)`,
+        `INSERT INTO subscription_cancellations (subscription_ref, issued_at, account_id, service, cause, ends_today, ends_at, at_period_end, refund_invoice_ref, refund_amount, submitted_at)
+         VALUES ('sub_d', 1, ?, 'spl_hosted', 0, 0, 1, 0, 'in_renewal', 1833, 1)`,
       ).bind(accountId).run() },
       { seed: (accountId) => workerEnv.DB.prepare(
         `INSERT INTO subscription_withdrawals (subscription_ref, account_id, service, purchased_at, submitted_at)
