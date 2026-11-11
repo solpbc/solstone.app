@@ -3020,7 +3020,7 @@ export function renderCancelContract({ menu, csrf, primaryEmail, choice, view = 
   if (!primaryEmail) return page(`<p class="lead">${esc(CANCEL_WORDS.noEmail)}</p>`);
   if (!choice.offered) {
     return page(`<div class="card">
-  <p>${esc(choice.unavailable ? CANCEL_WORDS.unavailable(def.name) : CANCEL_WORDS.pending(def.name, formatMomentUtc(choice.endsAt)))}</p>
+  <p>${esc(choice.unavailable ? CANCEL_WORDS.unavailable(def.name) : CANCEL_WORDS.pending(def.name, choice.endDate))}</p>
 </div>`);
   }
   const cause = input.type === 'cause';
