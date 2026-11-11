@@ -923,7 +923,7 @@ ${BRANDLOCK}
   });
 }
 
-export function renderServicesSpl({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, cancelContract = '', csrf, flash = {}, menu }) {
+export function renderServicesSpl({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, cancelContract = '', cancelOffered = false, csrf, flash = {}, menu }) {
   const flashes = billingFlashMessages(flash) + withdrawalFlashMessages(flash, 'private network');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -944,7 +944,7 @@ ${flashes}
   <h1>private network</h1>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelContract, withdrawal, 'private network')}`,
+${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 'private network')}`,
   });
   const turnOff = cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' });
 
@@ -998,7 +998,7 @@ ${withdrawalDoor(withdrawal)}
   });
 }
 
-export function renderServicesSpb({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, cancelContract = '', csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
+export function renderServicesSpb({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, cancelContract = '', cancelOffered = false, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
   const flashes = spbBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'encrypted backup');
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
@@ -1030,7 +1030,7 @@ ${restoreCheckout ? '<p class="notice">if you\'re restoring a journal, return to
   <p class="meta">operated by sol pbc</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelContract, withdrawal, 'encrypted backup')}`,
+${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 'encrypted backup')}`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
@@ -1085,7 +1085,7 @@ export const SME_JOURNAL_UPDATE_NOTICE = 'your journal needs an update before it
 // solstone.me is sold yearly only, from its own form.
 const SME_PLAN = { plan: 'annual', unitAmount: 500 };
 
-export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, cancelContract = '', csrf, flash = {}, menu, journalUpdateNotice = false }) {
+export function renderServicesSme({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, cancelContract = '', cancelOffered = false, csrf, flash = {}, menu, journalUpdateNotice = false }) {
   const flashes = smeBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'solstone.me');
   const updateNotice = journalUpdateNotice
     ? `<p class="notice" data-notice="sme-journal-update">${esc(SME_JOURNAL_UPDATE_NOTICE)}</p>`
@@ -1118,7 +1118,7 @@ ${updateNotice}
   <p class="meta">operated by sol pbc</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelContract, withdrawal, 'solstone.me')}`,
+${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 'solstone.me')}`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
@@ -1196,6 +1196,7 @@ export function renderServicesSpp({
   withdrawal = null,
   startNowBox = false,
   cancelContract = '',
+  cancelOffered = false,
   keyInfo = false,
   csrf = '',
   flash = {},
@@ -1212,7 +1213,7 @@ ${flashes}
   ${onSale ? '<p class="meta">operated by sol pbc</p>' : ''}
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelContract, withdrawal, 'confidential processing')}`,
+${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 'confidential processing')}`,
   });
 
   if (!onSale) {

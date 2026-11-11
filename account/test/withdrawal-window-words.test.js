@@ -96,6 +96,29 @@ describe('the withdrawal window beside the cancel function', () => {
       expect(billing).not.toContain(`href="${CANCEL}"`);
     });
 
+    it('goes, with the door, once a withdrawal is recorded or the service has lapsed', async () => {
+      const testEnv = makeTestEnv(ON);
+      const spec = { id: 'sub_spl', start: NOW_S - 400 * DAY, renewal: NOW_S - 3 * DAY };
+      const { session } = await buyer(testEnv, [spec]);
+      fakeStripe([spec]);
+      const door = await text('/billing/withdraw/private-network', testEnv, session);
+      const location = (await post('/billing/withdraw/private-network', testEnv, { statement: statementOf(door) }, session)).headers.get('Location');
+
+      const page = await text(location, testEnv, session);
+      expect(page).toContain('has stopped and won\'t renew');
+      expect(page).not.toContain('cancel contracts here');
+      expect(await text('/billing', testEnv, session)).not.toContain(`href="${CANCEL}?service=private-network"`);
+
+      // Recorded, with the service not yet lapsed.
+      await resetDb();
+      const again = await buyer(testEnv, [spec]);
+      await workerEnv.DB.prepare(
+        "INSERT INTO subscription_withdrawals (subscription_ref, account_id, service, purchased_at, submitted_at) VALUES ('sub_spl', ?, 'spl_hosted', ?, 1)",
+      ).bind(again.accountId, spec.renewal).run();
+      expect(await text('/private-network', testEnv, again.session)).not.toContain('cancel contracts here');
+      expect(await text('/billing', testEnv, again.session)).not.toContain(`href="${CANCEL}?service=private-network"`);
+    });
+
     it('with the rules off, shows no pointer and no cancel link', async () => {
       const testEnv = makeTestEnv({ WITHDRAWAL_DOOR: 'on' });
       const start = NOW_S - 2 * DAY;

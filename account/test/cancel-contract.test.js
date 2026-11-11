@@ -89,12 +89,12 @@ describe('the cancel function', () => {
       expect(moved.headers.get('Location')).toBe(`${PATH}?service=${def.slug}`);
     });
 
-    it('shows on every service page before a subscription exists, and on the billing page', async () => {
+    it('shows on the billing page before a subscription exists, and on no service page until one does', async () => {
       const testEnv = makeTestEnv({ ...ON, ...PAGE_ENV });
       const account = await seedAccount({ email: 'new@example.com', testEnv });
       const session = await seedSession(account.accountId, { testEnv });
       for (const def of SERVICES) {
-        expect(await (await get(def.page, testEnv, session.cookie)).text()).toContain(`href="${PATH}?service=${def.slug}"`);
+        expect(await (await get(def.page, testEnv, session.cookie)).text()).not.toContain(LINK);
       }
       expect(await (await get('/billing', testEnv, session.cookie)).text()).toContain(`href="${PATH}"`);
       // With nothing to cancel, the page says so.

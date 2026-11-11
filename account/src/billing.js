@@ -37,7 +37,7 @@ import { notifySubscriptionCreated } from './subscription-created.js';
 import { cancelContractHref, cancelContractRedirect } from './cancel-contract.js';
 import { subscriptionRulesOn } from './subscription-rules.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
-import { billingView } from './withdrawal.js';
+import { billingView, cancelOffered } from './withdrawal.js';
 
 // One reconciler per billed service, keyed by the metadata.service tag checkout stamps.
 // test/billing-stripe.test.js walks BILLED_SERVICES through the webhook, so a service
@@ -70,6 +70,7 @@ export async function handleServicesSpl(req, env) {
     ...await billingView(env, entitlement),
     startNowBox: withdrawalOn(env),
     cancelContract: cancelContractHref(env, 'private-network'),
+    cancelOffered: await cancelOffered(env, entitlement),
     keyInfo: subscriptionRulesOn(env),
     csrf,
     flash: {

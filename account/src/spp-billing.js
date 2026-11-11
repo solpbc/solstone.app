@@ -27,7 +27,7 @@ import {
 import { subscriptionRulesOn } from './subscription-rules.js';
 import { startNowRequest, withdrawalOn } from './withdrawal-rules.js';
 import { cancelContractHref, cancelContractRedirect } from './cancel-contract.js';
-import { billingView } from './withdrawal.js';
+import { billingView, cancelOffered } from './withdrawal.js';
 
 const PUBLIC_ORIGIN = 'https://services.solstone.app';
 const CHECKOUT_SUCCESS_URL = `${PUBLIC_ORIGIN}${SPP_SERVICE_PATH}?checkout=success`;
@@ -55,6 +55,7 @@ export async function handleServicesSpp(req, env) {
     journals: entitlement?.source === 'stripe' ? journals : [],
     ...await billingView(env, entitlement),
     cancelContract: cancelContractHref(env, 'confidential-processing'),
+    cancelOffered: await cancelOffered(env, entitlement),
     onSale,
     startNowBox: withdrawalOn(env),
     keyInfo: subscriptionRulesOn(env),
