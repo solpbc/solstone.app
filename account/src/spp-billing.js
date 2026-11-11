@@ -63,6 +63,7 @@ export async function handleServicesSpp(req, env) {
       checkout: url.searchParams.get('checkout') || '',
       billing: url.searchParams.get('billing') || '',
       withdrawal: url.searchParams.get('withdrawal') || '',
+      renewed: subscriptionRulesOn(env) ? url.searchParams.get('renewed') || '' : '',
       journal: url.searchParams.get('journal') || '',
     },
     menu,

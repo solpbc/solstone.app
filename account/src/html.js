@@ -944,7 +944,7 @@ ${flashes}
   <h1>private network</h1>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelContract)}`,
+${content}${cancelContractLink(cancelContract, withdrawal, 'private network')}`,
   });
   const turnOff = cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' });
 
@@ -1030,7 +1030,7 @@ ${restoreCheckout ? '<p class="notice">if you\'re restoring a journal, return to
   <p class="meta">operated by sol pbc</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelContract)}`,
+${content}${cancelContractLink(cancelContract, withdrawal, 'encrypted backup')}`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
@@ -1118,7 +1118,7 @@ ${updateNotice}
   <p class="meta">operated by sol pbc</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelContract)}`,
+${content}${cancelContractLink(cancelContract, withdrawal, 'solstone.me')}`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
@@ -1212,7 +1212,7 @@ ${flashes}
   ${onSale ? '<p class="meta">operated by sol pbc</p>' : ''}
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelContract)}`,
+${content}${cancelContractLink(cancelContract, withdrawal, 'confidential processing')}`,
   });
 
   if (!onSale) {
@@ -1389,9 +1389,16 @@ export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, no
   const flashes = [];
   if (flash.billing === 'missing') flashes.push("billing management opens once you've paid for a service.");
   if (flash.billing === 'error') flashes.push("billing management didn't open. try again.");
-  const doors = entries.filter((entry) => entry.withdrawal)
-    .map((entry) => withdrawalDoor(entry.withdrawal, { serviceName: entry.name, service: entry.service }))
+  // Each paid entry's door, then, with the subscription rules on, its own "cancel contracts here".
+  const doors = entries
+    .map((entry) => [
+      withdrawalDoor(entry.withdrawal, { serviceName: entry.name, service: entry.service }),
+      billingCancelContract(entry),
+    ].filter(Boolean).join('\n'))
+    .filter(Boolean)
     .join('\n');
+  // With no paid entry to carry one, the page still carries the cancel function's own link.
+  const cancelLink = entries.some((entry) => entry.cancelContract) ? '' : cancelContractLink(cancelContract);
   const list = entries.length
     ? `<div class="group">
   ${entries.map((entry) => row(escAttr(entry.href), BILLING_ICONS[entry.service], esc(entry.name), esc(billingStateLine(entry, nowSeconds)), billingTrail(entry))).join('\n  ')}
@@ -1420,7 +1427,7 @@ ${flashes.map((message) => `<p class="notice">${esc(message)}</p>`).join('')}
 </div>
 <p class="intro">the services you pay sol pbc for, what each one costs, and when it renews.</p>
 ${list}
-${manage}${cancelContractLink(cancelContract)}`,
+${manage}${cancelLink}`,
   });
 }
 
@@ -2813,9 +2820,10 @@ function startNowField() {
 function withdrawalDoor(withdrawal, { serviceName = '', service = '' } = {}) {
   if (!withdrawal) return '';
   const what = serviceName ? `${serviceName}: ` : '';
-  const lead = withdrawal.purchasedAt != null
-    ? `${what}you can withdraw until the end of the 14th day after ${formatLongDate(withdrawal.purchasedAt)}, for a full refund.`
-    : `${what}you can still withdraw here, for a full refund.`;
+  const date = withdrawal.purchasedAt != null ? formatLongDate(withdrawal.purchasedAt) : '';
+  let lead = `${what}you can still withdraw here, for a full refund.`;
+  if (date && withdrawal.renewed) lead = `${what}you can withdraw until the end of the 14th day after ${date}, the day your plan renewed, for a full refund of that renewal.`;
+  else if (date) lead = `${what}you can withdraw until the end of the 14th day after ${date}, for a full refund.`;
   return `<div class="card" style="margin-top:16px">
   <p>${esc(lead)}</p>
   ${service === 'spb_hosted' ? `<p class="disclosure">${esc(BACKUP_WITHDRAWAL_RETENTION)}</p>` : ''}
@@ -2823,11 +2831,15 @@ function withdrawalDoor(withdrawal, { serviceName = '', service = '' } = {}) {
 </div>`;
 }
 
+// `flash.renewed` is when a withdrawn renewal was paid, in Unix seconds, given only for a renewed
+// annual year with the subscription rules on.
 function withdrawalFlashMessages(flash, serviceName) {
   const messages = [];
+  const renewedOn = /^[1-9][0-9]*$/.test(flash.renewed || '') ? formatLongDate(Number(flash.renewed)) : '';
+  const refunding = renewedOn ? `we're refunding everything you paid for its renewal on ${renewedOn}` : "we're refunding everything you paid for it";
   if (flash.checkout === 'start_now') messages.push('tick start my service now to continue.');
-  if (flash.withdrawal === 'done') messages.push(`we received your withdrawal. ${serviceName} has stopped and won't renew, we're refunding everything you paid for it, and we've emailed you the acknowledgement.`);
-  if (flash.withdrawal === 'done_unsent') messages.push(`we received your withdrawal. ${serviceName} has stopped and won't renew, and we're refunding everything you paid for it. the acknowledgement email hasn't gone out yet; we'll keep trying.`);
+  if (flash.withdrawal === 'done') messages.push(`we received your withdrawal. ${serviceName} has stopped and won't renew, ${refunding}, and we've emailed you the acknowledgement.`);
+  if (flash.withdrawal === 'done_unsent') messages.push(`we received your withdrawal. ${serviceName} has stopped and won't renew, and ${refunding}. the acknowledgement email hasn't gone out yet; we'll keep trying.`);
   if (flash.withdrawal === 'missing') messages.push('there is no subscription here to withdraw from.');
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
@@ -2835,7 +2847,9 @@ function withdrawalFlashMessages(flash, serviceName) {
 // The owner's own withdrawal page: who is signed in, the subscription, where the acknowledgement
 // goes (all read-only, already known from the sign-in), one line on what happens, and one confirm
 // button. Nothing else goes on it.
-export function renderWithdrawal({ def, menu, csrf, primaryEmail, state, submittedAt = null, purchasedAt = null, renewed = false, ruleShown = false, plan = null, statement = '' }) {
+// `purchasedAt` is when the window opened: the purchase or, in a renewed annual year, when the
+// renewal was paid, and then `boughtAt` is the purchase.
+export function renderWithdrawal({ def, menu, csrf, primaryEmail, state, submittedAt = null, purchasedAt = null, renewed = false, boughtAt = null, monthsLeft = 0, ruleShown = false, plan = null, statement = '' }) {
   const title = `withdraw from your ${def.name} subscription`;
   const page = (content) => layout({
     title,
@@ -2862,7 +2876,10 @@ ${content}`,
     return page(`<p class="lead">${esc("your subscription details didn't load, so this page can't take the withdrawal right now. reload to try again, or email support@solstone.app saying you withdraw; a withdrawal sent within your 14 days counts.")}</p>`);
   }
   if (state === 'closed' && renewed) {
-    return page(`<p class="lead">${esc(renewedWithdrawalWords.closed(def.name, formatLongDate(purchasedAt)))}</p>`);
+    const closed = monthsLeft > 0
+      ? `the 14 days to withdraw from ${def.name}'s renewal on ${formatLongDate(purchasedAt)} are over. you can still cancel it with "cancel contracts here": it ends at the end of your current plan month, and we refund the whole months left.`
+      : renewedWithdrawalWords.closedNoMonthsLeft(def.name, formatLongDate(purchasedAt));
+    return page(`<p class="lead">${esc(closed)}</p>`);
   }
   if (state === 'closed') {
     return page(`<p class="lead">${esc(`the 14 days to withdraw from this ${def.name} subscription, bought on ${formatLongDate(purchasedAt)}, are over. you can still cancel it from the service page, and it keeps working through the period you've paid for.`)}</p>`);
@@ -2872,11 +2889,9 @@ ${content}`,
   }
   const until = ruleShown ? ` you have until the end of the 14th day after ${formatLongDate(purchasedAt)}.` : '';
   const lead = renewed
-    ? `${renewedWithdrawalWords.lead(def.name)}${until}`
+    ? `if you withdraw, ${def.name} stops today and we refund everything you paid for its renewal on ${formatLongDate(purchasedAt)}.${until}`
     : `if you withdraw, ${def.name} stops today and we refund everything you paid for this subscription.${until}`;
-  const subscriptionLine = renewed
-    ? renewedWithdrawalWords.subscription(def.name, `${formatPlanPrice(plan)} every ${plan.interval}`, formatLongDate(purchasedAt))
-    : `subscription: ${def.name}, ${formatPlanPrice(plan)} every ${plan.interval}, bought on ${formatLongDate(purchasedAt)}`;
+  const subscriptionLine = `subscription: ${def.name}, ${formatPlanPrice(plan)} every ${plan.interval}, bought on ${formatLongDate(renewed ? boughtAt : purchasedAt)}`;
   return page(`<div class="card">
   <p class="signed-in">${esc(`signed in as ${primaryEmail}`)}</p>
   <p>${esc(subscriptionLine)}</p>
@@ -2931,9 +2946,33 @@ const CANCEL_WORDS = {
   emailing: (address) => `we're emailing this to ${address}. it hasn't gone yet, and we'll keep trying.`,
 };
 
-function cancelContractLink(href) {
+// "cancel contracts here", and beside it, inside a withdrawal window whose date can still be
+// shown, the pointer to the door. '' with the subscription rules off.
+function cancelContractLink(href, withdrawal = null, serviceName = '') {
   if (!href) return '';
-  return `\n<p style="margin-top:24px"><a class="btn secondary" href="${escAttr(href)}">${esc(CANCEL_CONTRACT_LABEL)}</a></p>`;
+  const pointer = withdrawalPointer(withdrawal, serviceName);
+  return `\n${pointer ? `<p class="disclosure" style="margin-top:24px">${esc(pointer)}</p>\n` : ''}<p style="margin-top:${pointer ? '8' : '24'}px"><a class="btn secondary" href="${escAttr(href)}">${esc(CANCEL_CONTRACT_LABEL)}</a></p>`;
+}
+
+// The billing page's own "cancel contracts here" for one paid service, with its pointer.
+function billingCancelContract(entry) {
+  if (!entry.cancelContract) return '';
+  const pointer = withdrawalPointer(entry.withdrawal, entry.name);
+  return `<div class="card" style="margin-top:16px">
+  <h2>${esc(entry.name)}</h2>
+  ${pointer ? `<p>${esc(pointer)}</p>\n  ` : ''}<a class="btn secondary" href="${escAttr(entry.cancelContract)}">${esc(CANCEL_CONTRACT_LABEL)}</a>
+</div>`;
+}
+
+// Inside a withdrawal window, what each of the two routes does: the door, and the cancel.
+function withdrawalPointer(withdrawal, serviceName) {
+  if (withdrawal?.purchasedAt == null || !serviceName) return '';
+  const date = formatLongDate(withdrawal.purchasedAt);
+  if (!withdrawal.renewed) {
+    return `you can still withdraw until the end of the 14th day after ${date}. "withdraw from contract here" stops ${serviceName} today and refunds everything you paid. "cancel contracts here" keeps it working to the end of the period you've paid for, with no refund.`;
+  }
+  if (!Number.isInteger(withdrawal.renewalPaid) || withdrawal.renewalPaid <= 0) return '';
+  return `you can still withdraw from this renewal until the end of the 14th day after ${date}. "withdraw from contract here" stops ${serviceName} today and refunds the whole renewal, ${formatPlanPrice({ unitAmount: withdrawal.renewalPaid })}. "cancel contracts here" ends it at the end of your current plan month and refunds the whole months left.`;
 }
 
 function cancelContractPage(menu, title, content, notice = '') {
@@ -3049,12 +3088,10 @@ export function renderCancelContractDone({ menu, declaration, emailed }) {
 }
 
 // PLACEHOLDER pending the approved subscription-rules wording:
-// the withdraw page in a renewed annual year, where the window counts from the renewal and the
-// refund is that renewal's.
+// the withdraw page's closed state in the last month of a renewed annual year, where a cancel has
+// no whole months left to refund and the approved line's refund clause would not hold.
 const renewedWithdrawalWords = {
-  subscription: (name, price, date) => placeholder(`subscription: ${name}, ${price}, renewed on ${date}`),
-  lead: (name) => placeholder(`if you withdraw, ${name} stops today and we refund what you paid for this renewal.`),
-  closed: (name, date) => placeholder(`the 14 days to withdraw from this ${name} renewal, renewed on ${date}, are over. you can still cancel it with cancel contracts here.`),
+  closedNoMonthsLeft: (name, date) => placeholder(`the 14 days to withdraw from this ${name} renewal, renewed on ${date}, are over. you can still cancel it with cancel contracts here.`),
 };
 
 function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary', action = '/billing/portal' }) {

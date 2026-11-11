@@ -361,12 +361,11 @@ const WITHDRAWAL_ACK_BODY = [
   'sol pbc',
 ].join('\n\n');
 
-// PLACEHOLDER pending the approved subscription-rules wording:
-// the acknowledgement of a withdrawal in a renewed annual year: the window counts from the
-// renewal, and the refund is that renewal's.
+// The acknowledgement of a withdrawal in a renewed annual year: the window counts from when the
+// renewal was paid, and the refund is that renewal's.
 const WITHDRAWAL_ACK_RENEWED = {
-  subscription: ['**the subscription.** {{service}}, {{price}} every {{interval}}, bought on {{purchase_date}}.', placeholder('**the subscription.** {{service}}, {{price}} every {{interval}}, renewed on {{purchase_date}}.')],
-  refund: ["we're refunding everything you paid for this subscription", placeholder("we're refunding what you paid for this renewal")],
+  subscription: ['bought on {{purchase_date}}.', 'bought on {{purchase_date}}, renewed on {{window_date}}.'],
+  refund: ["we're refunding everything you paid for this subscription", "we're refunding everything you paid for its renewal on {{window_date}}"],
 };
 
 function keepBlock(template, tag, keep) {
@@ -376,7 +375,9 @@ function keepBlock(template, tag, keep) {
 }
 
 // null when a value the acknowledgement must state is missing, so nothing half-filled is sent.
-export function renderWithdrawalAck({ service, interval, unitAmount, purchasedAt, renewed = false, submittedAtMs, primaryEmail }) {
+// `purchasedAt` is when the window opened: the purchase or, in a renewed year, when the renewal
+// was paid, and then `boughtAt` is the purchase.
+export function renderWithdrawalAck({ service, interval, unitAmount, purchasedAt, renewed = false, boughtAt = null, submittedAtMs, primaryEmail }) {
   const serviceName = SERVICE_HUMAN_NAMES[service];
   const price = formatPrice(unitAmount);
   if (!serviceName || !price || (interval !== 'year' && interval !== 'month') || !primaryEmail) return null;
@@ -389,11 +390,12 @@ export function renderWithdrawalAck({ service, interval, unitAmount, purchasedAt
     service: serviceName,
     price,
     interval,
-    purchase_date: formatLongDate(purchasedAt),
+    purchase_date: formatLongDate(renewed ? boughtAt : purchasedAt),
+    ...(renewed ? { window_date: formatLongDate(purchasedAt) } : {}),
     primary_email: primaryEmail,
     submitted_at: formatMomentUtc(Math.floor(submittedAtMs / 1000)),
   };
-  if (!values.purchase_date || !values.submitted_at) return null;
+  if (!values.purchase_date || !values.submitted_at || values.window_date === '') return null;
   // One pass, so a stored value is never read as a placeholder or a mark.
   const raw = body.replaceAll(/\{\{([a-z_]+)\}\}/g, (match, key) => (key in values ? `\u0000${key}\u0000` : match));
   if (/\{\{[a-z_]+\}\}/.test(raw)) return null;

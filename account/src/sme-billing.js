@@ -59,6 +59,7 @@ export async function handleServicesSme(req, env) {
       checkout: url.searchParams.get('checkout') || '',
       billing: url.searchParams.get('billing') || '',
       withdrawal: url.searchParams.get('withdrawal') || '',
+      renewed: subscriptionRulesOn(env) ? url.searchParams.get('renewed') || '' : '',
     },
     menu,
     journalUpdateNotice,
