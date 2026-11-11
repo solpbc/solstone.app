@@ -20,10 +20,12 @@
 // paid for each whole plan month after the one the confirm fell in, since the
 // services stop at confirm. It is made before the Stripe customer is deleted,
 // once per renewal invoice, and never when a cancel or withdrawal already
-// refunded that renewal. It retries with the purge, and a person is alerted at
-// its first failure; after RENEWAL_REFUND_RETRY_MS the purge goes on without it.
+// refunded that renewal. A cancel whose own refund of it hasn't landed yet has
+// that refund made here instead, since the purge deletes the cancel's record.
+// It retries with the purge, and a person is alerted at its first failure;
+// after RENEWAL_REFUND_RETRY_MS the purge goes on without it.
 import { hashWithPepper } from './crypto.js';
-import { getStripeCustomerByAccount, getSubscriptionWithdrawal, isCancellationRefundClaimed } from './db.js';
+import { getStripeCustomerByAccount, getSubscriptionWithdrawal, markSubscriptionCancellation } from './db.js';
 import { reconcileSubscription } from './billing.js';
 import { sendOperatorAlertEmail } from './email.js';
 import { syncAccountEntitlementToRelay } from './relay-grant.js';
@@ -36,6 +38,7 @@ import {
   listVoidedRenewals,
   pauseSubscriptionCollection,
   refundChargeAtDeletion,
+  refundChargePart,
   resumeSubscriptionCollection,
 } from './stripe.js';
 import { subscriptionRulesOn } from './subscription-rules.js';
@@ -130,7 +133,7 @@ export async function refundRenewedYearsAtPurge(env, deletion, stripeCustomerId,
     const confirmedAt = Math.floor(Number(deletion.requested_at) / 1000);
     for (const sub of await listCustomerSubscriptions(env, stripeCustomerId)) {
       failed.tag = sub.metadata?.service ?? null;
-      await refundRenewedYear(env, sub, confirmedAt);
+      await refundRenewedYear(env, sub, confirmedAt, nowMs);
     }
     return 'complete';
   } catch (error) {
@@ -144,7 +147,7 @@ export async function refundRenewedYearsAtPurge(env, deletion, stripeCustomerId,
 
 // One subscription's refund, if it is owed and not already made. Throws when Stripe can't be read
 // or the refund can't be made, so the purge retries it.
-async function refundRenewedYear(env, sub, confirmedAt) {
+async function refundRenewedYear(env, sub, confirmedAt, nowMs) {
   if (sub.status === 'canceled' || sub.status === 'incomplete_expired') return;
   const renewal = renewalStart(sub);
   // The first year, a monthly plan, or a renewal that came during the hold, after the confirm.
@@ -154,8 +157,15 @@ async function refundRenewedYear(env, sub, confirmedAt) {
   // A withdrawal refunds the whole renewal itself.
   if (await getSubscriptionWithdrawal(env.DB, { subscriptionRef: sub.id })) return;
   const invoice = renewalInvoice(await listPaidSubscriptionInvoices(env, sub.id), renewal);
-  if (!invoice || await isCancellationRefundClaimed(env.DB, invoice.id)) return;
-  const amount = monthsLeftRefund(invoice.amount_paid, monthsLeft);
+  if (!invoice) return;
+  // A cancel that claimed this renewal's refund: made already means nothing more, and still owed
+  // means its own amount, made here under its own key so a retry of the cancel can't add to it.
+  const claim = await env.DB
+    .prepare('SELECT subscription_ref, issued_at, refund_amount, refunded_at FROM subscription_cancellations WHERE refund_invoice_ref = ?')
+    .bind(invoice.id)
+    .first();
+  if (claim?.refunded_at != null) return;
+  const amount = claim ? claim.refund_amount : monthsLeftRefund(invoice.amount_paid, monthsLeft);
   if (amount <= 0) return;
   if (typeof invoice.charge !== 'string' || !invoice.charge) {
     const error = new Error('deletion refund has no charge');
@@ -169,8 +179,11 @@ async function refundRenewedYear(env, sub, confirmedAt) {
     error.code = 'deletion_refund_charge_unreadable';
     throw error;
   }
-  if (charge.amount_refunded > 0) return;
-  await refundChargeAtDeletion(env, { chargeId: invoice.charge, amount, invoiceId: invoice.id });
+  if (charge.amount_refunded === 0) {
+    if (claim) await refundChargePart(env, { chargeId: invoice.charge, amount, invoiceId: invoice.id });
+    else await refundChargeAtDeletion(env, { chargeId: invoice.charge, amount, invoiceId: invoice.id });
+  }
+  if (claim) await markSubscriptionCancellation(env.DB, { subscriptionRef: claim.subscription_ref, issuedAt: claim.issued_at, column: 'refunded_at', nowMs });
 }
 
 // Once per deletion, at the refund's first failure. Like the withdrawal's, the mail carries only the
@@ -190,7 +203,7 @@ async function alertPerson(env, deletion, failed, nowMs) {
     [
       'each row is a closing sign-in. requested_at, when its owner confirmed, is in milliseconds. for each row:',
       "1. open the row's stripe_customer_id in the Stripe Dashboard. for each annual subscription past its first year that is not canceled, open the invoice of its latest renewal and the payment that paid it.",
-      '2. if any of that payment is already refunded, refund nothing more. otherwise refund one twelfth of what that renewal paid, rounded to the cent, for each whole plan month after the one requested_at falls in. plan months start on the renewal date\'s day of each month, or on a shorter month\'s last day.',
+      '2. if any of that payment is already refunded, refund nothing more. if a cancellation of that subscription is still waiting to make its refund (a cancellation alert, with refund_amount set and refunded_at empty), refund that refund_amount. otherwise refund one twelfth of what that renewal paid, rounded to the cent, for each whole plan month after the one requested_at falls in. plan months start on the renewal date\'s day of each month, or on a shorter month\'s last day.',
       '3. the schedule then finds the refund made, deletes the customer, and finishes the purge.',
     ].join('\n'),
   ].join('\n\n');
