@@ -960,7 +960,7 @@ ${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>` : ''}
+${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it on.')}</p>` : ''}
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
   ${turnOff}
@@ -975,7 +975,7 @@ ${withdrawalDoor(withdrawal)}
       statusLine: onStatusLine,
       content: `${controlGroup}
 <p class="notice">your last payment didn't go through. manage billing to keep your private network reachable while you're away. your own network stays free either way.</p>
-${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>` : ''}
+${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it on.')}</p>` : ''}
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
   ${turnOff}
@@ -1016,7 +1016,7 @@ export function renderServicesSpb({ entitlement, plan = null, withdrawal = null,
   ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/services/backup/cancel' })}
 </div>`;
   const cancellationNotice = cancelPending
-    ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}. manage billing to keep it on.</p>`
+    ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it on.')}</p>`
     : '';
   const retentionDisclosure = '<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days. turn it back on within that window and it\'s still there. after 30 days it\'s deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>';
   const page = ({ statusLine = '', content }) => layout({
@@ -1105,7 +1105,7 @@ export function renderServicesSme({ entitlement, plan = null, withdrawal = null,
   ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel solstone.me', buttonClass: 'btn danger', action: `${SME_SERVICE_PATH}/cancel` })}
 </div>`;
   const cancellationNotice = cancelPending
-    ? `<p class="notice">your solstone.me coverage is scheduled to end on ${esc(paidThrough)}. manage billing to keep it.</p>`
+    ? `<p class="notice">your solstone.me coverage is scheduled to end on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it.')}</p>`
     : '';
   const page = ({ statusLine = '', content }) => layout({
     title: 'solstone.me',
@@ -1254,7 +1254,7 @@ ${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 
   ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel confidential processing', buttonClass: 'btn danger', action: `${SPP_SERVICE_PATH}/cancel` })}
 </div>`;
   const cancellationNotice = cancelPending
-    ? `<p class="notice">your confidential processing is scheduled to end on ${esc(paidThrough)}. manage billing to keep it.</p>`
+    ? `<p class="notice">your confidential processing is scheduled to end on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it.')}</p>`
     : '';
   const howItWorks = '<a href="/confidential-processing/data">what leaves your device</a> · <a href="/terms">terms</a>';
   // The journals the subscription covers, each with its own release, so the owner can move it.
@@ -1363,12 +1363,13 @@ const BILLING_PAST_DUE = {
   spp_hosted: "the last payment didn't go through. manage billing to fix it.",
 };
 
-function billingStateLine({ service, entitlement, state, plan }, nowSeconds) {
+function billingStateLine({ service, entitlement, state, plan }, nowSeconds, rulesCancel = '') {
   const date = formatUnixSecondsDate(entitlement.current_period_end);
   if (state === 'scout') return service === 'spp_hosted' ? "complimentary while you're an approved scout" : "free while you're an approved scout";
   if (state === 'past_due') return BILLING_PAST_DUE[service];
   if (state === 'stopping') {
-    return date ? `scheduled to stop on ${date}. manage billing to keep it.` : 'scheduled to stop at the end of the paid period. manage billing to keep it.';
+    const keep = keepItOn(rulesCancel, ' manage billing to keep it.');
+    return date ? `scheduled to stop on ${date}.${keep}` : `scheduled to stop at the end of the paid period.${keep}`;
   }
   if (state === 'stopped') {
     return date && entitlement.current_period_end <= nowSeconds ? `stopped on ${date}` : 'stopped';
@@ -1402,7 +1403,7 @@ export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, no
   const cancelLink = entries.some((entry) => entry.cancelContract) ? '' : cancelContractLink(cancelContract);
   const list = entries.length
     ? `<div class="group">
-  ${entries.map((entry) => row(escAttr(entry.href), BILLING_ICONS[entry.service], esc(entry.name), esc(billingStateLine(entry, nowSeconds)), billingTrail(entry))).join('\n  ')}
+  ${entries.map((entry) => row(escAttr(entry.href), BILLING_ICONS[entry.service], esc(entry.name), esc(billingStateLine(entry, nowSeconds, cancelContract)), billingTrail(entry))).join('\n  ')}
 </div>${doors ? `\n${doors}` : ''}`
     : `<div class="card">
   <div class="empty">
@@ -2953,6 +2954,12 @@ export function cancelCauseTicket(declaration) {
   return { subject: CANCEL_WORDS.typeCause, description: CANCEL_WORDS.summary(declaration) };
 }
 
+// Under the subscription rules (a cancel-contract href is present) the billing portal can no longer
+// lift a cancel, so the "keep it" sentence is dropped; without them it stays as it was.
+function keepItOn(rulesCancel, sentence) {
+  return rulesCancel ? '' : sentence;
+}
+
 // "cancel contracts here", and beside it, inside a withdrawal window whose date can still be
 // shown, the pointer to the door. '' with the subscription rules off.
 function cancelContractLink(href, withdrawal = null, serviceName = '') {
@@ -2973,7 +2980,7 @@ function billingCancelContract(entry) {
 
 // Inside a withdrawal window, what each of the two routes does: the door, and the cancel.
 function withdrawalPointer(withdrawal, serviceName) {
-  if (withdrawal?.purchasedAt == null || !serviceName) return '';
+  if (withdrawal?.purchasedAt == null || !serviceName || withdrawal.cancelPending) return '';
   const date = formatLongDate(withdrawal.purchasedAt);
   if (!withdrawal.renewed) {
     return `you can still withdraw until the end of the 14th day after ${date}. "withdraw from contract here" stops ${serviceName} today and refunds everything you paid. "cancel contracts here" keeps it working to the end of the period you've paid for, with no refund.`;

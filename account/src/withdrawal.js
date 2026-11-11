@@ -128,9 +128,11 @@ async function door(env, entitlement, sub, nowSeconds) {
   const until = withdrawalUntil(purchasedAt);
   if (until == null || nowSeconds >= until) return null;
   const shown = withdrawalRuleShown(purchasedAt, nowSeconds) ? purchasedAt : null;
-  if (!invoices) return { path, purchasedAt: shown };
+  // A cancel already made has had its choice; the pointer beside the label is for the choice ahead.
+  const cancelPending = Boolean(entitlement.cancel_at_period_end || sub.cancel_at);
+  if (!invoices) return { path, purchasedAt: shown, cancelPending };
   const paid = renewalInvoice(invoices, renewalStart(sub))?.amount_paid ?? null;
-  return { path, purchasedAt: shown, renewed: true, renewalPaid: paid };
+  return { path, purchasedAt: shown, renewed: true, renewalPaid: paid, cancelPending };
 }
 
 async function readPaidInvoices(env, subscriptionRef) {

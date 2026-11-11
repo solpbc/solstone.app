@@ -119,6 +119,26 @@ describe('the withdrawal window beside the cancel function', () => {
       expect(await text('/billing', testEnv, again.session)).not.toContain(`href="${CANCEL}?service=private-network"`);
     });
 
+    it('drops the pointer once a cancel is made, and no page offers to keep it on', async () => {
+      const testEnv = makeTestEnv(ON);
+      const spec = { id: 'sub_spl', start: NOW_S - 400 * DAY, renewal: NOW_S - 3 * DAY };
+      const { session } = await buyer(testEnv, [spec]);
+      fakeStripe([spec]);
+      const pointer = 'you can still withdraw from this renewal until the end of the 14th day after';
+      expect(await text('/private-network', testEnv, session)).toContain(pointer);
+
+      const review = await text('/billing/cancel-contract/review', testEnv, session, { service: 'private-network', type: 'cancel', end: 'earliest' });
+      const done = await post('/billing/cancel-contract/confirm', testEnv, { statement: statementOf(review) }, session);
+      expect(done.status).toBe(200);
+
+      for (const path of ['/private-network', '/billing']) {
+        const html = await text(path, testEnv, session);
+        expect(html).not.toContain(pointer);
+        expect(html).not.toContain('manage billing to keep it');
+        expect(html).toContain('withdraw from contract here');
+      }
+    });
+
     it('with the rules off, shows no pointer and no cancel link', async () => {
       const testEnv = makeTestEnv({ WITHDRAWAL_DOOR: 'on' });
       const start = NOW_S - 2 * DAY;
