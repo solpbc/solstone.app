@@ -2891,54 +2891,73 @@ ${content}`,
 </div>`);
 }
 
-// PLACEHOLDER pending the approved subscription-rules wording: the cancel function's link, its form, its summary and
-// its done page. Nothing here renders while the subscription rules are off.
+// The cancel function's link, its page, its summary and its done page, in the approved wording.
+// Nothing here renders while the subscription rules are off. The values arrive formatted.
 export const CANCEL_CONTRACT_LABEL = 'cancel contracts here';
 export const CANCEL_NOW_LABEL = 'cancel now';
+const monthsWord = (months) => (months === 1 ? 'month' : 'months');
 const CANCEL_WORDS = {
-  title: 'cancel a subscription',
-  intro: 'cancel a paid subscription on this sign-in. you check everything on the next page before it goes.',
-  name: 'your name',
-  emailLabel: 'email',
-  email: (address) => `your email: ${address}. we send the confirmation there.`,
+  title: (service) => `cancel your ${service} subscription`,
+  signedInAs: (email) => `signed in as ${email}`,
+  subscription: (v) => `subscription: ${v.serviceName}, ${v.price} every ${v.interval}, bought on ${v.purchaseDate}`,
+  name: 'your name (optional; it goes only into your confirmation email):',
+  typeCancel: 'cancel',
+  typeCause: 'cancel for a serious reason, such as something we did wrong',
+  reason: 'tell us the reason:',
+  earliest: (date) => `it ends on ${date}, the earliest it can.`,
+  earliestCause: (date) => `it ends on ${date}, the earliest an ordinary cancel can.`,
+  yearEnd: (date) => `at the end of this plan year, ${date}`,
+  today: 'today',
+  keepsFirst: (service) => `${service} keeps working until then, the end of the period you've paid for. it won't renew.`,
+  keepsRenewed: (service, months, amount) => `${service} keeps working until then, and we refund ${months} whole ${monthsWord(months)}, ${amount}, the same way you paid, within 14 days.`,
+  endsToday: "it ends today. we'll answer your reason, and whether we refund the time you've paid for after today.",
+  endsTodayRefund: (amount) => `we refund the whole months left, ${amount}, either way.`,
+  next: 'continue',
+  summary: (d) => [
+    `you're canceling ${d.serviceName} (${d.price} every ${d.interval}).`,
+    d.reason != null ? `for a serious reason: "${d.reason}".` : '',
+    `it ends on ${d.endDate}.`,
+    d.refund ? `we refund ${d.refund}.` : '',
+    `we'll send the confirmation to ${d.email}.`,
+  ].filter(Boolean).join(' '),
+  back: 'back',
+  received: (moment) => `we received your cancellation on ${moment}.`,
+  emailed: "we've emailed you a copy.",
+  save: 'save this page',
+  // Not in the approved wording: the dark build's short states for a page that can't offer the
+  // cancel, kept as they were for review before the switch turns on.
   noEmail: 'this sign-in has no email address to send the confirmation to. add one under sign-in and emails, or email support@solstone.app saying you cancel.',
-  subscription: 'which subscription',
-  none: 'there is no paid subscription on this sign-in to cancel.',
   pending: (name, date) => `${name}: already set to end on ${date}.`,
   unavailable: (name) => `${name}: its details didn't load. reload to try again.`,
-  earliestOn: (date) => `earliest possible: ${date}`,
-  periodEndOn: (date) => `at the end of the paid period: ${date}`,
-  when: 'when it ends',
-  earliest: 'earliest possible',
-  periodEnd: 'at the end of the paid period',
-  next: 'continue',
-  errors: {
-    name: 'enter your name.',
-    subscription: 'choose a subscription to cancel.',
-    unavailable: "your subscription details didn't load. try again.",
-  },
-  summaryTitle: 'check your cancellation',
-  summaryLead: 'this is what you are sending. if anything is wrong, change it first.',
-  change: 'change something',
-  refund: 'refund',
-  refundLine: (amount) => `${amount}, for the whole months after the one you're in`,
-  doneTitle: 'your cancellation',
-  doneLead: 'we received your cancellation. save or print this page to keep it.',
-  received: 'we received it',
-  emailed: (address) => `we've emailed this to ${address}.`,
-  emailing: (address) => `we're emailing this to ${address}. it hasn't gone yet, and we'll keep trying.`,
+  unavailableError: "your subscription details didn't load. try again.",
 };
+
+// A cancel for a serious reason opens a support request carrying its type and the summary line.
+export function cancelCauseTicket(declaration) {
+  return { subject: CANCEL_WORDS.typeCause, description: CANCEL_WORDS.summary(declaration) };
+}
 
 function cancelContractLink(href) {
   if (!href) return '';
   return `\n<p style="margin-top:24px"><a class="btn secondary" href="${escAttr(href)}">${esc(CANCEL_CONTRACT_LABEL)}</a></p>`;
 }
 
-function cancelContractPage(menu, title, content, notice = '') {
+// The type of cancel decides what shows without script: the reason field, the earliest line's
+// wording and the "today" option belong to a cancel for a serious reason.
+const CANCEL_PAGE_STYLE = `<style>
+#cc-type-cancel:checked ~ .cc-if-cause, #cc-type-cancel:checked ~ * .cc-if-cause { display: none; }
+#cc-type-cause:checked ~ * .cc-if-ordinary { display: none; }
+.cc-back { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+.cc-note { margin: -6px 0 14px 30px; color: var(--ink-soft); }
+@media print { .back, .cc-print { display: none; } }
+</style>`;
+
+function cancelContractPage(menu, title, content, { back = '', notice = '' } = {}) {
   return layout({
     title,
     body: `${topbar(menu)}
-<a class="back" href="/billing">${BACK_SVG} billing</a>
+${CANCEL_PAGE_STYLE}
+${back}
 ${notice ? `<p class="notice">${esc(notice)}</p>` : ''}
 <div class="pagehead">
   <h1>${esc(title)}</h1>
@@ -2947,86 +2966,84 @@ ${content}`,
   });
 }
 
-function cancelEndLine({ endsAt, atPeriodEnd }) {
-  const date = formatMomentUtc(endsAt);
-  return atPeriodEnd ? CANCEL_WORDS.periodEndOn(date) : CANCEL_WORDS.earliestOn(date);
+function cancelBackLink(href) {
+  return `<a class="back" href="${escAttr(href)}">${BACK_SVG} ${esc(CANCEL_WORDS.back)}</a>`;
 }
 
-// The declaration as a list: what the owner sent, and when we received it once we have.
-function cancelDeclarationList(d) {
-  const rows = [
-    [CANCEL_WORDS.name, d.name],
-    [CANCEL_WORDS.emailLabel, d.email || ''],
-    [CANCEL_WORDS.subscription, d.serviceName],
-    [CANCEL_WORDS.when, cancelEndLine(d)],
-    ...(d.refundAmount ? [[CANCEL_WORDS.refund, CANCEL_WORDS.refundLine(formatPlanPrice({ unitAmount: d.refundAmount }))]] : []),
-    ...(d.submittedAt != null ? [[CANCEL_WORDS.received, formatMomentUtc(Math.floor(d.submittedAt / 1000))]] : []),
-  ];
-  return rows.map(([label, value]) => `<p>${esc(`${label}: ${value}`)}</p>`).join('\n  ');
-}
-
-// The form: name, the sign-in's email (shown, not editable), which subscription, and when it ends.
-export function renderCancelContract({ menu, csrf, primaryEmail, choices, input = {}, error = '' }) {
-  const page = (content) => cancelContractPage(menu, CANCEL_WORDS.title, content, CANCEL_WORDS.errors[error] || '');
+// The page for one paid subscription: who is signed in, the subscription, an optional name, the
+// type of cancel, when it ends, and continue. Or, when it can't be offered, why.
+export function renderCancelContract({ menu, csrf, primaryEmail, choice, view = null, input = {}, focusReason = false, error = '' }) {
+  const def = choice.def;
+  const page = (content) => cancelContractPage(menu, CANCEL_WORDS.title(def.name), content, {
+    back: cancelBackLink(def.path),
+    notice: error === 'unavailable' ? CANCEL_WORDS.unavailableError : '',
+  });
   if (!primaryEmail) return page(`<p class="lead">${esc(CANCEL_WORDS.noEmail)}</p>`);
-  const offered = choices.filter((choice) => choice.offered);
-  const others = choices.filter((choice) => !choice.offered).map((choice) => `<p>${esc(choice.unavailable
-    ? CANCEL_WORDS.unavailable(choice.def.name)
-    : CANCEL_WORDS.pending(choice.def.name, formatMomentUtc(choice.endsAt)))}</p>`).join('\n  ');
-  if (!offered.length) return page(`<p class="lead">${esc(CANCEL_WORDS.none)}</p>${others ? `\n<div class="card">\n  ${others}\n</div>` : ''}`);
-
-  const selected = offered.some((choice) => choice.def.slug === input.slug) ? input.slug : (offered.length === 1 ? offered[0].def.slug : '');
-  const differs = (choice) => choice.earliest.endsAt !== choice.periodEnd.endsAt;
-  const single = offered.length === 1 ? offered[0] : null;
-  const subscriptionRows = offered.map((choice) => {
-    const dates = [CANCEL_WORDS.earliestOn(formatMomentUtc(choice.earliest.endsAt))];
-    if (differs(choice)) dates.push(CANCEL_WORDS.periodEndOn(formatMomentUtc(choice.periodEnd.endsAt)));
-    return `<label class="ack">
-      <input type="radio" name="service" value="${escAttr(choice.def.slug)}" required${choice.def.slug === selected ? ' checked' : ''}>
-      <span><strong>${esc(choice.def.name)}</strong> · ${esc(dates.join(' · '))}</span>
-    </label>`;
-  }).join('\n    ');
-  const endRows = offered.some(differs)
-    ? `<p>${esc(CANCEL_WORDS.when)}</p>
-    <label class="ack">
-      <input type="radio" name="end" value="earliest"${input.end === 'period_end' ? '' : ' checked'}>
-      <span>${esc(single ? CANCEL_WORDS.earliestOn(formatMomentUtc(single.earliest.endsAt)) : CANCEL_WORDS.earliest)}</span>
-    </label>
-    <label class="ack">
-      <input type="radio" name="end" value="period_end"${input.end === 'period_end' ? ' checked' : ''}>
-      <span>${esc(single ? CANCEL_WORDS.periodEndOn(formatMomentUtc(single.periodEnd.endsAt)) : CANCEL_WORDS.periodEnd)}</span>
-    </label>`
-    : '<input type="hidden" name="end" value="earliest">';
-  return page(`<p class="lead">${esc(CANCEL_WORDS.intro)}</p>
-<div class="card">
+  if (!choice.offered) {
+    return page(`<div class="card">
+  <p>${esc(choice.unavailable ? CANCEL_WORDS.unavailable(def.name) : CANCEL_WORDS.pending(def.name, formatMomentUtc(choice.endsAt)))}</p>
+</div>`);
+  }
+  const cause = input.type === 'cause';
+  const end = cause && input.end === 'today' ? 'today' : (view.yearEndDate && input.end === 'period_end' ? 'period_end' : 'earliest');
+  const radio = (value, extra = '') => `<input type="radio" name="end" value="${value}"${end === value ? ' checked' : ''}${extra}>`;
+  const earliestNote = view.refund
+    ? CANCEL_WORDS.keepsRenewed(def.name, view.refundMonths, view.refund)
+    : (view.earliestIsPeriodEnd ? CANCEL_WORDS.keepsFirst(def.name) : '');
+  const todayNote = [CANCEL_WORDS.endsToday, view.refund ? CANCEL_WORDS.endsTodayRefund(view.refund) : ''].filter(Boolean).join(' ');
+  return page(`<div class="card">
+  <p class="signed-in">${esc(CANCEL_WORDS.signedInAs(primaryEmail))}</p>
+  <p>${esc(CANCEL_WORDS.subscription(view))}</p>
   <form method="post" action="${escAttr(`${CANCEL_CONTRACT_PATH_HTML}/review`)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+    <input type="hidden" name="service" value="${escAttr(def.slug)}">
     <label for="cancel-name">${esc(CANCEL_WORDS.name)}</label>
-    <input id="cancel-name" type="text" name="name" value="${escAttr(input.name || '')}" required maxlength="200" autocomplete="name">
-    <p>${esc(CANCEL_WORDS.email(primaryEmail))}</p>
-    <p>${esc(CANCEL_WORDS.subscription)}</p>
-    ${subscriptionRows}
-    ${endRows}
+    <input id="cancel-name" type="text" name="name" value="${escAttr(input.name || '')}" maxlength="200" autocomplete="name">
+    <input type="radio" id="cc-type-cancel" name="type" value="cancel"${cause ? '' : ' checked'}>
+    <label for="cc-type-cancel">${esc(CANCEL_WORDS.typeCancel)}</label>
+    <input type="radio" id="cc-type-cause" name="type" value="cause"${cause ? ' checked' : ''}>
+    <label for="cc-type-cause">${esc(CANCEL_WORDS.typeCause)}</label>
+    <div class="cc-if-cause">
+      <label for="cancel-reason">${esc(CANCEL_WORDS.reason)}</label>
+      <textarea id="cancel-reason" name="reason" rows="3" maxlength="2000"${focusReason ? ' autofocus' : ''}>${esc(input.reason || '')}</textarea>
+    </div>
+    <div>
+      <label class="ack">
+        ${radio('earliest')}
+        <span><span class="cc-if-ordinary">${esc(CANCEL_WORDS.earliest(view.earliestDate))}</span><span class="cc-if-cause">${esc(CANCEL_WORDS.earliestCause(view.earliestDate))}</span></span>
+      </label>
+      ${earliestNote ? `<p class="cc-note">${esc(earliestNote)}</p>` : ''}
+      ${view.yearEndDate ? `<label class="ack">
+        ${radio('period_end')}
+        <span>${esc(CANCEL_WORDS.yearEnd(view.yearEndDate))}</span>
+      </label>` : ''}
+      <label class="ack cc-if-cause">
+        ${radio('today')}
+        <span>${esc(CANCEL_WORDS.today)}</span>
+      </label>
+      <p class="cc-note cc-if-cause">${esc(todayNote)}</p>
+    </div>
     <div class="btn-row" style="margin-top:16px">
       <button class="btn primary" type="submit">${esc(CANCEL_WORDS.next)}</button>
     </div>
   </form>
-  ${others}
 </div>`);
 }
 
-// The summary: everything entered, a way back to correct it, and one cancel button. Nothing else.
+// The summary: the one line of what is being sent, a plain way back that keeps what was entered,
+// and one cancel button. Nothing else.
 export function renderCancelContractReview({ menu, csrf, statement, input, declaration }) {
-  return cancelContractPage(menu, CANCEL_WORDS.summaryTitle, `<div class="card">
-  <p>${esc(CANCEL_WORDS.summaryLead)}</p>
-  ${cancelDeclarationList(declaration)}
-  <form method="post" action="${escAttr(CANCEL_CONTRACT_PATH_HTML)}">
-    <input type="hidden" name="csrf" value="${escAttr(csrf)}">
-    <input type="hidden" name="name" value="${escAttr(input.name)}">
-    <input type="hidden" name="service" value="${escAttr(input.slug)}">
-    <input type="hidden" name="end" value="${escAttr(input.end)}">
-    <button class="btn secondary" type="submit">${esc(CANCEL_WORDS.change)}</button>
-  </form>
+  const back = `<form method="post" action="${escAttr(CANCEL_CONTRACT_PATH_HTML)}">
+  <input type="hidden" name="csrf" value="${escAttr(csrf)}">
+  <input type="hidden" name="service" value="${escAttr(input.slug)}">
+  <input type="hidden" name="name" value="${escAttr(input.name)}">
+  <input type="hidden" name="type" value="${escAttr(input.type)}">
+  <input type="hidden" name="reason" value="${escAttr(input.reason)}">
+  <input type="hidden" name="end" value="${escAttr(input.end)}">
+  <button class="back cc-back" type="submit">${BACK_SVG} ${esc(CANCEL_WORDS.back)}</button>
+</form>`;
+  return cancelContractPage(menu, CANCEL_WORDS.title(declaration.serviceName), `<div class="card">
+  <p>${esc(CANCEL_WORDS.summary(declaration))}</p>
   <form method="post" action="${escAttr(`${CANCEL_CONTRACT_PATH_HTML}/confirm`)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="statement" value="${escAttr(statement)}">
@@ -3034,16 +3051,20 @@ export function renderCancelContractReview({ menu, csrf, statement, input, decla
       <button class="btn danger" type="submit">${esc(CANCEL_NOW_LABEL)}</button>
     </div>
   </form>
-</div>`);
+</div>`, { back });
 }
 
-// The done page: the whole declaration, to save or print, and whether its email has gone.
-export function renderCancelContractDone({ menu, declaration, emailed }) {
-  return cancelContractPage(menu, CANCEL_WORDS.doneTitle, `<div class="card">
-  <p class="lead">${esc(CANCEL_WORDS.doneLead)}</p>
-  ${cancelDeclarationList(declaration)}
-  <p>${esc(emailed ? CANCEL_WORDS.emailed(declaration.email) : CANCEL_WORDS.emailing(declaration.email || ''))}</p>
-</div>`);
+// After the press: when it was received, the summary line again, whether its email has gone, and
+// a way to save the page.
+export function renderCancelContractDone({ menu, declaration, emailed, backHref }) {
+  return cancelContractPage(menu, CANCEL_WORDS.title(declaration.serviceName), `<div class="card">
+  <p class="lead">${esc(CANCEL_WORDS.received(declaration.submitted))}</p>
+  <p>${esc(CANCEL_WORDS.summary(declaration))}</p>
+  ${emailed ? `<p>${esc(CANCEL_WORDS.emailed)}</p>` : ''}
+  <div class="btn-row cc-print" style="margin-top:16px">
+    <button class="btn secondary" type="button" onclick="window.print()">${esc(CANCEL_WORDS.save)}</button>
+  </div>
+</div>`, { back: cancelBackLink(backHref) });
 }
 
 // PLACEHOLDER pending the approved subscription-rules wording:
