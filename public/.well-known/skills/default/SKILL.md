@@ -1,6 +1,6 @@
 ---
 name: solstone-install
-description: install and configure solstone, a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. when asked to install solstone, set up solstone, or when someone mentions solstone.app. linux (x86_64 and aarch64), macos on Apple Silicon, and windows 10 (22H2) or 11 on x64, or windows 11 on arm64.
+description: install and configure solstone, a personal journal platform. the solstone app takes in what you share with it, and all of it goes into your journal. when asked to install solstone, set up solstone, or when someone mentions solstone.app. linux (x86_64 and aarch64), macos on Apple Silicon, and windows 10 (22H2) or 11 on x64, or windows 11 on arm64.
 license: AGPL-3.0-only
 metadata:
   author: sol-pbc
@@ -11,7 +11,7 @@ metadata:
 
 # solstone installation
 
-these instructions are for a coding agent and human working together. solstone is a personal memory platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours. open source, made by sol pbc.
+these instructions are for a coding agent and human working together. solstone is a personal journal platform. the solstone app takes in what you share with it, and all of it goes into your journal. your journal is always private, only yours. open source, made by sol pbc.
 
 sol pbc is a public benefit corporation. the data covenants in its articles of incorporation can't be amended without the founder's personal signature, and after the founder the language can only get stronger, never weaker. any acquisition is conditional: the successor must be legally bound to preserve a substantially equivalent benefit purpose and assume covenants no less protective than article 8.
 
