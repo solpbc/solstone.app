@@ -104,3 +104,14 @@ test("/brand/mark and its .html and slash forms 301 to /brand/logo with the quer
     }
   }
 });
+
+test("/brands and /brands/mark, the old solpbc.org paths on this domain, 301 to /brand and /brand/logo", async (t) => {
+  t.mock.method(globalThis, "fetch", () => assert.fail("the redirect must not fetch"));
+  const env = { ASSETS: { fetch: () => assert.fail("the redirect must not read an asset") } };
+  const cases = { "/brands": "/brand", "/brands/": "/brand", "/brands.html": "/brand", "/brands/mark": "/brand/logo", "/brands/mark/": "/brand/logo", "/brands/mark.html": "/brand/logo" };
+  for (const [path, target] of Object.entries(cases)) {
+    const res = await worker.fetch(new Request(`https://solstone.app${path}?v=1`), env);
+    assert.equal(res.status, 301, path);
+    assert.equal(res.headers.get("location"), `https://solstone.app${target}?v=1`, path);
+  }
+});

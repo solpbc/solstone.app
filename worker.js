@@ -755,6 +755,18 @@ async function route(request, env) {
       return Response.redirect(url.toString(), 301);
     }
 
+    // solstone's brand page used to be solpbc.org/brands/, so people swap the
+    // domain and keep the plural. /brands 301s to /brand and /brands/mark to
+    // the design story, query kept.
+    if (/^\/brands(?:\.html)?\/?$/.test(url.pathname)) {
+      url.pathname = "/brand";
+      return Response.redirect(url.toString(), 301);
+    }
+    if (/^\/brands\/mark(?:\.html)?\/?$/.test(url.pathname)) {
+      url.pathname = "/brand/logo";
+      return Response.redirect(url.toString(), 301);
+    }
+
     // The authoritative installer URL: install.sh must be
     // served as plain text, never HTML. The live content-type override is
     // public/_headers (Workers Assets serves this exact-matching static file
