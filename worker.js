@@ -746,6 +746,15 @@ async function route(request, env) {
       return Response.redirect(url.toString(), 301);
     }
 
+    // The logo's design story lives at /brand/logo. /brand/mark is the name
+    // people guess from the old solpbc.org/brands/mark address, so it 301s
+    // here for good, query kept. No asset may be named brand/mark.html, for
+    // the same reason as beta.html above.
+    if (/^\/brand\/mark(?:\.html)?\/?$/.test(url.pathname)) {
+      url.pathname = "/brand/logo";
+      return Response.redirect(url.toString(), 301);
+    }
+
     // The authoritative installer URL: install.sh must be
     // served as plain text, never HTML. The live content-type override is
     // public/_headers (Workers Assets serves this exact-matching static file

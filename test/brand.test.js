@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import test from "node:test";
+import worker from "../worker.js";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
@@ -43,7 +44,7 @@ test("every copy button points at a source on the page", () => {
 });
 
 test("both pages load nothing from another origin", () => {
-  for (const path of ["public/brand.html", "public/brand/mark.html"]) {
+  for (const path of ["public/brand.html", "public/brand/logo.html"]) {
     const html = read(path);
     const loads = [
       ...html.matchAll(/<(?:script|img|iframe|source|video|audio)\b[^>]*\bsrc="([^"]+)"/g),
@@ -58,8 +59,8 @@ test("both pages load nothing from another origin", () => {
   }
 });
 
-test("the mark page's canonical is its solstone.app address", () => {
-  assert.match(read("public/brand/mark.html"), /<link rel="canonical" href="https:\/\/solstone\.app\/brand\/mark">/);
+test("the logo page's canonical is its solstone.app address", () => {
+  assert.match(read("public/brand/logo.html"), /<link rel="canonical" href="https:\/\/solstone\.app\/brand\/logo">/);
   assert.match(page, /<link rel="canonical" href="https:\/\/solstone\.app\/brand">/);
 });
 
@@ -74,7 +75,7 @@ test("make deploy does not regenerate the brand assets", () => {
 test("/brand is in the sitemap, llms.txt and the site footer", () => {
   const sitemap = read("scripts/gen-sitemap.mjs");
   assert.match(sitemap, /\["\/brand", "public\/brand\.html"\]/);
-  assert.match(sitemap, /\["\/brand\/mark", "public\/brand\/mark\.html"\]/);
+  assert.match(sitemap, /\["\/brand\/logo", "public\/brand\/logo\.html"\]/);
   assert.match(read("public/llms.txt"), /\(https:\/\/solstone\.app\/brand\)/);
   for (const path of ["public/index.html", "public/download.html", "public/brand.html", "releases.js"]) {
     const footer = read(path).split('<footer class="site-footer">')[1];
@@ -84,9 +85,22 @@ test("/brand is in the sitemap, llms.txt and the site footer", () => {
 });
 
 test("same-origin references on /brand resolve to files", () => {
-  const pages = new Set(["/", "/brand", "/brand/mark", "/download", "/phone", "/install", "/integrate", "/releases"]);
+  const pages = new Set(["/", "/brand", "/brand/logo", "/download", "/phone", "/install", "/integrate", "/releases"]);
   for (const ref of sameOriginRefs(page)) {
     if (pages.has(ref)) continue;
     assert.ok(existsSync(new URL(`public${ref}`, root)), ref);
+  }
+});
+
+test("/brand/mark and its .html and slash forms 301 to /brand/logo with the query", async (t) => {
+  t.mock.method(globalThis, "fetch", () => assert.fail("the redirect must not fetch"));
+  const env = { ASSETS: { fetch: () => assert.fail("the redirect must not read an asset") } };
+  assert.ok(!existsSync(new URL("public/brand/mark.html", root)), "a brand/mark.html asset would answer before the worker");
+  for (const path of ["/brand/mark", "/brand/mark/", "/brand/mark.html", "/brand/mark.html/"]) {
+    for (const method of ["GET", "HEAD"]) {
+      const res = await worker.fetch(new Request(`https://solstone.app${path}?v=1`, { method }), env);
+      assert.equal(res.status, 301, path);
+      assert.equal(res.headers.get("location"), "https://solstone.app/brand/logo?v=1", path);
+    }
   }
 });

@@ -32,7 +32,7 @@ const PAGES = [
   ["/phone", "public/phone.html"],
   ["/integrate", "public/integrate.html"],
   ["/brand", "public/brand.html"],
-  ["/brand/mark", "public/brand/mark.html"],
+  ["/brand/logo", "public/brand/logo.html"],
   ["/releases", "releases.js"],
   ["/releases/macos", "releases.js"],
   ["/releases/journal-macos", "releases.js"],
