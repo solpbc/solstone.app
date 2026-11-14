@@ -6,23 +6,23 @@
   </url>
   <url>
     <loc>https://solstone.app/install</loc>
-    <lastmod>2026-11-10</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/download</loc>
-    <lastmod>2026-11-09</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/download/mac</loc>
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/download/journal/windows</loc>
-    <lastmod>2026-11-09</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/download/android</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/phone</loc>
@@ -30,38 +30,46 @@
   </url>
   <url>
     <loc>https://solstone.app/integrate</loc>
-    <lastmod>2026-11-12</lastmod>
+    <lastmod>2026-11-14</lastmod>
+  </url>
+  <url>
+    <loc>https://solstone.app/brand</loc>
+    <lastmod>2026-11-14</lastmod>
+  </url>
+  <url>
+    <loc>https://solstone.app/brand/mark</loc>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/macos</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/journal-macos</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/windows</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/linux</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/android</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/wear</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases/ios</loc>
-    <lastmod>2026-11-11</lastmod>
+    <lastmod>2026-11-14</lastmod>
   </url>
 </urlset>

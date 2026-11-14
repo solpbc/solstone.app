@@ -1,4 +1,4 @@
-.PHONY: deploy dev install sitemap sunarc stamp publish-install-sh check-install-sh-served build-install-sh
+.PHONY: deploy dev install sitemap sunarc stamp brand publish-install-sh check-install-sh-served build-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
@@ -22,6 +22,13 @@ sunarc:
 # commit the stamped pages; `make deploy` refuses a stale stamp.
 stamp:
 	node scripts/stamp-assets.mjs
+
+# The /brand downloads (public/brand/assets/) are generated from the brand
+# source and committed. This is an explicit step and `deploy` never runs it,
+# so an unrelated deploy can't republish a mark. Review and commit the diff.
+#   make brand BRAND_SRC=/abs/path/to/brand-source
+brand:
+	./scripts/gen-brand-assets.sh
 
 install:
 	@echo "solstone.app is a static deploy — no install step. use 'make deploy' to ship."
