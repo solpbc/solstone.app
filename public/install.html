@@ -158,7 +158,7 @@
 
                     <section class="platform-panel" id="macos" aria-labelledby="macos-heading">
                         <h3 id="macos-heading">on your mac</h3>
-                        <p class="requirements">an Apple silicon mac (M1 or newer) with macos 15 or later. Intel macs aren't supported.</p>
+                        <p class="requirements">an apple silicon mac (M1 or newer) with macos 15 or later. intel macs aren't supported.</p>
                         <ol class="steps" id="mac-app">
                             <li data-branch="start">
                                 <h4>install both apps</h4>
@@ -210,7 +210,7 @@
 
                     <section class="platform-panel" id="linux" aria-labelledby="linux-heading">
                         <h3 id="linux-heading">on your linux computer</h3>
-                        <p class="requirements">journal and desktop app: x86_64 (Intel or AMD) or arm64. not sure which you have? <code>uname -m</code> prints x86_64, or aarch64 on arm64. anything else isn't supported.</p>
+                        <p class="requirements">journal and desktop app: x86_64 (intel or amd) or arm64. not sure which you have? <code>uname -m</code> prints x86_64, or aarch64 on arm64. anything else isn't supported.</p>
                         <ol class="steps">
                             <li data-branch="start">
                                 <h4>set up your journal</h4>
@@ -230,12 +230,43 @@
                                 <p>then open solstone from your app menu. with your journal on this computer, its <strong>journal</strong> tab finds it and one press connects. with a journal on another computer, open <strong>network</strong> in that journal, choose <strong>pair a device</strong> to make a pairing link, and paste it in the tab, or open the link and choose <strong>open in the solstone app</strong>. if solstone doesn't open from your app menu, the <a href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">linux app guide</a> lists the packages it needs, and it also covers pairing from a terminal.</p>
                             </li>
                         </ol>
-                        <p class="ours"><strong>check it's ours.</strong> the installer checks release signatures with minisign and matches packages and archives to their signed checksums. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
+                        <p class="ours"><strong>check it's ours.</strong> the installer checks release signatures with minisign and matches packages and archives to their signed checksums. the package repositories are signed with our OpenPGP key (<code>BD77BD200A710D13EDF1D2555BF7582BF7EBA751</code>), and its armored key file carries a minisign signature from our release key. the journal's signed release records are on <a href="https://trust.solstone.app">trust.solstone.app</a>.</p>
+                        <details id="linux-packages">
+                            <summary>prefer apt, dnf or zypper?</summary>
+                            <div class="detail-body">
+                                <p>add the signed repository for your distribution. the <code>solstone</code> package installs both your journal (<code>solstone-journal</code>) and the desktop app (<code>solstone-linux</code>). for just one, install <code>solstone-journal</code> or <code>solstone-linux</code> instead.</p>
+                                <p><strong>on debian or ubuntu:</strong></p>
+                                <pre id="linux-apt-commands">sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSLo /etc/apt/keyrings/solstone-archive-keyring.gpg https://updates.solstone.app/linux/keys/solstone-archive-keyring.gpg
+sudo chmod a+r /etc/apt/keyrings/solstone-archive-keyring.gpg
+printf 'Types: deb\nURIs: https://updates.solstone.app/linux/apt\nSuites: release\nComponents: main\nArchitectures: %s\nSigned-By: /etc/apt/keyrings/solstone-archive-keyring.gpg\n' "$(dpkg --print-architecture)" | sudo tee /etc/apt/sources.list.d/solstone.sources >/dev/null
+sudo apt update &amp;&amp; sudo apt install solstone</pre>
+                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-apt-commands" hidden>copy commands</button></div>
+                                <p class="copy-message" role="status" id="linux-apt-commands-status"></p>
+                                <p><strong>on fedora or RHEL:</strong></p>
+                                <pre id="linux-dnf-commands">sudo rpmkeys --import https://updates.solstone.app/linux/keys/solstone-archive-keyring.asc
+printf '[solstone]\nname=solstone\nbaseurl=https://updates.solstone.app/linux/rpm/release/$basearch\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://updates.solstone.app/linux/keys/solstone-archive-keyring.asc\n' | sudo tee /etc/yum.repos.d/solstone.repo >/dev/null
+sudo dnf install solstone</pre>
+                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-dnf-commands" hidden>copy commands</button></div>
+                                <p class="copy-message" role="status" id="linux-dnf-commands-status"></p>
+                                <p><strong>on openSUSE:</strong></p>
+                                <pre id="linux-zypper-commands">sudo rpm --import https://updates.solstone.app/linux/keys/solstone-archive-keyring.asc
+printf '[solstone]\nname=solstone\nenabled=1\nautorefresh=1\nbaseurl=https://updates.solstone.app/linux/rpm/release/$basearch\ntype=rpm-md\ngpgcheck=1\nrepo_gpgcheck=1\npkg_gpgcheck=1\ngpgkey=https://updates.solstone.app/linux/keys/solstone-archive-keyring.asc\n' | sudo tee /etc/zypp/repos.d/solstone.repo >/dev/null
+sudo zypper refresh solstone &amp;&amp; sudo zypper install solstone</pre>
+                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-zypper-commands" hidden>copy commands</button></div>
+                                <p class="copy-message" role="status" id="linux-zypper-commands-status"></p>
+                                <p>system packages put the programs in <code>/usr/bin</code> and leave your account's services to you. after installing, set up your journal and start the desktop app from your own account:</p>
+                                <pre id="linux-repo-setup-commands">solstone journal setup &amp;&amp; solstone-linux install-service</pre>
+                                <div class="actions"><button class="btn btn-secondary btn-sm copy-btn" data-target="linux-repo-setup-commands" hidden>copy command</button></div>
+                                <p class="copy-message" role="status" id="linux-repo-setup-commands-status"></p>
+                                <p>if you installed only one package, run only its half of that command. your package manager updates what you installed whenever you upgrade your system.</p>
+                            </div>
+                        </details>
                     </section>
 
                     <section class="platform-panel" id="windows" aria-labelledby="windows-heading">
                         <h3 id="windows-heading">on your windows computer</h3>
-                        <p class="requirements">the journal runs on windows 10 (22H2) or 11 on x86_64 (Intel or AMD, shown as x64 in windows settings), or on windows 11 on arm64 (shown as ARM-based in windows settings). no administrator access needed to install.</p>
+                        <p class="requirements">the journal runs on windows 10 (22H2) or 11 on x86_64 (intel or amd, shown as x64 in windows settings), or on windows 11 on arm64 (shown as ARM-based in windows settings). no administrator access needed to install.</p>
                         <ol class="steps">
                             <li data-branch="start">
                                 <h4>set up your journal</h4>
@@ -387,7 +418,7 @@
                     <p>update the journal on the computer that runs it. the solstone app and your journal update separately, so their version numbers can differ.</p>
                     <p><strong>on mac:</strong> open the journal app and choose <strong>updates</strong> in its sidebar. the solstone app has its own updates pane in settings. <a href="/download/journal#upgrading">manual journal update instructions</a>.</p>
                     <p><strong>on windows:</strong> open <strong>journal</strong> from the Start menu and manage updates there.</p>
-                    <p><strong>on linux:</strong> follow the <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md#upgrading">journal upgrade guide</a>.</p>
+                    <p><strong>on linux:</strong> run <code>solstone update</code>, or upgrade with <code>apt</code>, <code>dnf</code> or <code>zypper</code> if you installed from the package repository and then run <code>solstone journal service restart</code>. <a href="https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md#upgrading">journal upgrade guide</a>.</p>
                     <p>after updating, reopen your journal and check the version in its status details.</p>
                 </div>
             </section>
@@ -460,6 +491,9 @@
             if (panel) {
                 setBranch(panel.dataset.branch === 'connect' ? 'connect' : branch);
                 selectPlatform(panel.id);
+                const target = document.getElementById(id);
+                const details = target && target.closest('details');
+                if (details) details.open = true;
                 return;
             }
             if (!tabs.some(t => t.getAttribute('aria-selected') === 'true')) {
@@ -500,6 +534,8 @@
             if (!panel) return;
             event.preventDefault();
             selectPlatform(panel.id);
+            const details = target.closest('details');
+            if (details) details.open = true;
             history.pushState(null, '', link.hash);
             if (!link.classList.contains('platform-link')) {
                 target.scrollIntoView({ block: 'start' });
