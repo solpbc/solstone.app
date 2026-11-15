@@ -1,4 +1,4 @@
-.PHONY: deploy dev install sitemap sunarc stamp brand dayground publish-install-sh check-install-sh-served build-install-sh
+.PHONY: deploy dev install sitemap sunarc stamp brand sbis dayground publish-install-sh check-install-sh-served build-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
@@ -30,6 +30,13 @@ stamp:
 #   make brand BRAND_SRC=/abs/path/to/brand-source
 brand:
 	./scripts/gen-brand-assets.sh
+
+# The drawings on /brand/system and /brand/merch are generated from the brand
+# source's kernel and pattern modules (read by reference, never copied) and
+# committed, like the downloads. `deploy` never runs it. Review and commit.
+#   make sbis BRAND_SRC=/abs/path/to/brand-source
+sbis:
+	node scripts/gen-sbis.mjs
 
 # /brand/dayground's files (the engine as one module, its worked numbers, the page's
 # words as markdown and on the page) are generated from the services portal's engine

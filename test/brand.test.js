@@ -85,7 +85,7 @@ test("/brand is in the sitemap, llms.txt and the site footer", () => {
 });
 
 test("same-origin references on /brand resolve to files", () => {
-  const pages = new Set(["/", "/brand", "/brand/logo", "/download", "/phone", "/install", "/integrate", "/releases"]);
+  const pages = new Set(["/", "/brand", "/brand/logo", "/brand/system", "/download", "/phone", "/install", "/integrate", "/releases"]);
   for (const ref of sameOriginRefs(page)) {
     if (pages.has(ref)) continue;
     assert.ok(existsSync(new URL(`public${ref}`, root)), ref);
@@ -114,4 +114,58 @@ test("/brands and /brands/mark, the old solpbc.org paths on this domain, 301 to 
     assert.equal(res.status, 301, path);
     assert.equal(res.headers.get("location"), `https://solstone.app${target}?v=1`, path);
   }
+});
+
+// /brand/system and /brand/merch: the brand system and its physical-goods
+// reference. Their drawings are generated from the brand source (make sbis).
+const SBIS_PAGES = ["public/brand/system.html", "public/brand/merch.html"];
+
+test("the system and merch pages load nothing from another origin", () => {
+  for (const path of SBIS_PAGES) {
+    const html = read(path);
+    const loads = [
+      ...html.matchAll(/<(?:script|img|iframe|source|video|audio)\b[^>]*\bsrc="([^"]+)"/g),
+      ...html.matchAll(/<link\b[^>]*\bhref="([^"]+)"/g),
+      ...html.matchAll(/<(?:use|image)\b[^>]*\bhref="([^"]+)"/g),
+      ...html.matchAll(/url\(\s*['"]?([^'")]+)/g),
+    ]
+      .filter((m) => !/rel="canonical"/.test(m[0]))
+      .map((m) => m[1]);
+    for (const url of loads) assert.ok(!/^(https?:)?\/\//.test(url), `${path} loads ${url}`);
+  }
+});
+
+test("every generated drawing slot on the system and merch pages is filled", () => {
+  for (const path of SBIS_PAGES) {
+    const slots = [...read(path).matchAll(/<!-- gen:sbis:([a-z0-9-]+):begin -->([\s\S]*?)<!-- gen:sbis:\1:end -->/g)];
+    assert.ok(slots.length >= 5, `${path}: ${slots.length} slots`);
+    for (const [, key, body] of slots) assert.match(body, /^<svg\b[\s\S]*<\/svg>$/, `${path}: ${key} is empty`);
+  }
+});
+
+test("/brand/system is linked from /brand and listed in the sitemap and llms.txt", () => {
+  assert.match(page, /href="\/brand\/system"/);
+  assert.match(read("scripts/gen-sitemap.mjs"), /\["\/brand\/system", "public\/brand\/system\.html"\]/);
+  assert.match(read("public/llms.txt"), /\(https:\/\/solstone\.app\/brand\/system\)/);
+  assert.match(read("public/brand/system.html"), /<link rel="canonical" href="https:\/\/solstone\.app\/brand\/system">/);
+});
+
+test("/brand/merch stays unlinked: noindex, no inbound link, no sitemap, llms.txt, robots.txt or download entry", async () => {
+  const merch = read("public/brand/merch.html");
+  assert.match(merch, /<meta name="robots" content="noindex">/);
+  assert.doesNotMatch(merch, /rel="canonical"/);
+  const { readdirSync } = await import("node:fs");
+  const files = [
+    ...readdirSync(new URL("public/", root)).filter((f) => /\.(html|md|txt|xml)$/.test(f)).map((f) => `public/${f}`),
+    ...readdirSync(new URL("public/brand/", root)).filter((f) => /\.(html|md)$/.test(f) && f !== "merch.html").map((f) => `public/brand/${f}`),
+    "releases.js", "worker.js", "scripts/gen-sitemap.mjs", "scripts/gen-brand-assets.sh",
+  ];
+  for (const path of files) assert.doesNotMatch(read(path), /brand\/merch/, `${path} mentions /brand/merch`);
+});
+
+test("make deploy does not regenerate the system drawings", () => {
+  const makefile = read("Makefile");
+  const deploy = makefile.match(/^deploy:([^\n]*)\n((?:\t[^\n]*\n)*)/m);
+  assert.doesNotMatch(deploy[1] + deploy[2], /sbis/);
+  assert.match(makefile, /^sbis:\n\tnode scripts\/gen-sbis\.mjs$/m);
 });
