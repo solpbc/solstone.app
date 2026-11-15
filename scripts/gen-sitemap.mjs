@@ -29,7 +29,7 @@ const PAGES = [
   ["/download/mac", "public/download-mac.html"],
   ["/download/journal/windows", "public/download-journal-windows.html"],
   ["/download/android", "public/download-android.html"],
-  ["/phone", "public/phone.html"],
+  ["/mobile", "public/mobile.html"],
   ["/integrate", "public/integrate.html"],
   ["/brand", "public/brand.html"],
   ["/brand/logo", "public/brand/logo.html"],

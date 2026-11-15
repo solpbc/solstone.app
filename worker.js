@@ -726,23 +726,31 @@ async function route(request, env) {
       return env.ASSETS.fetch(assetRequest(rewritten, request));
     }
 
-    // /phone is the phone page for both platforms: iPhone and iPad go to the
+    // /mobile is the page for phones and tablets: iPhone and iPad go to the
     // App Store, Android to Google Play, with the signed APK as the second way
-    // in. Workers Assets serves phone.html at /phone before this router runs;
+    // in. Workers Assets serves mobile.html at /mobile before this router runs;
     // this rewrite is the fallback, matching /install.
-    if (url.pathname === "/phone") {
+    if (url.pathname === "/mobile") {
       const rewritten = new URL(request.url);
-      rewritten.pathname = "/phone.html";
+      rewritten.pathname = "/mobile.html";
       return env.ASSETS.fetch(assetRequest(rewritten, request));
     }
 
+    // /phone was this page's first address and is linked from outside, so it
+    // 301s to /mobile for good, query kept. No asset may be named phone.html,
+    // for the same reason as beta.html below.
+    if (/^\/phone(?:\.html)?\/?$/.test(url.pathname)) {
+      url.pathname = "/mobile";
+      return Response.redirect(url.toString(), 301);
+    }
+
     // /beta is printed on QR codes, so it has to keep working: it 301s to
-    // /phone with the query preserved. The asset is deliberately not named
+    // /mobile with the query preserved. The asset is deliberately not named
     // beta.html. Workers Assets answers an exact or .html match before the
     // worker runs, so while a beta.html asset existed this branch could never
     // fire, and node --test (which calls worker.fetch directly) can't see that.
     if (/^\/beta(?:\.html)?\/?$/.test(url.pathname)) {
-      url.pathname = "/phone";
+      url.pathname = "/mobile";
       return Response.redirect(url.toString(), 301);
     }
 

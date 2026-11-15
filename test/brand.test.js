@@ -85,7 +85,7 @@ test("/brand is in the sitemap, llms.txt and the site footer", () => {
 });
 
 test("same-origin references on /brand resolve to files", () => {
-  const pages = new Set(["/", "/brand", "/brand/logo", "/brand/system", "/download", "/phone", "/install", "/integrate", "/releases"]);
+  const pages = new Set(["/", "/brand", "/brand/logo", "/brand/system", "/download", "/mobile", "/install", "/integrate", "/releases"]);
   for (const ref of sameOriginRefs(page)) {
     if (pages.has(ref)) continue;
     assert.ok(existsSync(new URL(`public${ref}`, root)), ref);
