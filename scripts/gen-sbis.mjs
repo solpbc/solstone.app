@@ -157,8 +157,9 @@ FIGS["cloth-pocket"] = (() => {
   const k = 50, W = 7, H = 5;
   return fig(flat(W, H, CREAM, (x, y, kk) => { const wd = 2.5 * kk; return sunOn(x, y, W * kk, H * kk, 0.28, 1.05 * H * kk) + lockup(x + (W - 0.55) * kk - wd, y + (H - 0.7) * kk - lockupH(wd, true), wd, { wordOnly: true }); }, k, { rx: 0.08 }), "a cream pocket cloth: the logo comes in at the top left, the word solstone.app at the lower right");
 })();
-for (const [key, ground, label] of [["cloth-square-light", CREAM, "a square cream cloth with the stacked lockup low on the right"], ["cloth-square-ink", INK, "a square ink cloth with the stacked lockup low on the right, the word in cream"]]) {
-  FIGS[key] = fig(flat(5, 5, ground, (x, y, k) => { const wd = 2.09 * k; return lockup(x + (5 - 0.38) * k - wd, y + (5 - 0.37) * k - lockupH(wd), wd, { onInk: ground === INK }); }, 50, { rx: 0.05 }), label);
+for (const [key, ground, label] of [["cloth-square-light", CREAM, "a square cream cloth with the stacked lockup low on the right"], ["cloth-square-ink", INK, "a square ink cloth with the stacked lockup low on the right"]]) {
+  // the lockup as published, in full color on either ground (its orange word clears 7:1 on ink)
+  FIGS[key] = fig(flat(5, 5, ground, (x, y, k) => { const wd = 2.09 * k; return lockup(x + (5 - 0.38) * k - wd, y + (5 - 0.37) * k - lockupH(wd), wd); }, 50, { rx: 0.05 }), label);
 }
 FIGS["hang-tag"] = fig(flat(2, 3.5, CREAM, (x, y, k) => { const wd = 1.0 * k; return lockup(x + (2 * k - wd) / 2, y + 0.58 * 3.5 * k - lockupH(wd) / 2, wd); }, 60, { rx: 0.1, hole: 0.35 }), "a cream hang tag: a plain string hole at the top, the stacked lockup below it");
 
