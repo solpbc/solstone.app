@@ -10,7 +10,7 @@ every number and every formula, in the order you need them to build it. the work
 
 ### 1 · the idea
 
-the solstone logo is a sun, and the dayground is the day's own clock. the logo comes in at the top-left corner at dawn, travels one gentle arc across the screen and leaves through the bottom-right corner at dusk. it is always larger than the screen, so only a piece of it shows. the arc is one slot of the logo's own ring (36°), its size is φ times the screen's shorter side, and its colours are the logo's. it never asks for attention. it tells you, without a word, roughly where you are in the day.
+the solstone logo is a sun, and the dayground is the day's own clock. the logo comes in at the top-left corner at dawn, travels one gentle arc across the screen and leaves through the bottom-right corner at dusk. it is always larger than the screen, so only a piece of it shows. the arc is one slot of the logo's own ring (36°), its size is φ times the screen's shorter side, and its colors are the logo's. it never asks for attention. it tells you, without a word, roughly where you are in the day.
 
 it does this in whichever appearance the owner chose. a light-mode owner's night is lamplit paper with the light still in the corner. a dark-mode owner's day is a lifted warm dark with the logo across it. only a few hours around the middle of the night are truly dark.
 
@@ -30,14 +30,14 @@ from dusk to dawn the sky comes out: gold stars that turn as the sun would, ten 
 | **peak opacity** | **0.55** on a light ground · **0.20** on a dark ground | the same lightness step against either ground (§ 9a) |
 | **floor opacity** | **0** | |
 | **brightness curve** | **rise · hold · set**: sine ease-in over the first 22 % of the path, full through the middle, sine ease-out over the last 22 % | |
-| **warmth toward the horizon** | **none**: the logo's colours never shift | no new colour |
+| **warmth toward the horizon** | **none**: the logo's colors never shift | no new color |
 | **twilight** | **30 min** either side of sunrise and sunset | |
 | **dawn and dusk** | dawn = sunrise − 30 min · dusk = sunset + 30 min | |
 | **sunrise and sunset** | from the system timezone's reference point (or a position already in hand) and the date, on the device (§ 5) | |
 | **appearance** | **the owner's system appearance**, never the clock, and no setting of its own | the owner's setting is the setting |
 | **grounds** | **light:** day `#FEFCF8` · night `#AEA393` · true dark `#8C806E` · **dark:** day `#392E26` · night `#2E241C` · true dark `#281E17` (§ 6) | |
 | **ground cross-fade** | day → night linear over each twilight (1 → 0 from dawn to sunrise, 0 → 1 from sunset to dusk); night → true dark by `1 − w` (§ 4) | |
-| **halo colour** | gold `#FFCC33` | |
+| **halo color** | gold `#FFCC33` | |
 | **halo radius** | **φ × R** (R = the sun's tip radius) | one rung up the φ ladder |
 | **halo by day** | peak alpha **0.22** × the brightness curve | |
 | **the twilight glow** | radius **φ² × R**; alpha **0.62 × w** on a dark ground, **0.95 × w** on a light ground; centred on the sun's position carried along its own circle to **t ∈ [−0.10, 1.10]**; gold → orange on dark, `#FFF3CF` → gold on light (§ 7) | |
@@ -45,7 +45,7 @@ from dusk to dawn the sky comes out: gold stars that turn as the sun would, ten 
 | **glow gradient** | radial: alpha a at 0 %, 0.45 a at 38 %, 0 at 100 % of the radius | |
 | **content** | follows the owner's appearance; every ground sits on its own appearance's side of OKLab L 0.5, so content never flips | |
 | **the night sky** | the day's road of stars turning with the sky, the ten tips, the shower at solar midnight, the aurora on the sun's road in true dark (§ 8) | |
-| **colour outside the logo's own** | the aurora's green `#6CF0A8` → violet `#A27CFF`, and nothing else | |
+| **color outside solstone's brand colors** | the aurora's green `#6CF0A8` → violet `#A27CFF`, and nothing else | |
 | **motion** | the minute tick, with one exception: the shower's streaks, animated only on solstone's apps on apple devices at full motion (§ 10) | |
 
 ### 3 · geometry: where the logo goes
@@ -115,7 +115,7 @@ there is no hand-set sunrise or sunset and no setting for the dayground at all. 
 
 ### 6 · the grounds
 
-the owner's appearance picks the row; the time picks which of its three grounds shows. the dayground never sets the appearance: no forced colour scheme, no theme snap, no flip by the clock.
+the owner's appearance picks the row; the time picks which of its three grounds shows. the dayground never sets the appearance: no forced color scheme, no theme snap, no flip by the clock.
 
 | appearance | day | night (dusk → the window, the window → dawn) | true dark | text on it |
 |---|---|---|---|---|
@@ -133,8 +133,8 @@ two radial gradients, both with the stops `a → 0.45a → 0` at `0 % → 38 % �
 
 - **the day halo:** gold, radius `φ · R`, centred on the sun, `a = 0.22 · env(t) · (1 − night)`.
 - **the twilight glow:** radius `φ² · R`, centred on `P(te)` (§ 4a), `a = 0.62 · w` on a dark ground and `0.95 · w` on a light ground.
-  - **colour on dark:** `mix(gold, orange, 0.30 + 0.50 x)` in OKLab: gold as the sun goes, warming toward orange as it sinks, and cooling back to gold before dawn.
-  - **colour on light:** `mix(#FFF3CF, gold, 0.45 + 0.25 x)`, the sunrise cream-gold, so the corner reads **brighter** than the dimmed paper, the way the sky stays light where the sun went down. gold alone would only tint the cream.
+  - **color on dark:** `mix(gold, orange, 0.30 + 0.50 x)` in OKLab: gold as the sun goes, warming toward orange as it sinks, and cooling back to gold before dawn.
+  - **color on light:** `mix(#FFF3CF, gold, 0.45 + 0.25 x)`, the sunrise cream-gold, so the corner reads **brighter** than the dimmed paper, the way the sky stays light where the sun went down. gold alone would only tint the cream.
 - **why φ²:** at dusk and dawn the centre sits exactly one R past the corner, so with radius φ²R the corner lands at `1/φ² = 0.382` of the radius, on the gradient's own 38 % stop, and carries 0.45 a.
 - **it goes out** inside the true-dark window (`w = 0`). the night has a real bottom, a few hours long.
 
@@ -148,13 +148,13 @@ the reference is `NightSky` and `NightSkyMath` in `dayground.js`. where this sec
 
 at night the logo isn't drawn, so the sky takes its place as the one graphic. one surface still has one day: the sky comes out as the logo goes, and they share the screen only in twilight.
 
-**when.** star visibility is `s = night × (1 − 0.62 · w)` (§ 4, § 4a), so the sky comes out as the corner's light goes. night progress `u` runs from 0 at dusk to 1 at the next dawn (½ is solar midnight). by day nothing of the night is computed or drawn.
+**when.** star visibility is `s = night × (1 − 0.62 · w)` (§ 4, § 4a), so the sky comes out as the corner's light goes. night progress `u` runs from 0 at dusk to 1 at the next dawn (½ is solar midnight): `u = (m − dusk) / (1440 − (dusk − dawn))`, wrapping past midnight. by day nothing of the night is computed or drawn.
 
 | element | the rule |
 |---|---|
 | **the field: the day's road** | one star per 9,000 px² of the polar region about the arc's centre `O` that the night sweeps, in four levels (mix 7 · 16 · 30 · 47 %), plus 2.6 × as many fainter stars (level 2 or 3) in a stream along the arc's own circle (radius `Rarc`, Gaussian σ = side ÷ φ⁴). seeded by the surface's size, so a layout gets the same sky every night ({{line:stars}} stars on the phone). port the generator with every random draw, used or not: the draws nothing uses still fix which stars exist. |
 | **levels** | radii 1.75 · 1.38 · 1.08 · 0.85 px (× φ^−½ a step); dark alphas 0.92 · 0.64 · 0.45 · 0.31 (× φ^−¾ a step). level *n* fades in as `s` crosses 0.18 · 0.38 · 0.58 · 0.74 (smoothstep over 0.2): the brightest at dusk, all of them in true dark. each star is dimmed by `1 − min(0.9, 1.9 × the glow alpha at that point)`, so stars fade near the lit corner. |
-| **colour** | beam gold `#FFCC33`, every star, both appearances. no twinkle: a star never changes brightness. |
+| **color** | beam gold `#FFCC33`, every star, both appearances. no twinkle: a star never changes brightness. |
 | **on light grounds: pinholes** | the same gold, as bright points over the paper rather than ink: alpha `min(1, dark α × 1.05 + 0.08)`, and every star (field and tips) drawn **1.1 ×** larger. |
 | **the sky turns** | field, stream and tips rotate about `O` by `Δ · (u − ½)`, `Δ` the sun's own signed 36° (§ 3): about 2 px a minute on a phone, the sun's speed, moved on the minute tick. |
 | **the ten tips** | ten stars at the logo's beam-tip angles (36° steps from straight up) on radius `R ÷ φ`, the noon logo one φ rung smaller, centred where the noon sun stands, `P(½)`, turning with the sky. levels by tip 0 1 0 0 1 0 0 1 0 1; radius `(level r × 1.35 + 0.4) × 0.8`, alpha `min(1, level α × 1.25)`, a soft halo at 4.2 × r and 0.14 × alpha. they fade in as `s` goes 0.3 → 0.65. no lines. |
@@ -162,7 +162,7 @@ at night the logo isn't drawn, so the sky takes its place as the one graphic. on
 | **the long exposure** | where streaks don't move (§ 10), each trail is a still 0.9 px hairline at 0.42 × alpha. it is painted on the minute, so a trail appears at the start of the minute its streak falls in, up to 59 s before the streak would have fallen, and every trail clears when the 10 minutes end. |
 | **the aurora** | only inside true dark, easing in and out over 45 min (or half a shorter window). vertical rays whose lower edge follows the arc's circle (± 0.04 side of fold), rising 0.42 × side; green `#6CF0A8` at the lower edge to violet `#A27CFF` above. peak alpha 0.34 on dark and 0.42 × 1.3 on light, times the ease; added like light on dark and screened on light, so it lifts the ground. drawn at quarter resolution under a blur of about 3.6 px. **it changes shape once a minute** (a phase step on the tick) and never between ticks. under reduced motion or low power it holds one shape for the night. |
 
-**colour outside the logo's own.** the aurora's green and violet are the only colours in the dayground that are not the logo's or the grounds'. they stay in the aurora, in true dark: not a palette, and never a ui, text or brand colour.
+**color outside solstone's brand colors.** the aurora's green and violet are the only colors in the dayground outside solstone's brand colors. they stay in the aurora, in true dark: not a palette, and never a ui, text or brand color.
 
 ### 9 · content on top
 
@@ -171,25 +171,25 @@ the dayground is a background. everything that carries meaning sits on top of it
 - **widgets, cards, sheets and bars** keep their own fill, the platform's material or the surface's paper.
 - **text never sits directly on the logo** on a dark ground: cream text over gold at 0.55 on the night ground measures 3.4:1, below AA. on light grounds ink over the logo clears comfortably, but the rule is the same for consistency: give text a container.
 - **the app icon, a lockup in the navigation and a small status logo** stay as they are. the dayground is the surface's one graphic, and one small logo in the content does not count against it. there is never a second dayground: one surface, one day.
-- **nothing reacts** to the dayground: no shadows cast by the sun, no parallax, no colour sampled from it. the same holds for the night sky: nothing reacts to a star, a streak or the aurora.
+- **nothing reacts** to the dayground: no shadows cast by the sun, no parallax, no color sampled from it. the same holds for the night sky: nothing reacts to a star, a streak or the aurora.
 
 #### 9a · the logo on a dark ground
 
-on surface cream at 0.55 the logo sits 0.07 / 0.15 (beams / ring) below the ground in OKLab L. on a warm dark at the same 0.55 it would sit 0.35 / 0.27 above it, about three times louder, and dim gold reads olive. **on any ground below L 0.5 the peak is 0.20**, which gives 0.12 / 0.09 against `#392E26`: the same weight on either ground. the colours are unchanged; only the opacity balances.
+on surface cream at 0.55 the logo sits 0.07 / 0.15 (beams / ring) below the ground in OKLab L. on a warm dark at the same 0.55 it would sit 0.35 / 0.27 above it, about three times louder, and dim gold reads olive. **on any ground below L 0.5 the peak is 0.20**, which gives 0.12 / 0.09 against `#392E26`: the same weight on either ground. the colors are unchanged; only the opacity balances.
 
 #### 9b · text over the light night
 
-the light night goes down to `#8C806E` (§ 6). on that ground only ink `#1A1A1A` comes near AA, at **4.4985:1**, at the line rather than over it. softer inks fall well short (`#5B5246` 1.98:1, `#6E6453` 1.50:1, the orange text colour `#A15F17` 1.30:1), so the container rule holds in light mode at night as firmly as in dark mode.
+the light night goes down to `#8C806E` (§ 6). on that ground only ink `#1A1A1A` comes near AA, at **4.4985:1**, at the line rather than over it. softer inks fall well short (`#5B5246` 1.98:1, `#6E6453` 1.50:1, the orange text color `#A15F17` 1.30:1), so the container rule holds in light mode at night as firmly as in dark mode.
 
-- **a translucent panel over the sky is at least 95 % of its light colour.** at 90 % cream, orange text `#A15F17` on the panel over the light true dark measures 4.42:1; at 95 %, 4.67:1.
-- **a band that would sit on the bare ground** takes an opaque panel in its own colour.
-- **where a platform puts a label straight on the sky anyway** (a list's section header, an empty slot, a label a large text size pushes out of its card), it takes the platform's full-strength primary label colour, never a secondary or dimmed one, and is measured on the deepest ground of both appearances, increased contrast included. black in light mode measures 5.43:1 on `#8C806E`.
+- **a translucent panel over the sky is at least 95 % of its light color.** at 90 % cream, orange text `#A15F17` on the panel over the light true dark measures 4.42:1; at 95 %, 4.67:1.
+- **a band that would sit on the bare ground** takes an opaque panel in its own color.
+- **where a platform puts a label straight on the sky anyway** (a list's section header, an empty slot, a label a large text size pushes out of its card), it takes the platform's full-strength primary label color, never a secondary or dimmed one, and is measured on the deepest ground of both appearances, increased contrast included. black in light mode measures 5.43:1 on `#8C806E`.
 
 legibility is fixed in the container and the label, never by lightening the night.
 
 ### 10 · motion, power and visibility
 
-- the logo moves about 1 px a minute on a phone (the phone chord is about 1550 px over about 13 hours). recompute its position **once a minute** and on wake, resume, and a clock or timezone change: no continuous animation, no timer under a minute. use an eased 300 ms transition when a recompute jumps more than a few pixels (after sleep).
+- the logo moves about 2 px a minute on a phone (the phone chord is about 1550 px over about 13 hours). recompute its position **once a minute** and on wake, resume, and a clock or timezone change: no continuous animation, no timer under a minute. use an eased 300 ms transition when a recompute jumps more than a few pixels (after sleep).
 - one layer, one path, one gradient. the logo is a single filled path plus one stroked circle. on composited platforms it is one static image, scaled and translated.
 - **everything solar stays on the whole minute:** the logo, grounds, glows, stars, tips, aurora and long exposure. the shower's moving streaks alone read a separate fractional time, so a streak is neither delayed nor replayed on resume, and a shower whose first streak ends before the next minute tick is still drawn.
 - **the night is cached, not redrawn.** each mounted surface builds its star catalogue once per size and keeps one still raster (aurora, stars, tips, long exposure), recomposed on the minute tick. the aurora is drawn at quarter resolution and cached. there is no full-night atlas and no continuous redraw, and daytime skips the night entirely. panes that share one screen share one raster and one shower clock and clip their part of one scene.
@@ -208,16 +208,16 @@ legibility is fixed in the container and the label, never by lightening the nigh
 
 - **reduce motion has something to reduce:** the streaks and the aurora's minute steps. **low power** can also recompute every five minutes.
 - **hidden work stops.** a hidden browser document, or a sky scrolled out of view, runs no timer, animation frame or canvas work, the host's minute interval included. on return it samples the current time. native painters follow the scene's and the painter's own visibility (on the mac, window occlusion and minimize, not keyboard focus; on the phone and ipad, the background state; the watch's inactive always on counts as visible, its background does not) and the system's reduce motion and low power signals.
-- **a web view on windows** has no native power or occlusion signal: it stops only on what the page can see (document visibility, the sky in view) and always shows the long exposure. nothing describes a windows surface as reading power or occlusion.
+- **a web view on windows** has no native power or occlusion signal: it stops only on what the page can see (document visibility, the sky in view) and always shows the long exposure.
 - **an ios sheet does not pause the sky.** a sheet can be half height, and pushed screens share the sky, so the shared clock keeps running until a platform shows that a sheet fully covers it. this is a known limit, not a hidden-work guarantee.
-- **what it costs, and what isn't measured.** the night adds a small, bounded amount of rendering, not zero. measured: 60 visible minutes in headless chrome with the gpu off went from about 0.02 s to 0.24 to 0.27 s of main-thread task time, and a hidden 180 s ran zero intervals, animation frames or canvas clears. a fresh full mac background at solar midnight took about 20 ms median cpu at scale 1 and 36 ms at retina, offscreen on a development machine. **battery use, os wakeups, gpu activity, app energy impact and the watch's always-on power are not measured.** so the night has no energy figure, and nothing here says it costs none.
+- **what it costs, and what isn't measured.** the night adds a small, bounded amount of rendering, not zero. measured: 60 visible minutes in headless Chrome with the gpu off went from about 0.02 s to 0.24 to 0.27 s of main-thread task time, and a hidden 180 s ran zero intervals, animation frames or canvas clears. a fresh full mac background at solar midnight took about 20 ms median cpu at scale 1 and 36 ms at retina, offscreen on a development machine. **battery use, os wakeups, gpu activity, app energy impact and the watch's always-on power are not measured.** so the night has no energy figure, and nothing here says it costs none.
 - the playground on this page plays a day in 20 seconds and plays the shower on a click. those are for looking: a real surface moves on the minute.
 
 ### 11 · platform notes
 
-**any platform.** load `mark.svg` (viewBox `2.5 2.5 27 27`, tip radius 13.5 about `(16, 16)`). scale it by `Ø / 27`, translate its centre to P(t), clip to the surface, opacity α. the ground comes from § 6, the glows from § 7, the times from §§ 4 and 5. everything in §§ 3 to 7 is a pure function of `(W, H, m, rise, set, appearance)`, which is `calculateFrame` in `dayground.js`: write it once as that function and test it against `dayground.json`. **read the appearance from the system; never set it.** the night sky is the same kind of function, `NightSky` on that frame, plus fractional seconds for the streaks alone (§ 9).
+**any platform.** load `mark.svg` (viewBox `2.5 2.5 27 27`, tip radius 13.5 about `(16, 16)`). scale it by `Ø / 27`, translate its centre to P(t), clip to the surface, opacity α. the ground comes from § 6, the glows from § 7, the times from §§ 4 and 5. everything in §§ 3 to 7 is a pure function of `(W, H, m, rise, set, appearance)`, which is `calculateFrame` in `dayground.js`: write it once as that function and test it against `dayground.json`. **read the appearance from the system; never set it.** the night sky is the same kind of function, `NightSky` on that frame, plus fractional seconds for the streaks alone (§ 10).
 
-**web.** a layer covering the viewport, fixed to it so scrolling does not move it, with the logo in a box placed at P(t) − R and sized Ø; the layer's `overflow: hidden` is the clip. the ground is the page background, and each glow is an absolutely positioned box with a `radial-gradient` at the § 7 stops. no `requestAnimationFrame`: a 60-second interval and a `visibilitychange` listener. the appearance is `prefers-color-scheme`, read live, and the page's own dark colours follow the same query, never the clock. the night adds two `<canvas>` layers between the halo and the logo: the still sky, repainted on the minute, and a layer for moving streaks, which stays empty in a browser (§ 10a). when the sky is hidden or out of view (`visibilitychange`, an `IntersectionObserver`), both stop, and so does the minute interval. one page is one surface: one logo per viewport.
+**web.** a layer covering the viewport, fixed to it so scrolling does not move it, with the logo in a box placed at P(t) − R and sized Ø; the layer's `overflow: hidden` is the clip. the ground fills the viewport behind the glows, and each glow is an absolutely positioned box with a `radial-gradient` at the § 7 stops. no `requestAnimationFrame`: a 60-second interval and a `visibilitychange` listener. the appearance is `prefers-color-scheme`, read live, and the page's own dark colors follow the same query, never the clock. the night adds two `<canvas>` layers between the halo and the logo: the still sky, repainted on the minute, and a layer for moving streaks, which stays empty in a browser (§ 10a). when the sky is hidden or out of view (`visibilitychange`, an `IntersectionObserver`), both stop, and so does the minute interval. one page is one surface: one logo per viewport.
 
 `dayground.js` does all of this. `mount()` draws the dayground behind a page with a transparent background and keeps it on the minute; `frame(date, width, height, appearance)` returns one frame's numbers for a renderer of your own; `sunTimes(date)` returns sunrise and sunset from the device's timezone; `NightSky` paints the night on a canvas.
 
@@ -226,13 +226,13 @@ import { mount } from './dayground.js';
 const dayground = mount();   // dayground.stop() takes it down
 ```
 
-**ios, ipados and watchos (swiftui).** a `TimelineView(.everyMinute)` driving a `Canvas` or a `Path` built from the logo's geometry (vendor the path data, not a rasterised png). the clip is the container. mix grounds in OKLab in code with the formula, not with `Color.mix`, which blends in sRGB. read `@Environment(\.colorScheme)`, with no `.preferredColorScheme` for the dayground. position: rung 1 or nothing, with no `CLLocationManager` request or read made for the dayground at any authorization state; the zone comes from `TimeZone.current.identifier` (§ 5, rung 2). the sunrise equation is about 40 lines of swift.
+**ios, ipados and watchos (SwiftUI).** a `TimelineView(.everyMinute)` driving a `Canvas` or a `Path` built from the logo's geometry (vendor the path data, not a rasterised png). the clip is the container. mix grounds in OKLab in code with the formula, not with `Color.mix`, which blends in sRGB. read `@Environment(\.colorScheme)`, with no `.preferredColorScheme` for the dayground. position: rung 1 or nothing, with no `CLLocationManager` request or read made for the dayground at any authorization state; the zone comes from `TimeZone.current.identifier` (§ 5, rung 2). the sunrise equation is about 40 lines of Swift.
 
-**the apple watch.** the dayground is the watch's background at all times. wrist up it is the dark row with the logo at 0.20 (§ 9a). wrist down it is the dark row's logo at 0.50 over black, with no content on top. the host stays mounted for the life of the scene, so a wrist drop changes only how it draws. the night reaches the watch: wrist up it draws as on the phone (§ 10a), and wrist down it adds the aurora, stepping once a minute, beside the long exposure. watchos has no core image, so the watch's aurora blur is nine offset additive draws. the watch's text sits only on underlays: system glass on a control, a standard material behind a details panel.
+**the apple watch.** the dayground is the watch's background at all times. wrist up it is the dark row with the logo at 0.20 (§ 9a). wrist down it is the dark row's logo at 0.50 over black, with no content on top. the host stays mounted for the life of the scene, so a wrist drop changes only how it draws. the night reaches the watch: wrist up it draws as on the phone (§ 10a), and wrist down it adds the aurora, stepping once a minute, beside the long exposure. watchos has no Core Image, so the watch's aurora blur is nine offset additive draws. the watch's text sits only on underlays: system glass on a control, a standard material behind a details panel.
 
-**mac.** the same swift renderer as the phone, behind the setup screens. visibility follows window occlusion and minimize, not keyboard focus.
+**mac.** the same Swift renderer as the phone, behind the setup screens. visibility follows window occlusion and minimize, not keyboard focus.
 
-**android.** the phone app does not draw the dayground today. the wear os watch app does, over black: while the screen is interactive it draws the logo at 0.20, both glows, the stars, the ten tips and the aurora, with the shower as the long exposure. in ambient mode it shows the time and a small grey logo instead. a compose build is a `Canvas` with `withTransform { translate; scale }` drawing the logo's `Path`, a `clipRect`, and a `LaunchedEffect` ticking every minute. appearance: `isSystemInDarkTheme()`, or the app's own light, dark and system choice, resolved, never a snap by the clock. position as above: no `FusedLocationProvider` or `LocationManager` call for the dayground at any permission state; the zone comes from `ZoneId.systemDefault()`.
+**android.** the phone app does not draw the dayground today. the wear os watch app does, over black: while the screen is interactive it draws the logo at 0.20, both glows, the stars, the ten tips and the aurora, with the shower as the long exposure. in ambient mode it shows the time and a small grey logo instead. a Compose build is a `Canvas` with `withTransform { translate; scale }` drawing the logo's `Path`, a `clipRect`, and a `LaunchedEffect` ticking every minute. appearance: `isSystemInDarkTheme()`, or the app's own light, dark and system choice, resolved, never a snap by the clock. position as above: no `FusedLocationProvider` or `LocationManager` call for the dayground at any permission state; the zone comes from `ZoneId.systemDefault()`.
 
 **terminals.** the same function, but a terminal has no logo to clip, so the dayground there is the **glow only**: a warm tint at the corner the day puts it, and no night sky. say so rather than drawing a low-fidelity logo.
 
@@ -255,11 +255,11 @@ const dayground = mount();   // dayground.stop() takes it down
 - no network call and no location request comes from the dayground. a call to the platform's position api is a request at any permission state, granted included. no hand-set time, and no setting for it.
 - with no position in hand, the times come from the system timezone's `zone.tab` point, not a fixed default.
 - one logo per surface; text in containers on dark grounds and on the light night (§ 9).
-- **the night sky:** at solar midnight on the worked frames the sky matches `NightSky` in `dayground.js` (pixel-exact in javascript for the same frame inputs; native within its rasterizer's differences). by day nothing of the night is drawn or computed.
+- **the night sky:** at solar midnight on the worked frames the sky matches `NightSky` in `dayground.js` (pixel-exact in JavaScript for the same frame inputs; native within its rasterizer's differences). by day nothing of the night is drawn or computed.
 - **motion follows § 10a on every surface:** no streak moves in a browser, under reduce motion or low power, or on the watch wrist down. full motion animates only while a streak is falling, at no more than 60 fps. the aurora steps at most once a minute and holds one shape under reduce motion and low power, except on the watch wrist down, where it steps once a minute.
 - in the long exposure a trail appears at the start of its streak's minute and every trail clears when the 10 minutes end. a streak is neither delayed nor replayed on resume.
 - a hidden browser document runs no timer, animation frame or canvas work, and shows the current minute on return.
-- every label on the light night clears 4.5:1 on `#8C806E`, increased contrast and the largest text sizes included; a translucent panel over the sky is at least 95 % of its light colour (§ 9b).
+- every label on the light night clears 4.5:1 on `#8C806E`, increased contrast and the largest text sizes included; a translucent panel over the sky is at least 95 % of its light color (§ 9b).
 
 <!-- section:agents -->
 ## for agents

@@ -323,7 +323,7 @@ function tables(vec) {
     rows.push(`| ${L.input.clock} | \`${L.expect.ground}\` · \`${D.expect.ground}\` | ${f3(L.expect.sunOpacity)} · ${f3(D.expect.sunOpacity)} | ${f3(L.expect.w)} · ${L.expect.phase} | ${glow(L)} | ${glow(D)} | ${corner} |`);
   }
   out['table:frames'] = [
-    '| clock | ground, light · dark | logo opacity, light · dark | w · phase | twilight glow on light: centre · alpha · colour | on dark | alpha at the corner, light · dark |',
+    '| clock | ground, light · dark | logo opacity, light · dark | w · phase | twilight glow on light: centre · alpha · color | on dark | alpha at the corner, light · dark |',
     '|---|---|---|---|---|---|---|',
     ...rows,
   ].join('\n');
