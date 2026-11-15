@@ -3,9 +3,10 @@
    width scale. Load after tokens.css (and tokens-dark.css on a page that has a dark
    appearance), and after base.css where a page still uses it.
 
-   Type: Comfortaa Bold for the page title and brand headings, Inter for section
-   and interface headings, buttons and body text. Inter is self-hosted here; the
-   site never loads a font service. */
+   Type: the named text styles (display, heading, lede, body, eyebrow, text
+   action, meta), published at /brand/system#type and set out below. Comfortaa
+   Bold for the page title, Inter for everything else. Inter is self-hosted here;
+   the site never loads a font service. */
 
 @font-face { font-family: 'Inter'; src: url('inter-latin.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Inter'; src: url('inter-latin-bold.woff2') format('woff2'); font-weight: 600 700; font-style: normal; font-display: swap; }
@@ -89,7 +90,7 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
   box-shadow: var(--panel-shadow);
 }
 
-/* ---- buttons: three and no more ---- */
+/* ---- buttons: three and no more (the third, .btn-text, is the text action) ---- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; padding: 0 22px; border-radius: var(--radius-sm, 9px); border: 0;
@@ -100,8 +101,7 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 .btn-primary:hover { background: #DB8330; color: var(--ink-on-brand, #1A1A1A); }
 .btn-secondary { background: transparent; color: var(--ink); border: 1.5px solid var(--hairline-2); }
 .btn-secondary:hover { border-color: var(--ink-faint); color: var(--ink); }
-.btn-text { color: var(--ink); font-weight: 600; text-decoration: none; }
-.btn-text:hover { text-decoration: underline; text-underline-offset: 3px; }
+.btn-text { font-family: var(--font-body); font-size: 16px; font-weight: 700; line-height: 1.4; }
 .btn-sm { min-height: 40px; padding: 0 16px; font-size: 15px; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
@@ -166,7 +166,7 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 .founder-note a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .founder-note .note-sig { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
 .founder-note .note-name { font-family: var(--font-display); font-weight: 700; }
-.founder-note .note-title { color: var(--ink-faint); font-size: 15px; }
+.founder-note .note-title { color: var(--ink-faint); font-size: 13.5px; }
 @media (max-width: 560px) {
   .founder-note { flex-direction: column; align-items: flex-start; gap: 14px; }
   .founder-note img { width: 84px; height: 84px; }
@@ -178,23 +178,24 @@ body.sun, body.sunrise { background: var(--sunarc-mixed, var(--sunarc-ground-lig
 .site-footer nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; }
 .site-footer nav a { color: var(--ink); text-decoration: none; padding: 6px 0; }
 .site-footer nav a:hover { text-decoration: underline; }
-.site-footer .fine { font-size: 14px; color: var(--ink-soft); max-width: 46ch; margin: 0; }
-.site-footer .fine a { color: var(--ink-soft); }
+.site-footer .fine { font-size: 13.5px; line-height: 1.5; color: var(--ink-faint); max-width: 46ch; margin: 0; }
+.site-footer .fine a { color: var(--ink-faint); }
 
 /* ---- the page: type, links, bands ----
    Every page carries body.sun.both and these defaults. Ink links with an
-   underline; orange is a tint behind words, never the words. Section and
-   interface headings are Inter; the page title is Comfortaa. */
+   underline. Orange is a tint behind words, and the only orange words are the
+   eyebrow and the text action. The h1 is the display style, the h2 the heading,
+   .lede the lede and .file-line the meta style; the named classes follow. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
 a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
 :where(.band) { margin-top: var(--band-gap); }
 :where(.band-inner) { padding: clamp(22px, 4vw, 44px); }
 :where(.page) h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.4vw, 46px); line-height: 1.12; color: var(--ink); text-transform: lowercase; }
-:where(.page) h2 { font-family: var(--font-body); font-weight: 600; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 12px; }
+:where(.page) h2 { font-family: var(--font-body); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 12px; }
 :where(.page) h3 { font-family: var(--font-body); font-weight: 600; font-size: 18px; line-height: 1.3; color: var(--ink); margin: 22px 0 6px; }
 :where(.page) p + p { margin-top: 12px; }
-:where(.lead, .lede) { margin-top: 14px; color: var(--ink); max-width: 40em; }
+:where(.lead, .lede) { margin-top: 14px; font-size: 19px; line-height: 1.55; color: var(--ink-soft); max-width: 40em; }
 :where(.muted) { color: var(--ink-soft); }
 :where(.page) pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 0.87rem/1.65 var(--font-mono); background: var(--cream-bright); border: 1px solid var(--hairline-2); color: var(--ink); border-radius: 9px; padding: 14px; margin-top: 12px; }
 :where(.page) code { font-family: var(--font-mono); font-size: 0.9em; overflow-wrap: anywhere; }
@@ -202,7 +203,7 @@ a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1p
 :where(.band details summary) { cursor: pointer; padding: 12px 0; min-height: 44px; font-weight: 600; color: var(--ink); }
 :where(.detail-body) { padding: 0 0 10px; }
 :where(.actions) { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 22px; }
-:where(.file-line) { flex-basis: 100%; font-size: 15px; color: var(--ink-soft); margin: 0; }
+:where(.file-line) { flex-basis: 100%; font-size: 13.5px; line-height: 1.5; color: var(--ink-faint); margin: 0; }
 :where(.links) { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 22px; }
 :where(.links a) { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; text-decoration: none; }
 :where(.links a:hover) { text-decoration: underline; }
@@ -215,6 +216,23 @@ a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1p
     margin-right: auto;
   }
 }
+
+/* ---- the named text styles ----
+   The brand system's type scale, published at /brand/system#type. The defaults
+   above already wear them (h1, h2, body, .lede, .file-line, .btn-text); these
+   classes put one on any other element that plays the role. Only the eyebrow
+   and the text action are orange, in text ink, never the logo's orange. */
+.ts-eyebrow { display: flex; align-items: center; gap: 8px; font-family: var(--font-body); font-size: 13px; font-weight: 700; line-height: 1.3; letter-spacing: 0; text-transform: none; color: var(--orange-text-aa); }
+.ts-eyebrow::before { content: ""; flex: none; width: 18px; height: 2px; border-radius: 2px; background: var(--orange); }
+.ts-display { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.4vw, 46px); line-height: 1.12; color: var(--ink); text-transform: lowercase; }
+.ts-heading { font-family: var(--font-body); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); }
+.ts-lede { font-family: var(--font-body); font-size: 19px; line-height: 1.55; color: var(--ink-soft); }
+.ts-body { font-family: var(--font-body); font-size: 17px; line-height: 1.6; color: var(--ink); }
+.ts-action { font-family: var(--font-body); font-size: 16px; font-weight: 700; line-height: 1.4; }
+a.ts-action, .ts-action a, .btn-text { color: var(--orange-text-aa); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a.ts-action:hover, .ts-action a:hover, .btn-text:hover { color: var(--orange-text-aa); text-decoration-thickness: 2px; }
+.ts-meta { font-family: var(--font-body); font-size: 13.5px; line-height: 1.5; color: var(--ink-faint); }
+
 @media (max-width: 640px) {
   .btn-block-sm { width: 100%; white-space: normal; text-align: center; line-height: 1.25; padding-block: 12px; }
 }

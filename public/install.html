@@ -25,7 +25,7 @@
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=f895575d38">
+    <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
@@ -34,14 +34,13 @@
         .band-inner { padding: clamp(22px, 4vw, 44px); }
         .prose { max-width: calc(var(--w-prose) + 2 * clamp(22px, 4vw, 44px)); }
         h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 5vw, 52px); line-height: 1.1; color: var(--ink); }
-        h2 { font-family: var(--font-body); font-weight: 600; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 12px; }
+        h2 { font-family: var(--font-body); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 12px; }
         h3, h4 { font-family: var(--font-body); font-weight: 600; font-size: 18px; line-height: 1.3; color: var(--ink); margin: 18px 0 6px; }
         h4 { margin-top: 0; }
         p + p { margin-top: 12px; }
-        .lede { font-size: clamp(18px, 1.6vw, 20px); margin-top: 14px; max-width: 40em; }
+        .lede { margin-top: 14px; max-width: 40em; }
         .more { margin-top: 14px; }
-        .step-no { font-size: 15px; font-weight: 600; color: var(--ink-faint); margin-bottom: 4px; }
-        .step-no::before { content: "step "; }
+        .step-no { margin-bottom: 6px; }
         .step-no + p { margin-top: 0; }
 
         .branches { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 26px; max-width: 760px; }
@@ -60,7 +59,7 @@
         .enhanced .platform-panel { margin-top: 0; border-top: 0; }
         .platform-panel[hidden] { display: none; }
         .platform-panel h3 { margin-top: 8px; }
-        .requirements { font-size: 15px; color: var(--ink-soft); margin-bottom: 16px; }
+        .requirements { font-size: 13.5px; line-height: 1.5; color: var(--ink-faint); margin-bottom: 16px; }
         .steps { list-style: none; counter-reset: step; }
         .steps > li { position: relative; padding-left: 28px; counter-increment: step; }
         .steps > li::before { content: counter(step) "."; position: absolute; left: 0; top: 0; font-weight: 600; color: var(--ink-faint); }
@@ -143,7 +142,7 @@
 
             <section class="band wrap setup" id="install" aria-labelledby="setup-heading">
                 <div class="band-inner">
-                    <p class="step-no" aria-hidden="true">1</p>
+                    <p class="step-no ts-eyebrow" aria-hidden="true">step 1</p>
                     <h2 id="setup-heading">install</h2>
                     <p id="start" class="branch-note" data-branch="start">choose the computer your journal will live on.</p>
                     <p id="connect" class="branch-note" data-branch="connect">choose the device you're adding. it connects to the journal you already have.</p>
@@ -330,7 +329,7 @@ sudo zypper refresh solstone &amp;&amp; sudo zypper install solstone</pre>
 
             <section class="band wrap" id="asks" aria-labelledby="asks-heading">
                 <div class="band-inner">
-                    <p class="step-no" aria-hidden="true">2</p>
+                    <p class="step-no ts-eyebrow" aria-hidden="true">step 2</p>
                     <h2 id="asks-heading">what your device will ask</h2>
                     <dl class="asks">
                         <dt>mac</dt>
@@ -351,7 +350,7 @@ sudo zypper refresh solstone &amp;&amp; sudo zypper install solstone</pre>
 
             <section class="band wrap" id="thinking" aria-labelledby="thinking-heading">
                 <div class="band-inner prose">
-                    <p class="step-no" aria-hidden="true">3</p>
+                    <p class="step-no ts-eyebrow" aria-hidden="true">step 3</p>
                     <h2 id="thinking-heading">where does the thinking happen?</h2>
                     <p>setup offers local thinking first when your computer can run it, with its download size. keep it, change it, or decide later. your journal stays on your computer whichever you choose; what each choice sends, and to whom, is below.</p>
                     <h3>local, the default</h3>
@@ -365,7 +364,7 @@ sudo zypper refresh solstone &amp;&amp; sudo zypper install solstone</pre>
 
             <section class="band wrap" id="agents" aria-labelledby="agents-heading">
                 <div class="band-inner prose">
-                    <p class="step-no" aria-hidden="true">4</p>
+                    <p class="step-no ts-eyebrow" aria-hidden="true">step 4</p>
                     <h2 id="agents-heading">connect your agent</h2>
                     <p>the agents you already use can work from your journal. you choose which ones.</p>
                     <h3>on the same computer</h3>
@@ -394,7 +393,7 @@ sudo zypper refresh solstone &amp;&amp; sudo zypper install solstone</pre>
 
             <section class="band wrap" id="phone" aria-labelledby="phone-heading">
                 <div class="band-inner prose">
-                    <p class="step-no" aria-hidden="true">5</p>
+                    <p class="step-no ts-eyebrow" aria-hidden="true">step 5</p>
                     <h2 id="phone-heading">pair a phone, if you like</h2>
                     <p>your journal works from your computer alone, so you can skip this. to add your iphone, ipad or android phone, get the solstone app from its store, then pair it with your journal on your mac, windows or linux computer: in your journal, open <strong>network</strong> and choose <strong>pair a device</strong>.</p>
                     <p class="more"><a class="btn-text" href="/phone">solstone on your phone →</a></p>
@@ -403,7 +402,7 @@ sudo zypper refresh solstone &amp;&amp; sudo zypper install solstone</pre>
 
             <section class="band wrap" id="first-days" aria-labelledby="days-heading">
                 <div class="band-inner prose">
-                    <p class="step-no" aria-hidden="true">6</p>
+                    <p class="step-no ts-eyebrow" aria-hidden="true">step 6</p>
                     <h2 id="days-heading">day 1, and tomorrow morning</h2>
                     <h3>day 1</h3>
                     <p>what you share goes into your journal as you go. open it in your browser to read your day. as your journal works through what came in, transcripts fill in, and with a model set in step 3, so do the people in them and your meetings.</p>

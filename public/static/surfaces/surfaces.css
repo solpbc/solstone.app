@@ -30,7 +30,7 @@
 .sf-panel h3 { margin: 0 0 4px; font-size: 18px; }
 .sf.is-live .sf-panel h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sf-lead { color: var(--ink-soft); max-width: 40em; margin: 0 0 18px; font-size: 17px; }
-.sf-source { margin-top: 14px; font-size: 14px; line-height: 1.5; color: var(--ink-soft); max-width: 60em; }
+.sf-source { margin-top: 14px; font-size: 13.5px; line-height: 1.5; color: var(--ink-faint); max-width: 60em; }
 
 /* the device row (chapter 1): each device at its own scale, bottoms aligned, labelled under */
 .sf-row { display: flex; align-items: flex-end; justify-content: center; gap: var(--sf-gap); }

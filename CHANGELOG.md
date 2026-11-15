@@ -4,6 +4,7 @@
 
 ### fixed
 
+- section labels, the introduction under a page title, links to the next step and small print look the same on every page, in the text styles the brand system names.
 - the install page and llms.txt say how to open your journal's agents app on each computer, instead of giving its address.
 - the mac download page shows the journal app's current icon.
 - the install page says the linux and windows apps find a journal on the same computer, and that one press connects.

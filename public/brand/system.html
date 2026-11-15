@@ -25,7 +25,7 @@
     <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
-    <link rel="stylesheet" href="/static/site.css?v=f895575d38">
+    <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
     <style>
         /* /brand/system: the brand system. Everything between gen:sbis markers is drawn by the
            brand's own modules (make sbis BRAND_SRC=...); don't edit it by hand. */
@@ -38,7 +38,6 @@
         .sys p + p, .sys ul + p, .sys .table-scroll + p { margin-top: 12px; }
         .sys ul { margin: 12px 0 0 1.2em; max-width: 68ch; }
         .sys li { margin: 6px 0; }
-        .sys h3.sub { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin: 30px 0 8px; }
         .sys .sentence { font-size: 19px; font-weight: 600; max-width: 40em; }
         .sys .retired { color: var(--ink-soft); font-size: 15px; margin-top: 16px; }
 
@@ -84,16 +83,6 @@
         .styles { margin-top: 16px; border-top: 1px solid var(--hairline); max-width: 760px; }
         .style-row { padding: 16px 0; border-bottom: 1px solid var(--hairline); }
         .sys .style-row p + p { margin-top: 6px; }
-        .style-spec { font-size: 13.5px; color: var(--ink-faint); }
-        .ts-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: 0; color: var(--orange-text-aa); }
-        .ts-eyebrow::before { content: ""; width: 18px; height: 2px; border-radius: 2px; background: var(--orange); }
-        .ts-display { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 3.4vw, 32px); line-height: 1.12; color: var(--ink); }
-        .ts-heading { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; color: var(--ink); }
-        .ts-lede { font-size: 19px; color: var(--ink-soft); }
-        .ts-body { font-size: 17px; color: var(--ink); }
-        .ts-action { font-size: 16px; font-weight: 700; }
-        .ts-action a { color: var(--orange-text-aa); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-        .ts-meta { font-size: 13.5px; color: var(--ink-faint); }
     </style>
 </head>
 </head>
@@ -335,13 +324,13 @@
     <h2 id="h-type">type</h2>
     <p>two typefaces: Comfortaa for display and Inter for text. everything is lowercase, so size, weight and color carry the hierarchy, through a few named styles.</p>
     <div class="styles">
-      <div class="style-row"><p class="ts-eyebrow">how it works</p><p class="style-spec"><strong>eyebrow</strong> · Inter Bold, 13 px, orange ink, after a short orange rule. no letter spacing.</p></div>
-      <div class="style-row"><p class="ts-display">a memory your agents can work from.</p><p class="style-spec"><strong>display</strong> · Comfortaa Bold</p></div>
-      <div class="style-row"><p class="ts-heading">what goes into your journal</p><p class="style-spec"><strong>heading</strong> · Inter Bold, 28 px, −0.01 em</p></div>
-      <div class="style-row"><p class="ts-lede">your journal is always private, only yours.</p><p class="style-spec"><strong>lede</strong> · Inter, 19 px, soft ink</p></div>
-      <div class="style-row"><p class="ts-body">the solstone app takes in what you share with it, and all of it goes into your journal.</p><p class="style-spec"><strong>body</strong> · Inter, 17 px, ink</p></div>
-      <div class="style-row"><p class="ts-action"><a href="/integrate">see how agents read it</a></p><p class="style-spec"><strong>text action</strong> · Inter Bold, 16 px, orange ink, a 1 px underline 3 px below</p></div>
-      <div class="style-row"><p class="ts-meta">updated november 15</p><p class="style-spec"><strong>meta</strong> · Inter, 13.5 px, faint ink</p></div>
+      <div class="style-row"><p class="ts-eyebrow">how it works</p><p class="style-spec ts-meta"><strong>eyebrow</strong> · Inter Bold, 13 px, orange ink, after a short orange rule. no letter spacing.</p></div>
+      <div class="style-row"><p class="ts-display">a memory your agents can work from.</p><p class="style-spec ts-meta"><strong>display</strong> · Comfortaa Bold</p></div>
+      <div class="style-row"><p class="ts-heading">what goes into your journal</p><p class="style-spec ts-meta"><strong>heading</strong> · Inter Bold, 28 px, −0.01 em</p></div>
+      <div class="style-row"><p class="ts-lede">your journal is always private, only yours.</p><p class="style-spec ts-meta"><strong>lede</strong> · Inter, 19 px, soft ink</p></div>
+      <div class="style-row"><p class="ts-body">the solstone app takes in what you share with it, and all of it goes into your journal.</p><p class="style-spec ts-meta"><strong>body</strong> · Inter, 17 px, ink</p></div>
+      <div class="style-row"><p class="ts-action"><a href="/integrate">see how agents read it</a></p><p class="style-spec ts-meta"><strong>text action</strong> · Inter Bold, 16 px, orange ink, a 1 px underline 3 px below</p></div>
+      <div class="style-row"><p class="ts-meta">updated november 15</p><p class="style-spec ts-meta"><strong>meta</strong> · Inter, 13.5 px, faint ink</p></div>
     </div>
                 </div>
             </section>
