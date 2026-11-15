@@ -1,0 +1,874 @@
+// SPDX-License-Identifier: MIT · Copyright (c) 2026 solpbc · https://github.com/solpbc/solstone.app/blob/main/LICENSE
+// dayground.js: solstone's time-of-day background. The spec is https://solstone.app/brand/dayground.md
+// This is the engine solstone.app runs, as one ES module with no dependencies. It makes no network call
+// and never asks for a location: sunrise and sunset come from the device's timezone and a bundled table.
+// Copy this file into what you build. Generated from the solstone.app engine; do not hand-edit.
+
+function __name(fn) { return fn; }
+const night = {};
+(function installNightSky(root) {
+'use strict';
+const PHI=(1+Math.sqrt(5))/2, GOLD='#FFCC33', TILE='#FCF3E4';
+const sm=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
+const wrap=x=>((x%1440)+1440)%1440;
+const hash=(a,b)=>{const x=Math.sin(a*12.9898+b*78.233)*43758.5453;return x-Math.floor(x);};
+const rgba=(c,a)=>`rgba(${parseInt(c.slice(1,3),16)},${parseInt(c.slice(3,5),16)},${parseInt(c.slice(5,7),16)},${Math.max(0,Math.min(1,a)).toFixed(3)})`;
+function rng(seed){return ()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+const levels=[0,1,2,3].map(i=>({a:.92*Math.pow(PHI,-.75*i),r:1.75*Math.pow(PHI,-.5*i),thr:[.18,.38,.58,.74][i]}));
+function geometry(W,H){
+ const side=Math.min(W,H),R=PHI*side/2,d=R/Math.SQRT2,A=[-d,-d],B=[W+d,H+d],dx=B[0]-A[0],dy=B[1]-A[1],c=Math.hypot(dx,dy),s=Math.tan(Math.PI/20)/2*c,ra=c*c/(8*s)+s/2;
+ const O=[W/2-dy/c*(ra-s),H/2+dx/c*(ra-s)],a0=Math.atan2(A[1]-O[1],A[0]-O[0]);
+ let delta=Math.atan2(B[1]-O[1],B[0]-O[0])-a0;while(delta>Math.PI)delta-=2*Math.PI;while(delta< -Math.PI)delta+=2*Math.PI;
+ return {W,H,side,R,O,ra,a0,delta,at:t=>[O[0]+ra*Math.cos(a0+delta*t),O[1]+ra*Math.sin(a0+delta*t)]};
+}
+function rotate(g,x,y,ang){const dx=x-g.O[0],dy=y-g.O[1],c=Math.cos(ang),s=Math.sin(ang);return [g.O[0]+dx*c-dy*s,g.O[1]+dx*s+dy*c];}
+function catalogue(g){
+ let lo=Infinity,hi=0,ta=Infinity,tb=-Infinity;
+ for(let i=0;i<=400;i++){const f=i/100;let x,y;if(f<1){x=f*g.W;y=0;}else if(f<2){x=g.W;y=(f-1)*g.H;}else if(f<3){x=(3-f)*g.W;y=g.H;}else{x=0;y=(4-f)*g.H;}
+ const dx=x-g.O[0],dy=y-g.O[1],r=Math.hypot(dx,dy);let t=Math.atan2(dy,dx);while(t-g.a0>Math.PI)t-=2*Math.PI;while(t-g.a0< -Math.PI)t+=2*Math.PI;lo=Math.min(lo,r);hi=Math.max(hi,r);ta=Math.min(ta,t);tb=Math.max(tb,t);}
+ ta-=Math.abs(g.delta)/2+.01;tb+=Math.abs(g.delta)/2+.01;lo=Math.max(0,lo-4);hi+=4;
+ const n=Math.round(.5*(hi*hi-lo*lo)*(tb-ta)/9000),R=rng(g.W*7919+g.H*104729+4*31),out=[];
+ function push(r,t,lv){out.push({x:g.O[0]+r*Math.cos(t),y:g.O[1]+r*Math.sin(t),lv});R();R();R();R();} // preserve the chosen sky's seeded sequence
+ for(let i=0;i<n;i++){const r=Math.sqrt(lo*lo+R()*(hi*hi-lo*lo)),t=ta+R()*(tb-ta),v=R();push(r,t,v<.07?0:v<.23?1:v<.53?2:3);}
+ for(let i=0;i<Math.round(n*2.6);i++){const gs=Math.sqrt(-2*Math.log(R()+1e-9))*Math.cos(6.283*R());push(g.ra+gs*g.side/Math.pow(PHI,4),ta+R()*(tb-ta),R()<.12?2:3);}
+ return out;
+}
+function meteors(g){const R=rng(1021),out=[];for(let i=0;i<11;i++)out.push({t0:(i+.15+R()*.7)*54.5,dur:.75+R()*.5,k:Math.floor(R()*10),off:1.05+R()*1.1,len:g.side*(.16+R()*.14),lane:R(),br:.65+R()*.35});return out;}
+function state(g,fr,sun,m){
+ const set=sun.set<sun.rise?sun.set+1440:sun.set,dusk=set+30,dawn=sun.rise-30,span=wrap(dawn-dusk)||1440,ms=wrap(m-dusk);
+ let u=ms<=span?ms/span:fr.t<0?0:1;if(fr.night<=0)u=fr.t<.5?0:1;
+ const half=Math.max(0,Math.min(180,span-120))/2,mid=wrap(dusk+span/2),rel=wrap(m-(mid-half)),len=2*half;
+ return {s:Math.max(0,Math.min(1,fr.night*(1-.62*fr.w))),ang:g.delta*(u-.5),au:len>0&&rel<len?sm(Math.min(rel,len-rel)/Math.min(45,len/2)):0,mrel:wrap(m-mid),mid};
+}
+function suppression(fr,x,y){let a=0;for(const gl of fr.glows){const f=Math.hypot(x-gl.x,y-gl.y)/gl.r;if(f<1)a+=gl.a*(f<=.38?1-.55*f/.38:.45*(1-(f-.38)/.62));}return 1-Math.min(.9,1.9*a);}
+function dot(ctx,x,y,r,col,a){ctx.fillStyle=rgba(col,a);ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.fill();if(r>1.3&&a>.4){ctx.fillStyle=rgba(col,a*.16);ctx.beginPath();ctx.arc(x,y,r*2.6,0,6.2832);ctx.fill();}}
+function line(ctx,x0,y0,x1,y1,col,a,width){const gr=ctx.createLinearGradient(x0,y0,x1,y1);gr.addColorStop(0,rgba(col,0));gr.addColorStop(1,rgba(col,a));ctx.strokeStyle=gr;ctx.lineWidth=width;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();}
+class NightSky {
+ constructor(W,H,makeCanvas=()=>document.createElement('canvas')){this.g=geometry(W,H);this.field=catalogue(this.g);this.meteors=meteors(this.g);this.aurora=makeCanvas();this.aurora.width=Math.ceil(W/4);this.aurora.height=Math.ceil(H/4);}
+ paintStatic(ctx,fr,sun,m,{dark=true,still=false,stillMeteors=still,watch=false}={}){
+  const g=this.g,ns=state(g,fr,sun,m),W=g.W,H=g.H;ctx.clearRect(0,0,W,H);
+  if(ns.au>.001&&!watch)this.paintAurora(ctx,ns,m,dark,still);
+  for(const st of this.field){const L=levels[st.lv],p=rotate(g,st.x,st.y,ns.ang);if(p[0]< -3||p[1]< -3||p[0]>W+3||p[1]>H+3)continue;const a=(dark?L.a:Math.min(1,L.a*1.05+.08))*sm((ns.s-L.thr)/.2)*suppression(fr,...p);if(a>=.01)dot(ctx,...p,L.r*(dark?1:1.1),GOLD,a);}
+  const cv=sm((ns.s-.3)/.35),c=g.at(.5),lv=[0,1,0,0,1,0,0,1,0,1];
+  for(let k=0;k<10;k++){const ang=(-90+36*k)*Math.PI/180,L=levels[lv[k]],p=rotate(g,c[0]+g.R/PHI*Math.cos(ang),c[1]+g.R/PHI*Math.sin(ang),ns.ang),a=Math.min(1,(dark?L.a:Math.min(1,L.a*1.05+.08))*1.25)*cv*suppression(fr,...p),r=(L.r*1.35+.4)*.8*(dark?1:1.1);if(a>.01){ctx.fillStyle=rgba(GOLD,a*.14);ctx.beginPath();ctx.arc(...p,r*4.2,0,6.2832);ctx.fill();dot(ctx,...p,r,GOLD,a);}}
+  if(stillMeteors||watch)this.paintMeteors(ctx,fr,sun,m,{dark,still:true});
+ }
+ paintAurora(ctx,ns,m,dark,still){const g=this.g,cv=this.aurora,x2=cv.getContext('2d'),w=cv.width,h=cv.height; x2.clearRect(0,0,w,h);
+  const ph=still?2.1:Math.floor(m)*.9,peak=(dark?.34:.42*1.3)*ns.au,side=g.side;
+  for(let xi=0;xi<w;xi++){const x=xi*4+2,dx=x-g.O[0],yb=g.O[1]-Math.sqrt(Math.max(0,g.ra*g.ra-dx*dx))+side*.04*Math.sin(x/side*6+ph*.8),fold=.5+.5*Math.sin(x/side*9+ph)*Math.sin(x/side*3.3-ph*.6),ray=hash(xi,Math.floor(ph*3))*.5+hash(xi+1,Math.floor(ph*3))*.5,I=peak*(.3+.7*fold*fold)*(.55+.45*Math.sin(x/side*27+ph*2.3))*(.45+.75*ray);if(I<.004)continue;const y0=yb/4,y1=(yb-side*.42*(.7+.3*fold))/4,gr=x2.createLinearGradient(0,y0+2,0,y1);[[0,'#6CF0A8',0],[.06,'#6CF0A8',I],[.35,'#6CF0A8',I*.55],[.7,'#A27CFF',I*.3],[1,'#A27CFF',0]].forEach(v=>gr.addColorStop(v[0],rgba(v[1],v[2])));x2.fillStyle=gr;x2.fillRect(xi,Math.min(y0+2,y1),1.2,Math.abs(y0+2-y1));}
+  ctx.save();ctx.globalCompositeOperation=dark?'lighter':'screen';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.filter='blur(3.6px)';ctx.drawImage(cv,0,0,w*4,h*4);ctx.restore();
+ }
+ paintMeteors(ctx,fr,sun,m,{dark=true,still=false}={}){const g=this.g,ns=state(g,fr,sun,m);if(ns.mrel>=10||ns.s<=.2)return;const c=g.at(.5),rad=rotate(g,...c,ns.ang),sec=ns.mrel*60,col=dark?TILE:'#FFFFFF',peak=dark?.95:.98;
+  for(const mt of this.meteors){const dir=(-90+36*mt.k)*Math.PI/180,r=g.R*6.5/13.5*(.25+.4*(mt.off-1.05)),ux=Math.cos(dir),uy=Math.sin(dir),x=rad[0]+r*ux,y=rad[1]+r*uy;
+   if(still){if(sec+59>=mt.t0)line(ctx,x,y,x+ux*mt.len,y+uy*mt.len,col,peak*.42*mt.br,.9);continue;}
+   const tt=(sec-mt.t0)/mt.dur;if(tt<0||tt>1)continue;const head=sm(tt)*mt.len,tail=Math.min(head,mt.len*.42),fade=Math.sin(Math.PI*Math.min(1,tt*1.1)),hx=x+ux*head,hy=y+uy*head;line(ctx,hx-ux*tail,hy-uy*tail,hx,hy,col,peak*fade*mt.br,1.4);dot(ctx,hx,hy,1.1,col,peak*fade*mt.br);
+  }
+ }
+ // Seconds until next meteor, or zero while one is active. Null outside this shower.
+ nextMeteor(fr,sun,m){const ns=state(this.g,fr,sun,m);if(ns.s<=.2)return null;const rel=ns.mrel>1439?ns.mrel-1440:ns.mrel;if(rel>=10)return null;const sec=rel*60;for(const mt of this.meteors){if(sec<=mt.t0+mt.dur)return Math.max(0,mt.t0-sec);}return null;}
+}
+root.NightSky=NightSky;root.NightSkyMath={geometry,catalogue,meteors,state,levels};
+})(night);
+const NightSky = night.NightSky;
+const NightSkyMath = night.NightSkyMath;
+(function installNightLayer(root){
+'use strict';
+root.createNightLayer=function(container,{read,fullMotion=false}={}){
+ const sky=document.createElement('canvas'),moving=document.createElement('canvas');
+ for(const cv of [sky,moving]){cv.width=cv.height=1;cv.ariaHidden='true';cv.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';container.insertBefore(cv,container.querySelector('.sunarc-sun')); }
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ let engine=null,key='',paintKey='',sample=null,wake=null,raf=null,nativeVisible=true,intersects=true,disposed=false;
+ function visible(){return !disposed&&nativeVisible&&intersects&&document.visibilityState==='visible'&&container.getClientRects().length>0;}
+ function stop(){if(wake!==null)clearTimeout(wake);if(raf!==null)cancelAnimationFrame(raf);wake=raf=null;if(moving.width!==1||moving.height!==1){moving.width=moving.height=1;}}
+ function animate(){
+  wake=raf=null;if(!visible()||!engine||!fullMotion||reduced.matches)return;
+  const s=read(),next=engine.nextMeteor(s.frame,s.sun,s.minute);
+  if(next===null||next>0){moving.width=moving.height=1;if(next!==null)wake=setTimeout(animate,next*1000);return;}
+  const dpr=window.devicePixelRatio||1,w=Math.round(s.W*dpr),h=Math.round(s.H*dpr);
+  if(moving.width!==w||moving.height!==h){moving.width=w;moving.height=h;moving.getContext('2d').setTransform(dpr,0,0,dpr,0,0);}
+  const ctx=moving.getContext('2d');ctx.clearRect(0,0,s.W,s.H);
+  engine.paintMeteors(ctx,s.frame,s.sun,s.minute,{dark:s.dark});raf=requestAnimationFrame(animate);
+ }
+ function update(){stop();if(!visible())return;sample=read();const s=sample;if(s.frame.night<=0){if(engine){for(const cv of [sky,moving]){cv.width=1;cv.height=1;}engine=null;key=paintKey='';}return;}const dpr=window.devicePixelRatio||1,k=`${s.W}x${s.H}@${dpr}`;
+  if(k!==key){key=k;engine=new NightSky(s.W,s.H);for(const cv of [sky]){cv.width=Math.round(s.W*dpr);cv.height=Math.round(s.H*dpr);cv.getContext('2d').setTransform(dpr,0,0,dpr,0,0);}}
+  const pk=JSON.stringify([key,Math.floor(s.minute),s.frame,s.sun,s.dark,fullMotion,reduced.matches]);
+  if(pk!==paintKey){engine.paintStatic(sky.getContext('2d'),s.frame,s.sun,s.minute,{dark:s.dark,still:reduced.matches,stillMeteors:!fullMotion||reduced.matches});paintKey=pk;}
+  if(fullMotion&&!reduced.matches)animate();
+ }
+ const observer=new IntersectionObserver(entries=>{intersects=entries.some(e=>e.isIntersecting);update();});observer.observe(container);
+ document.addEventListener('visibilitychange',update);reduced.addEventListener('change',update);
+ return {update,setVisible(v){nativeVisible=v;update();},setFullMotion(v){fullMotion=v;update();},dispose(){disposed=true;stop();observer.disconnect();document.removeEventListener('visibilitychange',update);reduced.removeEventListener('change',update);sky.remove();moving.remove();engine=null;}};
+};
+})(night);
+const createNightLayer = night.createNightLayer;
+
+const SUNARC_ZONE_TABLE = "Africa/Abidjan:532:-403,Accra:555:-22,Addis_Ababa:903:3870,Algiers:3678:305,Asmara:1533:3888,Bamako:1265:-800,Bangui:437:1858,Banjul:1347:-1665,Bissau:1185:-1558,Blantyre:-1578:3500,Brazzaville:-427:1528,Bujumbura:-338:2937,Cairo:3005:3125,Casablanca:3365:-758,Ceuta:3588:-532,Conakry:952:-1372,Dakar:1467:-1743,Dar_es_Salaam:-680:3928,Djibouti:1160:4315,Douala:405:970,El_Aaiun:2715:-1320,Freetown:850:-1325,Gaborone:-2465:2592,Harare:-1783:3105,Johannesburg:-2625:2800,Juba:485:3162,Kampala:32:3242,Khartoum:1560:3253,Kigali:-195:3007,Kinshasa:-430:1530,Lagos:645:340,Libreville:38:945,Lome:613:122,Luanda:-880:1323,Lubumbashi:-1167:2747,Lusaka:-1542:2828,Malabo:375:878,Maputo:-2597:3258,Maseru:-2947:2750,Mbabane:-2630:3110,Mogadishu:207:4537,Monrovia:630:-1078,Nairobi:-128:3682,Ndjamena:1212:1505,Niamey:1352:212,Nouakchott:1810:-1595,Ouagadougou:1237:-152,Porto-Novo:648:262,Sao_Tome:33:673,Tripoli:3290:1318,Tunis:3680:1018,Windhoek:-2257:1710|America/Adak:5188:-17666,Anchorage:6122:-14990,Anguilla:1820:-6307,Antigua:1705:-6180,Araguaina:-720:-4820,Argentina/Buenos_Aires:-3460:-5845,Argentina/Catamarca:-2847:-6578,Argentina/Cordoba:-3140:-6418,Argentina/Jujuy:-2418:-6530,Argentina/La_Rioja:-2943:-6685,Argentina/Mendoza:-3288:-6882,Argentina/Rio_Gallegos:-5163:-6922,Argentina/Salta:-2478:-6542,Argentina/San_Juan:-3153:-6852,Argentina/San_Luis:-3332:-6635,Argentina/Tucuman:-2682:-6522,Argentina/Ushuaia:-5480:-6830,Aruba:1250:-6997,Asuncion:-2527:-5767,Atikokan:4876:-9162,Bahia:-1298:-3852,Bahia_Banderas:2080:-10525,Barbados:1310:-5962,Belem:-145:-4848,Belize:1750:-8820,Blanc-Sablon:5142:-5712,Boa_Vista:282:-6067,Bogota:460:-7408,Boise:4361:-11620,Cambridge_Bay:6911:-10505,Campo_Grande:-2045:-5462,Cancun:2108:-8677,Caracas:1050:-6693,Cayenne:493:-5233,Cayman:1930:-8138,Chicago:4185:-8765,Chihuahua:2863:-10608,Ciudad_Juarez:3173:-10648,Costa_Rica:993:-8408,Coyhaique:-4557:-7207,Creston:4910:-11652,Cuiaba:-1558:-5608,Curacao:1218:-6900,Danmarkshavn:7677:-1867,Dawson:6407:-13942,Dawson_Creek:5577:-12023,Denver:3974:-10498,Detroit:4233:-8305,Dominica:1530:-6140,Edmonton:5355:-11347,Eirunepe:-667:-6987,El_Salvador:1370:-8920,Fort_Nelson:5880:-12270,Fortaleza:-372:-3850,Glace_Bay:4620:-5995,Goose_Bay:5333:-6042,Grand_Turk:2147:-7113,Grenada:1205:-6175,Guadeloupe:1623:-6153,Guatemala:1463:-9052,Guayaquil:-217:-7983,Guyana:680:-5817,Halifax:4465:-6360,Havana:2313:-8237,Hermosillo:2907:-11097,Indiana/Indianapolis:3977:-8616,Indiana/Knox:4130:-8662,Indiana/Marengo:3838:-8634,Indiana/Petersburg:3849:-8728,Indiana/Tell_City:3795:-8676,Indiana/Vevay:3875:-8507,Indiana/Vincennes:3868:-8753,Indiana/Winamac:4105:-8660,Inuvik:6835:-13372,Iqaluit:6373:-6847,Jamaica:1797:-7679,Juneau:5830:-13442,Kentucky/Louisville:3825:-8576,Kentucky/Monticello:3683:-8485,Kralendijk:1215:-6828,La_Paz:-1650:-6815,Lima:-1205:-7705,Los_Angeles:3405:-11824,Lower_Princes:1805:-6305,Maceio:-967:-3572,Managua:1215:-8628,Manaus:-313:-6002,Marigot:1807:-6308,Martinique:1460:-6108,Matamoros:2583:-9750,Mazatlan:2322:-10642,Menominee:4511:-8761,Merida:2097:-8962,Metlakatla:5513:-13158,Mexico_City:1940:-9915,Miquelon:4705:-5633,Moncton:4610:-6478,Monterrey:2567:-10032,Montevideo:-3491:-5621,Montserrat:1672:-6222,Nassau:2508:-7735,New_York:4071:-7401,Nome:6450:-16541,Noronha:-385:-3242,North_Dakota/Beulah:4726:-10178,North_Dakota/Center:4712:-10130,North_Dakota/New_Salem:4684:-10141,Nuuk:6418:-5173,Ojinaga:2957:-10442,Panama:897:-7953,Paramaribo:583:-5517,Phoenix:3345:-11207,Port-au-Prince:1853:-7233,Port_of_Spain:1065:-6152,Porto_Velho:-877:-6390,Puerto_Rico:1847:-6611,Punta_Arenas:-5315:-7092,Rankin_Inlet:6282:-9208,Recife:-805:-3490,Regina:5040:-10465,Resolute:7470:-9483,Rio_Branco:-997:-6780,Santarem:-243:-5487,Santiago:-3345:-7067,Santo_Domingo:1847:-6990,Sao_Paulo:-2353:-4662,Scoresbysund:7048:-2197,Sitka:5718:-13530,St_Barthelemy:1788:-6285,St_Johns:4757:-5272,St_Kitts:1730:-6272,St_Lucia:1402:-6100,St_Thomas:1835:-6493,St_Vincent:1315:-6123,Swift_Current:5028:-10783,Tegucigalpa:1410:-8722,Thule:7657:-6878,Tijuana:3253:-11702,Toronto:4365:-7938,Tortola:1845:-6462,Vancouver:4927:-12312,Whitehorse:6072:-13505,Winnipeg:4988:-9715,Yakutat:5955:-13973|Antarctica/Casey:-6628:11052,Davis:-6858:7797,DumontDUrville:-6667:14002,Macquarie:-5450:15895,Mawson:-6760:6288,McMurdo:-7783:16660,Palmer:-6480:-6410,Rothera:-6757:-6813,Syowa:-6901:3959,Troll:-7201:253,Vostok:-7840:10690|Arctic/Longyearbyen:7800:1600|Asia/Aden:1275:4520,Almaty:4325:7695,Amman:3195:3593,Anadyr:6475:17748,Aqtau:4452:5027,Aqtobe:5028:5717,Ashgabat:3795:5838,Atyrau:4712:5193,Baghdad:3335:4442,Bahrain:2638:5058,Baku:4038:4985,Bangkok:1375:10052,Barnaul:5337:8375,Beirut:3388:3550,Bishkek:4290:7460,Brunei:493:11492,Chita:5205:11347,Colombo:693:7985,Damascus:3350:3630,Dhaka:2372:9042,Dili:-855:12558,Dubai:2530:5530,Dushanbe:3858:6880,Famagusta:3512:3395,Gaza:3150:3447,Hebron:3153:3509,Ho_Chi_Minh:1075:10667,Hong_Kong:2228:11415,Hovd:4802:9165,Irkutsk:5227:10433,Jakarta:-617:10680,Jayapura:-253:14070,Jerusalem:3178:3522,Kabul:3452:6920,Kamchatka:5302:15865,Karachi:2487:6705,Kathmandu:2772:8532,Khandyga:6266:13555,Kolkata:2253:8837,Krasnoyarsk:5602:9283,Kuala_Lumpur:317:10170,Kuching:155:11033,Kuwait:2933:4798,Macau:2220:11354,Magadan:5957:15080,Makassar:-512:11940,Manila:1459:12097,Muscat:2360:5858,Nicosia:3517:3337,Novokuznetsk:5375:8712,Novosibirsk:5503:8292,Omsk:5500:7340,Oral:5122:5135,Phnom_Penh:1155:10492,Pontianak:-3:10933,Pyongyang:3902:12575,Qatar:2528:5153,Qostanay:5320:6362,Qyzylorda:4480:6547,Riyadh:2463:4672,Sakhalin:4697:14270,Samarkand:3967:6680,Seoul:3755:12697,Shanghai:3123:12147,Singapore:128:10385,Srednekolymsk:6747:15372,Taipei:2505:12150,Tashkent:4133:6930,Tbilisi:4172:4482,Tehran:3567:5143,Thimphu:2747:8965,Tokyo:3565:13974,Tomsk:5650:8497,Ulaanbaatar:4792:10688,Urumqi:4380:8758,Ust-Nera:6456:14323,Vientiane:1797:10260,Vladivostok:4317:13193,Yakutsk:6200:12967,Yangon:1678:9617,Yekaterinburg:5685:6060,Yerevan:4018:4450|Atlantic/Azores:3773:-2567,Bermuda:3228:-6477,Canary:2810:-1540,Cape_Verde:1492:-2352,Faroe:6202:-677,Madeira:3263:-1690,Reykjavik:6415:-2185,South_Georgia:-5427:-3653,St_Helena:-1592:-570,Stanley:-5170:-5785|Australia/Adelaide:-3492:13858,Brisbane:-2747:15303,Broken_Hill:-3195:14145,Darwin:-1247:13083,Eucla:-3172:12887,Hobart:-4288:14732,Lindeman:-2027:14900,Lord_Howe:-3155:15908,Melbourne:-3782:14497,Perth:-3195:11585,Sydney:-3387:15122|Europe/Amsterdam:5237:490,Andorra:4250:152,Astrakhan:4635:4805,Athens:3797:2372,Belgrade:4483:2050,Berlin:5250:1337,Bratislava:4815:1712,Brussels:5083:433,Bucharest:4443:2610,Budapest:4750:1908,Busingen:4770:868,Chisinau:4700:2883,Copenhagen:5567:1258,Dublin:5333:-625,Gibraltar:3613:-535,Guernsey:4945:-254,Helsinki:6017:2497,Isle_of_Man:5415:-447,Istanbul:4102:2897,Jersey:4918:-211,Kaliningrad:5472:2050,Kirov:5860:4965,Kyiv:5043:3052,Lisbon:3872:-913,Ljubljana:4605:1452,London:5151:-13,Luxembourg:4960:615,Madrid:4040:-368,Malta:3590:1452,Mariehamn:6010:1995,Minsk:5390:2757,Monaco:4370:738,Moscow:5576:3762,Oslo:5992:1075,Paris:4887:233,Podgorica:4243:1927,Prague:5008:1443,Riga:5695:2410,Rome:4190:1248,Samara:5320:5015,San_Marino:4392:1247,Sarajevo:4387:1842,Saratov:5157:4603,Simferopol:4495:3410,Skopje:4198:2143,Sofia:4268:2332,Stockholm:5933:1805,Tallinn:5942:2475,Tirane:4133:1983,Ulyanovsk:5433:4840,Vaduz:4715:952,Vatican:4190:1245,Vienna:4822:1633,Vilnius:5468:2532,Volgograd:4873:4442,Warsaw:5225:2100,Zagreb:4580:1597,Zurich:4738:853|Indian/Antananarivo:-1892:4752,Chagos:-733:7242,Christmas:-1042:10572,Cocos:-1217:9692,Comoro:-1168:4327,Kerguelen:-4935:7022,Mahe:-467:5547,Maldives:417:7350,Mauritius:-2017:5750,Mayotte:-1278:4523,Reunion:-2087:5547|Pacific/Apia:-1383:-17173,Auckland:-3687:17477,Bougainville:-622:15557,Chatham:-4395:-17655,Chuuk:742:15178,Easter:-2715:-10943,Efate:-1767:16842,Fakaofo:-937:-17123,Fiji:-1813:17842,Funafuti:-852:17922,Galapagos:-90:-8960,Gambier:-2313:-13495,Guadalcanal:-953:16020,Guam:1347:14475,Honolulu:2131:-15786,Kanton:-278:-17172,Kiritimati:187:-15733,Kosrae:532:16298,Kwajalein:908:16733,Majuro:715:17120,Marquesas:-900:-13950,Midway:2822:-17737,Nauru:-52:16692,Niue:-1902:-16992,Norfolk:-2905:16797,Noumea:-2227:16645,Pago_Pago:-1427:-17070,Palau:733:13448,Pitcairn:-2507:-13008,Pohnpei:697:15822,Port_Moresby:-950:14717,Rarotonga:-2123:-15977,Saipan:1520:14575,Tahiti:-1753:-14957,Tarawa:142:17300,Tongatapu:-2113:-17520,Wake:1928:16662,Wallis:-1330:-17617";
+const SUNARC_ZONE_COUNT = 418;
+function parseZoneTable(encoded) {
+  const out = Object.create(null);
+  const blocks = encoded.split('|');
+  for (let i = 0; i < blocks.length; i += 1) {
+    const cut = blocks[i].indexOf('/');
+    const region = blocks[i].slice(0, cut);
+    const entries = blocks[i].slice(cut + 1).split(',');
+    for (let j = 0; j < entries.length; j += 1) {
+      const parts = entries[j].split(':');
+      out[region + '/' + parts[0]] = { lat: Number(parts[1]) / 100, lon: Number(parts[2]) / 100 };
+    }
+  }
+  return out;
+}
+function systemZoneId() {
+  try {
+    if (typeof Intl === 'undefined' || typeof Intl.DateTimeFormat !== 'function') return null;
+    const resolved = Intl.DateTimeFormat().resolvedOptions();
+    return (resolved && resolved.timeZone) || null;
+  } catch (_) {
+    return null;
+  }
+}
+function degToRad(d) {
+  return d * (Math.PI / 180);
+}
+function radToDeg(r) {
+  return r * (180 / Math.PI);
+}
+function sinDeg(d) {
+  return Math.sin(degToRad(d));
+}
+function cosDeg(d) {
+  return Math.cos(degToRad(d));
+}
+function tanDeg(d) {
+  return Math.tan(degToRad(d));
+}
+function asinDeg(x) {
+  return radToDeg(Math.asin(x));
+}
+function acosDeg(x) {
+  return radToDeg(Math.acos(x));
+}
+function atanDeg(x) {
+  return radToDeg(Math.atan(x));
+}
+function srgbToLinear(c) {
+  const norm = c / 255;
+  return norm <= 0.04045 ? norm / 12.92 : Math.pow((norm + 0.055) / 1.055, 2.4);
+}
+function linearToSrgb(c) {
+  const clamped = Math.max(0, Math.min(1, c));
+  const s = clamped <= 0.0031308 ? 12.92 * clamped : 1.055 * Math.pow(clamped, 1 / 2.4) - 0.055;
+  return Math.round(Math.max(0, Math.min(255, s * 255)));
+}
+function rgbToOklab(r, g, b) {
+  const lr = srgbToLinear(r);
+  const lg = srgbToLinear(g);
+  const lb = srgbToLinear(b);
+  const l_ = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+  const m_ = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+  const s_ = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+  return [
+    0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+    1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+    0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+  ];
+}
+function oklabToRgb(L, a, b) {
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ * l_ * l_;
+  const m = m_ * m_ * m_;
+  const s = s_ * s_ * s_;
+  const lr = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+  const lg = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+  const lb = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+  return [linearToSrgb(lr), linearToSrgb(lg), linearToSrgb(lb)];
+}
+function mixOklab(c1, c2, t) {
+  if (t <= 0) return [c1[0], c1[1], c1[2]];
+  if (t >= 1) return [c2[0], c2[1], c2[2]];
+  const lab1 = rgbToOklab(c1[0], c1[1], c1[2]);
+  const lab2 = rgbToOklab(c2[0], c2[1], c2[2]);
+  const lab = [
+    lab1[0] + (lab2[0] - lab1[0]) * t,
+    lab1[1] + (lab2[1] - lab1[1]) * t,
+    lab1[2] + (lab2[2] - lab1[2]) * t,
+  ];
+  return oklabToRgb(lab[0], lab[1], lab[2]);
+}
+function parseColor(str) {
+  if (typeof str !== 'string') return null;
+  const trimmed = str.trim();
+  if (trimmed.startsWith('#')) {
+    const hex = trimmed.slice(1);
+    if (hex.length === 3) {
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+      return [r, g, b];
+    }
+    if (hex.length === 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+      return [r, g, b];
+    }
+    return null;
+  }
+  const rgbMatch = trimmed.match(/^rgba?\s*\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)/i);
+  if (rgbMatch) {
+    const r = parseFloat(rgbMatch[1]);
+    const g = parseFloat(rgbMatch[2]);
+    const b = parseFloat(rgbMatch[3]);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+    return [Math.round(r), Math.round(g), Math.round(b)];
+  }
+  return null;
+}
+function formatHex(rgb) {
+  const r = rgb[0].toString(16).padStart(2, '0');
+  const g = rgb[1].toString(16).padStart(2, '0');
+  const b = rgb[2].toString(16).padStart(2, '0');
+  return ('#' + r + g + b).toUpperCase();
+}
+function formatRgba(rgb, alpha) {
+  const clampedA = Math.max(0, Math.min(1, alpha));
+  return 'rgba(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ', ' + (Math.round(clampedA * 10000) / 10000) + ')';
+}
+function parseTokens(styleReader) {
+  function getProp(name) {
+    return styleReader(name);
+  }
+
+  function parseNum(name) {
+    const val = getProp(name);
+    if (!val) return null;
+    const n = parseFloat(val);
+    if (typeof n !== 'number' || !Number.isFinite(n)) return null;
+    return n;
+  }
+
+  function parseCol(name) {
+    const val = getProp(name);
+    return parseColor(val);
+  }
+
+  const out = {
+    arcAngle: parseNum('--sunarc-arc-angle'),
+    bowRatio: parseNum('--sunarc-bow-ratio'),
+    diameterRatio: parseNum('--sunarc-diameter-ratio'),
+    overshoot: parseNum('--sunarc-overshoot'),
+    envelopeEdge: parseNum('--sunarc-envelope-edge'),
+    peakOpacity: parseNum('--sunarc-peak-opacity'),
+    peakOpacityDark: parseNum('--sunarc-peak-opacity-dark'),
+    twilightMinutes: parseNum('--sunarc-twilight-minutes'),
+    glowRadiusRatio: parseNum('--sunarc-glow-radius-ratio'),
+    glowDayAlpha: parseNum('--sunarc-glow-day-alpha'),
+    glowMidStop: parseNum('--sunarc-glow-mid-stop'),
+    glowMidRatio: parseNum('--sunarc-glow-mid-ratio'),
+    twilightRadiusRatio: parseNum('--sunarc-twilight-radius-ratio'),
+    twilightAlphaDark: parseNum('--sunarc-twilight-alpha-dark'),
+    twilightAlphaLight: parseNum('--sunarc-twilight-alpha-light'),
+    twilightSink: parseNum('--sunarc-twilight-sink'),
+    trueDarkMinutes: parseNum('--sunarc-true-dark-min'),
+    glowColor: parseCol('--sunarc-glow-color'),
+    orange: parseCol('--orange'),
+    sunrise: parseCol('--sunarc-sunrise'),
+    // The light day ground is --sunarc-ground-light-day. --cream flips with appearance and is not an engine token.
+    groundLightDay: parseCol('--sunarc-ground-light-day'),
+    groundLightNight: parseCol('--sunarc-ground-light-night'),
+    groundLightDeep: parseCol('--sunarc-ground-light-deep'),
+    groundDarkDay: parseCol('--sunarc-ground-dark-day'),
+    groundDarkNight: parseCol('--sunarc-ground-dark-night'),
+    groundDarkDeep: parseCol('--sunarc-ground-dark-deep'),
+  };
+
+  const keys = Object.keys(out);
+  for (let i = 0; i < keys.length; i += 1) {
+    if (out[keys[i]] == null) return null;
+  }
+  return out;
+}
+function noaaSolarTime(date, lat, lon, isSunrise, zenith, utcOffsetHours) {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1;
+  const day = date.getUTCDate();
+
+  const n1 = Math.floor(275 * month / 9);
+  const n2 = Math.floor((month + 9) / 12);
+  const n3 = 1 + Math.floor((year - 4 * Math.floor(year / 4) + 2) / 3);
+  const n = n1 - n2 * n3 + day - 30;
+
+  const lngHour = lon / 15;
+  const tApprox = isSunrise ? n + (6 - lngHour) / 24 : n + (18 - lngHour) / 24;
+
+  const m = 0.9856 * tApprox - 3.289;
+  let l = m + 1.916 * sinDeg(m) + 0.020 * sinDeg(2 * m) + 282.634;
+  l = (l % 360 + 360) % 360;
+
+  let ra = atanDeg(0.91764 * tanDeg(l));
+  ra = (ra % 360 + 360) % 360;
+
+  const lQuadrant = Math.floor(l / 90) * 90;
+  const raQuadrant = Math.floor(ra / 90) * 90;
+  ra = ra + (lQuadrant - raQuadrant);
+  ra = ra / 15;
+
+  const sinDec = 0.39782 * sinDeg(l);
+  const cosDec = cosDeg(asinDeg(sinDec));
+
+  const cosH = (cosDeg(zenith) - sinDec * sinDeg(lat)) / (cosDec * cosDeg(lat));
+  if (cosH > 1 || cosH < -1) return null;
+
+  let h;
+  if (isSunrise) {
+    h = 360 - acosDeg(cosH);
+  } else {
+    h = acosDeg(cosH);
+  }
+  h = h / 15;
+
+  const t = h + ra - 0.06571 * tApprox - 6.622;
+  let ut = t - lngHour;
+  ut = (ut % 24 + 24) % 24;
+
+  let local = ut + utcOffsetHours;
+  local = (local % 24 + 24) % 24;
+  return local * 60;
+}
+function solarPairFor(coords, date, utcOffsetHours) {
+  if (!coords) return null;
+  var probe = date;
+  for (var back = 0; back <= 183; back += 1) {
+    var rise = noaaSolarTime(probe, coords.lat, coords.lon, true, 90.833, utcOffsetHours);
+    var set = noaaSolarTime(probe, coords.lat, coords.lon, false, 90.833, utcOffsetHours);
+    if (rise != null && set != null) {
+      // Above ~64° in midsummer the sun goes down after local midnight, so the setting time
+      // wraps to a small number. Carry it into the next day so dawn precedes dusk.
+      return { rise: rise, set: set <= rise ? set + 1440 : set };
+    }
+    probe = new Date(probe.getTime() - 86400000);
+  }
+  return null;
+}
+function calculateSunTime(now, riseMin, sunsetMin, twMin) {
+  // One extended minute axis (spec section 4a): a sunset after local midnight, wrapped below
+  // sunrise, is carried past 1440, and a clock minute before that carried dusk is read on the
+  // same axis.
+  const setMin = sunsetMin < riseMin ? sunsetMin + 1440 : sunsetMin;
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
+  const clock = hours * 60 + minutes + seconds / 60;
+
+  const dawn = riseMin - twMin;
+  const dusk = setMin + twMin;
+  // When dusk lands after local midnight, the small hours belong to the day that is still
+  // ending, not to the one about to start.
+  // The mirror: a sunrise before 00:30 puts dawn before midnight, so the last clock minutes of
+  // the day belong to tomorrow's dawn.
+  let m = clock;
+  if (dusk > 1440 && clock < dusk - 1440) m = clock + 1440;
+  else if (dawn < 0 && clock >= dawn + 1440) m = clock - 1440;
+
+  const t = (m - dawn) / (dusk - dawn);
+
+  let nightAmount = 0;
+  if (m < dawn) {
+    nightAmount = 1;
+  } else if (m < riseMin) {
+    nightAmount = 1 - (m - dawn) / (riseMin - dawn);
+  } else if (m <= setMin) {
+    nightAmount = 0;
+  } else if (m <= dusk) {
+    nightAmount = (m - setMin) / (dusk - setMin);
+  } else {
+    nightAmount = 1;
+  }
+
+  const nightSpan = (24 * 60 - dusk) + dawn;
+  let elapsedNight = 0;
+  if (m >= dusk) {
+    elapsedNight = m - dusk;
+  } else {
+    elapsedNight = (24 * 60 - dusk) + m;
+  }
+  let q = nightSpan > 0 ? elapsedNight / nightSpan : 0;
+  q = Math.max(0, Math.min(1, q));
+
+  return {
+    m,
+    dawn,
+    dusk,
+    t,
+    nightAmount,
+    q,
+  };
+}
+function envelope(t, edge) {
+  if (t < edge) {
+    const val = Math.sin((t / edge) * (Math.PI / 2));
+    return Math.max(0, Math.min(1, val));
+  }
+  if (t > 1 - edge) {
+    const val = Math.sin(((1 - t) / edge) * (Math.PI / 2));
+    return Math.max(0, Math.min(1, val));
+  }
+  return 1;
+}
+function sunOpacity(t, edge, peakOpacity, nightAmount) {
+  if (t < -0.02 || t > 1.02) return 0;
+  const env = envelope(t, edge);
+  const op = peakOpacity * env * (1 - nightAmount);
+  return Math.max(0, Math.min(1, op));
+}
+function calculateArcGeometry(w, h, diameterRatio, bowRatio, overshoot, arcAngleDeg, t) {
+  const side = Math.min(w, h);
+  const diam = diameterRatio * side;
+  const r = diam / 2;
+  const off = (overshoot * r) / Math.SQRT2;
+  const ax = -off;
+  const ay = -off;
+  const bx = w + off;
+  const by = h + off;
+
+  const dx = bx - ax;
+  const dy = by - ay;
+  const c = Math.hypot(dx, dy);
+  const s = bowRatio * c;
+  const rArc = (c * c) / (8 * s) + s / 2;
+
+  const mx = (ax + bx) / 2;
+  const my = (ay + by) / 2;
+
+  const ux = -dy / c;
+  const uy = dx / c;
+  const dCenter = rArc - s;
+  const ox = mx + dCenter * ux;
+  const oy = my + dCenter * uy;
+
+  const thetaA = Math.atan2(ay - oy, ax - ox);
+  const thetaB = Math.atan2(by - oy, bx - ox);
+
+  let dTheta = thetaB - thetaA;
+  while (dTheta > Math.PI) dTheta -= 2 * Math.PI;
+  while (dTheta < -Math.PI) dTheta += 2 * Math.PI;
+
+  const thetaT = thetaA + t * dTheta;
+  const x = ox + rArc * Math.cos(thetaT);
+  const y = oy + rArc * Math.sin(thetaT);
+
+  const subtendedDeg = 2 * Math.asin(c / (2 * rArc)) * (180 / Math.PI);
+
+  return {
+    diam,
+    r,
+    ax,
+    ay,
+    bx,
+    by,
+    c,
+    s,
+    rArc,
+    ox,
+    oy,
+    thetaA,
+    thetaB,
+    dTheta,
+    subtendedDeg,
+    x,
+    y,
+  };
+}
+function radialBackground(rgb, alpha, tokens) {
+  return 'radial-gradient(circle closest-side at center, ' + formatRgba(rgb, alpha) + ' 0%, ' +
+    formatRgba(rgb, alpha * tokens.glowMidRatio) + ' ' + tokens.glowMidStop + '%, ' + formatRgba(rgb, 0) + ' 100%)';
+}
+function calculateHalo(t, edge, nightAmount, sunX, sunY, R, tokens) {
+  const env = envelope(t, edge);
+  const alpha = Math.max(0, Math.min(1, tokens.glowDayAlpha * env * (1 - nightAmount)));
+  return {
+    x: sunX,
+    y: sunY,
+    radius: tokens.glowRadiusRatio * R,
+    alpha,
+    background: radialBackground(tokens.glowColor, alpha, tokens),
+  };
+}
+function twilightEase(x) {
+  const c = Math.max(0, Math.min(1, x));
+  return Math.pow(1 - c * c, 1.5);
+}
+function twilightWeight(m, dawn, dusk, env, t, deepMin, sink) {
+  if (m >= dawn && m <= dusk) return { w: 1 - env, te: t, x: 0, phase: 'day' };
+  const span = ((dawn - dusk) % 1440 + 1440) % 1440;
+  const ms = ((m - dusk) % 1440 + 1440) % 1440;
+  const mid = span / 2;
+  const half = Math.max(0, Math.min(deepMin, span - 120)) / 2;
+  const dS = mid - half;
+  const dE = mid + half;
+  if (ms <= dS && dS > 0) {
+    const x = ms / dS;
+    return { w: twilightEase(x), te: 1 + sink * x, x: x, phase: 'evening' };
+  }
+  if (ms >= dE && span > dE) {
+    const x = (span - ms) / (span - dE);
+    return { w: twilightEase(x), te: -sink * x, x: x, phase: 'before dawn' };
+  }
+  return { w: 0, te: ms < mid ? 1 + sink : -sink, x: 1, phase: 'true dark' };
+}
+function calculateGround(appearance, tokens, nightAmount, w) {
+  const dark = appearance === 'dark';
+  const day = dark ? tokens.groundDarkDay : tokens.groundLightDay;
+  const night = dark ? tokens.groundDarkNight : tokens.groundLightNight;
+  const deep = dark ? tokens.groundDarkDeep : tokens.groundLightDeep;
+  return mixOklab(mixOklab(day, night, nightAmount), deep, nightAmount * (1 - w));
+}
+function calculateTwilightGlow(tw, appearance, x, y, R, tokens) {
+  const dark = appearance === 'dark';
+  const alpha = tw.w > 0.001
+    ? Math.max(0, Math.min(1, (dark ? tokens.twilightAlphaDark : tokens.twilightAlphaLight) * tw.w))
+    : 0;
+  const rgb = dark
+    ? mixOklab(tokens.glowColor, tokens.orange, 0.3 + 0.5 * tw.x)
+    : mixOklab(tokens.sunrise, tokens.glowColor, 0.45 + 0.25 * tw.x);
+  return {
+    x,
+    y,
+    radius: tokens.twilightRadiusRatio * R,
+    alpha,
+    rgb,
+    color: formatHex(rgb),
+    background: radialBackground(rgb, alpha, tokens),
+  };
+}
+function calculateFrame(now, rise, set, appearance, vp, tokens) {
+  const dark = appearance === 'dark';
+  const time = calculateSunTime(now, rise, set, tokens.twilightMinutes);
+  const env = envelope(time.t, tokens.envelopeEdge);
+  const tw = twilightWeight(time.m, time.dawn, time.dusk, env, time.t, tokens.trueDarkMinutes, tokens.twilightSink);
+  const groundRgb = calculateGround(appearance, tokens, time.nightAmount, tw.w);
+  const tc = Math.max(0, Math.min(1, time.t));
+  const geom = calculateArcGeometry(vp.w, vp.h, tokens.diameterRatio, tokens.bowRatio, tokens.overshoot, tokens.arcAngle, tc);
+  const opacity = sunOpacity(time.t, tokens.envelopeEdge, dark ? tokens.peakOpacityDark : tokens.peakOpacity, time.nightAmount);
+  const halo = calculateHalo(time.t, tokens.envelopeEdge, time.nightAmount, geom.x, geom.y, geom.r, tokens);
+  const hidden = calculateArcGeometry(vp.w, vp.h, tokens.diameterRatio, tokens.bowRatio, tokens.overshoot, tokens.arcAngle, tw.te);
+  const twilightGlow = calculateTwilightGlow(tw, appearance, hidden.x, hidden.y, geom.r, tokens);
+  return {
+    appearance,
+    time,
+    env,
+    twilight: tw,
+    groundRgb,
+    ground: formatHex(groundRgb),
+    geom,
+    opacity,
+    halo,
+    twilightGlow,
+  };
+}
+function createSunarcController(deps) {
+  const document = deps.document;
+  const window = deps.window;
+  const now = deps.now || function() { return new Date(); };
+  const getComputedStyle = deps.getComputedStyle;
+  const setTimeout = deps.setTimeout;
+  const clearTimeout = deps.clearTimeout;
+  const setInterval = deps.setInterval;
+  const clearInterval = deps.clearInterval;
+  const matchMedia = deps.matchMedia || null;
+  // § 5 rung 1 — a location the app already holds of its own accord. This surface holds none,
+  // so nothing passes it; it exists so a surface that genuinely holds one can feed it in
+  // without re-plumbing. The engine asks the device for a position nowhere: § 12 accepts no
+  // location request attributable to this pattern, and a granted permission is still a request.
+  const heldLocation = deps.heldLocation || null;
+
+  // § 5 rung 3 — the fixed default, for a zone identifier the tzdb table does not know.
+  const FALLBACK_RISE = 6 * 60 + 30;
+  const FALLBACK_SET = 19 * 60 + 30;
+
+  let zoneTable = null;
+  let solarPair = { rise: FALLBACK_RISE, set: FALLBACK_SET, lastDateKey: null, zoneId: null };
+  let resizeTimer = null;
+  let nightLayer = null;
+  function nightSample() {
+    const date = now(), f = lastFrame, vp = deps.viewport();
+    return {W:vp.w,H:vp.h,minute:date.getHours()*60+date.getMinutes()+date.getSeconds()/60+date.getMilliseconds()/60000,
+      dark:f.appearance==='dark',sun:solarPair,
+      frame:{t:f.time.t,night:f.time.nightAmount,w:f.twilight.w,
+        glows:[f.halo,f.twilightGlow].filter(Boolean).map(g=>({x:g.x,y:g.y,r:g.radius,a:g.alpha}))}};
+  }
+  let intervalId = null;
+  let lastFrame = null;
+
+  function dateKeyOf(d) {
+    return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+  }
+
+  function currentZoneId() {
+    return typeof deps.zoneId === 'string' ? deps.zoneId : systemZoneId();
+  }
+
+  // § 5 rung 2 — the system timezone's tzdb reference point, from the bundled table.
+  function zonePoint(zoneId) {
+    if (typeof zoneId !== 'string' || !zoneId) return null;
+    if (!zoneTable) zoneTable = parseZoneTable(SUNARC_ZONE_TABLE);
+    return zoneTable[zoneId] || null;
+  }
+
+  function refreshSolarPair() {
+    const curDate = now();
+    const zoneId = currentZoneId();
+    const tzOffsetHours =
+      typeof deps.utcOffsetHours === 'number' ? deps.utcOffsetHours : -curDate.getTimezoneOffset() / 60;
+    const coords = heldLocation || zonePoint(zoneId);
+    const pair = solarPairFor(coords, curDate, tzOffsetHours);
+    solarPair = {
+      rise: pair ? pair.rise : FALLBACK_RISE,
+      set: pair ? pair.set : FALLBACK_SET,
+      lastDateKey: dateKeyOf(curDate),
+      zoneId: zoneId,
+    };
+  }
+
+  // § 6 / § 10: the appearance is the owner's system setting, read live. The pattern never sets it.
+  let schemeList = null;
+  function colorSchemeList() {
+    if (!schemeList && typeof matchMedia === 'function') {
+      try {
+        schemeList = matchMedia('(prefers-color-scheme: dark)');
+      } catch (_) {
+        schemeList = null;
+      }
+    }
+    return schemeList;
+  }
+
+  function currentAppearance() {
+    const list = colorSchemeList();
+    return list && list.matches ? 'dark' : 'light';
+  }
+
+  function placeGlow(el, g) {
+    if (!el) return;
+    el.style.opacity = String(g.alpha > 0 ? 1 : 0);
+    if (g.alpha > 0) {
+      el.style.left = g.x - g.radius + 'px';
+      el.style.top = g.y - g.radius + 'px';
+      el.style.width = g.radius * 2 + 'px';
+      el.style.height = g.radius * 2 + 'px';
+      el.style.background = g.background;
+    }
+  }
+
+  function tick() {
+    if (!document || document.visibilityState === 'hidden') return;
+    const container = document.getElementById('sunarc');
+    if (!container) return;
+    const sun = container.querySelector('.sunarc-sun');
+    const glow = container.querySelector('.sunarc-glow');
+    const twilight = container.querySelector('.sunarc-twilight');
+
+    const curDate = now();
+
+    // § 5: "Recompute once a day and on a timezone or location change."
+    if (dateKeyOf(curDate) !== solarPair.lastDateKey || currentZoneId() !== solarPair.zoneId) {
+      refreshSolarPair();
+    }
+
+    const tokens = parseTokens(function(prop) {
+      return getComputedStyle(document.documentElement).getPropertyValue(prop);
+    });
+
+    if (!tokens) {
+      if (sun) sun.style.opacity = '0';
+      if (glow) glow.style.opacity = '0';
+      if (twilight) twilight.style.opacity = '0';
+      if (document.documentElement && document.documentElement.style &&
+        typeof document.documentElement.style.removeProperty === 'function') {
+        document.documentElement.style.removeProperty('--sunarc-mixed');
+      }
+      return;
+    }
+
+    const vp = deps.viewport ? deps.viewport() : { w: window ? window.innerWidth : 800, h: window ? window.innerHeight : 600 };
+    const frame = calculateFrame(curDate, solarPair.rise, solarPair.set, currentAppearance(), vp, tokens);
+    document.documentElement.style.setProperty('--sunarc-mixed', frame.ground);
+
+    if (sun) {
+      sun.style.opacity = String(frame.opacity);
+      if (frame.opacity > 0) {
+        sun.style.left = frame.geom.x - frame.geom.r + 'px';
+        sun.style.top = frame.geom.y - frame.geom.r + 'px';
+        sun.style.width = frame.geom.diam + 'px';
+        sun.style.height = frame.geom.diam + 'px';
+      }
+    }
+    placeGlow(twilight, frame.twilightGlow);
+    placeGlow(glow, frame.halo);
+    lastFrame = frame;
+    if (!nightLayer && typeof document.createElement === 'function' && typeof globalThis.createNightLayer === 'function') nightLayer = globalThis.createNightLayer(container,{read:nightSample});
+    if (nightLayer) nightLayer.update();
+    document.documentElement.style.setProperty('--sunrise-day',String(frame.appearance==='light'?1-frame.time.nightAmount:0));
+  }
+
+  function onResize() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      tick();
+    }, 250);
+  }
+
+  function onVisibilityChange() {
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = null;
+    if (document && document.visibilityState !== 'hidden') {
+      refreshSolarPair();tick();intervalId=setInterval(tick,60000);
+    }
+    if (nightLayer) nightLayer.update();
+  }
+
+  return {
+    start: function() {
+      tick();
+      if (setInterval && document.visibilityState !== 'hidden') {
+        intervalId = setInterval(tick, 60000);
+      }
+      if (window && typeof window.addEventListener === 'function') {
+        window.addEventListener('resize', onResize);
+      }
+      if (document && typeof document.addEventListener === 'function') {
+        document.addEventListener('visibilitychange', onVisibilityChange);
+      }
+      const list = colorSchemeList();
+      if (list && typeof list.addEventListener === 'function') list.addEventListener('change', tick);
+      else if (list && typeof list.addListener === 'function') list.addListener(tick);
+      return this;
+    },
+    stop: function() {
+      if (nightLayer) {nightLayer.dispose();nightLayer=null;}
+      if (intervalId && clearInterval) clearInterval(intervalId);
+      if (resizeTimer && clearTimeout) clearTimeout(resizeTimer);
+      if (window && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('resize', onResize);
+      }
+      if (document && typeof document.removeEventListener === 'function') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+      const list = colorSchemeList();
+      if (list && typeof list.removeEventListener === 'function') list.removeEventListener('change', tick);
+      else if (list && typeof list.removeListener === 'function') list.removeListener(tick);
+    },
+    tick: tick,
+    getSolarPair: function() {
+      return solarPair;
+    },
+    getFrame: function() {
+      return lastFrame;
+    },
+  };
+}
+
+// The values, as the CSS custom properties solstone.app declares them.
+export const CSS_VALUES = Object.freeze({
+  "--sunarc-ground-light-day": "#FEFCF8",
+  "--sunarc-arc-angle": "36deg",
+  "--sunarc-bow-ratio": "0.07919",
+  "--sunarc-diameter-ratio": "1.6180339887",
+  "--sunarc-overshoot": "1",
+  "--sunarc-envelope-edge": "0.22",
+  "--sunarc-peak-opacity": "0.55",
+  "--sunarc-peak-opacity-dark": "0.20",
+  "--sunarc-twilight-minutes": "30",
+  "--sunarc-ground-light-night": "#AEA393",
+  "--sunarc-ground-light-deep": "#8C806E",
+  "--sunarc-ground-dark-day": "#392E26",
+  "--sunarc-ground-dark-night": "#2E241C",
+  "--sunarc-ground-dark-deep": "#281E17",
+  "--sunarc-glow-color": "#FFCC33",
+  "--sunarc-glow-radius-ratio": "1.6180339887",
+  "--sunarc-glow-day-alpha": "0.22",
+  "--sunarc-glow-mid-stop": "38%",
+  "--sunarc-glow-mid-ratio": "0.45",
+  "--sunarc-twilight-radius-ratio": "2.6180339887",
+  "--sunarc-twilight-alpha-dark": "0.62",
+  "--sunarc-twilight-alpha-light": "0.95",
+  "--sunarc-twilight-sink": "0.10",
+  "--sunarc-true-dark-min": "180",
+  "--sunarc-sunrise": "#FFF3CF",
+  "--orange": "#E8913A"
+});
+// The same values, parsed: what every function below takes as `tokens`.
+export const VALUES = parseTokens(function (name) { return CSS_VALUES[name]; });
+// The logo the dayground draws: mark.svg.
+export const MARK_SVG = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"2.5 2.5 27 27\" role=\"img\" aria-label=\"solstone\"><title>solstone</title><path fill=\"#FFCC33\" d=\"M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z\"/><circle cx=\"16\" cy=\"16\" r=\"6.5\" fill=\"none\" stroke=\"#E8913A\" stroke-width=\"1.736067977\"/></svg>";
+
+let zones = null;
+// A zone identifier's reference point from the bundled table, or null.
+export function zonePoint(zoneId) {
+  if (!zones) zones = parseZoneTable(SUNARC_ZONE_TABLE);
+  return (typeof zoneId === 'string' && zones[zoneId]) || null;
+}
+
+// Sunrise and sunset in local minutes for a date, from the zone's point (rise 06:30 and set 19:30 for a
+// zone the table does not know). A sunset after local midnight comes back above 1440.
+export function sunTimes(date, zoneId, utcOffsetHours) {
+  date = date || new Date();
+  if (zoneId === undefined) zoneId = systemZoneId();
+  if (utcOffsetHours === undefined) utcOffsetHours = -date.getTimezoneOffset() / 60;
+  return solarPairFor(zonePoint(zoneId), date, utcOffsetHours) || { rise: 390, set: 1170 };
+}
+
+// One frame: ground, sun, halo and twilight glow for a clock time on a width x height surface.
+// appearance is 'light' or 'dark', the owner's own setting. Pure.
+export function frame(date, width, height, appearance, times) {
+  times = times || sunTimes(date);
+  return calculateFrame(date, times.rise, times.set, appearance, { w: width, h: height }, VALUES);
+}
+
+// Draw the dayground behind a web page and keep it on the minute. It stops while the page is hidden and
+// returns { stop, tick, getFrame, getSolarPair }. Leave the page's own background transparent.
+// options.heldLocation ({ lat, lon }) is for a position the app already holds for its own reasons.
+export function mount(options) {
+  options = options || {};
+  const win = options.window || globalThis.window;
+  const doc = options.document || win.document;
+  let box = doc.getElementById('sunarc');
+  if (!box) {
+    box = doc.createElement('div');
+    box.id = 'sunarc';
+    box.setAttribute('aria-hidden', 'true');
+    box.style.cssText = 'position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:var(--sunarc-mixed)';
+    const layer = 'position:absolute;pointer-events:none;opacity:0';
+    box.innerHTML = '<div class="sunarc-twilight" style="' + layer + '"></div><div class="sunarc-glow" style="' + layer +
+      '"></div><div class="sunarc-sun" style="' + layer + '">' +
+      MARK_SVG.replace('<svg ', '<svg style="width:100%;height:100%;display:block" aria-hidden="true" ') + '</div>';
+    doc.body.insertBefore(box, doc.body.firstChild);
+  }
+  if (typeof globalThis.createNightLayer !== 'function') globalThis.createNightLayer = createNightLayer;
+  return createSunarcController({
+    window: win,
+    document: doc,
+    now: function () { return new Date(); },
+    viewport: function () { return { w: win.innerWidth, h: win.innerHeight }; },
+    getComputedStyle: function () { return { getPropertyValue: function (name) { return CSS_VALUES[name] || ''; } }; },
+    setTimeout: win.setTimeout.bind(win),
+    clearTimeout: win.clearTimeout.bind(win),
+    setInterval: win.setInterval.bind(win),
+    clearInterval: win.clearInterval.bind(win),
+    matchMedia: typeof win.matchMedia === 'function' ? win.matchMedia.bind(win) : null,
+    heldLocation: options.heldLocation || null,
+  }).start();
+}
+
+export {
+  SUNARC_ZONE_TABLE as ZONE_TABLE, SUNARC_ZONE_COUNT as ZONE_COUNT, parseZoneTable, systemZoneId, noaaSolarTime,
+  solarPairFor, calculateSunTime, envelope, sunOpacity, calculateArcGeometry, calculateHalo, twilightWeight,
+  calculateGround, calculateTwilightGlow, calculateFrame, createSunarcController, mixOklab, parseColor, formatHex,
+  formatRgba, NightSky, NightSkyMath, createNightLayer,
+};

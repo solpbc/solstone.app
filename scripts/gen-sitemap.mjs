@@ -33,6 +33,7 @@ const PAGES = [
   ["/integrate", "public/integrate.html"],
   ["/brand", "public/brand.html"],
   ["/brand/logo", "public/brand/logo.html"],
+  ["/brand/dayground", "public/brand/dayground.html"],
   ["/releases", "releases.js"],
   ["/releases/macos", "releases.js"],
   ["/releases/journal-macos", "releases.js"],

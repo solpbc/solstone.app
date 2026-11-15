@@ -1,9 +1,10 @@
-.PHONY: deploy dev install sitemap sunarc stamp brand publish-install-sh check-install-sh-served build-install-sh
+.PHONY: deploy dev install sitemap sunarc stamp brand dayground publish-install-sh check-install-sh-served build-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
 deploy: sitemap sunarc
 	node scripts/stamp-assets.mjs --check
+	node scripts/gen-dayground.mjs --check
 	wrangler deploy
 
 dev:
@@ -29,6 +30,13 @@ stamp:
 #   make brand BRAND_SRC=/abs/path/to/brand-source
 brand:
 	./scripts/gen-brand-assets.sh
+
+# /brand/dayground's files (the engine as one module, its worked numbers, the page's
+# words as markdown and on the page) are generated from the services portal's engine
+# and scripts/dayground/dayground.src.md, then committed. `deploy` never regenerates
+# them; it refuses to ship a stale copy. Run this, then `make stamp`, review, commit.
+dayground:
+	node scripts/gen-dayground.mjs
 
 install:
 	@echo "solstone.app is a static deploy — no install step. use 'make deploy' to ship."

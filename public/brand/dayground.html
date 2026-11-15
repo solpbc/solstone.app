@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dayground · solstone</title>
+    <meta name="description" content="the dayground is solstone's background. the logo crosses the screen through the day and the stars come out at night. the full spec, a playground, and files an agent can use. this page loads nothing from anyone else's server.">
+    <meta property="og:title" content="dayground · solstone">
+    <meta property="og:description" content="the dayground is solstone's background. the logo crosses the screen through the day and the stars come out at night. the full spec, a playground, and files an agent can use. this page loads nothing from anyone else's server.">
+    <meta property="og:url" content="https://solstone.app/brand/dayground">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="solstone">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/brand/dayground">
+    <link rel="alternate" type="text/markdown" href="/brand/dayground.md">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=f895575d38">
+    <style>
+        /* /brand/dayground: the dayground's spec, playground and files. The words between the
+           gen markers come from scripts/dayground/dayground.src.md (make dayground). */
+        .dg-intro .lede p { max-width: 46em; }
+        .dg-now { margin-top: 20px; max-width: 46em; border-left: 3px solid var(--orange); padding-left: 14px; }
+        .dg-now p + p { margin-top: 2px; }
+        .dg-now-note { color: var(--ink-soft); font-size: 15px; }
+        .dg-nav { display: flex; flex-wrap: wrap; gap: 2px 6px; margin-top: 22px; }
+        .dg-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; margin-left: -10px; margin-right: 10px; font-weight: 600; text-decoration: none; border-radius: 8px; }
+        .dg-nav a:hover { text-decoration: underline; }
+        .dg-play, .dg-doc { scroll-margin-top: 16px; }
+        html:not(.js) .dg-play { display: none; }
+
+        .dg-studio { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; margin-top: 18px; align-items: start; }
+        .dg-stage { position: relative; overflow: hidden; width: 100%; min-height: 200px; }
+        .dg-view { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+        .dg-screen { position: absolute; overflow: hidden; box-shadow: 0 0 0 1px var(--hairline-2); }
+        .dg-twilight, .dg-halo, .dg-sun { position: absolute; pointer-events: none; opacity: 0; }
+        .dg-sun svg { width: 100%; height: 100%; display: block; }
+        .dg-sky, .dg-streaks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+        .dg-build { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+        .dg-readout { margin-top: 10px; font-variant-numeric: tabular-nums; }
+        .dg-readout #dg-clock { font-weight: 600; font-size: 20px; }
+        .dg-readout #dg-phase { color: var(--ink-soft); margin-left: 6px; }
+        .dg-scrub { display: block; margin-top: 4px; }
+        .dg-scrub input { width: 100%; min-height: 44px; accent-color: var(--orange); }
+        .dg-controls { display: flex; flex-direction: column; gap: 14px; }
+        .dg-row { display: flex; flex-wrap: wrap; gap: 6px; }
+        .dg-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 12px;
+            border: 1px solid var(--hairline-2); border-radius: 8px; background: transparent; color: var(--ink); font: 500 15px/1 var(--font-body); cursor: pointer; }
+        .dg-btn:hover { border-color: var(--ink-faint); }
+        .dg-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--cream-bright); }
+        .dg-wide { flex: 1 1 100%; }
+        .dg-fields { display: grid; gap: 10px; }
+        .dg-fields label { display: grid; gap: 4px; font-size: 15px; color: var(--ink-soft); }
+        .dg-fields select, .dg-fields input { min-height: 44px; padding: 0 10px; border: 1px solid var(--hairline-2); border-radius: 8px; background: var(--cream-bright); color: var(--ink); font: 400 15px var(--font-body); width: 100%; }
+        .dg-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; cursor: pointer; }
+        .dg-check input { width: 20px; height: 20px; accent-color: var(--orange); }
+        .dg-note { font-size: 15px; color: var(--ink-soft); line-height: 1.5; }
+        .dg-foot { margin-top: 18px; }
+
+        .dg-doc .band-inner > * { max-width: 72ch; }
+        .dg-doc .band-inner > .table-scroll, .dg-doc .band-inner > pre { max-width: none; }
+        .dg-doc h3 { margin-top: 34px; }
+        .dg-doc h4 { font-size: 16px; font-weight: 600; margin: 24px 0 6px; }
+        .dg-doc ul, .dg-doc ol { margin: 10px 0 0 1.3em; }
+        .dg-doc li { margin: 4px 0; }
+        .dg-doc li ul { margin-top: 4px; }
+        .dg-doc p + ul, .dg-doc ul + p, .dg-doc ol + p, .dg-doc .table-scroll + p { margin-top: 12px; }
+        .dg-doc .table-scroll { overflow-x: auto; margin: 14px 0; }
+        .dg-doc table { border-collapse: collapse; font-size: 14px; line-height: 1.45; min-width: 100%; }
+        .dg-doc th, .dg-doc td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+        .dg-doc th { color: var(--ink-soft); font-weight: 600; white-space: nowrap; }
+        .dg-doc td code, .dg-doc th code { white-space: nowrap; }
+
+        @media (max-width: 860px) {
+            .dg-studio { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="sun both">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
+    </div>
+    <div class="page">
+        <a href="#main" class="skip-link">skip to content</a>
+        <header class="site-header">
+            <div class="bar">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="main">
+                    <a href="/download">download</a>
+                    <a href="/phone">phone</a>
+                    <a href="https://github.com/solpbc">open source</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                    <details class="site-menu">
+                        <summary>menu</summary>
+                        <nav aria-label="main">
+                            <a href="/download">download</a>
+                            <a href="/phone">phone</a>
+                            <a href="https://github.com/solpbc">open source</a>
+                            <a href="https://support.solstone.app">support</a>
+                        </nav>
+                    </details>
+                </div>
+            </div>
+        </header>
+
+        <main id="main" tabindex="-1">
+            <section class="band wrap dg-intro" aria-labelledby="page-title">
+                <div class="band-inner">
+                    <h1 id="page-title">dayground</h1>
+                    <div class="lede">
+<!-- gen:dayground:intro:begin -->
+<p>the solstone logo is a sun. behind solstone's screens it keeps the time of day. it comes in at the top-left corner at dawn, crosses the screen on one gentle arc, and leaves through the bottom-right corner at dusk. at night the ground dims, a glow rests in the corner, and the stars come out. this page is the whole design: how it works, how to build it, and when to use it.</p>
+<!-- gen:dayground:intro:end -->
+                    </div>
+                    <div class="dg-now" id="dg-now" hidden>
+                        <p id="dg-now-line"></p>
+                        <p class="dg-now-note">worked out on your device from its timezone. nothing was sent anywhere.</p>
+                    </div>
+                    <nav class="dg-nav" aria-label="on this page">
+                        <a href="#playground">playground</a>
+                        <a href="#the-spec">the spec</a>
+                        <a href="#for-agents">for agents</a>
+                        <a href="#using-the-dayground">using the dayground</a>
+                        <a href="/brand">brand</a>
+                    </nav>
+                </div>
+            </section>
+
+            <section class="band wrap dg-play" id="playground" aria-labelledby="h-playground">
+                <div class="band-inner">
+                    <h2 id="h-playground">playground</h2>
+                    <p>try it. drag through a day, switch screens, flip light and dark, pick a place and a date.</p>
+                    <div class="dg-studio">
+                        <div class="dg-left">
+                            <div class="dg-stage" id="dg-stage" aria-hidden="true"></div>
+                            <p class="dg-readout" aria-live="polite"><span id="dg-clock"></span> <span id="dg-phase"></span></p>
+                            <label class="dg-scrub"><span class="visually-hidden">time of day</span><input type="range" id="dg-scrub" min="0" max="1439" step="1" value="720"></label>
+                        </div>
+                        <div class="dg-controls">
+                            <div class="dg-row" role="group" aria-label="time of day">
+                                <button type="button" class="dg-btn dg-wide" id="dg-play" aria-pressed="false">play a day in 20 seconds</button>
+                                <button type="button" class="dg-btn" data-jump="now">now</button>
+                                <button type="button" class="dg-btn" data-jump="dawn">dawn</button>
+                                <button type="button" class="dg-btn" data-jump="noon">noon</button>
+                                <button type="button" class="dg-btn" data-jump="dusk">dusk</button>
+                                <button type="button" class="dg-btn" data-jump="midnight">solar midnight</button>
+                            </div>
+                            <div class="dg-row" role="group" aria-label="screen">
+                                <button type="button" class="dg-btn" data-screen="phone" aria-pressed="false">phone</button>
+                                <button type="button" class="dg-btn" data-screen="tablet" aria-pressed="false">tablet</button>
+                                <button type="button" class="dg-btn" data-screen="web" aria-pressed="false">web</button>
+                                <button type="button" class="dg-btn" data-screen="watch" aria-pressed="false">watch</button>
+                            </div>
+                            <div class="dg-row" role="group" aria-label="appearance">
+                                <button type="button" class="dg-btn" data-look="light" aria-pressed="false">light</button>
+                                <button type="button" class="dg-btn" data-look="dark" aria-pressed="false">dark</button>
+                            </div>
+                            <p class="dg-note" id="dg-watch-note" hidden>the watch has no light mode, so it shows the dark row.</p>
+                            <div class="dg-fields">
+                                <label>place <select id="dg-place"></select></label>
+                                <label>date <input type="date" id="dg-date"></label>
+                            </div>
+                            <label class="dg-check"><input type="checkbox" id="dg-build"> show the construction</label>
+                            <div class="dg-row">
+                                <button type="button" class="dg-btn dg-wide" id="dg-shower" aria-pressed="false">watch the shower</button>
+                            </div>
+                            <p class="dg-note">a browser draws the midnight shower as still trails. this button plays the streaks the way the solstone apps on apple devices do.</p>
+                        </div>
+                    </div>
+                    <p class="dg-note dg-foot">the playground runs the same engine as this site. the speed is for looking. in a real app the dayground moves once a minute.</p>
+                </div>
+            </section>
+
+            <section class="band wrap dg-doc" aria-labelledby="the-spec">
+                <div class="band-inner">
+<!-- gen:dayground:spec:begin -->
+<h2 id="the-spec">the spec</h2>
+<p>every number and every formula, in the order you need them to build it. the worked numbers were computed by <code>dayground.js</code>, and the same numbers are in <code>dayground.json</code>.</p>
+<h3 id="1-the-idea">1 · the idea</h3>
+<p>the solstone logo is a sun, and the dayground is the day's own clock. the logo comes in at the top-left corner at dawn, travels one gentle arc across the screen and leaves through the bottom-right corner at dusk. it is always larger than the screen, so only a piece of it shows. the arc is one slot of the logo's own ring (36°), its size is φ times the screen's shorter side, and its colours are the logo's. it never asks for attention. it tells you, without a word, roughly where you are in the day.</p>
+<p>it does this in whichever appearance the owner chose. a light-mode owner's night is lamplit paper with the light still in the corner. a dark-mode owner's day is a lifted warm dark with the logo across it. only a few hours around the middle of the night are truly dark.</p>
+<p>from dusk to dawn the sky comes out: gold stars that turn as the sun would, ten of them where the logo's beam tips stood at noon, a short shower at solar midnight, and northern lights in the darkest hours. the logo isn't drawn at night, so the sky is the one graphic then.</p>
+<h3 id="2-the-values">2 · the values</h3>
+<div class="table-scroll"><table>
+<thead><tr><th>parameter</th><th>value</th><th>why</th></tr></thead>
+<tbody>
+<tr><td><strong>ends</strong></td><td>dawn at the <strong>top-left</strong> corner, dusk at the <strong>bottom-right</strong> corner</td><td></td></tr>
+<tr><td><strong>the arc</strong></td><td>a circular arc subtending <strong>36°</strong>, one slot of the ring</td><td>angles are 36° or its halvings</td></tr>
+<tr><td><strong>bow</strong> (sagitta ÷ chord)</td><td><strong>0.07919</strong></td><td><code>tan(36° ÷ 4) ÷ 2</code></td></tr>
+<tr><td><strong>bow direction</strong></td><td>toward the <strong>top</strong> of the frame</td><td>so the logo is highest at midday</td></tr>
+<tr><td><strong>over the corner</strong></td><td><strong>1.0 R</strong></td><td>at t = 0 and t = 1 the centre sits one tip radius past the corner along its diagonal, so the logo is exactly hidden at both ends</td></tr>
+<tr><td><strong>the sun's size</strong></td><td><strong>φ × the shorter side</strong>, tip to tip (Ø)</td><td>φ = 1.6180339887</td></tr>
+<tr><td><strong>the logo</strong></td><td>as drawn: gold <code>#FFCC33</code> beams, orange <code>#E8913A</code> ring</td><td>the logo is never redrawn</td></tr>
+<tr><td><strong>peak opacity</strong></td><td><strong>0.55</strong> on a light ground · <strong>0.20</strong> on a dark ground</td><td>the same lightness step against either ground (§ 9a)</td></tr>
+<tr><td><strong>floor opacity</strong></td><td><strong>0</strong></td><td></td></tr>
+<tr><td><strong>brightness curve</strong></td><td><strong>rise · hold · set</strong>: sine ease-in over the first 22 % of the path, full through the middle, sine ease-out over the last 22 %</td><td></td></tr>
+<tr><td><strong>warmth toward the horizon</strong></td><td><strong>none</strong>: the logo's colours never shift</td><td>no new colour</td></tr>
+<tr><td><strong>twilight</strong></td><td><strong>30 min</strong> either side of sunrise and sunset</td><td></td></tr>
+<tr><td><strong>dawn and dusk</strong></td><td>dawn = sunrise − 30 min · dusk = sunset + 30 min</td><td></td></tr>
+<tr><td><strong>sunrise and sunset</strong></td><td>from the system timezone's reference point (or a position already in hand) and the date, on the device (§ 5)</td><td></td></tr>
+<tr><td><strong>appearance</strong></td><td><strong>the owner's system appearance</strong>, never the clock, and no setting of its own</td><td>the owner's setting is the setting</td></tr>
+<tr><td><strong>grounds</strong></td><td><strong>light:</strong> day <code>#FEFCF8</code> · night <code>#AEA393</code> · true dark <code>#8C806E</code> · <strong>dark:</strong> day <code>#392E26</code> · night <code>#2E241C</code> · true dark <code>#281E17</code> (§ 6)</td><td></td></tr>
+<tr><td><strong>ground cross-fade</strong></td><td>day → night linear over each twilight (1 → 0 from dawn to sunrise, 0 → 1 from sunset to dusk); night → true dark by <code>1 − w</code> (§ 4)</td><td></td></tr>
+<tr><td><strong>halo colour</strong></td><td>gold <code>#FFCC33</code></td><td></td></tr>
+<tr><td><strong>halo radius</strong></td><td><strong>φ × R</strong> (R = the sun's tip radius)</td><td>one rung up the φ ladder</td></tr>
+<tr><td><strong>halo by day</strong></td><td>peak alpha <strong>0.22</strong> × the brightness curve</td><td></td></tr>
+<tr><td><strong>the twilight glow</strong></td><td>radius <strong>φ² × R</strong>; alpha <strong>0.62 × w</strong> on a dark ground, <strong>0.95 × w</strong> on a light ground; centred on the sun's position carried along its own circle to <strong>t ∈ [−0.10, 1.10]</strong>; gold → orange on dark, <code>#FFF3CF</code> → gold on light (§ 7)</td><td></td></tr>
+<tr><td><strong>true dark</strong></td><td><strong>180 min</strong>, centred on solar midnight; the twilight glow is 0 inside it</td><td></td></tr>
+<tr><td><strong>glow gradient</strong></td><td>radial: alpha a at 0 %, 0.45 a at 38 %, 0 at 100 % of the radius</td><td></td></tr>
+<tr><td><strong>content</strong></td><td>follows the owner's appearance; every ground sits on its own appearance's side of OKLab L 0.5, so content never flips</td><td></td></tr>
+<tr><td><strong>the night sky</strong></td><td>the day's road of stars turning with the sky, the ten tips, the shower at solar midnight, the aurora on the sun's road in true dark (§ 8)</td><td></td></tr>
+<tr><td><strong>colour outside the logo's own</strong></td><td>the aurora's green <code>#6CF0A8</code> → violet <code>#A27CFF</code>, and nothing else</td><td></td></tr>
+<tr><td><strong>motion</strong></td><td>the minute tick, with one exception: the shower's streaks, animated only on solstone's apps on apple devices at full motion (§ 10)</td><td></td></tr>
+</tbody></table></div>
+<h3 id="3-geometry-where-the-logo-goes">3 · geometry: where the logo goes</h3>
+<p>work in the surface's own pixels (or points, or millimetres), origin top-left, y down. let <strong>W × H</strong> be the surface and <strong>side = min(W, H)</strong>.</p>
+<ol>
+<li><strong>size.</strong> <code>Ø = φ · side</code>, <code>R = Ø / 2</code>. R is the tip radius: the logo's beam tips lie on a circle of radius R. <code>mark.svg</code> has a viewBox 27 units across for a tip radius of 13.5, so scale it by <code>Ø / 27</code> and put its centre <code>(16, 16)</code> where the sun's centre goes.</li>
+<li><strong>the ends.</strong> the dawn end <strong>A</strong> is the top-left corner pushed outward one R along its diagonal: <code>A = (−R/√2, −R/√2)</code>. the dusk end <strong>B</strong> is the bottom-right corner pushed the same way: <code>B = (W + R/√2, H + R/√2)</code>.</li>
+<li><strong>the chord.</strong> <code>c = |AB|</code>, unit direction <code>u = (B − A) / c</code>, midpoint <code>M = (A + B) / 2</code>.</li>
+<li><strong>the bow.</strong> <code>s = 0.07919 · c</code> (the sagitta), on the side of the chord toward the <strong>top</strong> of the frame: take the normal <code>n</code> to <code>u</code> whose y-component is negative.</li>
+<li><strong>the circle.</strong> <code>Rarc = c² / (8s) + s / 2</code>. centre <code>O = M − n · (Rarc − s)</code>. the arc from A to B on this circle passes through <code>M + n · s</code> and subtends 36°.</li>
+<li><strong>position at time t ∈ [0, 1].</strong> <code>θA = atan2(A − O)</code>, <code>θB = atan2(B − O)</code>, <code>Δ</code> the signed short way from θA to θB (it is ±36°); <code>P(t) = O + Rarc · (cos(θA + Δt), sin(θA + Δt))</code>. the sun's centre is P(t). its angular speed is constant: the logo does not ease along the path, only its brightness eases.</li>
+<li><strong>clip</strong> to the surface. nothing of the logo draws outside the frame.</li>
+</ol>
+<p><strong>worked numbers:</strong></p>
+<div class="table-scroll"><table>
+<thead><tr><th>frame</th><th>W × H</th><th>side</th><th>logo Ø</th><th>R</th><th>A</th><th>B</th><th>chord c</th><th>sagitta s</th><th>arc radius</th><th>centre O</th><th>P(½)</th><th>halo radius</th></tr></thead>
+<tbody>
+<tr><td>phone</td><td>393 × 852</td><td>393</td><td>635.9</td><td>317.9</td><td>(−224.8, −224.8)</td><td>(617.8, 1076.8)</td><td>1550.6</td><td>122.8</td><td>2509.0</td><td>(−1806.6, 1722.7)</td><td>(299.6, 359.3)</td><td>514.4</td></tr>
+<tr><td>tablet</td><td>1180 × 820</td><td>820</td><td>1326.8</td><td>663.4</td><td>(−469.1, −469.1)</td><td>(1649.1, 1289.1)</td><td>2752.8</td><td>218.0</td><td>4454.2</td><td>(−2115.6, 3669.6)</td><td>(729.2, 242.3)</td><td>1073.4</td></tr>
+<tr><td>web</td><td>1280 × 820</td><td>820</td><td>1326.8</td><td>663.4</td><td>(−469.1, −469.1)</td><td>(1749.1, 1289.1)</td><td>2830.5</td><td>224.1</td><td>4579.9</td><td>(−2065.6, 3823.5)</td><td>(779.2, 234.3)</td><td>1073.4</td></tr>
+<tr><td>watch</td><td>416 × 496</td><td>416</td><td>673.1</td><td>336.6</td><td>(−238.0, −238.0)</td><td>(654.0, 734.0)</td><td>1319.2</td><td>104.5</td><td>2134.6</td><td>(−1287.7, 1620.6)</td><td>(285.0, 177.4)</td><td>544.6</td></tr>
+</tbody></table></div>
+<p>sample positions on the phone: t = 0.1 → (−105.7, −121.7) · t = 0.25 → (60.4, 46.6) · t = 0.75 → (486.9, 705.5) · t = 0.9 → (572.5, 925.9). at midday the centre is about 93 px inside the right edge and 42 % down: the logo's body fills the upper half of the screen and its left tips reach the left edge. the whole logo is never visible.</p>
+<p>one slot of 36° keeps the midday centre just inside the right edge, so the ring and the middle of the logo show through the day rather than a wedge of beams. portrait and landscape use the same rule: corner to corner, bow up. the diagonal changes and the construction does not. on a square surface the chord is the diagonal and the bow is toward the top.</p>
+<h3 id="4-time-the-day-s-parameter">4 · time: the day's parameter</h3>
+<p>let <strong>m</strong> be local minutes since midnight, <strong>rise</strong> and <strong>set</strong> sunrise and sunset on the same clock, and <strong>tw = 30</strong>.</p>
+<ul>
+<li><code>dawn = rise − tw</code>, <code>dusk = set + tw</code>, <code>t = (m − dawn) / (dusk − dawn)</code>.</li>
+<li>the logo is drawn while <code>−0.02 &lt; t &lt; 1.02</code> (a small margin so the last sliver leaves cleanly), and not otherwise.</li>
+<li><strong>night</strong> (0 = day, 1 = night): 1 before dawn; <code>1 − (m − dawn) / tw</code> from dawn to sunrise; 0 through the day; <code>(m − set) / tw</code> from sunset to dusk; 1 after dusk.</li>
+<li><strong>the brightness curve</strong> <code>env(t)</code>, rise · hold · set with e = 0.22: <code>sin(t/e · π/2)</code> for <code>t &lt; e</code>; <code>1</code> for <code>e ≤ t ≤ 1 − e</code>; <code>sin((1 − t)/e · π/2)</code> for <code>t &gt; 1 − e</code>. the logo's opacity is <code>α = peak · env(t) · (1 − night)</code>, peak 0.55 on a light ground and 0.20 on a dark one.</li>
+</ul>
+<p>denver, 2026-09-19 (sunrise 06:44, sunset 19:02, dawn 06:14, dusk 19:32):</p>
+<div class="table-scroll"><table>
+<thead><tr><th>clock</th><th>t</th><th>night</th><th>env</th></tr></thead>
+<tbody>
+<tr><td>05:30</td><td>-0.056</td><td>1.00</td><td>0.000</td></tr>
+<tr><td>06:14</td><td>-0.001</td><td>1.00</td><td>0.000</td></tr>
+<tr><td>06:44</td><td>0.037</td><td>0.02</td><td>0.261</td></tr>
+<tr><td>08:00</td><td>0.132</td><td>0.00</td><td>0.810</td></tr>
+<tr><td>10:00</td><td>0.283</td><td>0.00</td><td>1.000</td></tr>
+<tr><td>12:53</td><td>0.500</td><td>0.00</td><td>1.000</td></tr>
+<tr><td>15:00</td><td>0.659</td><td>0.00</td><td>1.000</td></tr>
+<tr><td>17:30</td><td>0.847</td><td>0.00</td><td>0.888</td></tr>
+<tr><td>19:02</td><td>0.962</td><td>0.00</td><td>0.267</td></tr>
+<tr><td>19:32</td><td>1.000</td><td>0.99</td><td>0.002</td></tr>
+<tr><td>22:00</td><td>1.185</td><td>1.00</td><td>0.000</td></tr>
+</tbody></table></div>
+<p>at 08:00 the top-left quarter of the logo shows; at 12:53 its body is across the top with the centre just inside the right edge; at 17:30 it is the lower-right quarter.</p>
+<h4 id="4a-the-twilight-weight-and-true-dark">4a · the twilight weight and true dark</h4>
+<ul>
+<li><strong>solar midnight</strong> is the midpoint of dusk and the next dawn, which is also the midpoint of sunset and the next sunrise. <strong>true dark</strong> is the window centred on it, of length <code>min(D, night − 120 min)</code> with <code>D = 180 min</code>, and never below 0 (<code>from = mid − len/2</code>, <code>to = mid + len/2</code>). the glow always keeps at least an hour to ease out and an hour to ease in: a night shorter than five hours gets a shorter true dark, and a white night of two hours or less gets none. then the glow only touches zero at the midpoint.</li>
+<li><strong>one extended minute axis.</strong> above about 64° a summer sunset falls after local midnight, and a sunrise equation that returns minutes mod 1440 hands it back <em>below</em> sunrise. carry it: <code>if set &lt; rise then set += 1440</code>. then read a clock minute that falls before the carried dusk on the same axis: <code>if dusk &gt; 1440 and m &lt; dusk − 1440 then m += 1440</code>. the mirror, for a sunrise before 00:30 (dawn before midnight): <code>if dawn &lt; 0 and m ≥ dawn + 1440 then m −= 1440</code>. everything below (t, night, w, the window) is computed on that axis.</li>
+<li><strong>the twilight weight <code>w</code></strong> ∈ [0, 1] says how much twilight glow there is:
+<ul>
+<li><strong>dawn → dusk:</strong> <code>w = 1 − env(t)</code>, full at the ends of the path and 0 across the plateau.</li>
+<li><strong>dusk → the window:</strong> <code>x = (m − dusk) / (from − dusk)</code>, <code>w = (1 − x²)^1.5</code>. it holds through the early evening and eases to 0 at the window's edge.</li>
+<li><strong>inside the window:</strong> <code>w = 0</code>.</li>
+<li><strong>the window → dawn:</strong> <code>x = (dawn − m) / (dawn − to)</code>, <code>w = (1 − x²)^1.5</code>, the mirror.</li>
+</ul>
+</li>
+<li><strong>the hidden sun's parameter <code>te</code></strong>: <code>t</code> by day; <code>1 + 0.10 x</code> after dusk; <code>−0.10 x</code> before dawn (and ±0.10 inside the window, where nothing is drawn). <code>P(te)</code> is § 3's circle carried on past each end, 3.6° more of it.</li>
+<li><strong>night → true dark</strong>: the ground at night is <code>mix(night ground, true-dark ground, 1 − w)</code> (§ 6).</li>
+</ul>
+<p>denver, 2026-09-23 (sunrise 06:48, sunset 18:56, solar midnight 00:52), on the phone (393 × 852):</p>
+<div class="table-scroll"><table>
+<thead><tr><th>clock</th><th>ground, light · dark</th><th>logo opacity, light · dark</th><th>w · phase</th><th>twilight glow on light: centre · alpha · colour</th><th>on dark</th><th>alpha at the corner, light · dark</th></tr></thead>
+<tbody>
+<tr><td>13:00</td><td><code>#FEFCF8</code> · <code>#392E26</code></td><td>0.550 · 0.200</td><td>0.000 · day</td><td>none</td><td>none</td><td>0</td></tr>
+<tr><td>18:56</td><td><code>#FDFBF7</code> · <code>#392E26</code></td><td>0.144 · 0.053</td><td>0.734 · day</td><td>(601.9, 1019.6) · 0.698 <code>#FFE295</code></td><td>(601.9, 1019.6) · 0.455 <code>#F9BA36</code></td><td>0.373 · 0.243</td></tr>
+<tr><td>19:41</td><td><code>#AEA393</code> · <code>#2E241C</code></td><td>0.000 · 0.000</td><td>0.994 · evening</td><td>(620.4, 1086.7) · 0.944 <code>#FFE293</code></td><td>(620.4, 1086.7) · 0.616 <code>#F8B836</code></td><td>0.416 · 0.272</td></tr>
+<tr><td>22:00</td><td><code>#9B8F7E</code> · <code>#2B2119</code></td><td>0.000 · 0.000</td><td>0.434 · evening</td><td>(642.3, 1176.8) · 0.412 <code>#FFDC7E</code></td><td>(642.3, 1176.8) · 0.269 <code>#F1A739</code></td><td>0.152 · 0.099</td></tr>
+<tr><td>01:00</td><td><code>#8C806E</code> · <code>#281E17</code></td><td>0.000 · 0.000</td><td>0.000 · true dark</td><td>none</td><td>none</td><td>0</td></tr>
+<tr><td>05:30</td><td><code>#ACA191</code> · <code>#2E241C</code></td><td>0.000 · 0.000</td><td>0.938 · before dawn</td><td>(−249.9, −245.0) · 0.891 <code>#FFE08E</code></td><td>(−249.9, −245.0) · 0.582 <code>#F6B437</code></td><td>0.375 · 0.245</td></tr>
+<tr><td>06:48</td><td><code>#FDFBF7</code> · <code>#392E26</code></td><td>0.145 · 0.053</td><td>0.734 · day</td><td>(−179.1, −186.7) · 0.697 <code>#FFE295</code></td><td>(−179.1, −186.7) · 0.455 <code>#F9BA36</code></td><td>0.383 · 0.250</td></tr>
+</tbody></table></div>
+<p>the twilight glow's radius is 832.4 (φ² × R) throughout. &quot;alpha at the corner&quot; is the glow's alpha at the corner the sun left or will return to.</p>
+<h3 id="5-sunrise-and-sunset-on-the-device-never-off-it">5 · sunrise and sunset: on the device, never off it</h3>
+<p>sunrise and sunset come from a latitude, a longitude and today's date, computed on the device with the standard sunrise equation (NOAA, <em>almanac for computers</em>, zenith 90.833°). <code>noaaSolarTime</code> in <code>dayground.js</code> is a reference implementation that returns local minutes. the dayground sends nothing anywhere: no server call, no log, no coarse location.</p>
+<p>the coordinates come from the first of three rungs that has them:</p>
+<ol>
+<li><strong>a position the surface already has in hand,</strong> for its own reasons. a platform's own solar times, where it has them and asks for nothing, count as this rung. the dayground never acquires a position: no permission prompt, and no call to the platform's position api at any authorization state. a permission already granted changes nothing, because the call is still a location request when the dayground is what makes it.</li>
+<li><strong>the system timezone's reference point.</strong> tzdb's <code>zone.tab</code> gives coordinates for each primary zone identifier (<code>America/Denver</code> → 39.74° N, 104.98° W; 418 identifiers in tzdata 2026c). <code>dayground.js</code> bundles that table and runs the same sunrise equation from the zone's point. use <code>zone.tab</code>, not <code>zone1970.tab</code>: the second drops every zone that has agreed with another since 1970 (<code>Europe/Oslo</code> among them), and devices report those identifiers. within a zone this lands sunrise within about an hour of the truth, and the 30-minute twilights absorb it. no permission, no prompt, no network.</li>
+<li><strong>06:30 and 19:30</strong>, only if the zone identifier is not in the table (a legacy alias with no row).</li>
+</ol>
+<p>there is no hand-set sunrise or sunset and no setting for the dayground at all. in polar day or night (no sunrise) hold the last valid pair. recompute once a day and when the system timezone, or the position in hand, changes.</p>
+<h3 id="6-the-grounds">6 · the grounds</h3>
+<p>the owner's appearance picks the row; the time picks which of its three grounds shows. the dayground never sets the appearance: no forced colour scheme, no theme snap, no flip by the clock.</p>
+<div class="table-scroll"><table>
+<thead><tr><th>appearance</th><th>day</th><th>night (dusk → the window, the window → dawn)</th><th>true dark</th><th>text on it</th></tr></thead>
+<tbody>
+<tr><td><strong>light</strong></td><td>surface cream <code>#FEFCF8</code></td><td><strong><code>#AEA393</code></strong>: cream mixed 0.70 toward tone <code>#E4D6BC</code>, then 0.30 toward <code>#2E241C</code> (OKLab) · L 0.72</td><td><strong><code>#8C806E</code></strong>: tone <code>#E4D6BC</code> mixed 0.45 toward <code>#2E241C</code> · L 0.61</td><td>ink 7.0:1 at night, <strong>4.4985:1</strong> at true dark (§ 9)</td></tr>
+<tr><td><strong>dark</strong></td><td><strong><code>#392E26</code></strong>: cream mixed 0.80 toward ink, then 0.45 toward the warm dark <code>#2E1906</code> · L 0.31</td><td><strong><code>#2E241C</code></strong>: cream mixed 0.90 toward ink, then 0.45 toward the warm dark · L 0.27</td><td><strong><code>#281E17</code></strong>: 0.955, then 0.45 · L 0.25</td><td>tile cream ≥ 12.0:1</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>the cross-fade:</strong> day → night linear across each 30-minute twilight, and night → true dark by <code>1 − w</code> (§ 4a), so the ground deepens exactly as the corner's light goes out and comes back as it returns.</li>
+<li><strong>content never flips:</strong> every light ground sits above OKLab L 0.5 and every dark ground below it. the warm dark <code>#2E1906</code> is orange ink's hue at ink's lightness, so the dark is warm, not a grey. the light night is the brand's own tone.</li>
+<li>the light true dark is the deepest light night at which ink <code>#1A1A1A</code> drawn straight on the ground still reads 4.5:1 rounded (4.4985:1 unrounded, so text there follows § 9). panels and content stay light while the ground behind them goes dusky.</li>
+<li><strong>a surface whose own ground is another brand ground</strong> (tile cream <code>#FCF3E4</code>, white) uses it as its light day ground and keeps the table's night and true dark. <strong>the watch</strong> has no light mode, so it is the dark row (§ 11).</li>
+</ul>
+<h3 id="7-the-glow">7 · the glow</h3>
+<p>two radial gradients, both with the stops <code>a → 0.45a → 0</code> at <code>0 % → 38 % → 100 %</code> of their radius, drawn under the logo and over the ground.</p>
+<ul>
+<li><strong>the day halo:</strong> gold, radius <code>φ · R</code>, centred on the sun, <code>a = 0.22 · env(t) · (1 − night)</code>.</li>
+<li><strong>the twilight glow:</strong> radius <code>φ² · R</code>, centred on <code>P(te)</code> (§ 4a), <code>a = 0.62 · w</code> on a dark ground and <code>0.95 · w</code> on a light ground.
+<ul>
+<li><strong>colour on dark:</strong> <code>mix(gold, orange, 0.30 + 0.50 x)</code> in OKLab: gold as the sun goes, warming toward orange as it sinks, and cooling back to gold before dawn.</li>
+<li><strong>colour on light:</strong> <code>mix(#FFF3CF, gold, 0.45 + 0.25 x)</code>, the sunrise cream-gold, so the corner reads <strong>brighter</strong> than the dimmed paper, the way the sky stays light where the sun went down. gold alone would only tint the cream.</li>
+</ul>
+</li>
+<li><strong>why φ²:</strong> at dusk and dawn the centre sits exactly one R past the corner, so with radius φ²R the corner lands at <code>1/φ² = 0.382</code> of the radius, on the gradient's own 38 % stop, and carries 0.45 a.</li>
+<li><strong>it goes out</strong> inside the true-dark window (<code>w = 0</code>). the night has a real bottom, a few hours long.</li>
+</ul>
+<p><strong>order:</strong> the ground, then the twilight glow, then the day halo, then the night sky (§ 8: the still sky, then the moving streaks), then the logo. the two glows overlap only near sunrise and sunset, below alpha 0.06. the sky comes out as the logo leaves: they share the screen only in twilight, while the logo is a fading sliver at the corner and only the brightest stars are out.</p>
+<p>the glow is a ground effect. it is never applied to the logo itself, which stays as drawn.</p>
+<h3 id="8-the-night-sky">8 · the night sky</h3>
+<p>the reference is <code>NightSky</code> and <code>NightSkyMath</code> in <code>dayground.js</code>. where this section and the code disagree, the code is right.</p>
+<p>at night the logo isn't drawn, so the sky takes its place as the one graphic. one surface still has one day: the sky comes out as the logo goes, and they share the screen only in twilight.</p>
+<p><strong>when.</strong> star visibility is <code>s = night × (1 − 0.62 · w)</code> (§ 4, § 4a), so the sky comes out as the corner's light goes. night progress <code>u</code> runs from 0 at dusk to 1 at the next dawn (½ is solar midnight). by day nothing of the night is computed or drawn.</p>
+<div class="table-scroll"><table>
+<thead><tr><th>element</th><th>the rule</th></tr></thead>
+<tbody>
+<tr><td><strong>the field: the day's road</strong></td><td>one star per 9,000 px² of the polar region about the arc's centre <code>O</code> that the night sweeps, in four levels (mix 7 · 16 · 30 · 47 %), plus 2.6 × as many fainter stars (level 2 or 3) in a stream along the arc's own circle (radius <code>Rarc</code>, Gaussian σ = side ÷ φ⁴). seeded by the surface's size, so a layout gets the same sky every night (788 stars on the phone). port the generator with every random draw, used or not: the draws nothing uses still fix which stars exist.</td></tr>
+<tr><td><strong>levels</strong></td><td>radii 1.75 · 1.38 · 1.08 · 0.85 px (× φ^−½ a step); dark alphas 0.92 · 0.64 · 0.45 · 0.31 (× φ^−¾ a step). level <em>n</em> fades in as <code>s</code> crosses 0.18 · 0.38 · 0.58 · 0.74 (smoothstep over 0.2): the brightest at dusk, all of them in true dark. each star is dimmed by <code>1 − min(0.9, 1.9 × the glow alpha at that point)</code>, so stars fade near the lit corner.</td></tr>
+<tr><td><strong>colour</strong></td><td>beam gold <code>#FFCC33</code>, every star, both appearances. no twinkle: a star never changes brightness.</td></tr>
+<tr><td><strong>on light grounds: pinholes</strong></td><td>the same gold, as bright points over the paper rather than ink: alpha <code>min(1, dark α × 1.05 + 0.08)</code>, and every star (field and tips) drawn <strong>1.1 ×</strong> larger.</td></tr>
+<tr><td><strong>the sky turns</strong></td><td>field, stream and tips rotate about <code>O</code> by <code>Δ · (u − ½)</code>, <code>Δ</code> the sun's own signed 36° (§ 3): about 2 px a minute on a phone, the sun's speed, moved on the minute tick.</td></tr>
+<tr><td><strong>the ten tips</strong></td><td>ten stars at the logo's beam-tip angles (36° steps from straight up) on radius <code>R ÷ φ</code>, the noon logo one φ rung smaller, centred where the noon sun stands, <code>P(½)</code>, turning with the sky. levels by tip 0 1 0 0 1 0 0 1 0 1; radius <code>(level r × 1.35 + 0.4) × 0.8</code>, alpha <code>min(1, level α × 1.25)</code>, a soft halo at 4.2 × r and 0.14 × alpha. they fade in as <code>s</code> goes 0.3 → 0.65. no lines.</td></tr>
+<tr><td><strong>the shower</strong></td><td>11 meteors in the 10 minutes from <strong>solar midnight</strong> (the middle of true dark), the same 11 every night (seed 1021), drawn only while <code>s &gt; 0.2</code>. each starts inside the tips and falls outward along one of the ten beam directions, 0.75 to 1.25 s long and 0.16 to 0.30 × side in length: a 1.4 px hairline, cream <code>#FCF3E4</code> on dark (peak alpha 0.95) and white on light (0.98), with a tail 0.42 of its length behind the head.</td></tr>
+<tr><td><strong>the long exposure</strong></td><td>where streaks don't move (§ 10), each trail is a still 0.9 px hairline at 0.42 × alpha. it is painted on the minute, so a trail appears at the start of the minute its streak falls in, up to 59 s before the streak would have fallen, and every trail clears when the 10 minutes end.</td></tr>
+<tr><td><strong>the aurora</strong></td><td>only inside true dark, easing in and out over 45 min (or half a shorter window). vertical rays whose lower edge follows the arc's circle (± 0.04 side of fold), rising 0.42 × side; green <code>#6CF0A8</code> at the lower edge to violet <code>#A27CFF</code> above. peak alpha 0.34 on dark and 0.42 × 1.3 on light, times the ease; added like light on dark and screened on light, so it lifts the ground. drawn at quarter resolution under a blur of about 3.6 px. <strong>it changes shape once a minute</strong> (a phase step on the tick) and never between ticks. under reduced motion or low power it holds one shape for the night.</td></tr>
+</tbody></table></div>
+<p><strong>colour outside the logo's own.</strong> the aurora's green and violet are the only colours in the dayground that are not the logo's or the grounds'. they stay in the aurora, in true dark: not a palette, and never a ui, text or brand colour.</p>
+<h3 id="9-content-on-top">9 · content on top</h3>
+<p>the dayground is a background. everything that carries meaning sits on top of it in its own container.</p>
+<ul>
+<li><strong>widgets, cards, sheets and bars</strong> keep their own fill, the platform's material or the surface's paper.</li>
+<li><strong>text never sits directly on the logo</strong> on a dark ground: cream text over gold at 0.55 on the night ground measures 3.4:1, below AA. on light grounds ink over the logo clears comfortably, but the rule is the same for consistency: give text a container.</li>
+<li><strong>the app icon, a lockup in the navigation and a small status logo</strong> stay as they are. the dayground is the surface's one graphic, and one small logo in the content does not count against it. there is never a second dayground: one surface, one day.</li>
+<li><strong>nothing reacts</strong> to the dayground: no shadows cast by the sun, no parallax, no colour sampled from it. the same holds for the night sky: nothing reacts to a star, a streak or the aurora.</li>
+</ul>
+<h4 id="9a-the-logo-on-a-dark-ground">9a · the logo on a dark ground</h4>
+<p>on surface cream at 0.55 the logo sits 0.07 / 0.15 (beams / ring) below the ground in OKLab L. on a warm dark at the same 0.55 it would sit 0.35 / 0.27 above it, about three times louder, and dim gold reads olive. <strong>on any ground below L 0.5 the peak is 0.20</strong>, which gives 0.12 / 0.09 against <code>#392E26</code>: the same weight on either ground. the colours are unchanged; only the opacity balances.</p>
+<h4 id="9b-text-over-the-light-night">9b · text over the light night</h4>
+<p>the light night goes down to <code>#8C806E</code> (§ 6). on that ground only ink <code>#1A1A1A</code> comes near AA, at <strong>4.4985:1</strong>, at the line rather than over it. softer inks fall well short (<code>#5B5246</code> 1.98:1, <code>#6E6453</code> 1.50:1, the orange text colour <code>#A15F17</code> 1.30:1), so the container rule holds in light mode at night as firmly as in dark mode.</p>
+<ul>
+<li><strong>a translucent panel over the sky is at least 95 % of its light colour.</strong> at 90 % cream, orange text <code>#A15F17</code> on the panel over the light true dark measures 4.42:1; at 95 %, 4.67:1.</li>
+<li><strong>a band that would sit on the bare ground</strong> takes an opaque panel in its own colour.</li>
+<li><strong>where a platform puts a label straight on the sky anyway</strong> (a list's section header, an empty slot, a label a large text size pushes out of its card), it takes the platform's full-strength primary label colour, never a secondary or dimmed one, and is measured on the deepest ground of both appearances, increased contrast included. black in light mode measures 5.43:1 on <code>#8C806E</code>.</li>
+</ul>
+<p>legibility is fixed in the container and the label, never by lightening the night.</p>
+<h3 id="10-motion-power-and-visibility">10 · motion, power and visibility</h3>
+<ul>
+<li>the logo moves about 1 px a minute on a phone (the phone chord is about 1550 px over about 13 hours). recompute its position <strong>once a minute</strong> and on wake, resume, and a clock or timezone change: no continuous animation, no timer under a minute. use an eased 300 ms transition when a recompute jumps more than a few pixels (after sleep).</li>
+<li>one layer, one path, one gradient. the logo is a single filled path plus one stroked circle. on composited platforms it is one static image, scaled and translated.</li>
+<li><strong>everything solar stays on the whole minute:</strong> the logo, grounds, glows, stars, tips, aurora and long exposure. the shower's moving streaks alone read a separate fractional time, so a streak is neither delayed nor replayed on resume, and a shower whose first streak ends before the next minute tick is still drawn.</li>
+<li><strong>the night is cached, not redrawn.</strong> each mounted surface builds its star catalogue once per size and keeps one still raster (aurora, stars, tips, long exposure), recomposed on the minute tick. the aurora is drawn at quarter resolution and cached. there is no full-night atlas and no continuous redraw, and daytime skips the night entirely. panes that share one screen share one raster and one shower clock and clip their part of one scene.</li>
+</ul>
+<h4 id="10a-by-surface">10a · by surface</h4>
+<div class="table-scroll"><table>
+<thead><tr><th>surface</th><th>the shower's streaks</th><th>the aurora's shape</th></tr></thead>
+<tbody>
+<tr><td><strong>solstone's apps on apple devices, at full motion</strong> (mac, iphone, ipad, the watch wrist up)</td><td>each streak animated at <strong>at most 60 fps</strong>, sleeping between streaks: no frame clock runs while no streak is falling</td><td>changes once a minute</td></tr>
+<tr><td><strong>the same, under reduce motion or low power</strong></td><td>the long exposure</td><td>one fixed shape for the night</td></tr>
+<tr><td><strong>a browser or web view</strong></td><td>the long exposure, always: a page has no power signal it can trust</td><td>changes once a minute; an unknown power state does not freeze it</td></tr>
+<tr><td><strong>a browser under <code>prefers-reduced-motion</code></strong></td><td>the long exposure</td><td>one fixed shape for the night</td></tr>
+<tr><td><strong>the apple watch, wrist down</strong></td><td>the long exposure, over black</td><td>changes once a minute, the rate always on redraws at (§ 11)</td></tr>
+<tr><td><strong>the android watch</strong></td><td>the long exposure, while the screen is interactive (§ 11)</td><td>changes once a minute</td></tr>
+<tr><td><strong>terminals</strong></td><td>no sky: glow only (§ 11)</td><td>none</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>reduce motion has something to reduce:</strong> the streaks and the aurora's minute steps. <strong>low power</strong> can also recompute every five minutes.</li>
+<li><strong>hidden work stops.</strong> a hidden browser document, or a sky scrolled out of view, runs no timer, animation frame or canvas work, the host's minute interval included. on return it samples the current time. native painters follow the scene's and the painter's own visibility (on the mac, window occlusion and minimize, not keyboard focus; on the phone and ipad, the background state; the watch's inactive always on counts as visible, its background does not) and the system's reduce motion and low power signals.</li>
+<li><strong>a web view on windows</strong> has no native power or occlusion signal: it stops only on what the page can see (document visibility, the sky in view) and always shows the long exposure. nothing describes a windows surface as reading power or occlusion.</li>
+<li><strong>an ios sheet does not pause the sky.</strong> a sheet can be half height, and pushed screens share the sky, so the shared clock keeps running until a platform shows that a sheet fully covers it. this is a known limit, not a hidden-work guarantee.</li>
+<li><strong>what it costs, and what isn't measured.</strong> the night adds a small, bounded amount of rendering, not zero. measured: 60 visible minutes in headless chrome with the gpu off went from about 0.02 s to 0.24 to 0.27 s of main-thread task time, and a hidden 180 s ran zero intervals, animation frames or canvas clears. a fresh full mac background at solar midnight took about 20 ms median cpu at scale 1 and 36 ms at retina, offscreen on a development machine. <strong>battery use, os wakeups, gpu activity, app energy impact and the watch's always-on power are not measured.</strong> so the night has no energy figure, and nothing here says it costs none.</li>
+<li>the playground on this page plays a day in 20 seconds and plays the shower on a click. those are for looking: a real surface moves on the minute.</li>
+</ul>
+<h3 id="11-platform-notes">11 · platform notes</h3>
+<p><strong>any platform.</strong> load <code>mark.svg</code> (viewBox <code>2.5 2.5 27 27</code>, tip radius 13.5 about <code>(16, 16)</code>). scale it by <code>Ø / 27</code>, translate its centre to P(t), clip to the surface, opacity α. the ground comes from § 6, the glows from § 7, the times from §§ 4 and 5. everything in §§ 3 to 7 is a pure function of <code>(W, H, m, rise, set, appearance)</code>, which is <code>calculateFrame</code> in <code>dayground.js</code>: write it once as that function and test it against <code>dayground.json</code>. <strong>read the appearance from the system; never set it.</strong> the night sky is the same kind of function, <code>NightSky</code> on that frame, plus fractional seconds for the streaks alone (§ 9).</p>
+<p><strong>web.</strong> a layer covering the viewport, fixed to it so scrolling does not move it, with the logo in a box placed at P(t) − R and sized Ø; the layer's <code>overflow: hidden</code> is the clip. the ground is the page background, and each glow is an absolutely positioned box with a <code>radial-gradient</code> at the § 7 stops. no <code>requestAnimationFrame</code>: a 60-second interval and a <code>visibilitychange</code> listener. the appearance is <code>prefers-color-scheme</code>, read live, and the page's own dark colours follow the same query, never the clock. the night adds two <code>&lt;canvas&gt;</code> layers between the halo and the logo: the still sky, repainted on the minute, and a layer for moving streaks, which stays empty in a browser (§ 10a). when the sky is hidden or out of view (<code>visibilitychange</code>, an <code>IntersectionObserver</code>), both stop, and so does the minute interval. one page is one surface: one logo per viewport.</p>
+<p><code>dayground.js</code> does all of this. <code>mount()</code> draws the dayground behind a page with a transparent background and keeps it on the minute; <code>frame(date, width, height, appearance)</code> returns one frame's numbers for a renderer of your own; <code>sunTimes(date)</code> returns sunrise and sunset from the device's timezone; <code>NightSky</code> paints the night on a canvas.</p>
+<pre><code>import { mount } from './dayground.js';
+const dayground = mount();   // dayground.stop() takes it down</code></pre>
+<p><strong>ios, ipados and watchos (swiftui).</strong> a <code>TimelineView(.everyMinute)</code> driving a <code>Canvas</code> or a <code>Path</code> built from the logo's geometry (vendor the path data, not a rasterised png). the clip is the container. mix grounds in OKLab in code with the formula, not with <code>Color.mix</code>, which blends in sRGB. read <code>@Environment(\.colorScheme)</code>, with no <code>.preferredColorScheme</code> for the dayground. position: rung 1 or nothing, with no <code>CLLocationManager</code> request or read made for the dayground at any authorization state; the zone comes from <code>TimeZone.current.identifier</code> (§ 5, rung 2). the sunrise equation is about 40 lines of swift.</p>
+<p><strong>the apple watch.</strong> the dayground is the watch's background at all times. wrist up it is the dark row with the logo at 0.20 (§ 9a). wrist down it is the dark row's logo at 0.50 over black, with no content on top. the host stays mounted for the life of the scene, so a wrist drop changes only how it draws. the night reaches the watch: wrist up it draws as on the phone (§ 10a), and wrist down it adds the aurora, stepping once a minute, beside the long exposure. watchos has no core image, so the watch's aurora blur is nine offset additive draws. the watch's text sits only on underlays: system glass on a control, a standard material behind a details panel.</p>
+<p><strong>mac.</strong> the same swift renderer as the phone, behind the setup screens. visibility follows window occlusion and minimize, not keyboard focus.</p>
+<p><strong>android.</strong> the phone app does not draw the dayground today. the wear os watch app does, over black: while the screen is interactive it draws the logo at 0.20, both glows, the stars, the ten tips and the aurora, with the shower as the long exposure. in ambient mode it shows the time and a small grey logo instead. a compose build is a <code>Canvas</code> with <code>withTransform { translate; scale }</code> drawing the logo's <code>Path</code>, a <code>clipRect</code>, and a <code>LaunchedEffect</code> ticking every minute. appearance: <code>isSystemInDarkTheme()</code>, or the app's own light, dark and system choice, resolved, never a snap by the clock. position as above: no <code>FusedLocationProvider</code> or <code>LocationManager</code> call for the dayground at any permission state; the zone comes from <code>ZoneId.systemDefault()</code>.</p>
+<p><strong>terminals.</strong> the same function, but a terminal has no logo to clip, so the dayground there is the <strong>glow only</strong>: a warm tint at the corner the day puts it, and no night sky. say so rather than drawing a low-fidelity logo.</p>
+<p><strong>a web view inside an app</strong> (windows included) follows the web note and § 10a's browser row.</p>
+<h3 id="12-acceptance-what-to-check-on-a-build">12 · acceptance: what to check on a build</h3>
+<ul>
+<li>at <code>t = 0</code> and <code>t = 1</code> no part of the logo is visible (the tip touches the corner exactly).</li>
+<li>at <code>t = ½</code> the centre matches the worked table for that frame's W × H within 1 %.</li>
+<li>the arc subtends 36.0° ± 0.1° (compute <code>2 · asin(c / 2Rarc)</code>).</li>
+<li>opacity 0.55 at the plateau on a light ground and <strong>0.20 on a dark ground</strong>; 0 outside the day.</li>
+<li><strong>the appearance equals the system's at every minute:</strong> flip the device's setting at noon and at midnight and the ground follows within a minute. nothing in the dayground sets it.</li>
+<li>the grounds match § 6's table at 13:00, 19:41 and 01:00 (the § 4a worked numbers, ± 1 per channel). light mode reads <code>#AEA393</code> at 19:41 and <code>#8C806E</code> at 01:00.</li>
+<li>where a surface draws the dark row, its content has a dark treatment.</li>
+<li>the twilight glow's radius is φ² × R. at dusk + 15 min its alpha at the dusk-side corner is ≥ 0.25 on dark and ≥ 0.40 on light; before dawn it sits beyond the top-left and rises.</li>
+<li>inside the true-dark window no glow is drawn and the ground is the true-dark ground.</li>
+<li>a sunset after local midnight (reykjavik, 21 june) reads as day until it and as evening after it, and never jumps the glow to the dawn corner. a night under five hours eases out and in with no one-minute snap.</li>
+<li>the apple watch always draws the dayground: the dark row with the logo at 0.20 while the wrist is up, the dark row's logo at 0.50 over black while it's down. its text sits only on underlays.</li>
+<li>the position updates at most once a minute, with no timer under a minute.</li>
+<li>no network call and no location request comes from the dayground. a call to the platform's position api is a request at any permission state, granted included. no hand-set time, and no setting for it.</li>
+<li>with no position in hand, the times come from the system timezone's <code>zone.tab</code> point, not a fixed default.</li>
+<li>one logo per surface; text in containers on dark grounds and on the light night (§ 9).</li>
+<li><strong>the night sky:</strong> at solar midnight on the worked frames the sky matches <code>NightSky</code> in <code>dayground.js</code> (pixel-exact in javascript for the same frame inputs; native within its rasterizer's differences). by day nothing of the night is drawn or computed.</li>
+<li><strong>motion follows § 10a on every surface:</strong> no streak moves in a browser, under reduce motion or low power, or on the watch wrist down. full motion animates only while a streak is falling, at no more than 60 fps. the aurora steps at most once a minute and holds one shape under reduce motion and low power, except on the watch wrist down, where it steps once a minute.</li>
+<li>in the long exposure a trail appears at the start of its streak's minute and every trail clears when the 10 minutes end. a streak is neither delayed nor replayed on resume.</li>
+<li>a hidden browser document runs no timer, animation frame or canvas work, and shows the current minute on return.</li>
+<li>every label on the light night clears 4.5:1 on <code>#8C806E</code>, increased contrast and the largest text sizes included; a translucent panel over the sky is at least 95 % of its light colour (§ 9b).</li>
+</ul>
+<!-- gen:dayground:spec:end -->
+                </div>
+            </section>
+
+            <section class="band wrap dg-doc" aria-labelledby="for-agents">
+                <div class="band-inner">
+<!-- gen:dayground:agents:begin -->
+<h2 id="for-agents">for agents</h2>
+<p>building something for an owner from their journal? take the dayground with you. everything you need is in these files.</p>
+<ul>
+<li><a href="/brand/dayground.md">dayground.md</a>: this page as one text file</li>
+<li><a href="/brand/dayground/dayground.js">dayground.js</a>: the engine, with no dependencies</li>
+<li><a href="/brand/dayground/dayground.json">dayground.json</a>: worked numbers to check your build against</li>
+<li><a href="/brand/assets/solstone/svg/mark.svg">mark.svg</a>: the logo</li>
+</ul>
+<p>copy these files into what you build. don't link to them from it. a link would send the owner's requests to our server, and the dayground never needs a network.</p>
+<p>the dayground never asks for a location. sunrise and sunset come from the device's timezone, worked out on the device.</p>
+<!-- gen:dayground:agents:end -->
+                </div>
+            </section>
+
+            <section class="band wrap dg-doc" aria-labelledby="using-the-dayground">
+                <div class="band-inner">
+<!-- gen:dayground:use:begin -->
+<h2 id="using-the-dayground">using the dayground</h2>
+<p>the dayground is for apps that show data from a solstone journal. that's what we made it for, and that's what we ask. it's guidance, not a rule, and the code stays open source. using it doesn't mean sol pbc built or endorses your app.</p>
+<p>the dayground crops and fades the logo on purpose. anywhere else, leave the logo as it is.</p>
+<p>not sure? just ask. there's a contact form at <a href="https://solpbc.org/contact">solpbc.org/contact</a>.</p>
+<!-- gen:dayground:use:end -->
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-row">
+                <nav aria-label="footer">
+                    <a href="/download">download</a>
+                    <a href="/phone">phone</a>
+                    <a href="/integrate">integrate</a>
+                    <a href="https://services.solstone.app">services</a>
+                    <a href="https://solpbc.org/privacy">privacy</a>
+                    <a href="/releases">releases</a>
+                    <a href="https://trust.solstone.app">trust</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a href="/brand">brand</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc. logos for sol pbc and vit are at <a href="https://solpbc.org/brands/">solpbc.org/brands</a>.</p>
+            </div>
+        </footer>
+    </div>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
+    <script type="module" src="/static/dayground-playground.js?v=6d90381853"></script>
+</body>
+</html>

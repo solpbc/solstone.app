@@ -1,0 +1,1009 @@
+{
+  "about": "Worked numbers for the dayground, computed by dayground.js. Each vector gives its inputs and what the engine returns for them. Times are local minutes since midnight; positions are pixels from the top-left corner, y down.",
+  "spec": "https://solstone.app/brand/dayground.md",
+  "module": "https://solstone.app/brand/dayground/dayground.js",
+  "values": {
+    "--sunarc-ground-light-day": "#FEFCF8",
+    "--sunarc-arc-angle": "36deg",
+    "--sunarc-bow-ratio": "0.07919",
+    "--sunarc-diameter-ratio": "1.6180339887",
+    "--sunarc-overshoot": "1",
+    "--sunarc-envelope-edge": "0.22",
+    "--sunarc-peak-opacity": "0.55",
+    "--sunarc-peak-opacity-dark": "0.20",
+    "--sunarc-twilight-minutes": "30",
+    "--sunarc-ground-light-night": "#AEA393",
+    "--sunarc-ground-light-deep": "#8C806E",
+    "--sunarc-ground-dark-day": "#392E26",
+    "--sunarc-ground-dark-night": "#2E241C",
+    "--sunarc-ground-dark-deep": "#281E17",
+    "--sunarc-glow-color": "#FFCC33",
+    "--sunarc-glow-radius-ratio": "1.6180339887",
+    "--sunarc-glow-day-alpha": "0.22",
+    "--sunarc-glow-mid-stop": "38%",
+    "--sunarc-glow-mid-ratio": "0.45",
+    "--sunarc-twilight-radius-ratio": "2.6180339887",
+    "--sunarc-twilight-alpha-dark": "0.62",
+    "--sunarc-twilight-alpha-light": "0.95",
+    "--sunarc-twilight-sink": "0.10",
+    "--sunarc-true-dark-min": "180",
+    "--sunarc-sunrise": "#FFF3CF",
+    "--orange": "#E8913A"
+  },
+  "geometry": [
+    {
+      "frame": "phone",
+      "input": {
+        "width": 393,
+        "height": 852,
+        "t": 0.5
+      },
+      "expect": {
+        "side": 393,
+        "diameter": 635.887358,
+        "R": 317.943679,
+        "A": [
+          -224.820131,
+          -224.820131
+        ],
+        "B": [
+          617.820131,
+          1076.820131
+        ],
+        "chord": 1550.583756,
+        "sagitta": 122.790728,
+        "arcRadius": 2508.964117,
+        "centre": [
+          -1806.57745,
+          1722.728257
+        ],
+        "subtendedDeg": 35.999007,
+        "position": [
+          299.576892,
+          359.271318
+        ],
+        "haloRadius": 514.443679,
+        "twilightRadius": 832.387358
+      }
+    },
+    {
+      "frame": "tablet",
+      "input": {
+        "width": 1180,
+        "height": 820,
+        "t": 0.5
+      },
+      "expect": {
+        "side": 820,
+        "diameter": 1326.787871,
+        "R": 663.393935,
+        "A": [
+          -469.09035,
+          -469.09035
+        ],
+        "B": [
+          1649.09035,
+          1289.09035
+        ],
+        "chord": 2752.796552,
+        "sagitta": 217.993959,
+        "arcRadius": 4454.237149,
+        "centre": [
+          -2115.641655,
+          3669.641023
+        ],
+        "subtendedDeg": 35.999007,
+        "position": [
+          729.23033,
+          242.26127
+        ],
+        "haloRadius": 1073.393935,
+        "twilightRadius": 1736.787871
+      }
+    },
+    {
+      "frame": "web",
+      "input": {
+        "width": 1280,
+        "height": 820,
+        "t": 0.5
+      },
+      "expect": {
+        "side": 820,
+        "diameter": 1326.787871,
+        "R": 663.393935,
+        "A": [
+          -469.09035,
+          -469.09035
+        ],
+        "B": [
+          1749.09035,
+          1289.09035
+        ],
+        "chord": 2830.463742,
+        "sagitta": 224.144424,
+        "arcRadius": 4579.908653,
+        "centre": [
+          -2065.641655,
+          3823.529736
+        ],
+        "subtendedDeg": 35.999007,
+        "position": [
+          779.23033,
+          234.34227
+        ],
+        "haloRadius": 1073.393935,
+        "twilightRadius": 1736.787871
+      }
+    },
+    {
+      "frame": "watch",
+      "input": {
+        "width": 416,
+        "height": 496,
+        "t": 0.5
+      },
+      "expect": {
+        "side": 416,
+        "diameter": 673.102139,
+        "R": 336.55107,
+        "A": [
+          -237.977544,
+          -237.977544
+        ],
+        "B": [
+          653.977544,
+          733.977544
+        ],
+        "chord": 1319.196941,
+        "sagitta": 104.467206,
+        "arcRadius": 2134.562402,
+        "centre": [
+          -1287.729176,
+          1620.618206
+        ],
+        "subtendedDeg": 35.999007,
+        "position": [
+          284.969123,
+          177.366077
+        ],
+        "haloRadius": 544.55107,
+        "twilightRadius": 881.102139
+      }
+    }
+  ],
+  "path": [
+    {
+      "frame": "phone",
+      "input": {
+        "width": 393,
+        "height": 852,
+        "t": 0
+      },
+      "expect": {
+        "position": [
+          -224.820131,
+          -224.820131
+        ]
+      }
+    },
+    {
+      "frame": "phone",
+      "input": {
+        "width": 393,
+        "height": 852,
+        "t": 0.1
+      },
+      "expect": {
+        "position": [
+          -105.656989,
+          -121.660673
+        ]
+      }
+    },
+    {
+      "frame": "phone",
+      "input": {
+        "width": 393,
+        "height": 852,
+        "t": 0.25
+      },
+      "expect": {
+        "position": [
+          60.362241,
+          46.590694
+        ]
+      }
+    },
+    {
+      "frame": "phone",
+      "input": {
+        "width": 393,
+        "height": 852,
+        "t": 0.5
+      },
+      "expect": {
+        "position": [
+          299.576892,
+          359.271318
+        ]
+      }
+    },
+    {
+      "frame": "phone",
+      "input": {
+        "width": 393,
+        "height": 852,
+        "t": 0.75
+      },
+      "expect": {
+        "position": [
+          486.933888,
+          705.522928
+        ]
+      }
+    },
+    {
+      "frame": "phone",
+      "input": {
+        "width": 393,
+        "height": 852,
+        "t": 0.9
+      },
+      "expect": {
+        "position": [
+          572.48061,
+          925.869622
+        ]
+      }
+    },
+    {
+      "frame": "phone",
+      "input": {
+        "width": 393,
+        "height": 852,
+        "t": 1
+      },
+      "expect": {
+        "position": [
+          617.820131,
+          1076.820131
+        ]
+      }
+    }
+  ],
+  "sunTimes": [
+    {
+      "input": {
+        "zone": "America/Denver",
+        "lat": 39.74,
+        "lon": -104.98,
+        "date": "2026-09-19",
+        "utcOffsetHours": -6
+      },
+      "expect": {
+        "rise": 404.494293,
+        "set": 1142.234085,
+        "riseClock": "06:44",
+        "setClock": "19:02"
+      }
+    },
+    {
+      "input": {
+        "zone": "America/Denver",
+        "lat": 39.74,
+        "lon": -104.98,
+        "date": "2026-09-23",
+        "utcOffsetHours": -6
+      },
+      "expect": {
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "riseClock": "06:48",
+        "setClock": "18:56"
+      }
+    },
+    {
+      "input": {
+        "zone": "Atlantic/Reykjavik",
+        "lat": 64.15,
+        "lon": -21.85,
+        "date": "2026-06-21",
+        "utcOffsetHours": 0
+      },
+      "expect": {
+        "rise": 174.488788,
+        "set": 1443.701439,
+        "riseClock": "02:54",
+        "setClock": "00:04"
+      }
+    },
+    {
+      "input": {
+        "zone": "Europe/London",
+        "lat": 51.51,
+        "lon": -0.13,
+        "date": "2026-12-21",
+        "utcOffsetHours": 0
+      },
+      "expect": {
+        "rise": 483.648755,
+        "set": 953.346263,
+        "riseClock": "08:04",
+        "setClock": "15:53"
+      }
+    },
+    {
+      "input": {
+        "zone": "Australia/Sydney",
+        "lat": -33.87,
+        "lon": 151.22,
+        "date": "2026-12-21",
+        "utcOffsetHours": 11
+      },
+      "expect": {
+        "rise": 340.531674,
+        "set": 1205.280163,
+        "riseClock": "05:41",
+        "setClock": "20:05"
+      }
+    }
+  ],
+  "day": [
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "05:30",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": -0.055775,
+        "night": 1,
+        "env": 0
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "06:14",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": -0.00062,
+        "night": 1,
+        "env": 0
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "06:44",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 0.036987,
+        "night": 0.016476,
+        "env": 0.261025
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "08:00",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 0.132256,
+        "night": 0,
+        "env": 0.810089
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "10:00",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 0.282681,
+        "night": 0,
+        "env": 1
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "12:53",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 0.499543,
+        "night": 0,
+        "env": 1
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "15:00",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 0.658743,
+        "night": 0,
+        "env": 1
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "17:30",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 0.846774,
+        "night": 0,
+        "env": 0.888482
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "19:02",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 0.9621,
+        "night": 0,
+        "env": 0.267313
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "19:32",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 0.999707,
+        "night": 0.992197,
+        "env": 0.002095
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-19",
+        "clock": "22:00",
+        "rise": 404.494293,
+        "set": 1142.234085
+      },
+      "expect": {
+        "t": 1.185231,
+        "night": 1,
+        "env": 0
+      }
+    }
+  ],
+  "frames": [
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "13:00",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "light",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#FEFCF8",
+        "sunOpacity": 0.55,
+        "sunPosition": [
+          308.287077,
+          372.821234
+        ],
+        "haloAlpha": 0.22,
+        "w": 0,
+        "phase": "day",
+        "twilight": null
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "13:00",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "dark",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#392E26",
+        "sunOpacity": 0.2,
+        "sunPosition": [
+          308.287077,
+          372.821234
+        ],
+        "haloAlpha": 0.22,
+        "w": 0,
+        "phase": "day",
+        "twilight": null
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "18:56",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "light",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#FDFBF7",
+        "sunOpacity": 0.144381,
+        "sunPosition": [
+          601.862094,
+          1019.649384
+        ],
+        "haloAlpha": 0.057752,
+        "w": 0.734377,
+        "phase": "day",
+        "twilight": {
+          "position": [
+            601.862094,
+            1019.649384
+          ],
+          "radius": 832.387358,
+          "alpha": 0.697658,
+          "color": "#FFE295",
+          "cornerAlpha": 0.372761
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "18:56",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "dark",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#392E26",
+        "sunOpacity": 0.052502,
+        "sunPosition": [
+          601.862094,
+          1019.649384
+        ],
+        "haloAlpha": 0.057752,
+        "w": 0.734377,
+        "phase": "day",
+        "twilight": {
+          "position": [
+            601.862094,
+            1019.649384
+          ],
+          "radius": 832.387358,
+          "alpha": 0.455314,
+          "color": "#F9BA36",
+          "cornerAlpha": 0.243276
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "19:41",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "light",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#AEA393",
+        "sunOpacity": 0,
+        "sunPosition": [
+          617.820131,
+          1076.820131
+        ],
+        "haloAlpha": 0,
+        "w": 0.993676,
+        "phase": "evening",
+        "twilight": {
+          "position": [
+            620.436353,
+            1086.721228
+          ],
+          "radius": 832.387358,
+          "alpha": 0.943992,
+          "color": "#FFE293",
+          "cornerAlpha": 0.416131
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "19:41",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "dark",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#2E241C",
+        "sunOpacity": 0,
+        "sunPosition": [
+          617.820131,
+          1076.820131
+        ],
+        "haloAlpha": 0,
+        "w": 0.993676,
+        "phase": "evening",
+        "twilight": {
+          "position": [
+            620.436353,
+            1086.721228
+          ],
+          "radius": 832.387358,
+          "alpha": 0.616079,
+          "color": "#F8B836",
+          "cornerAlpha": 0.27158
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "22:00",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "light",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#9B8F7E",
+        "sunOpacity": 0,
+        "sunPosition": [
+          617.820131,
+          1076.820131
+        ],
+        "haloAlpha": 0,
+        "w": 0.434138,
+        "phase": "evening",
+        "twilight": {
+          "position": [
+            642.279218,
+            1176.8327
+          ],
+          "radius": 832.387358,
+          "alpha": 0.412431,
+          "color": "#FFDC7E",
+          "cornerAlpha": 0.152095
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "22:00",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "dark",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#2B2119",
+        "sunOpacity": 0,
+        "sunPosition": [
+          617.820131,
+          1076.820131
+        ],
+        "haloAlpha": 0,
+        "w": 0.434138,
+        "phase": "evening",
+        "twilight": {
+          "position": [
+            642.279218,
+            1176.8327
+          ],
+          "radius": 832.387358,
+          "alpha": 0.269166,
+          "color": "#F1A739",
+          "cornerAlpha": 0.099262
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "01:00",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "light",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#8C806E",
+        "sunOpacity": 0,
+        "sunPosition": [
+          -224.820131,
+          -224.820131
+        ],
+        "haloAlpha": 0,
+        "w": 0,
+        "phase": "true dark",
+        "twilight": null
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "01:00",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "dark",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#281E17",
+        "sunOpacity": 0,
+        "sunPosition": [
+          -224.820131,
+          -224.820131
+        ],
+        "haloAlpha": 0,
+        "w": 0,
+        "phase": "true dark",
+        "twilight": null
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "05:30",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "light",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#ACA191",
+        "sunOpacity": 0,
+        "sunPosition": [
+          -224.820131,
+          -224.820131
+        ],
+        "haloAlpha": 0,
+        "w": 0.938094,
+        "phase": "before dawn",
+        "twilight": {
+          "position": [
+            -249.939788,
+            -244.955694
+          ],
+          "radius": 832.387358,
+          "alpha": 0.891189,
+          "color": "#FFE08E",
+          "cornerAlpha": 0.374883
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "05:30",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "dark",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#2E241C",
+        "sunOpacity": 0,
+        "sunPosition": [
+          -224.820131,
+          -224.820131
+        ],
+        "haloAlpha": 0,
+        "w": 0.938094,
+        "phase": "before dawn",
+        "twilight": {
+          "position": [
+            -249.939788,
+            -244.955694
+          ],
+          "radius": 832.387358,
+          "alpha": 0.581618,
+          "color": "#F6B437",
+          "cornerAlpha": 0.244661
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "06:48",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "light",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#FDFBF7",
+        "sunOpacity": 0.145264,
+        "sunPosition": [
+          -179.052047,
+          -186.738161
+        ],
+        "haloAlpha": 0.058105,
+        "w": 0.733576,
+        "phase": "day",
+        "twilight": {
+          "position": [
+            -179.052047,
+            -186.738161
+          ],
+          "radius": 832.387358,
+          "alpha": 0.696897,
+          "color": "#FFE295",
+          "cornerAlpha": 0.383399
+        }
+      }
+    },
+    {
+      "input": {
+        "date": "2026-09-23",
+        "clock": "06:48",
+        "rise": 408.259911,
+        "set": 1135.648496,
+        "appearance": "dark",
+        "width": 393,
+        "height": 852
+      },
+      "expect": {
+        "ground": "#392E26",
+        "sunOpacity": 0.052823,
+        "sunPosition": [
+          -179.052047,
+          -186.738161
+        ],
+        "haloAlpha": 0.058105,
+        "w": 0.733576,
+        "phase": "day",
+        "twilight": {
+          "position": [
+            -179.052047,
+            -186.738161
+          ],
+          "radius": 832.387358,
+          "alpha": 0.454817,
+          "color": "#F9BA36",
+          "cornerAlpha": 0.250218
+        }
+      }
+    }
+  ],
+  "nightSky": {
+    "input": {
+      "width": 393,
+      "height": 852,
+      "rise": 408.259911,
+      "set": 1135.648496
+    },
+    "expect": {
+      "solarMidnight": 51.954203,
+      "solarMidnightClock": "00:52",
+      "stars": 788,
+      "firstStars": [
+        {
+          "x": -264.23303,
+          "y": 330.579058,
+          "level": 3
+        },
+        {
+          "x": -705.079003,
+          "y": -84.898566,
+          "level": 2
+        },
+        {
+          "x": -23.444968,
+          "y": 66.210015,
+          "level": 0
+        }
+      ],
+      "meteors": [
+        {
+          "start": 44.367039,
+          "duration": 1.19024,
+          "beam": 2,
+          "length": 110.325714
+        },
+        {
+          "start": 81.482274,
+          "duration": 1.222064,
+          "beam": 4,
+          "length": 69.370163
+        },
+        {
+          "start": 126.470661,
+          "duration": 0.797001,
+          "beam": 8,
+          "length": 98.756432
+        },
+        {
+          "start": 179.30833,
+          "duration": 0.94877,
+          "beam": 3,
+          "length": 68.546229
+        },
+        {
+          "start": 260.983227,
+          "duration": 1.04628,
+          "beam": 9,
+          "length": 84.950475
+        },
+        {
+          "start": 316.750506,
+          "duration": 1.198214,
+          "beam": 6,
+          "length": 76.666787
+        },
+        {
+          "start": 355.667414,
+          "duration": 1.22023,
+          "beam": 9,
+          "length": 64.780241
+        },
+        {
+          "start": 400.774253,
+          "duration": 1.247241,
+          "beam": 1,
+          "length": 98.334325
+        },
+        {
+          "start": 446.852468,
+          "duration": 1.184993,
+          "beam": 0,
+          "length": 111.920131
+        },
+        {
+          "start": 517.297241,
+          "duration": 1.168656,
+          "beam": 9,
+          "length": 72.479339
+        },
+        {
+          "start": 583.063037,
+          "duration": 1.07805,
+          "beam": 0,
+          "length": 92.380411
+        }
+      ]
+    }
+  }
+}
