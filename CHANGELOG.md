@@ -4,6 +4,7 @@
 
 ### fixed
 
+- the page for the solstone app on phones and tablets is now at solstone.app/mobile. the old /phone address still works.
 - the phone page says the solstone app for apple watch comes with the iphone app and needs watchos 26 or later.
 - on the home page, arrows beside each part of "how your journal works" move to the previous or next part, and each device under "what goes in" links to its download page.
 - section labels, the introduction under a page title, links to the next step and small print look the same on every page, in the text styles the brand system names.
