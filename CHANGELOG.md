@@ -4,6 +4,7 @@
 
 ### fixed
 
+- on the home page, arrows beside each part of "how your journal works" move to the previous or next part, and each device under "what goes in" links to its download page.
 - section labels, the introduction under a page title, links to the next step and small print look the same on every page, in the text styles the brand system names.
 - the install page and llms.txt say how to open your journal's agents app on each computer, instead of giving its address.
 - the mac download page shows the journal app's current icon.

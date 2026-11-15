@@ -30,12 +30,43 @@
 .sf-panel h3 { margin: 0 0 4px; font-size: 18px; }
 .sf.is-live .sf-panel h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sf-lead { color: var(--ink-soft); max-width: 40em; margin: 0 0 18px; font-size: 17px; }
+
+/* previous and next: two plain round buttons level with the lead's first line, so they hold still
+   whatever a chapter's lead or stage measures. With them live the lead centres between them. */
+.sf-stage { position: relative; }
+.sf-arrow { display: none; }
+.sf.is-live .sf-arrow {
+  display: inline-flex; align-items: center; justify-content: center; position: absolute; top: -8px; z-index: 1;
+  width: 44px; height: 44px; padding: 0; border-radius: 50%; cursor: pointer;
+  background: var(--paper); border: 1.5px solid var(--hairline-2); color: var(--ink);
+}
+.sf-prev { left: 0; }
+.sf-next { right: 0; }
+.sf-arrow svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.sf-arrow:hover { border-color: var(--ink-faint); background: var(--orange-wash); }
+.sf-arrow[aria-disabled="true"] { opacity: 0.35; cursor: default; background: var(--paper); border-color: var(--hairline-2); }
+.sf.is-live .sf-lead { max-width: calc(40em + 2 * 58px); margin-inline: auto; padding-inline: 58px; text-align: center; text-wrap: balance; }
+/* on a phone the arrows float, so only the lead's first lines make room for them */
+@media (max-width: 520px) {
+  .sf.is-live .sf-arrow { position: static; margin-top: -8px; }
+  .sf.is-live .sf-prev { float: left; margin-right: 10px; }
+  .sf.is-live .sf-next { float: right; margin-left: 10px; }
+  .sf.is-live .sf-lead { max-width: none; padding-inline: 0; text-wrap: wrap; }
+  .sf.is-live .sf-panel > :not(h3):not(.sf-lead) { clear: both; }
+}
 .sf-source { margin-top: 14px; font-size: 13.5px; line-height: 1.5; color: var(--ink-faint); max-width: 60em; }
 
 /* the device row (chapter 1): each device at its own scale, bottoms aligned, labelled under */
 .sf-row { display: flex; align-items: flex-end; justify-content: center; gap: var(--sf-gap); }
-.sf-item { margin: 0; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.sf-item { position: relative; margin: 0; display: flex; flex-direction: column; align-items: center; min-width: 0; }
 .sf-item figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); text-align: center; white-space: nowrap; }
+/* each device leads to its download page: the label is the link, stretched over the whole figure */
+.sf-go { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.sf-go::after { content: ""; position: absolute; inset: 0; border-radius: 12px; }
+.sf-item:hover .sf-go { text-decoration-thickness: 2px; }
+.sf-item:hover .sf-dev { --sf-line: color-mix(in srgb, var(--ink) 45%, transparent); }
+.sf-go:focus-visible { outline: none; }
+.sf-go:focus-visible::after { outline: 2px solid var(--focus); outline-offset: 4px; }
 .sf-item[data-w="watch"] { flex: 0 1 112px; }
 .sf-item[data-w="phone"] { flex: 0 1 190px; }
 .sf-item[data-w="window"] { flex: 0 1 380px; }
