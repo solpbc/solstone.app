@@ -301,6 +301,6 @@ the dayground never asks for a location. sunrise and sunset come from the device
 
 the dayground is for apps that show data from a solstone journal. that's what we made it for, and that's what we ask. it's guidance, not a rule, and the code stays open source. using it doesn't mean sol pbc built or endorses your app.
 
-the dayground crops and fades the logo on purpose. anywhere else, leave the logo as it is.
+the dayground crops and fades the logo on purpose, and an object that carries [one moment of it](https://solstone.app/brand/system#time-of-day) crops it too. anywhere else, leave the logo as it is.
 
 not sure? just ask. there's a contact form at [solpbc.org/contact](https://solpbc.org/contact).
