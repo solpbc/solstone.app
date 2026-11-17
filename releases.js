@@ -282,7 +282,7 @@ export const RELEASE_PAGE_CONFIGS = {
     canonicalUrl: "https://solstone.app/releases/wear",
     stream: "wear",
     heading: "wear os app releases",
-    intro: "the watch app's own changes. it needs the solstone app on your android phone. get both from Google Play, or both directly from us. the direct copy does not update itself.",
+    intro: "the watch app's own changes. it needs the solstone app on your android phone. the watch app isn't on Google Play yet, so get both directly from us. the direct copy does not update itself.",
     introLink: { phrase: "directly from us", href: "/download/android#wear" },
     primaryLink: { href: "/download/android#wear", text: "get the watch app →" },
     sourceUrl: "https://github.com/solpbc/solstone-android",
