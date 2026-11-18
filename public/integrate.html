@@ -128,8 +128,8 @@
                             <dt>address</dt><dd><code>/mcp</code> on whichever route you turn on. on the journal's own computer: <code>http://127.0.0.1:7659/mcp</code></dd>
                             <dt>protocol</dt><dd>MCP 2025-03-26 over Streamable HTTP. POST JSON-RPC and get JSON back. <code>initialize</code> returns an <code>Mcp-Session-Id</code>, and DELETE ends the session.</dd>
                             <dt>sign-in</dt><dd>OAuth 2.1 hosted by the journal (PKCE S256), or a key you create for a script</dd>
-                            <dt>offers</dt><dd>journal reads and the agent's own notes. no resources, no prompts, no event stream, no stdio.</dd>
-                            <dt>writes</dt><dd>only the agent's own notes. an agent can't add to, change or delete anything else in your journal.</dd>
+                            <dt>offers</dt><dd>journal reads, the agent's own notes and its suggestions. no resources, no prompts, no event stream, no stdio.</dd>
+                            <dt>writes</dt><dd>only the agent's own notes and its suggestions, which wait for you to accept them. an agent can't change or delete anything else in your journal.</dd>
                         </dl>
                     </section>
 
@@ -175,6 +175,9 @@
 
                         <p class="small">the approval form preselects all five kinds. existing connections keep their approved kinds until you change them.</p>
 
+                        <h3>suggestions</h3>
+                        <p class="small">your agent can suggest a correction when you tell it something is wrong, when it did the work itself, or when you ask it to look. the suggestion names the agent and waits in your journal's suggestions. you can accept it, edit what happened or a name before accepting, or dismiss it. accepting uses the same correction you can make yourself, with undo. you can turn suggestions off for an agent in the agents app; suggestions already waiting stay there for you to review.</p>
+
                         <h3>how a grant shapes what the agent sees</h3>
                         <ul class="small" style="margin:10px 0 0 1.2rem">
                             <li>a tool that needs a kind you didn't grant is left out of the agent's tool list</li>
@@ -214,7 +217,8 @@
                             <tr><td><code>get_entity</code></td><td>read what the journal has noted about one entity: its type, description, the last day it came up, and notes. unless the owner has turned photo suggestions off, <code>photo.state</code> says <code>none</code>, <code>possible</code>, <code>suggested</code>, <code>confirmed</code> or <code>dismissed</code>. a suggested or confirmed photo also arrives as a JPEG image, at most 256 pixels on either side, when its source belongs to that facet</td><td>entities</td><td><code>reference</code> (required)</td></tr>
                             <tr><td><code>list_facets</code></td><td>list the facets this connection may see</td><td>nothing</td><td><code>cursor</code></td></tr>
                             <tr><td><code>get_week</code></td><td>read a week drawn from activities, even without a generated reflection. memories are derived from activities; quotes, when available, are the owner's words. it lists some of the week's activities; <code>list_activities</code> has them all.</td><td>your whole journal, with transcripts and facets</td><td><code>week</code> (any day in it, <code>YYYYMMDD</code> or <code>YYYY-MM-DD</code>; the current week when omitted)</td></tr>
-                            <tr><td><code>save_memory</code></td><td>save a note of the agent's own, up to 32 KB. the only tool that writes. retrying with the same <code>operation_id</code> and content saves it once.</td><td>nothing</td><td><code>content</code>, <code>operation_id</code> (both required)</td></tr>
+                            <tr><td><code>save_memory</code></td><td>save a note of the agent's own, up to 32 KB. retrying with the same <code>operation_id</code> and content saves it once.</td><td>nothing</td><td><code>content</code>, <code>operation_id</code> (both required)</td></tr>
+                            <tr><td><code>suggest_correction</code></td><td>suggest a correction to a recording, what happened, who said a line, or a person's name. it waits in suggestions until you accept it.</td><td>the target must be something this connection may see</td><td><code>kind</code>, <code>target</code>, <code>value</code>, <code>basis</code>, <code>reason</code>, <code>operation_id</code> (all required)</td></tr>
                             <tr><td><code>recall_memory</code></td><td>read back this connection's own notes. leave out the query to browse.</td><td>nothing</td><td><code>query</code>, <code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>continuation</code>, <code>limit</code> 1–20</td></tr>
                         </table>
                         <p class="small" style="margin-top:12px">when search or a list returns <code>next_cursor</code>, pass it back as <code>cursor</code> with the same filters to continue. the <code>reference</code> a list gives for a segment, an activity or an entity is a short name that stays the same across calls, journal restarts and grant changes, so an agent can keep it. every read checks again what the connection may see. cursors, <code>span_reference</code> and search references belong to that connection and stop working after a journal restart or grant change; list or search again for a new one. entity descriptions carry <code>description_truncated: true</code> when shortened.</p>
