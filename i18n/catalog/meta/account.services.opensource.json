@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderPrivateNetworkLanding",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "00496c5afc478f269be2610864bc6dfe7ae83b9090dcf31b987a0e500adf2162",
+  "risk": "routine",
+  "auto_merge": true
+}

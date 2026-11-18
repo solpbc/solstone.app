@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "owner-export-retained.js: ownerExportNotIncluded",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 344,
+  "source_revision": "ce495b40e3e05feb47e762a0c0e7976fa5b10b2d5c4f6c258df278c04e2d0fe6",
+  "risk": "routine",
+  "auto_merge": true
+}

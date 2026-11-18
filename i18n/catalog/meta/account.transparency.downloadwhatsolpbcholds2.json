@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: TRANSPARENCY_EXPORT_CARD",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 108,
+  "source_revision": "8b1b4387585775f4726344ce30db4ba642b3e3bc5769ea27d38134b98530f061",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

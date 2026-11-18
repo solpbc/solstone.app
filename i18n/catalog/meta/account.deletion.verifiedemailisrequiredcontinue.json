@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "credential-change.js: handleCredentialChangeRoute",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 160,
+  "source_revision": "2caf0f99fce3e517639270e1e542b6f74d447fee798ba6c49a5f0a060e3ee78f",
+  "risk": "account",
+  "auto_merge": true
+}

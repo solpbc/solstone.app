@@ -1,0 +1,28 @@
+{
+  "description": "found as js-template. Plural suffix is the English morpheme s. Exemplar for the hour line.",
+  "context": "codeExpiryText. how long a sign-in or verification code stays valid.",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "count",
+      "type": "cardinal",
+      "numeric_style": "ungrouped",
+      "min": 0,
+      "max": 2147483647
+    }
+  ],
+  "format_intent": "cardinal",
+  "max_length": 25,
+  "source_revision": "269fe0af755ad5d470039ffdb60f30cd5693bab0227fa9fa816253605df71c7a",
+  "risk": "routine",
+  "auto_merge": true,
+  "selector": {
+    "name": "count",
+    "type": "cardinal"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: TRANSPARENCY_FIELD_LABELS",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "51ec40aa9d8c82eb4323f4b0f2cb702c28f17e554980bcc303204043ffe35196",
+  "risk": "account",
+  "auto_merge": true
+}

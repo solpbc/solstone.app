@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "owner-export-path.js: ownerExportNotFound",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "9254d5be2e0dfdb1987e92da54308d7a52e0e202f2bad08cab5e0df4600b61fd",
+  "risk": "routine",
+  "auto_merge": true
+}

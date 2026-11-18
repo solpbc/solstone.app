@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: sppBillingFlashMessages",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 312,
+  "source_revision": "96959d2ca49293f8fa5a11fd2842c7f86690c67c5a60e048c74859f01944cf09",
+  "risk": "routine",
+  "auto_merge": true
+}

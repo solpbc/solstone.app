@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: withdrawalFlashMessages",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 188,
+  "source_revision": "9166ac3ed9f92f4c76e2604d77450da4fcefb3b6f93ea1b69c2372ab4841ef64",
+  "risk": "legal",
+  "auto_merge": false
+}

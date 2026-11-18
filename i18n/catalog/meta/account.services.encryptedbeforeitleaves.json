@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderBackupLanding",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 104,
+  "source_revision": "d07306350438e5c50bac32d18519b4b69bd9756dbd3aea17c55d3d2d9a45dead",
+  "risk": "routine",
+  "auto_merge": true
+}

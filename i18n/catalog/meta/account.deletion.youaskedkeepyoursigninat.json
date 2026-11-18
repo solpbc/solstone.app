@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "email.js: sendDeletionProofEmail",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 224,
+  "source_revision": "51f2b3b1f9cd20da3162a08dc124cf9324e7a1382bdc33cce362ab29976c78e0",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "services.solstone.app"
+    }
+  ]
+}

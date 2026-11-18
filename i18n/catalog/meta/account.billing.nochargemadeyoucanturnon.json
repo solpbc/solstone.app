@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: spbBillingFlashMessages",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 228,
+  "source_revision": "4dd20f257b86123c2d311b96a417764a24c25d4b0e6629eb316daf6064313bed",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 // Step-up proof ceremony for passkey/email changes at services.solstone.app.
 // A checked, non-consuming freshness window over the same
 // account_deletion_proofs table deletion/export already use, purpose
@@ -91,13 +93,13 @@ export async function handleCredentialChangeRoute(req, env, url = new URL(req.ur
       });
     } catch (error) {
       const message = error?.message === 'proof_rate_limited'
-        ? 'too many attempts; try again later'
-        : 'a verified email is required to continue';
+        ? t('account.passkey.toomanyattemptstryagainlater')
+        : t('account.deletion.verifiedemailisrequiredcontinue');
       const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
       return signedInHtml(renderCredentialChangeProofPage({ menu, next, error: message }), { status: 400 });
     }
     const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
-    return signedInHtml(renderCredentialChangeProofPage({ menu, next, status: 'code sent' }));
+    return signedInHtml(renderCredentialChangeProofPage({ menu, next, status: t('account.deletion.codesent') }));
   }
 
   if (url.pathname === '/account/credential-change/proof/otp/verify' && req.method === 'POST') {
@@ -118,7 +120,7 @@ export async function handleCredentialChangeRoute(req, env, url = new URL(req.ur
       if (error?.message !== 'proof_rate_limited') throw error;
       const menu = await loadMenuContext(env, guard.session.account_id, guard.nowMs);
       return signedInHtml(renderCredentialChangeProofPage({
-        menu, next, error: 'too many attempts; try again later',
+        menu, next, error: t('account.passkey.toomanyattemptstryagainlater'),
       }), { status: 429 });
     }
     if (result.ok) {
@@ -132,8 +134,8 @@ export async function handleCredentialChangeRoute(req, env, url = new URL(req.ur
     return signedInHtml(renderCredentialChangeProofPage({
       menu,
       next,
-      status: result.ok ? 'email verified. now verify your passkey too.' : '',
-      error: result.ok ? '' : 'that code is invalid or expired.',
+      status: result.ok ? t('account.credentialchange.emailverifiednowverifyyourpasskeytoo') : '',
+      error: result.ok ? '' : t('account.deletion.thatcodeisinvalidorexpired'),
     }), { status: result.ok ? 200 : 400 });
   }
 
@@ -147,11 +149,11 @@ export async function handleCredentialChangeRoute(req, env, url = new URL(req.ur
         purpose: CREDENTIAL_CHANGE_PURPOSE,
         ip: requestIp(req),
       });
-      return result.ok ? jsonResponse({ options: result.options }) : jsonResponse({ error: 'no active passkey' }, 400);
+      return result.ok ? jsonResponse({ options: result.options }) : jsonResponse({ error: t('account.deletion.noactivepasskey') }, 400);
     } catch (error) {
       return error?.message === 'proof_rate_limited'
-        ? jsonResponse({ error: 'too many attempts; try again later' }, 429)
-        : jsonResponse({ error: 'passkey verification could not start' }, 500);
+        ? jsonResponse({ error: t('account.passkey.toomanyattemptstryagainlater') }, 429)
+        : jsonResponse({ error: t('account.credentialchange.passkeyverificationcouldnotstart') }, 500);
     }
   }
 
@@ -167,7 +169,7 @@ export async function handleCredentialChangeRoute(req, env, url = new URL(req.ur
         assertionResponse: body?.response,
         ip: requestIp(req),
       });
-      if (!result.ok) return jsonResponse({ error: "passkey couldn't be verified" }, 400);
+      if (!result.ok) return jsonResponse({ error: t('account.credentialchange.passkeycouldntbeverified') }, 400);
       const fresh = await requireFreshCredentialChangeProof(env, {
         accountId: guard.session.account_id,
         sessionIdHash: guard.session.id_hash,
@@ -175,8 +177,8 @@ export async function handleCredentialChangeRoute(req, env, url = new URL(req.ur
       return jsonResponse({ ok: true, ready: fresh.otpVerified && fresh.passkeyVerified });
     } catch (error) {
       return error?.message === 'proof_rate_limited'
-        ? jsonResponse({ error: 'too many attempts; try again later' }, 429)
-        : jsonResponse({ error: "passkey couldn't be verified" }, 500);
+        ? jsonResponse({ error: t('account.passkey.toomanyattemptstryagainlater') }, 429)
+        : jsonResponse({ error: t('account.credentialchange.passkeycouldntbeverified') }, 500);
     }
   }
 

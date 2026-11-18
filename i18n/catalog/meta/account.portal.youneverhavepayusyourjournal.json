@@ -1,0 +1,28 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: SPP_NEVER_PAY",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 928,
+  "source_revision": "86e351ecfdd38aba20579b73d8882fa49b0e5581c4e6e68a779ef42588b5f865",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

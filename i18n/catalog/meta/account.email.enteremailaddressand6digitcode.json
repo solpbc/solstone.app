@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderEmailVerify",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 228,
+  "source_revision": "eb766e6899c7eff7788fea3a612b9b14655ecf5ee735f7833698b4ffc4a3c39e",
+  "risk": "account",
+  "auto_merge": true
+}

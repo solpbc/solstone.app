@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesScout",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "5ad09daaf7a1eda33f7423baae60a876b60c9c80e227f0709e7d5d33f89e684d",
+  "risk": "routine",
+  "auto_merge": true
+}

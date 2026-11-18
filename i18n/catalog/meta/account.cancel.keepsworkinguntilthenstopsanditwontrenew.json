@@ -1,0 +1,32 @@
+{
+  "description": "Account portal message.",
+  "context": "cancel-contract.js: EMAIL_WORDS (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "serviceName",
+      "type": "string"
+    },
+    {
+      "name": "endDate",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 268,
+  "source_revision": "b4b5eb69f41c419b49d6f401cd37795453e02e1005444fca0084c7e400cc3dd0",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "whitespace",
+      "value": " "
+    }
+  ]
+}

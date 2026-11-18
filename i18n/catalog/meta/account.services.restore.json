@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderEnableSpbRestoreConsent (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "a51558e7c5016e3a720bf5862e7a1cc9c5eb4a5b3eef1ae656628e1c4997137b",
+  "risk": "consent",
+  "auto_merge": false
+}

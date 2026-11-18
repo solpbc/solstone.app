@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support-html.js: confirmationField",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1140,
+  "source_revision": "2fec4ceb99425342996b8c04e5f2f8ee10b3f920113ae1536e8c54905f963f44",
+  "risk": "consent",
+  "auto_merge": false
+}

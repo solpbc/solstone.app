@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "email.js: sendOtpEmail",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 216,
+  "source_revision": "20e7853e0f59e5ded563726958ab676899f8ba3b131c528224f9125c35f80301",
+  "risk": "account",
+  "auto_merge": true
+}

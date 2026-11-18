@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import { json } from './index.js';
 import { verifyReachRelayToken } from './reach.js';
 
@@ -89,7 +91,7 @@ export function apnsJwtCacheKey(env) {
 // cannot open the envelope. Everything the owner reads arrives inside the
 // envelope, which this service cannot decrypt.
 export const FIXED_ALERT_TITLE = 'solstone';
-export const FIXED_ALERT_BODY = 'you have a new notification.';
+export const FIXED_ALERT_BODY = t('account.push.youhavenewnotification');
 
 // 0x01 || nonce(12) || ciphertext(1024) || tag(16)
 export const ENVELOPE_BYTES = 1053;

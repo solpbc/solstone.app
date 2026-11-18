@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: SME_PERMANENCE_PARTS",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 740,
+  "source_revision": "d220023bf4b49d00a3975e36c9c88e589d5a1b54023d255ea342bf2cad4e2449",
+  "risk": "routine",
+  "auto_merge": true
+}

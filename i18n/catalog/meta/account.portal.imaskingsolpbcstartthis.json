@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: START_NOW_BODY",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 600,
+  "source_revision": "29fd60b511fba29c1191c2e3d6b256805c942639406234061aa275fd3c98447d",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

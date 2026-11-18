@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support.js: supportSignInPrompt",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 272,
+  "source_revision": "0c51c08bab04a21b90390f663806d66e2641cb252282a7e082dccfc1759dab60",
+  "risk": "account",
+  "auto_merge": true
+}

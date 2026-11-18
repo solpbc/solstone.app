@@ -1,0 +1,29 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderWithdrawal (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "service",
+      "type": "string"
+    },
+    {
+      "name": "date",
+      "type": "string"
+    },
+    {
+      "name": "refund",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 688,
+  "source_revision": "b2c9be090364cbb69fe51f7f4879019eae8a2aa95df5b2f8e904a135ee3c38df",
+  "risk": "legal",
+  "auto_merge": false
+}

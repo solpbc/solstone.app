@@ -1,0 +1,28 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderSmeLanding",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1236,
+  "source_revision": "16790817634eb0e12b0d99a81af8e400768247eace1d343ec599d53e0d5a6ed5",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "solstone.me"
+    }
+  ]
+}

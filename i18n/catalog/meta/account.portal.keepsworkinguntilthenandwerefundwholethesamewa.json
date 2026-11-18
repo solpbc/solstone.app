@@ -1,0 +1,33 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: CANCEL_WORDS (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "service",
+      "type": "string"
+    },
+    {
+      "name": "months",
+      "type": "string"
+    },
+    {
+      "name": "monthsLabel",
+      "type": "string"
+    },
+    {
+      "name": "amount",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 456,
+  "source_revision": "2c7cb50cf10dc64369fe22c4bcc0ed39b53e62a21481511e6046adfaadcddd2d",
+  "risk": "payment",
+  "auto_merge": false
+}

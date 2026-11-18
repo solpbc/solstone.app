@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support-html.js: renderSupportTombstone",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "b225687e04cf9b24c7ce4569940e145668427028560c0d4cf907f09c5ed368ab",
+  "risk": "account",
+  "auto_merge": true
+}

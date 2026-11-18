@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: BILLING_PAST_DUE",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 436,
+  "source_revision": "fa34880a9738e332e6e0f081e09fede971e88526a8a6bbfe485bf3f52d94095f",
+  "risk": "payment",
+  "auto_merge": false
+}

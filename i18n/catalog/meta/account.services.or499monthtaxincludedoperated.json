@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderBackupLanding",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 212,
+  "source_revision": "194d41138e96c60feb7f13109ba4fab57d62b727b1fe839406dcfb64c28eb2c0",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

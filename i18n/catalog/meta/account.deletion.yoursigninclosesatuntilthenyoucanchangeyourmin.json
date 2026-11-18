@@ -1,0 +1,21 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: deletionDeadlineLine",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "deadline",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 272,
+  "source_revision": "70d428f8537ad8af3fa8369a1b9d31aca8dba766e62c96995f82157fcb8c4cef",
+  "risk": "account",
+  "auto_merge": true
+}

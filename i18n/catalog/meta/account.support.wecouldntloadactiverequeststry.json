@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support.js: ACTIVE_FAILURE",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 176,
+  "source_revision": "862dc152ea959883d0bf81a5e5bbd47af9af71aa3e8d456127f4e146a31bb31f",
+  "risk": "account",
+  "auto_merge": true
+}

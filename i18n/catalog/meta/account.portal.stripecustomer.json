@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: TRANSPARENCY_FIELD_LABELS",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "a564f5cbafe206ce3698f380f519f3728d52d3278251ef3b391b61f7dc63a4d0",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Stripe"
+    }
+  ]
+}

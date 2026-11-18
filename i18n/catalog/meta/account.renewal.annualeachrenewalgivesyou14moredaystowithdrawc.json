@@ -1,0 +1,38 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: RULES_L1_WITHDRAWAL_LAST_SENTENCE (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 980,
+  "source_revision": "08b5267d6002d7e697b1dd3b0929639bfb2acdcaab4a6bc47f59d4d8d2d2a185",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "flag",
+      "value": "[ANNUAL]"
+    },
+    {
+      "name": "slot-2",
+      "kind": "flag",
+      "value": "[/ANNUAL]"
+    },
+    {
+      "name": "slot-3",
+      "kind": "flag",
+      "value": "[MONTHLY]"
+    },
+    {
+      "name": "slot-4",
+      "kind": "flag",
+      "value": "[/MONTHLY]"
+    }
+  ]
+}

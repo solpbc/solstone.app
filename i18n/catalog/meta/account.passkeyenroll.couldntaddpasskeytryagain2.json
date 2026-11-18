@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "inline/passkey-enroll.js: page or message",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 128,
+  "source_revision": "2b9fce9659c034328a981cb2fd0e98292ca44b890310ba7fcba2996773eacd61",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "support-html.js: renderCreateSection",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 124,
+  "source_revision": "88a1c6e1f5d3afde5faaa345c0d6e573772342e8573b38b7a1e824bce3a223c9",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "."
+    }
+  ]
+}

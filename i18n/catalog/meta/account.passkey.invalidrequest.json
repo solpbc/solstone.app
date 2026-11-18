@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "passkey.js: methodAndOriginGuard",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "e4c72a302c4cdae588f08ec89264d403160028e5e21f0d474ddf41200991d258",
+  "risk": "account",
+  "auto_merge": true
+}

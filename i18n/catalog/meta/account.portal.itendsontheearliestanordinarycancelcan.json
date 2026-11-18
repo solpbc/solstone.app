@@ -1,0 +1,21 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: CANCEL_WORDS",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "date",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 220,
+  "source_revision": "05c7c84ce888ce1f2881d28c821255e6baec74d58f717e9b184b47cdba915cea",
+  "risk": "routine",
+  "auto_merge": true
+}

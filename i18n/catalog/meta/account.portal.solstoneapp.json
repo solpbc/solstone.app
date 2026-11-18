@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: footer",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "10822866c04eb1dfc467410935afed217c4704254191c33f3232e825741efbf5",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "solstone.app"
+    }
+  ]
+}

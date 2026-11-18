@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import {
   decryptEmail,
   encryptEmail,
@@ -63,10 +65,10 @@ const PROOF_MAX_ATTEMPTS = 5;
 const PROOF_ACCOUNT_LIMIT = 10;
 const PROOF_IP_LIMIT = 20;
 const STATUS_COOKIE = 'account_deletion_status';
-const KEEP_FAILED = "that didn't go through. go back to the services portal to see where your sign-in stands.";
-const DELETION_RUNNING_LINE = 'sol pbc is deleting what it held for your sign-in.';
-const DELETION_DELAYED_LINE = 'this is taking longer than usual. sol pbc keeps trying until every part is done.';
-const DELETION_COMPLETE_LINE = 'your sign-in is closed, and sol pbc has deleted what it held for it, apart from the few records the privacy policy names. your journal is still on your devices.';
+const KEEP_FAILED = t('account.deletion.thatdidntgothroughgoback');
+const DELETION_RUNNING_LINE = t('account.deletion.solpbcisdeletingwhatitheld');
+const DELETION_DELAYED_LINE = t('account.deletion.thisistakinglongerthanusualsol');
+const DELETION_COMPLETE_LINE = t('account.deletion.yoursigninisclosedandsol');
 
 function isUniqueViolation(error) {
   return typeof error?.message === 'string' && error.message.includes('UNIQUE constraint failed');
@@ -273,7 +275,7 @@ export async function handleDeletionOtpStart(req, env) {
   const guard = await deletionGuard(req, env);
   if (guard instanceof Response) return guard;
   const purpose = await requestPurpose(req, env, guard.session.account_id);
-  if (!purpose) return refusal(400, "that request didn't go through. go back and try again.");
+  if (!purpose) return refusal(400, t('account.deletion.thatrequestdidntgothroughgo'));
   try {
     await startEmailProof(env, {
       accountId: guard.session.account_id,
@@ -282,11 +284,11 @@ export async function handleDeletionOtpStart(req, env) {
       ip: requestIp(req),
     });
   } catch (error) {
-    if (error?.message === 'proof_rate_limited') return refusal(429, 'too many tries. please wait a while and try again.');
-    return refusal(400, 'a verified email is required to continue');
+    if (error?.message === 'proof_rate_limited') return refusal(429, t('account.deletion.toomanytriespleasewaitwhileand'));
+    return refusal(400, t('account.deletion.averifiedemailisrequiredtocontinue'));
   }
   const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
-  return signedInHtml(renderDeletionProofPage({ menu, purpose, status: 'code sent' }));
+  return signedInHtml(renderDeletionProofPage({ menu, purpose, status: t('account.deletion.codesent2') }));
 }
 
 export async function handleDeletionOtpVerify(req, env) {
@@ -294,7 +296,7 @@ export async function handleDeletionOtpVerify(req, env) {
   if (guard instanceof Response) return guard;
   const form = await req.formData();
   const purpose = normalizePurpose(form.get('purpose'));
-  if (!purpose) return refusal(400, "that request didn't go through. go back and try again.");
+  if (!purpose) return refusal(400, t('account.deletion.thatrequestdidntgothroughgo'));
   let result;
   try {
     result = await verifyEmailProof(env, {
@@ -305,15 +307,15 @@ export async function handleDeletionOtpVerify(req, env) {
       ip: requestIp(req),
     });
   } catch (error) {
-    if (error?.message === 'proof_rate_limited') return refusal(429, 'too many tries. please wait a while and try again.');
+    if (error?.message === 'proof_rate_limited') return refusal(429, t('account.deletion.toomanytriespleasewaitwhileand'));
     throw error;
   }
   const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
   return signedInHtml(renderDeletionProofPage({
     menu,
     purpose,
-    status: result.ok ? 'code confirmed' : '',
-    error: result.ok ? '' : 'that code is invalid or expired.',
+    status: result.ok ? t('account.deletion.codeconfirmed') : '',
+    error: result.ok ? '' : t('account.deletion.thatcodeisinvalidorexpired2'),
   }), { status: result.ok ? 200 : 400 });
 }
 
@@ -322,7 +324,7 @@ export async function handleDeletionPasskeyStart(req, env) {
   if (guard instanceof Response) return guard;
   const body = await jsonBody(req);
   const purpose = normalizePurpose(body?.purpose);
-  if (!purpose) return jsonError(400, "that request didn't go through. go back and try again.");
+  if (!purpose) return jsonError(400, t('account.deletion.thatrequestdidntgothroughgo'));
   try {
     const result = await startPasskeyProof(env, {
       accountId: guard.session.account_id,
@@ -330,11 +332,11 @@ export async function handleDeletionPasskeyStart(req, env) {
       purpose,
       ip: requestIp(req),
     });
-    return result.ok ? jsonResponse({ options: result.options }) : jsonError(400, 'no active passkey');
+    return result.ok ? jsonResponse({ options: result.options }) : jsonError(400, t('account.deletion.noactivepasskey2'));
   } catch (error) {
     return error?.message === 'proof_rate_limited'
-      ? jsonError(429, 'too many tries. please wait a while and try again.')
-      : jsonError(500, 'passkey proof could not start');
+      ? jsonError(429, t('account.deletion.toomanytriespleasewaitwhileand'))
+      : jsonError(500, t('account.deletion.passkeyproofcouldnotstart'));
   }
 }
 
@@ -343,7 +345,7 @@ export async function handleDeletionPasskeyFinish(req, env) {
   if (guard instanceof Response) return guard;
   const body = await jsonBody(req);
   const purpose = normalizePurpose(body?.purpose);
-  if (!purpose) return jsonError(400, "that request didn't go through. go back and try again.");
+  if (!purpose) return jsonError(400, t('account.deletion.thatrequestdidntgothroughgo'));
   try {
     const result = await finishPasskeyProof(env, {
       accountId: guard.session.account_id,
@@ -352,11 +354,11 @@ export async function handleDeletionPasskeyFinish(req, env) {
       assertionResponse: body?.response,
       ip: requestIp(req),
     });
-    return result.ok ? jsonResponse({ ok: true }) : jsonError(400, 'passkey proof could not be verified');
+    return result.ok ? jsonResponse({ ok: true }) : jsonError(400, t('account.deletion.passkeyproofcouldnotbeverified'));
   } catch (error) {
     return error?.message === 'proof_rate_limited'
-      ? jsonError(429, 'too many tries. please wait a while and try again.')
-      : jsonError(500, 'passkey proof could not be verified');
+      ? jsonError(429, t('account.deletion.toomanytriespleasewaitwhileand'))
+      : jsonError(500, t('account.deletion.passkeyproofcouldnotbeverified'));
   }
 }
 
@@ -374,8 +376,8 @@ export async function handleDeletionConfirm(req, env) {
       menu,
       purpose: 'delete',
       error: fresh.passkeyRequired
-        ? 'confirm with both your email code and your passkey to continue.'
-        : 'confirm with your email code to continue.',
+        ? t('account.deletion.confirmwithbothyouremailcodeand')
+        : t('account.deletion.confirmwithyouremailcodecontinue'),
     }), { status: 400 });
   }
   const readiness = await checkDeletionReadiness(env);
@@ -399,14 +401,14 @@ export async function handleDeletionConfirm(req, env) {
       cancellationDeadlineAt: requestedAt + CANCELLATION_WINDOW_MS,
     });
   } catch (error) {
-    if (isUniqueViolation(error)) return refusal(409, "you've already asked to close your sign-in.");
+    if (isUniqueViolation(error)) return refusal(409, t('account.deletion.youvealreadyaskedcloseyoursign'));
     throw error;
   }
-  if (!result.created) return refusal(409, "your request can't be confirmed right now. please try again.");
+  if (!result.created) return refusal(409, t('account.deletion.yourrequestcantbeconfirmedright2'));
   const captured = await captureDeletionSnapshotForAccount(env, guard.session.account_id, operationId);
   const current = await getActiveDeletionForAccount(env.DB, guard.session.account_id);
   if (!captured && (!current || current.operation_id !== operationId || current.phase !== 'frozen')) {
-    return refusal(409, "your request went through, but this page didn't finish. go back to the services portal to see where it stands, or to change your mind.");
+    return refusal(409, t('account.deletion.yourrequestwentthroughbutthispage'));
   }
   // Every service stops here and no renewal is charged. The coordinator applies the hold again
   // on its next pass, which also covers a failure here.
@@ -438,7 +440,7 @@ export async function handleDeletionCancel(req, env) {
     return signedInHtml(renderDeletionProofPage({
       menu,
       purpose: 'cancel',
-      error: "confirm it's you with a fresh code, and your passkey if you set one up.",
+      error: t('account.deletion.confirmitsyouwithfreshcode'),
     }), { status: 400 });
   }
   const result = await consumeProofsAndCancelDeletionRequest(env.DB, {
@@ -466,11 +468,11 @@ export async function handleDeletionStatus(req, env) {
     const tokenHash = await hashWithPepper(token, env);
     const completion = await getCompletionVerifier(env.DB, tokenHash);
     if (completion) {
-      if (completion.expires_at <= Date.now()) return signedInHtml(renderDeletionStatus({ state: 'this status link has expired.' }), { status: 410 });
+      if (completion.expires_at <= Date.now()) return signedInHtml(renderDeletionStatus({ state: t('account.deletion.thisstatuslinkhasexpired') }), { status: 410 });
       return signedInHtml(renderDeletionStatus({ state: DELETION_COMPLETE_LINE }));
     }
     const row = await getDeletionByStatusTokenHash(env.DB, tokenHash);
-    if (!row) return signedInHtml(renderDeletionStatus({ state: 'this status link has expired.' }), { status: 410 });
+    if (!row) return signedInHtml(renderDeletionStatus({ state: t('account.deletion.thisstatuslinkhasexpired') }), { status: 410 });
     if ((row.phase === 'requested' || row.phase === 'frozen') && Date.now() >= row.cancellation_deadline_at) {
       return signedInHtml(renderDeletionStatus({ state: DELETION_PAST_DEADLINE_LINE }));
     }
@@ -481,14 +483,14 @@ export async function handleDeletionStatus(req, env) {
         && guard.session.account_id === row.account_id
         && nowMs < row.cancellation_deadline_at;
       return signedInHtml(renderDeletionStatus({
-        state: `your services are stopping, and your sign-in closes at ${formatDeadline(row.cancellation_deadline_at)}. until then, you can change your mind.`,
+        state: t('account.deletion.yourservicesarestoppingandyoursigninclosesatun', { deadline: formatDeadline(row.cancellation_deadline_at) }),
         canCancel,
         // Display only: point a receipt-only viewer at sign-in, which during a
         // cancellable hold lands on /account/delete (index.js, passkey.js).
         canSignInToCancel: !canCancel && deletionIsCancellable(row, nowMs),
       }));
     }
-    if (row.phase === 'cancelled') return signedInHtml(renderDeletionStatus({ state: 'you kept your sign-in, and sol pbc deleted nothing.' }));
+    if (row.phase === 'cancelled') return signedInHtml(renderDeletionStatus({ state: t('account.deletion.youkeptyoursigninandsol') }));
     if (row.phase === 'purging') {
       // Between passes a purge is waiting on a part that is not done yet: slow, not stuck.
       return signedInHtml(renderDeletionStatus({ state: row.lease_token ? DELETION_RUNNING_LINE : DELETION_DELAYED_LINE }));
@@ -500,7 +502,7 @@ export async function handleDeletionStatus(req, env) {
 }
 
 async function deletionGuard(req, env) {
-  if (!strictDeletionOriginAllowed(req)) return refusal(403, "that request didn't go through. go back and try again.");
+  if (!strictDeletionOriginAllowed(req)) return refusal(403, t('account.deletion.thatrequestdidntgothroughgo'));
   return requireSignedInSession(req, env);
 }
 

@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: formatRelativeTime",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "823def133635a3b0d655bb9f2266d6a236e2057253451dc6445efda1a59b2579",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: TURN_ON_CARD_1",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 636,
+  "source_revision": "d235d6c7b070d765f900bfbefd49acda1c5aa84f478484d92d24fa47ad57175f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

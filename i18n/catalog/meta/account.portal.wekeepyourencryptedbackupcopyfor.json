@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: BACKUP_WITHDRAWAL_RETENTION",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 488,
+  "source_revision": "3ff529623c5003ad157abe17d554f994b363b97c005ea68398a6390d19467760",
+  "risk": "legal",
+  "auto_merge": false
+}

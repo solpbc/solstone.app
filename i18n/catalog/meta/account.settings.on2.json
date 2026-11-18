@@ -1,0 +1,25 @@
+{
+  "description": "Account portal message.",
+  "context": "settings.js: uaLabel",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "browser",
+      "type": "string"
+    },
+    {
+      "name": "operatingSystem",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "92c7aff34b3bd9d28ff2c10317ce6dba7c4fe5673eb77f8fea12b122a57a1b26",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: DELETION_STATUS_SIGN_IN_LINK",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "177dc89fbe4da5fd0d0440fe91b888ad33aa3cb364cc98e44592eae912143d30",
+  "risk": "routine",
+  "auto_merge": true
+}

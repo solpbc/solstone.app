@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "deletion.js: handleDeletionPasskeyFinish",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 140,
+  "source_revision": "b876b90204361b5a0acd61d974a9477996ef525f3aef573a1d74336f306321c5",
+  "risk": "account",
+  "auto_merge": true
+}

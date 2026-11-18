@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesTerms",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "61953ece00555e34ab8c25b8f89ca27db3f9047a27b197bea00b8ee43a2c9671",
+  "risk": "legal",
+  "auto_merge": false
+}

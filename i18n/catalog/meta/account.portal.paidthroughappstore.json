@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: TRANSPARENCY_SOURCE_NAMES",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 104,
+  "source_revision": "40f5451baf911a1af105faa3309de4a0554cc79b1aed23f012afa91624e62a4e",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "App Store"
+    }
+  ]
+}

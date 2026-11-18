@@ -1,0 +1,16 @@
+{
+  "description": "Legal or pre-contract. Flag only. Not rewritten.",
+  "context": "Confidential processing plan description on the portal and in Checkout custom text.",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 407,
+  "source_revision": "c86e7acd08a7a1d0bf3d784efbadf4a2bd8217fd9fce79cbe681fc79bdc95ed3",
+  "risk": "legal",
+  "auto_merge": false
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "owner-data-inventory.js: TABLES",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 132,
+  "source_revision": "36a0b0f2a28042244b73cb4f4067fd354e7cfc1e970d06678634a81e7682863f",
+  "risk": "account",
+  "auto_merge": true
+}

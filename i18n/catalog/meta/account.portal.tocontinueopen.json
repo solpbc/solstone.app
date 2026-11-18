@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderForbidden",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "569bfbb73a19f4a6df752443b2aa5f72d5fe607c7b52045265ed8590f5051fec",
+  "risk": "routine",
+  "auto_merge": true
+}

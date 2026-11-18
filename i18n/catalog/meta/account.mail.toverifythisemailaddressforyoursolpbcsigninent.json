@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "email.js: sendVerifyEmail",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 284,
+  "source_revision": "8aca004b470459e7e02c12732463242fe090fb37141fe9168958765feeed968e",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

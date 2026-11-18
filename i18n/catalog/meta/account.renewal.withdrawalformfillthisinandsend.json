@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: L1_WITHDRAWAL_BLOCK",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 304,
+  "source_revision": "f4c38d1ce4e2c79d2a3ee970ad8cdae41a484b6619e1f14d5364dd70412d2fb2",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "*"
+    }
+  ]
+}

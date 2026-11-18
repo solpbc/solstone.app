@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: monthsWord",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "b1d6bbebcedcfbd26abbc0092bd5c7bb1ec4e8b76c1bdbffb20724dd56b3f03c",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -4,6 +4,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { FONT_FILES, PORTAL_CSS } from '../src/assets.js';
+import { renderSupportDetail } from '../src/support-html.js';
 
 const srcDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 const sourceFiles = listJsFiles(srcDir)
@@ -180,12 +181,16 @@ describe('static source checks', () => {
   });
 
   it('describes the close boundary without claiming every support record disappears', () => {
-    expect(source).toContain('the support service permanently removes submitted request details');
-    expect(source).toContain('working classification');
-    expect(source).toContain('limited delivery and retry records remain');
-    expect(source).not.toContain('support-side metadata');
-    expect(source).toContain('closing removes that summary with the rest of the request details');
-    expect(source).toContain('the narrow ownership and closure records needed to show it to me');
+    const page = renderSupportDetail({
+      request: { id: 'synthetic', subject: 'example', status: 'open' },
+      forms: { reply: { operationKey: 'reply' }, close: { operationKey: 'close' } },
+    });
+    expect(page).toContain('the support service permanently removes submitted request details');
+    expect(page).toContain('working classification');
+    expect(page).toContain('limited delivery and retry records remain');
+    expect(page).not.toContain('support-side metadata');
+    expect(page).toContain('closing removes that summary with the rest of the request details');
+    expect(page).toContain('the narrow ownership and closure records needed to show it to me');
   });
 
   it('keeps embedded font blobs in sync with source files', () => {

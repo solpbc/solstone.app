@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "cancel-contract.js: EMAIL_WORDS (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 280,
+  "source_revision": "f8299ef78d170c217ff2ccfbccfb2b5a625fc8a396ef89fc9e7d70a3bf3fbecd",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "services.solstone.app"
+    }
+  ]
+}

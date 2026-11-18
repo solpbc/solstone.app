@@ -1,0 +1,21 @@
+{
+  "description": "Account portal message.",
+  "context": "settings.js: passkeyViewRow",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "date",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "e7c78b3fb69fd80f516db9b2bb0fb22268a0a30fbece9ca2f30fdafec778c452",
+  "risk": "routine",
+  "auto_merge": true
+}

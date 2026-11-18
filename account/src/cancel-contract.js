@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 // The cancel function: one page per paid subscription, reachable from its service's page and
 // the billing page, where the owner sees what they are canceling, may give their name, picks the
 // type of cancel and when it ends, checks a summary, and presses one cancel button. Then, in this
@@ -542,31 +544,31 @@ function emailView(env, record, def, email, statement, plan, nowMs) {
 // The confirmation email, in the approved wording. Each paragraph is a list of parts: plain text,
 // or { b } bold, or { i } italic (quoted in the text part); branches that don't apply are left out.
 const EMAIL_WORDS = {
-  subject: (v) => `your ${v.serviceName} subscription ends on ${v.endDate}`,
-  heading: (v) => `${v.serviceName} ends on ${v.endDate}`,
-  lead: "we received your cancellation. keep this email: it's your record of it.",
+  subject: (v) => t('account.cancel.yoursubscriptionendson', { serviceName: v.serviceName, endDate: v.endDate }),
+  heading: (v) => t('account.cancel.endson', { serviceName: v.serviceName, endDate: v.endDate }),
+  lead: t('account.cancel.wereceivedyourcancellationkeepthisemailit'),
   sent: (v) => [
-    { b: 'what you sent us.' },
-    ` a cancellation of your ${v.serviceName} subscription (${v.price} every ${v.interval}), to end on ${v.endDate}.`,
-    v.reason ? ` you gave a serious reason: "${v.reason}".` : '',
+    { b: t('account.cancel.whatyousentus2') },
+    t('account.cancel.acancellationofyoursubscriptioneverytoendon', { serviceName: v.serviceName, price: v.price, interval: v.interval, endDate: v.endDate }),
+    v.reason ? t('account.cancel.yougaveaseriousreason', { reason: v.reason }) : '',
   ],
   from: (v) => [
     { b: 'from.' },
-    ` ${v.name ? `${v.name}, ` : ''}${v.email}, the address you're signed in with. this confirmation goes there.`,
+    t('account.cancel.theaddressyouresignedinwiththisconfirmationgoe', { name: v.name ? `${v.name}, ` : '', email: v.email }),
   ],
   received: (v) => [{ b: 'received.' }, ` ${v.submitted}.`],
   now: (v) => [
-    { b: 'what happens now.' },
-    v.endsToday ? ` ${v.serviceName} stopped when you canceled, and it won't renew.` : ` ${v.serviceName} keeps working until ${v.endDate}, then stops, and it won't renew.`,
-    v.refund ? ` we're refunding ${v.refund} for the ${v.refundMonths} whole ${v.refundMonths === 1 ? 'month' : 'months'} left, the same way you paid, within 14 days.` : '',
-    v.cause ? " we'll answer your reason, and whether we refund more." : '',
-    ...(v.windowDate ? [` you can still withdraw for a full refund until the end of the 14th day after ${v.windowDate}, with `, { i: 'withdraw from contract here' }, '.'] : []),
-    v.service === 'spb_hosted' ? ' after it stops, we keep your encrypted backup copy for 30 days, then delete it for good. if you offloaded media into it, that copy is the only one, and subscribing again within those 30 days is the way to keep it.' : '',
-    v.service === 'sme_hosted' ? ' your solstone.me address stays reserved for you, and subscribing again gives you the same one.' : '',
+    { b: t('account.cancel.whathappensnow') },
+    v.endsToday ? t('account.cancel.stoppedwhenyoucanceledanditwontrenew', { serviceName: v.serviceName }) : t('account.cancel.keepsworkinguntilthenstopsanditwontrenew', { serviceName: v.serviceName, endDate: v.endDate }),
+    v.refund ? t('account.cancel.wererefundingforthewholeleftthesamewayyoupaidw', { refund: v.refund, refundMonths: v.refundMonths, pluralSuffix: v.refundMonths === 1 ? 'month' : 'months' }) : '',
+    v.cause ? t('account.cancel.wellansweryourreasonandwhetherwerefundmore') : '',
+    ...(v.windowDate ? [t('account.cancel.youcanstillwithdrawforafullrefunduntiltheendof', { windowDate: v.windowDate }), { i: t('account.portal.withdrawfromcontracthere') }, '.'] : []),
+    v.service === 'spb_hosted' ? t('account.cancel.afteritstopswekeepyourencryptedbackupcopyfor30') : '',
+    v.service === 'sme_hosted' ? t('account.cancel.yoursolstonemeaddressstaysreservedforyouandsub') : '',
   ],
-  changed: 'changed your mind? subscribe again anytime from services.solstone.app.',
-  questions: 'questions: support@solstone.app.',
-  signoff: 'sol pbc',
+  changed: t('account.cancel.changedyourmindsubscribeagainanytimefromservic'),
+  questions: t('account.renewal.questionssupportsolstoneapp'),
+  signoff: t('account.portal.solpbc'),
 };
 
 // Plain text has no italic, so an italic label is quoted there instead.

@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "rules-words.js: KEY_FACTS_PAGE_HEADING (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 140,
+  "source_revision": "1b8baecd9ceeaedc2aaed324fa11cbbba3b23d86e1fedfeb1bb4df79f4a3b6a4",
+  "risk": "legal",
+  "auto_merge": false
+}

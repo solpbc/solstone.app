@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run && vitest run --config vitest.static.config.js",
+    "test": "node ../i18n/update.mjs --check && vitest run && vitest run --config vitest.static.config.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },

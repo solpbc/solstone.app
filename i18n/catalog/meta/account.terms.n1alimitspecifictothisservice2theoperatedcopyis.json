@@ -1,0 +1,43 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesTerms (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2948,
+  "source_revision": "e0df077dc502c05622648c1ef96544ab3a527f322d89fd1bb72d5f97b0978826",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "flag",
+      "value": "[1]"
+    },
+    {
+      "name": "slot-2",
+      "kind": "flag",
+      "value": "[2]"
+    },
+    {
+      "name": "slot-3",
+      "kind": "flag",
+      "value": "[3]"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-5",
+      "kind": "flag",
+      "value": "[4]"
+    }
+  ]
+}

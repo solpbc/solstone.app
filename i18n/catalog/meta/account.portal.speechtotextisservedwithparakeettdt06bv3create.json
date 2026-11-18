@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderConfidentialProcessingData",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 324,
+  "source_revision": "e2d01f7a9124571556742c3ba40a6ed774d585146508fd172abdfb45e72d9e47",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import { credentialChangeStepUpPath, requireFreshCredentialChangeProof } from './credential-change.js';
 import { decryptEmail } from './crypto.js';
 import {
@@ -270,10 +272,10 @@ function passkeyViewRow(row, nowMs) {
     credential_id: row.credential_id,
     name: passkeyLabel(row.friendly_name, row.aaguid),
     friendlyNameInput: row.friendly_name || '',
-    addedText: `added ${formatDate(row.created_at)}`,
+    addedText: t('account.settings.added', { date: formatDate(row.created_at) }),
     lastUsedText: row.last_used_at == null
-      ? 'never used'
-      : `last used ${formatRelativeTime(row.last_used_at, nowMs)}`,
+      ? t('account.settings.neverused')
+      : t('account.settings.lastused', { relativeTime: formatRelativeTime(row.last_used_at, nowMs) }),
   };
 }
 
@@ -286,10 +288,10 @@ export function sessionDisplayLabel(row) {
 
 export function uaLabel(ua) {
   const value = typeof ua === 'string' ? ua.trim() : '';
-  if (!value) return 'unknown device';
+  if (!value) return t('account.settings.unknowndevice');
   const browser = detectBrowser(value);
-  if (!browser) return 'unknown device';
-  return `${browser} on ${detectOs(value)}`;
+  if (!browser) return t('account.settings.unknowndevice');
+  return t('account.settings.on2', { browser, operatingSystem: detectOs(value) });
 }
 
 function detectBrowser(ua) {
@@ -315,7 +317,7 @@ function detectOs(ua) {
 // owner export all derive from here so the download is never less than the page.
 export function passkeyLabel(friendlyName, aaguid) {
   const named = typeof friendlyName === 'string' && friendlyName.trim() ? friendlyName : null;
-  return named || aaguidLabel(aaguid) || 'passkey';
+  return named || aaguidLabel(aaguid) || t('account.settings.passkey');
 }
 
 export function aaguidLabel(aaguid) {

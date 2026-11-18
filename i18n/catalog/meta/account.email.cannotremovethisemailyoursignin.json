@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "emails.js: handleRemoveEmail",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 288,
+  "source_revision": "de838db5727f8be834430bd8460eaecbdc740b88e0282f3a4733727cd6d47876",
+  "risk": "account",
+  "auto_merge": true
+}

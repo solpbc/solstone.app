@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support.js: attachmentRetryMessage",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 300,
+  "source_revision": "5f3034ac9024c5b605c2b64fa7f2b9040d5b123bb1e047cefacd1623d757edcf",
+  "risk": "account",
+  "auto_merge": true
+}

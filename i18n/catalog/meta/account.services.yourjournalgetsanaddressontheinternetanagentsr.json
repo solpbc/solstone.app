@@ -1,0 +1,28 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderEnableSmeConsent (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 916,
+  "source_revision": "ab178c4660bcaf2a35f9cfd31b043eb6fd97d181a55c5f53199ecc031fdceefb",
+  "risk": "consent",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import { decryptEmail } from './crypto.js';
 import { consumeFreshExportProofs, listAccountEmails, requireFreshProof } from './db.js';
 import {
@@ -17,8 +19,8 @@ import { collectOwnerSupportExport } from './owner-export-support.js';
 import { requireSignedInSession, signedInHtml } from './settings.js';
 
 const PURPOSE = 'export';
-export const EXPORT_SERVICE_UNAVAILABLE = 'service unavailable';
-export const EXPORT_PROOF_INVALID = "this download request isn't valid";
+export const EXPORT_SERVICE_UNAVAILABLE = t('account.export.serviceunavailable');
+export const EXPORT_PROOF_INVALID = t('account.export.thisdownloadrequestisntvalid');
 export const EXPORT_FILENAME = 'solstone-owner-export.json';
 export const EXPORT_DOCUMENT_BYTE_LIMIT = 10 * 1024 * 1024;
 const EXPORT_SECURITY_HEADERS = {
@@ -134,13 +136,13 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
         ip: requestIp(req),
       });
     } catch (error) {
-      if (error?.message === 'proof_rate_limited') return refusal(429, 'too many verification attempts; try again later');
-      if (error?.message === 'deletion_proof_email_missing') return refusal(400, 'a verified email is required to continue');
+      if (error?.message === 'proof_rate_limited') return refusal(429, t('account.export.toomanyverificationattemptstryagainlater'));
+      if (error?.message === 'deletion_proof_email_missing') return refusal(400, t('account.ownerexport.averifiedemailisrequiredtocontinue'));
       console.error('owner export email verification could not start');
-      return refusal(500, "email verification couldn't start");
+      return refusal(500, t('account.export.emailverificationcouldntstart'));
     }
     const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
-    return signedInHtml(renderExportProofPage({ menu, status: 'code sent' }));
+    return signedInHtml(renderExportProofPage({ menu, status: t('account.ownerexport.codesent') }));
   }
 
   if (url.pathname === '/account/export/proof/otp/verify' && req.method === 'POST') {
@@ -157,14 +159,14 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
         ip: requestIp(req),
       });
     } catch (error) {
-      if (error?.message === 'proof_rate_limited') return refusal(429, 'too many verification attempts; try again later');
+      if (error?.message === 'proof_rate_limited') return refusal(429, t('account.export.toomanyverificationattemptstryagainlater'));
       throw error;
     }
     const menu = await loadDeletionMenuContext(env, guard.session.account_id, guard.nowMs);
     return signedInHtml(renderExportProofPage({
       menu,
-      status: result.ok ? 'email verified' : '',
-      error: result.ok ? '' : 'that code is invalid or expired.',
+      status: result.ok ? t('account.export.emailverified') : '',
+      error: result.ok ? '' : t('account.ownerexport.thatcodeisinvalidorexpired'),
     }), { status: result.ok ? 200 : 400 });
   }
 
@@ -178,11 +180,11 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
         purpose: PURPOSE,
         ip: requestIp(req),
       });
-      return result.ok ? jsonResponse({ options: result.options }) : jsonError(400, 'no active passkey');
+      return result.ok ? jsonResponse({ options: result.options }) : jsonError(400, t('account.ownerexport.noactivepasskey'));
     } catch (error) {
       return error?.message === 'proof_rate_limited'
-        ? jsonError(429, 'too many verification attempts; try again later')
-        : jsonError(500, "passkey verification couldn't start");
+        ? jsonError(429, t('account.export.toomanyverificationattemptstryagainlater'))
+        : jsonError(500, t('account.export.passkeyverificationcouldntstart'));
     }
   }
 
@@ -198,11 +200,11 @@ export async function handleOwnerExportRoute(req, env, url = new URL(req.url)) {
         assertionResponse: body?.response,
         ip: requestIp(req),
       });
-      return result.ok ? jsonResponse({ ok: true }) : jsonError(400, "passkey couldn't be verified");
+      return result.ok ? jsonResponse({ ok: true }) : jsonError(400, t('account.ownerexport.passkeycouldntbeverified'));
     } catch (error) {
       return error?.message === 'proof_rate_limited'
-        ? jsonError(429, 'too many verification attempts; try again later')
-        : jsonError(500, "passkey couldn't be verified");
+        ? jsonError(429, t('account.export.toomanyverificationattemptstryagainlater'))
+        : jsonError(500, t('account.ownerexport.passkeycouldntbeverified'));
     }
   }
 

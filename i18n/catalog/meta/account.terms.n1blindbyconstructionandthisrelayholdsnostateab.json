@@ -1,0 +1,38 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesTerms (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2164,
+  "source_revision": "a5eea33a079f7a65c4beb3963a5e01430eaab08238ffe8bc5e03a8db847c5802",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "flag",
+      "value": "[1]"
+    },
+    {
+      "name": "slot-2",
+      "kind": "flag",
+      "value": "[2]"
+    },
+    {
+      "name": "slot-3",
+      "kind": "url",
+      "value": "solstone.me"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "Microsoft Azure"
+    }
+  ]
+}

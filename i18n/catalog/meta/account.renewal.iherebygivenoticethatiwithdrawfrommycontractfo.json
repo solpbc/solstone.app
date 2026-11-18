@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: L1_WITHDRAWAL_BLOCK (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 436,
+  "source_revision": "014324a1f89175955acd213e62c04d7737fc05ec5c2e59b450c6da83a23df563",
+  "risk": "statutory",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "{{service}}"
+    }
+  ]
+}

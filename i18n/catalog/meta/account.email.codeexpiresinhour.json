@@ -1,0 +1,28 @@
+{
+  "description": "found as js-template. Same shape as the minute expiry line.",
+  "context": "found as js-template. Same shape as the minute expiry line.",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "count",
+      "type": "cardinal",
+      "numeric_style": "ungrouped",
+      "min": 0,
+      "max": 2147483647
+    }
+  ],
+  "format_intent": "cardinal",
+  "max_length": 23,
+  "source_revision": "2dce390e4f327efc451da1e3e2d854a740d27fc87237494e0baa99941750527e",
+  "risk": "routine",
+  "auto_merge": true,
+  "selector": {
+    "name": "count",
+    "type": "cardinal"
+  }
+}

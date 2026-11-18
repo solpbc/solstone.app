@@ -1,0 +1,88 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: RULES_L1_BODY_TEMPLATE (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 3408,
+  "source_revision": "f1d3b55855379acd00b20bf054187fbc018a1112712819dab3e1e348195912b5",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "*"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "services.solstone.app"
+    },
+    {
+      "name": "slot-3",
+      "kind": "url",
+      "value": "https://services.solstone.app"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-5",
+      "kind": "url",
+      "value": "services.solstone.app/billing"
+    },
+    {
+      "name": "slot-6",
+      "kind": "url",
+      "value": "https://services.solstone.app/billing"
+    },
+    {
+      "name": "slot-7",
+      "kind": "url",
+      "value": "support@solstone.app"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-9",
+      "kind": "flag",
+      "value": "[MONTHLY]"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-11",
+      "kind": "flag",
+      "value": "[/MONTHLY]"
+    },
+    {
+      "name": "slot-12",
+      "kind": "flag",
+      "value": "[ANNUAL]"
+    },
+    {
+      "name": "slot-13",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-14",
+      "kind": "flag",
+      "value": "[/ANNUAL]"
+    }
+  ]
+}

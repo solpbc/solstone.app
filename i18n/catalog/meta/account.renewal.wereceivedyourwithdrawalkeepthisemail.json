@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: WITHDRAWAL_ACK_BODY",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 276,
+  "source_revision": "27de0b72d1379b99c294619cc7299ee9c47445e6463579a1504e17e9cfe8e830",
+  "risk": "legal",
+  "auto_merge": false
+}

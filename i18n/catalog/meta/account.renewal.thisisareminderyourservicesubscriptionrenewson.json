@@ -1,0 +1,53 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: RULES_REMINDER_BODY (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1480,
+  "source_revision": "fb420f418dce01757d9a657ab7c5782119f7c7e6bf0e0d13c70165e0efabe80d",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "{{renewal_date}}"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "{{price}}"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "{{interval}}"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "{{previous_price}}"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "{{increase}}"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "{{next_renewal_date}}"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: CATCH_UP_BODY_TEMPLATE (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 5396,
+  "source_revision": "2443b6796146e9f7f1f11b8b680671b4bf630c0fad3f5a0227ff4583d808dc4d",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "services.solstone.app/terms"
+    },
+    {
+      "name": "slot-3",
+      "kind": "url",
+      "value": "https://services.solstone.app/terms"
+    },
+    {
+      "name": "slot-4",
+      "kind": "whitespace",
+      "value": "\n\n"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "{{price}}"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "{{interval}}"
+    },
+    {
+      "name": "slot-8",
+      "kind": "whitespace",
+      "value": "\n\n"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "{{interval}}"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-11",
+      "kind": "flag",
+      "value": "[ANNUAL]"
+    },
+    {
+      "name": "slot-12",
+      "kind": "flag",
+      "value": "[/ANNUAL]"
+    },
+    {
+      "name": "slot-13",
+      "kind": "flag",
+      "value": "[MONTHLY]"
+    },
+    {
+      "name": "slot-14",
+      "kind": "flag",
+      "value": "[/MONTHLY]"
+    },
+    {
+      "name": "slot-15",
+      "kind": "whitespace",
+      "value": "\n\n"
+    },
+    {
+      "name": "slot-16",
+      "kind": "url",
+      "value": "services.solstone.app"
+    },
+    {
+      "name": "slot-17",
+      "kind": "url",
+      "value": "https://services.solstone.app"
+    },
+    {
+      "name": "slot-18",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-19",
+      "kind": "whitespace",
+      "value": "\n\n"
+    },
+    {
+      "name": "slot-20",
+      "kind": "url",
+      "value": "support@solstone.app."
+    },
+    {
+      "name": "slot-21",
+      "kind": "whitespace",
+      "value": "\n\n"
+    },
+    {
+      "name": "slot-22",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

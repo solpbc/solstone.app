@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: billingFlashMessages",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 212,
+  "source_revision": "60ce3790c2de2f824daf5c379b554ce82ec754415aa972b85e17e22e6ad9bd4c",
+  "risk": "payment",
+  "auto_merge": false
+}

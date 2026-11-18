@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "inline/passkey-landing.js: page or message",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 188,
+  "source_revision": "f383ad25890901e17f1175210624d00b8cc54863ac2db19c3a738509e14973cf",
+  "risk": "routine",
+  "auto_merge": true
+}

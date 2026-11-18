@@ -1,0 +1,48 @@
+{
+  "description": "Account portal message.",
+  "context": "rules-words.js: KEY_FACTS_PAY (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 772,
+  "source_revision": "e628f89b666240f54fe236b6ff730e2d60057cf86bfb48bae8bd7edc13b81719",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "*"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "{{price}}"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "{{interval}}"
+    },
+    {
+      "name": "slot-4",
+      "kind": "flag",
+      "value": "[ANNUAL]"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "{{monthly_equivalent}}"
+    },
+    {
+      "name": "slot-6",
+      "kind": "flag",
+      "value": "[/ANNUAL]"
+    }
+  ]
+}

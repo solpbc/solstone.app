@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: flashMessages",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "54828cf71fd818e60327551d4bfac60408ae10f62ab8733ecf0a20643760ace9",
+  "risk": "routine",
+  "auto_merge": true
+}

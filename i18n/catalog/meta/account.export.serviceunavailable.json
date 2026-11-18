@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "owner-export.js: EXPORT_SERVICE_UNAVAILABLE",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "01cce34b64218fc3ee2cff26e4b517bd2acd7b30660fd68097ee50fd5b62372f",
+  "risk": "routine",
+  "auto_merge": true
+}

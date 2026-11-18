@@ -1,0 +1,28 @@
+{
+  "description": "found as js-template. Same shape as the minute line. The noun changes; the select does not.",
+  "context": "found as js-template. Same shape as the minute line. The noun changes; the select does not.",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "count",
+      "type": "cardinal",
+      "numeric_style": "ungrouped",
+      "min": 0,
+      "max": 2147483647
+    }
+  ],
+  "format_intent": "cardinal",
+  "max_length": 11,
+  "source_revision": "ed50096e026570cbc02021774a03043b07402a3967706a6a60a5fb692f82b7fe",
+  "risk": "routine",
+  "auto_merge": true,
+  "selector": {
+    "name": "count",
+    "type": "cardinal"
+  }
+}

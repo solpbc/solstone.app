@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: turnOnFooter (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 144,
+  "source_revision": "a9564e2abd78d387c195b23557dd38f32f68127b8887fd03f49f397df91d6212",
+  "risk": "consent",
+  "auto_merge": false
+}

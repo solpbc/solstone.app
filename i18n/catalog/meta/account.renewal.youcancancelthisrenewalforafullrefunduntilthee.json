@@ -1,0 +1,28 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: COOLING_OFF_BODY (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 404,
+  "source_revision": "a207ed8b104a4b02c7929ea1ccd2db95a4b47e64016a9d432925442ca2955d92",
+  "risk": "statutory",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "*"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "{{window_date}}"
+    }
+  ]
+}

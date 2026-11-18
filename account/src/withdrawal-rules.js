@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 // The withdrawal right's two constants, kept apart from withdrawal.js so the renewal notices,
 // checkout and pages can read them without importing the withdrawal handlers.
 
@@ -44,7 +46,7 @@ export function startNowRequest(env, form, nowMs = Date.now()) {
   return { refused: false, withdrawal: true, requestedAt: nowMs };
 }
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS = [t('account.withdrawalrules.january'), t('account.withdrawalrules.february'), t('account.withdrawalrules.march'), t('account.withdrawalrules.april'), t('account.withdrawalrules.may'), t('account.withdrawalrules.june'), t('account.withdrawalrules.july'), t('account.withdrawalrules.august'), t('account.withdrawalrules.september'), t('account.withdrawalrules.october'), t('account.withdrawalrules.november'), t('account.withdrawalrules.december')];
 
 // "September 25, 2026", in UTC.
 export function formatLongDate(seconds) {

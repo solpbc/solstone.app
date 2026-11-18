@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import { decryptEmail, hashKey, randomBase64Url, timingSafeEqual } from './crypto.js';
 import { listAccountEmails } from './db.js';
 import { signInRedirect } from './enable.js';
@@ -15,16 +17,16 @@ import { SUPPORT_ID_REGEX } from './support-constants.js';
 import { parseAbout } from './support-about.js';
 import { acknowledgeSupport, callSupport, decodeCursor, mergeTickets } from './support-wire.js';
 
-const SUPPORT_LOAD_FAILURE = "we couldn't load your support right now. try again soon.";
-const SUPPORT_PARTIAL_NOTICE = 'some support history could not be loaded.';
-const SUPPORT_EMAIL_LIMITATION = 'we need a verified email before you can open a request.';
-const ACTIVE_FAILURE = "we couldn't load active requests. try again.";
-const CLOSED_FAILURE = "we couldn't load closed requests. try again.";
+const SUPPORT_LOAD_FAILURE = t('account.support.wecouldntloadyoursupportright');
+const SUPPORT_PARTIAL_NOTICE = t('account.support.somesupporthistorycouldnotbeloaded');
+const SUPPORT_EMAIL_LIMITATION = t('account.support.weneedverifiedemailbeforeyoucan');
+const ACTIVE_FAILURE = t('account.support.wecouldntloadactiverequeststry');
+const CLOSED_FAILURE = t('account.support.wecouldntloadclosedrequeststry');
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const OPERATION_KEY = /^[A-Za-z0-9_-]{43}$/;
 
 export function supportSignInPrompt(path) {
-  if (path === '/support') return "sign in with your email to see your support. we'll email you a code.";
+  if (path === '/support') return t('account.support.signinwithyouremailseeyour');
   const id = supportIdFromPath(path);
   return id ? `sign in with your email to see request #${id}. we'll email you a code.` : null;
 }
@@ -53,14 +55,14 @@ export async function handleSupportCreate(req, env) {
   if (guard instanceof Response) return guard;
   const form = await checkedForm(req, env);
   if (form === false) return noStore(forbidden());
-  if (!form) return renderCreateState(env, guard, { outcome: errorOutcome('we could not read that form. review it and try again.') });
+  if (!form) return renderCreateState(env, guard, { outcome: errorOutcome(t('account.support.wecouldnotreadthatformreview')) });
   const values = createValues(form);
   const keys = submittedKeys(form);
   const aboutFields = form.getAll('about');
   const about = parseAbout(aboutFields.length === 0 ? undefined : aboutFields.length === 1 ? aboutFields[0] : null);
   if (!about.ok) return renderCreateState(env, guard, { values, keys, outcome: errorOutcome(about.message) });
   if (about.value) values.about = about.value;
-  if (!validCreate(values) || !keys) return renderCreateState(env, guard, { values, outcome: errorOutcome('review the request before sending it.') });
+  if (!validCreate(values) || !keys) return renderCreateState(env, guard, { values, outcome: errorOutcome(t('account.support.reviewrequestbeforesendingit')) });
   const usable = await usableVerifiedEmails(env, guard.session.account_id);
   if (!usable.emails.length) return renderCreateState(env, guard, { values, keys, message: SUPPORT_EMAIL_LIMITATION });
   const email = (usable.emails.find((row) => row.isPrimary) || usable.emails[0]).address;
@@ -78,7 +80,7 @@ export async function handleSupportCreate(req, env) {
     if (parent.classification === 'idempotencyConflict') {
       return renderCreateState(env, guard, { values, keys, restartKeys: { operationKey: mintKey(), attachmentOperationKey: mintKey() }, outcome: outcomeFor(parent) });
     }
-    return renderCreateState(env, guard, { values, keys: preserveKey(parent) ? keys : null, outcome: outcomeFor(parent, 'the request could not be confirmed. the files were not sent.') });
+    return renderCreateState(env, guard, { values, keys: preserveKey(parent) ? keys : null, outcome: outcomeFor(parent, t('account.support.requestcouldnotbeconfirmedfileswere')) });
   }
   const files = selectedFiles(form);
   if (!files.length) return renderCreateState(env, guard, { createConfirmation: { id: parent.data.id } });
@@ -118,7 +120,7 @@ export async function handleSupportReply(req, env, id) {
   if (parent.classification === 'tombstone') return supportHtml(renderSupportTombstone({ tombstone: parent.data }));
   if (parent.classification === 'invalidState') return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
   if (parent.classification !== 'success') return renderActiveDetail(env, guard, detail, {
-    reply: { ...(preserveKey(parent) ? keys : {}), value: content, outcome: outcomeFor(parent, 'the reply could not be confirmed. the files were not sent.') },
+    reply: { ...(preserveKey(parent) ? keys : {}), value: content, outcome: outcomeFor(parent, t('account.support.replycouldnotbeconfirmedfileswere')) },
   });
   const files = selectedFiles(form);
   if (!files.length) return renderSupportDetailForSession(env, guard.session, id, guard.nowMs);
@@ -426,15 +428,15 @@ function hiddenSection() { return { state: 'hidden' }; }
 function errorOutcome(message) { return { kind: 'error', message }; }
 function reviewOutcome(message) { return { ...errorOutcome(message), requiresReview: true }; }
 
-function outcomeFor(result, fallback = 'this action could not be confirmed. try again with the same action.') {
+function outcomeFor(result, fallback = t('account.support.thisactioncouldnotbeconfirmedtry')) {
   const messages = {
     operationInProgress: `this action is still in progress.${result.retryAfter ? ` try again in ${result.retryAfter}.` : ' try again with the same action.'}`,
-    idempotencyConflict: 'this action does not match the earlier action. review it before starting a new one.',
-    invalidIdempotencyKey: 'this action key is not valid. review the action before starting a new one.',
-    invalidState: 'this request changed before this action could be completed.',
-    notFound: 'we could not find that request.',
-    operationErased: 'this earlier action can no longer be repeated.',
-    operationRetired: 'this earlier action is permanently suppressed. review a new action to continue.',
+    idempotencyConflict: t('account.support.thisactiondoesnotmatchearlieraction'),
+    invalidIdempotencyKey: t('account.support.thisactionkeyisnotvalidreview'),
+    invalidState: t('account.support.thisrequestchangedbeforethisactioncould'),
+    notFound: t('account.support.wecouldnotfindthatrequest'),
+    operationErased: t('account.support.thisearlieractioncannolongerbe'),
+    operationRetired: t('account.support.thisearlieractionispermanentlysuppressedreview'),
     ambiguous: fallback,
   };
   const outcome = errorOutcome(messages[result.classification] || fallback);
@@ -444,8 +446,8 @@ function outcomeFor(result, fallback = 'this action could not be confirmed. try 
 
 function attachmentRetryMessage(result) {
   return result.classification === 'idempotencyConflict'
-    ? 'those files do not match the earlier batch. review a new attachment action.'
-    : 'the files were not confirmed. reselect the same files in the same order to try again.';
+    ? t('account.support.thosefilesdonotmatchearlierbatch')
+    : t('account.support.fileswerenotconfirmedreselectsamefiles');
 }
 
 function preserveKey(result) {

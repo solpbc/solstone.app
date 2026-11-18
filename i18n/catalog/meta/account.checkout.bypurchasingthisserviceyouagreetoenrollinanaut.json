@@ -1,0 +1,33 @@
+{
+  "description": "Account portal message.",
+  "context": "stripe.js: RULES_CHECKOUT_DISCLOSURE (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2352,
+  "source_revision": "2cfe117e572d8f39a58cfd7d7f4c93744ab24d1c7ed8e00229340fc4f0b45a77",
+  "risk": "consent",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "services.solstone.app"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "services.solstone.app/billing"
+    },
+    {
+      "name": "slot-3",
+      "kind": "url",
+      "value": "support@solstone.app"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: journalIdLabel",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "a2066fbd38242d700ca044704ab3b2162561180f1e524d0b34c07041ce88978f",
+  "risk": "routine",
+  "auto_merge": true
+}

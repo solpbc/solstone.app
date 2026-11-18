@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "billing-page.js: BILLING_SERVICES",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "08ce27e22abbf9eeb9fb8aeb89ed9cd898ba1a8b17251e652705957d32618ba8",
+  "risk": "routine",
+  "auto_merge": true
+}

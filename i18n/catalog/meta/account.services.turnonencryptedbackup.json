@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderEnableSpbConsent",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "2cd84671f92f51cab56a35fcb71aa19cf25e17576ac829a8bc0d5bc93e38cd72",
+  "risk": "consent",
+  "auto_merge": false
+}

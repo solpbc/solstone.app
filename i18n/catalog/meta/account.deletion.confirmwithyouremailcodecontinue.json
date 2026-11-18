@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "deletion.js: handleDeletionConfirm",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 164,
+  "source_revision": "fa36a82d462e34abcd74d5b11c4f3f6f152712808ea9c1c2ff2a74e830fbc7f5",
+  "risk": "account",
+  "auto_merge": true
+}

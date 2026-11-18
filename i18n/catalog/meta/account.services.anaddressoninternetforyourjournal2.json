@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderSmeLanding",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 988,
+  "source_revision": "bcd7be2fba417c60c74a04522f3ae195d16d22a87d8192a0f517c0c3c9a8147e",
+  "risk": "routine",
+  "auto_merge": true
+}

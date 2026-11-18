@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support.js: outcomeFor",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 316,
+  "source_revision": "791e02486de0dc1f1ffa1dab0324ef0eff1fe6cbdf8f71422bb229c200d5a01f",
+  "risk": "account",
+  "auto_merge": true
+}

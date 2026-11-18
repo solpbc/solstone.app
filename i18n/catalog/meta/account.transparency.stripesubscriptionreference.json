@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "owner-data-inventory.js: TABLES",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 116,
+  "source_revision": "95fadbcb1ae91ec1e1551f770d85cf4e804bcc2887e24990c846445e8cb8a00b",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Stripe"
+    }
+  ]
+}

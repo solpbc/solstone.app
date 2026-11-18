@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "owner-export-compose.js: REASON_DESCRIPTIONS",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 176,
+  "source_revision": "ddc84016493da565cd2e66cb92af2da53c971def7fc9c67de870d2f5af14ce8e",
+  "risk": "routine",
+  "auto_merge": true
+}

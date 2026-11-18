@@ -1,0 +1,28 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: WITHDRAWAL_ACK_BODY (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 108,
+  "source_revision": "f79bcd65bf0364da26ef7bb0b9dc7bd39331e1289fd3b5c20d7251debde4834d",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "*"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "{{submitted_at}}"
+    }
+  ]
+}

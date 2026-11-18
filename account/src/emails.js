@@ -1,3 +1,5 @@
+import { countText, t } from '../../i18n/account.mjs';
+
 import {
   decryptEmail,
   encryptEmail,
@@ -77,7 +79,7 @@ export async function handleAddEmail(req, env, ctx) {
   const addressLower = (form.get('address')?.toString() || '').trim().toLowerCase();
   if (!isValidEmail(addressLower)) {
     return renderEmailsPage(env, guard.session, guard.nowMs, {
-      addError: 'enter a valid email address.',
+      addError: t('account.email.entervalidemailaddress'),
       status: 400,
     });
   }
@@ -259,7 +261,7 @@ export async function handleRemoveEmail(req, env, emailId) {
   if (!row) return signedInRedirect('/sign-in/emails');
 
   return renderEmailsPage(env, guard.session, guard.nowMs, {
-    removeError: 'cannot remove this email, your sign-in needs at least one verified email',
+    removeError: t('account.email.cannotremovethisemailyoursignin'),
     status: 403,
   });
 }
@@ -376,7 +378,7 @@ async function emailViewRow(row, env, nowMs) {
     address,
     encodedAddress: encodeURIComponent(address),
     badge,
-    addedText: `added ${formatDate(row.created_at)}`,
+    addedText: t('account.emails.added', { date: formatDate(row.created_at) }),
     expiryText: badge === 'unverified' ? codeExpiryText(row.verification_expires_at, nowMs) : '',
   };
 }
@@ -435,11 +437,11 @@ async function decryptStoredValue(encryptedValue, env) {
 
 function codeExpiryText(expiresAt, nowMs) {
   const expires = Number(expiresAt);
-  if (!Number.isFinite(expires) || expires <= nowMs) return 'code expired, request a new one';
+  if (!Number.isFinite(expires) || expires <= nowMs) return t('account.email.codeexpiredrequestnewone');
   const diff = expires - nowMs;
-  if (diff < 60_000) return 'code expires in less than 1 minute';
+  if (diff < 60_000) return t('account.emails.codeexpiresinlessthan1minute');
   const minutes = Math.ceil(diff / 60_000);
-  if (minutes < 60) return `code expires in ${minutes} minute${minutes === 1 ? '' : 's'}`;
+  if (minutes < 60) return countText('account.email.codeexpiresinminute', { count: minutes });
   const hours = Math.ceil(minutes / 60);
-  return `code expires in ${hours} hour${hours === 1 ? '' : 's'}`;
+  return countText('account.email.codeexpiresinhour', { count: hours });
 }

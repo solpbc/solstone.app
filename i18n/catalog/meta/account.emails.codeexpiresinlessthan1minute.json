@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "emails.js: codeExpiryText",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 136,
+  "source_revision": "0a6cae4a0a06233f5a771715fbc081f8ba12845fc51044132c39b2d39922e551",
+  "risk": "account",
+  "auto_merge": true
+}

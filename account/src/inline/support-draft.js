@@ -1,3 +1,5 @@
+import { scriptText } from '../../../i18n/account.mjs';
+
 // The report fragment stays in this tab until the owner submits the support form.
 // Sign-in requests never carry these values.
 export const SUPPORT_DRAFT_JS = String.raw`(function () {
@@ -26,12 +28,12 @@ export const SUPPORT_DRAFT_JS = String.raw`(function () {
       if (value) lines.push(field[0].replace(/_/g, ' ') + ': ' + value);
     });
     var recent = (params.get('recent') || '').slice(0, 4000);
-    if (recent) lines.push('', 'recent error/state lines:', recent);
-    draft = { fragment: fragment, product: 'solstone', subject: app ? 'report from ' + app : '', description: lines.join('\n'), about: params.get('about') || '' };
+    if (recent) lines.push('', ${scriptText('account.supportdraft.recenterrorstatelines2', "'")}, recent);
+    draft = { fragment: fragment, product: 'solstone', subject: app ? ${scriptText('account.supportdraft.reportfrom2', "'")} + app : '', description: lines.join('\n'), about: params.get('about') || '' };
     if (!save(draft) && !form) {
       var warning = document.createElement('p');
       warning.className = 'error';
-      warning.textContent = "your browser couldn't save this report for sign-in. copy it below, then paste it into support after signing in.";
+      warning.textContent = ${scriptText('account.supportdraft.yourbrowsercouldntsavethisreportforsignincopyi', "\"")};
       var text = document.createElement('pre');
       text.textContent = draft.about;
       document.querySelector('main').append(warning, text);

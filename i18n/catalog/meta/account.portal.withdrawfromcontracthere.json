@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "cancel-contract.js: EMAIL_WORDS",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 108,
+  "source_revision": "4c7cccdf9d840732b83dba5e937e043f1c198e3d2affda3355f9bfa8e38a857f",
+  "risk": "statutory",
+  "auto_merge": false
+}

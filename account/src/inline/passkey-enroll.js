@@ -1,3 +1,5 @@
+import { scriptText } from '../../../i18n/account.mjs';
+
 // source:
 // (function () {
 //   If WebAuthn is unavailable, exit silently.
@@ -23,7 +25,7 @@ export const ENROLL_JS = `(function () {
   function showError() {
     if (errorEl) {
       errorEl.hidden = false;
-      errorEl.textContent = "couldn't add passkey. try again.";
+      errorEl.textContent = ${scriptText('account.passkeyenroll.couldntaddpasskeytryagain2', "\"")};
     }
     addButton.disabled = false;
     if (skipButton) skipButton.disabled = false;

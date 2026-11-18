@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderEnableSpbRestoreNeedsSubscription",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "4826df07c512863d65a2187c99c312ced4045c42962ee8f5efcdd95bd4c97c19",
+  "risk": "routine",
+  "auto_merge": true
+}

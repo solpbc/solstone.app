@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support.js: SUPPORT_EMAIL_LIMITATION",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 220,
+  "source_revision": "9cc97287354fe2fda4e9be037c78ee87d16699201f826d9e49125dac15eccf87",
+  "risk": "account",
+  "auto_merge": true
+}

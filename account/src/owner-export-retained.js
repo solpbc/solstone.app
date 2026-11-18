@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import { OWNER_DATA_INVENTORY } from './owner-data-inventory.js';
 
 export function ownerExportRetainedMechanics() {
@@ -22,22 +24,22 @@ export function ownerExportNotIncluded() {
     {
       code: 'journal_files',
       local_export: 'not_in_local_collection',
-      description: 'your journal contents stay in your journal and are not held with this services sign-in',
+      description: t('account.ownerexportretained.yourjournalcontentsstayinyourjournal'),
     },
     {
       code: 'operated_backup_bytes',
       local_export: 'included_binding_metadata',
-      description: 'encrypted backup contents are not readable here; this file includes the backup bindings held with your sign-in',
+      description: t('account.ownerexportretained.encryptedbackupcontentsarenotreadablehere'),
     },
     {
       code: 'stripe_side_records',
       local_export: 'included_customer_reference',
-      description: 'your receipts and past charges are held by Stripe and are not included; see and download them in Stripe\'s billing portal: open it with the manage billing button at services.solstone.app/billing. this file includes the Stripe customer reference held with your sign-in',
+      description: t('account.ownerexportretained.yourreceiptsandpastchargesareheld'),
     },
     {
       code: 'anonymous_no_email_support',
       local_export: 'not_in_local_collection',
-      description: 'support requests sent without an email address cannot be connected to this sign-in',
+      description: t('account.ownerexportretained.supportrequestssentwithoutanemailaddress'),
     },
   ];
 }

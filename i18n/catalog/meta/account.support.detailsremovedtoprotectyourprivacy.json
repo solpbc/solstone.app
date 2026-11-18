@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support-html.js: renderClosedSection",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 164,
+  "source_revision": "f8f409d8a84c49f7b68e7e1a0d2c8a840d19e5d7f5b86770cf468f1e88c64b19",
+  "risk": "account",
+  "auto_merge": true
+}

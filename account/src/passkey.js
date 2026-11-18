@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -61,7 +63,7 @@ export async function passkeyRegisterStart(req, env) {
     if (limited) return limited;
 
     const handleB64u = await ensurePasskeyUserHandle(env.DB, accountId);
-    if (!handleB64u) return fail('passkey_register_start_session', 401, 'sign-in required');
+    if (!handleB64u) return fail('passkey_register_start_session', 401, t('account.passkey.signinrequired'));
 
     const existing = await listPasskeyCredentialsForAccount(env.DB, accountId);
     const excludeCredentials = existing.map((row) => ({
@@ -97,7 +99,7 @@ export async function passkeyRegisterStart(req, env) {
     });
     return jsonResponse({ options });
   } catch {
-    return fail('passkey_register_start_failed', 500, 'passkey request failed');
+    return fail('passkey_register_start_failed', 500, t('account.passkeys.passkeyrequestfailed'));
   }
 }
 
@@ -111,14 +113,14 @@ export async function passkeyRegisterFinish(req, env) {
     if (body instanceof Response) return body;
     const response = body?.response;
     if (!response || typeof response !== 'object') {
-      return fail('passkey_register_finish_response', 400, 'response required');
+      return fail('passkey_register_finish_response', 400, t('account.passkey.responserequired'));
     }
     const friendlyName = normalizeFriendlyName(body?.friendly_name);
     const expectedChallenge = response?.response?.clientDataJSON
       ? extractChallengeFromClientData(response.response.clientDataJSON)
       : null;
     if (!expectedChallenge) {
-      return fail('passkey_register_finish_client_data', 400, 'invalid client data');
+      return fail('passkey_register_finish_client_data', 400, t('account.passkey.invalidclientdata'));
     }
 
     const challengeRow = await consumePasskeyChallenge(env.DB, {
@@ -127,7 +129,7 @@ export async function passkeyRegisterFinish(req, env) {
       nowMs,
     });
     if (!challengeRow || challengeRow.account_id !== accountId) {
-      return fail('passkey_register_finish_challenge', 400, 'challenge expired or invalid');
+      return fail('passkey_register_finish_challenge', 400, t('account.passkey.challengeexpiredorinvalid'));
     }
 
     let verification;
@@ -140,10 +142,10 @@ export async function passkeyRegisterFinish(req, env) {
         requireUserVerification: false,
       });
     } catch {
-      return fail('passkey_register_verify_failed', 400, 'registration could not be verified');
+      return fail('passkey_register_verify_failed', 400, t('account.passkey.registrationcouldnotbeverified'));
     }
     if (!verification.verified || !verification.registrationInfo) {
-      return fail('passkey_register_finish_verify', 400, 'registration could not be verified');
+      return fail('passkey_register_finish_verify', 400, t('account.passkey.registrationcouldnotbeverified'));
     }
 
     const info = verification.registrationInfo;
@@ -169,7 +171,7 @@ export async function passkeyRegisterFinish(req, env) {
       });
     } catch (error) {
       if (!isUniqueViolation(error)) throw error;
-      return fail('passkey_register_finish_insert', 409, 'passkey already registered');
+      return fail('passkey_register_finish_insert', 409, t('account.passkey.passkeyalreadyregistered'));
     }
 
     return jsonResponse({
@@ -178,7 +180,7 @@ export async function passkeyRegisterFinish(req, env) {
       friendly_name: friendlyName,
     });
   } catch {
-    return fail('passkey_register_finish_failed', 500, 'passkey request failed');
+    return fail('passkey_register_finish_failed', 500, t('account.passkeys.passkeyrequestfailed'));
   }
 }
 
@@ -191,7 +193,7 @@ export async function passkeyAuthStart(req, env) {
     const ipKey = await hashKey(rateBucketFamily('passkey_auth_ip').scope, ip, env);
     const ipCount = await getRateBucketCount(env.DB, ipKey, HOUR_MS, nowMs);
     if (ipCount >= AUTH_PER_IP_PER_HOUR) {
-      return fail('passkey_auth_start_rate', 429, 'too many attempts; try again later');
+      return fail('passkey_auth_start_rate', 429, t('account.passkeys.toomanyattemptstryagainlater'));
     }
     await bumpRateBucket(env.DB, ipKey, HOUR_MS, nowMs);
 
@@ -208,7 +210,7 @@ export async function passkeyAuthStart(req, env) {
     });
     return jsonResponse({ options });
   } catch {
-    return fail('passkey_auth_start_failed', 500, 'passkey request failed');
+    return fail('passkey_auth_start_failed', 500, t('account.passkeys.passkeyrequestfailed'));
   }
 }
 
@@ -222,13 +224,13 @@ export async function passkeyAuthFinish(req, env) {
     if (body instanceof Response) return body;
     const response = body?.response;
     if (!response || typeof response !== 'object') {
-      return fail('passkey_auth_finish_response', 400, 'response required');
+      return fail('passkey_auth_finish_response', 400, t('account.passkey.responserequired'));
     }
 
     const challenge = response?.response?.clientDataJSON
       ? extractChallengeFromClientData(response.response.clientDataJSON)
       : null;
-    if (!challenge) return fail('passkey_auth_finish_client_data', 400, 'invalid client data');
+    if (!challenge) return fail('passkey_auth_finish_client_data', 400, t('account.passkey.invalidclientdata'));
 
     const challengeRow = await consumePasskeyChallenge(env.DB, {
       challenge,
@@ -236,26 +238,26 @@ export async function passkeyAuthFinish(req, env) {
       nowMs,
     });
     if (!challengeRow) {
-      return fail('passkey_auth_finish_challenge', 400, 'challenge expired or invalid');
+      return fail('passkey_auth_finish_challenge', 400, t('account.passkey.challengeexpiredorinvalid'));
     }
 
     const credentialId = response?.id;
     if (!credentialId || typeof credentialId !== 'string') {
-      return fail('passkey_auth_finish_id', 401, 'sign-in failed');
+      return fail('passkey_auth_finish_id', 401, t('account.passkey.signinfailed'));
     }
     const credentialRow = await getPasskeyCredential(env.DB, credentialId);
-    if (!credentialRow) return fail('passkey_auth_finish_not_found', 401, 'sign-in failed');
+    if (!credentialRow) return fail('passkey_auth_finish_not_found', 401, t('account.passkey.signinfailed'));
     // Same rule as email sign-in: inside the safety period the session exists
     // only to reach cancellation (see getValidSession); past it, refuse.
     const deletion = await getActiveDeletionForAccount(env.DB, credentialRow.account_id);
     if (deletion && !deletionIsCancellable(deletion, nowMs)) {
-      return fail('passkey_auth_finish_deletion', 401, 'sign-in failed');
+      return fail('passkey_auth_finish_deletion', 401, t('account.passkey.signinfailed'));
     }
 
     const expectedHandle = await getPasskeyUserHandle(env.DB, credentialRow.account_id);
     const reportedHandle = response?.response?.userHandle || null;
     if (!expectedHandle || !reportedHandle || reportedHandle !== expectedHandle) {
-      return fail('passkey_auth_finish_handle', 401, 'sign-in failed');
+      return fail('passkey_auth_finish_handle', 401, t('account.passkey.signinfailed'));
     }
 
     const verification = await verifyPasskeyAssertion({
@@ -265,7 +267,7 @@ export async function passkeyAuthFinish(req, env) {
       requireUserVerification: false,
     });
     if (!verification) {
-      return fail('passkey_auth_verify_failed', 401, 'sign-in failed');
+      return fail('passkey_auth_verify_failed', 401, t('account.passkey.signinfailed'));
     }
     const newCounter = verification.authenticationInfo?.newCounter ?? credentialRow.counter ?? 0;
     await updatePasskeyCredentialCounter(env.DB, credentialRow.credential_id, newCounter, nowMs);
@@ -291,7 +293,7 @@ export async function passkeyAuthFinish(req, env) {
       { 'Set-Cookie': sessionCookie(sessionToken) }
     ), carriesProof);
   } catch {
-    return fail('passkey_auth_finish_failed', 500, 'passkey request failed');
+    return fail('passkey_auth_finish_failed', 500, t('account.passkeys.passkeyrequestfailed'));
   }
 }
 
@@ -343,8 +345,8 @@ export function passkeyOriginAllowed(req, _env) {
 }
 
 function methodAndOriginGuard(req, env, tagBase) {
-  if (req.method !== 'POST') return fail(`${tagBase}_method`, 405, 'method not allowed');
-  if (!passkeyOriginAllowed(req, env)) return fail(`${tagBase}_origin`, 403, 'invalid request');
+  if (req.method !== 'POST') return fail(`${tagBase}_method`, 405, t('account.passkey.methodnotallowed'));
+  if (!passkeyOriginAllowed(req, env)) return fail(`${tagBase}_origin`, 403, t('account.passkey.invalidrequest'));
   return null;
 }
 
@@ -359,7 +361,7 @@ async function requirePasskeySession(req, env, tagBase) {
   if (guard) return guard;
   const nowMs = Date.now();
   const session = await getValidSession(req, env, nowMs);
-  if (!session) return fail(`${tagBase}_session`, 401, 'sign-in required');
+  if (!session) return fail(`${tagBase}_session`, 401, t('account.passkey.signinrequired'));
   const fresh = await requireFreshProof(env.DB, {
     accountId: session.account_id,
     sessionIdHash: session.id_hash,
@@ -368,7 +370,7 @@ async function requirePasskeySession(req, env, tagBase) {
   if (!fresh.otpVerified || !fresh.passkeyVerified) {
     console.error(`${tagBase}_stepup`);
     return jsonResponse({
-      error: "verify it's you before this change",
+      error: t('account.passkey.verifyitsyoubeforethischange'),
       step_up_required: true,
       step_up_url: '/account/credential-change/proof?next=/sign-in/passkeys',
     }, 403);
@@ -383,7 +385,7 @@ async function checkRegisterRateLimit(req, env, accountId, nowMs) {
   const ipCount = await getRateBucketCount(env.DB, ipKey, HOUR_MS, nowMs);
   const accountCount = await getRateBucketCount(env.DB, accountKey, HOUR_MS, nowMs);
   if (ipCount >= REGISTER_PER_IP_PER_HOUR || accountCount >= REGISTER_PER_ACCOUNT_PER_HOUR) {
-    return fail('passkey_register_start_rate', 429, 'too many attempts; try again later');
+    return fail('passkey_register_start_rate', 429, t('account.passkeys.toomanyattemptstryagainlater'));
   }
   await bumpRateBucket(env.DB, ipKey, HOUR_MS, nowMs);
   await bumpRateBucket(env.DB, accountKey, HOUR_MS, nowMs);
@@ -410,7 +412,7 @@ async function parseJsonBody(req, tag) {
   try {
     return await req.json();
   } catch {
-    return fail(tag, 400, 'invalid body');
+    return fail(tag, 400, t('account.passkey.invalidbody'));
   }
 }
 

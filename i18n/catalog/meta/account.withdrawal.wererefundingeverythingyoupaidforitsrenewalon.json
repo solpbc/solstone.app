@@ -1,0 +1,21 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: withdrawalFlashMessages (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "date",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 244,
+  "source_revision": "17da6c5c4649b55a1d401a1146ef2a5f3e71579f603cad0b872b2b4afe1707cb",
+  "risk": "legal",
+  "auto_merge": false
+}

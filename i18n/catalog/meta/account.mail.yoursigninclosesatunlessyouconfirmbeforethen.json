@@ -1,0 +1,28 @@
+{
+  "description": "Account portal message.",
+  "context": "email.js: sendDeletionProofEmail",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "deadline",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 248,
+  "source_revision": "7f067e46dc2c9950ebdcb6b7bea3a1c5b2bded21bd8714f5c7f23d3f40255acd",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "whitespace",
+      "value": " "
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: SERVICE_HUMAN_NAMES",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "8064efee01366c2db60ca7b10027748ced4d807df6146296bc53ee7441e6e24d",
+  "risk": "legal",
+  "auto_merge": false
+}

@@ -49,6 +49,10 @@ a support-portal proxy, and a CF-Access-gated `/admin/*` surface. Four cron sche
 | `settings.js`, `html.js`, `assets.js`, `portal.css`, `inline/` | The signed-in experience layer (see `account/DESIGN.md`). |
 | `hub.js`, `retention.js` | Security-event sink to the internal operations hub; cron retention. |
 
+**Account portal English copy** lives in [`i18n/catalog/`](i18n/catalog/).
+Edit the catalog and regenerate the bundle by following
+[`i18n/README.md`](i18n/README.md).
+
 **D1 migrations** live in `account/migrations/000N_*.sql` (wired via
 `migrations_dir` in `wrangler.toml`); `account/schema.sql` is the consolidated
 schema. Add a new numbered migration file for any schema change — never edit a

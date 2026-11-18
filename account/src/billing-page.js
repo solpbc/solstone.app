@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 // The one billing place: every paid service on the sign-in, with its price and one state line,
 // and one way into Stripe's billing portal. Price and interval come live from each subscription
 // at render and are never stored. Card, receipts and billing address stay at Stripe: nothing here
@@ -29,10 +31,10 @@ const PORTAL_RETURN_URL = `https://services.solstone.app${BILLING_PATH}`;
 
 // The paid services, in the order the home page lists them.
 export const BILLING_SERVICES = Object.freeze([
-  { service: SPL_HOSTED_SERVICE, name: 'private network', href: '/private-network' },
-  { service: SPB_HOSTED_SERVICE, name: 'encrypted backup', href: '/services/backup' },
+  { service: SPL_HOSTED_SERVICE, name: t('account.billing.privatenetwork'), href: '/private-network' },
+  { service: SPB_HOSTED_SERVICE, name: t('account.enable.encryptedbackup'), href: '/services/backup' },
   { service: SME_HOSTED_SERVICE, name: 'solstone.me', href: SME_SERVICE_PATH },
-  { service: SPP_HOSTED_SERVICE, name: 'confidential processing', href: SPP_SERVICE_PATH },
+  { service: SPP_HOSTED_SERVICE, name: t('account.enable.confidentialprocessing'), href: SPP_SERVICE_PATH },
 ]);
 
 // A stopped subscription shows no price, so only a live one is read.

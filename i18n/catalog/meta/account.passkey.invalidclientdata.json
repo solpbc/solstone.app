@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "passkey.js: passkeyRegisterFinish",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "63d3379b58f446156673d75b9edbb22ec1025bbad8f892507409463709c8c5e8",
+  "risk": "account",
+  "auto_merge": true
+}

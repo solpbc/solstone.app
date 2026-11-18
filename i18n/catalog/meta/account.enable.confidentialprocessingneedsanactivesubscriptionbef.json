@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderEnableSppNeedsSubscription",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 816,
+  "source_revision": "d7004339c1843a12519ae709861cc08d03efcb57f9a0977e1c86906610e4c9d1",
+  "risk": "routine",
+  "auto_merge": true
+}

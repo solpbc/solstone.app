@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "support-html.js: fileField",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "98732b2c435941659ae8060b9e8ca77a8e2dc599354d67875b082359bc0790ab",
+  "risk": "account",
+  "auto_merge": true
+}

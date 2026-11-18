@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "deletion.js: DELETION_DELAYED_LINE",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 320,
+  "source_revision": "d0e08e7e184956cd2e7fbe30f592d7b5ecafeee4693aed49a09a90e426ceef66",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

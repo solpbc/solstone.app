@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "withdrawal-rules.js: MONTHS (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "8a85fb672c24c51d431d8c6861d087d0430894024f32083308b808c80b42549c",
+  "risk": "legal",
+  "auto_merge": false
+}

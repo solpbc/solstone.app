@@ -1,0 +1,78 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesTerms (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 4340,
+  "source_revision": "abbdfbe0ace2a37384a2a93c73020a9d225a0378db6cb6981ce12769d681e3c6",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "flag",
+      "value": "[1]"
+    },
+    {
+      "name": "slot-2",
+      "kind": "flag",
+      "value": "[2]"
+    },
+    {
+      "name": "slot-3",
+      "kind": "url",
+      "value": "solstone.me"
+    },
+    {
+      "name": "slot-4",
+      "kind": "flag",
+      "value": "[3]"
+    },
+    {
+      "name": "slot-5",
+      "kind": "flag",
+      "value": "[4]"
+    },
+    {
+      "name": "slot-6",
+      "kind": "mark-word",
+      "value": "Cloudflare"
+    },
+    {
+      "name": "slot-7",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-8",
+      "kind": "mark-word",
+      "value": "Cloudflare"
+    },
+    {
+      "name": "slot-9",
+      "kind": "url",
+      "value": "solstone.me"
+    },
+    {
+      "name": "slot-10",
+      "kind": "flag",
+      "value": "[5]"
+    },
+    {
+      "name": "slot-11",
+      "kind": "url",
+      "value": "solstone.me"
+    },
+    {
+      "name": "slot-12",
+      "kind": "flag",
+      "value": "[6]"
+    }
+  ]
+}

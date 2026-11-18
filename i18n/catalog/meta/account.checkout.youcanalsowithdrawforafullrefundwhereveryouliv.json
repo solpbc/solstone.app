@@ -1,0 +1,38 @@
+{
+  "description": "Account portal message.",
+  "context": "stripe.js: RULES_CHECKOUT_WITHDRAWAL_DISCLOSURE (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2384,
+  "source_revision": "32897f8be3cee5e4247d0e52f053c4ca5898824e83a36d08a6c7b7403f551c12",
+  "risk": "statutory",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "services.solstone.app"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "services.solstone.app/billing"
+    },
+    {
+      "name": "slot-3",
+      "kind": "url",
+      "value": "support@solstone.app"
+    },
+    {
+      "name": "slot-4",
+      "kind": "url",
+      "value": "services.solstone.app/terms#withdrawal"
+    }
+  ]
+}

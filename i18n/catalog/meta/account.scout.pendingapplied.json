@@ -1,0 +1,21 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesScout",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "relativeTime",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "396fc4a960fcc6b5970f362d6f7d15a3a1a9486d5948287b248d741daf1a663c",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: CLOSE_TIMING_LINE",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 620,
+  "source_revision": "766bcbe1d91e0f644cfaf9be4edbf87bfbe27bae6f8bd635a46e7224dadca5f0",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "solstone.me"
+    }
+  ]
+}

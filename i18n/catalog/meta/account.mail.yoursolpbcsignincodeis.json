@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "email.js: sendOtpEmail",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 112,
+  "source_revision": "1334c2279026c7244d6485f9a2fcaede8eb617679cd885f6b55c0e4c468fa2e7",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 // Withdrawal from a paid subscription within 14 days of buying it: the owner's own page, one
 // confirm, and then, in this order, the withdrawal recorded, the service ended, and an emailed
 // acknowledgement, none of which waits on Stripe. The full refund and the immediate end of the
@@ -66,10 +68,10 @@ export const WITHDRAWAL_PATH = '/billing/withdraw';
 
 // The paid services a withdrawal can be made from, each with the page its door is on.
 export const WITHDRAWAL_SERVICES = Object.freeze([
-  { slug: 'private-network', service: SPL_HOSTED_SERVICE, tag: 'spl', name: 'private network', path: '/private-network' },
-  { slug: 'backup', service: SPB_HOSTED_SERVICE, tag: 'spb', name: 'encrypted backup', path: '/services/backup' },
+  { slug: 'private-network', service: SPL_HOSTED_SERVICE, tag: 'spl', name: t('account.withdrawal.privatenetwork'), path: '/private-network' },
+  { slug: 'backup', service: SPB_HOSTED_SERVICE, tag: 'spb', name: t('account.withdrawal.encryptedbackup'), path: '/services/backup' },
   { slug: 'solstone-me', service: SME_HOSTED_SERVICE, tag: 'sme', name: 'solstone.me', path: SME_SERVICE_PATH },
-  { slug: 'confidential-processing', service: SPP_HOSTED_SERVICE, tag: 'spp', name: 'confidential processing', path: SPP_SERVICE_PATH },
+  { slug: 'confidential-processing', service: SPP_HOSTED_SERVICE, tag: 'spp', name: t('account.withdrawal.confidentialprocessing'), path: SPP_SERVICE_PATH },
 ]);
 
 const BY_SLUG = new Map(WITHDRAWAL_SERVICES.map((def) => [def.slug, def]));

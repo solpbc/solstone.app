@@ -1,13 +1,15 @@
+import { t } from '../../i18n/account.mjs';
+
 // The owner-facing identity of the spp service (confidential processing), in one place:
 // its page, what its plan says at checkout, and whether it is on sale.
 export const SPP_SERVICE_PATH = '/confidential-processing';
 export const SPP_SUBSCRIBE_URL = `https://services.solstone.app${SPP_SERVICE_PATH}`;
 
 // What the plan includes and what happens when the owner reaches it, as the terms require
-// checkout to show (SPP_PLAN_TERMS in wrangler.toml). The words are the terms owner's, set in
-// the same commit as the prices.
+// checkout to show. The deployed variable selects the reviewed catalog message.
 export function sppPlanTerms(env) {
-  return typeof env.SPP_PLAN_TERMS === 'string' ? env.SPP_PLAN_TERMS.trim() : '';
+  const configured = typeof env.SPP_PLAN_TERMS === 'string' ? env.SPP_PLAN_TERMS.trim() : '';
+  return configured === 'account.checkout.yourplancoversonejournalandevery' ? t(configured) : configured;
 }
 
 // The service is on sale exactly when both Stripe prices have been created and their ids

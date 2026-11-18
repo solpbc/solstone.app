@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: CLOSE_PAID_LINE_RULES (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1484,
+  "source_revision": "4992e32359df47b30e1d80544b42ca4be35c85be7dd5846490d48fc74bc8a735",
+  "risk": "legal",
+  "auto_merge": false
+}

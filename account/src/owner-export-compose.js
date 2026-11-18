@@ -1,34 +1,36 @@
+import { t } from '../../i18n/account.mjs';
+
 import { ownerExportNotIncluded, ownerExportRetainedMechanics } from './owner-export-retained.js';
 
 export const SUPPORT_CLOSED_EXPLANATION = {
   code: 'content_removed',
-  description: 'after a request closes, only its identifier, dates, status, and content-removed marker remain',
+  description: t('account.export.afterrequestclosesonlyitsidentifierdates'),
 };
 
 const REASON_DESCRIPTIONS = Object.freeze({
-  deadline: 'this section could not be reached in time',
-  resource_limit: 'this section was too large to include safely in this download',
-  unconfigured: 'this section is not connected right now',
-  throw: 'this section could not be reached',
-  redirect: 'this section returned an unexpected response',
-  malformed_body: 'this section returned an unreadable response',
-  duplicate_member: 'this section returned an unreadable response',
-  invalid_envelope: 'this section returned an unreadable response',
-  invalid_shape: 'this section returned an unreadable response',
-  invalid_field: 'this section returned an unreadable response',
-  mismatch: 'the returned record did not match the requested record',
-  duplicate: 'this section returned conflicting records',
-  cursor: 'closed support requests could not be read completely',
-  over_limit: 'closed support requests could not be read completely',
-  unstable: 'a support request changed while this download was prepared',
-  decrypt: 'one or more verified email addresses could not be read',
-  incomplete: 'this section could not be included completely',
-  failed: 'this section could not be included',
+  deadline: t('account.export.thissectioncouldnotbereachedin'),
+  resource_limit: t('account.export.thissectionwastoolargeincludesafely'),
+  unconfigured: t('account.export.thissectionisnotconnectedrightnow'),
+  throw: t('account.export.thissectioncouldnotbereached'),
+  redirect: t('account.export.thissectionreturnedanunexpectedresponse'),
+  malformed_body: t('account.export.thissectionreturnedanunreadableresponse'),
+  duplicate_member: t('account.export.thissectionreturnedanunreadableresponse'),
+  invalid_envelope: t('account.export.thissectionreturnedanunreadableresponse'),
+  invalid_shape: t('account.export.thissectionreturnedanunreadableresponse'),
+  invalid_field: t('account.export.thissectionreturnedanunreadableresponse'),
+  mismatch: t('account.export.returnedrecorddidnotmatchrequestedrecord'),
+  duplicate: t('account.export.thissectionreturnedconflictingrecords'),
+  cursor: t('account.export.closedsupportrequestscouldnotberead'),
+  over_limit: t('account.export.closedsupportrequestscouldnotberead'),
+  unstable: t('account.export.supportrequestchangedwhilethisdownloadwas'),
+  decrypt: t('account.export.oneormoreverifiedemailaddressescould'),
+  incomplete: t('account.export.thissectioncouldnotbeincludedcompletely'),
+  failed: t('account.export.thissectioncouldnotbeincluded'),
 });
 
 function reasonDescription(code) {
-  if (typeof code === 'string' && code.startsWith('http_')) return 'this section could not be reached';
-  return REASON_DESCRIPTIONS[code] || 'this section could not be included completely';
+  if (typeof code === 'string' && code.startsWith('http_')) return t('account.export.thissectioncouldnotbereached');
+  return REASON_DESCRIPTIONS[code] || t('account.export.thissectioncouldnotbeincludedcompletely');
 }
 
 function reason(code) {
@@ -56,7 +58,7 @@ export function composeOwnerExportDocument({
       ...(relayComplete ? {} : {
         reason: {
           codes: [...new Set((relay?.accounting || []).map((item) => item.reason).filter(Boolean))],
-          description: 'some private network or confidential processing details could not be included; see instance accounting',
+          description: t('account.export.someprivatenetworkorconfidentialprocessingdetails'),
         },
       }),
     },

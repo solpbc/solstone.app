@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderBillingReturn",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 436,
+  "source_revision": "0713d8de0bec2fc058b6acae3bc08b00f4d26b25357c438b6d0fae7f2545b218",
+  "risk": "routine",
+  "auto_merge": true
+}

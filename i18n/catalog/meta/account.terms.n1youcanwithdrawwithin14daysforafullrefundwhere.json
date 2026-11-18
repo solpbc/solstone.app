@@ -1,0 +1,48 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesTerms (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 5320,
+  "source_revision": "b085a9e1e788868fa2c1850b5762bf95d3d03a9456a910eb84db59256b8b9442",
+  "risk": "statutory",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "flag",
+      "value": "[1]"
+    },
+    {
+      "name": "slot-2",
+      "kind": "flag",
+      "value": "[2]"
+    },
+    {
+      "name": "slot-3",
+      "kind": "flag",
+      "value": "[3]"
+    },
+    {
+      "name": "slot-4",
+      "kind": "flag",
+      "value": "[4]"
+    },
+    {
+      "name": "slot-5",
+      "kind": "url",
+      "value": "services.solstone.app/billing"
+    },
+    {
+      "name": "slot-6",
+      "kind": "url",
+      "value": "support@solstone.app"
+    }
+  ]
+}

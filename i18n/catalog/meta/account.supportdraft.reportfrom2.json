@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "inline/support-draft.js: page or message",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "03584bb9d155b5e3d9b68cb11682503ae23f783670fbbe13c2130c82dd09c259",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "whitespace",
+      "value": " "
+    }
+  ]
+}

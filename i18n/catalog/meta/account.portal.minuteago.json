@@ -1,0 +1,28 @@
+{
+  "description": "found as js-template. Plural suffix is chosen with the English morpheme s. Exemplar for the hour and day lines.",
+  "context": "formatRelativeTime. a past moment, under an hour.",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "count",
+      "type": "cardinal",
+      "numeric_style": "ungrouped",
+      "min": 0,
+      "max": 2147483647
+    }
+  ],
+  "format_intent": "cardinal",
+  "max_length": 13,
+  "source_revision": "aeddea872d09b0689a0ae8850cd68e03a2aaf377361345486d2543df216b6f77",
+  "risk": "routine",
+  "auto_merge": true,
+  "selector": {
+    "name": "count",
+    "type": "cardinal"
+  }
+}

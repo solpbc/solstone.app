@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: CANCEL_WORDS (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 400,
+  "source_revision": "c33b443b1cff32bfa797df1b5c7a681fd4b96def9164bf518e48d48f08d880bd",
+  "risk": "payment",
+  "auto_merge": false
+}

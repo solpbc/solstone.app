@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "owner-data-inventory.js: TABLES",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 588,
+  "source_revision": "37e23edcc2a05c11677e7c97841ea98c4f54739ca85fbdaed058ba20f81b8fef",
+  "risk": "account",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "solstone.me"
+    }
+  ]
+}

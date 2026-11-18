@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "email.js: sendDeletionProofEmail",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 112,
+  "source_revision": "494d19f194149c4e7d196d2c9c8cbc3bec5a7d551997d897e690bea39abe3202",
+  "risk": "account",
+  "auto_merge": true
+}

@@ -1,0 +1,21 @@
+{
+  "description": "Account portal message.",
+  "context": "email.js: sendDeletionProofEmail",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "deadlineNotice",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 124,
+  "source_revision": "a54843b63896467a5604aa726c6bb3c5be8eafae4d11a865a6670c9dac1087cc",
+  "risk": "account",
+  "auto_merge": true
+}

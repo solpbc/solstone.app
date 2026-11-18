@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: WITHDRAWAL_ACK_RENEWED (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 228,
+  "source_revision": "782b818904c8ece7e91e30bc7286b53158fd8cf8d3c0b2f5259948988c612434",
+  "risk": "legal",
+  "auto_merge": false
+}

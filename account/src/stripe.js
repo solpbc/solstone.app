@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import { timingSafeEqual } from './crypto.js';
 import { subscriptionRulesOn } from './subscription-rules.js';
 
@@ -5,16 +7,16 @@ export const STRIPE_API_VERSION = '2024-09-30.acacia';
 
 const STRIPE_API_BASE = 'https://api.stripe.com/v1';
 const encoder = new TextEncoder();
-const CHECKOUT_DISCLOSURE = 'by purchasing this service, you agree to enroll in an automatic renewal contract: it renews automatically at the end of each billing period, until you cancel. cancel anytime: sign in at services.solstone.app, open the service, use the manage billing button, and cancel on the billing page it opens. when you cancel, the service keeps working through the end of the period you have already paid for, then stops.';
+const CHECKOUT_DISCLOSURE = t('account.checkout.bypurchasingthisserviceyouagreeenroll');
 
 // PLACEHOLDER pending the approved withdrawal wording. It is appended to the renewal
 // disclosure above, which stays exactly as it is, and only while the withdrawal door is on.
-export const CHECKOUT_WITHDRAWAL_DISCLOSURE = 'you can also withdraw for a full refund, wherever you live, until the end of the 14th day after the day you buy: sign in at services.solstone.app and use "withdraw from contract here" on the service\'s page or at services.solstone.app/billing, then confirm; or email support@solstone.app saying you withdraw. a withdrawal sent within the 14 days counts. withdrawing stops the service that day and we refund everything you paid for it. a renewal does not start a new 14 days. the withdrawal form and the details are in the terms: services.solstone.app/terms#withdrawal.';
+export const CHECKOUT_WITHDRAWAL_DISCLOSURE = t('account.checkout.youcanalsowithdrawforfullrefund');
 
 // The approved wording under the subscription rules: the renewal disclosure, and the withdrawal
 // disclosure appended to it while the withdrawal door is on.
-const RULES_CHECKOUT_DISCLOSURE = 'by purchasing this service, you agree to enroll in an automatic renewal contract: it renews automatically at the end of each billing period, until you cancel. cancel anytime: sign in at services.solstone.app and use "cancel contracts here" on the service\'s page or at services.solstone.app/billing, or email support@solstone.app saying you cancel. when you cancel, the service keeps working through the end of the period you have already paid for, then stops. on an annual plan that has renewed, it stops at the end of your current plan month instead, and we refund the whole months left.';
-const RULES_CHECKOUT_WITHDRAWAL_DISCLOSURE = 'you can also withdraw for a full refund, wherever you live, until the end of the 14th day after the day you buy, and again after each annual renewal: sign in at services.solstone.app and use "withdraw from contract here" on the service\'s page or at services.solstone.app/billing, then confirm; or email support@solstone.app saying you withdraw or cancel. a withdrawal sent within the 14 days counts. withdrawing stops the service that day and we refund everything you paid for that purchase or renewal. the withdrawal form and the details are in the terms: services.solstone.app/terms#withdrawal.';
+const RULES_CHECKOUT_DISCLOSURE = t('account.checkout.bypurchasingthisserviceyouagreetoenrollinanaut');
+const RULES_CHECKOUT_WITHDRAWAL_DISCLOSURE = t('account.checkout.youcanalsowithdrawforafullrefundwhereveryouliv');
 
 // The one language of every contract surface: Checkout, the billing portal, and receipts.
 export const CONTRACT_LOCALE = 'en';

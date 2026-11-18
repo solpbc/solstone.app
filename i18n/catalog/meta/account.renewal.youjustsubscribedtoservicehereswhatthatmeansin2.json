@@ -1,0 +1,33 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: RULES_L1_BODY_TEMPLATE (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 968,
+  "source_revision": "3c881bd498e058dd3f6b9a5bf9fd7b0eec70876eb167daeb52d94ea32ad9e86c",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "{{service}}"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "services.solstone.app/terms"
+    },
+    {
+      "name": "slot-3",
+      "kind": "url",
+      "value": "https://services.solstone.app/terms"
+    }
+  ]
+}

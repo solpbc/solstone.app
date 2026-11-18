@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderSignInPasskeys",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "8d5da4dc10045cc66f426997536acb40fefcba0ea3964a252a30a036afba00b6",
+  "risk": "account",
+  "auto_merge": true
+}

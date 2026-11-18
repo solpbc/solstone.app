@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: CANCEL_NOW_LABEL",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "3095a608f0f316db065bad1ce716c518a228283a15a4c2b2e2e062634ebbc831",
+  "risk": "legal",
+  "auto_merge": false
+}

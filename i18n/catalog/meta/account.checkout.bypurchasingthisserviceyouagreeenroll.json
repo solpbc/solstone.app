@@ -1,0 +1,23 @@
+{
+  "description": "Account portal message.",
+  "context": "stripe.js: CHECKOUT_DISCLOSURE",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1640,
+  "source_revision": "9202ac24ac91d64d9475f618a11d4a10d99caa6982943077708e1edbe3b5752d",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "services.solstone.app"
+    }
+  ]
+}

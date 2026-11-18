@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesTerms (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1632,
+  "source_revision": "de30cfe12ad19d5f297c95b171f1f5325849c0fc64106b6a40f895d2d982b7cc",
+  "risk": "legal",
+  "auto_merge": false
+}

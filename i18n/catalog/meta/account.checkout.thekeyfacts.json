@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "rules-words.js: KEY_FACTS_EMAIL_HEADING (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "bc5a4d36a01cce9896888f58dd824612745b59244a32a1012273228f8fa05b07",
+  "risk": "legal",
+  "auto_merge": false
+}

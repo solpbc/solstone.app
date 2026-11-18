@@ -1,0 +1,28 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: L1_WITHDRAWAL_BLOCK",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 392,
+  "source_revision": "db5f1f9eb8c5f126628d02d606626d8eed52fd38e680aa32bf32d4cf6853723e",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "support@solstone.app"
+    }
+  ]
+}

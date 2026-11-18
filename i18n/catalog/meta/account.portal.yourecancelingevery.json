@@ -1,0 +1,29 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: CANCEL_WORDS",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "serviceName",
+      "type": "string"
+    },
+    {
+      "name": "price",
+      "type": "string"
+    },
+    {
+      "name": "interval",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 184,
+  "source_revision": "c5f1b4cce3074582e915293b2d8f5147424fcdab421c7ead00aa7716dc9821e4",
+  "risk": "routine",
+  "auto_merge": true
+}

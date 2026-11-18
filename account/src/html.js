@@ -1,3 +1,5 @@
+import { attrText, countText, htmlText, scriptText, t, termsText } from '../../i18n/account.mjs';
+
 // Page renderers for the served portal.css design system and same-origin brand assets.
 
 import { PORTAL_CSS_HREF, SUNARC_JS_SRC } from './assets.js';
@@ -12,7 +14,7 @@ import { formatLongDate, formatMomentUtc } from './withdrawal-rules.js';
 // The cancel function's path, as cancel-contract.js serves it.
 const CANCEL_CONTRACT_PATH_HTML = '/billing/cancel-contract';
 
-export const VERIFY_ERROR = "that code didn't work. try again or request a new one.";
+export const VERIFY_ERROR = t('account.portal.thatcodedidntworktryagain');
 const MARK_SVG = '<svg class="mark" viewBox="2.5 2.5 27 27" role="img" aria-label="solstone"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg>'
 const CHEVRON_SVG = '<svg class="chevron" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"/></svg>';
 const CARET_SVG = '<svg class="caret" viewBox="0 0 11 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4.5 4.5L10 1"/></svg>';
@@ -33,17 +35,17 @@ const IC_VAULT = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="curren
 const IC_CHIP = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/></svg>';
 const IC_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.7 5.4 3.7 8.5S14.4 18.2 12 20.5C9.6 18.2 8.3 15.1 8.3 12S9.6 5.8 12 3.5Z"/></svg>';
 const CHECK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--orange-ink)"><circle cx="12" cy="12" r="9.5" stroke="currentColor"/><path d="M8 12.2l2.6 2.6L16 9" stroke="currentColor"/></svg>';
-const SCOUT_PROGRAM_COVENANT = "confidential processing: no content is retained · no human reviews it · nothing is used to train. your journal must verify the service before anything is sent.";
+const SCOUT_PROGRAM_COVENANT = t('account.portal.confidentialprocessingnocontentisretainedno');
 // The signed-in page lists every class the download carries (see handleTransparency), newest
 // rows first and long histories shortened, so the lead claims kinds of record, not every row;
 // support requests live on /support and the lead points there.
-const TRANSPARENCY_LEAD_SIGNED_IN = 'this page lists every kind of record sol pbc keeps for your sign-in.';
-const TRANSPARENCY_LEAD_DOWNLOAD = 'the download below carries each of them, support requests included, and leaves out your full IP address, full browser details, and the keys, codes and short-lived checks that secure your sign-in.';
-const TRANSPARENCY_LEAD_SIGNED_OUT = 'once you sign in, this page lists every kind of record sol pbc keeps for your sign-in.';
+const TRANSPARENCY_LEAD_SIGNED_IN = t('account.portal.thispagelistseverykindrecordsol');
+const TRANSPARENCY_LEAD_DOWNLOAD = t('account.portal.downloadbelowcarrieseachthemsupportrequests');
+const TRANSPARENCY_LEAD_SIGNED_OUT = t('account.portal.onceyousigninthispagelists');
 // Only what Article 8 and bylaws Article III commit sits under their sentence. What Stripe holds and
 // the network address we keep are facts about this service, stated before it, never covenants.
-const transparencyIntro = (lead) => `<p class="intro" style="margin-bottom:12px">${lead} we never hold a readable copy of your journal, and we don't collect a phone number. we keep the network address each of your sessions came from, encrypted, and this page shows it shortened. if you pay for a service, Stripe holds your card, the name on it and your billing address. to answer a billing question, an operator can see details such as the card's brand, its last four digits, the name and the billing address in Stripe's own dashboard. the services portal and the hosted services never ask Stripe for your card's details or keep them; the <a href="https://solpbc.org/privacy#billing">privacy policy</a> says who else can see them there, and why.</p>
-<p class="intro">no analytics, no behavioral data, no third-party tracking: that isn't a promise, it's a structural commitment under <a href="https://solpbc.org/articles#s8-3">Article 8 of our articles of incorporation</a> (restated 2026-05-01) and <a href="https://solpbc.org/bylaws#art-3">Article III of the bylaws</a>.</p>`;
+const transparencyIntro = (lead) => `<p class="intro" style="margin-bottom:12px">${lead} ${htmlText('account.portal.weneverholdareadablecopyofyourjournalandwedont')} <a href="https://solpbc.org/privacy#billing">${htmlText('account.portal.privacypolicy')}</a> ${htmlText('account.portal.sayswhoelsecanseethemthereandwhy')}</p>
+<p class="intro">${htmlText('account.portal.noanalyticsnobehavioraldatanothirdpartytrackin')} <a href="https://solpbc.org/articles#s8-3">${htmlText('account.portal.article8ofourarticlesofincorporation')}</a> ${htmlText('account.portal.restated20260501and')} <a href="https://solpbc.org/bylaws#art-3">${htmlText('account.portal.articleiiiofthebylaws')}</a>.</p>`;
 
 function brandbar() {
   return `<div class="brandbar">${MARK_SVG}<span class="wordmark">solstone</span></div>`;
@@ -54,8 +56,8 @@ function brandbar() {
 // need an ordinary session would sign the owner out on arrival, so deletion
 // pages leave out the footer links to /transparency and /support.
 function footer({ deletionActive = false } = {}) {
-  const portalLinks = deletionActive ? '' : '<a href="/transparency">data transparency</a><a href="/support">support</a>';
-  return `<footer class="footer">${portalLinks}<a href="https://status.solstone.app">service status</a><a href="/terms">terms</a><a href="https://solpbc.org/privacy">how we earn your trust ${EXT_SVG}</a><a href="https://solstone.app">solstone.app →</a></footer>`;
+  const portalLinks = deletionActive ? '' : '<a href="/transparency">' + htmlText('account.deletion.datatransparency') + '</a><a href="/support">' + htmlText('account.portal.support') + '</a>';
+  return `<footer class="footer">${portalLinks}<a href="https://status.solstone.app">${htmlText('account.portal.servicestatus')}</a><a href="/terms">${htmlText('account.portal.terms')}</a><a href="https://solpbc.org/privacy">${htmlText('account.portal.howweearnyourtrust')} ${EXT_SVG}</a><a href="https://solstone.app">${htmlText('account.portal.solstoneapp')}</a></footer>`;
 }
 
 // `deletion` is display context from loadDeletionMenuContext: present only while
@@ -67,36 +69,36 @@ export function topbar({ email = null, lastSignInAt = null, now = null, deletion
   const hasEmail = trimmedEmail.length > 0;
   const avatar = hasEmail ? esc(trimmedEmail[0] || '·') : '·';
   const head = hasEmail
-    ? `<div class="head"><div class="lbl">signed in as</div><div class="who">${esc(trimmedEmail)}</div><div class="seen">last sign-in ${esc(formatRelativeTime(lastSignInAt, now))}</div></div>`
+    ? `<div class="head"><div class="lbl">${htmlText('account.signin.signedinas')}</div><div class="who">${esc(trimmedEmail)}</div><div class="seen">${htmlText('account.portal.lastsignin')} ${esc(formatRelativeTime(lastSignInAt, now))}</div></div>`
     : '';
   const home = deletion
     ? `<span class="home">${MARK_SVG}<span class="wordmark">solstone</span></span>`
     : `<a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a>`;
   const links = deletion
-    ? `<a href="/account/delete">closing your sign-in</a>${deletion.exportAvailable ? '\n      <a href="/account/export">download what sol pbc holds</a>' : ''}`
-    : `<a href="/">home</a>
-      <a href="/sign-in">manage sign-in</a>`;
+    ? `<a href="/account/delete">${htmlText('account.deletion.closingyoursignin')}</a>${deletion.exportAvailable ? '\n      <a href="/account/export">' + htmlText('account.transparency.downloadwhatsolpbcholds') + '</a>' : ''}`
+    : `<a href="/">${htmlText('account.portal.home')}</a>
+      <a href="/sign-in">${htmlText('account.transparency.managesignin')}</a>`;
   // <details> never closes on its own when focus or a tap lands elsewhere. pointerdown,
   // not click: iOS Safari fires no click on a tap over non-interactive content.
   return `<div class="topbar">
   ${home}
   <details class="usermenu">
-    <summary aria-label="menu"><span class="avatar">${avatar}</span>${CARET_SVG}</summary>
+    <summary aria-label="${attrText('account.portal.menu')}"><span class="avatar">${avatar}</span>${CARET_SVG}</summary>
     <div class="menu" role="menu">
       ${head}
       ${links}
       <div class="sep"></div>
-      <form method="post" action="/signout"><button class="mi signout" type="submit">sign out</button></form>
+      <form method="post" action="/signout"><button class="mi signout" type="submit">${htmlText('account.signin.signout')}</button></form>
     </div>
   </details>
   <script>(function(){var m=document.currentScript.previousElementSibling;document.addEventListener('pointerdown',function(e){if(m.open&&!m.contains(e.target))m.open=false});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&m.open){m.open=false;m.querySelector('summary').focus()}})})();</script>
 </div>`;
 }
 
-const BRANDLOCK = `<p class="brandlock"><span class="dot"></span>your journal is always private, only yours.</p>`;
+const BRANDLOCK = `<p class="brandlock"><span class="dot"></span>${htmlText('account.portal.yourjournalisalwaysprivateonlyyours')}</p>`;
 
 function brandbarSignin() {
-  return `<div class="topbar"><a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a><a href="/?signin" style="color:var(--orange-text-aa);font-weight:600;text-decoration:none">sign in</a></div>`;
+  return `<div class="topbar"><a class="home" href="/">${MARK_SVG}<span class="wordmark">solstone</span></a><a href="/?signin" style="color:var(--orange-text-aa);font-weight:600;text-decoration:none">${htmlText('account.portal.signin')}</a></div>`;
 }
 
 function row(href, ic, title, desc, trail) {
@@ -141,29 +143,29 @@ export function layout({ title, body, afterMain = '', showFooter = true, mainCla
 </html>`;
 }
 
-export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = "sign in to manage the optional services you've turned on. the solstone app runs on your devices, and your journal lives on one of them. you don't sign in to use them.") {
+export function renderLanding(turnstileSiteKey, csrf, resume = {}, subhead = t('account.signin.signinmanageoptionalservicesyouve')) {
   const resumeHtml = resume.next && resume.nextSig
     ? `<input type="hidden" name="next" value="${escAttr(resume.next)}">
   <input type="hidden" name="next_sig" value="${escAttr(resume.nextSig)}">`
     : '';
   return layout({
-    title: 'sign in to manage your services',
+    title: t('account.transparency.signinmanageyourservices'),
     body: `${brandbar()}
-<h1>your services</h1>
+<h1>${htmlText('account.billing.yourservices')}</h1>
 <p class="lead">${esc(subhead)}</p>
 <div id="passkey-error" class="error" hidden></div>
 <div class="card">
   <form method="post" action="/signin/start">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     ${resumeHtml}
-    <label for="email">email</label>
+    <label for="email">${htmlText('account.cancel.email')}</label>
     <input id="email" type="email" name="email" autocomplete="email webauthn" required placeholder="you@example.com" maxlength="254">
     <div class="cf-turnstile" data-sitekey="${escAttr(turnstileSiteKey)}" data-theme="auto"></div>
-    <button class="btn primary block" type="submit">continue</button>
+    <button class="btn primary block" type="submit">${htmlText('account.cancel.continue')}</button>
   </form>
 </div>
-<p class="disclosure">no analytics and no tracking. this is the only solstone surface that ever knows it's you, and only after you sign in.</p>
-<p class="disclosure">by signing in, you agree to the <a href="/terms">terms</a>.</p>`,
+<p class="disclosure">${htmlText('account.signin.noanalyticsandnotrackingthisis')}</p>
+<p class="disclosure">${htmlText('account.signin.bysigninginyouagreetothe')} <a href="/terms">${htmlText('account.signin.terms')}</a>.</p>`,
     afterMain: `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script>${SUPPORT_DRAFT_JS}</script><script>${LANDING_JS}</script>`,
   });
@@ -180,12 +182,12 @@ export function renderVerify({ email = '', emailInputValue = '', error = '', csr
     ? `<input type="hidden" name="email" value="${escAttr(email)}">`
     : `<input type="email" name="email" value="${escAttr(emailInputValue)}" required autocomplete="email" placeholder="you@example.com" maxlength="254">`;
   const subhead = email
-    ? `code sent to <strong>${escapedEmail}</strong>. it expires 10 minutes after we sent it.`
-    : 'enter your email and the 6-digit code we sent you.';
+    ? `${htmlText('account.signin.codesentto')} <strong>${escapedEmail}</strong>${htmlText('account.signin.itexpires10minutesafterwesentit')}`
+    : t('account.signin.enteryouremailand6digitcode');
   return layout({
-    title: 'verify your code',
+    title: t('account.signin.verifyyourcode'),
     body: `${brandbar()}
-<h1>verify your code</h1>
+<h1>${htmlText('account.signin.verifyyourcode')}</h1>
 <p class="lead">${subhead}</p>
 ${errorHtml}
 <div class="card">
@@ -193,42 +195,42 @@ ${errorHtml}
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     ${resumeHtml}
     ${emailFieldHtml}
-    <label for="code">6-digit code</label>
+    <label for="code">${htmlText('account.deletion.n6digitcode')}</label>
     <input id="code" class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
-    <button class="btn primary block" type="submit">verify</button>
+    <button class="btn primary block" type="submit">${htmlText('account.signin.verify')}</button>
   </form>
 </div>
-<p class="disclosure">didn't get it? <a href="/">request a new code</a>.</p>`,
+<p class="disclosure">${htmlText('account.signin.didntgetit')} <a href="/">${htmlText('account.signin.requestanewcode')}</a>.</p>`,
   });
 }
 
 export function renderError() {
   return layout({
-    title: "that link didn't work",
+    title: t('account.portal.thatlinkdidntwork'),
     body: `${brandbar()}
-<h1>that link didn't work</h1>
-<p class="lead">the link you used may have expired, or your email security may have changed it on the way to you. nothing happened to your services.</p>
+<h1>${htmlText('account.portal.thatlinkdidntwork')}</h1>
+<p class="lead">${htmlText('account.portal.linkyouusedmayhaveexpiredor')}</p>
 <div class="card">
-  <p style="margin:0 0 16px;color:var(--ink)">to pick up where you left off:</p>
+  <p style="margin:0 0 16px;color:var(--ink)">${htmlText('account.portal.pickupwhereyouleftoff')}</p>
   <ul style="margin:0 0 18px;padding-left:20px;color:var(--ink-soft)">
-    <li style="margin-bottom:6px">if you came here from your journal, run the enable command again for a fresh link.</li>
-    <li>otherwise, open services.solstone.app directly and request a new code.</li>
+    <li style="margin-bottom:6px">${htmlText('account.portal.ifyoucameherefromyourjournal')}</li>
+    <li>${htmlText('account.portal.otherwiseopenservicessolstoneappdirectlyand')}</li>
   </ul>
-  <a class="btn primary block" href="/">open your services</a>
+  <a class="btn primary block" href="/">${htmlText('account.portal.openyourservices')}</a>
 </div>`,
   });
 }
 
 export function renderEnableScout() {
   return layout({
-    title: 'scout',
+    title: t('account.scout.scout'),
     body: `${brandbar()}
-<h1>scout</h1>
-<p class="lead">scout is the tester program. approved scouts can enable complimentary confidential processing from the journal and share feedback that helps shape solstone.</p>
+<h1>${htmlText('account.scout.scout')}</h1>
+<p class="lead">${htmlText('account.enable.scoutistesterprogramapprovedscoutscan')}</p>
 <div class="card">
-  <h2>continue with scout</h2>
-  <p>request scout access or review your scout status in your services.</p>
-  <p><a href="/scout">open scout</a></p>
+  <h2>${htmlText('account.enable.continuewithscout')}</h2>
+  <p>${htmlText('account.enable.requestscoutaccessorreviewyourscout')}</p>
+  <p><a href="/scout">${htmlText('account.enable.openscout')}</a></p>
 </div>`,
   });
 }
@@ -241,18 +243,18 @@ export function renderEnableScout() {
 const TURN_ON_CARD_1 = `<div class="grant">
     <div class="n">1</div>
     <div>
-      <div class="gt">the request is tied to your sign-in</div>
-      <div class="gd">sol pbc can approve it because it's tied to your sign-in. no journal content comes with it, only what identifies the request, and your allowing it is recorded.</div>
+      <div class="gt">${htmlText('account.portal.requestistiedyoursignin')}</div>
+      <div class="gd">${htmlText('account.portal.solpbccanapproveitbecauseit')}</div>
     </div>
   </div>`;
 
 // A surface that can't draw the mark names a journal by this label and its id.
 function journalIdLabel(id) {
-  return `journal <span style="${TRANSPARENCY_MONO}">${esc(id)}</span>`;
+  return `${htmlText('account.portal.journal')} <span style="${TRANSPARENCY_MONO}">${esc(id)}</span>`;
 }
 
 function turnOnLead(service, instance = '') {
-  const sentence = `sol pbc received a request to turn on ${service} for your journal. it stays off until you allow it.`;
+  const sentence = t('account.portal.solpbcreceivedarequesttoturnonforyourjournalit', { service });
   return instance
     ? `${sentence}<span style="display:block;margin-top:6px">${journalIdLabel(instance)}</span>`
     : sentence;
@@ -262,12 +264,12 @@ function turnOnLead(service, instance = '') {
 // caveat on paid services, the terms link (always /terms, never a redirecting
 // alias), and the privacy-policy anchor for what sol pbc keeps.
 function turnOnFooter({ paid, policyAnchor }) {
-  const subscriptionClause = paid ? " turning it off doesn't cancel a subscription." : '';
-  return `<p class="disclosure">you can turn it off from the journal anytime.${subscriptionClause} by turning this on, you agree to the <a href="/terms">terms</a>. what sol pbc keeps is in the <a href="https://solpbc.org/privacy#${policyAnchor}">privacy policy</a>.</p>`;
+  const subscriptionClause = paid ? t('account.portal.turningitoffdoesntcancelasubscription') : '';
+  return `<p class="disclosure">${htmlText('account.portal.youcanturnitofffromthejournalanytime')}${subscriptionClause} ${htmlText('account.portal.byturningthisonyouagreetothe')} <a href="/terms">${htmlText('account.portal.terms')}</a>${htmlText('account.portal.whatsolpbckeepsisinthe')} <a href="https://solpbc.org/privacy#${policyAnchor}">${htmlText('account.portal.privacypolicy')}</a>.</p>`;
 }
 
 function restorePolicyFooter(policyAnchor) {
-  return `<p class="disclosure">what sol pbc keeps is in the <a href="https://solpbc.org/privacy#${policyAnchor}">privacy policy</a>.</p>`;
+  return `<p class="disclosure">${htmlText('account.portal.whatsolpbckeepsisinthe2')} <a href="https://solpbc.org/privacy#${policyAnchor}">${htmlText('account.portal.privacypolicy')}</a>.</p>`;
 }
 
 // The three follow-on templates every turn-on flow shares (rule 8); the service
@@ -281,39 +283,39 @@ function restorePolicyFooter(policyAnchor) {
 // and says what to do when it isn't.
 function enableDoneTemplate(service) {
   return layout({
-    title: `you allowed ${service}`,
+    title: t('account.portal.youallowed', { service }),
     body: `${brandbar()}
 <div class="card" data-enable-state="done">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} you allowed ${service}</h2>
-  <p>go back to your journal to check that it's on. if your journal is still waiting, it picks this up within a few seconds.</p>
-  <p>if your journal still shows ${service} as off, turn ${service} on again from your journal.</p>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${CHECK_SVG} ${htmlText('account.portal.youallowed2')} ${service}</h2>
+  <p>${htmlText('account.enable.gobackyourjournalcheckthatit')}</p>
+  <p>${htmlText('account.portal.ifyourjournalstillshows')} ${service} ${htmlText('account.portal.asoffturn')} ${service} ${htmlText('account.portal.onagainfromyourjournal')}</p>
 </div>`,
   });
 }
 
 function enableNeedsSubscriptionTemplate({ service, href }) {
   return layout({
-    title: 'a subscription is needed',
+    title: t('account.enable.subscriptionisneeded'),
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
-  <p>${service} needs an active subscription before it can turn on. your consent is saved; set one up, then turn ${service} on again in your journal.</p>
-  <a class="btn primary" href="${escAttr(href)}">set up ${service}</a>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${htmlText('account.enable.subscriptionisneeded')}</h2>
+  <p>${service} ${htmlText('account.portal.needsanactivesubscriptionbeforeitcanturnonyour')} ${service} ${htmlText('account.portal.onagaininyourjournal')}</p>
+  <a class="btn primary" href="${escAttr(href)}">${htmlText('account.portal.setup')} ${service}</a>
 </div>`,
   });
 }
 
 function enableErrorTemplate(service, { journalUpdate = false } = {}) {
   const message = journalUpdate
-    ? `<p data-notice="journal-update">your journal needs an update before it can turn this on.</p>
-  <p>update your journal on the computer it runs on, then turn ${service} on again from your journal.</p>`
-    : `<p>something didn't look right with that link.</p>
-  <p>if you got here from your journal, try again from there. otherwise, you can close this tab.</p>`;
+    ? `<p data-notice="journal-update">${htmlText('account.portal.yourjournalneedsanupdatebeforeitcanturnthison')}</p>
+  <p>${htmlText('account.portal.updateyourjournalonthecomputeritrunsonthenturn')} ${service} ${htmlText('account.portal.onagainfromyourjournal')}</p>`
+    : `<p>${htmlText('account.enable.somethingdidntlookrightwiththat')}</p>
+  <p>${htmlText('account.enable.ifyougotherefromyourjournal')}</p>`;
   return layout({
-    title: `could not turn on ${service}`,
+    title: t('account.portal.couldnotturnon', { service }),
     body: `${brandbar()}
 <div class="card">
-  <h1>could not turn on ${service}</h1>
+  <h1>${htmlText('account.portal.couldnotturnon2')} ${service}</h1>
   ${message}
 </div>`,
   });
@@ -336,17 +338,17 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', proof = nul
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
   return layout({
-    title: 'turn on private network',
+    title: t('account.enable.turnonprivatenetwork'),
     body: `${brandbar()}
-<h1>turn on private network</h1>
-<p class="lead">${turnOnLead('private network', instance)}</p>
+<h1>${htmlText('account.services.turnonprivatenetwork')}</h1>
+<p class="lead">${turnOnLead(t('account.services.privatenetwork'), instance)}</p>
 <div class="card">
   ${TURN_ON_CARD_1}
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">what it does for your journal</div>
-      <div class="gd">sol pbc runs a relay so your journal stays reachable when it's away from your own network. the relay only passes encrypted bytes through: sol pbc can't read what passes through it. on your own network, reaching your journal is always free and doesn't use the relay.</div>
+      <div class="gt">${htmlText('account.enable.whatitdoesforyourjournal')}</div>
+      <div class="gd">${htmlText('account.enable.solpbcrunsrelaysoyourjournal')}</div>
     </div>
   </div>
   <form method="post" action="/enable/spl/confirm">
@@ -354,8 +356,8 @@ export function renderEnableSplConsent({ csrf, nonce, instance = '', proof = nul
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     ${renderProofInputs(proof)}${instanceInput}
     <div class="btn-row" style="margin-top:20px">
-      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+      <button class="btn primary" name="action" value="allow" type="submit">${htmlText('account.services.allow')}</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit">${htmlText('account.services.cancel')}</button>
     </div>
   </form>
 </div>
@@ -364,24 +366,24 @@ ${turnOnFooter({ paid: true, policyAnchor: 'private-network' })}`,
 }
 
 export function renderEnableSplDone() {
-  return enableDoneTemplate('private network');
+  return enableDoneTemplate(t('account.services.privatenetwork'));
 }
 
 export function renderEnableSplNeedsSubscription() {
   return layout({
-    title: 'a subscription is needed',
+    title: t('account.services.asubscriptionisneeded'),
     body: `${brandbar()}
 <div class="card" data-enable-state="needs-subscription">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
-  <p>private network needs an active subscription before it can turn on. your consent is saved. subscribe, and your journal finishes turning it on by itself while it's still waiting, for up to an hour.</p>
-  <p>if your journal stopped waiting, turn private network on again from your journal once you've subscribed.</p>
-  <a class="btn primary" href="/private-network">subscribe</a>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${htmlText('account.services.asubscriptionisneeded')}</h2>
+  <p>${htmlText('account.enable.privatenetworkneedsanactivesubscriptionbefore')}</p>
+  <p>${htmlText('account.enable.ifyourjournalstoppedwaitingturnprivate')}</p>
+  <a class="btn primary" href="/private-network">${htmlText('account.services.subscribe')}</a>
 </div>`,
   });
 }
 
 export function renderEnableSplError(options) {
-  return enableErrorTemplate('private network', options);
+  return enableErrorTemplate(t('account.services.privatenetwork'), options);
 }
 
 export function renderEnableSpbConsent({ csrf, nonce, instance = '', proof = null }) {
@@ -389,17 +391,17 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', proof = nul
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
   return layout({
-    title: 'turn on encrypted backup',
+    title: t('account.enable.turnonencryptedbackup'),
     body: `${brandbar()}
-<h1>turn on encrypted backup</h1>
-<p class="lead">${turnOnLead('encrypted backup', instance)}</p>
+<h1>${htmlText('account.services.turnonencryptedbackup')}</h1>
+<p class="lead">${turnOnLead(t('account.services.encryptedbackup'), instance)}</p>
 <div class="card">
   ${TURN_ON_CARD_1}
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">what leaves your device</div>
-      <div class="gd">sol pbc keeps a copy of your journal, encrypted on your device before it leaves, so only you can read it. sol pbc holds no copy of your recovery key. restoring takes two things: your recovery key and a sign-in to the services portal. if you lose the key, no one can restore your backup, not even sol pbc.</div>
+      <div class="gt">${htmlText('account.enable.whatleavesyourdevice')}</div>
+      <div class="gd">${htmlText('account.enable.solpbckeepscopyyourjournalencrypted')}</div>
     </div>
   </div>
   <form method="post" action="/enable/backup/confirm">
@@ -407,8 +409,8 @@ export function renderEnableSpbConsent({ csrf, nonce, instance = '', proof = nul
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     ${renderProofInputs(proof)}${instanceInput}
     <div class="btn-row" style="margin-top:20px">
-      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+      <button class="btn primary" name="action" value="allow" type="submit">${htmlText('account.services.allow')}</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit">${htmlText('account.services.cancel')}</button>
     </div>
   </form>
 </div>
@@ -417,11 +419,11 @@ ${turnOnFooter({ paid: true, policyAnchor: 'encrypted-backup' })}`,
 }
 
 export function renderEnableSpbDone() {
-  return enableDoneTemplate('encrypted backup');
+  return enableDoneTemplate(t('account.services.encryptedbackup'));
 }
 
 export function renderEnableSpbNeedsSubscription() {
-  return enableNeedsSubscriptionTemplate({ service: 'encrypted backup', href: '/services/backup' });
+  return enableNeedsSubscriptionTemplate({ service: t('account.services.encryptedbackup'), href: '/services/backup' });
 }
 
 export function renderEnableSpbRestoreConsent({ csrf, nonce, candidates, error = false }) {
@@ -436,12 +438,12 @@ export function renderEnableSpbRestoreConsent({ csrf, nonce, candidates, error =
     ? ''
     : `<input type="hidden" name="selected_instance" value="${escAttr(candidates[0].instanceId)}">`;
   const lead = several
-    ? 'sol pbc received a restore request for your journal. sol pbc is holding more than one encrypted copy for you. choose which one to restore.'
-    : 'sol pbc received a restore request for your journal. this is the encrypted copy sol pbc is holding for you:';
+    ? t('account.enable.solpbcreceivedrestorerequestforyour')
+    : t('account.enable.solpbcreceivedrestorerequestforyour2');
   return layout({
-    title: 'restore from encrypted backup',
+    title: t('account.enable.restorefromencryptedbackup'),
     body: `${brandbar()}
-<h1>restore from encrypted backup</h1>
+<h1>${htmlText('account.services.restorefromencryptedbackup')}</h1>
 <p class="lead">${lead}</p>
 <div class="card">
   <form method="post" action="/enable/backup/confirm">
@@ -450,54 +452,54 @@ export function renderEnableSpbRestoreConsent({ csrf, nonce, candidates, error =
     <input type="hidden" name="intent" value="restore">
     ${selectedInput}
     <div class="group">${candidateRows}</div>
-    ${several && error ? '<p class="notice">nothing is selected yet.</p>' : ''}
-    <p class="notice">only one journal at a time can back up to an encrypted copy. restoring reserves that spot for your journal, and any other journal still backing up to that copy stops.</p>
+    ${several && error ? '<p class="notice">' + htmlText('account.enable.nothingisselectedyet') + '</p>' : ''}
+    <p class="notice">${htmlText('account.enable.onlyonejournalattimecanback')}</p>
     <div class="btn-row" style="margin-top:20px">
-      <button class="btn primary" name="action" value="allow" type="submit">restore</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit">cancel</button>
+      <button class="btn primary" name="action" value="allow" type="submit">${htmlText('account.services.restore')}</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit">${htmlText('account.services.cancel')}</button>
     </div>
   </form>
 </div>
-${restorePolicyFooter('encrypted-backup')}`,
+${restorePolicyFooter(t('account.services.encryptedbackup2'))}`,
   });
 }
 
 export function renderEnableSpbRestoreNoHostedBackup() {
   return layout({
-    title: "sol pbc isn't holding an encrypted copy under your sign-in",
+    title: t('account.enable.solpbcisntholdinganencrypted'),
     body: `${brandbar()}
 <div class="card">
-  <h2>sol pbc isn't holding an encrypted copy under your sign-in</h2>
-  <p>if you have more than one way to sign in, sign out and sign back in the way you did when you set up encrypted backup.</p>
+  <h2>${htmlText('account.enable.solpbcisntholdinganencrypted')}</h2>
+  <p>${htmlText('account.enable.ifyouhavemorethanoneway')}</p>
 </div>`,
   });
 }
 
 export function renderEnableSpbRestoreExpired({ date }) {
   return layout({
-    title: 'sol pbc deleted an encrypted copy',
+    title: t('account.enable.solpbcdeletedanencryptedcopy'),
     body: `${brandbar()}
 <div class="card">
-  <h2>sol pbc deleted an encrypted copy</h2>
-  <p>on ${esc(date)}, sol pbc deleted that copy.</p>
+  <h2>${htmlText('account.enable.solpbcdeletedanencryptedcopy')}</h2>
+  <p>${htmlText('account.services.on')} ${esc(date)}${htmlText('account.services.solpbcdeletedthatcopy')}</p>
 </div>`,
   });
 }
 
 export function renderEnableSpbRestoreNeedsSubscription() {
   return layout({
-    title: 'encrypted backup is off',
+    title: t('account.enable.encryptedbackupisoff'),
     body: `${brandbar()}
 <div class="card">
-  <h2>encrypted backup is off</h2>
-  <p>sol pbc is still holding an encrypted copy for you. the restore needs encrypted backup on. sol pbc deletes that copy unless you turn encrypted backup back on. once it's back on, return to your journal and start the restore again. you'll enter your recovery key once more.</p>
-  <a class="btn primary" href="/services/backup?intent=restore">turn encrypted backup back on</a>
+  <h2>${htmlText('account.enable.encryptedbackupisoff')}</h2>
+  <p>${htmlText('account.enable.solpbcisstillholdinganencrypted')}</p>
+  <a class="btn primary" href="/services/backup?intent=restore">${htmlText('account.enable.turnencryptedbackupbackon')}</a>
 </div>`,
   });
 }
 
 export function renderEnableSpbError(options) {
-  return enableErrorTemplate('encrypted backup', options);
+  return enableErrorTemplate(t('account.services.encryptedbackup'), options);
 }
 
 export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = false, proof = null }) {
@@ -505,34 +507,34 @@ export function renderEnableSppConsent({ csrf, nonce, instance = '', onSale = fa
     ? `<input type="hidden" name="instance" value="${escAttr(instance)}">`
     : '';
   return layout({
-    title: 'turn on confidential processing',
+    title: t('account.enable.turnonconfidentialprocessing'),
     body: `${brandbar()}
-<h1>turn on confidential processing</h1>
-<p class="lead">${turnOnLead('confidential processing', instance)}</p>
+<h1>${htmlText('account.services.turnonconfidentialprocessing')}</h1>
+<p class="lead">${turnOnLead(t('account.services.confidentialprocessing'), instance)}</p>
 <div class="card">
   ${TURN_ON_CARD_1}
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">what leaves your device</div>
-      <div class="gd">when confidential processing is on, <a href="/confidential-processing/data">the text and images that go to a model for processing</a> leave your device. when the audio switch is on (its default), your audio recordings for transcription go too. that holds even for a device whose audio you've turned off: its recordings start going the day you turn its audio back on. turn the switch off any time in the journal's thinking app, in the confidential lane, and speech becomes text on your device instead. your journal itself never leaves the device it runs on. voiceprints and speaker profiles are never created on the service. it's processed on a model sol pbc runs itself, with no third-party AI provider in the path: no content is retained, no human reviews it, nothing is used to train.</div>
+      <div class="gt">${htmlText('account.enable.whatleavesyourdevice')}</div>
+      <div class="gd">${htmlText('account.services.whenconfidentialprocessingison')} <a href="/confidential-processing/data">${htmlText('account.services.thetextandimagesthatgotoamodelforprocessing')}</a> ${htmlText('account.services.leaveyourdevicewhentheaudioswitchisonitsdefaul')}</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">3</div>
     <div>
-      <div class="gt">your journal must verify before it sends</div>
-      <div class="gd">before anything is sent, your journal checks the service on the other end, and only sends if that check passes. if it can't verify, nothing is sent, including recordings waiting to transcribe, and the solstone app tells you why.</div>
+      <div class="gt">${htmlText('account.enable.yourjournalmustverifybeforeitsends')}</div>
+      <div class="gd">${htmlText('account.enable.beforeanythingissentyourjournalchecks')}</div>
     </div>
   </div>
   <form method="post" action="/enable/spp/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     ${renderProofInputs(proof)}${instanceInput}
-    ${ackField('i understand what this sends, and that my journal verifies the service before it sends.')}
+    ${ackField(t('account.enable.iunderstandwhatthissendsandthat'))}
     <div class="btn-row" style="margin-top:20px">
-      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
+      <button class="btn primary" name="action" value="allow" type="submit">${htmlText('account.services.allow')}</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>${htmlText('account.services.cancel')}</button>
     </div>
   </form>
 </div>
@@ -542,13 +544,13 @@ ${turnOnFooter({ paid: onSale, policyAnchor: 'confidential-processing' })}`,
 
 export function renderEnableSppApprovalRequired() {
   return layout({
-    title: 'scout approval required',
+    title: t('account.enable.scoutapprovalrequired'),
     body: `${brandbar()}
 <div class="card">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">scout approval required</h2>
-  <p>confidential processing sends your thinking off your device, never your journal, which stays on the device it runs on. it runs on a model sol pbc runs itself, which keeps nothing: no content is retained, no human reviews it, nothing is used to train. your journal must verify the service before anything is sent. if it can't verify, nothing is sent. no third-party AI provider is in the path.</p>
-  <p>confidential processing is available to approved scouts. your sign-in is not currently approved, so there is nothing to turn on here.</p>
-  <a class="btn primary" href="/scout">request scout access</a>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${htmlText('account.enable.scoutapprovalrequired')}</h2>
+  <p>${htmlText('account.enable.confidentialprocessingsendsyourthinkingoffyour')}</p>
+  <p>${htmlText('account.enable.confidentialprocessingisavailableapprovedscoutsyou')}</p>
+  <a class="btn primary" href="/scout">${htmlText('account.enable.requestscoutaccess')}</a>
 </div>`,
   });
 }
@@ -557,36 +559,36 @@ export function renderEnableSppApprovalRequired() {
 // waiting on this turn-on finishes it by itself once the subscription is active.
 export function renderEnableSppNeedsSubscription() {
   return layout({
-    title: 'a subscription is needed',
+    title: t('account.services.asubscriptionisneeded'),
     body: `${brandbar()}
 <div class="card" data-enable-state="needs-subscription">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">a subscription is needed</h2>
-  <p>confidential processing needs an active subscription before it can turn on. your consent is saved. subscribe, and your journal finishes turning it on by itself while it's still waiting, for up to an hour.</p>
-  <p>if your journal stopped waiting, turn confidential processing on again from your journal once you've subscribed.</p>
-  <a class="btn primary" href="${escAttr(SPP_SERVICE_PATH)}">subscribe</a>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${htmlText('account.services.asubscriptionisneeded')}</h2>
+  <p>${htmlText('account.enable.confidentialprocessingneedsanactivesubscriptionbef')}</p>
+  <p>${htmlText('account.enable.ifyourjournalstoppedwaitingturnconfidential')}</p>
+  <a class="btn primary" href="${escAttr(SPP_SERVICE_PATH)}">${htmlText('account.services.subscribe')}</a>
 </div>`,
   });
 }
 
 export function renderEnableSppJournalLimit() {
   return layout({
-    title: 'your subscription covers another journal',
+    title: t('account.enable.yoursubscriptioncoversanotherjournal'),
     body: `${brandbar()}
 <div class="card" data-enable-state="journal-limit">
-  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">your subscription covers another journal</h2>
-  <p>one subscription covers one journal, and yours already covers a different one, so nothing was turned on here.</p>
-  <p>to move your subscription to this journal, release the other one on your confidential processing page, then turn it on again from this journal. to use both, use a different sign-in and subscribe for this journal there.</p>
-  <a class="btn secondary" href="${escAttr(SPP_SERVICE_PATH)}">see your subscription</a>
+  <h2 style="display:flex;align-items:center;gap:9px;font-size:1.15rem">${htmlText('account.enable.yoursubscriptioncoversanotherjournal')}</h2>
+  <p>${htmlText('account.enable.onesubscriptioncoversonejournalandyours')}</p>
+  <p>${htmlText('account.enable.moveyoursubscriptionthisjournalreleaseother')}</p>
+  <a class="btn secondary" href="${escAttr(SPP_SERVICE_PATH)}">${htmlText('account.enable.seeyoursubscription')}</a>
 </div>`,
   });
 }
 
 export function renderEnableSppDone() {
-  return enableDoneTemplate('confidential processing');
+  return enableDoneTemplate(t('account.services.confidentialprocessing'));
 }
 
 export function renderEnableSppError(options) {
-  return enableErrorTemplate('confidential processing', options);
+  return enableErrorTemplate(t('account.services.confidentialprocessing'), options);
 }
 
 // The disclosure that must reach an owner before any subscription is taken, and again where
@@ -595,47 +597,47 @@ export function renderEnableSppError(options) {
 // with operator approval: the certificate-log mechanics are not owner education. The floor is the privacy policy's
 // own sentence: the address's existence stays public for good, which stays below.
 export const SME_PERMANENCE_PARTS = [
-  "the address is public once it's issued, and stays public for good, even after you turn this off, cancel, or close your sign-in. it's eight random characters with nothing of yours in it.",
+  t('account.portal.addressispubliconceitsissued'),
 ];
 
 export function renderEnableSmeConsent({ csrf, nonce, instance, proof = null }) {
   return layout({
-    title: 'turn on solstone.me',
+    title: t('account.enable.turnonsolstoneme'),
     body: `${brandbar()}
-<h1>turn on solstone.me</h1>
+<h1>${htmlText('account.services.turnonsolstoneme')}</h1>
 <p class="lead">${turnOnLead('solstone.me', instance)}</p>
 <div class="card">
   ${TURN_ON_CARD_1}
   <div class="grant">
     <div class="n">2</div>
     <div>
-      <div class="gt">what an agent gets</div>
-      <div class="gd">you choose what it may see: your whole journal, or only the facets you choose. through this connection, your agent can search and read your journal and keep notes of its own there. it can't add, change, or delete anything else.</div>
+      <div class="gt">${htmlText('account.enable.whatanagentgets')}</div>
+      <div class="gd">${htmlText('account.enable.youchoosewhatitmayseeyour')}</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">3</div>
     <div>
-      <div class="gt">the relay can't read what passes through it</div>
-      <div class="gd">your journal gets an address on the internet. an agent's requests travel encrypted to your journal and are opened only there. sol pbc runs the relay in between and can't read what passes through it. what sol pbc can see is in the <a href="https://solpbc.org/privacy#solstone-me">privacy policy</a>.</div>
+      <div class="gt">${htmlText('account.enable.relaycantreadwhatpassesthrough')}</div>
+      <div class="gd">${htmlText('account.services.yourjournalgetsanaddressontheinternetanagentsr')} <a href="https://solpbc.org/privacy#solstone-me">${htmlText('account.services.privacypolicy')}</a>.</div>
     </div>
   </div>
   <div class="grant">
     <div class="n">4</div>
     <div>
-      <div class="gt">the public record is permanent</div>
+      <div class="gt">${htmlText('account.enable.publicrecordispermanent')}</div>
       ${SME_PERMANENCE_PARTS.map((part, i) => `<div class="gd"${i ? ' style="margin-top:8px"' : ''}>${esc(part)}</div>`).join('')}
-      <div class="gd" style="margin-top:8px">turning this off keeps the address. turning it back on uses the same one.</div>
+      <div class="gd" style="margin-top:8px">${htmlText('account.enable.turningthisoffkeepsaddressturningit')}</div>
     </div>
   </div>
   <form method="post" action="/enable/solstone-me/confirm">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="nonce" value="${escAttr(nonce)}">
     <input type="hidden" name="instance" value="${escAttr(instance)}">
-    ${renderProofInputs(proof)}${ackField('i understand that the public record of this address is permanent.')}
+    ${renderProofInputs(proof)}${ackField(t('account.enable.iunderstandthatpublicrecordthisaddress'))}
     <div class="btn-row" style="margin-top:20px">
-      <button class="btn primary" name="action" value="allow" type="submit">allow</button>
-      <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>cancel</button>
+      <button class="btn primary" name="action" value="allow" type="submit">${htmlText('account.services.allow')}</button>
+      <button class="btn secondary" name="action" value="cancel" type="submit" formnovalidate>${htmlText('account.services.cancel')}</button>
     </div>
   </form>
 </div>
@@ -660,68 +662,68 @@ export function renderEnableSmeError(options) {
 export function renderServicesCatalog({ signedIn, welcome = false, menu = {}, networkActive = false, backupActive = false, sppActive = false, smeOnSale = false, smeActive = false, sppOnSale = false } = {}) {
   if (!signedIn) {
     return layout({
-      title: 'solstone services',
+      title: t('account.services.solstoneservices2'),
       body: `${brandbarSignin()}
-<h1>solstone services</h1>
+<h1>${htmlText('account.services.solstoneservices2')}</h1>
 ${BRANDLOCK}
-<p class="intro"><strong>the solstone app runs on your devices, and your journal lives on one of them.</strong> these are the optional parts sol pbc runs for you. turn one on when it helps, off whenever you want. nothing here is required to use solstone.</p>
+<p class="intro"><strong>${htmlText('account.services.thesolstoneapprunsonyourdevicesandyourjournall')}</strong> ${htmlText('account.services.thesearetheoptionalpartssolpbcrunsforyouturnon')}</p>
 <div class="group">
-  ${row('/private-network', IC_NET, 'private network', 'reach your journal from your phone, from anywhere, over a private network only your devices can enter.', '<span class="price">$20<span class="per">/yr</span></span>')}
-  ${row('/backup', IC_BACKUP, 'encrypted backup', 'keep an encrypted copy of your journal somewhere safe. only you can read it.', '<span class="price">$48<span class="per">/yr</span></span>')}
-  ${smeOnSale ? row('/solstone-me', IC_GLOBE, 'solstone.me', 'an address for your journal, so an agent you already use can read from it.', '<span class="price">$5<span class="per">/yr</span></span>') : ''}
-  ${row('/notifications', IC_PUSH_SVG, 'notifications', "notifications reach you when there's something worth a look.", '<span class="tag builtin">built in</span>')}
+  ${row('/private-network', IC_NET, t('account.services.privatenetwork'), t('account.services.reachyourjournalfromyourphonefrom'), '<span class="price">$20<span class="per">' + htmlText('account.services.yr') + '</span></span>')}
+  ${row('/backup', IC_BACKUP, t('account.services.encryptedbackup'), t('account.services.keepanencryptedcopyyourjournalsomewhere'), '<span class="price">$48<span class="per">' + htmlText('account.services.yr') + '</span></span>')}
+  ${smeOnSale ? row('/solstone-me', IC_GLOBE, 'solstone.me', t('account.services.anaddressforyourjournalsoan'), '<span class="price">$5<span class="per">' + htmlText('account.services.yr') + '</span></span>') : ''}
+  ${row('/notifications', IC_PUSH_SVG, t('account.services.notifications'), t('account.services.notificationsreachyouwhentheressomething'), '<span class="tag builtin">' + htmlText('account.services.builtin') + '</span>')}
   ${sppOnSale
-    ? row(SPP_SERVICE_PATH, IC_CHIP, 'confidential processing', 'think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.', '<span class="price">$96<span class="per">/yr</span></span>')
-    : row('/confidential-processing', IC_CHIP, 'confidential processing', 'available to approved scouts. think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.', '<span class="tag free">scouts</span>')}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', sppOnSale ? 'the tester program. confidential processing is complimentary for approved scouts.' : 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
+    ? row(SPP_SERVICE_PATH, IC_CHIP, t('account.services.confidentialprocessing'), t('account.services.thinkoffyourdeviceonconfidentialhardware'), '<span class="price">$96<span class="per">' + htmlText('account.services.yr') + '</span></span>')
+    : row('/confidential-processing', IC_CHIP, t('account.services.confidentialprocessing'), t('account.services.availableapprovedscoutsthinkoffyourdevice'), '<span class="tag free">' + htmlText('account.services.scouts') + '</span>')}
+  ${row('/scout', IC_SCOUT_SVG, t('account.services.scout'), sppOnSale ? t('account.services.testerprogramconfidentialprocessingiscomplimentary') : t('account.services.testerprogramapprovedscoutscanenableconfidential'), '<span class="tag free">' + htmlText('account.services.program') + '</span>')}
 </div>
-  <p class="disclosure">no analytics and no tracking. sign in only to manage what you've turned on. solstone itself never asks you to sign in.</p>`,
+  <p class="disclosure">${htmlText('account.services.noanalyticsandnotrackingsignin')}</p>`,
     });
   }
 
   const notice = menu.decryptOk === false
-    ? `<p class="notice">we couldn't decrypt your email address. you're still signed in.</p>`
+    ? `<p class="notice">${htmlText('account.services.wecouldntdecryptyouremailaddress')}</p>`
     : '';
-  const networkPill = pill(networkActive ? 'on' : 'off', networkActive ? 'on' : 'off');
-  const backupPill = pill(backupActive ? 'on' : 'off', backupActive ? 'on' : 'off');
-  const notifPill = pill('on', 'on');
+  const networkPill = pill(networkActive ? 'on' : 'off', networkActive ? t('account.services.on') : t('account.services.off'));
+  const backupPill = pill(backupActive ? 'on' : 'off', backupActive ? t('account.services.on') : t('account.services.off'));
+  const notifPill = pill('on', t('account.services.on'));
   const sppPill = sppOnSale
-    ? pill(sppActive ? 'on' : 'off', sppActive ? 'covered' : 'not covered')
-    : pill(sppActive ? 'on' : 'off', sppActive ? 'available' : 'not available');
-  const smePill = pill(smeActive ? 'on' : 'off', smeActive ? 'covered' : 'not covered');
+    ? pill(sppActive ? 'on' : 'off', sppActive ? t('account.services.covered') : t('account.services.notcovered'))
+    : pill(sppActive ? 'on' : 'off', sppActive ? t('account.services.available') : t('account.services.notavailable'));
+  const smePill = pill(smeActive ? 'on' : 'off', smeActive ? t('account.services.covered') : t('account.services.notcovered'));
   const welcomePanel = welcome
     ? `<div class="card" style="margin-bottom:24px">
-  <h2>set up a passkey for next time</h2>
-  <p>use your device to sign in without typing a code.</p>
-  <label for="passkey-friendly-name">device name</label>
-  <input id="passkey-friendly-name" type="text" maxlength="64" placeholder="device name (optional)" autocomplete="off">
+  <h2>${htmlText('account.services.setuppasskeyfornexttime')}</h2>
+  <p>${htmlText('account.services.useyourdevicesigninwithouttyping')}</p>
+  <label for="passkey-friendly-name">${htmlText('account.passkey.devicename')}</label>
+  <input id="passkey-friendly-name" type="text" maxlength="64" placeholder="${attrText('account.passkey.devicenameoptional')}" autocomplete="off">
   <div class="btn-row">
-    <button id="passkey-add" class="btn primary" type="button">add a passkey</button>
-    <button id="passkey-skip" class="btn secondary" type="button">not now</button>
+    <button id="passkey-add" class="btn primary" type="button">${htmlText('account.passkey.addpasskey')}</button>
+    <button id="passkey-skip" class="btn secondary" type="button">${htmlText('account.services.notnow')}</button>
   </div>
   <div id="passkey-enroll-error" class="error" hidden></div>
 </div>`
     : '';
   return layout({
-    title: 'your services',
+    title: t('account.services.yourservices'),
     body: `${topbar(menu)}
-<h1>your services</h1>
+<h1>${htmlText('account.services.yourservices')}</h1>
 ${notice}
 ${BRANDLOCK}
-<p class="intro"><strong>the solstone app runs on your devices, and your journal lives on one of them.</strong> these services are optional. turn them on when they help, off whenever you want. nothing here is required.</p>
+<p class="intro"><strong>${htmlText('account.services.thesolstoneapprunsonyourdevicesandyourjournall')}</strong> ${htmlText('account.services.theseservicesareoptionalturnthemonwhentheyhelp')}</p>
 ${welcomePanel}
 <div class="group">
-  ${row('/private-network', IC_NET, 'private network', 'your private network: reach your journal from anywhere.', networkPill)}
-  ${row('/services/backup', IC_BACKUP, 'encrypted backup', 'an encrypted copy only you can read.', backupPill)}
-  ${smeOnSale ? row(SME_SERVICE_PATH, IC_GLOBE, 'solstone.me', 'an address for your journal, so an agent you already use can read from it.', smePill) : ''}
-  ${row('/notifications', IC_PUSH_SVG, 'notifications', 'notifications are built into the app. turn them on or off per device inside the app, not here.', notifPill)}
-  ${row('/confidential-processing', IC_CHIP, 'confidential processing', 'confidential processing, off your device on confidential hardware.', sppPill)}
-  ${row('/scout', IC_SCOUT_SVG, 'scout', sppOnSale ? 'the tester program. confidential processing is complimentary for approved scouts.' : 'the tester program. approved scouts can enable confidential processing.', '<span class="tag free">program</span>')}
+  ${row('/private-network', IC_NET, t('account.services.privatenetwork'), t('account.services.yourprivatenetworkreachyourjournalfrom'), networkPill)}
+  ${row('/services/backup', IC_BACKUP, t('account.services.encryptedbackup'), t('account.services.anencryptedcopyonlyyoucanread'), backupPill)}
+  ${smeOnSale ? row(SME_SERVICE_PATH, IC_GLOBE, 'solstone.me', t('account.services.anaddressforyourjournalsoan'), smePill) : ''}
+  ${row('/notifications', IC_PUSH_SVG, t('account.services.notifications'), t('account.services.notificationsarebuiltintoappturnthem'), notifPill)}
+  ${row('/confidential-processing', IC_CHIP, t('account.services.confidentialprocessing'), t('account.services.confidentialprocessingoffyourdeviceonconfidential'), sppPill)}
+  ${row('/scout', IC_SCOUT_SVG, t('account.services.scout'), sppOnSale ? t('account.services.testerprogramconfidentialprocessingiscomplimentary') : t('account.services.testerprogramapprovedscoutscanenableconfidential'), '<span class="tag free">' + htmlText('account.services.program') + '</span>')}
 </div>
 <div class="group" style="margin-top:22px">
-  ${row('/sign-in', IC_SESSION_SVG, 'your sign-in', 'sessions, passkeys, and email addresses.', '')}
-  ${row('/billing', IC_BILLING_SVG, 'billing', 'what you pay for, and when it renews.', '')}
-  ${row('/transparency', IC_EMPTY_DATA_SVG, 'data transparency', menu.exportEnabled ? 'what sol pbc holds for your sign-in, with a download.' : 'what sol pbc holds for your sign-in.', '')}
+  ${row('/sign-in', IC_SESSION_SVG, t('account.deletion.yoursignin'), t('account.services.sessionspasskeysandemailaddresses'), '')}
+  ${row('/billing', IC_BILLING_SVG, t('account.services.billing'), t('account.services.whatyoupayforandwhenit'), '')}
+  ${row('/transparency', IC_EMPTY_DATA_SVG, t('account.services.datatransparency'), menu.exportEnabled ? t('account.services.whatsolpbcholdsforyoursign') : t('account.services.whatsolpbcholdsforyoursign2'), '')}
 </div>`,
     afterMain: welcome ? `<script>${ENROLL_JS}</script>` : '',
   });
@@ -729,71 +731,71 @@ ${welcomePanel}
 
 export function renderPrivateNetworkLanding() {
   return layout({
-    title: 'private network',
+    title: t('account.services.privatenetwork'),
     body: brandbarSignin()
-      + `\n<a class="back" href="/">${BACK_SVG} services</a>
-<h1>private network</h1>
-<p class="hero-tag">your private network</p>
-<p class="lead">reach your journal from your phone, your laptop, from anywhere: a private network only your own devices can enter, like a vpn dedicated to solstone.</p>
+      + `\n<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.services')}</a>
+<h1>${htmlText('account.services.privatenetwork')}</h1>
+<p class="hero-tag">${htmlText('account.billing.yourprivatenetwork')}</p>
+<p class="lead">${htmlText('account.services.reachyourjournalfromyourphoneyour')}</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_NET, 'your own network, always free', 'on the same wifi, or over your own vpn, your devices reach your journal directly. sol pbc is never in the path.')}
-  ${beat(IC_GLOBE, 'your private network, from anywhere', "sol pbc runs a blind relay so your devices stay reachable when you're away from home or asleep, your private network spanning wherever your devices are. operated by sol pbc.")}
-  ${beat(IC_VAULT, 'blind by construction', "the relay passes along encrypted bytes it can't read. sol pbc operates it but <strong>cannot see your traffic</strong>. there's no key to reveal, by design, not by promise.")}
+  ${beat(IC_NET, t('account.services.yourownnetworkalwaysfree'), t('account.services.onsamewifioroveryourown'))}
+  ${beat(IC_GLOBE, t('account.services.yourprivatenetworkfromanywhere'), t('account.services.solpbcrunsblindrelaysoyour2'))}
+  ${beat(IC_VAULT, t('account.services.blindbyconstruction'), "" + htmlText('account.services.therelaypassesalongencryptedbytesitcantreadsol') + " <strong>" + htmlText('account.services.cannotseeyourtraffic') + "</strong>" + htmlText('account.services.theresnokeytorevealbydesignnotbypromise') + "")}
 </div>
 <div class="card">
   <div class="pricecard">
-    <div><div class="big">$20 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $2.49 / month · tax included · per journal, not per device</div></div>
-    <a class="btn primary" href="/?signin">sign in to enable</a>
+    <div><div class="big">$20 <span class="price"><span class="per">${htmlText('account.services.year')}</span></span></div><div class="alt">${htmlText('account.services.or249monthtaxincludedper')}</div></div>
+    <a class="btn primary" href="/?signin">${htmlText('account.services.signinenable')}</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
+  <p class="free-note" style="margin:14px 0 0">${htmlText('account.services.youneverhavepayusonyour')}</p>
 </div>
-<p class="disclosure">open source. <a href="/terms">terms</a></p>`,
+<p class="disclosure">${htmlText('account.services.opensource')} <a href="/terms">${htmlText('account.services.terms2')}</a></p>`,
   });
 }
 
 export function renderBackupLanding() {
   return layout({
-    title: 'encrypted backup',
+    title: t('account.services.encryptedbackup'),
     body: brandbarSignin()
-      + `\n<a class="back" href="/">${BACK_SVG} services</a>
-<h1>encrypted backup</h1>
-<p class="lead">keep an encrypted copy of your journal somewhere safe: encrypted on your device before it ever leaves, so only you can read it.</p>
+      + `\n<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.services')}</a>
+<h1>${htmlText('account.services.encryptedbackup')}</h1>
+<p class="lead">${htmlText('account.services.keepanencryptedcopyyourjournalsomewhere2')}</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_BACKUP, 'your own bucket, always free', 'point solstone at your own storage: backblaze b2, s3, any bucket. sol pbc is never in the path.')}
-  ${beat(IC_GLOBE, 'operated by sol pbc, $48/year', "rather not run a bucket? let sol pbc keep the encrypted copy for you, in storage sol pbc operates. it's encrypted on your device first, so sol pbc only ever holds an unreadable blob.")}
-  ${beat(IC_VAULT, 'encrypted before it leaves', 'your journal is encrypted on your device with a key only you hold. whoever stores the copy only ever sees an unreadable blob.')}
+  ${beat(IC_BACKUP, t('account.services.yourownbucketalwaysfree'), t('account.services.pointsolstoneatyourownstoragebackblaze'))}
+  ${beat(IC_GLOBE, t('account.services.operatedbysolpbc48year'), t('account.services.rathernotrunbucketletsolpbc'))}
+  ${beat(IC_VAULT, t('account.services.encryptedbeforeitleaves'), t('account.services.yourjournalisencryptedonyourdevice'))}
 </div>
 <div class="card">
   <div class="pricecard">
-    <div><div class="big">$48 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $4.99 / month · tax included · operated by sol pbc</div></div>
-    <a class="btn primary" href="/?signin">sign in to enable</a>
+    <div><div class="big">$48 <span class="price"><span class="per">${htmlText('account.services.year')}</span></span></div><div class="alt">${htmlText('account.services.or499monthtaxincludedoperated')}</div></div>
+    <a class="btn primary" href="/?signin">${htmlText('account.services.signinenable')}</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">you never have to pay us. bring your own bucket (backblaze b2, s3, any bucket) free, set up from your journal. this only covers the storage sol pbc runs for you.</p>
+  <p class="free-note" style="margin:14px 0 0">${htmlText('account.services.youneverhavepayusbringyour')}</p>
 </div>
-<p class="disclosure">open source, self-hostable. <a href="/terms">terms</a></p>`,
+<p class="disclosure">${htmlText('account.services.opensourceselfhostable')} <a href="/terms">${htmlText('account.services.terms2')}</a></p>`,
   });
 }
 
 export function renderNotificationsLanding() {
   return layout({
-    title: 'notifications',
+    title: t('account.services.notifications'),
     body: brandbarSignin()
-      + `\n<a class="back" href="/">${BACK_SVG} services</a>
-<h1>notifications</h1>
-<p class="hero-tag">built in</p>
-<p class="lead">notifications reach you on your devices when there's something worth a look: a short heads-up, never the full thing.</p>
+      + `\n<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.services')}</a>
+<h1>${htmlText('account.services.notifications')}</h1>
+<p class="hero-tag">${htmlText('account.services.builtin')}</p>
+<p class="lead">${htmlText('account.services.notificationsreachyouonyourdeviceswhen')}</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_PUSH_SVG, 'built into solstone', 'notifications come with solstone, free, with no hosted service to enable. you turn them on for each device, and choose what reaches you.')}
-  ${beat(IC_GLOBE, 'on your devices', 'you get a short heads-up on your phone or laptop, never the content itself.')}
-  ${beat(IC_VAULT, 'not a tracking surface', "no analytics, no behavioral profiling, and no third party in the path but your phone's push service and, for iphone, Cloudflare, whose network our hop runs on. notifications never become a way to watch you.")}
+  ${beat(IC_PUSH_SVG, t('account.services.builtintosolstone'), t('account.services.notificationscomewithsolstonefreewithno'))}
+  ${beat(IC_GLOBE, t('account.services.onyourdevices'), t('account.services.yougetshortheadsuponyour'))}
+  ${beat(IC_VAULT, t('account.services.nottrackingsurface'), t('account.services.noanalyticsnobehavioralprofilingandno'))}
 </div>
 <div class="card">
-  <div class="statusline"><span class="tag builtin">built in</span> <span>turn on notifications on each device you want to hear from.</span></div>
+  <div class="statusline"><span class="tag builtin">${htmlText('account.services.builtin')}</span> <span>${htmlText('account.services.turnonnotificationsoneachdeviceyouwanttohearfr')}</span></div>
 </div>
-<p class="disclosure"><a href="/terms">terms</a></p>`,
+<p class="disclosure"><a href="/terms">${htmlText('account.services.terms2')}</a></p>`,
   });
 }
 
@@ -801,92 +803,92 @@ export function renderConfidentialProcessingLanding({ onSale = false } = {}) {
   const offer = onSale
     ? `<div class="card">
   <div class="pricecard">
-    <div><div class="big">$96 <span class="price"><span class="per">/ year</span></span></div><div class="alt">or $9.99 / month · tax included · per journal, not per device</div><div class="alt">${esc(SPP_SIZE)}</div></div>
-    <a class="btn primary" href="/?signin">sign in to enable</a>
+    <div><div class="big">$96 <span class="price"><span class="per">${htmlText('account.services.year')}</span></span></div><div class="alt">${htmlText('account.services.or999monthtaxincludedper')}</div><div class="alt">${esc(SPP_SIZE)}</div></div>
+    <a class="btn primary" href="/?signin">${htmlText('account.services.signinenable')}</a>
   </div>
   <p class="free-note" style="margin:14px 0 0">${esc(SPP_NEVER_PAY)}</p>
 </div>`
     : `<div class="card">
-  <div class="statusline"><span class="tag free">available to approved scouts</span><span>confidential processing is available to approved scouts. enable it from the journal after approval.</span></div>
+  <div class="statusline"><span class="tag free">${htmlText('account.services.availabletoapprovedscouts')}</span><span>${htmlText('account.services.confidentialprocessingisavailableapprovedscoutsena')}</span></div>
 </div>`;
   return layout({
-    title: 'confidential processing',
+    title: t('account.services.confidentialprocessing'),
     body: brandbarSignin()
-      + `\n<a class="back" href="/">${BACK_SVG} services</a>
-<h1>confidential processing</h1>
-<p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on the device it runs on. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.</p>
+      + `\n<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.services')}</a>
+<h1>${htmlText('account.services.confidentialprocessing')}</h1>
+<p class="lead">${htmlText('account.services.confidentialprocessingsends')} <a href="/confidential-processing/data">${htmlText('account.services.yourthinkingoffyourdevice')}</a>${htmlText('account.services.neveryourjournalwhichstaysonthedeviceitrunsoni')}</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_CHIP, 'on hardware sol pbc runs', 'think off your device on confidential hardware sol pbc runs. the service retains no prompt or response content.')}
-  ${beat(IC_VAULT, "sol pbc's own model", "a model sol pbc runs itself, with no third-party AI provider in the path. it runs on confidential GPUs in Microsoft Azure that sol pbc operates, where the hardware boundary keeps the cloud host excluded from what's processed.")}
-  ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_GLOBE, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
+  ${beat(IC_CHIP, t('account.services.onhardwaresolpbcruns'), t('account.services.thinkoffyourdeviceonconfidentialhardware'))}
+  ${beat(IC_VAULT, t('account.services.solpbcsownmodel'), t('account.services.modelsolpbcrunsitselfwithno'))}
+  ${beat(IC_EMPTY_DATA_SVG, t('account.services.keptfornothing'), t('account.services.nocontentisretainednohumanreviews'))}
+  ${beat(IC_GLOBE, t('account.services.yourjournaldoeschecking'), t('account.services.yourjournalmustverifyservicebeforeanything'))}
 </div>
 ${offer}
-<p class="disclosure"><a href="/terms">terms</a></p>`,
+<p class="disclosure"><a href="/terms">${htmlText('account.services.terms2')}</a></p>`,
   });
 }
 
 export function renderConfidentialProcessingData() {
-  const title = 'confidential processing';
+  const title = t('account.portal.confidentialprocessing');
   return layout({
     title,
     body: `${brandbar()}
 <h1>${esc(title)}</h1>
-<h2>what leaves your device</h2>
-<p>the text and images that go to a model for processing. when the audio switch is on (its default), your audio recordings for transcription go too.</p>
-<h2>what doesn't</h2>
-<p>your journal stays on the device it runs on. voiceprints and speaker profiles are computed on your device and never leave. nothing goes to any third-party AI provider.</p>
-<h2>audio</h2>
-<p>when confidential processing is on and the audio switch is on, your journal sends speech for transcription: segments up to five minutes each, prepared by your journal into one standard audio format. the service accepts exactly that format and rejects anything else. it travels only over the channel your journal has verified.</p>
-<p>the service turns speech to text in memory on confidential hardware sol pbc operates and returns the transcript to your journal. nothing is written, nothing is kept, no human review, nothing used to train.</p>
-<p>if your journal can't verify the service, transcription waits on your device. it never goes anywhere else and never silently falls back.</p>
-<p>the "transcribe audio on the service" switch lives in the journal's thinking app, in the confidential lane: on while confidential processing is in use, off any time, taking effect once any transcription already under way finishes.</p>
-<p>the model is the same either way: parakeet-tdt-0.6b-v3, the same parakeet generation the solstone app uses on your device. your journal checks the served model's identity. there's no premium tier: nothing is held back for the service.</p>
-<p>speech-to-text is served with parakeet-tdt-0.6b-v3, created by NVIDIA, used under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
-<h2>where it goes</h2>
-<p>a model sol pbc runs itself. no third-party AI provider is in the path.</p>
-<h2>the hardware</h2>
-<p>confidential GPUs in Microsoft Azure that sol pbc operates. the hardware boundary keeps the cloud host excluded from what's processed, and the model that runs on it is sol pbc's own. no third-party AI provider is in the path.</p>
-<h2>what's kept</h2>
-<p>no content is retained · no human reviews it · nothing is used to train.</p>
-<h2>the check</h2>
-<p>your journal must verify the service before anything is sent; if it can't verify, it doesn't send.</p>
-<h2>your choice</h2>
-<p>off until you turn it on; turn it off from the journal anytime; nothing is stranded (nothing was kept to strand).</p>
-<h2>the covenants</h2>
-<p>the covenants: <a href="/terms">terms</a> · <a href="https://solpbc.org/privacy">privacy</a></p>`,
+<h2>${htmlText('account.portal.whatleavesyourdevice')}</h2>
+<p>${htmlText('account.services.textandimagesthatgomodelfor')}</p>
+<h2>${htmlText('account.services.whatdoesnt')}</h2>
+<p>${htmlText('account.services.yourjournalstaysondeviceitruns')}</p>
+<h2>${htmlText('account.portal.audio')}</h2>
+<p>${htmlText('account.services.whenconfidentialprocessingisonandaudio')}</p>
+<p>${htmlText('account.services.serviceturnsspeechtextinmemoryon')}</p>
+<p>${htmlText('account.services.ifyourjournalcantverifyservice')}</p>
+<p>${htmlText('account.services.transcribeaudioonserviceswitchlivesin')}</p>
+<p>${htmlText('account.services.modelissameeitherwayparakeettdt')}</p>
+<p>${htmlText('account.portal.speechtotextisservedwithparakeettdt06bv3create')} <a href="https://creativecommons.org/licenses/by/4.0/">${htmlText('account.portal.ccby40')}</a>.</p>
+<h2>${htmlText('account.portal.whereitgoes')}</h2>
+<p>${htmlText('account.services.modelsolpbcrunsitselfnothird')}</p>
+<h2>${htmlText('account.services.hardware')}</h2>
+<p>${htmlText('account.services.confidentialgpusinmicrosoftazurethatsol')}</p>
+<h2>${htmlText('account.services.whatskept')}</h2>
+<p>${htmlText('account.services.nocontentisretainednohumanreviews2')}</p>
+<h2>${htmlText('account.services.check')}</h2>
+<p>${htmlText('account.services.yourjournalmustverifyservicebeforeanything3')}</p>
+<h2>${htmlText('account.services.yourchoice')}</h2>
+<p>${htmlText('account.services.offuntilyouturnitonturn')}</p>
+<h2>${htmlText('account.services.covenants')}</h2>
+<p>${htmlText('account.portal.thecovenants')} <a href="/terms">${htmlText('account.portal.terms')}</a> · <a href="https://solpbc.org/privacy">${htmlText('account.portal.privacy')}</a></p>`,
   });
 }
 
 export function renderScoutLanding({ sppOnSale = false } = {}) {
   const lead = sppOnSale
-    ? 'scout is the tester program. approved scouts get confidential processing complimentary, and share feedback that helps shape solstone.'
-    : 'scout is the tester program. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.';
+    ? t('account.services.scoutistesterprogramapprovedscoutsget')
+    : t('account.services.scoutistesterprogramapprovedscoutscan');
   const benefit = sppOnSale
-    ? 'complimentary for approved scouts. turn it on from your journal after approval.'
-    : 'confidential processing is available to approved scouts. enable it from the journal after approval.';
+    ? t('account.services.complimentaryforapprovedscoutsturniton')
+    : t('account.scout.confidentialprocessingisavailabletoapprovedsco');
   return layout({
-    title: 'scout',
+    title: t('account.scout.scout'),
     body: brandbarSignin()
-      + `\n<a class="back" href="/">${BACK_SVG} services</a>
-<h1>scout</h1>
+      + `\n<a class="back" href="/">${BACK_SVG} ${htmlText('account.scout.services')}</a>
+<h1>${htmlText('account.scout.scout')}</h1>
 <p class="lead">${esc(lead)}</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_CHIP, 'confidential processing', esc(benefit))}
-  ${beat(IC_NET, 'your journal does the checking', "your journal must verify the service before anything is sent. if it can't verify, it doesn't send.")}
-  ${beat(IC_SCOUT_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_GLOBE, 'help shape solstone', "share feedback through support and follow what's changing.")}
+  ${beat(IC_CHIP, t('account.scout.confidentialprocessing'), esc(benefit))}
+  ${beat(IC_NET, t('account.scout.yourjournaldoesthechecking'), t('account.scout.yourjournalmustverifytheservicebeforeanythingi'))}
+  ${beat(IC_SCOUT_SVG, t('account.scout.keptfornothing'), t('account.scout.nocontentisretainednohumanreviewsitnothingisus'))}
+  ${beat(IC_GLOBE, t('account.services.helpshapesolstone'), t('account.scout.sharefeedbackthroughsupportandfollowwhatschang'))}
 </div>
 <div class="card">
   <div class="pricecard">
-    <div><div class="big" style="font-size:1.15rem">free <span class="price"><span class="per">· tester program</span></span></div></div>
-    <a class="btn primary" href="/?signin">request scout</a>
+    <div><div class="big" style="font-size:1.15rem">${htmlText('account.scout.free')} <span class="price"><span class="per">${htmlText('account.scout.testerprogram')}</span></span></div></div>
+    <a class="btn primary" href="/?signin">${htmlText('account.services.requestscout')}</a>
   </div>
   <p class="free-note" style="margin:14px 0 0">${SCOUT_PROGRAM_COVENANT}</p>
 </div>
-<p class="disclosure"><a href="/terms">terms</a></p>`,
+<p class="disclosure"><a href="/terms">${htmlText('account.scout.terms')}</a></p>`,
   });
 }
 
@@ -894,65 +896,65 @@ export function renderSmeLanding() {
   return layout({
     title: 'solstone.me',
     body: brandbarSignin()
-      + `\n<a class="back" href="/">${BACK_SVG} services</a>
+      + `\n<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.services')}</a>
 <h1>solstone.me</h1>
-<p class="lead">an address on the internet for your journal, so an agent you already use can read from it: Claude, Codex, goose, or anything else that speaks the Model Context Protocol. you turn it on, you connect an agent, and you choose what that agent may see.</p>
+<p class="lead">${htmlText('account.services.anaddressoninternetforyourjournal2')}</p>
 ${BRANDLOCK}
 <div class="card">
-  ${beat(IC_GLOBE, 'an address for your journal', "sol pbc runs the solstone.me relay in between, so your agent can find your journal without you running anything of your own. it's off until you turn it on, and you can turn it off from the journal at any time.")}
-  ${beat(IC_VAULT, 'blind by construction', "your own machine holds the private key and ends the encryption, so the relay can't read a byte of what passes through it. sol pbc does see the network addresses your journal and the agent reached it from, that they met, when, and how much passed.")}
-  ${beat(IC_NET, 'what an agent gets', "you choose what it may see: your whole journal, or only the facets you choose. through this connection, your agent can search and read your journal and keep notes of its own there. it can't add, change, or delete anything else.")}
-  ${beat(IC_GLOBE, 'where you manage it', "your journal's agents app works with your own route or with solstone.me; solstone.me is the address, and the agents app is where you manage what connects.")}
+  ${beat(IC_GLOBE, t('account.services.anaddressforyourjournal'), t('account.services.solpbcrunssolstonemerelayin'))}
+  ${beat(IC_VAULT, t('account.services.blindbyconstruction'), t('account.services.yourownmachineholdsprivatekeyand'))}
+  ${beat(IC_NET, t('account.services.whatanagentgets'), t('account.services.youchoosewhatitmayseeyourwholejournaloronlythe'))}
+  ${beat(IC_GLOBE, t('account.services.whereyoumanageit'), t('account.services.yourjournalsagentsappworkswith'))}
 </div>
 <div class="card">
-  <h2>the public record is permanent</h2>
+  <h2>${htmlText('account.services.thepublicrecordispermanent')}</h2>
   ${SME_PERMANENCE_PARTS.map((part) => `<p>${esc(part)}</p>`).join('\n  ')}
 </div>
 <div class="card">
   <div class="pricecard">
-    <div><div class="big">$5 <span class="price"><span class="per">/ year</span></span></div><div class="alt">annual only · tax included · per journal, not per device</div></div>
-    <a class="btn primary" href="/?signin">sign in to enable</a>
+    <div><div class="big">$5 <span class="price"><span class="per">${htmlText('account.services.year')}</span></span></div><div class="alt">${htmlText('account.services.annualonlytaxincludedperjournalnot')}</div></div>
+    <a class="btn primary" href="/?signin">${htmlText('account.services.signinenable')}</a>
   </div>
-  <p class="free-note" style="margin:14px 0 0">you never have to pay us. your journal doesn't need sol pbc to be reachable.</p>
+  <p class="free-note" style="margin:14px 0 0">${htmlText('account.services.youneverhavepayusyourjournal')}</p>
 </div>
 <div class="card">
-  <h2>or use your own domain</h2>
-  <p>free from us. your journal walks you through it and checks each step, so you reach your journal at an address on a domain you own and sol pbc isn't in the path at all. you pay for your domain and a small server of your own, and together they cost more than solstone.me. set it up in your journal's agents app.</p>
+  <h2>${htmlText('account.services.oruseyourowndomain')}</h2>
+  <p>${htmlText('account.services.freefromusyourjournalwalksyou')}</p>
 </div>
-<p class="disclosure"><a href="/terms">terms</a></p>`,
+<p class="disclosure"><a href="/terms">${htmlText('account.services.terms2')}</a></p>`,
   });
 }
 
 export function renderServicesSpl({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, cancelContract = '', cancelOffered = false, csrf, flash = {}, menu }) {
-  const flashes = billingFlashMessages(flash) + withdrawalFlashMessages(flash, 'private network');
+  const flashes = billingFlashMessages(flash) + withdrawalFlashMessages(flash, t('account.services.privatenetwork2'));
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const cancelPending = Boolean(entitlement?.cancel_at_period_end);
   const detailParts = [];
-  if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
+  if (entitlement?.enabled_at != null) detailParts.push(t('account.services.enabled2', { date: formatDate(entitlement.enabled_at) }));
   const statusDetail = detailParts.join(' · ');
-  const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;your private network is on';
+  const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.on2') + '</span> ' + htmlText('account.services.nbspyourprivatenetworkison') + '';
   const controlGroup = `<div class="group">
-  <div class="row" style="cursor:default">${IC_NET}<div class="body"><div class="title">your private network</div><div class="desc">${esc(statusDetail)}</div></div></div>
+  <div class="row" style="cursor:default">${IC_NET}<div class="body"><div class="title">${htmlText('account.services.yourprivatenetwork')}</div><div class="desc">${esc(statusDetail)}</div></div></div>
 </div>`;
   const page = ({ statusLine = '', content }) => layout({
-    title: 'private network',
+    title: t('account.services.privatenetwork2'),
     body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
+<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.yourservices2')}</a>
 ${flashes}
 <div class="pagehead">
-  <h1>private network</h1>
+  <h1>${htmlText('account.services.privatenetwork2')}</h1>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 'private network')}`,
+${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, t('account.services.privatenetwork2'))}`,
   });
-  const turnOff = cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/billing/cancel' });
+  const turnOff = cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: t('account.services.turnoff'), buttonClass: 'btn danger', action: '/billing/cancel' });
 
   if (entitlement?.source === 'comp' && status === 'active') {
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="disclosure" style="margin-top:24px">free while you're an approved scout · on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.freewhileyoureanapprovedscoutonyourownnetworks')} <a href="/private-network?learn">${htmlText('account.services.howitworks')}</a> · <a href="/terms">${htmlText('account.services.terms3')}</a></p>`,
     });
   }
 
@@ -960,13 +962,13 @@ ${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it on.')}</p>` : ''}
+${cancelPending ? `<p class="notice">${htmlText('account.services.scheduledtoturnoffon')} ${esc(paidThrough)}.${keepItOn(cancelContract, t('account.services.managebillingtokeepiton'))}</p>` : ''}
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
   ${turnOff}
 </div>
 ${withdrawalDoor(withdrawal)}
-<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}${htmlText('account.services.billedthroughstripeonyourownnetworksamewifiory')} <a href="/private-network?learn">${htmlText('account.services.howitworks')}</a> · <a href="/terms">${htmlText('account.services.terms3')}</a></p>`,
     });
   }
 
@@ -974,70 +976,70 @@ ${withdrawalDoor(withdrawal)}
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="notice">your last payment didn't go through. manage billing to keep your private network reachable while you're away. your own network stays free either way.</p>
-${cancelPending ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it on.')}</p>` : ''}
+<p class="notice">${htmlText('account.services.yourlastpaymentdidntgothrough4')}</p>
+${cancelPending ? `<p class="notice">${htmlText('account.services.scheduledtoturnoffon')} ${esc(paidThrough)}.${keepItOn(cancelContract, t('account.services.managebillingtokeepiton'))}</p>` : ''}
 <div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf })}
   ${turnOff}
 </div>
 ${withdrawalDoor(withdrawal)}
-<p class="disclosure" style="margin-top:24px">billed through Stripe. on your own network (same wifi, or your own vpn), reaching your journal is always free. <a href="/private-network?learn">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.billedthroughstripeonyourownnetworksamewifiory')} <a href="/private-network?learn">${htmlText('account.services.howitworks')}</a> · <a href="/terms">${htmlText('account.services.terms3')}</a></p>`,
     });
   }
 
   return page({
-    content: `<p class="lead">sol pbc runs a blind relay so your devices stay reachable when they're asleep or away from home.</p>
+    content: `<p class="lead">${htmlText('account.services.solpbcrunsblindrelaysoyour')}</p>
 <div class="card">
-  <p>you never have to pay us. on your own network (same wifi, or your own vpn), reaching your journal is always free. this only covers the relay sol pbc runs for you.</p>
-  ${checkoutGroup({ csrf, service: 'private network', startNowBox, keyInfo, rows: [
-    { plan: 'annual', unitAmount: 2000, buttonText: 'pay yearly', primary: true },
-    { plan: 'monthly', unitAmount: 249, buttonText: 'pay monthly', primary: false },
+  <p>${htmlText('account.services.youneverhavetopayusonyourownnetworksamewifiory')}</p>
+  ${checkoutGroup({ csrf, service: t('account.services.privatenetwork2'), startNowBox, keyInfo, rows: [
+    { plan: 'annual', unitAmount: 2000, buttonText: t('account.services.payyearly'), primary: true },
+    { plan: 'monthly', unitAmount: 249, buttonText: t('account.services.paymonthly'), primary: false },
   ] })}
-  <p class="disclosure">tax included. billed securely through Stripe. <a href="/terms">terms</a></p>
+  <p class="disclosure">${htmlText('account.services.taxincludedbilledsecurelythroughstripe')} <a href="/terms">${htmlText('account.services.terms3')}</a></p>
 </div>`,
   });
 }
 
 export function renderServicesSpb({ entitlement, plan = null, withdrawal = null, startNowBox = false, keyInfo = false, cancelContract = '', cancelOffered = false, csrf, flash = {}, menu, restoreIntent = false, restoreCheckout = false }) {
-  const flashes = spbBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'encrypted backup');
+  const flashes = spbBillingFlashMessages(flash) + withdrawalFlashMessages(flash, t('account.services.encryptedbackup3'));
   const status = entitlement?.status || '';
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const cancelPending = Boolean(entitlement?.cancel_at_period_end);
   const detailParts = [];
-  if (entitlement?.enabled_at != null) detailParts.push(`enabled ${formatDate(entitlement.enabled_at)}`);
-  detailParts.push('operated by sol pbc');
+  if (entitlement?.enabled_at != null) detailParts.push(t('account.services.enabled2', { date: formatDate(entitlement.enabled_at) }));
+  detailParts.push(t('account.services.operatedbysolpbc'));
   const statusDetail = detailParts.join(' · ');
-  const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>on</span> &nbsp;your encrypted backup is on';
+  const onStatusLine = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.on2') + '</span> ' + htmlText('account.services.nbspyourencryptedbackupison') + '';
   const controlGroup = `<div class="group">
-  <div class="row" style="cursor:default">${IC_BACKUP}<div class="body"><div class="title">encrypted backup</div><div class="desc">${esc(statusDetail)}</div></div></div>
+  <div class="row" style="cursor:default">${IC_BACKUP}<div class="body"><div class="title">${htmlText('account.services.encryptedbackup3')}</div><div class="desc">${esc(statusDetail)}</div></div></div>
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: '/services/backup/portal' })}
-  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'turn off', buttonClass: 'btn danger', action: '/services/backup/cancel' })}
+  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: t('account.services.turnoff'), buttonClass: 'btn danger', action: '/services/backup/cancel' })}
 </div>`;
   const cancellationNotice = cancelPending
-    ? `<p class="notice">scheduled to turn off on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it on.')}</p>`
+    ? `<p class="notice">${htmlText('account.services.scheduledtoturnoffon')} ${esc(paidThrough)}.${keepItOn(cancelContract, t('account.services.managebillingtokeepiton'))}</p>`
     : '';
-  const retentionDisclosure = '<p class="disclosure" style="margin-top:24px">if you turn encrypted backup off, sol pbc keeps your encrypted copy for 30 days. turn it back on within that window and it\'s still there. after 30 days it\'s deleted. your journal stays on your device either way. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>';
+  const retentionDisclosure = '<p class="disclosure" style="margin-top:24px">' + htmlText('account.services.ifyouturnencryptedbackupoffsolpbckeepsyourencr') + ' <a href="/backup">' + htmlText('account.services.howitworks') + '</a> · <a href="/terms">' + htmlText('account.services.terms3') + '</a></p>';
   const page = ({ statusLine = '', content }) => layout({
-    title: 'encrypted backup',
+    title: t('account.services.encryptedbackup3'),
     body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
+<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.yourservices2')}</a>
 ${flashes}
-${restoreCheckout ? '<p class="notice">if you\'re restoring a journal, return to it and start the restore again. you\'ll enter your recovery key once more.</p>' : ''}
+${restoreCheckout ? '<p class="notice">' + htmlText('account.services.ifyourerestoringajournalreturntoitandstartther') + '</p>' : ''}
 <div class="pagehead">
-  <h1>encrypted backup</h1>
-  <p class="meta">operated by sol pbc</p>
+  <h1>${htmlText('account.services.encryptedbackup3')}</h1>
+  <p class="meta">${htmlText('account.services.operatedbysolpbc')}</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 'encrypted backup')}`,
+${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, t('account.services.encryptedbackup3'))}`,
   });
 
   if (entitlement?.source === 'comp' && status === 'active') {
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="disclosure" style="margin-top:24px">free while you're an approved scout. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.freewhileyoureanapprovedscout2')} <a href="/backup">${htmlText('account.services.howitworks')}</a> · <a href="/terms">${htmlText('account.services.terms3')}</a></p>`,
     });
   }
 
@@ -1049,7 +1051,7 @@ ${cancellationNotice}
 ${portalActions}
 ${withdrawalDoor(withdrawal)}
 ${retentionDisclosure}
-<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}${htmlText('account.services.billedthroughstripe')} <a href="/backup">${htmlText('account.services.howitworks')}</a> · <a href="/terms">${htmlText('account.services.terms3')}</a></p>`,
     });
   }
 
@@ -1057,30 +1059,30 @@ ${retentionDisclosure}
     return page({
       statusLine: onStatusLine,
       content: `${controlGroup}
-<p class="notice">your last payment didn't go through. manage billing to keep encrypted backup running. your encrypted copy is safe while you sort this out.</p>
+<p class="notice">${htmlText('account.services.yourlastpaymentdidntgothrough3')}</p>
 ${cancellationNotice}
 ${portalActions}
 ${withdrawalDoor(withdrawal)}
 ${retentionDisclosure}
-<p class="disclosure" style="margin-top:24px">billed through Stripe. <a href="/backup">how it works</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.billedthroughstripe')} <a href="/backup">${htmlText('account.services.howitworks')}</a> · <a href="/terms">${htmlText('account.services.terms3')}</a></p>`,
     });
   }
 
   return page({
-    content: `<p class="lead">sol pbc keeps an encrypted copy of your journal for you. it's encrypted on your device before it leaves, so only you can read it.</p>
+    content: `<p class="lead">${htmlText('account.services.solpbckeepsanencryptedcopyyour')}</p>
 <div class="card">
-  <p>turn on encrypted backup</p>
-  ${checkoutGroup({ csrf, service: 'encrypted backup', startNowBox, keyInfo, action: '/services/backup/checkout', restoreIntent, rows: [
-    { plan: 'annual', unitAmount: 4800, buttonText: 'pay yearly', primary: true },
-    { plan: 'monthly', unitAmount: 499, buttonText: 'pay monthly', primary: false },
+  <p>${htmlText('account.services.turnonencryptedbackup2')}</p>
+  ${checkoutGroup({ csrf, service: t('account.services.encryptedbackup3'), startNowBox, keyInfo, action: '/services/backup/checkout', restoreIntent, rows: [
+    { plan: 'annual', unitAmount: 4800, buttonText: t('account.services.payyearly'), primary: true },
+    { plan: 'monthly', unitAmount: 499, buttonText: t('account.services.paymonthly'), primary: false },
   ] })}
-  <p class="disclosure">tax included. billed securely through Stripe. by paying, you agree to the <a href="/terms">terms</a>.</p>
+  <p class="disclosure">${htmlText('account.services.taxincludedbilledsecurelythroughstripebypaying')} <a href="/terms">${htmlText('account.services.terms3')}</a>.</p>
 </div>
 ${restoreCheckout ? '' : retentionDisclosure}`,
   });
 }
 
-export const SME_JOURNAL_UPDATE_NOTICE = 'your journal needs an update before it can use your solstone.me address. update your journal on the computer it runs on, and your address will turn on by itself.';
+export const SME_JOURNAL_UPDATE_NOTICE = t('account.portal.yourjournalneedsanupdatebeforeit');
 
 // solstone.me is sold yearly only, from its own form.
 const SME_PLAN = { plan: 'annual', unitAmount: 500 };
@@ -1094,28 +1096,28 @@ export function renderServicesSme({ entitlement, plan = null, withdrawal = null,
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const cancelPending = Boolean(entitlement?.cancel_at_period_end);
   const detailParts = [];
-  if (entitlement?.enabled_at != null) detailParts.push(`covered since ${formatDate(entitlement.enabled_at)}`);
-  detailParts.push('operated by sol pbc', 'turn it on from your journal');
-  const coveredPill = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>covered</span>';
+  if (entitlement?.enabled_at != null) detailParts.push(t('account.services.coveredsince2', { date: formatDate(entitlement.enabled_at) }));
+  detailParts.push(t('account.services.operatedbysolpbc'), t('account.services.turnitonfromyourjournal'));
+  const coveredPill = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.covered2') + '</span>';
   const controlGroup = `<div class="group">
   <div class="row" style="cursor:default">${IC_GLOBE}<div class="body"><div class="title">solstone.me</div><div class="desc">${esc(detailParts.join(' · '))}</div></div></div>
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: `${SME_SERVICE_PATH}/portal` })}
-  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel solstone.me', buttonClass: 'btn danger', action: `${SME_SERVICE_PATH}/cancel` })}
+  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: t('account.services.cancelsolstoneme'), buttonClass: 'btn danger', action: `${SME_SERVICE_PATH}/cancel` })}
 </div>`;
   const cancellationNotice = cancelPending
-    ? `<p class="notice">your solstone.me coverage is scheduled to end on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it.')}</p>`
+    ? `<p class="notice">${htmlText('account.services.yoursolstonemecoverageisscheduledtoendon')} ${esc(paidThrough)}.${keepItOn(cancelContract, t('account.services.managebillingtokeepit'))}</p>`
     : '';
   const page = ({ statusLine = '', content }) => layout({
     title: 'solstone.me',
     body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
+<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.yourservices2')}</a>
 ${flashes}
 ${updateNotice}
 <div class="pagehead">
   <h1>solstone.me</h1>
-  <p class="meta">operated by sol pbc</p>
+  <p class="meta">${htmlText('account.services.operatedbysolpbc')}</p>
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
 ${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 'solstone.me')}`,
@@ -1125,37 +1127,37 @@ ${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 
     return page({
       statusLine: coveredPill,
       content: `${controlGroup}
-<p class="disclosure" style="margin-top:24px">free while you're an approved scout.</p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.freewhileyoureanapprovedscout2')}</p>`,
     });
   }
 
   if (status === 'active') {
     return page({
-      statusLine: `${coveredPill} &nbsp;your payment is up to date`,
+      statusLine: t('account.services.nbspyourpaymentisuptodate', { coveredPill }),
       content: `${controlGroup}
 ${cancellationNotice}
 ${portalActions}
 ${withdrawalDoor(withdrawal)}
-<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe.</p>`,
+<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}${htmlText('account.services.billedthroughstripe')}</p>`,
     });
   }
 
   if (status === 'past_due') {
     return page({
-      statusLine: 'your last payment needs attention',
+      statusLine: t('account.services.yourlastpaymentneedsattention'),
       content: `${controlGroup}
-<p class="notice">your last payment didn't go through. manage billing to fix it.</p>
+<p class="notice">${htmlText('account.services.yourlastpaymentdidntgothrough2')}</p>
 ${cancellationNotice}
 ${portalActions}
 ${withdrawalDoor(withdrawal)}
-<p class="disclosure" style="margin-top:24px">billed through Stripe.</p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.billedthroughstripe')}</p>`,
     });
   }
 
   return page({
-    content: `<p class="lead">an address on the internet for your journal, so an agent you already use can read from it. sol pbc runs the solstone.me relay in between, so your agent can find your journal without you running anything of your own. it's off until you turn it on, and you can turn it off from the journal at any time.</p>
+    content: `<p class="lead">${htmlText('account.services.anaddressoninternetforyourjournal')}</p>
 <div class="card">
-  <h2>the public record is permanent</h2>
+  <h2>${htmlText('account.services.thepublicrecordispermanent2')}</h2>
   ${SME_PERMANENCE_PARTS.map((part) => `<p>${esc(part)}</p>`).join('\n  ')}
 </div>
 <div class="card">
@@ -1163,28 +1165,28 @@ ${withdrawalDoor(withdrawal)}
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="plan" value="annual">
     <p><strong>${esc(planTitle(SME_PLAN))}</strong></p>
-    ${ackField('i understand that the public record of this address is permanent.')}
+    ${ackField(t('account.enable.iunderstandthatpublicrecordthisaddress'))}
     ${keyInfo ? keyInformation([SME_PLAN], 'solstone.me') : ''}${startNowBox ? startNowField() : ''}
     <div class="btn-row" style="margin-top:16px">
-      <button class="btn primary" type="submit">pay yearly</button>
+      <button class="btn primary" type="submit">${htmlText('account.services.payyearly')}</button>
     </div>
   </form>
-  <p class="disclosure">tax included. billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
+  <p class="disclosure">${htmlText('account.services.taxincludedbilledsecurelythroughstripecomplime')} <a href="/terms">${htmlText('account.services.terms3')}</a>.</p>
 </div>
-<p class="disclosure" style="margin-top:24px"><strong>you never have to pay us.</strong> your journal doesn't need sol pbc to be reachable. a tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control.</p>`,
+<p class="disclosure" style="margin-top:24px"><strong>${htmlText('account.services.youneverhavetopayus')}</strong> ${htmlText('account.services.yourjournaldoesntneedsolpbctobereachableatunne')}</p>`,
   });
 }
 
 // Why no one has to pay for confidential processing: the same thinking runs on the owner's own
 // machine, or with their own provider, with sol pbc out of the path.
-export const SPP_NEVER_PAY = "you never have to pay us. your journal can think on your own computer with the local model, or with your own model, and sol pbc isn't in the path either way. a subscription is only for the confidential hardware sol pbc runs for you.";
+export const SPP_NEVER_PAY = t('account.portal.youneverhavepayusyourjournal');
 
 // What a plan is sized for, on the price card. The unit is the journal; a computer and a phone
 // describe its size. The checkout card carries the plan terms, which already say it.
-const SPP_SIZE = 'sized for one journal with a computer and a phone.';
+const SPP_SIZE = t('account.portal.sizedforonejournalwithcomputerand');
 
 // One subscription covers one journal (terms § 3: per journal, not per device).
-const SPP_ONE_JOURNAL = 'one subscription covers one journal. turn it on from that journal.';
+const SPP_ONE_JOURNAL = t('account.portal.onesubscriptioncoversonejournalturnit');
 
 export function renderServicesSpp({
   entitlement,
@@ -1204,70 +1206,70 @@ export function renderServicesSpp({
 }) {
   const status = entitlement?.status || '';
   const page = ({ statusLine, content, flashes = '' }) => layout({
-    title: 'confidential processing',
+    title: t('account.services.confidentialprocessing2'),
     body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
+<a class="back" href="/">${BACK_SVG} ${htmlText('account.services.yourservices2')}</a>
 ${flashes}
 <div class="pagehead">
-  <h1>confidential processing</h1>
-  ${onSale ? '<p class="meta">operated by sol pbc</p>' : ''}
+  <h1>${htmlText('account.services.confidentialprocessing2')}</h1>
+  ${onSale ? '<p class="meta">' + htmlText('account.services.operatedbysolpbc') + '</p>' : ''}
   ${statusLine ? `<p class="signed-in">${statusLine}</p>` : ''}
 </div>
-${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 'confidential processing')}`,
+${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, t('account.services.confidentialprocessing2'))}`,
   });
 
   if (!onSale) {
     if (status === 'active') {
       return page({
-        statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>available</span> &nbsp;confidential processing is available to this sign-in',
+        statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.available2') + '</span> ' + htmlText('account.services.nbspconfidentialprocessingisavailabletothissig') + '',
         content: `<div class="group">
-  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">available to enable from your journal</div></div></div>
+  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">${htmlText('account.services.confidentialprocessing2')}</div><div class="desc">${htmlText('account.services.availableenablefromyourjournal')}</div></div></div>
 </div>
-<p class="disclosure" style="margin-top:24px">your journal must verify the service before anything is sent. if it can't verify, it doesn't send. <a href="/terms">terms</a></p>
-<p class="disclosure">the "transcribe audio on the service" switch lives in the journal's thinking app.</p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.yourjournalmustverifytheservicebeforeanythingi')} <a href="/terms">${htmlText('account.services.terms3')}</a></p>
+<p class="disclosure">${htmlText('account.services.transcribeaudioonserviceswitchlivesin2')}</p>`,
       });
     }
 
     return page({
-      statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not available</span> &nbsp;confidential processing is not available to this sign-in',
-      content: `<p class="lead">confidential processing is available to approved scouts. this sign-in is not currently approved. visit <a href="/scout">scout</a> to request access.</p>
+      statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.notavailable2') + '</span> ' + htmlText('account.services.nbspconfidentialprocessingisnotavailabletothis') + '',
+      content: `<p class="lead">${htmlText('account.services.confidentialprocessingisavailabletoapprovedsco')} <a href="/scout">${htmlText('account.services.scout2')}</a> ${htmlText('account.services.torequestaccess')}</p>
 <div class="card">
-  ${beat(IC_EMPTY_DATA_SVG, 'kept for nothing', 'no content is retained · no human reviews it · nothing is used to train')}
-  ${beat(IC_CHIP, 'the thinking leaves', 'confidential processing sends your thinking off your device, never your journal, which stays on the device it runs on. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path.')}
+  ${beat(IC_EMPTY_DATA_SVG, t('account.services.keptfornothing2'), t('account.services.nocontentisretainednohumanreviews'))}
+  ${beat(IC_CHIP, t('account.services.thinkingleaves'), t('account.services.confidentialprocessingsendsyourthinkingoffyour'))}
 </div>
-<p class="disclosure" style="margin-top:24px"><a href="/scout">request scout access</a> · <a href="/terms">terms</a></p>`,
+<p class="disclosure" style="margin-top:24px"><a href="/scout">${htmlText('account.services.requestscoutaccess')}</a> · <a href="/terms">${htmlText('account.services.terms3')}</a></p>`,
     });
   }
 
-  const flashes = sppBillingFlashMessages(flash) + withdrawalFlashMessages(flash, 'confidential processing');
+  const flashes = sppBillingFlashMessages(flash) + withdrawalFlashMessages(flash, t('account.services.confidentialprocessing2'));
   const paidThrough = formatUnixSecondsDate(entitlement?.current_period_end);
   const cancelPending = Boolean(entitlement?.cancel_at_period_end);
-  const coveredPill = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>covered</span>';
+  const coveredPill = '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.covered2') + '</span>';
   const detailParts = [];
-  if (entitlement?.enabled_at != null) detailParts.push(`covered since ${formatDate(entitlement.enabled_at)}`);
-  detailParts.push('operated by sol pbc', 'turn it on from your journal');
+  if (entitlement?.enabled_at != null) detailParts.push(t('account.services.coveredsince2', { date: formatDate(entitlement.enabled_at) }));
+  detailParts.push(t('account.services.operatedbysolpbc'), t('account.services.turnitonfromyourjournal'));
   const controlGroup = `<div class="group">
-  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">confidential processing</div><div class="desc">${esc(detailParts.join(' · '))}</div></div></div>
+  <div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">${htmlText('account.services.confidentialprocessing2')}</div><div class="desc">${esc(detailParts.join(' · '))}</div></div></div>
 </div>`;
   const portalActions = `<div class="btn-row" style="margin-top:16px">
   ${billingPortalForm({ csrf, action: `${SPP_SERVICE_PATH}/portal` })}
-  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: 'cancel confidential processing', buttonClass: 'btn danger', action: `${SPP_SERVICE_PATH}/cancel` })}
+  ${cancelContract || cancelPending ? '' : billingPortalForm({ csrf, buttonText: t('account.services.cancelconfidentialprocessing'), buttonClass: 'btn danger', action: `${SPP_SERVICE_PATH}/cancel` })}
 </div>`;
   const cancellationNotice = cancelPending
-    ? `<p class="notice">your confidential processing is scheduled to end on ${esc(paidThrough)}.${keepItOn(cancelContract, ' manage billing to keep it.')}</p>`
+    ? `<p class="notice">${htmlText('account.services.yourconfidentialprocessingisscheduledtoendon')} ${esc(paidThrough)}.${keepItOn(cancelContract, t('account.services.managebillingtokeepit'))}</p>`
     : '';
-  const howItWorks = '<a href="/confidential-processing/data">what leaves your device</a> · <a href="/terms">terms</a>';
+  const howItWorks = '<a href="/confidential-processing/data">' + htmlText('account.services.whatleavesyourdevice') + '</a> · <a href="/terms">' + htmlText('account.services.terms3') + '</a>';
   // The journals the subscription covers, each with its own release, so the owner can move it.
   const journalList = journals.length
     ? `<div class="card" style="margin-top:16px">
   <p>${journals.length === 1
-    ? 'your subscription covers one journal. to use it on a different journal, release this one (it stops using confidential processing right away), then turn confidential processing on from the other journal.'
-    : `your subscription covers ${journals.length} journals, turned on while you were an approved scout. to use it on a different journal, release one of them (it stops using confidential processing right away), then turn confidential processing on from the other journal.`}</p>
+    ? t('account.services.yoursubscriptioncoversonejournaluseit')
+    : t('account.services.yoursubscriptioncoversjournalsturnedonwhileyou', { count: journals.length })}</p>
   <div class="group">
-  ${journals.map((j) => `<div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">${journalIdLabel(j.instance_id)}</div><div class="desc">first turned on ${esc(formatDate(j.created_at))}</div></div><div class="trail"><form method="post" action="${escAttr(`${SPP_SERVICE_PATH}/release`)}">
+  ${journals.map((j) => `<div class="row" style="cursor:default">${IC_CHIP}<div class="body"><div class="title">${journalIdLabel(j.instance_id)}</div><div class="desc">${htmlText('account.services.firstturnedon')} ${esc(formatDate(j.created_at))}</div></div><div class="trail"><form method="post" action="${escAttr(`${SPP_SERVICE_PATH}/release`)}">
     <input type="hidden" name="csrf" value="${escAttr(csrf)}">
     <input type="hidden" name="instance" value="${escAttr(j.instance_id)}">
-    <button class="btn secondary" type="submit">release</button>
+    <button class="btn secondary" type="submit">${htmlText('account.services.release')}</button>
   </form></div></div>`).join('\n  ')}
   </div>
 </div>`
@@ -1278,48 +1280,48 @@ ${content}${cancelContractLink(cancelOffered ? cancelContract : '', withdrawal, 
       flashes,
       statusLine: coveredPill,
       content: `${controlGroup}
-<p class="disclosure" style="margin-top:24px">complimentary while you're an approved scout. ${howItWorks}</p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.complimentarywhileyoureanapprovedscout2')} ${howItWorks}</p>`,
     });
   }
 
   if (status === 'active') {
     return page({
       flashes,
-      statusLine: `${coveredPill} &nbsp;your payment is up to date`,
+      statusLine: t('account.services.nbspyourpaymentisuptodate', { coveredPill }),
       content: `${controlGroup}
 ${cancellationNotice}
 ${portalActions}
 ${journalList}
 ${withdrawalDoor(withdrawal)}
-<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}billed through Stripe. ${howItWorks}</p>`,
+<p class="disclosure" style="margin-top:24px">${renewalLead({ paidThrough, cancelPending, plan })}${htmlText('account.services.billedthroughstripe')} ${howItWorks}</p>`,
     });
   }
 
   if (status === 'past_due') {
     return page({
       flashes,
-      statusLine: serving ? 'your last payment needs attention' : '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not covered</span>',
+      statusLine: serving ? t('account.services.yourlastpaymentneedsattention') : '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.notcovered2') + '</span>',
       content: `${controlGroup}
-<p class="notice">${serving ? "your last payment didn't go through. manage billing to fix it." : "your last payment didn't go through, so confidential processing has stopped. manage billing to fix it."}</p>
+<p class="notice">${serving ? t('account.services.yourlastpaymentdidntgothrough2') : t('account.services.yourlastpaymentdidntgothrough')}</p>
 ${journalList}
 ${cancellationNotice}
 ${portalActions}
 ${withdrawalDoor(withdrawal)}
-<p class="disclosure" style="margin-top:24px">billed through Stripe. ${howItWorks}</p>`,
+<p class="disclosure" style="margin-top:24px">${htmlText('account.services.billedthroughstripe')} ${howItWorks}</p>`,
     });
   }
 
   return page({
     flashes,
-    content: `<p class="lead">confidential processing sends <a href="/confidential-processing/data">your thinking off your device</a>, never your journal, which stays on the device it runs on. it runs on confidential hardware sol pbc operates, using a model sol pbc runs itself with no third-party AI provider in the path. no content is retained · no human reviews it · nothing is used to train.</p>
+    content: `<p class="lead">${htmlText('account.services.confidentialprocessingsends2')} <a href="/confidential-processing/data">${htmlText('account.services.yourthinkingoffyourdevice2')}</a>${htmlText('account.services.neveryourjournalwhichstaysonthedeviceitrunsoni2')}</p>
 <div class="card">
-  <p>turn on confidential processing</p>
+  <p>${htmlText('account.services.turnonconfidentialprocessing2')}</p>
   ${planTerms ? `<p class="disclosure" data-plan-terms>${esc(planTerms)}</p>` : ''}
-  ${checkoutGroup({ csrf, service: 'confidential processing', startNowBox, keyInfo, action: `${SPP_SERVICE_PATH}/checkout`, rows: [
-    { plan: 'annual', unitAmount: 9600, buttonText: 'pay yearly', primary: true },
-    { plan: 'monthly', unitAmount: 999, buttonText: 'pay monthly', primary: false },
+  ${checkoutGroup({ csrf, service: t('account.services.confidentialprocessing2'), startNowBox, keyInfo, action: `${SPP_SERVICE_PATH}/checkout`, rows: [
+    { plan: 'annual', unitAmount: 9600, buttonText: t('account.services.payyearly'), primary: true },
+    { plan: 'monthly', unitAmount: 999, buttonText: t('account.services.paymonthly'), primary: false },
   ] })}
-  <p class="disclosure">${esc(SPP_ONE_JOURNAL)} tax included. billed securely through Stripe. complimentary for approved scouts. by paying, you agree to the <a href="/terms">terms</a>.</p>
+  <p class="disclosure">${esc(SPP_ONE_JOURNAL)} ${htmlText('account.services.taxincludedbilledsecurelythroughstripecomplime')} <a href="/terms">${htmlText('account.services.terms3')}</a>.</p>
 </div>
 <p class="disclosure" style="margin-top:24px">${esc(SPP_NEVER_PAY)}</p>`,
   });
@@ -1327,17 +1329,17 @@ ${withdrawalDoor(withdrawal)}
 
 function sppBillingFlashMessages(flash) {
   const messages = [];
-  if (flash.checkout === 'success') messages.push("payment received. it can take a moment to show up here. if your journal is waiting to turn confidential processing on, it finishes by itself.");
-  if (flash.checkout === 'cancel') messages.push('no charge made.');
-  if (flash.checkout === 'invalid') messages.push('choose yearly or monthly billing.');
-  if (flash.checkout === 'email') messages.push('billing needs an email address on your sign-in.');
-  if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
-  if (flash.checkout === 'comped') messages.push("confidential processing is already complimentary for you as an approved scout.");
-  if (flash.checkout === 'covered') messages.push('this sign-in already has a subscription.');
-  if (flash.journal === 'released') messages.push('released. that journal no longer uses your subscription. turn confidential processing on from the journal you want it on.');
-  if (flash.journal === 'missing') messages.push('that journal was already released.');
-  if (flash.billing === 'missing') messages.push('billing management is available once a payment has been made.');
-  if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
+  if (flash.checkout === 'success') messages.push(t('account.billing.paymentreceiveditcantakemomentshow2'));
+  if (flash.checkout === 'cancel') messages.push(t('account.billing.nochargemade'));
+  if (flash.checkout === 'invalid') messages.push(t('account.billing.chooseyearlyormonthlybilling'));
+  if (flash.checkout === 'email') messages.push(t('account.billing.billingneedsanemailaddressonyour'));
+  if (flash.checkout === 'error') messages.push(t('account.billing.billingcouldntstarttryagain'));
+  if (flash.checkout === 'comped') messages.push(t('account.billing.confidentialprocessingisalreadycomplimentaryforyou'));
+  if (flash.checkout === 'covered') messages.push(t('account.billing.thissigninalreadyhassubscription'));
+  if (flash.journal === 'released') messages.push(t('account.billing.releasedthatjournalnolongerusesyour'));
+  if (flash.journal === 'missing') messages.push(t('account.billing.thatjournalwasalreadyreleased'));
+  if (flash.billing === 'missing') messages.push(t('account.billing.billingmanagementisavailableoncepaymenthas'));
+  if (flash.billing === 'error') messages.push(t('account.billing.billingmanagementdidntopentryagain'));
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
@@ -1357,30 +1359,30 @@ export function billingEntryState(entitlement) {
 
 // What keeps working through a failed payment, as each service page says it.
 const BILLING_PAST_DUE = {
-  spl_hosted: "the last payment didn't go through. reaching your journal on your own network stays free either way. manage billing to fix it.",
-  spb_hosted: "the last payment didn't go through. manage billing to fix it. if the subscription ends, sol pbc keeps your encrypted copy for 30 days.",
-  sme_hosted: "the last payment didn't go through. your address stays reserved for you either way. manage billing to fix it.",
-  spp_hosted: "the last payment didn't go through. manage billing to fix it.",
+  spl_hosted: t('account.portal.lastpaymentdidntgothroughreaching'),
+  spb_hosted: t('account.portal.lastpaymentdidntgothroughmanage2'),
+  sme_hosted: t('account.portal.lastpaymentdidntgothroughyour'),
+  spp_hosted: t('account.portal.lastpaymentdidntgothroughmanage'),
 };
 
 function billingStateLine({ service, entitlement, state, plan }, nowSeconds, rulesCancel = '') {
   const date = formatUnixSecondsDate(entitlement.current_period_end);
-  if (state === 'scout') return service === 'spp_hosted' ? "complimentary while you're an approved scout" : "free while you're an approved scout";
+  if (state === 'scout') return service === 'spp_hosted' ? t('account.billing.complimentarywhileyoureanapprovedscout') : t('account.billing.freewhileyoureanapprovedscout');
   if (state === 'past_due') return BILLING_PAST_DUE[service];
   if (state === 'stopping') {
-    const keep = keepItOn(rulesCancel, ' manage billing to keep it.');
-    return date ? `scheduled to stop on ${date}.${keep}` : `scheduled to stop at the end of the paid period.${keep}`;
+    const keep = keepItOn(rulesCancel, t('account.billing.managebillingtokeepit'));
+    return date ? t('account.billing.scheduledtostopon', { date, keep }) : t('account.billing.scheduledtostopattheendofthepaidperiod', { keep });
   }
   if (state === 'stopped') {
-    return date && entitlement.current_period_end <= nowSeconds ? `stopped on ${date}` : 'stopped';
+    return date && entitlement.current_period_end <= nowSeconds ? t('account.billing.stoppedon2', { date }) : t('account.billing.stopped');
   }
-  if (!date) return plan ? `renews automatically at ${formatPlanPrice(plan)}, ${taxWords(plan)}` : 'renews automatically';
-  return plan ? `renews on ${date} at ${formatPlanPrice(plan)}, ${taxWords(plan)}` : `renews on ${date}. the price didn't load; manage billing to see it.`;
+  if (!date) return plan ? t('account.billing.renewsautomaticallyat2', { price: formatPlanPrice(plan), tax: taxWords(plan) }) : t('account.billing.renewsautomatically');
+  return plan ? t('account.billing.renewsonat2', { date, price: formatPlanPrice(plan), tax: taxWords(plan) }) : t('account.billing.renewsonthepricedidntloadmanagebillingtoseeit', { date });
 }
 
 function billingTrail({ state, plan }) {
-  if (state === 'scout') return '<span class="tag free">scout</span>';
-  if (state === 'stopped') return pill('off', 'stopped');
+  if (state === 'scout') return '<span class="tag free">' + htmlText('account.billing.scout') + '</span>';
+  if (state === 'stopped') return pill('off', t('account.billing.stopped'));
   if (!plan) return '';
   return `<span class="price">${formatPlanPrice(plan)}<span class="per">/${plan.interval === 'year' ? 'yr' : 'mo'}</span></span>`;
 }
@@ -1389,8 +1391,8 @@ const BILLING_ICONS = { spl_hosted: IC_NET, spb_hosted: IC_BACKUP, sme_hosted: I
 
 export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, nowSeconds, cancelContract = '' }) {
   const flashes = [];
-  if (flash.billing === 'missing') flashes.push("billing management opens once you've paid for a service.");
-  if (flash.billing === 'error') flashes.push("billing management didn't open. try again.");
+  if (flash.billing === 'missing') flashes.push(t('account.billing.billingmanagementopensonceyouvepaid'));
+  if (flash.billing === 'error') flashes.push(t('account.billing.billingmanagementdidntopentryagain2'));
   // Each paid entry's door, then, with the subscription rules on, its own "cancel contracts here".
   const doors = entries
     .map((entry) => [
@@ -1408,26 +1410,26 @@ export function renderBilling({ entries, hasCustomer, csrf, flash = {}, menu, no
     : `<div class="card">
   <div class="empty">
     ${IC_BILLING_SVG}
-    <h2>you don't pay for anything</h2>
-    <p>no paid service is on your sign-in, so nothing renews. every service is optional, and each paid one shows its price before you pay.</p>
-    <a class="btn primary" href="/">see the services</a>
+    <h2>${htmlText('account.billing.youdontpayforanything')}</h2>
+    <p>${htmlText('account.billing.nopaidserviceisonyoursign')}</p>
+    <a class="btn primary" href="/">${htmlText('account.billing.seeservices')}</a>
   </div>
 </div>`;
   const manage = hasCustomer
     ? `<div class="card" style="margin-top:22px">
-  <p>Stripe holds your card, your receipts and past charges, and your billing email and address. the button below opens them there and brings you back here.</p>
+  <p>${htmlText('account.billing.stripeholdsyourcardyourreceiptsand')}</p>
   ${billingPortalForm({ csrf, action: '/billing/manage' })}
 </div>`
     : '';
   return layout({
-    title: 'billing',
+    title: t('account.billing.billing'),
     body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
+<a class="back" href="/">${BACK_SVG} ${htmlText('account.billing.yourservices2')}</a>
 ${flashes.map((message) => `<p class="notice">${esc(message)}</p>`).join('')}
 <div class="pagehead">
-  <h1>billing</h1>
+  <h1>${htmlText('account.billing.billing')}</h1>
 </div>
-<p class="intro">the services you pay sol pbc for, what each one costs, and when it renews.</p>
+<p class="intro">${htmlText('account.billing.servicesyoupaysolpbcforwhat')}</p>
 ${list}
 ${manage}${cancelLink}`,
   });
@@ -1436,16 +1438,16 @@ ${manage}${cancelLink}`,
 export function renderBillingReturn({ status, menu }) {
   const success = status === 'success';
   const message = success
-    ? 'payment received. it can take a moment to show up here.'
-    : 'no charge made. you can turn on the relay anytime. on your own network, reaching your journal is always free.';
+    ? t('account.billing.paymentreceiveditcantakemomentshow')
+    : t('account.billing.nochargemadeyoucanturnon2');
   return layout({
-    title: 'private network',
+    title: t('account.billing.privatenetwork'),
     body: `${topbar(menu)}
-<a class="back" href="/private-network">${BACK_SVG} your private network</a>
+<a class="back" href="/private-network">${BACK_SVG} ${htmlText('account.billing.yourprivatenetwork2')}</a>
 <div class="card">
-  <h1>private network</h1>
+  <h1>${htmlText('account.billing.privatenetwork')}</h1>
   <p>${esc(message)}</p>
-  <a class="btn secondary" href="/private-network">back to your private network</a>
+  <a class="btn secondary" href="/private-network">${htmlText('account.billing.backyourprivatenetwork')}</a>
 </div>`,
   });
 }
@@ -1454,33 +1456,33 @@ export function renderBillingReturn({ status, menu }) {
 
 export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0, menu }) {
   return layout({
-    title: 'your sign-in',
+    title: t('account.portal.yoursignin'),
     body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
-<h1>your sign-in</h1>
-<p class="lead">how you get into this page to manage your services. solstone itself never asks you to sign in. this is the only place sign-in lives.</p>
+<a class="back" href="/">${BACK_SVG} ${htmlText('account.portal.yourservices')}</a>
+<h1>${htmlText('account.portal.yoursignin')}</h1>
+<p class="lead">${htmlText('account.signin.howyougetintothispagemanage')}</p>
 <div class="group">
   <a class="row" href="/sign-in/sessions">
     ${IC_SESSION_SVG}
     <div class="body">
-      <div class="title">sessions</div>
-      <div class="desc">the devices and phones signed in right now. sign any of them out.</div>
+      <div class="title">${htmlText('account.portal.sessions')}</div>
+      <div class="desc">${htmlText('account.signin.devicesandphonessignedinrightnow')}</div>
     </div>
-    <div class="trail"><span class="meta" style="margin:0">${esc(sessionCount)} active</span>${CHEVRON_SVG}</div>
+    <div class="trail"><span class="meta" style="margin:0">${esc(sessionCount)} ${htmlText('account.portal.active')}</span>${CHEVRON_SVG}</div>
   </a>
   <a class="row" href="/sign-in/passkeys">
     ${IC_PASSKEY_SVG}
     <div class="body">
-      <div class="title">passkeys</div>
-      <div class="desc">how you sign in. add more than one for backup or a second device.</div>
+      <div class="title">${htmlText('account.portal.passkeys')}</div>
+      <div class="desc">${htmlText('account.signin.howyousigninaddmorethan')}</div>
     </div>
     <div class="trail"><span class="meta" style="margin:0">${esc(passkeyCount)}</span>${CHEVRON_SVG}</div>
   </a>
   <a class="row" href="/sign-in/emails">
     ${IC_EMAIL_SVG}
     <div class="body">
-      <div class="title">email addresses</div>
-      <div class="desc">for a one-time code when you don't have a passkey handy.</div>
+      <div class="title">${htmlText('account.signin.emailaddresses')}</div>
+      <div class="desc">${htmlText('account.signin.foronetimecodewhenyoudon')}</div>
     </div>
     <div class="trail"><span class="meta" style="margin:0">${esc(emailCount)}</span>${CHEVRON_SVG}</div>
   </a>
@@ -1488,20 +1490,26 @@ export function renderSignInShell({ sessionCount, passkeyCount, emailCount = 0, 
   });
 }
 
+const EMAIL_BADGES = Object.freeze({
+  primary: t('account.emails.primary'),
+  verified: t('account.emails.verified'),
+  unverified: t('account.emails.unverified'),
+});
+
 export function renderSignInEmails({ rows, addError = '', removeError = '', menu }) {
   const rowHtml = rows.map((row) => {
     const actionBase = `/sign-in/emails/${escAttr(row.id)}`;
     const badgeClass = row.badge === 'unverified' ? 'off' : 'on';
-    const badge = `<span class="pill ${badgeClass}" style="margin-left:4px"><span class="dot"></span>${esc(row.badge)}</span>`;
+    const badge = `<span class="pill ${badgeClass}" style="margin-left:4px"><span class="dot"></span>${esc(EMAIL_BADGES[row.badge] ?? row.badge)}</span>`;
     const expiry = row.expiryText ? `<div class="meta">${esc(row.expiryText)}</div>` : '';
     const makePrimary = row.badge === 'verified'
-      ? `<form method="post" action="${actionBase}/make-primary"><button class="btn secondary" type="submit">make primary</button></form>`
+      ? `<form method="post" action="${actionBase}/make-primary"><button class="btn secondary" type="submit">${htmlText('account.signin.makeprimary')}</button></form>`
       : '';
     const remove = row.badge === 'primary'
       ? ''
-      : `<form method="post" action="${actionBase}/remove"><button class="btn danger" type="submit">remove</button></form>`;
+      : `<form method="post" action="${actionBase}/remove"><button class="btn danger" type="submit">${htmlText('account.emails.remove')}</button></form>`;
     const verify = row.badge === 'unverified'
-      ? `<a class="btn secondary" href="/sign-in/emails/verify?address=${escAttr(row.encodedAddress)}">verify</a>`
+      ? `<a class="btn secondary" href="/sign-in/emails/verify?address=${escAttr(row.encodedAddress)}">${htmlText('account.emails.verify')}</a>`
       : '';
     const actions = [verify, makePrimary, remove].filter(Boolean).join('');
     const trail = actions ? `<div class="trail">${actions}</div>` : '';
@@ -1516,23 +1524,23 @@ export function renderSignInEmails({ rows, addError = '', removeError = '', menu
   }).join('');
   const addErrorHtml = addError ? `<p class="error">${esc(addError)}</p>` : '';
   const removeErrorHtml = removeError ? `<p class="error">${esc(removeError)}</p>` : '';
-  const emptyState = rows.length === 0 ? '<p>no email addresses for your sign-in.</p>' : '';
+  const emptyState = rows.length === 0 ? '<p>' + htmlText('account.signin.noemailaddressesforyoursignin') + '</p>' : '';
   const groupHtml = rowHtml ? `<div class="group">${rowHtml}</div>` : '';
   return layout({
-    title: 'email addresses',
+    title: t('account.emails.emailaddresses'),
     body: `${topbar(menu)}
-<a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
-<h1>email addresses</h1>
+<a class="back" href="/sign-in">${BACK_SVG} ${htmlText('account.emails.yoursignin')}</a>
+<h1>${htmlText('account.emails.emailaddresses')}</h1>
 ${removeErrorHtml}
 ${emptyState}
 ${groupHtml}
 <div class="card">
-  <h2>add an email</h2>
+  <h2>${htmlText('account.signin.addanemail')}</h2>
   ${addErrorHtml}
   <form method="post" action="/sign-in/emails/add">
-    <label for="address">email</label>
+    <label for="address">${htmlText('account.emails.email')}</label>
     <input id="address" type="email" name="address" autocomplete="email" required placeholder="you@example.com" maxlength="254">
-    <button class="btn primary" type="submit">add an email</button>
+    <button class="btn primary" type="submit">${htmlText('account.signin.addanemail')}</button>
   </form>
 </div>`,
   });
@@ -1547,12 +1555,12 @@ export function renderEmailVerify({
 }) {
   if (alreadyVerified) {
     return layout({
-      title: 'verify email',
+      title: t('account.email.verifyemail'),
       body: `${topbar(menu)}
-<a class="back" href="/sign-in/emails">${BACK_SVG} email addresses</a>
-<h1>verify email</h1>
-<p class="notice">this email is already verified for your sign-in.</p>
-<a class="btn secondary" href="/sign-in/emails">back to email addresses</a>`,
+<a class="back" href="/sign-in/emails">${BACK_SVG} ${htmlText('account.emails.emailaddresses')}</a>
+<h1>${htmlText('account.email.verifyemail')}</h1>
+<p class="notice">${htmlText('account.email.thisemailisalreadyverifiedforyour')}</p>
+<a class="btn secondary" href="/sign-in/emails">${htmlText('account.email.backemailaddresses')}</a>`,
     });
   }
   const errorHtml = error ? `<p class="error">${esc(error)}</p>` : '';
@@ -1560,21 +1568,21 @@ export function renderEmailVerify({
     ? `<input type="hidden" name="address" value="${escAttr(address)}">`
     : `<input type="email" name="address" value="${escAttr(addressInputValue)}" required autocomplete="email" placeholder="you@example.com" maxlength="254">`;
   const subhead = address
-    ? `we sent a code to <strong>${esc(address)}</strong>. enter it below.`
-    : 'enter the email address and the 6-digit code we sent you.';
+    ? `${htmlText('account.emails.wesentacodeto')} <strong>${esc(address)}</strong>${htmlText('account.emails.enteritbelow')}`
+    : t('account.email.enteremailaddressand6digitcode');
   return layout({
-    title: 'verify email',
+    title: t('account.email.verifyemail'),
     body: `${topbar(menu)}
-<a class="back" href="/sign-in/emails">${BACK_SVG} email addresses</a>
-<h1>verify email</h1>
+<a class="back" href="/sign-in/emails">${BACK_SVG} ${htmlText('account.emails.emailaddresses')}</a>
+<h1>${htmlText('account.email.verifyemail')}</h1>
 <p class="lead">${subhead}</p>
 ${errorHtml}
 <div class="card">
   <form method="post" action="/sign-in/emails/verify">
     ${addressFieldHtml}
-    <label for="code">6-digit code</label>
+    <label for="code">${htmlText('account.emails.n6digitcode')}</label>
     <input id="code" class="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
-    <button class="btn primary block" type="submit">verify</button>
+    <button class="btn primary block" type="submit">${htmlText('account.emails.verify')}</button>
   </form>
 </div>`,
   });
@@ -1584,9 +1592,9 @@ ${errorHtml}
 
 // The one signed-in entry point to /account/export outside a deletion hold.
 const TRANSPARENCY_EXPORT_CARD = `<div class="card">
-  <h2>download what sol pbc holds</h2>
-  <p>it's one file of what's held for your sign-in. we'll email you a code to confirm it's you, and have you confirm with your passkey too, if you have one.</p>
-  <a class="btn primary block" href="/account/export">download what sol pbc holds</a>
+  <h2>${htmlText('account.transparency.downloadwhatsolpbcholds2')}</h2>
+  <p>${htmlText('account.portal.itsonefilewhatsheld')}</p>
+  <a class="btn primary block" href="/account/export">${htmlText('account.transparency.downloadwhatsolpbcholds2')}</a>
 </div>`;
 
 export function renderTransparency({
@@ -1605,64 +1613,64 @@ export function renderTransparency({
 }) {
   if (!signedIn) {
     return layout({
-      title: 'data transparency',
+      title: t('account.transparency.datatransparency'),
       body: `${brandbar()}
-<h1>data transparency</h1>
+<h1>${htmlText('account.transparency.datatransparency')}</h1>
 ${transparencyIntro(TRANSPARENCY_LEAD_SIGNED_OUT)}
 <div class="card">
   <div class="empty">
     ${IC_EMPTY_DATA_SVG}
-    <h2>we don't have anything about you</h2>
-    <p>sol pbc doesn't know who you are because you haven't signed in yet. without a sign-in, there's no row here for you.</p>
-    <a class="btn primary" href="/">sign in to manage your services</a>
+    <h2>${htmlText('account.transparency.wedonthaveanythingaboutyou')}</h2>
+    <p>${htmlText('account.transparency.solpbcdoesntknowwhoyou')}</p>
+    <a class="btn primary" href="/">${htmlText('account.transparency.signintomanageyourservices')}</a>
   </div>
 </div>
-<p class="disclosure">the structure is the commitment: what we hold for a sign-in appears here, and when we don't know you, there's nothing to list.</p>`,
+<p class="disclosure">${htmlText('account.transparency.structureiscommitmentwhatweholdfor')}</p>`,
     });
   }
 
   const emailHtml = emails.map((row) => `<div class="row" style="cursor:default"><div class="body">
-  <div class="title">${esc(row.address)}${row.isPrimary ? ' <span class="pill on" style="margin-left:4px"><span class="dot"></span>primary</span>' : ''}</div>
-  <div class="desc">${row.verifiedAt == null ? 'unverified' : 'verified'} · added ${esc(formatDate(row.createdAt))}</div>
+  <div class="title">${esc(row.address)}${row.isPrimary ? ' <span class="pill on" style="margin-left:4px"><span class="dot"></span>' + htmlText('account.transparency.primary') + '</span>' : ''}</div>
+  <div class="desc">${row.verifiedAt == null ? t('account.transparency.unverified') : t('account.transparency.verified')} ${htmlText('account.transparency.added')} ${esc(formatDate(row.createdAt))}</div>
 </div></div>`).join('');
   const passkeyHtml = passkeys.map((row) => {
-    const status = row.revokedAt == null ? 'active' : `revoked ${formatDate(row.revokedAt)}`;
+    const status = row.revokedAt == null ? t('account.transparency.active') : t('account.transparency.revoked2', { date: formatDate(row.revokedAt) });
     return `<div class="row" style="cursor:default"><div class="body">
   <div class="title">${esc(row.name)}</div>
-  <div class="desc">created ${esc(formatDate(row.createdAt))} · last used ${esc(row.lastUsedAt == null ? 'never used' : formatDate(row.lastUsedAt))} · ${esc(status)}</div>
+  <div class="desc">${htmlText('account.transparency.created')} ${esc(formatDate(row.createdAt))} ${htmlText('account.transparency.lastused')} ${esc(row.lastUsedAt == null ? t('account.passkey.neverused') : formatDate(row.lastUsedAt))} · ${esc(status)}</div>
 </div></div>`;
   }).join('');
   const sessionHtml = sessions.map((row) => {
-    const status = row.revokedAt == null ? 'active' : `revoked ${formatDate(row.revokedAt)}`;
+    const status = row.revokedAt == null ? t('account.transparency.active') : t('account.transparency.revoked2', { date: formatDate(row.revokedAt) });
     return `<div class="row" style="cursor:default"><div class="body">
   <div class="title">${esc(row.deviceLabel)}</div>
-  <div class="desc">${esc(row.ipLabel)} · created ${esc(formatDate(row.createdAt))} · last active ${esc(formatDate(row.lastActiveAt))} · expires ${esc(formatDate(row.expiresAt))} · ${esc(status)}</div>
+  <div class="desc">${esc(row.ipLabel)} ${htmlText('account.transparency.created2')} ${esc(formatDate(row.createdAt))} ${htmlText('account.transparency.lastactive')} ${esc(formatDate(row.lastActiveAt))} ${htmlText('account.transparency.expires')} ${esc(formatDate(row.expiresAt))} · ${esc(status)}</div>
 </div></div>`;
   }).join('');
   return layout({
-    title: 'data transparency',
+    title: t('account.transparency.datatransparency'),
     body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
-<h1>data transparency</h1>
+<a class="back" href="/">${BACK_SVG} ${htmlText('account.transparency.yourservices')}</a>
+<h1>${htmlText('account.transparency.datatransparency')}</h1>
 ${transparencyIntro(exportEnabled ? `${TRANSPARENCY_LEAD_SIGNED_IN} ${TRANSPARENCY_LEAD_DOWNLOAD}` : TRANSPARENCY_LEAD_SIGNED_IN)}
 ${exportEnabled ? TRANSPARENCY_EXPORT_CARD : ''}
-<h2 style="margin-top:34px">sign-in · <a href="/sign-in" aria-label="manage sign-in" style="${TRANSPARENCY_LINK_STYLE}">manage</a></h2>
-<h3 class="section-label">sign-in id</h3>
+<h2 style="margin-top:34px">${htmlText('account.transparency.signin')} <a href="/sign-in" aria-label="${attrText('account.transparency.managesignin2')}" style="${TRANSPARENCY_LINK_STYLE}">${htmlText('account.transparency.manage3')}</a></h2>
+<h3 class="section-label">${htmlText('account.transparency.signinid')}</h3>
 <div class="group">
   <div class="row" style="cursor:default"><div class="body">
-    <div class="meta" style="margin:0">id</div><div class="title" style="font-size:.84rem;font-family:ui-monospace,Menlo,monospace;font-weight:400">${esc(accountId)}</div>
-    <div class="desc">created ${esc(formatDate(accountCreatedAt))} · last sign-in ${esc(lastSigninAt == null ? '—' : formatRelativeTime(lastSigninAt, Date.now()))}</div>
+    <div class="meta" style="margin:0">${htmlText('account.transparency.id')}</div><div class="title" style="font-size:.84rem;font-family:ui-monospace,Menlo,monospace;font-weight:400">${esc(accountId)}</div>
+    <div class="desc">${htmlText('account.transparency.created')} ${esc(formatDate(accountCreatedAt))} ${htmlText('account.transparency.lastsignin')} ${esc(lastSigninAt == null ? '—' : formatRelativeTime(lastSigninAt, Date.now()))}</div>
   </div></div>
 </div>
-<h3 class="section-label">emails · <a href="/sign-in/emails" aria-label="manage emails">manage</a></h3>
+<h3 class="section-label">${htmlText('account.transparency.emails')} <a href="/sign-in/emails" aria-label="${attrText('account.transparency.manageemails')}">${htmlText('account.transparency.manage3')}</a></h3>
 <div class="group">${emailHtml}</div>
-<h3 class="section-label">passkeys · <a href="/sign-in/passkeys" aria-label="manage passkeys">manage</a></h3>
-${passkeyHtml ? `<div class="group">${passkeyHtml}</div>` : '<p>no passkeys.</p>'}
-<h3 class="section-label">sessions · <a href="/sign-in/sessions" aria-label="manage sessions">manage</a></h3>
-${sessionHtml ? `<div class="group">${sessionHtml}</div>` : '<p>no sessions.</p>'}
+<h3 class="section-label">${htmlText('account.transparency.passkeys')} <a href="/sign-in/passkeys" aria-label="${attrText('account.transparency.managepasskeys')}">${htmlText('account.transparency.manage3')}</a></h3>
+${passkeyHtml ? `<div class="group">${passkeyHtml}</div>` : '<p>' + htmlText('account.transparency.nopasskeys') + '</p>'}
+<h3 class="section-label">${htmlText('account.transparency.sessions')} <a href="/sign-in/sessions" aria-label="${attrText('account.transparency.managesessions')}">${htmlText('account.transparency.manage3')}</a></h3>
+${sessionHtml ? `<div class="group">${sessionHtml}</div>` : '<p>' + htmlText('account.transparency.nosessions') + '</p>'}
 ${renderTransparencyRecords({ records, relay, smeOnSale, exportEnabled })}
-${exportEnabled ? '<p style="margin-top:28px"><a class="btn secondary block" href="/account/export">download what sol pbc holds</a></p>' : ''}
-<p style="margin-top:28px"><a class="btn danger" href="/account/delete">close your sign-in and services</a></p>`,
+${exportEnabled ? '<p style="margin-top:28px"><a class="btn secondary block" href="/account/export">' + htmlText('account.transparency.downloadwhatsolpbcholds2') + '</a></p>' : ''}
+<p style="margin-top:28px"><a class="btn danger" href="/account/delete">${htmlText('account.deletion.closeyoursigninandservices')}</a></p>`,
   });
 }
 
@@ -1673,31 +1681,31 @@ ${exportEnabled ? '<p style="margin-top:28px"><a class="btn secondary block" hre
 // a class or column added to the inventory reaches this page without an edit here.
 
 const TRANSPARENCY_GROUPS = [
-  { heading: 'services and billing', classes: ['entitlements', 'renewal_notices', 'subscription_withdrawals', 'subscription_start_requests', 'subscription_cancellations', 'stripe_customers'] },
-  { heading: 'private network', href: '/private-network', classes: ['spl_bindings'] },
-  { heading: 'private network relay', classes: [], relay: true },
-  { heading: 'encrypted backup', href: '/services/backup', classes: ['spb_bindings', 'spb_mint_audit', 'spb_sweep_audit'] },
-  { heading: 'confidential processing', href: '/confidential-processing', classes: ['spp_bindings', 'spp_mint_audit'] },
+  { heading: t('account.portal.servicesandbilling'), classes: ['entitlements', 'renewal_notices', 'subscription_withdrawals', 'subscription_start_requests', 'subscription_cancellations', 'stripe_customers'] },
+  { heading: t('account.transparency.privatenetwork'), href: '/private-network', classes: ['spl_bindings'] },
+  { heading: t('account.portal.privatenetworkrelay'), classes: [], relay: true },
+  { heading: t('account.transparency.encryptedbackup'), href: '/services/backup', classes: ['spb_bindings', 'spb_mint_audit', 'spb_sweep_audit'] },
+  { heading: t('account.transparency.confidentialprocessing'), href: '/confidential-processing', classes: ['spp_bindings', 'spp_mint_audit'] },
   { heading: 'solstone.me', href: SME_SERVICE_PATH, hrefWhen: 'smeOnSale', classes: ['sme_bindings', 'mcp_bridge_bindings'] },
-  { heading: 'scout', href: '/scout', classes: ['scout_applications', 'scout_lifecycle_events'] },
+  { heading: t('account.transparency.scout'), href: '/scout', classes: ['scout_applications', 'scout_lifecycle_events'] },
 ];
 
 // Normal-size orange link text. --orange-text-aa clears 4.5:1 on cream.
 const TRANSPARENCY_LINK_STYLE = 'font-weight:400;color:var(--orange-text-aa)';
 const TRANSPARENCY_MONO = 'font-size:.84rem;font-family:ui-monospace,Menlo,monospace;font-weight:400;overflow-wrap:anywhere';
-const TRANSPARENCY_UNAVAILABLE = "these couldn't be loaded just now. reload to try again.";
+const TRANSPARENCY_UNAVAILABLE = t('account.portal.thesecouldntbeloadedjustnow');
 
 const TRANSPARENCY_SERVICE_NAMES = {
-  spl_hosted: 'private network',
-  spb_hosted: 'encrypted backup',
-  spp_hosted: 'confidential processing',
+  spl_hosted: t('account.transparency.privatenetwork'),
+  spb_hosted: t('account.transparency.encryptedbackup'),
+  spp_hosted: t('account.transparency.confidentialprocessing'),
   sme_hosted: 'solstone.me',
 };
-const TRANSPARENCY_SOURCE_NAMES = { comp: 'free as a scout', stripe: 'paid', apple: 'paid through the App Store', google: 'paid through Google Play' };
-const TRANSPARENCY_NOTICE_KINDS = { ack: 'confirmation', catch_up: 'catch-up notice', reminder: 'renewal reminder', oneoff: 'one-off notice' };
-const TRANSPARENCY_ACTORS = { owner: 'you', operator: 'sol pbc', service: 'solstone services' };
+const TRANSPARENCY_SOURCE_NAMES = { comp: t('account.portal.freeasscout'), stripe: t('account.transparency.paid'), apple: t('account.portal.paidthroughappstore'), google: t('account.portal.paidthroughgoogleplay') };
+const TRANSPARENCY_NOTICE_KINDS = { ack: t('account.transparency.confirmation'), catch_up: t('account.portal.catchupnotice'), reminder: t('account.portal.renewalreminder'), oneoff: t('account.portal.oneoffnotice') };
+const TRANSPARENCY_ACTORS = { owner: t('account.transparency.you'), operator: 'sol pbc', service: t('account.transparency.solstoneservices') };
 // The refusals recorded against a sign-in; the others happen before the journal is identified.
-const TRANSPARENCY_REFUSALS = { refused_entitlement: "refused (the service wasn't on)", refused_scope: 'refused (not an allowed kind of access)' };
+const TRANSPARENCY_REFUSALS = { refused_entitlement: t('account.portal.refusedservicewasnton'), refused_scope: t('account.portal.refusednotanallowedkindaccess') };
 
 // The field a row leads with; a class not listed leads with its first field.
 const TRANSPARENCY_TITLE_FIELD = {
@@ -1719,45 +1727,45 @@ const TRANSPARENCY_TITLE_FIELD = {
 const TRANSPARENCY_OWN_LINE_FIELDS = new Set(['use_case']);
 
 const TRANSPARENCY_FIELD_LABELS = {
-  instance_id: 'journal',
-  created_at: 'created',
-  updated_at: 'updated',
-  last_seen_at: 'last seen',
-  lapsed_at: 'lapsed',
-  revoked_at: 'revoked',
-  rotated_at: 'rotated',
-  consent_acked_at: 'consent given',
-  consent_disclosure_version: 'consent text version',
-  occurred_at: 'on',
-  current_period_end: 'paid through',
-  cancel_at_period_end: 'turns off at period end',
-  enabled_at: 'turned on',
+  instance_id: t('account.transparency.journal'),
+  created_at: t('account.transparency.created'),
+  updated_at: t('account.transparency.updated'),
+  last_seen_at: t('account.portal.lastseen'),
+  lapsed_at: t('account.transparency.lapsed'),
+  revoked_at: t('account.transparency.revoked3'),
+  rotated_at: t('account.transparency.rotated'),
+  consent_acked_at: t('account.portal.consentgiven'),
+  consent_disclosure_version: t('account.portal.consenttextversion'),
+  occurred_at: t('account.transparency.on'),
+  current_period_end: t('account.portal.paidthrough'),
+  cancel_at_period_end: t('account.portal.turnsoffatperiodend'),
+  enabled_at: t('account.portal.turnedon'),
   source: '',
-  source_ref: 'reference',
-  renewal_at: 'renews',
-  content_key: 'notice version',
-  body: 'the full message we sent',
-  use_case: "what you told us you'd use it for",
-  data_acked_at: 'data terms accepted',
-  applied_at: 'applied',
-  approved_at: 'approved',
-  correlation_id: 'event id',
-  kind: 'type',
-  from_status: 'from',
-  to_status: 'to',
-  actor_kind: 'by',
-  reason_code: 'reason',
-  entitled_until: 'relay access until',
-  entitled: 'relay access',
-  objects_deleted: 'files removed',
-  multipart_aborted: 'unfinished uploads cleared',
-  ttl: 'valid for',
-  stripe_customer_id: 'Stripe customer',
-  label: 'address',
-  acme_account_uri: "Let's Encrypt account",
-  acme_account_pinned_at: 'pinned',
-  acme_account_replaced_at: 'account replaced',
-  journal_update_refused_at: 'update refused',
+  source_ref: t('account.transparency.reference'),
+  renewal_at: t('account.transparency.renews'),
+  content_key: t('account.portal.noticeversion'),
+  body: t('account.portal.fullmessagewesent'),
+  use_case: t('account.portal.whatyoutoldusyouduse'),
+  data_acked_at: t('account.portal.datatermsaccepted'),
+  applied_at: t('account.transparency.applied'),
+  approved_at: t('account.transparency.approved'),
+  correlation_id: t('account.portal.eventid'),
+  kind: t('account.transparency.type'),
+  from_status: t('account.transparency.from'),
+  to_status: t('account.transparency.to'),
+  actor_kind: t('account.transparency.by'),
+  reason_code: t('account.transparency.reason'),
+  entitled_until: t('account.portal.relayaccessuntil'),
+  entitled: t('account.portal.relayaccess'),
+  objects_deleted: t('account.portal.filesremoved'),
+  multipart_aborted: t('account.portal.unfinisheduploadscleared'),
+  ttl: t('account.portal.validfor'),
+  stripe_customer_id: t('account.portal.stripecustomer'),
+  label: t('account.transparency.address'),
+  acme_account_uri: t('account.portal.letsencryptaccount'),
+  acme_account_pinned_at: t('account.transparency.pinned'),
+  acme_account_replaced_at: t('account.portal.accountreplaced'),
+  journal_update_refused_at: t('account.head.updaterefused'),
 };
 
 const TRANSPARENCY_SHOW_NEWEST = 20;
@@ -1766,15 +1774,15 @@ const TRANSPARENCY_LONG_TEXT = 120;
 function transparencyFieldValue(className, name, value, field, record = {}) {
   if (value == null || value === '') return null;
   const transform = field?.transform;
-  if (className === 'relay' && name === 'entitled') return record.entitled_until ? null : (value ? 'on' : 'off');
-  if (typeof value === 'boolean') return value ? 'yes' : 'no';
+  if (className === 'relay' && name === 'entitled') return record.entitled_until ? null : (value ? t('account.portal.on') : t('account.portal.off'));
+  if (typeof value === 'boolean') return value ? t('account.portal.yes') : t('account.portal.no');
   if (transform === 'epoch_ms_to_iso' || transform === 'epoch_s_to_iso' || (className === 'relay' && (name.endsWith('_at') || name === 'entitled_until'))) {
     const ms = typeof value === 'number' ? value : Date.parse(value);
     return formatDate(ms);
   }
   if (name === 'renewal_at') return typeof value === 'number' && value > 0 ? formatDate(value * 1000) : null;
-  if (name === 'cancel_at_period_end') return value ? 'yes' : null;
-  if (name === 'ttl' && typeof value === 'number') return `${Math.round(value / 3600)} hours`;
+  if (name === 'cancel_at_period_end') return value ? t('account.portal.yes') : null;
+  if (name === 'ttl' && typeof value === 'number') return t('account.portal.hours', { value1: Math.round(value / 3600) });
   if (name === 'service' && TRANSPARENCY_SERVICE_NAMES[value]) return TRANSPARENCY_SERVICE_NAMES[value];
   // "paid" beside "paid through <date>" says it twice; the date alone carries it.
   if (name === 'source' && value !== 'comp' && record.current_period_end) return null;
@@ -1783,8 +1791,8 @@ function transparencyFieldValue(className, name, value, field, record = {}) {
   if (name === 'actor_kind' && TRANSPARENCY_ACTORS[value]) return TRANSPARENCY_ACTORS[value];
   if (name === 'outcome') {
     const text = String(value);
-    if (text === 'minted') return 'given';
-    if (text.startsWith('refused_')) return TRANSPARENCY_REFUSALS[text] || 'refused';
+    if (text === 'minted') return t('account.portal.given');
+    if (text.startsWith('refused_')) return TRANSPARENCY_REFUSALS[text] || t('account.transparency.refused');
     return text.replaceAll('_', ' ');
   }
   if (name === 'label' && className === 'mcp_bridge_bindings') return `${value}.solstone.me`;
@@ -1820,7 +1828,7 @@ function transparencyRecordRow(className, record, fields) {
     }
   }
   const mono = titleName === 'instance_id' || titleName === 'stripe_customer_id';
-  const kicker = titleName === 'instance_id' ? '<div class="meta" style="margin:0">journal</div>' : '';
+  const kicker = titleName === 'instance_id' ? '<div class="meta" style="margin:0">' + htmlText('account.portal.journal') + '</div>' : '';
   return `<div class="row" style="cursor:default"><div class="body">
   ${kicker}<div class="title"${mono ? ` style="${TRANSPARENCY_MONO}"` : ''}>${esc(title)}</div>
   ${parts.length ? `<div class="desc">${parts.join(' · ')}</div>` : ''}${extra.join('')}
@@ -1828,14 +1836,14 @@ function transparencyRecordRow(className, record, fields) {
 }
 
 function transparencyRecordList(className, records, fields, exportEnabled) {
-  if (!records.length) return '<p class="meta" style="margin:0 2px">none held.</p>';
+  if (!records.length) return '<p class="meta" style="margin:0 2px">' + htmlText('account.transparency.noneheld') + '</p>';
   // The collector returns rows oldest first (insertion order); the page leads with the newest.
   const newest = records.slice(-TRANSPARENCY_SHOW_NEWEST).reverse();
   const rows = `<div class="group">${newest.map((r) => transparencyRecordRow(className, r, fields)).join('')}</div>`;
   if (records.length <= TRANSPARENCY_SHOW_NEWEST) return rows;
-  const rest = exportEnabled ? ` all ${records.length} are in <a href="/account/export">the download</a>.` : '';
+  const rest = exportEnabled ? ` ${htmlText('account.portal.all')} ${records.length} ${htmlText('account.portal.arein')} <a href="/account/export">${htmlText('account.portal.thedownload')}</a>.` : '';
   return `${rows}
-<p class="meta" style="margin:6px 2px 0">newest ${TRANSPARENCY_SHOW_NEWEST} of ${records.length} shown.${rest}</p>`;
+<p class="meta" style="margin:6px 2px 0">${htmlText('account.portal.newest')} ${TRANSPARENCY_SHOW_NEWEST} ${htmlText('account.portal.of')} ${records.length} ${htmlText('account.portal.shown')}${rest}</p>`;
 }
 
 function transparencyClassBlock(cls, exportEnabled) {
@@ -1844,15 +1852,15 @@ ${transparencyRecordList(cls.name, cls.records || [], cls.fields || {}, exportEn
 }
 
 function transparencyRelayBlock(relay) {
-  const label = '<h3 class="section-label">the relay\'s record for each of your journals</h3>';
+  const label = '<h3 class="section-label">' + htmlText('account.portal.therelaysrecordforeachofyourjournals') + '</h3>';
   if (!relay) return `${label}\n<p class="meta" style="margin:0 2px">${TRANSPARENCY_UNAVAILABLE}</p>`;
   const instances = relay.instances || [];
   const accounting = relay.accounting || [];
-  if (!instances.length && !accounting.length) return `${label}\n<p class="meta" style="margin:0 2px">none held.</p>`;
+  if (!instances.length && !accounting.length) return `${label}\n<p class="meta" style="margin:0 2px">${htmlText('account.transparency.noneheld')}</p>`;
   const rows = instances.map((i) => transparencyRecordRow('relay', i, Object.fromEntries(Object.keys(i).map((k) => [k, {}])))).join('')
     + accounting.map((a) => `<div class="row" style="cursor:default"><div class="body">
-  <div class="meta" style="margin:0">journal</div><div class="title" style="${TRANSPARENCY_MONO}">${esc(a.instance_id)}</div>
-  <div class="desc">the relay's record for your journal couldn't be loaded just now. reload to try again.</div>
+  <div class="meta" style="margin:0">${htmlText('account.portal.journal')}</div><div class="title" style="${TRANSPARENCY_MONO}">${esc(a.instance_id)}</div>
+  <div class="desc">${htmlText('account.transparency.relaysrecordforyourjournalcouldn')}</div>
 </div></div>`).join('');
   return `${label}\n<div class="group">${rows}</div>`;
 }
@@ -1875,17 +1883,17 @@ export function renderTransparencyRecords({ records, relay = null, smeOnSale = f
     if (group.relay) blocks.push(transparencyRelayBlock(relay));
     if (!blocks.length) return '';
     const link = group.href && (!group.hrefWhen || flags[group.hrefWhen])
-      ? ` · <a href="${escAttr(group.href)}" aria-label="manage ${escAttr(group.heading)}" style="${TRANSPARENCY_LINK_STYLE}">manage</a>` : '';
+      ? ` · <a href="${escAttr(group.href)}" aria-label="${attrText('account.transparency.manage3')} ${escAttr(group.heading)}" style="${TRANSPARENCY_LINK_STYLE}">${htmlText('account.transparency.manage3')}</a>` : '';
     return `<h2 style="margin-top:34px">${esc(group.heading)}${link}</h2>
 ${blocks.join('\n')}`;
   }).filter(Boolean);
   const others = [...byName.keys(), ...failed].filter((name) => !placed.has(name));
   if (others.length) {
-    sections.push(`<h2 style="margin-top:34px">other records</h2>
+    sections.push(`<h2 style="margin-top:34px">${htmlText('account.transparency.otherrecords')}</h2>
 ${others.map(block).join('\n')}`);
   }
-  sections.push(`<h2 style="margin-top:34px">support requests</h2>
-<p>your support requests are held by the support service, which sol pbc runs separately, and shown on <a href="/support" style="${TRANSPARENCY_LINK_STYLE}">your support page</a>.</p>`);
+  sections.push(`<h2 style="margin-top:34px">${htmlText('account.transparency.supportrequests')}</h2>
+<p>${htmlText('account.transparency.yoursupportrequestsareheldbythesupportservicew')} <a href="/support" style="${TRANSPARENCY_LINK_STYLE}">${htmlText('account.transparency.yoursupportpage')}</a>.</p>`);
   return sections.join('\n');
 }
 
@@ -1909,7 +1917,7 @@ export function renderDeletionForm({
   const errors = invalid.map((field) => ({ id: field.id, message: error }));
   const errorSummary = errors.length
     ? `<div class="error" role="alert" tabindex="-1" id="deletion-error-summary">
-  <h2>there is a problem</h2>
+  <h2>${htmlText('account.deletion.thereisproblem')}</h2>
   <ul>${errors.map((entry) => `<li><a href="#${escAttr(entry.id)}">${esc(entry.message)}</a></li>`).join('')}</ul>
 </div>`
     : '';
@@ -1944,71 +1952,71 @@ ${extra}
 // backup credential already issued for a running backup or restore, and a solstone.me token
 // already issued (it lasts up to 600 s). Operator approval of the tails, 2026-10-02. The line says
 // 15 minutes, the bound the services Terms (section 14) and the close notice state; 600 s sits inside it.
-export const CLOSE_TIMING_LINE = 'your services stop as soon as you confirm. a backup or restore already running can finish, and a solstone.me address can keep working for up to 15 minutes.';
+export const CLOSE_TIMING_LINE = t('account.portal.yourservicesstopassoonasyou');
 
 // What closing does to a paid subscription: before the subscription rules, and under them, where a
 // renewed annual year's whole months left are refunded and the cancel is "cancel contracts here".
-const CLOSE_PAID_LINE = "if you pay for a service, nothing renews while your sign-in is closing, and the subscription ends when the 72 hours are up, with no refund for the time left. to use what you've paid for, cancel in the billing portal instead.";
-const CLOSE_PAID_LINE_RULES = 'if you pay for a service, nothing renews while your sign-in is closing, and the subscription ends when the 72 hours are up. the time left isn\'t refunded, except the whole months left once an annual plan has renewed. instead, on the service\'s page, you can withdraw within your 14 days for a full refund, or cancel with "cancel contracts here" to use what you\'ve paid for.';
+const CLOSE_PAID_LINE = t('account.deletion.ifyoupayforservicenothingrenews');
+const CLOSE_PAID_LINE_RULES = t('account.deletion.ifyoupayforaservicenothingrenewswhileyoursigni');
 
 export function renderDeletionPage({ menu, error = '', status = '', rulesOn = false }) {
   return layout({
-    title: 'close your sign-in and services',
+    title: t('account.deletion.closeyoursigninandservices2'),
     mainClass: 'deletion-surface',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
-<a class="back" href="/transparency">${BACK_SVG} data transparency</a>
+<a class="back" href="/transparency">${BACK_SVG} ${htmlText('account.deletion.datatransparency2')}</a>
 ${renderDeletionForm({
-  heading: 'close your sign-in and services',
+  heading: t('account.deletion.closeyoursigninandservices2'),
   action: '/account/delete/proof/otp',
-  submitLabel: 'send a confirmation code',
+  submitLabel: t('account.deletion.sendconfirmationcode'),
   hidden: { purpose: 'delete' },
   error,
   status,
   statusId: 'deletion-request-status',
-  intro: 'this ends every service on your sign-in and closes it. sol pbc then deletes what it holds for your sign-in.',
+  intro: t('account.deletion.thisendseveryserviceonyoursign'),
 })}
-<p>the journal on your devices isn't touched, and neither is a backup in your own bucket.</p>
-<p>${esc(CLOSE_TIMING_LINE)} from the moment you confirm, you have 72 hours to change your mind.</p>
+<p>${htmlText('account.deletion.journalonyourdevicesisnttouched')}</p>
+<p>${esc(CLOSE_TIMING_LINE)} ${htmlText('account.deletion.fromthemomentyouconfirmyouhave72hourstochangey')}</p>
 <p class="notice">${esc(rulesOn ? CLOSE_PAID_LINE_RULES : CLOSE_PAID_LINE)}</p>
-<p class="notice">if sol pbc runs your encrypted backup, closing deletes the encrypted copy in its storage too, instead of keeping it for the 30 days after a subscription ends. if you've offloaded media into that copy, it's the only copy of that media, and it will be gone for good, so restore it to your devices before you confirm.</p>
-<p class="disclosure"><a href="https://solpbc.org/privacy#your-rights">what sol pbc deletes, and the few things that outlast it</a></p>`,
+<p class="notice">${htmlText('account.deletion.ifsolpbcrunsyourencryptedbackup')}</p>
+<p class="disclosure"><a href="https://solpbc.org/privacy#your-rights">${htmlText('account.deletion.whatsolpbcdeletesandfewthings')}</a></p>`,
   });
 }
 
 export function renderDeletionProofPage({ menu, purpose, error = '', status = '' }) {
   const action = purpose === 'cancel' ? '/account/delete/cancel' : '/account/delete/confirm';
-  const actionLabel = purpose === 'cancel' ? 'keep my sign-in' : 'close my sign-in';
+  const actionLabel = purpose === 'cancel' ? t('account.deletion.keepmysignin') : t('account.deletion.closemysignin');
   return layout({
-    title: "confirm it's you",
+    title: t('account.deletion.confirmitsyou'),
     mainClass: 'deletion-surface',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
-<a class="back" href="/account/delete">${BACK_SVG} back</a>
+<a class="back" href="/account/delete">${BACK_SVG} ${htmlText('account.deletion.back')}</a>
 ${renderDeletionForm({
-  heading: "confirm it's you",
+  heading: t('account.deletion.confirmitsyou'),
   action: '/account/delete/proof/otp/verify',
-  submitLabel: 'verify code',
+  submitLabel: t('account.deletion.verifycode'),
   hidden: { purpose },
   error,
   status,
   statusId: 'deletion-otp-status',
-  intro: 'enter the code we just emailed you.',
+  intro: t('account.deletion.entercodewejustemailedyou'),
   fields: [{
-    id: 'deletion-otp-code', name: 'code', label: '6-digit code',
-    hint: 'the code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
+    id: 'deletion-otp-code', name: 'code', label: t('account.deletion.n6digitcode2'),
+    hint: t('account.deletion.codeexpiresin10minutes'), type: 'text', inputmode: 'numeric',
     autocomplete: 'one-time-code', pattern: '[0-9]*',
   }],
 })}
 ${renderDeletionForm({
-  heading: 'confirm with your passkey',
+  heading: t('account.deletion.confirmwithyourpasskey'),
   action,
   submitLabel: actionLabel,
   hidden: { purpose },
   status: '',
   statusId: 'deletion-passkey-status',
-  intro: 'if you set up a passkey, confirm with it too.',
-  extra: `<button class="btn secondary" type="button" data-deletion-passkey data-purpose="${escAttr(purpose)}">use your passkey</button>`,
+  intro: t('account.deletion.ifyousetuppasskeyconfirmwith'),
+  extra: `<button class="btn secondary" type="button" data-deletion-passkey data-purpose="${escAttr(purpose)}">${htmlText('account.deletion.useyourpasskey')}</button>`,
 })}
 ${deletionPasskeyScript()}`,
   });
@@ -2016,123 +2024,123 @@ ${deletionPasskeyScript()}`,
 
 export function renderExportPage({ menu, error = '', status = '' }) {
   const back = menu?.deletion
-    ? `<a class="back" href="/account/delete">${BACK_SVG} closing your sign-in</a>`
-    : `<a class="back" href="/transparency">${BACK_SVG} data transparency</a>`;
+    ? `<a class="back" href="/account/delete">${BACK_SVG} ${htmlText('account.deletion.closingyoursignin2')}</a>`
+    : `<a class="back" href="/transparency">${BACK_SVG} ${htmlText('account.deletion.datatransparency2')}</a>`;
   return layout({
-    title: 'download what sol pbc holds',
+    title: t('account.deletion.downloadwhatsolpbcholds'),
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 ${back}
 ${renderDeletionForm({
-  heading: 'download what sol pbc holds',
+  heading: t('account.deletion.downloadwhatsolpbcholds'),
   action: '/account/export/proof/otp',
-  submitLabel: 'send a confirmation code',
+  submitLabel: t('account.deletion.sendconfirmationcode'),
   error,
   status,
   statusId: 'export-request-status',
-  intro: "confirm it's you first. if a service section can't be reached, the file will mark that section incomplete.",
+  intro: t('account.portal.confirmitsyoufirstifservice'),
 })}`,
   });
 }
 
 export function renderExportProofPage({ menu, error = '', status = '' }) {
   return layout({
-    title: 'confirm your download',
+    title: t('account.portal.confirmyourdownload'),
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
-<a class="back" href="/account/export">${BACK_SVG} download what sol pbc holds</a>
+<a class="back" href="/account/export">${BACK_SVG} ${htmlText('account.deletion.downloadwhatsolpbcholds')}</a>
 ${renderDeletionForm({
-  heading: 'confirm your download',
+  heading: t('account.portal.confirmyourdownload'),
   action: '/account/export/proof/otp/verify',
-  submitLabel: 'verify code',
+  submitLabel: t('account.deletion.verifycode'),
   error,
   status,
   statusId: 'export-otp-status',
-  intro: 'enter the code sent to your verified email address.',
+  intro: t('account.portal.entercodesentyourverifiedemailaddress'),
   fields: [{
-    id: 'export-otp-code', name: 'code', label: '6-digit code',
-    hint: 'the code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
+    id: 'export-otp-code', name: 'code', label: t('account.deletion.n6digitcode2'),
+    hint: t('account.deletion.codeexpiresin10minutes'), type: 'text', inputmode: 'numeric',
     autocomplete: 'one-time-code', pattern: '[0-9]*',
   }],
 })}
 ${renderDeletionForm({
-  heading: 'passkey verification',
+  heading: t('account.portal.passkeyverification'),
   action: '/account/export',
-  submitLabel: 'download the file',
+  submitLabel: t('account.portal.downloadfile'),
   status: '',
   statusId: 'export-passkey-status',
-  intro: 'if you have an active passkey, you must also verify it before continuing.',
-  extra: '<button class="btn secondary" type="button" data-export-passkey>verify with passkey</button>',
+  intro: t('account.portal.ifyouhaveanactivepasskeyyou'),
+  extra: '<button class="btn secondary" type="button" data-export-passkey>' + htmlText('account.portal.verifywithpasskey') + '</button>',
 })}
 ${exportPasskeyScript()}`,
   });
 }
 
-export const DELETION_EXPORT_PROMPT_LINK = 'download what sol pbc holds before your sign-in closes';
+export const DELETION_EXPORT_PROMPT_LINK = t('account.portal.downloadwhatsolpbcholdsbeforeyour');
 
 export function renderDeletionCancelPage({ menu, phase, exportEnabled = false, deadline = '' }) {
   if (phase === 'purging') {
     return layout({
-      title: 'closing your sign-in',
+      title: t('account.deletion.closingyoursignin2'),
       mainClass: 'deletion-surface',
       deletionActive: Boolean(menu?.deletion),
-      body: `${topbar(menu)}<h1>closing your sign-in</h1><p>${esc(DELETION_PAST_DEADLINE_LINE)}</p>`,
+      body: `${topbar(menu)}<h1>${htmlText('account.deletion.closingyoursignin2')}</h1><p>${esc(DELETION_PAST_DEADLINE_LINE)}</p>`,
     });
   }
   const exportLink = exportEnabled
     ? `<p><a href="/account/export">${esc(DELETION_EXPORT_PROMPT_LINK)}</a></p>`
     : '';
   return layout({
-    title: 'keep your sign-in',
+    title: t('account.deletion.keepyoursignin'),
     mainClass: 'deletion-surface',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 ${renderDeletionForm({
-  heading: 'keep your sign-in',
+  heading: t('account.deletion.keepyoursignin'),
   action: '/account/delete/proof/otp',
-  submitLabel: 'send a code',
+  submitLabel: t('account.deletion.sendcode'),
   hidden: { purpose: 'cancel' },
-  intro: "to keep your sign-in, confirm it's you with a fresh code, and your passkey if you set one up.",
-  extra: '<p class="notice">if a subscription was due to renew while your sign-in was closing, keeping your sign-in charges that renewal now, and its new period starts today.</p>',
+  intro: t('account.deletion.keepyoursigninconfirmits'),
+  extra: '<p class="notice">' + htmlText('account.deletion.ifsubscriptionwasduerenewwhileyour') + '</p>',
   statusId: 'deletion-cancel-status',
 })}${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${exportLink}`,
   });
 }
 
-export const DELETION_STATUS_SIGN_IN_LINE = 'to keep it, sign in again, then confirm with a fresh code, and your passkey if you set one up.';
-export const DELETION_STATUS_SIGN_IN_LINK = 'sign in to keep it';
-export const DELETION_PAST_DEADLINE_LINE = "the 72 hours are up, so this can't be stopped now. sol pbc is deleting what it held for your sign-in.";
+export const DELETION_STATUS_SIGN_IN_LINE = t('account.portal.keepitsigninagainthenconfirm');
+export const DELETION_STATUS_SIGN_IN_LINK = t('account.portal.signinkeepit');
+export const DELETION_PAST_DEADLINE_LINE = t('account.portal.n72hoursareupsothiscan');
 
 // canSignInToCancel: the hold is still cancellable but this viewer holds only the
 // receipt (or a session that cannot cancel). A fresh sign-in during the hold lands
 // on /account/delete, where cancelling asks for its own fresh proof.
 export function deletionDeadlineLine(deadline) {
-  return `your sign-in closes at ${deadline}. until then, you can change your mind.`;
+  return t('account.deletion.yoursigninclosesatuntilthenyoucanchangeyourmin', { deadline });
 }
 
-export function renderDeletionStatus({ state = "we can't show where this stands right now.", canCancel = false, canSignInToCancel = false, deadline = '' } = {}) {
+export function renderDeletionStatus({ state = t('account.deletion.wecantshowwherethisstands'), canCancel = false, canSignInToCancel = false, deadline = '' } = {}) {
   const action = canCancel
-    ? '<p><a class="btn primary" href="/account/delete">keep my sign-in</a></p>'
+    ? '<p><a class="btn primary" href="/account/delete">' + htmlText('account.deletion.keepmysignin') + '</a></p>'
     : canSignInToCancel
       ? `<p>${esc(DELETION_STATUS_SIGN_IN_LINE)}</p><p><a class="btn primary" href="/?signin">${esc(DELETION_STATUS_SIGN_IN_LINK)}</a></p>`
       : '';
   return layout({
-    title: 'your sign-in',
-    body: `<div class="card">${brandbar()}<h1>your sign-in</h1><p aria-live="polite">${esc(state)}</p>${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${action}</div>`,
+    title: t('account.deletion.yoursignin2'),
+    body: `<div class="card">${brandbar()}<h1>${htmlText('account.deletion.yoursignin2')}</h1><p aria-live="polite">${esc(state)}</p>${deadline ? `<p>${esc(deletionDeadlineLine(deadline))}</p>` : ''}${action}</div>`,
     showFooter: false,
   });
 }
 
 export function renderDeletionUnavailablePage({ menu } = {}) {
   return layout({
-    title: "your request can't be confirmed right now",
+    title: t('account.deletion.yourrequestcantbeconfirmedright'),
     mainClass: 'deletion-surface',
     deletionActive: Boolean(menu?.deletion),
     body: `${topbar(menu)}
 <div class="card">
-  <h1>your request can't be confirmed right now</h1>
-  <p class="lead">please try again later.</p>
-  <p><a class="btn primary" href="/account/delete">back</a></p>
+  <h1>${htmlText('account.deletion.yourrequestcantbeconfirmedright')}</h1>
+  <p class="lead">${htmlText('account.deletion.pleasetryagainlater')}</p>
+  <p><a class="btn primary" href="/account/delete">${htmlText('account.deletion.back')}</a></p>
 </div>`,
   });
 }
@@ -2154,7 +2162,7 @@ document.querySelectorAll('[data-deletion-passkey]').forEach((button) => button.
     const response = {id:credential.id,rawId:b64(credential.rawId),type:credential.type,response:{clientDataJSON:b64(credential.response.clientDataJSON),authenticatorData:b64(credential.response.authenticatorData),signature:b64(credential.response.signature),userHandle:credential.response.userHandle ? b64(credential.response.userHandle) : null},clientExtensionResults:credential.getClientExtensionResults()};
     const finish = await fetch('/account/delete/proof/passkey/finish', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:JSON.stringify({purpose,response})});
     if (!finish.ok) throw new Error('finish');
-    status.textContent = 'passkey verified';
+    status.textContent = ${scriptText('account.portal.passkeyverified', "'")};
   } catch (_) { window.location.reload(); }
 }));
 </script>`;
@@ -2176,7 +2184,7 @@ document.querySelectorAll('[data-export-passkey]').forEach((button) => button.ad
     const response = {id:credential.id,rawId:b64(credential.rawId),type:credential.type,response:{clientDataJSON:b64(credential.response.clientDataJSON),authenticatorData:b64(credential.response.authenticatorData),signature:b64(credential.response.signature),userHandle:credential.response.userHandle ? b64(credential.response.userHandle) : null},clientExtensionResults:credential.getClientExtensionResults()};
     const finish = await fetch('/account/export/proof/passkey/finish', {method:'POST',headers:{'Content-Type':'application/json','Origin':location.origin},body:JSON.stringify({response})});
     if (!finish.ok) throw new Error('finish');
-    status.textContent = 'passkey proof verified';
+    status.textContent = ${scriptText('account.portal.passkeyproofverified', "'")};
   } catch (_) { window.location.reload(); }
 }));
 </script>`;
@@ -2188,33 +2196,33 @@ document.querySelectorAll('[data-export-passkey]').forEach((button) => button.ad
 // passkey script both know where to send the owner back once fresh.
 export function renderCredentialChangeProofPage({ menu, next = '/sign-in', error = '', status = '' }) {
   return layout({
-    title: "confirm it's you",
+    title: t('account.portal.confirmitsyou'),
     body: `${topbar(menu)}
-<a class="back" href="${escAttr(next)}">${BACK_SVG} back</a>
+<a class="back" href="${escAttr(next)}">${BACK_SVG} ${htmlText('account.portal.back')}</a>
 ${renderDeletionForm({
-  heading: "confirm it's you",
+  heading: t('account.portal.confirmitsyou'),
   action: '/account/credential-change/proof/otp/verify',
-  submitLabel: 'verify code',
+  submitLabel: t('account.portal.verifycode'),
   hidden: { next },
   error,
   status,
   statusId: 'credential-change-otp-status',
-  intro: 'this change needs a fresh code. enter the code sent to your verified email address.',
+  intro: t('account.portal.thischangeneedsfreshcodeentercode'),
   fields: [{
-    id: 'credential-change-otp-code', name: 'code', label: '6-digit code',
-    hint: 'the code expires in 10 minutes.', type: 'text', inputmode: 'numeric',
+    id: 'credential-change-otp-code', name: 'code', label: t('account.portal.n6digitcode'),
+    hint: t('account.portal.thecodeexpiresin10minutes'), type: 'text', inputmode: 'numeric',
     autocomplete: 'one-time-code', pattern: '[0-9]*',
   }],
 })}
 ${renderDeletionForm({
-  heading: 'passkey verification',
+  heading: t('account.portal.passkeyverification2'),
   action: next,
   method: 'get',
-  submitLabel: 'continue',
+  submitLabel: t('account.portal.continue'),
   status: '',
   statusId: 'credential-change-passkey-status',
-  intro: 'if you have an active passkey, you must also verify it before continuing.',
-  extra: `<button class="btn secondary" type="button" data-credential-change-passkey data-next="${escAttr(next)}">verify with passkey</button>`,
+  intro: t('account.portal.ifyouhaveanactivepasskeyyoumustalsoverifyitbef'),
+  extra: `<button class="btn secondary" type="button" data-credential-change-passkey data-next="${escAttr(next)}">${htmlText('account.portal.verifywithpasskey2')}</button>`,
 })}
 ${credentialChangePasskeyScript()}`,
   });
@@ -2239,7 +2247,7 @@ document.querySelectorAll('[data-credential-change-passkey]').forEach((button) =
     const finishBody = await finish.json();
     if (!finish.ok) throw new Error('finish');
     if (finishBody.ready) { window.location.href = next; return; }
-    status.textContent = 'passkey verified. check your email for a code too.';
+    status.textContent = ${scriptText('account.portal.passkeyverifiedcheckyouremailforacodetoo', "'")};
   } catch (_) { window.location.reload(); }
 }));
 </script>`;
@@ -2249,7 +2257,7 @@ export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
   const hasOtherSessions = rows.some((row) => row.id_hash !== currentIdHash);
   const revokeOthers = hasOtherSessions
     ? `<div class="btn-row" style="margin-top:16px"><form method="post" action="/sign-in/sessions/revoke-others">
-  <button class="btn danger" type="submit" onclick="return confirm('sign out every other device?')">sign out every other device</button>
+  <button class="btn danger" type="submit" onclick="return confirm('sign out every other device?')">${htmlText('account.signin.signouteveryotherdevice')}</button>
 </form></div>`
     : '';
   const rowHtml = rows.map((row) => {
@@ -2257,21 +2265,21 @@ export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
     const action = `/sign-in/sessions/${escAttr(row.id_hash)}/revoke`;
     const revoke = isCurrent
       ? ''
-      : `<div class="trail"><form method="post" action="${action}"><button class="btn danger" type="submit">sign out</button></form></div>`;
+      : `<div class="trail"><form method="post" action="${action}"><button class="btn danger" type="submit">${htmlText('account.signin.signout')}</button></form></div>`;
     return `<div class="row" style="cursor:default">
   <div class="body">
-    <div class="title">${esc(row.deviceLabel)}${isCurrent ? ' <span class="pill on" style="margin-left:4px"><span class="dot"></span>current device</span>' : ''}</div>
-    <div class="desc">${esc(row.ipLabel)} · last active ${esc(formatRelativeTime(row.last_active_at, now))} · signed in ${esc(formatRelativeTime(row.created_at, now))}</div>
+    <div class="title">${esc(row.deviceLabel)}${isCurrent ? ' <span class="pill on" style="margin-left:4px"><span class="dot"></span>' + htmlText('account.signin.currentdevice') + '</span>' : ''}</div>
+    <div class="desc">${esc(row.ipLabel)} ${htmlText('account.portal.lastactive')} ${esc(formatRelativeTime(row.last_active_at, now))} ${htmlText('account.portal.signedin')} ${esc(formatRelativeTime(row.created_at, now))}</div>
   </div>
   ${revoke}
 </div>`;
   }).join('');
   return layout({
-    title: 'sessions',
+    title: t('account.portal.sessions'),
     body: `${topbar(menu)}
-<a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
-<h1>sessions</h1>
-<p class="lead">the devices and phones currently signed in to manage your services. sign any of them out. the current one stays.</p>
+<a class="back" href="/sign-in">${BACK_SVG} ${htmlText('account.portal.yoursignin')}</a>
+<h1>${htmlText('account.portal.sessions')}</h1>
+<p class="lead">${htmlText('account.signin.devicesandphonescurrentlysignedinmanage')}</p>
 <div class="group">${rowHtml}</div>
 ${revokeOthers}`,
   });
@@ -2279,7 +2287,7 @@ ${revokeOthers}`,
 
 export function renderSignInPasskeys({ rows, enrollJsIncluded, menu }) {
   const emptyState = rows.length === 0
-    ? `<p class="empty">no passkeys enrolled. next time you sign in, you'll use an email code.</p>`
+    ? `<p class="empty">${htmlText('account.passkey.nopasskeysenrollednexttimeyousign')}</p>`
     : '';
   const rowHtml = rows.map((row) => {
     const renameAction = `/sign-in/passkeys/${escAttr(row.credential_id)}/rename`;
@@ -2290,30 +2298,30 @@ export function renderSignInPasskeys({ rows, enrollJsIncluded, menu }) {
     <div class="title">${esc(row.name)}</div>
     <div class="desc">${esc(row.addedText)} · ${esc(row.lastUsedText)}</div>
     <form method="post" action="${renameAction}" style="margin-top:12px">
-      <label for="friendly-name-${escAttr(row.credential_id)}">name</label>
+      <label for="friendly-name-${escAttr(row.credential_id)}">${htmlText('account.cancel.name')}</label>
       <input id="friendly-name-${escAttr(row.credential_id)}" name="friendly_name" value="${escAttr(row.friendlyNameInput)}" maxlength="64" autocomplete="off">
-      <div class="btn-row"><button class="btn secondary" type="submit">rename</button></div>
+      <div class="btn-row"><button class="btn secondary" type="submit">${htmlText('account.passkeys.rename')}</button></div>
     </form>
   </div>
   <div class="trail"><form method="post" action="${removeAction}">
-    <button class="btn danger" type="submit" onclick="return confirm('remove this passkey?')">remove</button>
+    <button class="btn danger" type="submit" onclick="return confirm('remove this passkey?')">${htmlText('account.passkeys.remove')}</button>
   </form></div>
 </div>`;
   }).join('');
   const groupHtml = rowHtml ? `<div class="group">${rowHtml}</div>` : '';
   return layout({
-    title: 'passkeys',
+    title: t('account.passkeys.passkeys'),
     body: `${topbar(menu)}
-<a class="back" href="/sign-in">${BACK_SVG} your sign-in</a>
-<h1>passkeys</h1>
-<p class="lead">how you sign in. you can have more than one, useful for backup, or for signing in from a second device.</p>
+<a class="back" href="/sign-in">${BACK_SVG} ${htmlText('account.passkeys.yoursignin')}</a>
+<h1>${htmlText('account.passkeys.passkeys')}</h1>
+<p class="lead">${htmlText('account.passkey.howyousigninyoucanhave')}</p>
 ${emptyState}
 ${groupHtml}
 <div class="card">
-  <h2>add a passkey</h2>
-  <label for="passkey-friendly-name">device name</label>
-  <input id="passkey-friendly-name" type="text" maxlength="64" placeholder="device name (optional)" autocomplete="off">
-  <div class="btn-row"><button id="passkey-add" class="btn primary" type="button">add a passkey</button></div>
+  <h2>${htmlText('account.passkeys.addapasskey')}</h2>
+  <label for="passkey-friendly-name">${htmlText('account.passkeys.devicename')}</label>
+  <input id="passkey-friendly-name" type="text" maxlength="64" placeholder="${attrText('account.passkeys.devicenameoptional')}" autocomplete="off">
+  <div class="btn-row"><button id="passkey-add" class="btn primary" type="button">${htmlText('account.passkeys.addapasskey')}</button></div>
   <div id="passkey-enroll-error" class="error" hidden></div>
   </div>`,
     afterMain: enrollJsIncluded ? `<script>${ENROLL_JS}</script>` : '',
@@ -2330,27 +2338,27 @@ export function renderServicesScout({ application, nowMs, flash = {}, menu, sppO
   <a class="row" href="https://solstone.app/releases">
     ${IC_NEWS_SVG}
     <div class="body">
-      <div class="title">what's new in solstone ${EXT_SVG}</div>
-      <div class="desc">release notes: what's shipped and what's changing.</div>
+      <div class="title">${htmlText('account.services.whatsnewinsolstone')} ${EXT_SVG}</div>
+      <div class="desc">${htmlText('account.services.releasenoteswhatsshippedandwhat')}</div>
     </div>
     <div class="trail">${CHEVRON_SVG}</div>
   </a>
   <a class="row" href="/support">
     ${IC_SUPPORT_SVG}
     <div class="body">
-      <div class="title">share feedback</div>
-      <div class="desc">tell us what you're seeing, or report a problem.</div>
+      <div class="title">${htmlText('account.scout.sharefeedback')}</div>
+      <div class="desc">${htmlText('account.services.telluswhatyoureseeingor')}</div>
     </div>
     <div class="trail">${CHEVRON_SVG}</div>
   </a>
 </div>`;
   const page = ({ statusLine, lead, content = '' }) => layout({
-    title: 'scout',
+    title: t('account.scout.scout'),
     body: `${topbar(menu)}
-<a class="back" href="/">${BACK_SVG} your services</a>
+<a class="back" href="/">${BACK_SVG} ${htmlText('account.scout.yourservices')}</a>
 ${flashes}
 <div class="pagehead">
-  <h1>scout</h1>
+  <h1>${htmlText('account.scout.scout')}</h1>
   <p class="signed-in">${statusLine}</p>
 </div>
 <p class="lead">${lead}</p>
@@ -2360,52 +2368,52 @@ ${scoutLinks}`,
 
   if (application?.status === 'revoked') {
     return page({
-      statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>access has ended</span>',
-      lead: 'scout access for this sign-in has ended.',
+      statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.accesshasended') + '</span>',
+      lead: t('account.services.scoutaccessforthissigninhas'),
     });
   }
 
   if (application?.status === 'approved') {
     const ackForm = application.data_acked_at == null
       ? `<div class="card">
-  <h2>confirm the scout covenant</h2>
-  ${scoutApplyForm({ includeUseCase: false, buttonText: 'i understand' })}
+  <h2>${htmlText('account.services.confirmscoutcovenant')}</h2>
+  ${scoutApplyForm({ includeUseCase: false, buttonText: t('account.services.iunderstand') })}
 </div>`
       : '';
     return page({
-      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>approved</span> &nbsp;scout access is approved for this sign-in',
+      statusLine: '<span class="pill on" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.scout.approved') + '</span> ' + htmlText('account.scout.nbspscoutaccessisapprovedforthissignin') + '',
       lead: sppOnSale
-        ? "confidential processing is complimentary while you're an approved scout. turn it on from your journal."
-        : 'confidential processing is available to approved scouts. enable it from the journal.',
+        ? t('account.services.confidentialprocessingiscomplimentarywhileyoure')
+        : t('account.services.confidentialprocessingisavailableapprovedscoutsena2'),
       content: ackForm,
     });
   }
 
   if (application?.status === 'pending') {
     const pendingText = application.applied_at == null
-      ? 'pending'
-      : `pending, applied ${formatRelativeTime(application.applied_at, nowMs)}`;
+      ? t('account.scout.pending')
+      : t('account.scout.pendingapplied', { relativeTime: formatRelativeTime(application.applied_at, nowMs) });
     return page({
       statusLine: `<span class="pill off" style="vertical-align:middle"><span class="dot"></span>${esc(pendingText)}</span>`,
-      lead: 'your scout request is under review.',
+      lead: t('account.services.yourscoutrequestisunderreview'),
     });
   }
 
   return page({
-    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>not approved</span>',
+    statusLine: '<span class="pill off" style="vertical-align:middle"><span class="dot"></span>' + htmlText('account.services.notapproved') + '</span>',
     lead: sppOnSale
-      ? 'request scout access for this sign-in. approved scouts get confidential processing complimentary, and share feedback that helps shape solstone.'
-      : 'request scout access for this sign-in. approved scouts can enable confidential processing from the journal and share feedback that helps shape solstone.',
+      ? t('account.services.requestscoutaccessforthissignin2')
+      : t('account.services.requestscoutaccessforthissignin'),
     content: `<div class="card">
-  <h2>request access</h2>
-  ${scoutApplyForm({ includeUseCase: true, buttonText: 'apply' })}
+  <h2>${htmlText('account.services.requestaccess')}</h2>
+  ${scoutApplyForm({ includeUseCase: true, buttonText: t('account.scout.apply') })}
 </div>`,
   });
 }
 
 function scoutApplyForm({ includeUseCase, buttonText }) {
   const useCase = includeUseCase
-    ? `<label for="use-case">what would you like to use it for? (optional)</label>
+    ? `<label for="use-case">${htmlText('account.portal.whatwouldyoulikeuseitfor')}</label>
     <textarea id="use-case" name="use_case" maxlength="2000"></textarea>`
     : '';
   return `<form method="post" action="/scout/apply">
@@ -2426,16 +2434,16 @@ export function ackField(copy) {
 
 function scoutCovenantFields() {
   return `<p class="gd" style="margin:16px 0 12px">${SCOUT_PROGRAM_COVENANT}</p>
-    ${ackField('i understand')}`;
+    ${ackField(t('account.portal.iunderstand'))}`;
 }
 
 export function renderGoodbye() {
   return layout({
-    title: 'signed out',
+    title: t('account.signin.signedout'),
     body: `${brandbar()}
-<h1>signed out.</h1>
-<p class="lead">see you next time.</p>
-<a class="btn secondary" href="/">start over</a>`,
+<h1>${htmlText('account.signin.signedout2')}</h1>
+<p class="lead">${htmlText('account.signin.seeyounexttime')}</p>
+<a class="btn secondary" href="/">${htmlText('account.signin.startover')}</a>`,
   });
 }
 
@@ -2443,211 +2451,211 @@ export function renderGoodbye() {
 // (the region between the CANONICAL PUBLISHED TEXT delimiters). Regenerate and diff on any
 // source change; never hand-edit the body between `${brandbar()}` and the closing template literal.
 export function renderServicesTerms() {
-  const title = 'solstone services · terms';
+  const title = t('account.terms.solstoneservicesterms');
   return layout({
     title,
     body: `${brandbar()}
 <h1>${esc(title)}</h1>
-<p class="meta"><em>${esc(`Effective November 10, 2026 · sol pbc, a Colorado public benefit corporation`)}</em></p>
-<p>${esc(`These terms cover `)}<strong>${esc(`services.solstone.app`)}</strong>${esc(`, the place you sign in, and the `)}<strong>${esc(`solstone services`)}</strong>${esc(` sol pbc runs for you there: private network, encrypted backup, confidential processing, solstone.me, and the part of notifications sol pbc runs. They're between you and sol pbc. The short version comes first; the details follow.`)}</p>
-<p class="terms-box"><strong>${esc(`Paid services renew automatically. A subscription renews at the end of each month or year, at the plan's then-current price, until you cancel. To stop the next renewal, cancel before it renews; each reminder gives a date that is always in time. We email you twice before each annual renewal, and every six months on a monthly plan. Once an annual plan has renewed, you can also cancel at any time: it ends at the end of your current plan month, and we refund the whole months left (section 3).`)}</strong></p>
-<h2>${esc(`The short version`)}</h2>
+<p class="meta"><em>${esc(t('account.terms.effectivenovember102026solpbcacoloradopublicbe'))}</em></p>
+<p>${termsText('account.terms.thesetermscover1servicessolstoneapp2theplaceyo', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p class="terms-box"><strong>${esc(t('account.terms.paidservicesrenewautomaticallyasubscriptionren'))}</strong></p>
+<h2>${esc(t('account.terms.shortversion'))}</h2>
 <ul>
-  <li><strong>${esc(`Nothing here is required.`)}</strong>${esc(` The solstone software runs on devices you own, and your journal lives on one of them. Four services take money today: private network, encrypted backup, confidential processing, and solstone.me. Each has a way to do the same thing with sol pbc out of the path. Notifications to your phone are off until you turn them on. These terms cover your sign-in, the portal, and the parts sol pbc runs for you when you turn them on.`)}</li>
-  <li>${esc(`Your journal is always private, only yours, and `)}<strong>${esc(`nothing sol pbc runs reads a word of it except where a section below says so.`)}</strong>${esc(` Private network carries encrypted bytes it can't read. Encrypted backup holds encrypted blocks we have no key to. Of the services, solstone.me is the one that lets an agent you choose read from it, and that agent is never us: it gives your journal an address so that agent can read the part of it you allow, over a connection our relay passes along and cannot read. With confidential processing, our own model reads what you send, in the clear, only while it answers you, and verifiably keeps none of it; while it's on, your speech goes for transcription too, unless you turn that switch off. Each service's section says what sol pbc, and the provider whose hardware it runs on, can see.`)}</li>
-  <li><strong>${esc(`You can always turn a service off, and what sol pbc runs for you is nearly all that changes.`)}</strong>${esc(` Two things to know, and the first is the one exception: media you offload into encrypted backup lives only there, so letting backup go takes that media with it (section 12); and closing your sign-in ends a paid subscription and deletes the operated backup copy with it, with no 30 days (section 7). Apart from offloaded media, nothing on your devices changes.`)}</li>
-  <li><strong>${esc(`If you pay, it renews until you cancel, and canceling is as easy as subscribing.`)}</strong>${esc(` Turning a service off doesn't cancel its subscription. Using `)}<em>${esc(`cancel contracts here`)}</em>${esc(` does, and so does an email saying you cancel; inside your 14 days to withdraw, that email counts as a withdrawal (section 3). You keep what you paid for through the end of the period. Once an annual plan has renewed, a cancel ends it at the end of your current plan month, and we refund the whole months left. `)}<strong>${esc(`For 14 days after you buy a subscription, and for 14 days after each renewal of an annual plan, you can withdraw for a full refund, wherever you live`)}</strong>${esc(` (section 3). If we ever charge you by mistake, we refund it.`)}</li>
-  <li><strong>${esc(`If you stop paying for encrypted backup, we keep the encrypted copy for 30 days after your paid period or your access ends, then delete it for good.`)}</strong>${esc(` If you offloaded media into it, that copy is the only one.`)}</li>
-  <li><strong>${esc(`What we hold is small, named, and mostly yours to see, export, and delete, and you can close your whole sign-in yourself.`)}</strong>${esc(` The privacy policy lists all of it, service by service, and names the few things that outlast a deletion.`)}</li>
-  <li><strong>${esc(`We never sell, license, sublicense, or lease your data, and we never use it for targeted advertising or behavioral profiling.`)}</strong>${esc(` That isn't a policy. It's Article 8 of sol pbc's articles of incorporation, and it can't be amended without the founder's personal signature; after him, the language can only get stronger. You can read it at `)}<a href="https://solpbc.org/articles">${esc(`solpbc.org/articles`)}</a>${esc(`.`)}</li>
-  <li><strong>${esc(`If something goes wrong, whether the claim is about a service, the portal, your sign-in, or scout, the most we owe you is what you paid us for that service in the past year, or $100, whichever is more`)}</strong>${esc(`, except where the law says we can't limit it, and except for the covenants in section 6, our promise never to train a model on what you send us, section 13's promise that nothing you send is kept, and section 14's promise that we hold no readable record of what your agents asked, were shown, or were refused, none of which are capped at all. Encrypted backup has one rule of its own: keeping your copy available while you pay (or have it as a scout), and keeping it for the 30 days after, is on us; what was inside a lost copy, which we can't read or rebuild, is not, unless our own failure to keep it available is what lost it (section 12).`)}</li>
-  <li><strong>${esc(`If these terms change in a way that matters, we tell you first, and you can walk away.`)}</strong></li>
+  <li>${termsText('account.terms.n1nothinghereisrequired2thesolstonesoftwareruns', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.yourjournalisalwaysprivateonlyyoursand1nothing', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1youcanalwaysturnaserviceoffandwhatsolpbcrunsf', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1ifyoupayitrenewsuntilyoucancelandcancelingisa', ["<strong>", "</strong>", "<em>", "</em>", "<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1ifyoustoppayingforencryptedbackupwekeeptheenc', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1whatweholdissmallnamedandmostlyyourstoseeexpo', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1weneverselllicensesublicenseorleaseyourdataan', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/articles\">", "</a>"])}</li>
+  <li>${termsText('account.terms.n1ifsomethinggoeswrongwhethertheclaimisaboutase', ["<strong>", "</strong>"])}</li>
+  <li><strong>${esc(t('account.terms.ifthesetermschangeinwaythat'))}</strong></li>
 </ul>
-<h2>${esc(`How to read these terms`)}</h2>
-<p>${esc(`The short version is a summary. The sections below carry the specifics: how paying and canceling work, what each service handles and keeps, closing your sign-in and what outlasts it, and the legal limits. If the two ever seem to disagree, the detailed section governs; tell us at support@solstone.app and we'll fix the summary.`)}</p>
-<p>${esc(`Two other documents go with these terms. The `)}<strong>${esc(`privacy policy`)}</strong>${esc(` at `)}<a href="https://solpbc.org/privacy">${esc(`solpbc.org/privacy`)}</a>${esc(` is part of this agreement, and it is the one home for what sol pbc holds: what each service handles and keeps, who processes it, how long it lasts, how to see, export and delete it, and what outlasts a deletion. These terms are the one home for what each service does, and for paying, canceling, refunds and the legal limits. Where one document needs the other's facts it points there rather than repeating them. And when you turn on a service, the page you turn it on from tells you what that particular service does.`)}</p>
+<h2>${esc(t('account.terms.howreadtheseterms'))}</h2>
+<p>${esc(t('account.terms.shortversionissummarysectionsbelowcarry'))}</p>
+<p>${termsText('account.terms.twootherdocumentsgowiththesetermsthe1privacypo', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy\">", "</a>"])}</p>
 <hr>
-<h2>${esc(`Part one · what applies to everything`)}</h2>
-<h2>${esc(`1. Who these terms are between, and how you agree`)}</h2>
-<p>${esc(`These terms are a contract between you and `)}<strong>${esc(`sol pbc`)}</strong>${esc(`, a Colorado public benefit corporation. They cover:`)}</p>
+<h2>${esc(t('account.terms.partonewhatapplieseverything'))}</h2>
+<h2>${esc(t('account.terms.n1whothesetermsarebetweenand'))}</h2>
+<p>${termsText('account.terms.thesetermsareacontractbetweenyouand1solpbc2aco', ["<strong>", "</strong>"])}</p>
 <ul>
-  <li><strong>${esc(`services.solstone.app`)}</strong>${esc(`, the services portal, where you sign in to turn services on and off, see what we hold about you, and manage billing;`)}</li>
-  <li><strong>${esc(`The solstone services`)}</strong>${esc(` sol pbc runs for you: private network, the operated tier of encrypted backup, confidential processing, solstone.me, and the hop that carries notifications to an iphone (section 15). "Operated" means sol pbc runs that part; each service's section names a way to do the same thing with sol pbc out of the path, except that hop, which section 15 explains;`)}</li>
-  <li><strong>${esc(`The scout program.`)}</strong></li>
+  <li>${termsText('account.terms.n1servicessolstoneapp2theservicesportalwhereyou', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1thesolstoneservices2solpbcrunsforyouprivatene', ["<strong>", "</strong>"])}</li>
+  <li><strong>${esc(t('account.terms.scoutprogram'))}</strong></li>
 </ul>
-<p>${esc(`They don't cover the solstone software itself, which is open source under its own license, or anything you run on your own devices, your own network, or your own storage. We aren't in the path for any of that, and these terms don't reach it.`)}</p>
-<p>${esc(`You agree to these terms the first time you do any of these: sign in to services.solstone.app, turn on a service, or subscribe to one at checkout. Each of those pages says so and links here, so you can read them first. If you already have a sign-in, signing in, renewing, or keeping a service on is how you agree to this version; if you don't agree, turn the service off or cancel. Section 9 says what happens if you reject a later material change. If you're new and don't agree, don't sign in and don't turn anything on; solstone keeps working without us.`)}</p>
-<p>${esc(`You need to be at least 13 to sign in, and at least 18 (or the age of majority where you live) to subscribe to a paid service. Our services aren't directed to children under 13, and if we learn a sign-in belongs to someone under 13, we delete it.`)}</p>
-<h2>${esc(`2. Your sign-in`)}</h2>
+<p>${esc(t('account.terms.theydontcoversolstonesoftwareitself'))}</p>
+<p>${esc(t('account.terms.youagreethesetermsfirsttimeyou'))}</p>
+<p>${esc(t('account.terms.youneedbeatleast13sign'))}</p>
+<h2>${esc(t('account.terms.n2yoursignin'))}</h2>
 <ul>
-  <li><strong>${esc(`How it works.`)}</strong>${esc(` You sign in with your email (we send you a code) or with a passkey (a sign-in key your own device holds, so there's no password to make up or lose). A session lasts up to two weeks unless you sign out sooner, and you can end any session from the portal.`)}</li>
-  <li><strong>${esc(`What we hold for a sign-in.`)}</strong>${esc(` The privacy policy lists each record and how long it's kept (`)}<a href="https://solpbc.org/privacy#sign-in">${esc(`your sign-in`)}</a>${esc(`), and `)}<a href="https://services.solstone.app/transparency">${esc(`services.solstone.app/transparency`)}</a>${esc(` shows each kind of record your download carries except support requests, with your most recent records of each. If you open a support request, you can see your history at `)}<a href="https://services.solstone.app/support">${esc(`services.solstone.app/support`)}</a>${esc(`.`)}</li>
-  <li><strong>${esc(`It's yours to keep safe.`)}</strong>${esc(` A sign-in is for one person. Keep your passkeys and your email in your own hands: anyone who can read your email or use your passkey can sign in as you and manage your services. If you think that's happened, sign out everywhere from the portal and tell us. The privacy policy says when one of our operators can open a session on your sign-in, and how you see and end it.`)}</li>
-  <li><strong>${esc(`The solstone app has no sign-in of its own.`)}</strong>${esc(` The portal is where you sign in, and only to manage what sol pbc runs for you. Your journal and your devices work without it.`)}</li>
+  <li>${termsText('account.terms.n1howitworks2yousigninwithyouremailwesendyouaco', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1whatweholdforasignin2theprivacypolicylistseac', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#sign-in\">", "</a>", "<a href=\"https://services.solstone.app/transparency\">", "</a>", "<a href=\"https://services.solstone.app/support\">", "</a>"])}</li>
+  <li>${termsText('account.terms.n1itsyourstokeepsafe2asigninisforonepersonkeepy', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1thesolstoneapphasnosigninofitsown2theportalis', ["<strong>", "</strong>"])}</li>
 </ul>
-<h2>${esc(`3. Paying, renewing, and canceling`)}</h2>
-<p>${esc(`This section applies to any service you subscribe to: today, private network, the operated tier of encrypted backup, confidential processing, and solstone.me. Prices are in the services portal and at checkout. If you have two journals, that's two subscriptions.`)}</p>
+<h2>${esc(t('account.terms.n3payingrenewingandcanceling'))}</h2>
+<p>${esc(t('account.terms.thissectionappliesanyserviceyousubscribe'))}</p>
 <ul>
-  <li><strong>${esc(`Everything is shown before you pay.`)}</strong>${esc(` Each service has a flat price, tax included, per journal, not per device: one subscription covers one journal and every device you've paired with it (connected to it as one of yours). The price, the billing interval, that it renews automatically, and how to cancel are all shown to you at checkout, before we take any billing details, and you agree to it there before any charge. After you subscribe we send you a written confirmation you can keep, with those renewal terms, our cancellation policy, and how to cancel. Colorado's automatic renewal law requires each of these (C.R.S. § 6-1-732(2)). Checkout and that confirmation also tell you how to withdraw (below), and the confirmation carries the withdrawal form.`)}</li>
-  <li><strong>${esc(`Your subscription renews automatically`)}</strong>${esc(` at the end of each term, once a year on the annual plan or once a month on the monthly plan, at your plan's then-current price, using the payment method on file, `)}<strong>${esc(`until you cancel`)}</strong>${esc(`. Nothing renews while your sign-in is closing (section 7).`)}</li>
-  <li><strong>${esc(`A renewal is never a surprise.`)}</strong>${esc(` On an annual plan we email you twice before each renewal: 60 to 70 days before, and again 35 to 40 days before. Each is an email of its own, with the date to cancel by set out in a box. On a monthly plan we email you 25 to 28 days before the renewal at each six-month mark. Each says when it renews, what it will cost, what you paid last time, and how to cancel, and by when. Colorado's automatic renewal law (C.R.S. § 6-1-732(4)) and the laws of some other places require them.`)}</li>
-  <li><strong>${esc(`We tell you before a price changes.`)}</strong>${esc(` A price change is a material change (section 9): we notify you first, and it applies only from a renewal, so you can cancel before it does.`)}</li>
-  <li><strong>${esc(`Cancel anytime, with no more steps than it took to subscribe.`)}</strong>${esc(` Sign in at services.solstone.app and use `)}<em>${esc(`cancel contracts here`)}</em>${esc(`, on the service's page or at services.solstone.app/billing. Check what you're canceling and the day it ends, then press `)}<em>${esc(`cancel now`)}</em>${esc(`. We email you straight away with what you sent, when we received it, and the day your subscription ends. You can also email support@solstone.app saying you cancel, in any words, and we reply with the same record (inside your 14 days, the withdrawal record). Within your 14 days to withdraw (below), an email saying you cancel counts as a withdrawal, unless you tell us to keep the service running. No phone call, no retention maze. If you're canceling for a serious reason, such as something we did wrong, say so on the page and tell us why. You can also choose to end it that day, and we'll answer you about refunding the time you've paid for after it. The prorated mid-term exit in section 9 is the one you ask for by email only.`)}</li>
-  <li id="withdrawal"><strong>${esc(`You can withdraw within 14 days, for a full refund, wherever you live.`)}</strong>${esc(` Until the end of the 14th day after the day you buy a subscription, you can withdraw from it, even if you've already started using the service. On an annual plan you can withdraw again after each renewal, until the end of the 14th day after the day you pay for it. Use `)}<em>${esc(`withdraw from contract here`)}</em>${esc(` on that service's page or at services.solstone.app/billing, and confirm; or email support@solstone.app saying you withdraw, with or without the form below. A withdrawal you send within the 14 days counts, even if it reaches us later. Withdrawing ends the service that day, as if its paid period had ended, and each service's section says what that means for it. We refund everything you paid for that subscription, or after a renewal everything you paid for that renewal, within 14 days, the same way you paid. If you withdraw on the page, we email you a record of your withdrawal right away; if you email us, we reply to confirm it. A monthly renewal doesn't start a new 14 days. We start a service as soon as you pay, so the page you subscribe from asks you to confirm that's what you want; confirming doesn't change any of this. The laws of some places, including the EU and the UK, give you a right to withdraw too, and this doesn't take it away.`)}</li>
-  <li><strong>${esc(`When a cancel takes effect.`)}</strong>${esc(` On a monthly plan, and in the first year of an annual plan, the service keeps working until the end of the period you've already paid for, then stops. We don't prorate that period, and we don't claw back. Once an annual plan has renewed, a cancel ends the service at the end of your current plan month, or at the end of that year if you'd rather. We refund one twelfth of what you paid for that renewal for each whole month left after that, the same way you paid, within 14 days of your cancel. Your plan's months start on the renewal date's day of each month, or on a shorter month's last day, and each runs until the next one starts. A withdrawal within 14 days (above) refunds everything you paid for that purchase or renewal, and sections 7, 9 and 14 name the other times we refund unused time. For confidential processing, what a plan includes within a period is part of the plan terms shown at checkout (section 13).`)}</li>
-  <li><strong>${esc(`Nothing on your devices is lost when a service stops, with one exception.`)}</strong>${esc(` Your journal, your devices, and your device pairings are untouched. The exception is media you offloaded into encrypted backup, which lives only there. What happens to a copy or a credential sol pbc held is in that service's section, and if you've turned on media offload, section 12 is the one to read before you let backup lapse. Re-subscribe anytime to turn a service back on.`)}</li>
-  <li><strong>${esc(`Refunds.`)}</strong>${esc(` A withdrawal within 14 days refunds everything you paid for that subscription, or for that renewal (above). Apart from those, a cancel in a renewed year and one for a serious reason (above), we don't run refund math on a cancellation, because you keep the service through the end of what you paid for. If you're charged in error, whether a duplicate charge, a charge after you canceled, or a billing mistake, email support@solstone.app or use the billing portal (a page Stripe hosts for us, linked from your services) and `)}<strong>${esc(`we'll refund the incorrect amount`)}</strong>${esc(`. Nothing here affects any chargeback or refund right you have through your card issuer or under the law where you live.`)}</li>
+  <li>${termsText('account.terms.n1everythingisshownbeforeyoupay2eachservicehasa', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1yoursubscriptionrenewsautomatically2attheendo', ["<strong>", "</strong>", "<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1arenewalisneverasurprise2onanannualplanweemai', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1wetellyoubeforeapricechanges2apricechangeisam', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1cancelanytimewithnomorestepsthanittooktosubsc', ["<strong>", "</strong>", "<em>", "</em>", "<em>", "</em>"])}</li>
+  <li id="withdrawal">${termsText('account.terms.n1youcanwithdrawwithin14daysforafullrefundwhere', ["<strong>", "</strong>", "<em>", "</em>"])}</li>
+  <li>${termsText('account.terms.n1whenacanceltakeseffect2onamonthlyplanandinthe', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1nothingonyourdevicesislostwhenaservicestopswi', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1refunds2awithdrawalwithin14daysrefundseveryth', ["<strong>", "</strong>", "<strong>", "</strong>"])}</li>
 </ul>
-<p><strong>${esc(`Withdrawal form`)}</strong>${esc(` (fill this in and send it only if you want to withdraw):`)}</p>
-<p>${esc(`To: sol pbc, 16095 East 109th Place, Commerce City, CO 80022, United States · support@solstone.app`)}</p>
-<p>${esc(`I hereby give notice that I withdraw from my contract for the provision of the following service: ______`)}</p>
-<p>${esc(`Ordered on: ______`)}</p>
-<p>${esc(`Name: ______`)}</p>
-<p>${esc(`Address: ______`)}</p>
-<p>${esc(`Signature (only if you send this on paper): ______`)}</p>
-<p>${esc(`Date: ______`)}</p>
-<h2>${esc(`4. Payment is handled by Stripe`)}</h2>
+<p>${termsText('account.terms.n1withdrawalform2fillthisinandsenditonlyifyouwa', ["<strong>", "</strong>"])}</p>
+<p>${esc(t('account.terms.solpbc16095east109thplacecommerce'))}</p>
+<p>${esc(t('account.terms.iherebygivenoticethatiwithdraw'))}</p>
+<p>${esc(t('account.terms.orderedon'))}</p>
+<p>${esc(t('account.terms.name'))}</p>
+<p>${esc(t('account.terms.address'))}</p>
+<p>${esc(t('account.terms.signatureonlyifyousendthison'))}</p>
+<p>${esc(t('account.terms.date'))}</p>
+<h2>${esc(t('account.terms.n4paymentishandledbystripe'))}</h2>
 <ul>
-  <li>${esc(`We don't take or store your card. Payments run through `)}<strong>${esc(`Stripe`)}</strong>${esc(`, our payment processor. Paying by card is your choice, and choosing it is what sends your card, the name on it and your billing address to Stripe, which handles them under its own `)}<a href="https://stripe.com/legal">${esc(`terms`)}</a>${esc(` and `)}<a href="https://stripe.com/privacy">${esc(`privacy policy`)}</a>${esc(`. Stripe may offer you its own Link wallet at our checkout; it's Stripe's product under Stripe's terms, it's optional, and using it changes nothing about what we keep.`)}</li>
-  <li>${esc(`What we send Stripe, what we keep from what it sends back, and what we can see at Stripe are in the privacy policy (`)}<a href="https://solpbc.org/privacy#billing">${esc(`billing`)}</a>${esc(`). `)}<strong>${esc(`We never send Stripe anything from your journal.`)}</strong></li>
-  <li>${esc(`Stripe runs the fraud and anti-money-laundering checks a payment company has to run; those are Stripe's checks, not ours, and we never direct Stripe to profile you. The privacy policy names the one other use Stripe's own terms allow (`)}<a href="https://solpbc.org/privacy#processors">${esc(`who processes data for us`)}</a>${esc(`).`)}</li>
+  <li>${termsText('account.terms.wedonttakeorstoreyourcardpaymentsrunthrough1st', ["<strong>", "</strong>", "<a href=\"https://stripe.com/legal\">", "</a>", "<a href=\"https://stripe.com/privacy\">", "</a>"])}</li>
+  <li>${termsText('account.terms.whatwesendstripewhatwekeepfromwhatitsendsbacka', ["<a href=\"https://solpbc.org/privacy#billing\">", "</a>", "<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.striperunsthefraudandantimoneylaunderingchecks', ["<a href=\"https://solpbc.org/privacy#processors\">", "</a>"])}</li>
 </ul>
-<h2>${esc(`5. Fair use`)}</h2>
-<p>${esc(`The services are for you, your own journal, and your own devices. Don't use them to attack, overload, or interfere with a service or anyone else's systems. Don't route other people's traffic or store other people's content through them, and don't use them at a scale that degrades a service for everyone else. Each service's section names anything specific to it.`)}</p>
-<p><strong>${esc(`What suspension can touch, and what it never can.`)}</strong>${esc(` Sustained abuse can suspend your access to a service. It can never suspend your journal, your devices, or any path of your own: those are yours and don't run through us. If we suspend access we tell you why and what it would take to restore it, and you can reply at support@solstone.app.`)}</p>
-<h2>${esc(`6. How your data is used, and the covenants behind it`)}</h2>
-<p><strong>${esc(`What a service handles to do its job`)}</strong>${esc(` is in its section in part two, and none of it is read by us except where a section says so in as many words. `)}<strong>${esc(`Your sign-in and billing details`)}</strong>${esc(` are used only to run your sign-in and your subscriptions, and to keep our books. None of it is ever sold, licensed, shared for anyone else's purposes, profiled, used for advertising, or used to train any model.`)}</p>
-<p><strong>${esc(`The covenants.`)}</strong>${esc(` Our articles of incorporation carry a `)}<strong>${esc(`Customer Privacy Covenant`)}</strong>${esc(` (Article 8) that legally binds the company, and these terms make its covenants promises to you under this agreement:`)}</p>
+<h2>${esc(t('account.terms.n5fairuse'))}</h2>
+<p>${esc(t('account.terms.servicesareforyouyourownjournal'))}</p>
+<p>${termsText('account.terms.n1whatsuspensioncantouchandwhatitnevercan2susta', ["<strong>", "</strong>"])}</p>
+<h2>${esc(t('account.terms.n6howyourdataisusedand'))}</h2>
+<p>${termsText('account.terms.n1whataservicehandlestodoitsjob2isinitssectioni', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1thecovenants2ourarticlesofincorporationcarrya', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
 <ul>
-  <li>${esc(`Never to sell, license, sublicense, or lease your data, in any form;`)}</li>
-  <li>${esc(`Never to use it for targeted advertising or behavioral profiling, and never to let anyone else do that on our behalf;`)}</li>
-  <li>${esc(`Never to hand it outside sol pbc except through the three narrow doors Article 8 allows: a service provider bound by written agreement to protections no weaker than these covenants, and only as far as strictly necessary to provide, maintain, secure, or support the service you asked for; your own specific and informed direction; or compulsion of law, which we resist;`)}</li>
-  <li>${esc(`And to carry all of this through any sale, merger, or change of control.`)}</li>
+  <li>${esc(t('account.terms.neverselllicensesublicenseorleaseyour'))}</li>
+  <li>${esc(t('account.terms.neveruseitfortargetedadvertisingor'))}</li>
+  <li>${esc(t('account.terms.neverhanditoutsidesolpbcexcept'))}</li>
+  <li>${esc(t('account.terms.andcarryallthisthroughanysale'))}</li>
 </ul>
-<p>${esc(`The privacy policy sets out each of these in full: its citation, the three doors, the conditions a successor must meet, and what Article 8 means by `)}<strong>${esc(`Customer Data`)}</strong>${esc(`, which is what these terms call your data (`)}<a href="https://solpbc.org/privacy#covenants">${esc(`what sol pbc will never do`)}</a>${esc(`). The articles are the authority, and you can read them at `)}<a href="https://solpbc.org/articles">${esc(`solpbc.org/articles`)}</a>${esc(`. These covenants can't be amended without the founder's personal written consent, and after he stops serving, the language can only get stronger, never weaker, except to the minimum a law strictly requires.`)}</p>
-<p><strong>${esc(`Who processes data for us.`)}</strong>${esc(` Cloudflare, Microsoft Azure and Stripe process data for these services, and Google runs the mailbox where mail to support@solstone.app lands. None of them is given a readable byte of your journal. The privacy policy names what each one handles and what it can see, and carries every change to that list (`)}<a href="https://solpbc.org/privacy#processors">${esc(`who processes data for us`)}</a>${esc(`).`)}</p>
-<h2>${esc(`7. How long we keep it, closing your sign-in, and your rights`)}</h2>
-<p><strong>${esc(`The privacy policy is the home for all of this, and it is part of this agreement`)}</strong>${esc(`: `)}<a href="https://solpbc.org/privacy#what-we-hold">${esc(`what we keep, service by service, and for how long`)}</a>${esc(`, and `)}<a href="https://solpbc.org/privacy#your-rights">${esc(`how to see it, download it, and delete it yourself, how long a deletion takes, what outlasts a deletion, and your privacy rights and how to appeal`)}</a>${esc(`. These terms don't repeat it. What belongs here is what closing your sign-in does to your services, to what you've paid for, and to the only copy of anything:`)}</p>
+<p>${termsText('account.terms.theprivacypolicysetsouteachoftheseinfullitscit', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#covenants\">", "</a>", "<a href=\"https://solpbc.org/articles\">", "</a>"])}</p>
+<p>${termsText('account.terms.n1whoprocessesdataforus2cloudflaremicrosoftazur', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#processors\">", "</a>"])}</p>
+<h2>${esc(t('account.terms.n7howlongwekeepitclosing'))}</h2>
+<p>${termsText('account.terms.n1theprivacypolicyisthehomeforallofthisanditisp', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#what-we-hold\">", "</a>", "<a href=\"https://solpbc.org/privacy#your-rights\">", "</a>"])}</p>
 <ul>
-  <li><strong>${esc(`It stops the services on your sign-in as soon as you confirm.`)}</strong>${esc(` None of them starts anything new for you from then on. What's already under way can finish, and three things can take a while: a backup or restore already running, a confidential processing connection that's already open (section 13), and a solstone.me address, which can keep working until the short-lived pass your journal already holds for it runs out (section 14).`)}</li>
-  <li><strong>${esc(`You have 72 hours to change your mind.`)}</strong>${esc(` Keep your sign-in before they're up, and your services come back on, as your subscriptions and scout access allow. Nothing renews while your sign-in is closing. If a subscription was due to renew in that time, keeping your sign-in charges that renewal then, and its new period starts that day. The time your services were stopped isn't refunded or added on.`)}</li>
-  <li><strong>${esc(`When the 72 hours are up, it ends your subscriptions.`)}</strong>${esc(` Every subscription on your sign-in ends. The unused period isn't refunded, except that a withdrawal within your 14 days refunds everything you paid for that subscription, or for that renewal, and once an annual plan has renewed we refund the whole months left, as a cancel would (section 3). If you'd rather use what you paid for, use `)}<em>${esc(`cancel contracts here`)}</em>${esc(` instead.`)}</li>
-  <li><strong>${esc(`After the 72 hours, sol pbc deletes the operated backup copy`)}</strong>${esc(`, with no 30-day lapse window. If you've turned on media offload, that copy is the only copy of that media, and it goes too, so restore that media to your devices before you confirm.`)}</li>
-  <li><strong>${esc(`Some things outlast it, and the privacy policy names them all`)}</strong>${esc(`: among them the no-name reservation of your solstone.me address and its public certificate records (section 14), and the services portal's request trace, until it expires. Where a service's section says its records are deleted with your sign-in, what the privacy policy says outlasts a deletion still applies.`)}</li>
-  <li><strong>${esc(`It never touches`)}</strong>${esc(` your journal on your devices, your devices themselves, or a bucket you control.`)}</li>
+  <li>${termsText('account.terms.n1itstopstheservicesonyoursigninassoonasyouconf', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1youhave72hourstochangeyourmind2keepyoursignin', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1whenthe72hoursareupitendsyoursubscriptions2ev', ["<strong>", "</strong>", "<em>", "</em>"])}</li>
+  <li>${termsText('account.terms.n1afterthe72hourssolpbcdeletestheoperatedbackup', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1somethingsoutlastitandtheprivacypolicynamesth', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1itnevertouches2yourjournalonyourdevicesyourde', ["<strong>", "</strong>"])}</li>
 </ul>
-<p>${esc(`You have the privacy rights your state or country gives you, and we extend them to everyone, wherever you live. Exercise any of them at support@solstone.app.`)}</p>
-<h2>${esc(`8. The services are provided as-is`)}</h2>
-<p>${esc(`We work to keep every service up, but we don't guarantee uninterrupted service. A service can go down for maintenance or for reasons outside our control, and your journal won't use confidential processing when it can't verify it. A path of your own is always your fallback, and your journal on your devices is never on the line.`)}</p>
-<p><strong>${esc(`To the fullest extent permitted by law, each service is provided "as is" and "as available," and sol pbc disclaims all implied warranties, including merchantability and fitness for a particular purpose. We are not liable for indirect, incidental, or consequential damages, and sol pbc's total liability to you under these terms, whatever the claim is about (a service, the portal, your sign-in, or the scout program), is limited to the greater of $100 or the fees you paid us in the 12 months before the claim for the service the claim is about.`)}</strong>${esc(` Nothing in these terms limits liability that cannot be limited by law, including for fraud, gross negligence, willful misconduct, or personal injury, or any statutory right you have as a consumer. That cap doesn't apply to the covenants in section 6, to our promise never to train a model on what you send us, to section 13's promise that nothing you send is kept, or to section 14's promise that we hold no readable record of what your agents asked, were shown, or were refused. The first isn't ours to cap by agreement; the rest we will not. Two services carry a specific limit of their own, stated in their sections: the operated backup, on what was inside a lost copy, and confidential processing, on what the model produces.`)}</p>
-<h2>${esc(`9. Changes to these terms`)}</h2>
-<p>${esc(`We may update these terms. If a change is material, we'll notify you before it takes effect, in a form you can keep, with how to cancel (C.R.S. § 6-1-732(3)). For a change that takes effect at your next renewal, you can cancel before then if you don't agree. If a material change has to take effect mid-term, the notice says how to cancel for a prorated refund of the unused period (today: write to support@solstone.app before the date). If you keep using a service after a change takes effect, that's how you accept it; if you don't want to, turn the service off or close your sign-in before then.`)}</p>
-<p>${esc(`When we add a service, we add its section here. If we ever retire a service you've paid for, we refund the time you paid for past the date it stops. If sol pbc ever winds down, Article 8 still governs where your data can go: anyone it goes to must take on covenants no less protective (section 6). We keep the current version posted here with the date it took effect.`)}</p>
-<p>${esc(`No change to these terms can weaken the covenants in section 6. Those change only the way Article 8 allows, and a change to a terms page isn't one of them.`)}</p>
-<h2>${esc(`10. The legal details`)}</h2>
+<p>${esc(t('account.terms.youhaveprivacyrightsyourstateor'))}</p>
+<h2>${esc(t('account.terms.n8servicesareprovidedasis'))}</h2>
+<p>${esc(t('account.terms.weworkkeepeveryserviceupbut'))}</p>
+<p>${termsText('account.terms.n1tothefullestextentpermittedbylaweachserviceis', ["<strong>", "</strong>"])}</p>
+<h2>${esc(t('account.terms.n9changestheseterms'))}</h2>
+<p>${esc(t('account.terms.wemayupdatethesetermsifchange'))}</p>
+<p>${esc(t('account.terms.whenweaddserviceweaddits'))}</p>
+<p>${esc(t('account.terms.nochangethesetermscanweakencovenants'))}</p>
+<h2>${esc(t('account.terms.n10legaldetails'))}</h2>
 <ul>
-  <li>${esc(`These terms are between you and `)}<strong>${esc(`sol pbc`)}</strong>${esc(`, a Colorado public benefit corporation, and they're governed by Colorado law. `)}<strong>${esc(`If you're a consumer, you also keep the protections of the law where you live that an agreement can't take away.`)}</strong></li>
-  <li>${esc(`These terms, the privacy policy, the disclosure you're shown when you turn on a service or a feature of one, the plan terms you're shown at checkout, and, if you're a scout, the program disclosure you acknowledged, are the whole agreement between us about the services. If these terms ever conflict with sol pbc's articles of incorporation, the articles govern.`)}</li>
-  <li>${esc(`When a section says we email you, we use the primary address on your sign-in; keep it current.`)}</li>
-  <li>${esc(`If a court finds part of these terms unenforceable, the rest still applies. If we don't enforce something once, we can still enforce it later. Sections 6, 7, 8, and 10, every refund promise in these terms (sections 3, 9, and 14, including a withdrawal within 14 days), the promises section 8 says aren't capped, what sections 11, 12, 13, and 14 say happens after a service stops, and the specific limits in sections 12 and 13, keep applying after a subscription or a sign-in ends, for as long as they're relevant.`)}</li>
-  <li>${esc(`We can hand these terms, or your data, to another company only in the way Article 8 allows (section 6).`)}</li>
-  <li><strong>${esc(`Your rights as a consumer.`)}</strong>${esc(` If a service isn't as described or doesn't work, the law where you live may give you rights about it: in the EU, the legal guarantee of conformity; in the UK, the Consumer Rights Act 2015. Nothing in these terms limits them.`)}</li>
-  <li><strong>${esc(`What the services work with.`)}</strong>${esc(` Each service works with the solstone software on your own devices, on the systems listed at solstone.app, and each section below says what the service does and anything it needs.`)}</li>
-  <li><strong>${esc(`Questions and complaints:`)}</strong>${esc(` support@solstone.app or +1 563 663 5487. An answer to a complaint says what we'll do about it.`)}</li>
-</ul>
-<hr>
-<h2>${esc(`Part two · each service, one at a time`)}</h2>
-<p>${esc(`Each section below covers one service sol pbc runs, and only the part sol pbc runs. For private network, encrypted backup, confidential processing, and solstone.me, the way to do the same thing with sol pbc out of the path is named first, because it's always there.`)}</p>
-<h2>${esc(`11. Private network (the relay)`)}</h2>
-<p><strong>${esc(`What it is.`)}</strong>${esc(` A relay sol pbc runs so your devices can reach your journal from anywhere, without you running a relay of your own.`)}</p>
-<p><strong>${esc(`You never have to pay us.`)}</strong>${esc(` The same private connection is always available for free. On the same network, your devices connect to your journal directly. Or point solstone at your own VPN, Tailscale, or tunnel. Or run the open-source relay yourself. All three are private by the same construction as the relay we run, because your devices encrypt to each other whatever path they take. `)}<strong>${esc(`The relay is convenience, never a privacy upgrade.`)}</strong></p>
-<p><strong>${esc(`Blind by construction.`)}</strong>${esc(` The relay passes encrypted bytes between your devices. It has no key to read them and keeps no copy of what flows through. We operate the relay and cannot read what it carries.`)}</p>
-<p><strong>${esc(`What the relay handles, and what we keep.`)}</strong>${esc(` To move your bytes, the relay and Cloudflare, whose network it runs on, necessarily handle connection metadata, and pairing a device issues that device a credential, which the device holds. `)}<strong>${esc(`The relay keeps no list of your devices`)}</strong>${esc(`, and no connection log of its own. What we keep is a record of your journal, and two access records at services.solstone.app. The privacy policy lists each one, what it holds, and how long (`)}<a href="https://solpbc.org/privacy#private-network">${esc(`private network`)}</a>${esc(`). The records we keep are Customer Data under our covenants, used only to operate and secure the relay, and deleted with your sign-in, apart from what section 7 says outlasts a deletion. `)}<strong>${esc(`The relay never reads, stores, or analyzes what's inside your traffic.`)}</strong>${esc(` Your traffic passes through and is gone.`)}</p>
-<p><strong>${esc(`When it stops.`)}</strong>${esc(` Cancel, or let it lapse, and the relay keeps working until your subscription ends (section 3), then stops. Withdraw within 14 days (section 3), and it stops that day. Closing your sign-in stops it as soon as you confirm (section 7). Your journal, your data, and your device pairings are untouched. The free paths keep working, and you're never locked out of your own journal by a billing state. Re-subscribe anytime.`)}</p>
-<h2>${esc(`12. Encrypted backup, operated tier`)}</h2>
-<p><strong>${esc(`What it is.`)}</strong>${esc(` Storage sol pbc runs so an encrypted copy of your journal can live somewhere other than your own machine, without you setting up a bucket (a bucket is what cloud storage calls a folder you rent).`)}</p>
-<p><strong>${esc(`You never have to pay us.`)}</strong>${esc(` Point solstone at your own bucket (Backblaze B2, Amazon S3, Cloudflare R2, any S3-compatible provider), pay that provider directly, and sol pbc is never contacted and never holds your data. The bring-your-own path and the operated tier use the `)}<strong>${esc(`same engine, the same encryption, and the same recovery model`)}</strong>${esc(`; the only difference is whose bucket the encrypted blocks land in. `)}<strong>${esc(`The operated tier is convenience, never a privacy upgrade.`)}</strong></p>
-<p><strong>${esc(`Encrypted by construction: only you can read it.`)}</strong>${esc(` Before anything leaves your device, solstone encrypts it, so the contents, the file names, and the folder structure all become unreadable ciphertext. We store those encrypted blocks and `)}<strong>${esc(`cannot read them`)}</strong>${esc(`: we hold no key, no password, and no way to decrypt your backup.`)}</p>
-<p><strong>${esc(`What the storage handles, and what we keep.`)}</strong>${esc(` The encrypted blocks; a small amount of operational information about them (how many, how much space, when they last changed); the connection metadata of your upload sessions, which the storage (Cloudflare R2) necessarily handles; and a few access and credential records at services.solstone.app. None of it says anything about your content. The privacy policy lists each record, what it holds, and how long (`)}<a href="https://solpbc.org/privacy#encrypted-backup">${esc(`encrypted backup`)}</a>${esc(`). The encrypted blocks and the records we keep are Customer Data under our covenants, used only to operate and secure the service, and deleted when your sign-in is, apart from what section 7 says outlasts a deletion.`)}</p>
-<p><strong>${esc(`Your recovery key is the only key.`)}</strong>${esc(` When you set up backup, solstone gave you a recovery key. A backup is restored only with it, and we don't have it. Keep it safe. If you lose it, the backup can't be restored, by you or by us.`)}</p>
-<p><strong>${esc(`A second copy, unless you choose otherwise.`)}</strong>${esc(` An encrypted backup is a second copy of a journal that lives on your own devices, not a substitute for it. There is one exception, and it's your choice: media offload is off unless you turn it on, and if you do, your journal removes media from your device once the backup holds it, and for that media the backup is the only copy. Everything in this section, including what happens after a lapse, applies to that media too. If we ever lost that copy, that media would be gone, and section 8's limit is what we'd owe you; so don't let the backup go while it holds the only copy of something you want.`)}</p>
-<p><strong>${esc(`After your subscription lapses, we keep your encrypted backup for 30 days, then delete it.`)}</strong>${esc(` Here is the sequence, whether you cancel, withdraw (section 3), a renewal payment fails, or your scout access ends:`)}</p>
-<ul>
-  <li>${esc(`The operated storage keeps running until your subscription ends (section 3), then stops. If a renewal payment fails, the clock below doesn't start until that period has ended. If your scout access ends, you withdraw under section 3, or you stop a service early under section 9, the storage stops that day and the clock starts then; once it has stopped, your journal can't read the backup until you subscribe.`)}</li>
-  <li>${esc(`Your encrypted blocks then stay in our storage for 30 days. Re-subscribe within those 30 days and the operated tier turns back on against your existing backup with nothing lost.`)}</li>
-  <li>${esc(`After 30 days the operated copy is permanently deleted, and because it's encrypted with a key only you hold, once it's deleted we cannot recover it. This only ever affects the copy in our storage.`)}</li>
-</ul>
-<p>${esc(`You can also delete the operated copy yourself, anytime, from the backup screen in your journal; and closing your sign-in deletes it (section 7), with no 30-day lapse window.`)}</p>
-<p><strong>${esc(`Fair use, specifically.`)}</strong>${esc(` The operated tier is for backing up your own journal. Don't use it to store or distribute anything else.`)}</p>
-<p><strong>${esc(`A limit specific to this service.`)}</strong>${esc(` The operated copy is encrypted with a key only you hold, so we can't read it, rebuild it, or put a value on what's in it, and for everything except media you offloaded it's a second copy of a journal that lives on your own devices. So `)}<strong>${esc(`sol pbc is not liable for any inability to restore a copy where you have lost your recovery key, or for what was inside a lost operated copy, except where our own failure to keep it available is what lost it. None of this limits our responsibility to keep your backup available while you're paying for it or have it as a scout, and to keep it for the 30 days after that this section promises`)}</strong>${esc(`, and if we fail at that, section 8 says the most we can owe you.`)}</p>
-<h2>${esc(`13. Confidential processing`)}</h2>
-<p><strong>${esc(`What it is.`)}</strong>${esc(` An AI model sol pbc runs on confidential GPU hardware, so your journal can think with more capacity (room to think faster and longer) than the device it lives on. It's off until you turn it on, and you can turn it off from the journal at any time.`)}</p>
-<p><strong>${esc(`You never have to pay us.`)}</strong>${esc(` This is capacity, not a gate. Your journal can always think without us: with a model on your own hardware, where nothing leaves your device and sol pbc is not in the path; with your own provider key, where the key stays in your journal and sol pbc is not in the path; or with any endpoint you run or trust. `)}<strong>${esc(`Confidential processing is never a privacy upgrade over running locally.`)}</strong>${esc(` If you stop using it, you lose capacity. You don't lose your journal and you don't lose your privacy.`)}</p>
-<p><strong>${esc(`A model sol pbc runs itself.`)}</strong>${esc(` Our own model weights, served by sol pbc, on confidential GPU hardware sol pbc operates. It's the same model generation your own device runs, with more room to run it: more capacity, never a better model. `)}<strong>${esc(`No third-party AI provider is in the path`)}</strong>${esc(`, and nothing you send is handed to one.`)}</p>
-<p><strong>${esc(`It's protected differently from our other three services.`)}</strong>${esc(` The private network relay and the solstone.me relay can't read what passes through them, and the operated backup holds blocks we have no key to. This one runs inside a `)}<strong>${esc(`confidential container`)}</strong>${esc(`: a machine whose hardware walls off what's in its memory from the company that hosts it. What you send is encrypted over the network and visible in running memory only while it's being processed: `)}<strong>${esc(`our own model reads what you send, in the clear, while it answers you.`)}</strong>${esc(` We can't promise "no key" here, so instead your journal checks a fingerprint of the exact image it booted before it sends anything.`)}</p>
-<p><strong>${esc(`Your journal checks before it sends.`)}</strong>${esc(` Before anything is sent, your journal verifies the hardware, and a fingerprint of the exact image it booted, against a fingerprint pinned in solstone's open source code. (In full: the AMD attestation chain up to AMD's own signing keys, the GPU's own evidence, the binding of that evidence to the encrypted connection, and the boot fingerprint.) The pin is public and version-controlled, and it ships in the same releases everything else does. `)}<strong>${esc(`We commit that sol pbc will not point you at different software without a release you can read.`)}</strong>${esc(` If the check fails, nothing is sent: your journal waits, tells you plainly that it couldn't verify, and never silently falls back to another service or another provider.`)}</p>
-<p><strong>${esc(`The hardware is Microsoft Azure's, and Azure can't see inside it.`)}</strong>${esc(` The container is an AMD SEV-SNP confidential virtual machine with an NVIDIA H100 in confidential-compute mode, and that boundary is enforced by the hardware, not by configuration or by promise. Microsoft hosts the machine, so it knows the machine exists, its size, and when it's running, and because the channel runs from your journal to that machine directly, Azure's network handles the connection: the address it came from, when, and how much moved. It is not a party to your content.`)}</p>
-<p><strong>${esc(`Speech.`)}</strong>${esc(` When the audio switch is on, your journal sends speech for transcription over the same verified channel. It's served with `)}<code>${esc(`parakeet-tdt-0.6b-v3`)}</code>${esc(`, created by NVIDIA and used under `)}<a href="https://creativecommons.org/licenses/by/4.0/">${esc(`CC BY 4.0`)}</a>${esc(`, the same model generation your own device runs. The switch is `)}<strong>${esc(`on by default`)}</strong>${esc(` whenever confidential processing is in use, and the page where you turn confidential processing on says so. Turn it off and speech becomes text on your own device instead, once any transcription already under way finishes.`)}</p>
-<p><strong>${esc(`Your use is metered, inside the container.`)}</strong>${esc(` The service keeps a count of how much confidential processing it has done for a journal, so it can manage capacity. Apart from being down or full for a moment like any service (section 8), it can slow you down or say no when your access has ended, or briefly under fair use, where a no is temporary and clears on its own. Your journal keeps thinking on its own either way. `)}<strong>${esc(`Being metered is not being suspended`)}</strong>${esc(`: a limit doesn't reach your journal, your local processing, or your own key or endpoint, and the other paths above are always there.`)}</p>
-<p><strong>${esc(`Access, and what your plan includes.`)}</strong>${esc(` Access is by subscription, or complimentary while you're an approved scout (section 16). When you subscribe, what your plan includes and what happens when you reach it, the price, the billing interval, and the automatic renewal are all shown to you before we take any billing details, and section 3 applies. If we add a limit to a plan you already have, section 9 applies to it as a material change. Reaching what your plan includes can slow your processing or make it wait its turn, but it never ends your access before the end of the period you paid for.`)}</p>
-<p><strong>${esc(`Turning it off.`)}</strong>${esc(` Turn it off from the journal, anytime, and it takes effect for anything your journal starts from then on; work already under way finishes where it started. That needs nothing from us and no billing portal. Turning it off stops new processing; it doesn't cancel a subscription, which you cancel with `)}<em>${esc(`cancel contracts here`)}</em>${esc(` as in section 3. Nothing is stranded, because none of what you sent was stored: your journal goes back to thinking on your own hardware, or with whatever key or endpoint you point it at. The audio switch is separate and works the same way.`)}</p>
-<p><strong>${esc(`When it stops.`)}</strong>${esc(` Cancel, or let it lapse, and confidential processing keeps working until your subscription ends (section 3), then stops. Withdraw within 14 days (section 3), and it stops that day. If you're a scout without a subscription and your scout access ends, it stops that day too. Closing your sign-in stops it as soon as you confirm (section 7). The service checks your access each time a connection opens, so a connection that's already open can keep working until it closes, which today takes up to forty minutes. You can subscribe anytime.`)}</p>
-<p><strong>${esc(`What we keep.`)}</strong>${esc(` Running this service involves a few different things, and we keep them apart:`)}</p>
-<ul>
-  <li><strong>${esc(`What you send the model.`)}</strong>${esc(` The text and images your journal needs a model to work through, plus your speech when the audio switch is on. Our model processes it and returns the result. `)}<strong>${esc(`The service keeps nothing: no content is kept once your request is answered, not even in logs. No human reviews it. It is never sold, licensed, shared for anyone else's purposes, profiled, or used for advertising.`)}</strong></li>
-  <li><strong>${esc(`Nothing you send is used to train anything.`)}</strong>${esc(` Not our models, not anyone else's. This is a commitment we make to you, and it's reinforced by the covenants in section 6.`)}</li>
-  <li><strong>${esc(`Access records, not content.`)}</strong>${esc(` To run the service and control who can use it, we keep three records about access: that you turned it on and acknowledged the disclosure, each time your journal was issued a credential or refused one, and the short-lived record the turn-on page leaves so your journal can collect its credential. None says how much you used, and none says anything about what you sent. The privacy policy lists what each one holds (`)}<a href="https://solpbc.org/privacy#confidential-processing">${esc(`confidential processing`)}</a>${esc(`). All of them are Customer Data under our covenants, and all of them are deleted when your sign-in is, apart from what section 7 says outlasts a deletion.`)}</li>
-  <li><strong>${esc(`Inside the container`)}</strong>${esc(`, the service keeps the count of how much confidential processing it has done for a journal, so it can manage capacity, and it notes that a channel was admitted or refused. That count is keyed to your credential, not to your sign-in, and neither it nor those notes record what you sent or where you connected from.`)}</li>
-  <li><strong>${esc(`We keep no connection metadata for this service`)}</strong>${esc(`, beyond the services portal's request trace, which for a credential check names no journal or sign-in. That's still a real difference from the private network and the operated backup. The privacy policy says what that trace holds, and what Azure's network and our providers' short-lived request logs still see.`)}</li>
-</ul>
-<p><strong>${esc(`What the model produces is not advice, and nobody checks it.`)}</strong>${esc(` A model can be confidently wrong. Don't rely on what it produces for medical, legal, financial, safety, or any other decision that matters, and check it before you act. As between you and sol pbc, `)}<strong>${esc(`what you send and what comes back are yours.`)}</strong>${esc(` You grant sol pbc a limited license to process what you send, for as long as it takes to answer, solely to run confidential processing and hand the result back to you, and for nothing else. We claim no ownership of either, and make no warranty that output is accurate, complete, current, or fit for any purpose.`)}</p>
-<p><strong>${esc(`Fair use, specifically.`)}</strong>${esc(` Confidential processing is for thinking with your own journal. Don't use it to generate or pursue things that are unlawful, that are meant to harm or harass someone, that impersonate a real person in order to deceive, or that attack the service or anyone else's systems.`)}</p>
-<h2>${esc(`14. solstone.me`)}</h2>
-<p><strong>${esc(`What it is.`)}</strong>${esc(` An address on the internet for your journal, so an agent you already use can read from it: Claude, Codex, goose, or anything else that speaks the Model Context Protocol. You turn it on, you connect an agent, and you choose what that agent may see. Your journal makes itself reachable from wherever it is, and enforces that choice on your own device. We run the solstone.me relay in between, so your agent can find your journal without you running anything of your own. It's off until you turn it on, and you can turn it off from the journal at any time.`)}</p>
-<p><strong>${esc(`You never have to pay us.`)}</strong>${esc(` Your journal doesn't need sol pbc to be reachable. A tunnel that only passes the bytes through works today with nothing of ours in the path, whether you rent one or run your own on a machine you control. One warning: `)}<strong>${esc(`some free tunnels decrypt your traffic in order to move it.`)}</strong>${esc(` Whoever runs one of those can read what your agent reads, and can reuse your agent's key to reach your journal as though they were your agent. Look for a tunnel that says it only passes the bytes through; if its documentation doesn't say, assume it ends the encryption. `)}<strong>${esc(`The solstone.me relay is convenience, never a privacy upgrade over a tunnel that only passes the bytes through.`)}</strong></p>
-<p><strong>${esc(`Blind by construction, and this relay holds no state about you.`)}</strong>${esc(` Your own machine holds the private key and ends the encryption, so the solstone.me relay has no key and cannot read a byte of what passes through it. It also keeps nothing: no database and no record of what passes through it. That is how it is built, not a policy we apply to it, and what it does write down about its own health says that something happened, never who it happened to. The machine it runs on is Microsoft Azure's, and Azure is not a party to your content.`)}</p>
-<p><strong>${esc(`Your journal's address, and the part of it that is permanent.`)}</strong>${esc(` When you turn this on, services.solstone.app mints an address for your journal: eight random characters with nothing of yours in them, followed by solstone.me. Your journal then requests a real certificate for that address itself, the same kind secure websites use, and its key never leaves your machine; that certificate is how your agent can tell it's really your journal at the other end. Issuing and renewing a certificate can be delayed, and there is a weekly ceiling on new certificates across everyone we serve, so turning on can land in a waiting state and a renewal can run late; the journal shows you which, and keeps trying. If an address never issues at all, write to support@solstone.app and we refund what you paid. `)}<strong>${esc(`One thing about that address is public, and stays that way.`)}</strong>${esc(` Like the certificates behind secure websites, each certificate your journal gets for your address is listed in public certificate logs that nobody can edit, and a new entry is added each time one is issued or renewed. An entry shows that the address exists. None says whose, though an agent you connect knows the address is yours, and so do we until your sign-in is deleted. It stays if you turn this off, cancel, or close your sign-in, and nobody can remove it, including us. The authority your journal asks for the certificate is today Let's Encrypt, and the privacy policy says the same (`)}<a href="https://solpbc.org/privacy#solstone-me">${esc(`solstone.me`)}</a>${esc(`).`)}</p>
-<p><strong>${esc(`Your address is never anyone else's.`)}</strong>${esc(` An address, once minted, is never issued to another journal. We keep the reservation that makes that true with no name, sign-in, or journal attached to it, which is why it can outlive your sign-in without saying anything about you (section 7). Turning the service off keeps your address, and turning it back on uses the same one, with no new certificate while the one you have is still good, so your agents go on working without being set up again. `)}<strong>${esc(`The same holds if you stop paying:`)}</strong>${esc(` your journal stops being reachable through the solstone.me relay when your subscription ends (section 3), your address stays reserved for you, and subscribing again brings back the same one. Minting you a second address would add permanent records for that address to those public logs and break every agent you'd connected, and it would take nothing back, because the records for the first address never go away.`)}</p>
-<p><strong>${esc(`What each agent may see is yours to set, and we're not in it.`)}</strong>${esc(` When you connect an agent you choose what it may read: your whole journal, or only the parts of it you choose, and which of transcripts, entities, and facets it may reach within that. Transcripts means what was said in your recordings and imports, never the audio or the screen frames themselves; entities means the people, places, and projects your journal knows, and what it has noted about them; facets means facet names and descriptions, and the activities, events, and summaries filed in them. "Your whole journal" keeps including what you add later, facets you make later included. A facet you choose grows with its contents, though a facet you make later isn't in that choice unless you add it. `)}<strong>${esc(`It reads; it can't add, change, or delete anything.`)}</strong>${esc(` You can narrow it or disconnect the agent whenever you like, and the change applies on that agent's next request, though what it already read stays with it; a request already in flight finishes under the old choice. It's your journal that checks, every time, not us. There are two ways to connect: pairing in your browser, or a key you create and paste in. `)}<strong>${esc(`A key is a bearer credential: anyone holding it can read what it may see until you revoke it`)}</strong>${esc(`, so keep it as you would a password, and revoke it from the journal if it gets out. `)}<strong>${esc(`We hold no readable record of what any agent asked your journal for, what it was shown, or what it was refused.`)}</strong>${esc(` Your journal keeps that record on your device, for you to read; it can have gaps, which it tells you about rather than hiding. We don't receive it in any form we can read, and we've built this so that it's never sent to us, except that if you use the operated backup, it's inside the encrypted copy of your journal, which we have no key to. Changing that would mean rebuilding the service, and we'd have to tell you first under section 9.`)}</p>
-<p><strong>${esc(`The agent is yours, and the company behind it isn't ours.`)}</strong>${esc(` The agents you connect are run by other companies, or by you. Connecting one means giving it your address, so whoever runs it knows where to find your journal, and can match it to the public certificate records above. And when you let it read your journal, what it reads goes to them, on their terms, and sol pbc is not a party to that and does not see it. These terms don't reach them and we make no promise about what they do, so which agent to trust is your call. The covenants in section 6 bind sol pbc. They don't bind a company you pointed your own journal at.`)}</p>
-<p><strong>${esc(`What this relay and our control plane handle, and what we keep.`)}</strong>${esc(` To carry your traffic, the solstone.me relay and the Azure network it runs on necessarily handle connection metadata. We see that, and never what was said, and the relay keeps no record of it. What we do keep is the link between your address and your journal, the record that you confirmed the turn-on screen, and the no-name reservation of the address. `)}<strong>${esc(`We keep no record of the passes your journal asks us for`)}</strong>${esc(`, beyond a trace of each request, which carries nothing that ties it to you and expires on its own. The privacy policy lists each record, what Cloudflare sees when your address is minted and looked up, how long anything lasts, and what sol pbc and Cloudflare, which control the solstone.me name, could do (`)}<a href="https://solpbc.org/privacy#solstone-me">${esc(`solstone.me`)}</a>${esc(`). All of it is Customer Data under our covenants, used only to operate and secure this service. The binding is deleted with your sign-in; what outlasts that is the no-name address reservation above, the public certificate records, and what section 7 says outlasts a deletion.`)}</p>
-<p><strong>${esc(`Turning it off, and how quickly that takes effect.`)}</strong>${esc(` Turn it off from the agents page in your journal, anytime. Your agents stop reaching it on their next request, because the check happens on your own device, not with us. Turning it off stops the solstone.me relay carrying your traffic; it doesn't cancel a subscription, which you cancel with `)}<em>${esc(`cancel contracts here`)}</em>${esc(` as in section 3.`)}</p>
-<p><strong>${esc(`A journal that isn't reachable is ordinary.`)}</strong>${esc(` Your journal lives on a machine that sleeps, travels, and loses wifi, so an agent will often find it unreachable, and should tell you so rather than hang. That isn't a failure of this service, and section 8 is the general position on availability.`)}</p>
-<p><strong>${esc(`Fair use, specifically.`)}</strong>${esc(` This is for your own agents reading your own journal. Don't use the address to run a service for other people, to route traffic that isn't yours, or to serve anything other than your journal.`)}</p>
-<p><strong>${esc(`When it stops.`)}</strong>${esc(` Cancel, or let it lapse, and the solstone.me relay keeps carrying your traffic until your subscription ends (section 3), then stops. Withdraw within 14 days (section 3), and it stops that day. Closing your sign-in stops it as soon as you confirm, though your address can keep working until the short-lived pass your journal holds runs out (section 7). Your address stays reserved throughout. Your journal, what's in it, what you've let each agent see, and your record of what they did are all on your devices and are untouched. Re-subscribe anytime. One thing on our side, in the cases where we are the one stopping it: because this relay keeps no state, a connection already open through it closes when the short-lived pass runs out rather than at the moment we stop you, which today takes up to fifteen minutes.`)}</p>
-<h2>${esc(`15. Notifications`)}</h2>
-<p><strong>${esc(`What it is.`)}</strong>${esc(` Notifications are built into the solstone app: free, turned on by you for each device, no sign-in needed. They give you a short heads-up on your devices when there's something worth a look.`)}</p>
-<p><strong>${esc(`On the device, and on your phone.`)}</strong>${esc(` A heads-up can be a local notification on the device that shows it, and that never leaves the device. Notifications from your journal can also reach your phone when you're away from home. Those are off until you turn them on, phone by phone, in the solstone app, and your journal locks each one to a key only that phone and your journal hold before it leaves your machine.`)}</p>
-<p><strong>${esc(`The hop, for iphone.`)}</strong>${esc(` Reaching an iphone needs a hop, because only an app's own developer can hand a notification to Apple's push service. We run that hop on Cloudflare's network. It takes the locked notification and your phone's push token, hands them to Apple with a fixed title and line, and keeps no record of them. Android doesn't use it: your journal sends straight to your phone's push service. The privacy policy says what each one sees (`)}<a href="https://solpbc.org/privacy#notifications">${esc(`notifications`)}</a>${esc(`).`)}</p>
-<p><strong>${esc(`Not a tracking surface.`)}</strong>${esc(` No analytics, no behavioral profiling, and no third party in the path but your phone's push service and, for iphone, Cloudflare, whose network our hop runs on. Notifications never become a way to watch you: the profiling half of that is Article 8, and the rest is a promise we make here.`)}</p>
-<p><strong>${esc(`Turning it off.`)}</strong>${esc(` Turn notifications off on any device, anytime, from the solstone app on that device. On a phone, that also takes it off your journal's list the next time the phone reaches your journal.`)}</p>
-<h2>${esc(`16. The scout program`)}</h2>
-<p>${esc(`Scout is sol pbc's tester program. If you apply and we approve you, you get complimentary access to the services that are open to scouts, and we ask for your feedback. Today those services are private network, the operated tier of encrypted backup, confidential processing, and solstone.me.`)}</p>
-<ul>
-  <li><strong>${esc(`Complimentary means complimentary.`)}</strong>${esc(` While you're an approved scout, you aren't charged for those services and sections 3 and 4 don't apply to them. Everything else does.`)}</li>
-  <li><strong>${esc(`It can end.`)}</strong>${esc(` Scout status is ours to grant and ours to end, and we can end it at any time as ordinary management of the program. Ending it doesn't close your sign-in: it ends the free access, and anything you pay for separately keeps running; you can always subscribe to a service you were getting as a scout. If encrypted backup was on for you as a scout, section 12's 30-day clock starts the day your access ends. Once your access has ended your journal can't read the backup until you subscribe, so if you offloaded media, subscribing within those 30 days is the way to keep it. If solstone.me was on for you as a scout, your journal stops being reachable through the solstone.me relay when your access ends, and your address stays reserved for you on the same terms as section 14 sets out.`)}</li>
-  <li><strong>${esc(`What we keep.`)}</strong>${esc(` Your application, your acknowledgment of the program disclosure, your status, and a history of status changes, used only to administer the program and deleted when your sign-in is. The privacy policy describes this record in full, and what outlasts a deletion (`)}<a href="https://solpbc.org/privacy#scout">${esc(`scout`)}</a>${esc(`).`)}</li>
+  <li>${termsText('account.terms.thesetermsarebetweenyouand1solpbc2acoloradopub', ["<strong>", "</strong>", "<strong>", "</strong>"])}</li>
+  <li>${esc(t('account.terms.thesetermsprivacypolicydisclosureyoure'))}</li>
+  <li>${esc(t('account.terms.whensectionsaysweemailyouwe'))}</li>
+  <li>${esc(t('account.terms.ifcourtfindspartthesetermsunenforceable'))}</li>
+  <li>${esc(t('account.terms.wecanhandthesetermsoryour'))}</li>
+  <li>${termsText('account.terms.n1yourrightsasaconsumer2ifaserviceisntasdescrib', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1whattheservicesworkwith2eachserviceworkswitht', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1questionsandcomplaints2supportsolstoneappor15', ["<strong>", "</strong>"])}</li>
 </ul>
 <hr>
-<p class="meta"><em>${esc(`These terms describe the services sol pbc runs and the covenants that bind them. The covenants come first.`)}</em></p>
+<h2>${esc(t('account.terms.parttwoeachserviceoneattime'))}</h2>
+<p>${esc(t('account.terms.eachsectionbelowcoversoneservicesol'))}</p>
+<h2>${esc(t('account.terms.n11privatenetworkrelay'))}</h2>
+<p>${termsText('account.terms.n1whatitis2arelaysolpbcrunssoyourdevicescanreac', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1youneverhavetopayus2thesameprivateconnectioni', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1blindbyconstruction2therelaypassesencryptedby', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1whattherelayhandlesandwhatwekeep2tomoveyourby', ["<strong>", "</strong>", "<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#private-network\">", "</a>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1whenitstops2cancelorletitlapseandtherelaykeep', ["<strong>", "</strong>"])}</p>
+<h2>${esc(t('account.terms.n12encryptedbackupoperatedtier'))}</h2>
+<p>${termsText('account.terms.n1whatitis2storagesolpbcrunssoanencryptedcopyof', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1youneverhavetopayus2pointsolstoneatyourownbuc', ["<strong>", "</strong>", "<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1encryptedbyconstructiononlyyoucanreadit2befor', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1whatthestoragehandlesandwhatwekeep2theencrypt', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#encrypted-backup\">", "</a>"])}</p>
+<p>${termsText('account.terms.n1yourrecoverykeyistheonlykey2whenyousetupbacku', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1asecondcopyunlessyouchooseotherwise2anencrypt', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1afteryoursubscriptionlapseswekeepyourencrypte', ["<strong>", "</strong>"])}</p>
+<ul>
+  <li>${esc(t('account.terms.theoperatedstoragekeepsrunninguntilyoursubscri'))}</li>
+  <li>${esc(t('account.terms.yourencryptedblocksthenstayinour'))}</li>
+  <li>${esc(t('account.terms.after30daysoperatedcopyispermanently'))}</li>
+</ul>
+<p>${esc(t('account.terms.youcanalsodeleteoperatedcopyyourself'))}</p>
+<p>${termsText('account.terms.n1fairusespecifically2theoperatedtierisforbacki', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1alimitspecifictothisservice2theoperatedcopyis', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<h2>${esc(t('account.terms.n13confidentialprocessing'))}</h2>
+<p>${termsText('account.terms.n1whatitis2anaimodelsolpbcrunsonconfidentialgpu', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1youneverhavetopayus2thisiscapacitynotagateyou', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1amodelsolpbcrunsitself2ourownmodelweightsserv', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1itsprotecteddifferentlyfromourotherthreeservi', ["<strong>", "</strong>", "<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1yourjournalchecksbeforeitsends2beforeanything', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1thehardwareismicrosoftazuresandazurecantseein', ["<strong>", "</strong>"])}</p>
+<p><strong>${esc(t('account.terms.speech'))}</strong>${esc(t('account.terms.whentheaudioswitchisonyourjournalsendsspeechfo'))}<code>${esc(`parakeet-tdt-0.6b-v3`)}</code>${esc(t('account.terms.createdbynvidiaandusedunder'))}<a href="https://creativecommons.org/licenses/by/4.0/">${esc(t('account.terms.ccby40'))}</a>${esc(t('account.terms.thesamemodelgenerationyourowndevicerunstheswit'))}<strong>${esc(t('account.terms.onbydefault'))}</strong>${esc(t('account.terms.wheneverconfidentialprocessingisinuseandthepag'))}</p>
+<p>${termsText('account.terms.n1youruseismeteredinsidethecontainer2theservice', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1accessandwhatyourplanincludes2accessisbysubsc', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1turningitoff2turnitofffromthejournalanytimean', ["<strong>", "</strong>", "<em>", "</em>"])}</p>
+<p>${termsText('account.terms.n1whenitstops2cancelorletitlapseandconfidential', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1whatwekeep2runningthisserviceinvolvesafewdiff', ["<strong>", "</strong>"])}</p>
+<ul>
+  <li>${termsText('account.terms.n1whatyousendthemodel2thetextandimagesyourjourn', ["<strong>", "</strong>", "<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1nothingyousendisusedtotrainanything2notourmod', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1accessrecordsnotcontent2toruntheserviceandcon', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#confidential-processing\">", "</a>"])}</li>
+  <li>${termsText('account.terms.n1insidethecontainer2theservicekeepsthecountofh', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1wekeepnoconnectionmetadataforthisservice2beyo', ["<strong>", "</strong>"])}</li>
+</ul>
+<p>${termsText('account.terms.n1whatthemodelproducesisnotadviceandnobodycheck', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1fairusespecifically2confidentialprocessingisf', ["<strong>", "</strong>"])}</p>
+<h2>${esc(t('account.terms.n14solstoneme'))}</h2>
+<p>${termsText('account.terms.n1whatitis2anaddressontheinternetforyourjournal', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1youneverhavetopayus2yourjournaldoesntneedsolp', ["<strong>", "</strong>", "<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1blindbyconstructionandthisrelayholdsnostateab', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1yourjournalsaddressandthepartofitthatisperman', ["<strong>", "</strong>", "<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#solstone-me\">", "</a>"])}</p>
+<p>${termsText('account.terms.n1youraddressisneveranyoneelses2anaddressoncemi', ["<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1whateachagentmayseeisyourstosetandwerenotinit', ["<strong>", "</strong>", "<strong>", "</strong>", "<strong>", "</strong>", "<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1theagentisyoursandthecompanybehinditisntours2', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1whatthisrelayandourcontrolplanehandleandwhatw', ["<strong>", "</strong>", "<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#solstone-me\">", "</a>"])}</p>
+<p>${termsText('account.terms.n1turningitoffandhowquicklythattakeseffect2turn', ["<strong>", "</strong>", "<em>", "</em>"])}</p>
+<p>${termsText('account.terms.n1ajournalthatisntreachableisordinary2yourjourn', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1fairusespecifically2thisisforyourownagentsrea', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1whenitstops2cancelorletitlapseandthesolstonem', ["<strong>", "</strong>"])}</p>
+<h2>${esc(t('account.terms.n15notifications'))}</h2>
+<p>${termsText('account.terms.n1whatitis2notificationsarebuiltintothesolstone', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1onthedeviceandonyourphone2aheadsupcanbealocal', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1thehopforiphone2reachinganiphoneneedsahopbeca', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#notifications\">", "</a>"])}</p>
+<p>${termsText('account.terms.n1notatrackingsurface2noanalyticsnobehavioralpr', ["<strong>", "</strong>"])}</p>
+<p>${termsText('account.terms.n1turningitoff2turnnotificationsoffonanydevicea', ["<strong>", "</strong>"])}</p>
+<h2>${esc(t('account.terms.n16scoutprogram'))}</h2>
+<p>${esc(t('account.terms.scoutissolpbcstesterprogram'))}</p>
+<ul>
+  <li>${termsText('account.terms.n1complimentarymeanscomplimentary2whileyoureana', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1itcanend2scoutstatusisourstograntandourstoend', ["<strong>", "</strong>"])}</li>
+  <li>${termsText('account.terms.n1whatwekeep2yourapplicationyouracknowledgmento', ["<strong>", "</strong>", "<a href=\"https://solpbc.org/privacy#scout\">", "</a>"])}</li>
+</ul>
 <hr>
-<h2>${esc(`For consumers in France: articles L215-1 to L215-3 and L241-3 of the Code de la consommation`)}</h2>
-<p><strong>${esc(`Article L215-1`)}</strong></p>
-<p>${esc(`Pour les contrats de prestations de services conclus pour une durée déterminée avec une clause de reconduction tacite, le professionnel prestataire de services informe le consommateur par écrit, par lettre nominative ou courrier électronique dédiés, au plus tôt trois mois et au plus tard un mois avant le terme de la période autorisant le rejet de la reconduction, de la possibilité de ne pas reconduire le contrat qu'il a conclu avec une clause de reconduction tacite. Cette information, délivrée dans des termes clairs et compréhensibles, mentionne, dans un encadré apparent, la date limite de non-reconduction.`)}</p>
-<p>${esc(`Lorsque cette information ne lui a pas été adressée conformément aux dispositions du premier alinéa, le consommateur peut mettre gratuitement un terme au contrat, à tout moment à compter de la date de reconduction.`)}</p>
-<p>${esc(`Les avances effectuées après la dernière date de reconduction ou, s'agissant des contrats à durée indéterminée, après la date de transformation du contrat initial à durée déterminée, sont dans ce cas remboursées dans un délai de trente jours à compter de la date de résiliation, déduction faite des sommes correspondant, jusqu'à celle-ci, à l'exécution du contrat.`)}</p>
-<p>${esc(`Les dispositions du présent article s'appliquent sans préjudice de celles qui soumettent légalement certains contrats à des règles particulières en ce qui concerne l'information du consommateur.`)}</p>
-<p>${esc(`Par exception au premier alinéa du présent article, pour les contrats de fourniture de service de télévision au sens de l'article 2 de la loi n° 86-1067 du 30 septembre 1986 relative à la liberté de communication et pour les contrats de fourniture de services de médias audiovisuels à la demande, le consommateur peut mettre gratuitement un terme au contrat, à tout moment à compter de la première reconduction, dès lors qu'il change de domicile ou que son foyer fiscal évolue.`)}</p>
-<p><strong>${esc(`Article L215-1-1`)}</strong></p>
-<p>${esc(`Lorsqu'un contrat a été conclu par voie électronique ou a été conclu par un autre moyen et que le professionnel, au jour de la résiliation par le consommateur, offre au consommateur la possibilité de conclure des contrats par voie électronique, la résiliation est rendue possible selon cette modalité.`)}</p>
-<p>${esc(`A cet effet, le professionnel met à la disposition du consommateur une fonctionnalité gratuite permettant d'accomplir, par voie électronique, la notification et les démarches nécessaires à la résiliation du contrat. Lorsque le consommateur notifie la résiliation du contrat, le professionnel lui confirme la réception de la notification et l'informe, sur un support durable et dans des délais raisonnables, de la date à laquelle le contrat prend fin et des effets de la résiliation.`)}</p>
-<p>${esc(`Un décret fixe notamment les modalités techniques de nature à garantir une identification du consommateur et un accès facile, direct et permanent à la fonctionnalité mentionnée au deuxième alinéa, telles que ses modalités de présentation et d'utilisation. Il détermine les informations devant être fournies par le consommateur.`)}</p>
-<p><strong>${esc(`Article L215-2`)}</strong></p>
-<p>${esc(`Les dispositions du présent chapitre, à l'exception de l'article L. 215-1-1, ne sont pas applicables aux exploitants des services d'eau potable et d'assainissement.`)}</p>
-<p><strong>${esc(`Article L215-3`)}</strong></p>
-<p>${esc(`Les dispositions du présent chapitre sont également applicables aux contrats conclus entre des professionnels et des non-professionnels.`)}</p>
-<p><strong>${esc(`Article L241-3`)}</strong></p>
-<p>${esc(`Lorsque le professionnel n'a pas procédé au remboursement dans les conditions prévues à l'article L. 215-1, les sommes dues sont productives d'intérêts au taux légal.`)}</p>`,
+<p class="meta"><em>${esc(t('account.terms.thesetermsdescribeservicessolpbcruns'))}</em></p>
+<hr>
+<h2>${esc(t('account.terms.forconsumersinfrancearticlesl2151tol2153andl24'))}</h2>
+<p><strong>${esc(t('account.terms.articlel2151'))}</strong></p>
+<p>${esc(t('account.terms.pourlescontratsdeprestationsdeservicesconclusp'))}</p>
+<p>${esc(t('account.terms.lorsquecetteinformationneluiapaseteadresseecon'))}</p>
+<p>${esc(t('account.terms.lesavanceseffectueesapresladernieredatederecon'))}</p>
+<p>${esc(t('account.terms.lesdispositionsdupresentarticlesappliquentsans'))}</p>
+<p>${esc(t('account.terms.parexceptionaupremieralineadupresentarticlepou'))}</p>
+<p><strong>${esc(t('account.terms.articlel21511'))}</strong></p>
+<p>${esc(t('account.terms.lorsquuncontrataeteconcluparvoieelectroniqueou'))}</p>
+<p>${esc(t('account.terms.aceteffetleprofessionnelmetaladispositionducon'))}</p>
+<p>${esc(t('account.terms.undecretfixenotammentlesmodalitestechniquesden'))}</p>
+<p><strong>${esc(t('account.terms.articlel2152'))}</strong></p>
+<p>${esc(t('account.terms.lesdispositionsdupresentchapitrealexceptiondel'))}</p>
+<p><strong>${esc(t('account.terms.articlel2153'))}</strong></p>
+<p>${esc(t('account.terms.lesdispositionsdupresentchapitresontegalementa'))}</p>
+<p><strong>${esc(t('account.terms.articlel2413'))}</strong></p>
+<p>${esc(t('account.terms.lorsqueleprofessionnelnapasprocedeauremboursem'))}</p>`,
   });
 }
 
@@ -2658,24 +2666,24 @@ export function renderServicesTerms() {
 // every token failure and leaks no enumeration signal.
 export function renderForbidden() {
   return layout({
-    title: "we couldn't verify this sign-in",
+    title: t('account.signin.wecouldntverifythissignin'),
     body: `${brandbar()}
 <div class="card">
-  <h1>we couldn't verify this sign-in</h1>
-  <p>your email security may have modified the link you used to get here.</p>
-  <p>to continue, open <strong>https://services.solstone.app</strong> directly in a new browser tab and request a new code.</p>
-  <p><a href="https://services.solstone.app">open services.solstone.app</a></p>
+  <h1>${htmlText('account.signin.wecouldntverifythissignin')}</h1>
+  <p>${htmlText('account.signin.youremailsecuritymayhavemodifiedlink')}</p>
+  <p>${htmlText('account.portal.tocontinueopen')} <strong>https://services.solstone.app</strong> ${htmlText('account.portal.directlyinanewbrowsertabandrequestanewcode')}</p>
+  <p><a href="https://services.solstone.app">${htmlText('account.signin.openservicessolstoneapp')}</a></p>
 </div>`,
   });
 }
 
 export function renderNotFound() {
   return layout({
-    title: 'not found',
+    title: t('account.signin.notfound'),
     body: `${brandbar()}
-<h1>not found</h1>
-<p class="lead">nothing at this address.</p>
-<a class="btn secondary" href="/">back to home</a>`,
+<h1>${htmlText('account.signin.notfound')}</h1>
+<p class="lead">${htmlText('account.signin.nothingatthisaddress')}</p>
+<a class="btn secondary" href="/">${htmlText('account.signin.backhome')}</a>`,
   });
 }
 
@@ -2685,21 +2693,21 @@ export function formatRelativeTime(tsMs, nowMs) {
   const now = Number(nowMs);
   if (!Number.isFinite(ts) || !Number.isFinite(now)) return '—';
   const diff = Math.max(0, now - ts);
-  if (diff < 60_000) return 'just now';
+  if (diff < 60_000) return t('account.portal.justnow');
   const minutes = Math.floor(diff / 60_000);
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  if (minutes < 60) return countText('account.portal.minuteago', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-  if (hours < 48) return 'yesterday';
+  if (hours < 24) return countText('account.portal.hourago', { count: hours });
+  if (hours < 48) return t('account.portal.yesterday');
   const days = Math.floor(hours / 24);
   if (days >= 30) return new Date(ts).toISOString().slice(0, 10);
-  return `${days} day${days === 1 ? '' : 's'} ago`;
+  return countText('account.portal.dayago', { count: days });
 }
 
 export function formatByteSize(bytes) {
   const value = Number(bytes);
   if (!Number.isFinite(value) || value < 0) return '—';
-  if (value < 1024) return `${Math.floor(value)} bytes`;
+  if (value < 1024) return t('account.portal.bytes2', { value1: Math.floor(value) });
   const units = ['KB', 'MB', 'GB'];
   let scaled = value / 1024;
   let unit = 0;
@@ -2711,7 +2719,7 @@ export function formatByteSize(bytes) {
 }
 
 function restoreCandidateDetail(candidate) {
-  return `last backup ${formatRelativeTime(candidate.lastBackupMs, Date.now())} · size ${formatByteSize(candidate.sizeBytes)} · enabled ${formatDate(candidate.createdAt)}`;
+  return t('account.portal.lastbackupsizeenabled2', { relativeTime: formatRelativeTime(candidate.lastBackupMs, Date.now()), size: formatByteSize(candidate.sizeBytes), date: formatDate(candidate.createdAt) });
 }
 
 function restoreCandidateLines(candidate) {
@@ -2791,15 +2799,15 @@ function keyInformation(rows, service) {
 // set to stop, how far it is paid.
 function renewalLead({ paidThrough, cancelPending, plan }) {
   if (!paidThrough) return '';
-  if (cancelPending) return `paid through ${esc(paidThrough)} · `;
+  if (cancelPending) return t('account.portal.paidthrough2', { date: esc(paidThrough) });
   return plan
-    ? `renews on ${esc(paidThrough)} at ${formatPlanPrice(plan)}, ${taxWords(plan)} · `
-    : `renews on ${esc(paidThrough)} · `;
+    ? t('account.portal.renewsonat', { date: esc(paidThrough), price: formatPlanPrice(plan), tax: taxWords(plan) })
+    : t('account.portal.renewson', { date: esc(paidThrough) });
 }
 
 // A price set with tax included says so; one set before that says tax may be added.
 function taxWords(plan) {
-  return plan.taxIncluded ? 'tax included' : 'plus any sales tax';
+  return plan.taxIncluded ? t('account.renewal.taxincluded') : t('account.renewal.plusanysalestax');
 }
 
 // The checkout choices of a service page. With the withdrawal door on, the plans share one
@@ -2829,11 +2837,11 @@ function checkoutGroup({ csrf, rows, service, startNowBox = false, keyInfo = fal
 
 // PLACEHOLDER pending the approved wording: the drafted words for the door, its page, the confirm
 // button and the start-now box. Nothing here renders while the withdrawal door is off.
-export const WITHDRAWAL_DOOR_LABEL = 'withdraw from contract here';
-export const WITHDRAWAL_CONFIRM_LABEL = 'confirm withdrawal';
-export const BACKUP_WITHDRAWAL_RETENTION = 'we keep your encrypted backup copy for 30 days, then delete it. if you offloaded media into it, that copy is the only one.';
-const START_NOW_LEAD = 'start my service now.';
-const START_NOW_BODY = "I'm asking sol pbc to start this service as soon as I've paid, inside my 14 days to withdraw. I can still withdraw in those 14 days for a full refund.";
+export const WITHDRAWAL_DOOR_LABEL = t('account.portal.withdrawfromcontracthere2');
+export const WITHDRAWAL_CONFIRM_LABEL = t('account.portal.confirmwithdrawal');
+export const BACKUP_WITHDRAWAL_RETENTION = t('account.portal.wekeepyourencryptedbackupcopyfor');
+const START_NOW_LEAD = t('account.portal.startmyservicenow');
+const START_NOW_BODY = t('account.portal.imaskingsolpbcstartthis');
 
 function startNowField() {
   return `<label class="ack">
@@ -2847,9 +2855,9 @@ function withdrawalDoor(withdrawal, { serviceName = '', service = '' } = {}) {
   if (!withdrawal) return '';
   const what = serviceName ? `${serviceName}: ` : '';
   const date = withdrawal.purchasedAt != null ? formatLongDate(withdrawal.purchasedAt) : '';
-  let lead = `${what}you can still withdraw here, for a full refund.`;
-  if (date && withdrawal.renewed) lead = `${what}you can withdraw until the end of the 14th day after ${date}, the day your plan renewed, for a full refund of that renewal.`;
-  else if (date) lead = `${what}you can withdraw until the end of the 14th day after ${date}, for a full refund.`;
+  let lead = t('account.withdrawal.youcanstillwithdrawhereforafullrefund', { what });
+  if (date && withdrawal.renewed) lead = t('account.withdrawal.youcanwithdrawuntiltheendofthe14thdayafterthed', { what, date });
+  else if (date) lead = t('account.withdrawal.youcanwithdrawuntiltheendofthe14thdayafterfora', { what, date });
   return `<div class="card" style="margin-top:16px">
   <p>${esc(lead)}</p>
   ${service === 'spb_hosted' ? `<p class="disclosure">${esc(BACKUP_WITHDRAWAL_RETENTION)}</p>` : ''}
@@ -2862,11 +2870,11 @@ function withdrawalDoor(withdrawal, { serviceName = '', service = '' } = {}) {
 function withdrawalFlashMessages(flash, serviceName) {
   const messages = [];
   const renewedOn = /^[1-9][0-9]*$/.test(flash.renewed || '') ? formatLongDate(Number(flash.renewed)) : '';
-  const refunding = renewedOn ? `we're refunding everything you paid for its renewal on ${renewedOn}` : "we're refunding everything you paid for it";
-  if (flash.checkout === 'start_now') messages.push('tick start my service now to continue.');
-  if (flash.withdrawal === 'done') messages.push(`we received your withdrawal. ${serviceName} has stopped and won't renew, ${refunding}, and we've emailed you the acknowledgement.`);
-  if (flash.withdrawal === 'done_unsent') messages.push(`we received your withdrawal. ${serviceName} has stopped and won't renew, and ${refunding}. the acknowledgement email hasn't gone out yet; we'll keep trying.`);
-  if (flash.withdrawal === 'missing') messages.push('there is no subscription here to withdraw from.');
+  const refunding = renewedOn ? t('account.withdrawal.wererefundingeverythingyoupaidforitsrenewalon', { date: renewedOn }) : t('account.withdrawal.wererefundingeverythingyoupaidforit');
+  if (flash.checkout === 'start_now') messages.push(t('account.withdrawal.tickstartmyservicenowcontinue'));
+  if (flash.withdrawal === 'done') messages.push(t('account.withdrawal.wereceivedyourwithdrawalhasstoppedandwontrenew', { serviceName, refunding }));
+  if (flash.withdrawal === 'done_unsent') messages.push(t('account.withdrawal.wereceivedyourwithdrawalhasstoppedandwontrenew2', { serviceName, refunding }));
+  if (flash.withdrawal === 'missing') messages.push(t('account.withdrawal.thereisnosubscriptionherewithdrawfrom'));
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
@@ -2876,11 +2884,11 @@ function withdrawalFlashMessages(flash, serviceName) {
 // `purchasedAt` is when the window opened: the purchase or, in a renewed annual year, when the
 // renewal was paid, and then `boughtAt` is the purchase.
 export function renderWithdrawal({ def, menu, csrf, primaryEmail, state, submittedAt = null, purchasedAt = null, renewed = false, boughtAt = null, monthsLeft = 0, ruleShown = false, plan = null, statement = '' }) {
-  const title = `withdraw from your ${def.name} subscription`;
+  const title = t('account.withdrawal.withdrawfromyoursubscription2', { service: def.name });
   const page = (content) => layout({
     title,
     body: `${topbar(menu)}
-<a class="back" href="${escAttr(def.path)}">${BACK_SVG} back</a>
+<a class="back" href="${escAttr(def.path)}">${BACK_SVG} ${htmlText('account.withdrawal.back')}</a>
 <div class="pagehead">
   <h1>${esc(title)}</h1>
 </div>
@@ -2890,38 +2898,38 @@ ${content}`,
   const submitted = submittedAt != null ? formatMomentUtc(Math.floor(submittedAt / 1000)) : '';
 
   if (state === 'none') {
-    return page(`<p class="lead">there is no paid ${esc(def.name)} subscription on this sign-in to withdraw from.</p>`);
+    return page(`<p class="lead">${htmlText('account.withdrawal.thereisnopaid')} ${esc(def.name)} ${htmlText('account.withdrawal.subscriptiononthissignintowithdrawfrom')}</p>`);
   }
   if (state === 'finishing') {
-    return page(`<p class="lead">${esc(`we received your withdrawal on ${submitted} and we're finishing it. you don't need to do anything.`)}</p>`);
+    return page(`<p class="lead">${esc(t('account.withdrawal.wereceivedyourwithdrawalonandwerefinishingityo', { date: submitted }))}</p>`);
   }
   if (state === 'failed') {
-    return page(`<p class="lead">${esc(`we received your withdrawal on ${submitted}. finishing it hit a problem on our side; we'll keep trying, and you don't need to do anything.`)}</p>`);
+    return page(`<p class="lead">${esc(t('account.withdrawal.wereceivedyourwithdrawalonfinishingithitaprobl', { date: submitted }))}</p>`);
   }
   if (state === 'unavailable') {
-    return page(`<p class="lead">${esc("your subscription details didn't load, so this page can't take the withdrawal right now. reload to try again, or email support@solstone.app saying you withdraw; a withdrawal sent within your 14 days counts.")}</p>`);
+    return page(`<p class="lead">${esc(t('account.withdrawal.yoursubscriptiondetailsdidntloadso'))}</p>`);
   }
   if (state === 'closed' && renewed) {
     // With no whole month left to refund, the refund clause drops, as every refund line does.
-    const refund = monthsLeft > 0 ? ', and we refund the whole months left' : '';
-    const closed = `the 14 days to withdraw from ${def.name}'s renewal on ${formatLongDate(purchasedAt)} are over. you can still cancel it with "cancel contracts here": it ends at the end of your current plan month${refund}.`;
+    const refund = monthsLeft > 0 ? t('account.withdrawal.andwerefundthewholemonthsleft') : '';
+    const closed = t('account.withdrawal.the14daystowithdrawfromsrenewalonareoveryoucan', { service: def.name, date: formatLongDate(purchasedAt), refund });
     return page(`<p class="lead">${esc(closed)}</p>`);
   }
   if (state === 'closed') {
-    return page(`<p class="lead">${esc(`the 14 days to withdraw from this ${def.name} subscription, bought on ${formatLongDate(purchasedAt)}, are over. you can still cancel it from the service page, and it keeps working through the period you've paid for.`)}</p>`);
+    return page(`<p class="lead">${esc(t('account.withdrawal.the14daystowithdrawfromthissubscriptionboughto', { service: def.name, date: formatLongDate(purchasedAt) }))}</p>`);
   }
   if (!primaryEmail) {
-    return page(`<p class="lead">${esc('this sign-in has no email address to send the acknowledgement to. add one under sign-in and emails, or email support@solstone.app saying you withdraw; a withdrawal sent within your 14 days counts.')}</p>`);
+    return page(`<p class="lead">${esc(t('account.withdrawal.thissigninhasnoemailaddress'))}</p>`);
   }
-  const until = ruleShown ? ` you have until the end of the 14th day after ${formatLongDate(purchasedAt)}.` : '';
+  const until = ruleShown ? t('account.withdrawal.youhaveuntiltheendofthe14thdayafter', { date: formatLongDate(purchasedAt) }) : '';
   const lead = renewed
-    ? `if you withdraw, ${def.name} stops today and we refund everything you paid for its renewal on ${formatLongDate(purchasedAt)}.${until}`
-    : `if you withdraw, ${def.name} stops today and we refund everything you paid for this subscription.${until}`;
-  const subscriptionLine = `subscription: ${def.name}, ${formatPlanPrice(plan)} every ${plan.interval}, bought on ${formatLongDate(renewed ? boughtAt : purchasedAt)}`;
+    ? t('account.withdrawal.ifyouwithdrawstopstodayandwerefundeverythingyo', { service: def.name, date: formatLongDate(purchasedAt), until })
+    : t('account.withdrawal.ifyouwithdrawstopstodayandwerefundeverythingyo2', { service: def.name, until });
+  const subscriptionLine = t('account.withdrawal.subscriptioneveryboughton2', { service: def.name, price: formatPlanPrice(plan), interval: plan.interval, date: formatLongDate(renewed ? boughtAt : purchasedAt) });
   return page(`<div class="card">
-  <p class="signed-in">${esc(`signed in as ${primaryEmail}`)}</p>
+  <p class="signed-in">${esc(t('account.withdrawal.signedinas2', { primaryEmail }))}</p>
   <p>${esc(subscriptionLine)}</p>
-  <p>${esc(`we'll send the acknowledgement to ${primaryEmail}`)}</p>
+  <p>${esc(t('account.withdrawal.wellsendtheacknowledgementto', { primaryEmail }))}</p>
   <p>${esc(lead)}</p>
   ${retention}
   <form method="post" action="${escAttr(`/billing/withdraw/${def.slug}`)}">
@@ -2936,43 +2944,43 @@ ${content}`,
 
 // The cancel function's link, its page, its summary and its done page, in the approved wording.
 // Nothing here renders while the subscription rules are off. The values arrive formatted.
-export const CANCEL_CONTRACT_LABEL = 'cancel contracts here';
-export const CANCEL_NOW_LABEL = 'cancel now';
-const monthsWord = (months) => (months === 1 ? 'month' : 'months');
+export const CANCEL_CONTRACT_LABEL = t('account.cancel.cancelcontractshere');
+export const CANCEL_NOW_LABEL = t('account.cancel.cancelnow');
+const monthsWord = (months) => (months === 1 ? t('account.portal.month') : t('account.portal.months'));
 const CANCEL_WORDS = {
-  title: (service) => `cancel your ${service} subscription`,
-  signedInAs: (email) => `signed in as ${email}`,
-  subscription: (v) => `subscription: ${v.serviceName}, ${v.price} every ${v.interval}, bought on ${v.purchaseDate}`,
-  name: 'your name (optional; it goes only into your confirmation email):',
-  typeCancel: 'cancel',
-  typeCause: 'cancel for a serious reason, such as something we did wrong',
-  reason: 'tell us the reason:',
-  earliest: (date) => `it ends on ${date}, the earliest it can.`,
-  earliestCause: (date) => `it ends on ${date}, the earliest an ordinary cancel can.`,
-  yearEnd: (date) => `at the end of this plan year, ${date}`,
-  today: 'today',
-  keepsFirst: (service) => `${service} keeps working until then, the end of the period you've paid for. it won't renew.`,
-  keepsRenewed: (service, months, amount) => `${service} keeps working until then, and we refund ${months} whole ${monthsWord(months)}, ${amount}, the same way you paid, within 14 days.`,
-  endsToday: "it ends today. we'll answer your reason, and whether we refund the time you've paid for after today.",
-  endsTodayRefund: (amount) => `we refund the whole months left, ${amount}, either way.`,
-  next: 'continue',
+  title: (service) => t('account.portal.cancelyoursubscription', { service }),
+  signedInAs: (email) => t('account.portal.signedinas', { email }),
+  subscription: (v) => t('account.portal.subscriptioneveryboughton', { serviceName: v.serviceName, price: v.price, interval: v.interval, purchaseDate: v.purchaseDate }),
+  name: t('account.portal.yournameoptionalitgoesonlyintoyourconfirmation'),
+  typeCancel: t('account.portal.cancel'),
+  typeCause: t('account.portal.cancelforaseriousreasonsuchassomethingwedidwro'),
+  reason: t('account.portal.tellusthereason'),
+  earliest: (date) => t('account.portal.itendsontheearliestitcan', { date }),
+  earliestCause: (date) => t('account.portal.itendsontheearliestanordinarycancelcan', { date }),
+  yearEnd: (date) => t('account.portal.attheendofthisplanyear', { date }),
+  today: t('account.portal.today'),
+  keepsFirst: (service) => t('account.portal.keepsworkinguntilthentheendoftheperiodyouvepai', { service }),
+  keepsRenewed: (service, months, amount) => t('account.portal.keepsworkinguntilthenandwerefundwholethesamewa', { service, months, monthsLabel: monthsWord(months), amount }),
+  endsToday: t('account.portal.itendstodaywellansweryourreasonandwhetherweref'),
+  endsTodayRefund: (amount) => t('account.portal.werefundthewholemonthslefteitherway', { amount }),
+  next: t('account.portal.continue'),
   summary: (d) => [
-    `you're canceling ${d.serviceName} (${d.price} every ${d.interval}).`,
-    d.reason != null ? `for a serious reason: "${d.reason}".` : '',
-    `it ends on ${d.endDate}.`,
-    d.refund ? `we refund ${d.refund}.` : '',
-    `we'll send the confirmation to ${d.email}.`,
+    t('account.portal.yourecancelingevery', { serviceName: d.serviceName, price: d.price, interval: d.interval }),
+    d.reason != null ? t('account.portal.foraseriousreason', { reason: d.reason }) : '',
+    t('account.portal.itendson', { endDate: d.endDate }),
+    d.refund ? t('account.portal.werefund', { refund: d.refund }) : '',
+    t('account.portal.wellsendtheconfirmationto', { email: d.email }),
   ].filter(Boolean).join(' '),
-  back: 'back',
-  received: (moment) => `we received your cancellation on ${moment}.`,
-  emailed: "we've emailed you a copy.",
-  save: 'save this page',
+  back: t('account.portal.back'),
+  received: (moment) => t('account.portal.wereceivedyourcancellationon', { moment }),
+  emailed: t('account.portal.weveemailedyouacopy'),
+  save: t('account.portal.savethispage'),
   // Not in the approved wording: the dark build's short states for a page that can't offer the
   // cancel, kept as they were for review before the switch turns on.
-  noEmail: 'this sign-in has no email address to send the confirmation to. add one under sign-in and emails, or email support@solstone.app saying you cancel.',
+  noEmail: t('account.cancel.thissigninhasnoemailaddressto'),
   pending: (name, date) => `${name}: already set to end on ${date}.`,
   unavailable: (name) => `${name}: its details didn't load. reload to try again.`,
-  unavailableError: "your subscription details didn't load. try again.",
+  unavailableError: t('account.cancel.yoursubscriptiondetailsdidntloadtryagain'),
 };
 
 // A cancel for a serious reason opens a support request carrying its type and the summary line.
@@ -3009,10 +3017,10 @@ function withdrawalPointer(withdrawal, serviceName) {
   if (withdrawal?.purchasedAt == null || !serviceName || withdrawal.cancelPending) return '';
   const date = formatLongDate(withdrawal.purchasedAt);
   if (!withdrawal.renewed) {
-    return `you can still withdraw until the end of the 14th day after ${date}. "withdraw from contract here" stops ${serviceName} today and refunds everything you paid. "cancel contracts here" keeps it working to the end of the period you've paid for, with no refund.`;
+    return t('account.withdrawal.youcanstillwithdrawuntiltheendofthe14thdayafte', { date, serviceName });
   }
   if (!Number.isInteger(withdrawal.renewalPaid) || withdrawal.renewalPaid <= 0) return '';
-  return `you can still withdraw from this renewal until the end of the 14th day after ${date}. "withdraw from contract here" stops ${serviceName} today and refunds the whole renewal, ${formatPlanPrice({ unitAmount: withdrawal.renewalPaid })}. "cancel contracts here" ends it at the end of your current plan month and refunds the whole months left.`;
+  return t('account.withdrawal.youcanstillwithdrawfromthisrenewaluntiltheendo', { date, serviceName, price: formatPlanPrice({ unitAmount: withdrawal.renewalPaid }) });
 }
 
 // The type of cancel decides what shows without script: the reason field, the earliest line's
@@ -3140,7 +3148,7 @@ export function renderCancelContractDone({ menu, declaration, emailed, backHref 
 </div>`, { back: cancelBackLink(backHref) });
 }
 
-function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 'btn primary', action = '/billing/portal' }) {
+function billingPortalForm({ csrf, buttonText = t('account.billing.managebilling'), buttonClass = 'btn primary', action = '/billing/portal' }) {
   return `<form method="post" action="${escAttr(action)}">
   <input type="hidden" name="csrf" value="${escAttr(csrf)}">
   <button class="${buttonClass}" type="submit">${esc(buttonText)}</button>
@@ -3149,46 +3157,46 @@ function billingPortalForm({ csrf, buttonText = 'manage billing', buttonClass = 
 
 function billingFlashMessages(flash) {
   const messages = [];
-  if (flash.checkout === 'invalid') messages.push('choose yearly or monthly billing.');
-  if (flash.checkout === 'email') messages.push("billing couldn't start. try again.");
-  if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
-  if (flash.checkout === 'comped') messages.push("you're already covered free as a scout.");
-  if (flash.billing === 'missing') messages.push('billing management is available after hosting starts.');
-  if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
+  if (flash.checkout === 'invalid') messages.push(t('account.billing.chooseyearlyormonthlybilling'));
+  if (flash.checkout === 'email') messages.push(t('account.billing.billingcouldntstarttryagain'));
+  if (flash.checkout === 'error') messages.push(t('account.billing.billingcouldntstarttryagain'));
+  if (flash.checkout === 'comped') messages.push(t('account.billing.yourealreadycoveredfreeasscout'));
+  if (flash.billing === 'missing') messages.push(t('account.billing.billingmanagementisavailableafterhostingstarts'));
+  if (flash.billing === 'error') messages.push(t('account.billing.billingmanagementdidntopentryagain'));
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
 function smeBillingFlashMessages(flash) {
   const messages = [];
-  if (flash.checkout === 'success') messages.push('payment received. it can take a moment to show up here.');
-  if (flash.checkout === 'cancel') messages.push('no charge made.');
-  if (flash.checkout === 'ack') messages.push('confirm you understand before continuing.');
-  if (flash.checkout === 'email') messages.push('billing needs an email address on your sign-in.');
-  if (['invalid', 'error'].includes(flash.checkout)) messages.push("billing couldn't start. try again.");
-  if (flash.checkout === 'comped') messages.push("you're already covered free as a scout.");
-  if (flash.billing === 'missing') messages.push('billing management is available once a payment has been made.');
-  if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
+  if (flash.checkout === 'success') messages.push(t('account.billing.paymentreceiveditcantakemomentshow'));
+  if (flash.checkout === 'cancel') messages.push(t('account.billing.nochargemade'));
+  if (flash.checkout === 'ack') messages.push(t('account.billing.confirmyouunderstandbeforecontinuing'));
+  if (flash.checkout === 'email') messages.push(t('account.billing.billingneedsanemailaddressonyour'));
+  if (['invalid', 'error'].includes(flash.checkout)) messages.push(t('account.billing.billingcouldntstarttryagain'));
+  if (flash.checkout === 'comped') messages.push(t('account.billing.yourealreadycoveredfreeasscout'));
+  if (flash.billing === 'missing') messages.push(t('account.billing.billingmanagementisavailableoncepaymenthas'));
+  if (flash.billing === 'error') messages.push(t('account.billing.billingmanagementdidntopentryagain'));
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
 function spbBillingFlashMessages(flash) {
   const messages = [];
-  if (flash.checkout === 'success') messages.push('payment received. it can take a moment to show up here.');
-  if (flash.checkout === 'cancel') messages.push('no charge made. you can turn on encrypted backup anytime.');
-  if (flash.checkout === 'invalid') messages.push('choose yearly or monthly billing.');
-  if (flash.checkout === 'email') messages.push("billing couldn't start. try again.");
-  if (flash.checkout === 'error') messages.push("billing couldn't start. try again.");
-  if (flash.checkout === 'comped') messages.push("you're already covered free as a scout.");
-  if (flash.billing === 'missing') messages.push('billing management is available after encrypted backup starts.');
-  if (flash.billing === 'error') messages.push("billing management didn't open. try again.");
+  if (flash.checkout === 'success') messages.push(t('account.billing.paymentreceiveditcantakemomentshow'));
+  if (flash.checkout === 'cancel') messages.push(t('account.billing.nochargemadeyoucanturnon'));
+  if (flash.checkout === 'invalid') messages.push(t('account.billing.chooseyearlyormonthlybilling'));
+  if (flash.checkout === 'email') messages.push(t('account.billing.billingcouldntstarttryagain'));
+  if (flash.checkout === 'error') messages.push(t('account.billing.billingcouldntstarttryagain'));
+  if (flash.checkout === 'comped') messages.push(t('account.billing.yourealreadycoveredfreeasscout'));
+  if (flash.billing === 'missing') messages.push(t('account.billing.billingmanagementisavailableafterencryptedbackup'));
+  if (flash.billing === 'error') messages.push(t('account.billing.billingmanagementdidntopentryagain'));
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 
 function flashMessages(flash) {
   const messages = [];
-  if (flash.apply === 'ok') messages.push('scout request received.');
-  if (flash.apply === 'acked') messages.push('scout acknowledgement saved.');
-  if (flash.apply === 'no_ack') messages.push('confirm you understand before continuing.');
+  if (flash.apply === 'ok') messages.push(t('account.portal.scoutrequestreceived'));
+  if (flash.apply === 'acked') messages.push(t('account.portal.scoutacknowledgementsaved'));
+  if (flash.apply === 'no_ack') messages.push(t('account.portal.confirmyouunderstandbeforecontinuing'));
   return messages.map((message) => `<p class="notice">${esc(message)}</p>`).join('');
 }
 

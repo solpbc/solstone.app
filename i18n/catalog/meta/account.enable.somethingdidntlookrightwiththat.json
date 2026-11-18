@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: enableErrorTemplate",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 172,
+  "source_revision": "0566d9f3df06166e8fc0c60f08966a47152b05d8bef63ce08ebad2d540a3027a",
+  "risk": "routine",
+  "auto_merge": true
+}

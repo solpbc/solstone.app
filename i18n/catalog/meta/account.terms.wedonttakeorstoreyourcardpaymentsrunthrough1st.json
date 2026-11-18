@@ -1,0 +1,73 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderServicesTerms (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1804,
+  "source_revision": "b90ff8a583cc2649503b3b5b827268b61944f33523c4795c1708037bf11f3d96",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "flag",
+      "value": "[1]"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Stripe"
+    },
+    {
+      "name": "slot-3",
+      "kind": "flag",
+      "value": "[2]"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "Stripe"
+    },
+    {
+      "name": "slot-5",
+      "kind": "flag",
+      "value": "[3]"
+    },
+    {
+      "name": "slot-6",
+      "kind": "flag",
+      "value": "[4]"
+    },
+    {
+      "name": "slot-7",
+      "kind": "flag",
+      "value": "[5]"
+    },
+    {
+      "name": "slot-8",
+      "kind": "flag",
+      "value": "[6]"
+    },
+    {
+      "name": "slot-9",
+      "kind": "mark-word",
+      "value": "Stripe"
+    },
+    {
+      "name": "slot-10",
+      "kind": "mark-word",
+      "value": "Stripe"
+    },
+    {
+      "name": "slot-11",
+      "kind": "mark-word",
+      "value": "Stripe"
+    }
+  ]
+}

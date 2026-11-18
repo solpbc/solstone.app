@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: renderDeletionCancelPage",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "601f8db83cb4ef6a64ce31357fe7faa8763147bff03e3ce918650d717154be76",
+  "risk": "account",
+  "auto_merge": true
+}

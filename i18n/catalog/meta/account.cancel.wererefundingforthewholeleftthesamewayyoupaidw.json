@@ -1,0 +1,36 @@
+{
+  "description": "Account portal message.",
+  "context": "cancel-contract.js: EMAIL_WORDS (review contract or consent classification before translation)",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [
+    {
+      "name": "refund",
+      "type": "string"
+    },
+    {
+      "name": "refundMonths",
+      "type": "string"
+    },
+    {
+      "name": "pluralSuffix",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 384,
+  "source_revision": "718cd50b3401fc29410db8ce62060a1f7456e9664ebebe54b496f9a52ae0dfad",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "whitespace",
+      "value": " "
+    }
+  ]
+}

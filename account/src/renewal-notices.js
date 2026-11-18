@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 import { decryptEmail, hashWithPepper } from './crypto.js';
 import {
   claimRenewalNotice,
@@ -29,66 +31,38 @@ export const TAG_TO_HOSTED_SERVICE = Object.freeze({
 });
 
 export const SERVICE_HUMAN_NAMES = Object.freeze({
-  [SPL_HOSTED_SERVICE]: 'private network',
-  [SPB_HOSTED_SERVICE]: 'encrypted backup',
+  [SPL_HOSTED_SERVICE]: t('account.renewal.privatenetwork'),
+  [SPB_HOSTED_SERVICE]: t('account.renewal.encryptedbackup'),
   [SME_HOSTED_SERVICE]: 'solstone.me',
-  [SPP_HOSTED_SERVICE]: 'confidential processing',
+  [SPP_HOSTED_SERVICE]: t('account.renewal.confidentialprocessing'),
 });
 
-const L1_SUBJECT_TEMPLATE = 'your {{service}} subscription: keep this for your records';
-const CATCH_UP_SUBJECT_TEMPLATE = 'your {{service}} subscription: the written confirmation we owed you';
-const L2_SUBJECT_TEMPLATE = 'your {{service}} subscription renews on {{renewal_date}}';
+const L1_SUBJECT_TEMPLATE = t('account.renewal.yourservicesubscriptionkeepthisforyourrecords');
+const CATCH_UP_SUBJECT_TEMPLATE = t('account.renewal.yourservicesubscriptionthewrittenconfirmationw');
+const L2_SUBJECT_TEMPLATE = t('account.renewal.yourservicesubscriptionrenewsonrenewaldate');
 
-const L1_BODY_TEMPLATE = `you just subscribed to **{{service}}**. here's what that means, in writing, so you can keep it. it doesn't expire, and it isn't the only copy: the current terms are always at [services.solstone.app/terms](https://services.solstone.app/terms).
-
-**the plan.** {{service}}, {{price}} every {{interval}}.
-
-**it renews on its own.** at the end of each {{interval}}, {{service}} renews automatically at the plan's then-current price, using the payment method on file, until you cancel. [ANNUAL] we'll email you again, 25 to 40 days before each renewal, to say it's coming and how to cancel. [/ANNUAL] [MONTHLY] we'll email you again once a year, 25 to 40 days before the renewal that carries you past each full year, to say it's coming and how to cancel. [/MONTHLY]
-
-**canceling takes as few steps as subscribing did.** the billing portal, linked from [services.solstone.app](https://services.solstone.app), cancels it. no phone call, no email, no retention maze. if you cancel, {{service}} keeps working through the end of the period you've already paid for, then stops; we don't prorate a cancellation you make on your own.
-
-questions: support@solstone.app.
-
-sol pbc`;
+const L1_BODY_TEMPLATE = t('account.renewal.youjustsubscribedtoservicehereswhatthatmeansin');
 
 // PLACEHOLDER pending the approved withdrawal wording: the drafted words and model form. Inserted
 // into the written confirmation after the canceling paragraph and before its closing lines, only
 // while the withdrawal door is on; nothing else in the confirmation changes.
 const L1_WITHDRAWAL_BLOCK = [
-  `**you can also withdraw, for a full refund.** until the end of the 14th day after {{purchase_date}}, you can withdraw from this subscription wherever you live, even if you've started using {{service}}. sign in at [services.solstone.app](https://services.solstone.app) and use *withdraw from contract here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), then confirm. or email support@solstone.app saying you withdraw; you can use the form below, but you don't have to. a withdrawal you send by then counts, even if it reaches us later. withdrawing ends {{service}} that day, and we refund everything you paid for this subscription within 14 days of your withdrawal, the same way you paid. you get this once, counted from this purchase; a renewal doesn't start a new one.`,
-  `**withdrawal form** (fill this in and send it only if you want to withdraw):`,
-  `to: sol pbc, 16095 East 109th Place, Commerce City, CO 80022, United States · support@solstone.app`,
-  `I hereby give notice that I withdraw from my contract for the provision of the following service: {{service}}`,
-  `ordered on: {{purchase_date}}`,
-  `name: ______`,
-  `address: ______`,
-  `signature (only if you send this on paper): ______`,
-  `date: ______`,
+  t('account.renewal.youcanalsowithdrawforafullrefunduntiltheendoft'),
+  t('account.renewal.withdrawalformfillthisinandsend'),
+  t('account.renewal.solpbc16095east109thplacecommerce'),
+  t('account.renewal.iherebygivenoticethatiwithdrawfrommycontractfo'),
+  t('account.renewal.orderedonpurchasedate'),
+  t('account.renewal.name'),
+  t('account.renewal.address'),
+  t('account.renewal.signatureonlyifyousendthison'),
+  t('account.renewal.date'),
 ].join('\n\n');
 
-const L1_CLOSING = `questions: support@solstone.app.`;
+const L1_CLOSING = t('account.renewal.questionssupportsolstoneapp2');
 
-const CATCH_UP_BODY_TEMPLATE = `you're subscribed to **{{service}}**, and this is the written confirmation Colorado's automatic-renewal law entitles you to. we're sending it now because the send path didn't exist when you first subscribed; every new subscriber gets this right after checkout from here on. keep it. it doesn't expire, and it isn't the only copy: the current terms are always at [services.solstone.app/terms](https://services.solstone.app/terms).
+const CATCH_UP_BODY_TEMPLATE = t('account.renewal.youresubscribedtoserviceandthisisthewrittencon');
 
-**the plan.** {{service}}, {{price}} every {{interval}}.
-
-**it renews on its own.** at the end of each {{interval}}, {{service}} renews automatically at the plan's then-current price, using the payment method on file, until you cancel. [ANNUAL] we'll email you again, 25 to 40 days before each renewal, to say it's coming and how to cancel. [/ANNUAL] [MONTHLY] we'll email you again once a year, 25 to 40 days before the renewal that carries you past each full year, to say it's coming and how to cancel. [/MONTHLY]
-
-**canceling takes as few steps as subscribing did.** the billing portal, linked from [services.solstone.app](https://services.solstone.app), cancels it. no phone call, no email, no retention maze. if you cancel, {{service}} keeps working through the end of the period you've already paid for, then stops; we don't prorate a cancellation you make on your own.
-
-questions: support@solstone.app.
-
-sol pbc`;
-
-const L2_BODY_TEMPLATE = `sol pbc runs your **{{service}}** subscription, and it's set to renew on **{{renewal_date}}** for another {{interval}}, at **{{price}}**, using the payment method on file.
-
-if you want to keep it, there's nothing to do. it renews on its own.
-
-if you'd rather not, cancel before then from the billing portal, linked from [services.solstone.app](https://services.solstone.app). it takes as few steps as subscribing did, and you'll keep {{service}} through the end of the period you've already paid for.
-
-questions: support@solstone.app.
-
-sol pbc`;
+const L2_BODY_TEMPLATE = t('account.renewal.solpbcrunsyourservicesubscriptionanditssettore');
 
 // The approved wording under the subscription rules: the renewal reminder (one template for the
 // early and the main annual reminder and the six-monthly one), the renewal cooling-off notice,
@@ -97,48 +71,48 @@ sol pbc`;
 // It keeps the subject of the reminder it replaces.
 const RULES_REMINDER_SUBJECT = L2_SUBJECT_TEMPLATE;
 const RULES_REMINDER_BODY = [
-  '**{{service}} renews on {{renewal_date}}**',
-  '[box]**to stop it renewing, cancel by {{cancel_by_date}}.**[/box]',
-  "this is a reminder: your **{{service}}** subscription renews on **{{renewal_date}}**, and you'll be charged **{{price}}** for another {{interval}}, using the payment method on file, unless you cancel before then. [PREV] you paid {{previous_price}} last time. [/PREV] [HIGHER] this renewal is {{increase}} more. [/HIGHER] the renewal after it is on {{next_renewal_date}}.",
-  "[MONTHLY] if it renews, the least you'll pay is that {{price}}. [/MONTHLY] [ANNUAL] if it renews, you can still withdraw for a full refund until the end of the 14th day after it does. after that, the least you'll pay is one month of it, {{monthly_equivalent}}: a cancel ends it at the end of your current plan month, and we refund the whole months left. [/ANNUAL]",
-  '**to cancel by {{cancel_by_date}},** sign in at [services.solstone.app](https://services.solstone.app) and use *cancel contracts here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), or email support@solstone.app saying you cancel.',
-  "[EARLY] we'll remind you again closer to the date. [/EARLY] if you want to keep it, there's nothing to do.",
-  'questions: support@solstone.app.',
-  'sol pbc',
+  t('account.renewal.servicerenewsonrenewaldate'),
+  t('account.renewal.boxtostopitrenewingcancelbycancelbydatebox'),
+  t('account.renewal.thisisareminderyourservicesubscriptionrenewson'),
+  t('account.renewal.monthlyifitrenewstheleastyoullpayisthatpricemo'),
+  t('account.renewal.tocancelbycancelbydatesigninatservicessolstone'),
+  t('account.renewal.earlywellremindyouagainclosertothedateearlyify'),
+  t('account.renewal.questionssupportsolstoneapp2'),
+  t('account.renewal.solpbc'),
 ].join('\n\n');
 
-const COOLING_OFF_SUBJECT = 'your {{service}} subscription renewed: you can cancel it for a full refund for 14 days';
+const COOLING_OFF_SUBJECT = t('account.renewal.yourservicesubscriptionrenewedyoucancancelitfo');
 const COOLING_OFF_BODY = [
-  '**you can cancel this renewal for a full refund until the end of the 14th day after {{window_date}}**',
-  'your **{{service}}** subscription has renewed and continues for another year. you paid **{{renewal_paid}}** on {{window_date}}.',
-  '**this is your right to withdraw, which cancels the renewal and refunds all of it.** it runs until the end of the 14th day after {{window_date}}, even if you keep using {{service}} until then. sign in at [services.solstone.app](https://services.solstone.app) and use *withdraw from contract here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), then confirm, or email support@solstone.app saying you withdraw or cancel. a withdrawal you send by then counts, even if it reaches us later.',
-  "**if you withdraw,** {{service}} stops that day, and we refund everything you paid for this renewal, {{renewal_paid}}, the same way you paid, within 14 days. nothing is taken off that refund, and using {{service}} doesn't cost you this right.",
-  '**if you use *cancel contracts here* instead,** now or after those 14 days, {{service}} keeps working to the end of your current plan month, and we refund the whole months left.',
-  'questions: support@solstone.app.',
-  'sol pbc',
+  t('account.renewal.youcancancelthisrenewalforafullrefunduntilthee'),
+  t('account.renewal.yourservicesubscriptionhasrenewedandcontinuesf'),
+  t('account.renewal.thisisyourrighttowithdrawwhichcancelstherenewa'),
+  t('account.renewal.ifyouwithdrawservicestopsthatdayandwerefundeve'),
+  t('account.renewal.ifyouusecancelcontractshereinsteadnoworafterth'),
+  t('account.renewal.questionssupportsolstoneapp2'),
+  t('account.renewal.solpbc'),
 ].join('\n\n');
 
 // The written confirmation under the subscription rules. {{key_facts}} is the key facts block,
 // the withdrawal block goes before {{who_we_are}} while the door is on, and the Terms section
 // named in "your rights" is the service's own.
 const RULES_L1_BODY_TEMPLATE = [
-  "you just subscribed to **{{service}}**. here's what that means, in writing, so you can keep it. it doesn't expire, and it isn't the only copy: the current terms are always at [services.solstone.app/terms](https://services.solstone.app/terms).",
-  '**the plan.** {{service}}, {{price}} every {{interval}}.',
-  '{{key_facts}}',
-  "**it renews on its own.** at the end of each {{interval}}, {{service}} renews automatically at the plan's then-current price, using the payment method on file, until you cancel. [ANNUAL] we'll email you twice before each renewal, 60 to 70 days and 35 to 40 days before it, with the date to cancel by and how to cancel. [/ANNUAL] [MONTHLY] we'll email you 25 to 28 days before the renewal at each six-month mark, to say it's coming and how to cancel. [/MONTHLY]",
-  '**canceling takes as few steps as subscribing did.** sign in at [services.solstone.app](https://services.solstone.app) and use *cancel contracts here* on your {{service}} page there or at [services.solstone.app/billing](https://services.solstone.app/billing), or email support@solstone.app saying you cancel. within your 14 days to withdraw (below), an email saying you cancel counts as a withdrawal, unless you tell us to keep {{service}} running. no phone call, no retention maze. [MONTHLY] if you cancel, {{service}} keeps working through the end of the month you\'ve paid for, then stops. [/MONTHLY] [ANNUAL] if you cancel in this first year, {{service}} keeps working through the end of the year you\'ve paid for, then stops. once it has renewed, a cancel ends it at the end of your current plan month, and we refund the whole months left. [/ANNUAL]',
-  '{{who_we_are}}',
+  t('account.renewal.youjustsubscribedtoservicehereswhatthatmeansin2'),
+  t('account.renewal.theplanservicepriceeveryinterval'),
+  t('account.renewal.keyfacts'),
+  t('account.renewal.itrenewsonitsownattheendofeachintervalservicer'),
+  t('account.renewal.cancelingtakesasfewstepsassubscribingdidsignin'),
+  t('account.renewal.whoweare'),
 ].join('\n\n');
 
 const RULES_L1_WHO_WE_ARE = [
-  '**who we are.** sol pbc, 16095 East 109th Place, Commerce City, CO 80022, United States · support@solstone.app · +1 563 663 5487. questions and complaints go to either, and an answer to a complaint says what we\'ll do about it.',
-  "**your rights.** if {{service}} isn't as described or doesn't work, the law where you live may give you rights about it, and nothing here limits them. {{service}} works with the solstone software on your own devices; section {{section}} of the terms says what it does and anything it needs.",
-  'questions: support@solstone.app.',
-  'sol pbc',
+  t('account.renewal.whowearesolpbc16095east109thplacecommercecityc'),
+  t('account.renewal.yourrightsifserviceisntasdescribedordoesntwork'),
+  t('account.renewal.questionssupportsolstoneapp2'),
+  t('account.renewal.solpbc'),
 ].join('\n\n');
 
-const L1_WITHDRAWAL_LAST_SENTENCE = "you get this once, counted from this purchase; a renewal doesn't start a new one.";
-const RULES_L1_WITHDRAWAL_LAST_SENTENCE = "[ANNUAL] each renewal gives you 14 more days to withdraw, counted from the day you pay for it, for a refund of that renewal. [/ANNUAL] [MONTHLY] you get this once, counted from this purchase; a monthly renewal doesn't start a new one. [/MONTHLY]";
+const L1_WITHDRAWAL_LAST_SENTENCE = t('account.renewal.yougetthisoncecountedfromthispurchasearenewald');
+const RULES_L1_WITHDRAWAL_LAST_SENTENCE = t('account.renewal.annualeachrenewalgivesyou14moredaystowithdrawc');
 
 // The section of the terms that describes each service.
 const TERMS_SECTIONS = Object.freeze({
@@ -433,23 +407,23 @@ export function renderLegalNotice({ kind, service, interval, unitAmount, renewal
 // PLACEHOLDER pending the approved wording: the drafted acknowledgement. It goes out as soon as
 // the withdrawal is recorded, before and apart from any Stripe call, so it names no amount and
 // speaks of the refund in the future tense.
-const WITHDRAWAL_ACK_SUBJECT = 'you withdrew from your {{service}} subscription';
+const WITHDRAWAL_ACK_SUBJECT = t('account.renewal.youwithdrewfromyourservicesubscription');
 const WITHDRAWAL_ACK_BODY = [
-  "we received your withdrawal. keep this email: it's your record of it.",
-  '**what you sent us.** a withdrawal from your {{service}} subscription.',
-  '**the subscription.** {{service}}, {{price}} every {{interval}}, bought on {{purchase_date}}.',
-  '**from.** signed in as {{primary_email}}, and this confirmation is sent there.',
-  '**sent.** {{submitted_at}}.',
-  "**what happens now.** {{service}} stops today and won't renew, and we're refunding everything you paid for this subscription, the same way you paid, within 14 days; your bank may take a few more days to show it.[BACKUP] we keep your encrypted backup copy for 30 days from today, then delete it for good. if you offloaded media into it, that copy is the only one, and subscribing again within those 30 days is the way to keep it.[/BACKUP][SME] your solstone.me address stays reserved for you, and subscribing again gives you the same one.[/SME]",
-  'questions: support@solstone.app.',
-  'sol pbc',
+  t('account.renewal.wereceivedyourwithdrawalkeepthisemail'),
+  t('account.renewal.whatyousentusawithdrawalfromyourservicesubscri'),
+  t('account.renewal.thesubscriptionservicepriceeveryintervalbought'),
+  t('account.renewal.fromsignedinasprimaryemailandthisconfirmationi'),
+  t('account.renewal.sentsubmittedat'),
+  t('account.renewal.whathappensnowservicestopstodayandwontrenewand'),
+  t('account.renewal.questionssupportsolstoneapp2'),
+  t('account.renewal.solpbc'),
 ].join('\n\n');
 
 // The acknowledgement of a withdrawal in a renewed annual year: the window counts from when the
 // renewal was paid, and the refund is that renewal's.
 const WITHDRAWAL_ACK_RENEWED = {
-  subscription: ['bought on {{purchase_date}}.', 'bought on {{purchase_date}}, renewed on {{window_date}}.'],
-  refund: ["we're refunding everything you paid for this subscription", "we're refunding everything you paid for its renewal on {{window_date}}"],
+  subscription: [t('account.renewal.boughtonpurchasedate'), t('account.renewal.boughtonpurchasedaterenewedonwindowdate')],
+  refund: [t('account.renewal.wererefundingeverythingyoupaidforthissubscript'), t('account.renewal.wererefundingeverythingyoupaidforitsrenewalonw')],
 };
 
 function keepBlock(template, tag, keep) {

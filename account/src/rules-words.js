@@ -1,3 +1,5 @@
+import { t } from '../../i18n/account.mjs';
+
 // The approved subscription-rules wording that more than one surface carries, and the branch
 // resolver every one of those surfaces uses.
 //
@@ -25,19 +27,19 @@ export function resolveBranches(text, keep) {
 // Lines are markdown: **bold**, *italic*, and a link to the terms. {{service}}, {{price}},
 // {{interval}} and {{monthly_equivalent}} are filled by the surface, which formats them as it
 // formats its other prices.
-export const KEY_FACTS_PAGE_HEADING = 'before you subscribe: the key facts';
-export const KEY_FACTS_EMAIL_HEADING = 'the key facts';
+export const KEY_FACTS_PAGE_HEADING = t('account.checkout.beforeyousubscribethekeyfacts');
+export const KEY_FACTS_EMAIL_HEADING = t('account.checkout.thekeyfacts');
 
-const KEY_FACTS_CONTINUES = "**it continues until you end it.** {{service}} is a subscription, and you keep paying until you cancel. [MONTHLY] you don't need to give notice: it ends at the end of the month you've paid for. [/MONTHLY] [ANNUAL] the first year runs to its end. once it has renewed, a cancel takes effect at the end of your current plan month, and we refund the whole months left. [/ANNUAL]";
-const KEY_FACTS_PAY = '**what you pay.** {{price}} every {{interval}}, tax included. [ANNUAL] that\'s {{monthly_equivalent}} a month. [/ANNUAL] the price can change only from a renewal, and we tell you before it does.';
-const KEY_FACTS_LEAST = "**the least you'll pay** is {{price}}, for the first {{interval}}, unless you withdraw within 14 days.";
-const KEY_FACTS_END = '**how to end it.** sign in at services.solstone.app and use *cancel contracts here*, on this page or at services.solstone.app/billing, or email support@solstone.app saying you cancel.';
-const KEY_FACTS_REMINDERS = '**renewal reminders.** [ANNUAL] 60 to 70 days, and again 35 to 40 days, before each renewal. [/ANNUAL] [MONTHLY] 25 to 28 days before the renewal at each six-month mark. [/MONTHLY]';
-const KEY_FACTS_CHANGE_MIND = '**you can change your mind.** you can withdraw for a full refund until the end of the 14th day after you buy; an email saying you cancel in that time counts too. [ANNUAL] you can do it again after each renewal. [/ANNUAL]';
-const KEY_FACTS_TERMS = 'the details are in the terms, with everything else: [services.solstone.app/terms](https://services.solstone.app/terms).';
+const KEY_FACTS_CONTINUES = t('account.checkout.itcontinuesuntilyouenditserviceisasubscription');
+const KEY_FACTS_PAY = t('account.checkout.whatyoupaypriceeveryintervaltaxincludedannualt');
+const KEY_FACTS_LEAST = t('account.checkout.theleastyoullpayispriceforthefirstintervalunle');
+const KEY_FACTS_END = t('account.checkout.howtoenditsigninatservicessolstoneappandusecan');
+const KEY_FACTS_REMINDERS = t('account.checkout.renewalremindersannual60to70daysandagain35to40');
+const KEY_FACTS_CHANGE_MIND = t('account.checkout.youcanchangeyourmindyoucanwithdrawforafullrefu');
+const KEY_FACTS_TERMS = t('account.checkout.thedetailsareinthetermswitheverythingelseservi');
 
-const ON_THIS_PAGE = 'on this page';
-const ON_YOUR_SERVICE_PAGE = 'on your {{service}} page there';
+const ON_THIS_PAGE = t('account.checkout.onthispage');
+const ON_YOUR_SERVICE_PAGE = t('account.checkout.onyourservicepagethere');
 
 function fill(text, values) {
   const out = text.replaceAll(/\{\{([a-z_]+)\}\}/g, (match, key) => values[key] || match);

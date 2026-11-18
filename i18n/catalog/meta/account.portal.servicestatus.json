@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "html.js: footer",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "dee0893d2dfd9731ee61a2f609bcb3a00c38f9e8f9b013cb40b6f18294fd4ef2",
+  "risk": "routine",
+  "auto_merge": true
+}

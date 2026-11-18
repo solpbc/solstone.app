@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "email.js: FROM_NAME",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "ecfb0c0ee968457295b42ae65e001f686d5c0d73932700acc18ac7450d994f55",
+  "risk": "account",
+  "auto_merge": true
+}
