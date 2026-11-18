@@ -89,7 +89,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
                 <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
                 <nav class="site-nav" aria-label="main">
                     <a href="/download">download</a>
-                    <a href="/mobile">mobile</a>
+                    <a href="/features">features</a>
                     <a href="https://github.com/solpbc">open source</a>
                     <a href="https://support.solstone.app">support</a>
                     <a class="btn btn-primary btn-sm" href="/install">get started</a>
@@ -100,7 +100,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
                         <summary>menu</summary>
                         <nav aria-label="main">
                             <a href="/download">download</a>
-                            <a href="/mobile">mobile</a>
+                            <a href="/features">features</a>
                             <a href="https://github.com/solpbc">open source</a>
                             <a href="https://support.solstone.app">support</a>
                         </nav>
@@ -138,6 +138,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
                 <nav aria-label="footer">
                     <a href="/download">download</a>
                     <a href="/mobile">mobile</a>
+                    <a href="/features">features</a>
                     <a href="/integrate">integrate</a>
                     <a href="https://services.solstone.app">services</a>
                     <a href="https://solpbc.org/privacy">privacy</a>

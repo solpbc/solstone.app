@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### added
+
+- solstone.app/features shows what makes solstone different, with screens from a public demo journal, and lists every capability with where it runs today. it links to pages on how what happened stays apart from what was inferred, on how your devices sync with your journal, and on how each device handles your screen, sound, pairing and the rest.
+- a "features" link takes the place of "mobile" in the top bar. the page for phones and tablets is still at solstone.app/mobile, linked from the download page.
+
 ### fixed
 
 - the page for the solstone app on phones and tablets is now at solstone.app/mobile. the old /phone address still works.

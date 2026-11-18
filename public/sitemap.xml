@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://solstone.app/</loc>
-    <lastmod>2026-11-15</lastmod>
+    <lastmod>2026-11-18</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/install</loc>
@@ -10,19 +10,19 @@
   </url>
   <url>
     <loc>https://solstone.app/download</loc>
-    <lastmod>2026-11-15</lastmod>
+    <lastmod>2026-11-18</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/download/mac</loc>
-    <lastmod>2026-11-15</lastmod>
+    <lastmod>2026-11-18</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/download/journal/windows</loc>
-    <lastmod>2026-11-15</lastmod>
+    <lastmod>2026-11-18</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/download/android</loc>
-    <lastmod>2026-11-17</lastmod>
+    <lastmod>2026-11-18</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/mobile</loc>
@@ -33,8 +33,24 @@
     <lastmod>2026-11-18</lastmod>
   </url>
   <url>
+    <loc>https://solstone.app/features</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+  <url>
+    <loc>https://solstone.app/features/evidence</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+  <url>
+    <loc>https://solstone.app/features/custody</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+  <url>
+    <loc>https://solstone.app/features/devices</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+  <url>
     <loc>https://solstone.app/brand</loc>
-    <lastmod>2026-11-15</lastmod>
+    <lastmod>2026-11-18</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/brand/logo</loc>
@@ -42,11 +58,11 @@
   </url>
   <url>
     <loc>https://solstone.app/brand/dayground</loc>
-    <lastmod>2026-11-15</lastmod>
+    <lastmod>2026-11-18</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/brand/system</loc>
-    <lastmod>2026-11-15</lastmod>
+    <lastmod>2026-11-18</lastmod>
   </url>
   <url>
     <loc>https://solstone.app/releases</loc>

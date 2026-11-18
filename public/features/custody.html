@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>safe, secure sync between your devices and your journal · solstone</title>
+    <meta name="description" content="what a solstone app takes in waits on that device until your journal confirms it holds each file.">
+    <meta property="og:title" content="safe, secure sync between your devices and your journal">
+    <meta property="og:description" content="what a solstone app takes in waits on that device until your journal confirms it holds each file.">
+    <meta property="og:url" content="https://solstone.app/features/custody">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="solstone">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/features/custody">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
+    <link rel="stylesheet" href="/static/features/features.css?v=9843d7fadc">
+</head>
+<body class="sun both">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
+    </div>
+    <div class="page">
+        <a href="#main" class="skip-link">skip to content</a>
+        <header class="site-header">
+            <div class="bar">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="main">
+                    <a href="/download">download</a>
+                    <a href="/features" aria-current="page">features</a>
+                    <a href="https://github.com/solpbc">open source</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                    <details class="site-menu">
+                        <summary>menu</summary>
+                        <nav aria-label="main">
+                            <a href="/download">download</a>
+                            <a href="/features" aria-current="page">features</a>
+                            <a href="https://github.com/solpbc">open source</a>
+                            <a href="https://support.solstone.app">support</a>
+                        </nav>
+                    </details>
+                </div>
+            </div>
+        </header>
+            <section class="band wrap">
+                <div class="band-inner prose-col">
+                    <p class="crumb"><a href="/features">features</a> / privacy</p>
+                    <h1>safe, secure sync between your devices and your journal</h1>
+                    <p class="promise">what a solstone app takes in waits on that device until your journal confirms it holds each file. only then is the copy removed. anything your journal hasn't confirmed stays put and goes again later.</p>
+                    <div class="facts" style="margin-top:16px"><span class="status">available</span><span class="where">every solstone app</span></div>
+                </div>
+            </section>
+
+            <section class="band wrap" aria-labelledby="see-h">
+                <div class="band-inner">
+                    <div class="stage-head">
+                        <h2 id="see-h">see it happen</h2>
+                        <span class="illus-note">an illustration of five minutes on a phone, not a screen from the app</span>
+                    </div>
+                    <div class="stepper" role="group" aria-label="step through it">
+                        <button type="button" data-step="0" aria-pressed="true">1. taken in</button>
+                        <button type="button" data-step="1" aria-pressed="false">2. on its way</button>
+                        <button type="button" data-step="2" aria-pressed="false">3. answered</button>
+                        <button type="button" data-step="3" aria-pressed="false">4. after</button>
+                        <button type="button" data-step="4" aria-pressed="false">if the connection drops</button>
+                    </div>
+                    <div class="scene">
+                        <div class="place">
+                            <h3>on your phone</h3>
+                            <ul class="files" id="phone"></ul>
+                        </div>
+                        <div class="place">
+                            <h3>in your journal</h3>
+                            <ul class="files" id="journal"></ul>
+                        </div>
+                    </div>
+                    <p class="caption" id="caption" aria-live="polite"></p>
+                </div>
+            </section>
+
+            <section class="band wrap" aria-labelledby="knows-h">
+                <div class="band-inner">
+                    <h2 id="knows-h">how it's checked</h2>
+                    <p class="muted" style="max-width:40em">the device and your journal compare each file by its fingerprint. your journal reports on every file, and the device checks its own copy again before removing anything.</p>
+                    <figure class="diagram">
+                        <svg viewBox="0 0 900 430" role="img" aria-labelledby="seq-t seq-d">
+                            <title id="seq-t">how a device hands files to your journal</title>
+                            <desc id="seq-d">two lanes, the device and your journal. the device fingerprints each file, each file goes to your journal with its fingerprint, your journal checks each one and writes it if it can, then reports on every file: written, already held, or received and not written. the device checks its own copy again, then removes only the files answered written or already held. any other file stays and goes again later.</desc>
+                            <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="head" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+                            <rect class="box" x="90" y="14" width="200" height="40" rx="9"/>
+                            <text x="190" y="40" text-anchor="middle" font-size="16" font-weight="700">the device</text>
+                            <rect class="box" x="610" y="14" width="200" height="40" rx="9"/>
+                            <text x="710" y="40" text-anchor="middle" font-size="16" font-weight="700">your journal</text>
+                            <line class="life" x1="190" y1="54" x2="190" y2="420"/>
+                            <line class="life" x1="710" y1="54" x2="710" y2="420"/>
+
+                            <rect class="tint" x="40" y="72" width="300" height="38" rx="8"/>
+                            <text x="190" y="96" text-anchor="middle" font-size="14.5">fingerprints each file</text>
+
+                            <line class="msg" x1="196" y1="140" x2="702" y2="140" marker-end="url(#ah)"/>
+                            <text x="450" y="130" text-anchor="middle" font-size="14.5">the files, each with its fingerprint</text>
+
+                            <rect class="tint" x="530" y="160" width="360" height="56" rx="8"/>
+                            <text x="710" y="184" text-anchor="middle" font-size="14.5">checks each file against</text>
+                            <text x="710" y="204" text-anchor="middle" font-size="14.5">its fingerprint, then writes it if it can</text>
+
+                            <line class="msg" x1="704" y1="250" x2="198" y2="250" marker-end="url(#ah)"/>
+                            <text x="450" y="240" text-anchor="middle" font-size="14.5">a report on every file</text>
+                            <text x="450" y="272" text-anchor="middle" font-size="13" class="soft">written · already held · received, not written</text>
+
+                            <rect class="tint" x="40" y="296" width="300" height="38" rx="8"/>
+                            <text x="190" y="320" text-anchor="middle" font-size="14.5">checks its own copy again</text>
+
+                            <rect class="tint" x="40" y="350" width="300" height="56" rx="8"/>
+                            <text x="190" y="374" text-anchor="middle" font-size="14.5">removes only what was written</text>
+                            <text x="190" y="394" text-anchor="middle" font-size="14.5">or already held</text>
+                            <text x="362" y="384" font-size="13" class="soft">anything else stays, and goes again later</text>
+                        </svg>
+                    </figure>
+                    <ol class="diagram-steps">
+                        <li><strong>the device</strong> fingerprints each file.</li>
+                        <li>each file goes to your journal with its fingerprint.</li>
+                        <li><strong>your journal</strong> checks each file against its fingerprint, then writes it if it can.</li>
+                        <li>it reports on every file: written, already held, or received, not written.</li>
+                        <li><strong>the device</strong> checks its own copy again.</li>
+                        <li>it removes only what was written or already held. anything else stays, and goes again later.</li>
+                    </ol>
+                    <details>
+                        <summary>the exact account</summary>
+                        <div class="detail-body">
+                            <p class="small">each file is fingerprinted with SHA-256 on the device. your journal checks every file against its fingerprint before it writes it if it can, and reports on each file with one of three states: <code>written</code>, <code>already_held</code> (it had this exact file already) or <code>received_not_written</code>. only the first two let the device remove its copy, and before it does, the device checks that its own file still matches the fingerprint it sent.</p>
+                            <p class="small">a quick check that a file looks unchanged is used to decide what to send, and is never treated as proof that the journal holds it. a connection that succeeds, an upload that finishes and an answer that never arrives all leave the copy where it is.</p>
+                        </div>
+                    </details>
+                </div>
+            </section>
+
+            <section class="band wrap" aria-labelledby="os-h">
+                <div class="band-inner">
+                    <h2 id="os-h">on each device</h2>
+                    <p class="muted" style="max-width:40em">every solstone app follows the same rule. where the device brings something of its own, it's here.</p>
+                    <dl class="os-list">
+                        <dt>mac, windows, linux</dt><dd>each file the app takes in waits on the computer until your journal has confirmed it.</dd>
+                        <dt>iphone and ipad</dt><dd>a file your journal turned away is tried again later, not over and over on your battery.</dd>
+                        <dt>apple watch</dt><dd>what the watch takes in stays on your wrist until it's safely on your phone and your phone has said so, and goes on to your journal under the same rule.</dd>
+                        <dt>android</dt><dd>before anything goes, the solstone app for android checks it's still paired with the same journal, and a send that has started is never cancelled.</dd>
+                        <dt>every app</dt><dd>if you unpair or move to another journal, what's waiting goes to the journal you pair with next, once you confirm its mark.</dd>
+                    </dl>
+                    <p class="actions"><a class="btn-text" href="/features/devices">see each topic device by device →</a></p>
+                </div>
+            </section>
+
+            <section class="band wrap" aria-labelledby="deeper-h">
+                <div class="band-inner prose-col">
+                    <h2 id="deeper-h">go deeper</h2>
+                    <ul class="deeper">
+                        <li><a href="#tech">how solstone fits together</a><span class="what">the architecture, from a device to your journal</span></li>
+                        <li><a href="https://github.com/solpbc/solstone-journal/blob/9476cd24f36aef03016d18d40bd7890df6ca3e71/core/crates/solstone-core-ingest-resolve/src/resolve.rs"><code>resolve.rs</code></a><span class="what">how your journal checks each file and chooses its answer</span></li>
+                        <li><a href="https://github.com/solpbc/solstone-macos/blob/16c11a8d7f339153106a8a2a824e755a4c6d2baf/Sources/solstone/IngestAcknowledgment.swift"><code>IngestAcknowledgment.swift</code></a><span class="what">how the solstone app for mac reads the answers before it removes anything</span></li>
+                        <li><a href="https://github.com/solpbc/solstone-swift/blob/4a4db49426eaf535ecfcaed937bec5aed82df3e9/Sources/Transfer/TransferEngine.swift"><code>TransferEngine.swift</code></a><span class="what">the same on iphone and ipad</span></li>
+                        <li><a href="https://github.com/solpbc/solstone-swift/blob/4a4db49426eaf535ecfcaed937bec5aed82df3e9/Sources/WatchCapture/WatchRelaySender.swift"><code>WatchRelaySender.swift</code></a><span class="what">the watch's hand-off to the phone</span></li>
+                        <li><a href="https://github.com/solpbc/solstone-android/blob/4545674922045f1fb7d5fef866a6bd2b3fbec4ac/platform/work/src/main/kotlin/app/solstone/platform/work/SegmentDrainer.kt"><code>SegmentDrainer.kt</code></a><span class="what">android's sender, and how waiting material follows your pairing</span></li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+        <footer class="site-footer">
+            <div class="footer-row">
+                <nav aria-label="footer">
+                    <a href="/download">download</a>
+                    <a href="/mobile">mobile</a>
+                    <a href="/features">features</a>
+                    <a href="/integrate">integrate</a>
+                    <a href="https://services.solstone.app">services</a>
+                    <a href="https://solpbc.org/privacy">privacy</a>
+                    <a href="/releases">releases</a>
+                    <a href="https://trust.solstone.app">trust</a>
+                    <a href="https://support.solstone.app">support</a>
+                    <a href="/brand">brand</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc. Apple and the Apple logo are trademarks of Apple Inc., registered in the U.S. and other countries. App Store is a service mark of Apple Inc. Google Play and the Google Play logo are trademarks of Google LLC.</p>
+            </div>
+        </footer>
+    </div>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
+    <script>
+(function () {
+  var F = ['audio, 14:05 to 14:10', 'where you were, 14:05 to 14:10', 'screen, 14:05 to 14:10'];
+  var S = [
+    { phone: [['', 'on this phone'], ['', 'on this phone'], ['', 'on this phone']], journal: [],
+      cap: 'five minutes are taken in and wait on the phone for your journal. nothing has gone anywhere yet.' },
+    { phone: [['', 'on its way, still here'], ['', 'on its way, still here'], ['', 'on its way, still here']], journal: [['', 'checking'], ['', 'checking'], ['', 'checking']],
+      cap: 'each file goes to your journal with its fingerprint. a finished upload is not an answer, so all three stay on the phone.' },
+    { phone: [['', 'answered: written'], ['', 'answered: already held'], ['', 'answered: received, not written']], journal: [['', 'written'], ['', 'already held'], ['', 'received, not written']],
+      cap: 'your journal reports on every file. it had the location already, and the screen file arrived but wasn\'t written.' },
+    { phone: [['gone', 'removed from the phone'], ['gone', 'removed from the phone'], ['', 'kept, goes again later']], journal: [['', 'held'], ['', 'held']],
+      cap: 'the phone checks its own copies again, then removes the two your journal holds. the screen file stays and goes again later.' },
+    { phone: [['', 'no answer, kept'], ['', 'no answer, kept'], ['', 'no answer, kept']], journal: [],
+      cap: 'with no answer, nothing is removed. everything waits on the phone and goes when your journal can be reached.' }
+  ];
+  var phone = document.getElementById('phone');
+  var journal = document.getElementById('journal');
+  var cap = document.getElementById('caption');
+  var buttons = Array.prototype.slice.call(document.querySelectorAll('.stepper button'));
+  function li(name, st) {
+    var cls = st[0] === 'gone' ? ' class="gone"' : '';
+    return '<li' + cls + '><span>' + name + '</span><span class="st' + (st[0] ? ' ' + st[0] : '') + '">' + st[1] + '</span></li>';
+  }
+  function show(i) {
+    var s = S[i];
+    phone.innerHTML = s.phone.map(function (st, k) { return li(F[k], st); }).join('');
+    journal.innerHTML = s.journal.length ? s.journal.map(function (st, k) { return li(F[k], st); }).join('') : '<li><span class="st gone">nothing yet</span></li>';
+    cap.textContent = s.caption || s.cap;
+    buttons.forEach(function (b, k) { b.setAttribute('aria-pressed', k === i ? 'true' : 'false'); });
+  }
+  buttons.forEach(function (b, k) { b.addEventListener('click', function () { show(k); }); });
+  show(0);
+})();
+
+    </script>
+</body>
+</html>

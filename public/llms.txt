@@ -13,6 +13,7 @@ the project is maintained by sol pbc (https://solpbc.org), a colorado public ben
 ## Docs
 
 - [Get started](https://solstone.app/install): every platform, from installing your journal to connecting your agent
+- [Features](https://solstone.app/features): what solstone does, with screens from a public demo journal, and every capability with where it runs today
 - [Integrate](https://solstone.app/integrate): connecting an agent over MCP or building an integration: every tool, what the owner controls, sign-in, limits, and links to the MCP server source
 - [Install guide](https://github.com/solpbc/solstone-journal/blob/main/INSTALL.md): install guide for a coding agent and human working together
 - [README](https://github.com/solpbc/solstone-journal/blob/main/README.md): Project overview, architecture, quick start, and CLI reference

@@ -22,6 +22,7 @@ const check = process.argv.includes("--check");
 const sources = [
   ...readdirSync(resolve(root, "public")).filter((f) => f.endsWith(".html")).map((f) => `public/${f}`),
   ...readdirSync(resolve(root, "public/brand")).filter((f) => f.endsWith(".html")).map((f) => `public/brand/${f}`),
+  ...readdirSync(resolve(root, "public/features")).filter((f) => f.endsWith(".html")).map((f) => `public/features/${f}`),
   "releases.js",
 ];
 const REF = /\/static\/([A-Za-z0-9._/-]+\.(?:css|js|webp|svg|png|woff2))(?:\?v=[0-9a-f]*)?/g;
