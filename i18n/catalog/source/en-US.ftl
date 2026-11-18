@@ -818,6 +818,7 @@ account.services.yourthinkingoffyourdevice = your thinking off your device
 account.services.yourthinkingoffyourdevice2 = your thinking off your device
 account.services.yr = /yr
 account.settings.added = added { $date }
+account.settings.device = device
 account.settings.lastused = last used { $relativeTime }
 account.settings.neverused = never used
 account.settings.on2 = { $browser } on { $operatingSystem }

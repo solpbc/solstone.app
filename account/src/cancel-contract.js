@@ -560,7 +560,7 @@ const EMAIL_WORDS = {
   now: (v) => [
     { b: t('account.cancel.whathappensnow') },
     v.endsToday ? t('account.cancel.stoppedwhenyoucanceledanditwontrenew', { serviceName: v.serviceName }) : t('account.cancel.keepsworkinguntilthenstopsanditwontrenew', { serviceName: v.serviceName, endDate: v.endDate }),
-    v.refund ? t('account.cancel.wererefundingforthewholeleftthesamewayyoupaidw', { refund: v.refund, refundMonths: v.refundMonths, pluralSuffix: v.refundMonths === 1 ? 'month' : 'months' }) : '',
+    v.refund ? t('account.cancel.wererefundingforthewholeleftthesamewayyoupaidw', { refund: v.refund, refundMonths: v.refundMonths, pluralSuffix: v.refundMonths === 1 ? t('account.portal.month') : t('account.portal.months') }) : '',
     v.cause ? t('account.cancel.wellansweryourreasonandwhetherwerefundmore') : '',
     ...(v.windowDate ? [t('account.cancel.youcanstillwithdrawforafullrefunduntiltheendof', { windowDate: v.windowDate }), { i: t('account.portal.withdrawfromcontracthere') }, '.'] : []),
     v.service === 'spb_hosted' ? t('account.cancel.afteritstopswekeepyourencryptedbackupcopyfor30') : '',

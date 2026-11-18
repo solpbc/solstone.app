@@ -308,7 +308,7 @@ function detectOs(ua) {
   if (/Macintosh|Mac OS X/.test(ua)) return 'macos';
   if (/Windows/.test(ua)) return 'windows';
   if (/Linux/.test(ua)) return 'linux';
-  return 'device';
+  return t('account.settings.device');
 }
 
 // The label an owner sees for a passkey, everywhere it is shown or exported:

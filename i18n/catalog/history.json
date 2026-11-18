@@ -12456,6 +12456,18 @@
       "selector": null
     },
     {
+      "id": "account.settings.device",
+      "resource": "m6163636f756e742e73657474696e67732e646576696365",
+      "namespace": "account.settings",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
+      "selector": null
+    },
+    {
       "id": "account.settings.lastused",
       "resource": "m6163636f756e742e73657474696e67732e6c61737475736564",
       "namespace": "account.settings",

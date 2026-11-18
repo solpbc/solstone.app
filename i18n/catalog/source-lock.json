@@ -5637,6 +5637,13 @@
       "locales": []
     },
     {
+      "id": "account.settings.device",
+      "source": "e40cefb0772348007fe8b34d57e3b45e3b6b4e358ea32ffc4b330401d2376200",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
       "id": "account.settings.lastused",
       "source": "fbaabb52ed8cd5400d5972749b1df0516f399c6eb5aa133600b804480c788b0b",
       "contract": "08367a4d3335806acf14c27d01b7b19eeadb636cc67e5167cee838824704692d",

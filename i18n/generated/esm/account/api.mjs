@@ -4937,6 +4937,12 @@ const MESSAGES = {
       { name: "date", type: "string", min: null, max: null, numericStyle: "ungrouped" },
     ],
   },
+  "account.settings.device": {
+    resourceKey: "m6163636f756e742e73657474696e67732e646576696365",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "account.settings.lastused": {
     resourceKey: "m6163636f756e742e73657474696e67732e6c61737475736564",
     formatIntent: "text",
