@@ -301,7 +301,7 @@ export const RELEASE_PAGE_CONFIGS = {
     stream: "ios",
     heading: "iphone app releases",
     intro:
-      "these are the iphone app's own changes: pairing, the journal view, what is still waiting on your phone, and the apple watch. the app is on the App Store, where it's listed as solstone mobile. new versions reach testers through TestFlight first, so the newest notes here can be ahead of what the App Store has.",
+      "these are the iphone app's own changes: pairing, the journal view, what is still waiting on your phone, and the apple watch. the app is on the App Store, where it's listed as solstone.app. new versions reach testers through TestFlight first, so the newest notes here can be ahead of what the App Store has.",
     // The App Store is the one public way in on iPhone, so the CTA is the store
     // listing. TestFlight builds are tagged here too, which is why the intro says
     // the newest notes can run ahead of the store.
