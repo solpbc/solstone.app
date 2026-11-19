@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 144,
+  "source_revision": "c6d0d90cc6fa09d67872f9ace895703503fe08ecbb234a250ff69bc681ca1b12",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "GitHub"
+    }
+  ]
+}

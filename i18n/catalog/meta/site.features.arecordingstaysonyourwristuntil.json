@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 400,
+  "source_revision": "ef716d6f1ab64f080216f1187618b56aa215c9638233e86bf49d9494ab2636bb",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<a href=\"/features/custody\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

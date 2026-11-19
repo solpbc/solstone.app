@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 780,
+  "source_revision": "36c8b4ebf6badca043d7004578d5f89710e250cde83c5281e2b25ea8ece4051f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</strong>"
+    }
+  ]
+}

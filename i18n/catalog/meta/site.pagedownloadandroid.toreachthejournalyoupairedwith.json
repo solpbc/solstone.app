@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "download-android.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 396,
+  "source_revision": "06f09c372981cc856145cc34ea09f50c157822d2767095de2d4deb56c610ae00",
+  "risk": "routine",
+  "auto_merge": true
+}

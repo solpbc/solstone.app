@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 256,
+  "source_revision": "2a9fcba259d4cd6680b0a3e97e497a16256a01a4351bc0c570cf82672799aaf8",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "https://github.com/solpbc/solstone-macos"
+    }
+  ]
+}

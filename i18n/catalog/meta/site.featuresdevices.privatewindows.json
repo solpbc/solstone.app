@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "features/devices.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 60,
+  "source_revision": "487731c1dcdf00d0c59996d679502806770eaef3bf0ee1bc174c0ae395ca9427",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "windows"
+    }
+  ]
+}

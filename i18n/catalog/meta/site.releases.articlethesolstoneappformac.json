@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [
+    {
+      "name": "version",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 136,
+  "source_revision": "9bdc0b3c739caee7fb5a209418ff36317174b7631300564a9e858b906faefed0",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "install-tools/minisign/0.12/SOURCE.txt",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 224,
+  "source_revision": "3757e2201d6b63ce67687d6aafa9d8600e7236433818277b2170cbf68fbbcc6c",
+  "risk": "routine",
+  "auto_merge": true
+}

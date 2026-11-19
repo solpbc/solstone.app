@@ -1,21 +1,30 @@
-# Account portal copy
+# Website and account portal copy
 
-Edit the English in [the catalog](catalog/source/en-US.ftl). Each message has a
-sidecar in `catalog/meta/` with its context, arguments and review class. Follow
-the pinned compiler's `tools/i18n/README.md` when adding or retiring a message
-or refreshing its source revision. Keep contract, statutory, payment and
-consent messages in English until their translations are reviewed.
+Edit English messages in [the catalog](catalog/source/en-US.ftl). Each message
+has a sidecar in `catalog/meta/` with its context, arguments and review class.
+Follow the compiler's `tools/i18n/README.md` when adding or retiring a message
+or refreshing its source revision. Keep legal, statutory, payment and consent
+messages in English until their translations are approved.
 
-The Worker imports the generated `account` bundle. Pages and transactional
-mail both use `en-US`, including mail sent on a schedule. Build the
-`i18n-catalog` binary from the revision in [compiler.json](compiler.json),
-then regenerate the bundle and run the account tests.
+For changes to the public site, edit layouts in [pages](pages/). A
+`[[i18n:message.id]]` marker reads the corresponding message. Keep IDs, URLs
+and code used by browsers as fixed values. When a sentence has an inline link
+or command, keep it with the sentence and preserve its markup in protected
+slots. The Dayground generator reads the catalog before expanding the worked
+examples in `scripts/dayground/dayground.src.md`.
+
+Both Workers use English (`en-US`). The site generates its files in `public/`
+and reads the `website` bundle for copy composed by the Worker. The account
+portal reads the `account` bundle for pages and transactional mail.
+
+Build `i18n-catalog` from the revision in [compiler.json](compiler.json). From
+the repository root, regenerate the bundles and check the public site.
 
 ```sh
 I18N_COMPILER=/path/to/i18n-catalog node i18n/update.mjs --write
-cd account
-npm test
+make stamp
+make check
 ```
 
-The test command checks that the catalog, compiler pin and generated bundle
-match the last regeneration. Rendering and tests use the committed output.
+Run `npm test` in `account/` for portal changes. Commit the catalog and
+generated output together.

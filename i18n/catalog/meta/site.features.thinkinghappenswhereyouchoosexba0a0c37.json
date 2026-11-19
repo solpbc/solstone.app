@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 424,
+  "source_revision": "60049b7332f2d7746e294edb147a9332f5a1ffc4b8d599b404aa6552a75e982b",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<a class=\"anchor\" href=\"#thinking\" aria-hidden=\"true\" tabindex=\"-1\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

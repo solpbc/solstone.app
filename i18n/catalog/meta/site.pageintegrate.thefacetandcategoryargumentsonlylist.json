@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 564,
+  "source_revision": "f79ea659f8b69bbeef5b5f38a026d2a5777eae5ec79942062be8ab360010b015",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>facet</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>category</code>"
+    }
+  ]
+}

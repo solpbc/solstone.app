@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1104,
+  "source_revision": "f73d23d7bce8a7c2a005188b2dfb30b26bf9f9d518333fef1a0bce908db31a47",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>solstone-linux terminal on</code>"
+    }
+  ]
+}

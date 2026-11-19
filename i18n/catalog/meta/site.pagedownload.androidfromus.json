@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 68,
+  "source_revision": "91cca2203547f53710a2507c14ee1d90844c6602cfc9ff9d666a2e5b885d39c5",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "android"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features/evidence.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 868,
+  "source_revision": "82cf5f728811bfa0acab8e1c1ed233bb37ff9182e4a71f8aa91a4d31d7b10436",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</strong>"
+    }
+  ]
+}

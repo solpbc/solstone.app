@@ -1,0 +1,16 @@
+{
+  "description": "Account confirmation.",
+  "context": "html.js confirmation",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 80,
+  "source_revision": "534f78ba8b65649f48a76dceba06d8c6d45837b1b6f88525b258bd465891e1c3",
+  "risk": "consent",
+  "auto_merge": false
+}

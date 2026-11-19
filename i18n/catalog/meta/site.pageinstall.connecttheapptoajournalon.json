@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 420,
+  "source_revision": "6f86b5a0d3e4f1f1fb822da203cf88f78e18971c002670265efe98e82a4e2dc8",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "windows"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "linux"
+    }
+  ]
+}

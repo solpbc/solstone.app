@@ -21,6 +21,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import * as engine from '../account/src/sunarc.js';
 import { installNightSky } from '../account/src/night-sky.js';
 import { installNightLayer } from '../account/src/night-layer.js';
+import { websiteTemplate, websiteText } from '../i18n/website.mjs';
 import { renderMarkdown } from './dayground/markdown.mjs';
 
 const root = new URL('../', import.meta.url);
@@ -294,7 +295,7 @@ const pt = (p) => `(${f1(p[0])}, ${f1(p[1])})`;
 function tables(vec) {
   const out = {};
   out['table:geometry'] = [
-    '| frame | W × H | side | logo Ø | R | A | B | chord c | sagitta s | arc radius | centre O | P(½) | halo radius |',
+    websiteText('site.daygroundtables.framewhsidelogora'),
     '|---|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...vec.geometry.map((v) => {
       const e = v.expect;
@@ -304,26 +305,26 @@ function tables(vec) {
   out['line:path'] = vec.path.filter((v) => v.input.t > 0 && v.input.t < 1 && v.input.t !== 0.5)
     .map((v) => `t = ${v.input.t} → ${pt(v.expect.position)}`).join(' · ');
   const d19 = vec.sunTimes[0].expect;
-  out['line:denver19'] = `sunrise ${d19.riseClock}, sunset ${d19.setClock}, dawn ${hmOf(d19.rise - 30)}, dusk ${hmOf(d19.set + 30)}`;
+  out['line:denver19'] = websiteText('site.daygroundtables.dawnanddusk', { rise: d19.riseClock, set: d19.setClock, dawn: hmOf(d19.rise - 30), dusk: hmOf(d19.set + 30) });
   out['table:day'] = [
-    '| clock | t | night | env |',
+    websiteText('site.daygroundtables.clocktnightenv'),
     '|---|---|---|---|',
     ...vec.day.map((v) => `| ${v.input.clock} | ${f3(v.expect.t)} | ${v.expect.night.toFixed(2)} | ${f3(v.expect.env)} |`),
   ].join('\n');
   const d23 = vec.sunTimes[1].expect;
   const nightRow = vec.nightSky.expect;
-  out['line:denver23'] = `sunrise ${d23.riseClock}, sunset ${d23.setClock}, solar midnight ${nightRow.solarMidnightClock}`;
+  out['line:denver23'] = websiteText('site.daygroundtables.solarmidnight', { rise: d23.riseClock, set: d23.setClock, midnight: nightRow.solarMidnightClock });
   const rows = [];
   for (let i = 0; i < vec.frames.length; i += 2) {
     const L = vec.frames[i], D = vec.frames[i + 1];
     const glow = (v) => v.expect.twilight
       ? `${pt(v.expect.twilight.position)} · ${f3(v.expect.twilight.alpha)} \`${v.expect.twilight.color}\``
-      : 'none';
+      : websiteText('site.featuresdevices.none');
     const corner = L.expect.twilight ? `${f3(L.expect.twilight.cornerAlpha)} · ${f3(D.expect.twilight.cornerAlpha)}` : '0';
     rows.push(`| ${L.input.clock} | \`${L.expect.ground}\` · \`${D.expect.ground}\` | ${f3(L.expect.sunOpacity)} · ${f3(D.expect.sunOpacity)} | ${f3(L.expect.w)} · ${L.expect.phase} | ${glow(L)} | ${glow(D)} | ${corner} |`);
   }
   out['table:frames'] = [
-    '| clock | ground, light · dark | logo opacity, light · dark | w · phase | twilight glow on light: centre · alpha · color | on dark | alpha at the corner, light · dark |',
+    websiteText('site.daygroundtables.clockgroundlightdarklogoopacitylight'),
     '|---|---|---|---|---|---|---|',
     ...rows,
   ].join('\n');
@@ -369,14 +370,14 @@ export async function buildAll() {
   const source = buildModule();
   const mod = await importModule(source);
   const vec = buildVectors(mod);
-  const filled = fillSource(read('scripts/dayground/dayground.src.md'), vec);
+  const filled = fillSource(websiteTemplate(read('scripts/dayground/dayground.src.md')), vec);
   const secs = sections(filled);
   delete secs.title;
   return {
     [OUT.module]: source,
     [OUT.vectors]: JSON.stringify(vec, null, 2) + '\n',
     [OUT.markdown]: buildMarkdown(filled),
-    [OUT.page]: buildPage(read(OUT.page), secs),
+    [OUT.page]: buildPage(websiteTemplate(read('i18n/pages/brand/dayground.html')), secs),
   };
 }
 

@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features/devices.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 88,
+  "source_revision": "8e44fe731ba92a991074d9fb0c283e0bae890fd28a5ce4377f47bebb0c19ea0b",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "iphone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "ipad"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features/devices.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 376,
+  "source_revision": "496872d139a0fd759cf7b7d58b54a9b9adbb595d8d9313261d85568c44f6f775",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>solstone-linux terminal on</code>"
+    }
+  ]
+}

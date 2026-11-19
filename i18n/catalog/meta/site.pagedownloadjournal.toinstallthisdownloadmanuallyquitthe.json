@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1048,
+  "source_revision": "b1dc9a33950ece174cfb6da5ecc4f687796b4f57c1ecb99703b95952cc62b05b",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</strong>"
+    }
+  ]
+}

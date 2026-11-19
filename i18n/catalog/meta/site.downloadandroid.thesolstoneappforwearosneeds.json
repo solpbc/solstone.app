@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "download-android.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1132,
+  "source_revision": "6446e86379223f90ad2ac4c6ee21447a721871ecf51fd6bf359cd8a0f6b2744c",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "wear os"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "android"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "Google Play"
+    }
+  ]
+}

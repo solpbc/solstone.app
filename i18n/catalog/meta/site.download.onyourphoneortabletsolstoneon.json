@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "download.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 392,
+  "source_revision": "790a3c11aa0d251e43e11c8ccec8ccb0d456ef6ff2258ab4c49fdc355527d5e7",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<a class=\"btn-text\" href=\"/mobile\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

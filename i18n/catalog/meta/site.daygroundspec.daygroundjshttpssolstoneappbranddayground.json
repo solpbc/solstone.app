@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 396,
+  "source_revision": "dd8e5102dfadd181d2066f9124199e2b2877d0d9e2e10384447806b9f35ce8e4",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "https://solstone.app/brand/dayground/dayground.js):"
+    }
+  ]
+}

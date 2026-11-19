@@ -82,8 +82,8 @@ test("the generated files are current, so the page and dayground.md carry the sa
 
 test("make deploy refuses a stale copy and never regenerates one", () => {
   const deploy = read("Makefile").match(/^deploy:([^\n]*)\n((?:\t[^\n]*\n)*)/m);
-  assert.match(deploy[2], /gen-dayground\.mjs --check/);
-  assert.doesNotMatch(deploy[1] + deploy[2].replace(/gen-dayground\.mjs --check/, ""), /dayground/);
+  assert.match(deploy[2], /render-website\.mjs --check/);
+  assert.doesNotMatch(deploy[1] + deploy[2].replace(/render-website\.mjs --check/, ""), /dayground/);
 });
 
 test("the page loads nothing from another origin, and /brand, llms.txt and the sitemap point at it", () => {

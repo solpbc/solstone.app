@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "index.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1516,
+  "source_revision": "aad1f59f4b1a38927bf328c93026fdf6ae0e07d0d08282779adbd7ff30cb7623",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<a href=\"https://solpbc.org/articles\">"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

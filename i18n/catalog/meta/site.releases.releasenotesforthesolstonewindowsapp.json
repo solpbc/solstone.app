@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 456,
+  "source_revision": "7ec225f434230753b031e019feee3f56a2120b5b91744699fcafdacaa9523a54",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "windows"
+    }
+  ]
+}

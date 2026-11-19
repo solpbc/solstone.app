@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 104,
+  "source_revision": "23a63c7b9437ef8d65864b8eb77c4a05a71fecf25e73354250e7fa74b52ace23",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

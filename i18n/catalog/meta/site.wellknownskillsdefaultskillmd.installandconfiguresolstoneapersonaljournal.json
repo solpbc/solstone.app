@@ -1,0 +1,63 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1392,
+  "source_revision": "a11d52c9fecc2d644f380039f7ed79f68de86859c6b29b8acce050770f34752f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "solstone.app"
+    },
+    {
+      "name": "slot-6",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-7",
+      "kind": "mark-word",
+      "value": "macos"
+    },
+    {
+      "name": "slot-8",
+      "kind": "mark-word",
+      "value": "windows"
+    },
+    {
+      "name": "slot-9",
+      "kind": "mark-word",
+      "value": "windows"
+    }
+  ]
+}

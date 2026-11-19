@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 648,
+  "source_revision": "6f8b1c8f3e78b0491393fa91c9771c2fd5c6188aa8650c318b49fa05bd9b5e10",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "JSON"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "JSON"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>initialize</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>Mcp-Session-Id</code>"
+    }
+  ]
+}

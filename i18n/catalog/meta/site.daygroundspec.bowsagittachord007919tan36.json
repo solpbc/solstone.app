@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 256,
+  "source_revision": "1ed35a09fca36318b7cfc55bd7177bf19e69dd1916b03d0d0d4a905d7b2c2bfa",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`tan(36° ÷ 4) ÷ 2`"
+    }
+  ]
+}

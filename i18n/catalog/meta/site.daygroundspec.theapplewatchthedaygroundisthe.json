@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2640,
+  "source_revision": "9c4b76a11334765c99b5f9d5803ae1e8689ac37aeeff668960e7ae98d7cb7100",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "apple watch"
+    }
+  ]
+}

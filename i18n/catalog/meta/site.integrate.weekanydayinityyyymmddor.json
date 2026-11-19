@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 456,
+  "source_revision": "5cd40eb30211749fef7ff7e7182f882881a08391397f14efbbd9974414f6da0a",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>week</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>YYYYMMDD</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>YYYY-MM-DD</code>"
+    }
+  ]
+}

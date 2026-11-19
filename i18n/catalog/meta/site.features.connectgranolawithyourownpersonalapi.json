@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1164,
+  "source_revision": "34fcc56980a3f1fd570417a0b283dc0840a3665e7f2dbc4b2d6bcf32b04d18d5",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Granola"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Granola"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "Granola"
+    }
+  ]
+}

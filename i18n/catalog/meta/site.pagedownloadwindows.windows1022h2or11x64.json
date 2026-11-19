@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download-windows.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 116,
+  "source_revision": "e9c290496e1c4cd590f1fef9c22dfd39ff25db1a6e384bff2bd2509406b6ea73",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "windows"
+    }
+  ]
+}

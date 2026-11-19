@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "release-template",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 440,
+  "source_revision": "12cf9e306cf39117bf65e36fe1d66ca1006ba63964a933f420f1af39ff88227d",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "{{storeMarks}}"
+    }
+  ]
+}

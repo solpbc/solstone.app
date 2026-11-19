@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 736,
+  "source_revision": "c64928afe9a053bb2eeac9a3b96bd1c104c41dda935e3bb5d9cc12571a90b8fe",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<a href=\"https://solpbc.org/privacy#recording-laws\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

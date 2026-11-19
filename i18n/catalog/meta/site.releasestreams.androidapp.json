@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "release-streams",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 44,
+  "source_revision": "b2f2bec683b1e9b4d5bef3548a17e8b7d4041ea5473ed6c65b5fa349785c7efa",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "android"
+    }
+  ]
+}

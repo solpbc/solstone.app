@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 456,
+  "source_revision": "5bbd3ebe777b0334eb92adb6c8a876fae2e3aa38bd2a1b59be2118565717f9d0",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<a class=\"anchor\" href=\"#grants\" aria-hidden=\"true\" tabindex=\"-1\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

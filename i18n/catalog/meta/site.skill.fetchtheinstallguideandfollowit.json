@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 204,
+  "source_revision": "1f2fb83cdd729f1642ea89e87f46136b7bdfddc3d4a729fbfe162989dbd84f22",
+  "risk": "routine",
+  "auto_merge": true
+}

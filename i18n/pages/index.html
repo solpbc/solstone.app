@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[[i18n:site.index.solstonethejournalyouve]]</title>
+    <meta name="description" content="[[i18n:site.index.solstoneisapersonaljournalplatformwhat]]">
+    <meta property="og:title" content="[[i18n:site.index.solstonethejournalyouve2]]">
+    <meta property="og:description" content="[[i18n:site.brand.solstoneisapersonaljournalplatformthe]]">
+    <meta property="og:url" content="https://solstone.app">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="solstone">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
+    <link rel="stylesheet" href="/static/surfaces/surfaces.css?v=069967f97a">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://solstone.app/#website",
+          "name": "solstone",
+          "url": "https://solstone.app/",
+          "publisher": { "@id": "https://solpbc.org/#organization" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://solpbc.org/#organization",
+          "name": "sol pbc",
+          "legalName": "sol pbc",
+          "url": "https://solpbc.org",
+          "description": "[[i18n:site.pageindex.publicbenefitcorporationdedicatedtodigitalself]]"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://solstone.app/#software",
+          "name": "solstone",
+          "description": "[[i18n:site.index.solstoneisapersonaljournalplatformthe]]",
+          "url": "https://solstone.app",
+          "applicationCategory": "LifestyleApplication",
+          "operatingSystem": "Linux, macOS, Windows, iOS, iPadOS, Android",
+          "installUrl": "https://solstone.app/install",
+          "downloadUrl": "https://solstone.app/download",
+          "codeRepository": "https://github.com/solpbc/solstone-journal",
+          "screenshot": "https://solstone.app/static/surfaces/img/activities-1510.webp?v=a20d9b22fc",
+          "isAccessibleForFree": true,
+          "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+          "author": { "@id": "https://solpbc.org/#organization" },
+          "publisher": { "@id": "https://solpbc.org/#organization" },
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }
+      ]
+    }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
+        a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+        .band { margin-top: var(--band-gap); }
+        .band-inner { padding: clamp(22px, 4vw, 48px); }
+        .prose { max-width: var(--w-prose); }
+        h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 5.2vw, 56px); line-height: 1.08; letter-spacing: -0.005em; color: var(--ink); max-width: 13em; }
+        h2 { font-family: var(--font-body); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 14px; }
+        h3, h4 { font-family: var(--font-body); font-weight: 600; font-size: 18px; line-height: 1.3; color: var(--ink); margin-bottom: 6px; }
+        p + p { margin-top: 12px; }
+        .lede { font-size: 19px; color: var(--ink-soft); }
+        .spec { font-size: 15px; color: var(--ink-soft); line-height: 1.5; }
+        .more { margin-top: 14px; }
+        .note { margin-top: 12px; font-size: 15px; color: var(--ink-soft); }
+
+        /* hero: one centered column of type that fills the screen below the header
+           (text never sits on the sun) */
+        .hero .band-inner { display: grid; justify-items: center; align-content: center; text-align: center; min-height: clamp(560px, calc(100svh - 158px), 860px); padding: clamp(28px, 7svh, 76px) clamp(28px, 7vw, 96px); }
+        .hero h1 { max-width: 11.5em; font-size: clamp(46px, min(7.2vw, 10.4svh), 100px); line-height: 1.06; text-wrap: balance; }
+        /* lines break only between phrases, and the separator at the start of a line is clipped */
+        .hero .subs { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 24px; font-family: var(--font-body); font-size: clamp(17px, 1.5vw, 20px); font-weight: 600; line-height: 1.4; color: var(--ink); clip-path: inset(-6px -6px -6px 0); }
+        .hero .subs span { position: relative; white-space: nowrap; margin: 0 0.8em 0 -0.8em; padding-left: 0.8em; }
+        .hero .subs span:last-child { margin-right: 0; }
+        .hero .subs span::before { content: "·" / ""; position: absolute; left: 0.28em; }
+        .hero .lede { margin-top: 18px; max-width: 31em; font-size: clamp(18px, min(1.7vw, 2.5svh), 23px); line-height: 1.5; text-wrap: pretty; }
+        .hero .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+        .hero .actions .btn { font-size: 18px; padding: 16px 30px; }
+        .hero .spec { margin-top: 14px; max-width: 34em; }
+        /* narrower than a laptop: the same order, left-aligned, at its natural height */
+        @media (max-width: 1023px) {
+            .hero .band-inner { justify-items: start; text-align: left; min-height: 0; padding: 36px 22px; }
+            .hero h1 { font-size: clamp(38px, 9.8vw, 84px); }
+            .hero .subs { justify-content: flex-start; margin-top: 20px; }
+            .hero .lede { margin-top: 20px; }
+            .hero .actions { width: 100%; }
+            .hero .actions .btn { width: 100%; justify-content: center; text-align: center; }
+            .hero .spec { margin-top: 16px; }
+        }
+        @media (max-width: 640px) {
+            body { font-size: 17px; }
+        }
+
+        .product { margin: 8px 0 22px; }
+        .frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--hairline-2); background: var(--cream-bright); box-shadow: 0 2px 4px rgb(90 60 20 / 0.04), 0 18px 40px -20px rgb(90 60 20 / 0.22); }
+        .frame img { display: block; width: 100%; height: auto; }
+        .product figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-soft); max-width: 60em; }
+
+        .two { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(20px, 4vw, 48px); }
+        .list { list-style: none; margin-top: 10px; }
+        .list li { padding: 12px 0; border-top: 1px solid var(--hairline); }
+        .list li:first-child { border-top: 0; padding-top: 4px; }
+        .list li p { color: var(--ink-soft); font-size: 16px; }
+        @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+
+        .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+        .addons-title { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--hairline); font-size: 20px; }
+        .services { list-style: none; margin-top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .services li { padding: 16px 18px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--paper); font-size: 15px; color: var(--ink-soft); display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 8px; }
+        .services h4 { font-size: 16px; display: flex; justify-content: space-between; gap: 8px; margin: 0; }
+        .services h4 span { font-weight: 500; color: var(--ink-soft); white-space: nowrap; }
+        .services .byo { padding-top: 10px; border-top: 1px solid var(--hairline); color: var(--ink); }
+        .services .byo strong { font-weight: 600; }
+        @media (max-width: 1000px) { .services { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px) { .services { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="sun both">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
+    </div>
+    <div class="page">
+        <a href="#main" class="skip-link">[[i18n:site.chrome.skiptocontent]]</a>
+        <header class="site-header">
+            <div class="bar">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="[[i18n:site.chrome.solstonehome]]" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="[[i18n:site.chrome.main]]">
+                    <a href="/download">[[i18n:site.chrome.download]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                    <details class="site-menu">
+                        <summary>[[i18n:site.chrome.menu]]</summary>
+                        <nav aria-label="[[i18n:site.chrome.main]]">
+                            <a href="/download">[[i18n:site.chrome.download]]</a>
+                            <a href="/features">[[i18n:site.n404.features]]</a>
+                            <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                            <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                        </nav>
+                    </details>
+                </div>
+            </div>
+        </header>
+
+        <main id="main" tabindex="-1">
+
+            <section class="band wrap hero" aria-labelledby="hero-title">
+                <div class="band-inner">
+                        <h1 id="hero-title">[[i18n:site.index.thejournalyouvealways]]</h1>
+                        <p class="subs"><span>[[i18n:site.index.alwayslocal]]</span> <span><a href="https://github.com/solpbc">[[i18n:site.index.n100opensource]]</a></span> <span>[[i18n:site.index.onlyyours]]</span></p>
+                        <p class="lede">[[i18n:site.index.yourowndevicesdothe]]</p>
+                        <div class="actions">
+                            <a class="btn btn-primary" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                        </div>
+                        <p class="spec">[[i18n:site.pageindex.freeandopensourceyourjournallives]]</p>
+                </div>
+            </section>
+
+            <section class="band wrap" id="how" aria-labelledby="how-title">
+<div class="band-inner">
+<h2 id="how-title">[[i18n:site.index.howyourjournalworks]]</h2>
+<div class="sf" data-sf>
+<div class="sf-tabs" role="tablist" aria-label="[[i18n:site.index.howyourjournalworksin]]">
+<button class="sf-tab" role="tab" id="sf-tab-journal" aria-controls="sf-journal" aria-selected="false" tabindex="-1">[[i18n:site.index.n1yourdays]]</button>
+<button class="sf-tab" role="tab" id="sf-tab-share" aria-controls="sf-share" aria-selected="false" tabindex="-1">[[i18n:site.index.n2whatgoesin]]</button>
+<button class="sf-tab" role="tab" id="sf-tab-agents" aria-controls="sf-agents" aria-selected="false" tabindex="-1">[[i18n:site.index.n3youragents]]</button>
+</div>
+<noscript><style>.sf-panel[hidden] { display: block; }</style></noscript>
+<div class="sf-stage">
+<button type="button" class="sf-arrow sf-prev" data-sf-step="-1" aria-label="[[i18n:site.index.previouspart]]"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7"/></svg></button>
+<button type="button" class="sf-arrow sf-next" data-sf-step="1" aria-label="[[i18n:site.index.nextpart]]"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7"/></svg></button>
+<div class="sf-panel" role="tabpanel" id="sf-journal" aria-labelledby="sf-tab-journal">
+<h3>[[i18n:site.index.yourdays]]</h3><p class="sf-lead">[[i18n:site.index.readbackanydaywhat]]</p>
+<figure class="sf-shot" id="sf-shot-activities"><div class="sf-wide"><div class="sf-laptop-wrap"><div class="sf-dev sf-laptop"><picture><source media="(prefers-color-scheme: dark)" srcset="/static/surfaces/img/activities-dark-1000.webp?v=861578d8be 1000w, /static/surfaces/img/activities-dark-1510.webp?v=3a09490861 1510w" sizes="(max-width: 1120px) 88vw, 960px"><img src="/static/surfaces/img/activities-1000.webp?v=a3d4d85d75" srcset="/static/surfaces/img/activities-1000.webp?v=a3d4d85d75 1000w, /static/surfaces/img/activities-1510.webp?v=a20d9b22fc 1510w" sizes="(max-width: 1120px) 88vw, 960px" width="1000" height="619" loading="lazy" class="sf-fade-left" decoding="async" alt="[[i18n:site.index.adaysactivitiesinthejournal]]"></picture></div></div></div><div class="sf-narrow"><div class="sf-dev sf-phone"><picture><source media="(prefers-color-scheme: dark)" srcset="/static/surfaces/img/activities-narrow-dark-560.webp?v=aaf43d9e83 560w, /static/surfaces/img/activities-narrow-dark-840.webp?v=b19346e14f 840w" sizes="280px"><img src="/static/surfaces/img/activities-narrow-560.webp?v=8df3250619" srcset="/static/surfaces/img/activities-narrow-560.webp?v=8df3250619 560w, /static/surfaces/img/activities-narrow-840.webp?v=6077384f16 840w" sizes="280px" width="560" height="1212" loading="lazy" decoding="async" alt="[[i18n:site.index.adaysactivitiesinthejournal]]"></picture></div></div></figure>
+<p class="sf-source">[[i18n:site.index.ademojournalsetinamodern]]</p></div>
+<div class="sf-panel" role="tabpanel" id="sf-share" aria-labelledby="sf-tab-share" hidden>
+<h3>[[i18n:site.index.whatgoesin]]</h3><p class="sf-lead">[[i18n:site.index.oneachofyourown]]</p><div class="sf-row">
+<figure class="sf-item" data-w="watch"><div class="sf-dev sf-watch"><picture><img src="/static/surfaces/img/watch-240.webp?v=7569e9f412" srcset="/static/surfaces/img/watch-240.webp?v=7569e9f412 240w, /static/surfaces/img/watch-422.webp?v=98579fd329 422w" sizes="112px" width="240" height="292" loading="lazy" decoding="async" alt="[[i18n:site.index.solstoneonanapplewatch]]"></picture><span class="sf-crown" aria-hidden="true"></span></div><figcaption><a class="sf-go" href="/mobile">[[i18n:site.index.applewatch]]</a></figcaption></figure>
+<figure class="sf-item" data-w="phone"><div class="sf-dev sf-phone"><picture><img src="/static/surfaces/img/iphone-400.webp?v=459e7179d8" srcset="/static/surfaces/img/iphone-400.webp?v=459e7179d8 400w, /static/surfaces/img/iphone-800.webp?v=1aa9677d44 800w" sizes="190px" width="400" height="869" loading="lazy" decoding="async" alt="[[i18n:site.index.solstoneonaniphonegoodafternoonaudio]]"></picture></div><figcaption><a class="sf-go" href="/mobile">[[i18n:site.featuresdevices.iphone]]</a></figcaption></figure>
+<figure class="sf-item" data-w="phone"><div class="sf-dev sf-phone"><picture><img src="/static/surfaces/img/android-400.webp?v=625ac1840d" srcset="/static/surfaces/img/android-400.webp?v=625ac1840d 400w, /static/surfaces/img/android-800.webp?v=3b8100649c 800w" sizes="190px" width="400" height="867" loading="lazy" decoding="async" alt="[[i18n:site.index.solstoneonanandroidphone]]"></picture></div><figcaption><a class="sf-go" href="/mobile">[[i18n:site.pageinstall.android]]</a></figcaption></figure>
+<figure class="sf-item" data-w="menu"><div class="sf-dev sf-menu"><picture><img src="/static/surfaces/img/mac-230.webp?v=51dbe17603" srcset="/static/surfaces/img/mac-230.webp?v=51dbe17603 230w, /static/surfaces/img/mac-230.webp?v=51dbe17603 230w" sizes="230px" width="230" height="274" loading="lazy" decoding="async" alt="[[i18n:site.index.thesolstonemenuona]]"></picture></div><figcaption><a class="sf-go" href="/download/mac">[[i18n:site.pagedownload.mac]]</a></figcaption></figure>
+<figure class="sf-item" data-w="window"><div class="sf-dev sf-window"><picture><img src="/static/surfaces/img/windows-760.webp?v=633d17306a" srcset="/static/surfaces/img/windows-760.webp?v=633d17306a 760w, /static/surfaces/img/windows-1024.webp?v=76f779d4ca 1024w" sizes="380px" width="760" height="422" loading="lazy" decoding="async" alt="[[i18n:site.featuresdevices.solstoneonwindowsgoodeveningscreenon]]"></picture></div><figcaption><a class="sf-go" href="/download/windows">[[i18n:site.pagedownload.windows]]</a></figcaption></figure>
+</div>
+<p class="sf-source">[[i18n:site.index.thesolstoneapponeachdevicefrom]]</p></div>
+<div class="sf-panel" role="tabpanel" id="sf-agents" aria-labelledby="sf-tab-agents" hidden>
+<h3>[[i18n:site.features.youragents]]</h3><p class="sf-lead">[[i18n:site.index.youcansafelyletan]]</p>
+<div class="sf-agent">
+<figure class="sf-qa"><figcaption class="sf-who">[[i18n:site.pageintegrate.claudecode]]</figcaption><dl>
+<dt>[[i18n:site.pageindex.asked]]</dt><dd>[[i18n:site.index.istybaltstillagainstworkingwiththe]]</dd>
+<dt>[[i18n:site.pageindex.answered]]</dt><dd><p>[[i18n:site.index.tybaltisntagainstworkingwithmontague]]</p><p><strong>[[i18n:site.index.howhisstancechanged]]</strong></p><ul><li>[[i18n:site.index.mondaymorningnov16inyourplanning]]</li><li>[[i18n:site.index.mondaykickoffyouraisedhisquestionfor]]</li><li>[[i18n:site.index.todaysstandup930whenyou]]</li><li>[[i18n:site.index.thisafternoonromeoshowedthequeuesurviving]]</li></ul><p>[[i18n:site.index.whatsstillopenyouemailedtybalt]]</p><p>[[i18n:site.index.twothingstohavereadyfortomorrow]]</p><ul><li>[[i18n:site.index.yoursyncnotessaytotellhim]]</li><li>[[i18n:site.index.nooneownstheairplanemodetest]]</li></ul></dd></dl>
+</figure>
+<figure class="sf-record" style="margin:0"><h4>[[i18n:site.index.whatyourjournalrecorded]]</h4>
+<div class="sf-dev sf-window"><picture><source media="(prefers-color-scheme: dark)" srcset="/static/surfaces/img/record-dark-900.webp?v=3e43cf25c8 900w, /static/surfaces/img/record-dark-1600.webp?v=9db455be51 1600w" sizes="(max-width: 900px) 88vw, 600px"><img src="/static/surfaces/img/record-900.webp?v=9b7084cb30" srcset="/static/surfaces/img/record-900.webp?v=9b7084cb30 900w, /static/surfaces/img/record-1600.webp?v=5438c4d901 1600w" sizes="(max-width: 900px) 88vw, 600px" width="900" height="1408" loading="lazy" decoding="async" alt="[[i18n:site.index.theactivitypageinthejournals]]"></picture></div></figure>
+</div>
+<p class="sf-source">[[i18n:site.index.weaskedclaudecodethisonceand]]</p>
+</div>
+</div></div></div></section>
+
+            <section class="band wrap" aria-labelledby="get-title">
+                <div class="band-inner two">
+                    <div>
+                        <h2 id="get-title">[[i18n:site.pageindex.whatyouget]]</h2>
+                        <ul class="list">
+                            <li><h3>[[i18n:site.pageindex.thepeopleandprojectsinyourdays]]</h3><p>[[i18n:site.pageindex.rememberedacrossdayswiththemomentsthat]]</p></li>
+                            <li><h3>[[i18n:site.pageindex.yourmeetingstranscribed]]</h3><p>[[i18n:site.pageindex.onyourcomputerbydefaultonceyou]]</p></li>
+                            <li><h3>[[i18n:site.pageindex.adailybriefing]]</h3><p>[[i18n:site.pageindex.alookbackatyesterdaywrittenfrom]]</p></li>
+                            <li><h3>[[i18n:site.pageindex.searchacrossallofit]]</h3><p>[[i18n:site.pageindex.fromthecommandlineorfromyour]]</p></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2>[[i18n:site.pageindex.whatyouragentsget]]</h2>
+                        <p>[[i18n:site.pageindex.theagentsyoualreadyusecanwork]]</p>
+                        <ul class="list">
+                            <li><h3>[[i18n:site.pageindex.onthesamecomputer]]</h3><p>[[i18n:site.pageindex.alocalconnectionforanyagentthat]]</p></li>
+                            <li><h3>[[i18n:site.chrome.onyourwifiorvpn]]</h3><p>[[i18n:site.pageindex.pairanagentwithacodefrom]]</p></li>
+                            <li><h3>[[i18n:site.pageindex.fromanywhere]]</h3><p>[[i18n:site.pageindex.throughatunnelofyourownor]]</p></li>
+                        </ul>
+                        <p class="more"><a class="btn-text" href="/install#agents">[[i18n:site.pageindex.connectyouragent]]</a></p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="band wrap" aria-label="[[i18n:site.pageindex.yoursbystructureandopensource]]">
+                <div class="band-inner">
+                    <div class="two">
+                        <div>
+                            <h2 id="yours-title">[[i18n:site.pageindex.yoursbystructure]]</h2>
+                            <p>[[i18n:site.pageindex.yourjournalkeepstheoriginalsinopen]]</p>
+                            <p>[[i18n:site.pageindex.solpbccantsellorlicense]]</p>
+                            <p>[[i18n:site.pageindex.theresnotelemetrynoanalyticsvendor]]</p>
+                        </div>
+                        <div id="open-source">
+                            <h2 id="open-title">[[i18n:site.chrome.opensource]]</h2>
+                            <p>[[i18n:site.index.solstoneisopensourceandfreeall]]</p>
+                            <p>[[i18n:site.pageindex.youdonthavetotakeour]]</p>
+                            <p class="links"><a class="btn btn-secondary" href="https://github.com/solpbc">[[i18n:site.index.readthecode]]</a> <a class="btn btn-secondary" href="https://trust.solstone.app">[[i18n:site.index.checkitsours]]</a></p>
+                        </div>
+                    </div>
+                    <h3 class="addons-title">[[i18n:site.pageindex.optionalservices]]</h3>
+                    <p class="prose">[[i18n:site.pageindex.solpbcrunsafewservicesif]]</p>
+                    <ul class="services">
+                        <li><h4>[[i18n:site.pageindex.privatenetwork20yr]]</h4><p>[[i18n:site.pageindex.reachyourjournalfromyourphonefrom]]</p><p class="byo">[[i18n:site.pageindex.oryourownyourwifioryour]]</p></li>
+                        <li><h4>[[i18n:site.pageindex.encryptedbackup48yr]]</h4><p>[[i18n:site.pageindex.acopyofyourjournalencryptedbefore]]</p><p class="byo">[[i18n:site.pageindex.oryourownanystoragebucketyou]]</p></li>
+                        <li><h4>[[i18n:site.pageindex.solstoneme5yr]]</h4><p>[[i18n:site.pageindex.anaddressforyourjournalsoan]]</p><p class="byo">[[i18n:site.pageindex.oryourownatunnelthatonly]]</p></li>
+                        <li><h4>[[i18n:site.pageindex.confidentialprocessing96yr]]</h4><p>[[i18n:site.pageindex.thinkingoffyourdeviceonconfidentialhardware]]</p><p class="byo">[[i18n:site.pageindex.oryourownamodelonyour]]</p></li>
+                    </ul>
+                    <p class="more"><a class="btn-text" href="https://services.solstone.app">[[i18n:site.pageindex.seetheservices]]</a></p>
+                </div>
+            </section>
+
+            <section class="founder-note band" aria-label="[[i18n:site.index.anotefromthefounder]]">
+                <img src="/static/founder-480.webp?v=95e4722f11" srcset="/static/founder-240.webp?v=9a92a6bde4 240w, /static/founder-480.webp?v=95e4722f11 480w" sizes="104px" width="480" height="480" alt="[[i18n:site.index.awatercolorportraitofjeremie]]" loading="lazy">
+                <div class="note-body">
+                    <p class="note-words">[[i18n:site.index.yourdigitallifeshouldbelong]]</p>
+                    <p class="note-ask">[[i18n:site.index.itsearlysowhen]]</p>
+                    <p class="note-sig"><span class="note-name">[[i18n:site.index.jeremiemiller]]</span><span class="note-title">[[i18n:site.index.solpbcacompanyofone]]</span></p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-row">
+                <nav aria-label="[[i18n:site.chrome.footer]]">
+                    <a href="/download">[[i18n:site.chrome.download]]</a>
+                    <a href="/mobile">[[i18n:site.n404.mobile]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="/integrate">[[i18n:site.chrome.integrate]]</a>
+                    <a href="https://services.solstone.app">[[i18n:site.chrome.services]]</a>
+                    <a href="https://solpbc.org/privacy">[[i18n:site.chrome.privacy]]</a>
+                    <a href="/releases">[[i18n:site.chrome.releases]]</a>
+                    <a href="https://trust.solstone.app">[[i18n:site.chrome.trust]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a href="/brand">[[i18n:site.n404.brand]]</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">[[i18n:site.chrome.n2026solpbcyourjournalisalways]]</p>
+            </div>
+        </footer>
+    </div>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
+    <script src="/static/surfaces/surfaces.js?v=3aea8e25fa" defer></script>
+</body>
+</html>

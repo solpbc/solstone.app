@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "features/devices.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 208,
+  "source_revision": "6c7ecc05f577a73335c788a4a90af298deba87efb26601ed9bcd3be0023df728",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "apple watch"
+    }
+  ]
+}

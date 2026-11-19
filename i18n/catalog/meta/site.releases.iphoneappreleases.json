@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 76,
+  "source_revision": "ed0a12fdb25cbdba1e1ef1cfc57e7701c80f7af8afa095485b93ac1b8e991de1",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "iphone"
+    }
+  ]
+}

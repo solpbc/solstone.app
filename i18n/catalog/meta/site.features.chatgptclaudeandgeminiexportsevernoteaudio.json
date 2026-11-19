@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 644,
+  "source_revision": "396e102f1c1f7bd5b1f45c07f3765b1a4c79d2c1a81843602a08ad31e13cc180",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "ChatGPT"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Claude"
+    }
+  ]
+}

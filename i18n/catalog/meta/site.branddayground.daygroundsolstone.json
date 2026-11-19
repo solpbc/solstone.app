@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "brand/dayground.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 80,
+  "source_revision": "d95fb029f28a880e632de3d6abe4238a762608afea554b62fd9709e22cb71a0f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

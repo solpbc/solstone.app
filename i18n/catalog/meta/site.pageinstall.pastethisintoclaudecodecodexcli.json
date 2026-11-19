@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 252,
+  "source_revision": "cf00416bd8a9f211e2a41a71c5ad2cb67f7fd1e1967a1af3596d9947940aabf6",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Claude Code"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Codex"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "Gemini CLI"
+    }
+  ]
+}

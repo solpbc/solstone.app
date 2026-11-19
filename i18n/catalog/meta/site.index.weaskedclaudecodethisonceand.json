@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "index.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 676,
+  "source_revision": "36e78188ab89cbd1b49e915491f664313671e3c71e9a5c952c155d56628fb786",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Claude Code"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "&#x27;"
+    }
+  ]
+}

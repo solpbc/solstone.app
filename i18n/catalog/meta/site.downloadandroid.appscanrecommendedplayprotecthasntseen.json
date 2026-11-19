@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "download-android.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 312,
+  "source_revision": "a4f44a74cf276a367066087074e848288c2f67eef87537f4b321dc12a74a0934",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</strong>"
+    }
+  ]
+}

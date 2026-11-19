@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "404.html, download-android.html, download-journal-windows.html, download-journal.html, download-mac.html, download-macos.html, download-windows.html, download.html, index.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 384,
+  "source_revision": "695a8c358576888d455ca956a93540f1cb4fd65295e1f9231e5f7f4bb527a114",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

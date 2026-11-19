@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1064,
+  "source_revision": "c9b7e6ad8fe6a1a6ba2e13637a9830fb166a74a65e8e59bbfae99701ebd6c7f3",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "android"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "Google Play"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<a href=\"/download/android\">"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

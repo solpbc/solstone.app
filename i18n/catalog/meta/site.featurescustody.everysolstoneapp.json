@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "features.html, features/custody.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 72,
+  "source_revision": "50a9bdd7ca2077ad2f9e3b93bf46739bc9feeb348c782ad64686664b310f930a",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

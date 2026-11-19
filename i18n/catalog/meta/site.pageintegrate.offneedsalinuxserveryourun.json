@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 800,
+  "source_revision": "17487770a29b4fe494c82615df0dddea5da3e224251910d866828f55f89b0939",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "linux"
+    }
+  ]
+}

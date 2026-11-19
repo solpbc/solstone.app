@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1460,
+  "source_revision": "2cef054387c3804ab9f070d8fbd8a73bf3b3164357e12b7a9e1f9f849b269633",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`s`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`1 − min(0.9, 1.9 × the glow alpha at that point)`"
+    }
+  ]
+}

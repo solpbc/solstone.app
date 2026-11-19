@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "404.html, brand.html, brand/dayground.html, brand/merch.html, brand/system.html, download-android.html, download-journal-windows.html, download-journal.html, download-mac.html, download-macos.html, download-windows.html, download.html, features.html, features/custody.html, features/devices.html, features/evidence.html, index.html, install.html, integrate.html, mobile.html, release-template",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 36,
+  "source_revision": "db50a46b1f13d8cdbdb79f861bd24e4661236b38ab0c9f82e8d8b560c4515dc4",
+  "risk": "routine",
+  "auto_merge": true
+}

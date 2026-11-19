@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "download-windows.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 708,
+  "source_revision": "422017fccc4de7350151ad25d57cacdfcba7887853251d84e85ad486a772fc90",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "windows"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

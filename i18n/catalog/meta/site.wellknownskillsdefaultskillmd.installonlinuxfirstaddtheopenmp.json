@@ -1,0 +1,118 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 4456,
+  "source_revision": "6f05acfac1a1294f940a071015fc9d743c3951cfd58421075d980c3114c2d174",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "OpenMP"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`sudo apt install libgomp1`"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "`sudo dnf install libgomp`"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "`sudo pacman -S gcc-libs`"
+    },
+    {
+      "name": "slot-6",
+      "kind": "mark-word",
+      "value": "minisign"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "`curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal`"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "`--components`"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "`--route package`"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "`.deb`"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "`.rpm`"
+    },
+    {
+      "name": "slot-12",
+      "kind": "url",
+      "value": "https://solstone.app/install#linux-packages"
+    },
+    {
+      "name": "slot-13",
+      "kind": "command",
+      "value": "`sudo apt install solstone`"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "`sudo dnf install solstone`"
+    },
+    {
+      "name": "slot-15",
+      "kind": "command",
+      "value": "`sudo zypper install solstone`"
+    },
+    {
+      "name": "slot-16",
+      "kind": "command",
+      "value": "`solstone journal setup`"
+    },
+    {
+      "name": "slot-17",
+      "kind": "command",
+      "value": "`.deb`"
+    },
+    {
+      "name": "slot-18",
+      "kind": "command",
+      "value": "`.rpm`"
+    },
+    {
+      "name": "slot-19",
+      "kind": "command",
+      "value": "`--route package`"
+    },
+    {
+      "name": "slot-20",
+      "kind": "command",
+      "value": "`--upgrade`"
+    }
+  ]
+}

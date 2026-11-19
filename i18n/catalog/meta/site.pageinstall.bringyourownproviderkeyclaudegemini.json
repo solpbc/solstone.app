@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 940,
+  "source_revision": "1036f3b257d3cbd0351a71ef389e35c4c77a8627e2c5e41ae2581516f80d5b54",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Claude"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "OpenAI"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

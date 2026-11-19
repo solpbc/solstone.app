@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "worker",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "c4ed002c9bdad1f9b43f67b8c022f5ffa8b6a4e5e7249989439438bc5be88df9",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "android"
+    }
+  ]
+}

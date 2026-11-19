@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 776,
+  "source_revision": "8fa837ab24149635766aea7c22376484f0d28db4de2209c4a29931707b391440",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`min(1, dark α × 1.05 + 0.08)`"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-tables",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [
+    {
+      "name": "rise",
+      "type": "string"
+    },
+    {
+      "name": "set",
+      "type": "string"
+    },
+    {
+      "name": "dawn",
+      "type": "string"
+    },
+    {
+      "name": "dusk",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 216,
+  "source_revision": "708e429fa2d8ba5b37a5a1cadac24044e979aa82e91f9460b284651c9f9262c1",
+  "risk": "routine",
+  "auto_merge": true
+}

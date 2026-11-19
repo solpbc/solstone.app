@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "llms.txt",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 544,
+  "source_revision": "d4e57f0dffc6257a050ddd580bd891029520d7c81d38d0335f97d51d5fe3baa6",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "https://github.com/solpbc/solstone-journal/blob/main/README.md):"
+    }
+  ]
+}

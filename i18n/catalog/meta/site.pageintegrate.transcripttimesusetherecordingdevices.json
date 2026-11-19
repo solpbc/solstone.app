@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1268,
+  "source_revision": "ccafb75638fb012c9eaf6b71d994a53611b20e5c5eba97d8a99f43130783564d",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>capture_zone</code>"
+    }
+  ]
+}

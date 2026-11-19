@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2120,
+  "source_revision": "449ff3b7016b0394150716bcbaf9b3e784bb12b721a7984726e86c15a075c450",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`if set < rise then set += 1440`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`if dusk > 1440 and m < dusk − 1440 then m += 1440`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`if dawn < 0 and m ≥ dawn + 1440 then m −= 1440`"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "mobile.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 672,
+  "source_revision": "55168142d2acda05c7515652f29c677ec0e4559256d2190e32cb9c1abb8e20da",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "App Store"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone.app"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "apple watch"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 988,
+  "source_revision": "a8b30359d7aaca3eeeaa1680fa31d60426a1f5b3d19886c2f36f4b8ecd85ccc7",
+  "risk": "payment",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<a href=\"https://services.solstone.app/confidential-processing\">"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

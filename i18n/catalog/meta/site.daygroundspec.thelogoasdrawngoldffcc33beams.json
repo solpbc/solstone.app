@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 400,
+  "source_revision": "602064b1d2a817a355646eb474cf1f6db5207af771fe954b8c928bcc9fd03d21",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`#FFCC33`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`#E8913A`"
+    }
+  ]
+}

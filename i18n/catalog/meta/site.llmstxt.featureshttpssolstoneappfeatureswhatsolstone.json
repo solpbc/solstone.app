@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "llms.txt",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 596,
+  "source_revision": "b5d00bbb98f9e97b641226038cdef6bb4f3c424855eb8039a1f7782d350e2156",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "https://solstone.app/features):"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 840,
+  "source_revision": "6cc40151275f3449ebd355946a947bcb8c0600e295937c34cea1544bffa995e0",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>read https://github.com/solpbc/solstone-journal/tree/main/core/crates/solstone-core-mcp-endpoint and docs/MCP_OAUTH.md, then help me connect to my journal.</code>"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 712,
+  "source_revision": "2c40b2245844195e5ef80fa42ffe5ee85bb12e5cdd5dbfde7d363394947c31c2",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "windows"
+    }
+  ]
+}

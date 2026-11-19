@@ -1,0 +1,93 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 4696,
+  "source_revision": "16933458116107dd716529f8f2d133852d47cdb80f7cccde9c825b4a1232736b",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>body_note</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>other_sources</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>Apple Health · imported</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>Oura · imported</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>source</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>day</code>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<code>facet</code>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>kind</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>source</code>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<code>span_reference</code>"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "<code>gaps</code>"
+    },
+    {
+      "name": "slot-12",
+      "kind": "command",
+      "value": "<code>next_cursor</code>"
+    },
+    {
+      "name": "slot-13",
+      "kind": "mark-word",
+      "value": "Strava"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "<code>omitted_workouts</code>"
+    },
+    {
+      "name": "slot-15",
+      "kind": "command",
+      "value": "<code>list_activities</code>"
+    }
+  ]
+}

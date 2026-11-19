@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1012,
+  "source_revision": "15391c7e3d027e7202d432ee0db8703356700ac8bce65a3baae7dcbdea34534a",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>~HHMMSS</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>09:00:20</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>~090020</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>untimed</code>"
+    }
+  ]
+}

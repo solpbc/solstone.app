@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "custody-browser",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 88,
+  "source_revision": "bb5abbb19b7de8c99ea3cb2819a1715d5085954d6de7c0829fb20729604f709b",
+  "risk": "routine",
+  "auto_merge": true
+}

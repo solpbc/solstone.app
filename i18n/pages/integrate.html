@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[[i18n:site.pageintegrate.integratewithsolstoneconnectanagentover]]</title>
+    <meta name="description" content="[[i18n:site.pageintegrate.connectanagenttoyoursolstonejournal]]">
+    <meta property="og:title" content="[[i18n:site.pageintegrate.integratewithsolstone]]">
+    <meta property="og:description" content="[[i18n:site.pageintegrate.connectanagenttoyoursolstonejournal]]">
+    <meta property="og:url" content="https://solstone.app/integrate">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="solstone">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/integrate">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
+    <style>
+        .soft { color: var(--ink-soft); }
+        .small { font-size: 15px; }
+        .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 22px; }
+        .doc { display: grid; grid-template-columns: 210px minmax(0, 1fr); align-items: start; }
+        .toc { position: sticky; top: 16px; padding: clamp(22px, 4vw, 44px) 0 24px clamp(22px, 4vw, 44px); font-size: 14px; }
+        .toc strong { display: block; font-size: 13px; color: var(--ink-faint); margin-bottom: 8px; }
+        .toc a { display: block; text-decoration: none; padding: 4px 0; }
+        .toc a:hover { text-decoration: underline; }
+        .toc .gen { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline); font-size: 12px; color: var(--ink-faint); line-height: 1.45; }
+        .doc-body section + section { margin-top: 34px; padding-top: 26px; border-top: 1px solid var(--hairline); }
+        .doc-body h2 { scroll-margin-top: 20px; }
+        .doc-body h3 { margin: 18px 0 6px; }
+        .kv { display: grid; grid-template-columns: max-content 1fr; gap: 10px 22px; margin-top: 12px; font-size: 15px; }
+        .kv dt { font-weight: 600; }
+        .kv dd { color: var(--ink-soft); }
+        .tbl { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+        .tbl th { text-align: left; font-weight: 600; padding: 8px; border-bottom: 1.5px solid var(--hairline-2); color: var(--ink-soft); }
+        .tbl td { padding: 9px 8px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+        .tbl td code { font-size: 12.5px; }
+        .tbl td:first-child code { white-space: nowrap; }
+        .seq { list-style: none; counter-reset: q; margin-top: 12px; padding: 0; }
+        .seq > li { position: relative; padding-left: 28px; counter-increment: q; font-size: 15px; }
+        .seq > li + li { margin-top: 14px; }
+        .seq > li::before { content: counter(q) "."; position: absolute; left: 0; top: 0; font-weight: 600; color: var(--ink-faint); }
+        @media (max-width: 860px) {
+            .doc { grid-template-columns: minmax(0, 1fr); }
+            .toc { position: static; padding-bottom: 0; }
+        }
+        @media (max-width: 560px) {
+            .kv { grid-template-columns: 1fr; gap: 2px; }
+            .kv dd { margin-bottom: 8px; }
+            .tbl { display: block; overflow-x: auto; }
+            .tbl td:first-child code { white-space: normal; overflow-wrap: anywhere; }
+            .doc-body pre { font-size: 12px; }
+        }
+    </style>
+</head>
+<body class="sun both">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
+    </div>
+    <div class="page">
+        <a href="#main" class="skip-link">[[i18n:site.chrome.skiptocontent]]</a>
+        <header class="site-header">
+            <div class="bar">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="[[i18n:site.chrome.solstonehome]]" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="[[i18n:site.chrome.main]]">
+                    <a href="/download">[[i18n:site.chrome.download]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                    <details class="site-menu">
+                        <summary>[[i18n:site.chrome.menu]]</summary>
+                        <nav aria-label="[[i18n:site.chrome.main]]">
+                            <a href="/download">[[i18n:site.chrome.download]]</a>
+                            <a href="/features">[[i18n:site.n404.features]]</a>
+                            <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                            <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                        </nav>
+                    </details>
+                </div>
+            </div>
+        </header>
+        <main id="main" tabindex="-1">
+            <section class="band wrap" aria-labelledby="page-title">
+                <div class="band-inner">
+                    <h1 id="page-title">[[i18n:site.pageintegrate.integratewithsolstone]]</h1>
+                    <p class="lede">[[i18n:site.pageintegrate.yourjournalrunsanmcpserverthis]]</p>
+                    <div class="actions">
+                        <a class="btn btn-secondary btn-sm" href="#source">[[i18n:site.pageintegrate.readthesource]]</a>
+                    </div>
+                </div>
+            </section>
+
+            <div class="wrap doc band">
+                <nav class="toc" aria-label="[[i18n:site.pageintegrate.onthispage]]">
+                    <strong>[[i18n:site.pageintegrate.onthispage]]</strong>
+                    <a href="#glance">[[i18n:site.pageintegrate.ataglance]]</a>
+                    <a href="#connect">[[i18n:site.pageintegrate.connectanagent]]</a>
+                    <a href="#control">[[i18n:site.pageintegrate.whatyoucontrol]]</a>
+                    <a href="#tools">[[i18n:site.pageintegrate.tools]]</a>
+                    <a href="#build">[[i18n:site.pageintegrate.buildanintegration]]</a>
+                    <a href="#limits">[[i18n:site.pageintegrate.limits]]</a>
+                    <a href="#source">[[i18n:site.pageintegrate.readthesource]]</a>
+                                    </nav>
+
+                <div class="band-inner doc-body">
+                    <section id="glance" aria-labelledby="h-glance">
+                        <h2 id="h-glance">[[i18n:site.pageintegrate.ataglance]]</h2>
+                        <dl class="kv">
+                            <dt>[[i18n:site.pageintegrate.whatitis]]</dt><dd>[[i18n:site.pageintegrate.amodelcontextprotocolserverinsideyour]]</dd>
+                            <dt>[[i18n:site.pageintegrate.address]]</dt><dd>[[i18n:site.pageintegrate.mcponwhicheverrouteyouturnon]]</dd>
+                            <dt>[[i18n:site.pageintegrate.protocol]]</dt><dd>[[i18n:site.integrate.mcp20250326overstreamablehttp]]</dd>
+                            <dt>[[i18n:site.integrate.signin]]</dt><dd>[[i18n:site.pageintegrate.oauth21hostedbythejournal]]</dd>
+                            <dt>[[i18n:site.pageintegrate.offers]]</dt><dd>[[i18n:site.integrate.journalreadstheagentsownnotes]]</dd>
+                            <dt>[[i18n:site.pageintegrate.writes]]</dt><dd>[[i18n:site.integrate.onlytheagentsownnotesand]]</dd>
+                        </dl>
+                    </section>
+
+                    <section id="connect" aria-labelledby="h-connect">
+                        <h2 id="h-connect">[[i18n:site.pageintegrate.connectanagent]]</h2>
+                        <ol class="seq">
+                            <li>[[i18n:site.pageintegrate.pickwheretheagentrunsinyour]]
+                                <table class="tbl">
+                                    <tr><th>[[i18n:site.pageintegrate.theagentruns]]</th><th>[[i18n:site.pageintegrate.address]]</th><th>[[i18n:site.pageintegrate.default]]</th></tr>
+                                    <tr><td>[[i18n:site.pageintegrate.onthejournalscomputer]]</td><td><code>http://127.0.0.1:7659/mcp</code></td><td>[[i18n:site.pageintegrate.on]]</td></tr>
+                                    <tr><td>[[i18n:site.chrome.onyourwifiorvpn]]</td><td><code>https://&lt;private address&gt;:7660/mcp</code></td><td>[[i18n:site.pageintegrate.offusesacertificatefromyourjournal]]</td></tr>
+                                    <tr><td>[[i18n:site.pageintegrate.anywherethroughsolstoneme]]</td><td><code>https://&lt;8 characters&gt;.solstone.me/mcp</code></td><td>[[i18n:site.pageintegrate.off5yrtherelaypassesencrypted]]</td></tr>
+                                    <tr><td>[[i18n:site.pageintegrate.anywhereatyourowndomain]]</td><td><code>https://&lt;your domain&gt;/mcp</code></td><td>[[i18n:site.pageintegrate.offneedsalinuxserveryourun]]</td></tr>
+                                </table>
+                            </li>
+                            <li>[[i18n:site.integrate.makeapairingcodeforthatroute]]</li>
+                            <li><strong>[[i18n:site.pageintegrate.addtheaddresstoyouragent]]</strong>
+                                <table class="tbl">
+                                    <tr><th>[[i18n:site.pageintegrate.agent]]</th><th>[[i18n:site.pageintegrate.addit]]</th><th>[[i18n:site.integrate.thensignin]]</th></tr>
+                                    <tr><td>[[i18n:site.pageintegrate.claudecode]]</td><td><code>claude mcp add --transport http journal &lt;address&gt;</code></td><td>[[i18n:site.pageintegrate.typemcpchoosejournal]]</td></tr>
+                                    <tr><td>[[i18n:site.pageintegrate.codex]]</td><td><code>codex mcp add journal --url &lt;address&gt;</code></td><td><code>codex mcp login journal</code></td></tr>
+                                    <tr><td>[[i18n:site.pageintegrate.geminicli]]</td><td><code>gemini mcp add --transport http journal &lt;address&gt;</code></td><td><code>/mcp auth journal</code></td></tr>
+                                    <tr><td>[[i18n:site.pageintegrate.claudeontheweb]]</td><td>[[i18n:site.pageintegrate.addacustomconnectorinclaudes]]</td><td>[[i18n:site.pageintegrate.connectitfromthere]]</td></tr>
+                                    <tr><td>[[i18n:site.pageintegrate.anyothermcpclient]]</td><td>[[i18n:site.pageintegrate.addanhttpserverattheaddress]]</td><td>[[i18n:site.integrate.itshouldfindtheoauthsignin]]</td></tr>
+                                </table>
+                            </li>
+                            <li>[[i18n:site.pageintegrate.approveityourbrowseropensapage]]</li>
+                        </ol>
+                    </section>
+
+                    <section id="control" aria-labelledby="h-control">
+                        <h2 id="h-control">[[i18n:site.pageintegrate.whatyoucontrol]]</h2>
+                        <p class="small">[[i18n:site.pageintegrate.everyconnectiongetsitsowngrantyou]]</p>
+                        <table class="tbl">
+                            <tr><th>[[i18n:site.pageintegrate.policy]]</th><th>[[i18n:site.pageintegrate.yourchoices]]</th></tr>
+                            <tr><td>[[i18n:site.pageintegrate.howmuchofyourjournal]]</td><td>[[i18n:site.integrate.yourwholejournaleverythingnowandanything]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.whatkindsofmaterial]]</td><td>[[i18n:site.integrate.anyoffivetranscriptswhatwassaid]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.itsownnotes]]</td><td>[[i18n:site.pageintegrate.alwaysoneveryconnectioncansavenotes]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.whereitconnectsfrom]]</td><td>[[i18n:site.pageintegrate.asignedinagentonlyworksat]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.howlongitlasts]]</td><td>[[i18n:site.integrate.asignedinagentstays]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.changingyourmind]]</td><td>[[i18n:site.pageintegrate.changewhatitmayseerenamea]]</td></tr>
+                        </table>
+
+                        <p class="small">[[i18n:site.integrate.theapprovalformpreselectsallfivekinds]]</p>
+
+                        <h3>[[i18n:site.integrate.suggestions]]</h3>
+                        <p class="small">[[i18n:site.integrate.youragentcansuggestacorrectionwhen]]</p>
+
+                        <h3>[[i18n:site.pageintegrate.howagrantshapeswhattheagent]]</h3>
+                        <ul class="small" style="margin:10px 0 0 1.2rem">
+                            <li>[[i18n:site.pageintegrate.atoolthatneedsakindyou]]</li>
+                            <li>[[i18n:site.pageintegrate.thefacetandcategoryargumentsonlylist]]</li>
+                            <li>[[i18n:site.pageintegrate.everycallischeckedagainwhenit]]</li>
+                        </ul>
+                        <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.forexamplewithtranscriptsonlylimitedto]]</p>
+<pre>{
+  "name": "search",
+  "title": "search the journal",
+  "annotations": { "title": "search the journal", "readOnlyHint": true, "openWorldHint": false },
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "query":    { "type": "string" },
+      "category": { "type": "string", "enum": ["transcripts"] },
+      "facet":    { "type": "string", "enum": ["3f1c2a9e-7b4d-4e8a-9c21-5d6e0f4b7a13", "b82e4d10-1c5f-4a7e-8d3b-2f9a6c0e5d84"] },
+      …
+    }
+  }
+}</pre>
+                    </section>
+
+                    <section id="tools" aria-labelledby="h-tools">
+                        <h2 id="h-tools">[[i18n:site.pageintegrate.tools]]</h2>
+                        <p class="small soft">[[i18n:site.pageintegrate.youragentdiscoverstheavailabletoolsthrough]]</p>
+                        <table class="tbl">
+                            <tr><th>[[i18n:site.pageintegrate.tool]]</th><th>[[i18n:site.pagedownload.whatitdoes]]</th><th>[[i18n:site.pageintegrate.needs]]</th><th>[[i18n:site.pageintegrate.inputs]]</th></tr>
+                            <tr><td><code>search</code></td><td>[[i18n:site.pageintegrate.searchwhatthisconnectionmayseescreen]]</td><td>[[i18n:site.integrate.transcriptsscreentextorbody]]</td><td><code>query</code>, <code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>category</code>, <code>facet</code>, <code>cursor</code></td></tr>
+                            <tr><td><code>fetch</code></td><td>[[i18n:site.pageintegrate.readthedocumentoractivityrecordbehind]]</td><td>[[i18n:site.integrate.transcriptsfacetsscreentextorbodyeach]]</td><td>[[i18n:site.pageintegrate.referencerequired]]</td></tr>
+                            <tr><td><code>list_transcripts</code></td><td>[[i18n:site.integrate.listtranscriptsegmentswiththeirtimessources]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td>[[i18n:site.integrate.daytimefromtimetohhmm]]</td></tr>
+                            <tr><td><code>get_transcript</code></td><td>[[i18n:site.integrate.readwhatwassaidinonesegment]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td>[[i18n:site.pageintegrate.referencerequiredcursor]]</td></tr>
+                            <tr><td><code>list_activities</code></td><td>[[i18n:site.integrate.listactivitiesbydayorinclusivedate]]</td><td>[[i18n:site.pageintegrate.facets]]</td><td><code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>facet</code>, <code>entity</code>, <code>cursor</code></td></tr>
+                            <tr><td><code>get_activity_sources</code></td><td>[[i18n:site.pageintegrate.readthesourcepassagesanactivityspans]]</td><td>[[i18n:site.integrate.facetswithtranscriptsorbody]]</td><td>[[i18n:site.pageintegrate.referencerequiredcursor]]</td></tr>
+                            <tr><td><code>list_entities</code></td><td>[[i18n:site.integrate.listthepeopleprojectsandotherentities]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td><code>facet</code>, <code>cursor</code></td></tr>
+                            <tr><td><code>get_entity</code></td><td>[[i18n:site.integrate.readwhatthejournalhasnotedabout]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td>[[i18n:site.pageintegrate.referencerequired]]</td></tr>
+                            <tr><td><code>list_facets</code></td><td>[[i18n:site.pageintegrate.listthefacetsthisconnectionmaysee]]</td><td>[[i18n:site.pageintegrate.nothing]]</td><td><code>cursor</code></td></tr>
+                            <tr><td><code>get_week</code></td><td>[[i18n:site.integrate.readaweekdrawnfrom]]</td><td>[[i18n:site.pageintegrate.yourwholejournalwithtranscriptsandfacets]]</td><td>[[i18n:site.integrate.weekanydayinityyyymmddor]]</td></tr>
+                            <tr><td><code>save_memory</code></td><td>[[i18n:site.integrate.saveanoteoftheagents]]</td><td>[[i18n:site.pageintegrate.nothing]]</td><td>[[i18n:site.pageintegrate.contentoperationidbothrequired]]</td></tr>
+                            <tr><td><code>suggest_correction</code></td><td>[[i18n:site.integrate.suggestacorrectiontoarecordingwhat]]</td><td>[[i18n:site.integrate.thetargetmustbesomethingthisconnection]]</td><td>[[i18n:site.integrate.kindtargetvaluebasisreasonoperationid]]</td></tr>
+                            <tr><td><code>recall_memory</code></td><td>[[i18n:site.pageintegrate.readbackthisconnectionsownnotes]]</td><td>[[i18n:site.pageintegrate.nothing]]</td><td>[[i18n:site.pageintegrate.querydaydayfromdaytocontinuation]]</td></tr>
+                        </table>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.whensearchoralistreturnsnext]]</p>
+                        <p class="small">[[i18n:site.pageintegrate.journaltextinwhatthetoolsreturn]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.sometoolresultsincludealinkto]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.topointtoamomentina]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.transcripttimesusetherecordingdevices]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.eachtranscriptsegmentalsocarriessourcewhere]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.aplainlistleavesoutsegmentsthat]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.ahiddenactivityandwhatyourjournal]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.anentityphotostaysundertheentities]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.whenasourcepassagesaysuntimedthe]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.searchfindscalendareventsandanythingelse]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.theagentstooldescriptionsandinput]]</p>
+                    </section>
+
+                    <section id="build" aria-labelledby="h-build">
+                        <h2 id="h-build">[[i18n:site.pageintegrate.buildanintegration]]</h2>
+
+                        <h3>[[i18n:site.pageintegrate.ascriptonthejournalscomputer]]</h3>
+                        <p class="small">[[i18n:site.pageintegrate.createakeythengrantitwhat]]</p>
+<pre>solstone journal mcp token create --label my-script
+solstone journal mcp permission set --token my-script --category transcripts --category entities
+# or: transcripts from one facet only
+solstone journal mcp permission set --token my-script --category transcripts --facet work</pre>
+                        <p class="small" style="margin-top:10px">[[i18n:site.pageintegrate.keysworkatthejournalsown]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.thentalktoitlikeanymcp]]</p>
+<pre># start a session, and keep the Mcp-Session-Id header it returns
+curl -si http://127.0.0.1:7659/mcp \
+  -H "Authorization: Bearer $JOURNAL_KEY" -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"my-script","version":"1"}}}'
+
+# see what this key may use
+curl -s http://127.0.0.1:7659/mcp -H "Authorization: Bearer $JOURNAL_KEY" \
+  -H "Content-Type: application/json" -H "Mcp-Session-Id: $SESSION" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+
+# call a tool
+curl -s http://127.0.0.1:7659/mcp -H "Authorization: Bearer $JOURNAL_KEY" \
+  -H "Content-Type: application/json" -H "Mcp-Session-Id: $SESSION" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"lease renewal"}}}'
+
+# end the session
+curl -s -X DELETE http://127.0.0.1:7659/mcp -H "Authorization: Bearer $JOURNAL_KEY" -H "Mcp-Session-Id: $SESSION"</pre>
+
+                        <h3>[[i18n:site.pageintegrate.anapporagentotherpeopleinstall]]</h3>
+                        <p class="small">[[i18n:site.integrate.yourclientsignsinthewaythe]]</p>
+                        <dl class="kv">
+                            <dt>[[i18n:site.pageintegrate.discovery]]</dt><dd>[[i18n:site.integrate.wellknownoauthprotectedresourcethenwell]]</dd>
+                            <dt>[[i18n:site.pageintegrate.registration]]</dt><dd>[[i18n:site.integrate.postregisterdynamicclientregistrationora]]</dd>
+                            <dt>[[i18n:site.pageintegrate.authorization]]</dt><dd>[[i18n:site.pageintegrate.authorizewithpkces256andtheresource]]</dd>
+                            <dt>[[i18n:site.pageintegrate.tokens]]</dt><dd>[[i18n:site.integrate.posttokenauthorizationcodeandrefreshtoken]]</dd>
+                            <dt>[[i18n:site.pageintegrate.scopes]]</dt><dd>[[i18n:site.integrate.nonetheownerpicksthegranton]]</dd>
+                            <dt>[[i18n:site.pageintegrate.redirects]]</dt><dd>[[i18n:site.integrate.loopbacklocalhostor127001]]</dd>
+                        </dl>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.designforitregisterand]]</p>
+                    </section>
+
+                    <section id="limits" aria-labelledby="h-limits">
+                        <h2 id="h-limits">[[i18n:site.pageintegrate.limits]]</h2>
+                        <table class="tbl">
+                            <tr><th></th><th>[[i18n:site.pageintegrate.limit]]</th></tr>
+                            <tr><td>[[i18n:site.pageintegrate.pairingcode]]</td><td>[[i18n:site.pageintegrate.n8charactersoneuse10minutesone]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.wrongcodes]]</td><td>[[i18n:site.integrate.n5persigninattempt20from]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.sessions]]</td><td>[[i18n:site.pageintegrate.n16peragentendafter30minutes]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.openconnections]]</td><td>[[i18n:site.pageintegrate.n256atonce64onthewifi]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.requestbody]]</td><td>[[i18n:site.pageintegrate.n200kb]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.onesavednote]]</td><td>[[i18n:site.pageintegrate.n32768bytes]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.onerecallpage]]</td><td>[[i18n:site.pageintegrate.n20notes65536bytes]]</td></tr>
+                        </table>
+                    </section>
+
+                    <section id="source" aria-labelledby="h-source">
+                        <h2 id="h-source">[[i18n:site.pageintegrate.readthesource]]</h2>
+                        <p class="small">[[i18n:site.pageintegrate.theserverisopensourceifyou]]</p>
+                        <table class="tbl">
+                            <tr><th>[[i18n:site.pageintegrate.what]]</th><th>[[i18n:site.pageintegrate.where]]</th></tr>
+                            <tr><td>[[i18n:site.pageintegrate.themcpserver]]</td><td><a href="https://github.com/solpbc/solstone-journal/tree/main/core/crates/solstone-core-mcp-endpoint">[[i18n:site.pageintegrate.corecratessolstonecoremcpendpoint]]</a></td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.thetoolstheirschemasandhowa]]</td><td>[[i18n:site.pageintegrate.srcregistryrstoolcodeinsrc]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.grantswholejournalfacetskinds]]</td><td><a href="https://github.com/solpbc/solstone-journal/blob/main/core/crates/solstone-core-mcp-endpoint/src/permissions.rs">[[i18n:site.pageintegrate.srcpermissionsrs]]</a></td></tr>
+                            <tr><td>[[i18n:site.integrate.signinpairingoauthredirects]]</td><td>[[i18n:site.pageintegrate.srcoauththewrittenreferencedocsmcp]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.routeskeysandthesolstonejournalmcp]]</td><td><a href="https://github.com/solpbc/solstone-journal/blob/main/docs/SOLCLI.md#journal-mcp-endpoint">[[i18n:site.pageintegrate.docssolclimd]]</a></td></tr>
+                        </table>
+                        <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.tohaveyouragentreaditgive]]</p>
+                    </section>
+                </div>
+            </div>
+
+            <div class="notice-wrap">
+                <p class="early-days">[[i18n:site.pageintegrate.earlydaysfoundsomethingthatdoesnt]]</p>
+            </div>
+        </main>
+        <footer class="site-footer">
+            <div class="footer-row">
+                <nav aria-label="[[i18n:site.chrome.footer]]">
+                    <a href="/download">[[i18n:site.chrome.download]]</a>
+                    <a href="/mobile">[[i18n:site.n404.mobile]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="/integrate">[[i18n:site.chrome.integrate]]</a>
+                    <a href="https://services.solstone.app">[[i18n:site.chrome.services]]</a>
+                    <a href="https://solpbc.org/privacy">[[i18n:site.chrome.privacy]]</a>
+                    <a href="/releases">[[i18n:site.chrome.releases]]</a>
+                    <a href="https://trust.solstone.app">[[i18n:site.chrome.trust]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a href="/brand">[[i18n:site.n404.brand]]</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">[[i18n:site.chrome.n2026solpbcyourjournalisalways2]]</p>
+            </div>
+        </footer>
+    </div>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
+</body>
+</html>

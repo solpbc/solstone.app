@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal-windows.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 472,
+  "source_revision": "d0809080592cf06af86b0d214f9aa29950b8900f5af92b9906fc431338e88b05",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "windows"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

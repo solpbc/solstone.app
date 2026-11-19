@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "404.html, brand.html, brand/dayground.html, brand/merch.html, brand/system.html, download-android.html, download-journal-windows.html, download-journal.html, download-mac.html, download-macos.html, download-windows.html, download.html, features.html, features/custody.html, features/devices.html, features/evidence.html, index.html, install.html, integrate.html, mobile.html, release-template",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 52,
+  "source_revision": "e8aa73692fcb3626180000a700bff205a94e7b285284e0fc71ade98e57bc4336",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

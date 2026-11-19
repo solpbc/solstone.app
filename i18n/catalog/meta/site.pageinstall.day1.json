@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 20,
+  "source_revision": "2fbf852bc1c07fc224d44f8b40a696c986e7249ecb7104ca59479ab672c23185",
+  "risk": "routine",
+  "auto_merge": true
+}

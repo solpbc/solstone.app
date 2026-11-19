@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 120,
+  "source_revision": "8ae2932c654be3613d23b07fa112898ba180bceb9139371cbf7c6c98f2af42af",
+  "risk": "routine",
+  "auto_merge": true
+}

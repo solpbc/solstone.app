@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal-windows.html, download-journal.html, download-macos.html, download-windows.html, download.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 44,
+  "source_revision": "66cc34be0c41af5a28a893a704b3c76911d4d16340a5c140b08411480cb4061e",
+  "risk": "routine",
+  "auto_merge": true
+}

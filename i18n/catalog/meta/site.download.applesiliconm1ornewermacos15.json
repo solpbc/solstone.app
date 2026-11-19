@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "download.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 424,
+  "source_revision": "729f525bf564abdf00936a58175663bde28ef246c97247c5909026e04c863d00",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<span class=\"line muted\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "macos"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</span>"
+    }
+  ]
+}

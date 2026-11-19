@@ -1,0 +1,58 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 3540,
+  "source_revision": "163a85127cac8d9a75e2d6a5019d4d1423c91cf949097bf54b88739bd1849329",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`overflow: hidden`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`radial-gradient`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`requestAnimationFrame`"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "`visibilitychange`"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "`prefers-color-scheme`"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "`<canvas>`"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "`visibilitychange`"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "`IntersectionObserver`"
+    }
+  ]
+}

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[[i18n:site.pagedownloadandroid.downloadthesolstoneappforandroid]]</title>
+    <meta name="description" content="[[i18n:site.pagedownloadandroid.thesignedsolstoneappforandroidstraight]]">
+    <meta property="og:title" content="[[i18n:site.pagedownloadandroid.downloadthesolstoneappforandroid]]">
+    <meta property="og:description" content="[[i18n:site.pagedownloadandroid.thesignedsolstoneappforandroidstraight]]">
+    <meta property="og:url" content="https://solstone.app/download/android">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="solstone">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/download/android">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
+    <style>
+        body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
+        a { color: var(--ink); text-underline-offset: 3px; }
+        .band { margin-top: var(--band-gap); }
+        .band-inner { padding: clamp(22px, 4vw, 44px); max-width: calc(720px + 2 * clamp(22px, 4vw, 44px)); }
+        h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.4vw, 44px); line-height: 1.12; color: var(--ink); text-transform: lowercase; }
+        h2 { font-family: var(--font-body); font-weight: 700; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; color: var(--ink); margin-bottom: 12px; }
+        h3 { font-family: var(--font-body); font-weight: 600; font-size: 18px; color: var(--ink); margin: 22px 0 6px; }
+        p + p, p + pre, pre + p { margin-top: 12px; }
+        .lead { margin-top: 14px; }
+        .primary-action { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 22px; }
+        .steps { padding-left: 1.4rem; margin-top: 12px; }
+        .steps li + li { margin-top: 14px; }
+        .os-words { display: block; margin: 8px 0; padding: 10px 14px; border-left: 3px solid var(--hairline-2); background: var(--cream-bright); border-radius: 0 9px 9px 0; font-size: 15px; }
+        .os-words strong { display: block; }
+        pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 0.87rem/1.65 var(--font-mono); background: var(--cream-bright); border: 1px solid var(--hairline-2); border-radius: 9px; padding: 14px; }
+        code { font-family: var(--font-mono); font-size: 0.9em; overflow-wrap: anywhere; }
+        .fingerprint { overflow-wrap: anywhere; }
+        .band details { border-top: 1px solid var(--hairline); margin-top: 18px; }
+        .band details summary { cursor: pointer; padding: 12px 0; min-height: 44px; font-weight: 600; color: var(--ink); }
+        .detail-body { padding: 0 0 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
+        th, td { text-align: left; vertical-align: top; padding: 10px 8px; border-top: 1px solid var(--hairline); }
+        th { font-weight: 600; }
+        .sysname { display: block; font: 12px/1.4 var(--font-mono); color: var(--ink-soft); overflow-wrap: anywhere; margin-top: 2px; }
+        .links { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 22px; }
+        .links a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; text-decoration: none; }
+        @media (max-width: 560px) { td:first-child { width: 42%; } }
+    </style>
+</head>
+<body class="sun both">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
+    </div>
+    <div class="page">
+        <a href="#main" class="skip-link">[[i18n:site.chrome.skiptocontent]]</a>
+        <header class="site-header">
+            <div class="bar">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="[[i18n:site.chrome.solstonehome]]" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="[[i18n:site.chrome.main]]">
+                    <a href="/download" aria-current="page">[[i18n:site.chrome.download]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                    <details class="site-menu">
+                        <summary>[[i18n:site.chrome.menu]]</summary>
+                        <nav aria-label="[[i18n:site.chrome.main]]">
+                            <a href="/download" aria-current="page">[[i18n:site.chrome.download]]</a>
+                            <a href="/features">[[i18n:site.n404.features]]</a>
+                            <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                            <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                        </nav>
+                    </details>
+                </div>
+            </div>
+        </header>
+
+        <main id="main" tabindex="-1">
+            <section class="band wrap" aria-labelledby="page-title">
+                <div class="band-inner prose-col">
+                    <h1 id="page-title">[[i18n:site.pagedownloadandroid.downloadthesolstoneappforandroid]]</h1>
+                    <p class="lead">[[i18n:site.pagedownloadandroid.solstoneisongoogleplaythisis]]</p>
+                    <div class="primary-action">
+                        <a href="/download/android/latest" class="btn btn-primary btn-block-sm" id="dl">[[i18n:site.pagedownloadandroid.downloadthesolstoneappforandroid]]</a>
+                        <a class="btn-text" href="#check">[[i18n:site.downloadandroid.checkthefileisours]]</a>
+                        <p class="file-line">{{VERSION_LINE}}</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="notice-wrap">
+                <p class="early-days">[[i18n:site.pagedownloadandroid.updatesthiscopydoesnotupdateitself]]</p>
+            </div>
+
+            <section class="band wrap" aria-labelledby="asked">
+                <div class="band-inner prose-col">
+                    <h2 id="asked">[[i18n:site.pagedownloadandroid.whatyouwillbeasked]]</h2>
+                    <p>[[i18n:site.pagedownloadandroid.thequotedwordsbelowareandroids]]</p>
+                    <ol class="steps">
+                <li>
+                    [[i18n:site.downloadandroid.yourbrowserwillwarnyouaboutthe]]
+                </li>
+                <li>
+                    [[i18n:site.downloadandroid.androidwillaskwhethertheappyou]]
+                </li>
+                <li>
+                    [[i18n:site.downloadandroid.thentheinstallerasksoncemoreinstall]]
+                </li>
+            </ol>
+                    <h3>[[i18n:site.pagedownloadandroid.playprotect]]</h3>
+            <p>[[i18n:site.pagedownloadandroid.ifyourphonehasgoogleplayservices]]</p>
+            <span class="os-words">[[i18n:site.downloadandroid.appscanrecommendedplayprotecthasntseen]]</span>
+            <p>[[i18n:site.pagedownloadandroid.thetwobuttonsarescanappand]]</p>
+                    <details>
+                        <summary>[[i18n:site.pagedownloadandroid.phoneswithoutgoogleplayservices]]</summary>
+                        <div class="detail-body"><p>[[i18n:site.pagedownloadandroid.onadegoogledphonethereis]]</p></div>
+                    </details>
+                </div>
+            </section>
+
+            <section class="band wrap" id="check" aria-labelledby="check-title">
+                <div class="band-inner prose-col">
+                    <h2 id="check-title">[[i18n:site.pagedownloadandroid.checkthefileisours]]</h2>
+                    <p>[[i18n:site.pagedownloadandroid.youdonothavetotakeour]]</p>
+            <p>[[i18n:site.pagedownloadandroid.thistakesacomputerdownloadthefile]]</p>
+                    <details>
+                        <summary>[[i18n:site.pagedownloadandroid.thedigest]]</summary>
+                        <div class="detail-body"><p>[[i18n:site.pagedownloadandroid.fetchthechecksumwepublishbesidethe]]</p>
+            <pre><code>curl -fLO https://updates.solstone.app/solstone-android/release/{{VERSION}}/SHA256SUMS
+sha256sum -c SHA256SUMS</code></pre>
+            <p>[[i18n:site.downloadandroid.onamacshasuma256c]]</p>
+            {{DIGEST_BLOCK}}</div>
+                    </details>
+                    <details>
+                        <summary>[[i18n:site.pagedownloadandroid.thesigningcertificate]]</summary>
+                        <div class="detail-body"><p>[[i18n:site.pagedownloadandroid.everyreleaseonthispageissigned]]</p>
+            <pre><code class="fingerprint">12:DF:E3:2F:91:F7:18:25:90:09:27:37:91:7E:D7:19:33:7F:8F:9B:11:63:24:5B:3B:DC:34:79:A6:BE:26:60</code></pre>
+            <p>[[i18n:site.pagedownloadandroid.ifyouhavetheandroidbuildtools]]</p>
+            <pre><code>apksigner verify --print-certs {{APK_NAME}}</code></pre>
+            <p>[[i18n:site.pagedownloadandroid.thatprintsseveraldigestspersignerthe]]</p>
+            <p>[[i18n:site.pagedownloadandroid.andonceitisinstalledoffthe]]</p>
+            <pre><code>adb shell dumpsys package app.solstone.observer.phone | grep -F "Signatures: ["</code></pre>
+            <p>[[i18n:site.pagedownloadandroid.turnusbdebuggingbackoffwhenyou]]</p></div>
+                    </details>
+                </div>
+            </section>
+
+            <section class="band wrap" aria-labelledby="asks-title">
+                <div class="band-inner prose-col">
+                    <h2 id="asks-title">[[i18n:site.pagedownloadandroid.whattheappasksyoufor]]</h2>
+                    <p>[[i18n:site.pagedownloadandroid.nothingwhenyouopenittheapp]]</p>
+            <p>[[i18n:site.pagedownloadandroid.androidasksyouabouteachofthese]]</p>
+
+            <table>
+                <thead>
+                    <tr><th scope="col">[[i18n:site.pagedownloadandroid.androidasks]]</th><th scope="col">[[i18n:site.pagedownloadandroid.whatitisfor]]</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.microphonerecordaudio]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.theaudiosourcetakesinwhatyou]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.cameracamera]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.twothingsuseitthecamerasource]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.approximatelocationaccesscoarselocation]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.soaplacecansitalongsidewhat]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.calendarreadcalendar]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.thecalendarsourcereadstheeventsthis]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.notificationspostnotifications]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.soyoucanseetheongoingnotice]]</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>[[i18n:site.pagedownloadandroid.thescreensourceisntonthat]]</p>
+                    <details>
+                        <summary>[[i18n:site.pagedownloadandroid.theonesandroidgrantsatinstallwithout]]</summary>
+                        <div class="detail-body"><p>[[i18n:site.pagedownloadandroid.androidgrantsthesewhentheappinstalls]]</p>
+
+            <table>
+                <thead>
+                    <tr><th scope="col">[[i18n:site.pagedownloadandroid.permission]]</th><th scope="col">[[i18n:site.pagedownloadandroid.whatitisfor]]</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.internetnetworkstateinternetaccessnetworkstate]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.toreachthejournalyoupairedwith]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.ongoingworkforegroundservicemicrophonelocationcamerame]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.androidmakesanappdeclarewhatkind]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.keepthenoticevisiblepostpromotednotifications]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.sotheongoingnoticestayswhereyou]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.areminderafterarestartreceivebootcompleted]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.sotheappcanremindyouafter]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.keepthephoneawakewakelock]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.tofinishapieceofworkrather]]</td>
+                    </tr>
+                    <tr>
+                        <td>[[i18n:site.downloadandroid.apermissiononlythisappcanholdapp]]</td>
+                        <td>[[i18n:site.pagedownloadandroid.sotheappsowninternalmessages]]</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>[[i18n:site.pagedownloadandroid.thatlistisreadoutofthe]]</p>
+            <pre><code>aapt2 dump permissions {{APK_NAME}}</code></pre></div>
+                    </details>
+                    <p>[[i18n:site.pagedownloadandroid.thereisnoanalyticsortrackingcode]]</p>
+                    <nav class="links" aria-label="[[i18n:site.chrome.more]]">
+                <a href="/releases/android">[[i18n:site.chrome.whatsnewinthisversion]]</a>
+                <a href="https://github.com/solpbc/solstone-android">[[i18n:site.chrome.sourcecodeongithub]]</a>
+                <a href="/download">[[i18n:site.pagedownloadandroid.everyotherdevice]]</a>
+
+            </nav>
+                </div>
+            </section>
+            <section class="band wrap" id="wear" aria-labelledby="wear-title">
+                <div class="band-inner prose-col">
+                    <h2 id="wear-title">[[i18n:site.downloadandroid.wearoswatch]]</h2>
+                    <p>[[i18n:site.downloadandroid.thesolstoneappforwearosneeds]]</p>
+                    <p>[[i18n:site.downloadandroid.installingthisdirectcopyonyourwatch]]</p>
+                    <div class="primary-action">
+                        <a href="/download/wear/latest" class="btn btn-primary btn-block-sm">[[i18n:site.downloadandroid.downloadthesolstoneappforwearos]]</a>
+                        <a href="/releases/wear" class="btn-text">[[i18n:site.downloadandroid.watchreleasenotes]]</a>
+                    </div>
+                    <details>
+                        <summary>[[i18n:site.downloadandroid.installitonyourwatch]]</summary>
+                        <div class="detail-body">
+                            <ol class="steps">
+                                <li>[[i18n:site.downloadandroid.downloadthewatchapkonyourcomputer]]</li>
+                                <li>[[i18n:site.downloadandroid.connectyourcomputerandwatchtothe]]</li>
+                                <li>[[i18n:site.downloadandroid.runadbswatchaddressportinstall]]</li>
+                                <li>[[i18n:site.downloadandroid.turnwirelessdebuggingandadbdebuggingback]]</li>
+                            </ol>
+                        </div>
+                    </details>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-row">
+                <nav aria-label="[[i18n:site.chrome.footer]]">
+                    <a href="/download">[[i18n:site.chrome.download]]</a>
+                    <a href="/mobile">[[i18n:site.n404.mobile]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="/integrate">[[i18n:site.chrome.integrate]]</a>
+                    <a href="https://services.solstone.app">[[i18n:site.chrome.services]]</a>
+                    <a href="https://solpbc.org/privacy">[[i18n:site.chrome.privacy]]</a>
+                    <a href="/releases">[[i18n:site.chrome.releases]]</a>
+                    <a href="https://trust.solstone.app">[[i18n:site.chrome.trust]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a href="/brand">[[i18n:site.n404.brand]]</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">[[i18n:site.chrome.n2026solpbcyourjournalisalways]]</p>
+            </div>
+        </footer>
+    </div>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
+</body>
+</html>

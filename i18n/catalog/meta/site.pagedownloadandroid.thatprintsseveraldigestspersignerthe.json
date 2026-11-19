@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download-android.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 852,
+  "source_revision": "677754524aaad614d7a437050aef9182313a4179b233a85499994040b0a0b4e4",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>Signer #1 certificate SHA-256 digest</code>"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 208,
+  "source_revision": "f7b5ba20f3c1cc4fb594ce53b9e2cdf08fa28172cd36c4f800b7ac3b84412faf",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "https://github.com/solpbc/solstone-journal"
+    }
+  ]
+}

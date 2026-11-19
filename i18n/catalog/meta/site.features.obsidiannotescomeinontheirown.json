@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 432,
+  "source_revision": "27b6d8f5e7ffed5ae929d836fddc792d094556c3ffba47db13c94172860ed691",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Obsidian"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<a class=\"anchor\" href=\"#obsidian\" aria-hidden=\"true\" tabindex=\"-1\">"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

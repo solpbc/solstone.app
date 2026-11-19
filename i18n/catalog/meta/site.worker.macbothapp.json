@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "worker",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [
+    {
+      "name": "version",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 88,
+  "source_revision": "2569115425eed80019525a48e721e3dbb6c7b2e02584db528edfd274dce414c8",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

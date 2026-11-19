@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 84,
+  "source_revision": "34762379c2a0808b2960a10a025d36826b5b29879ea7f0fadd8eb096bfebaa2e",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "description": "Website copy.",
+  "context": "brand.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1092,
+  "source_revision": "047f4539b264e97fd12204a960d0d36a4ef839697bcfc403de3bd8208cc32c5f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<span class=\"hex\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone.app"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</span>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "&#160;"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "&#160;"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "&#8217;"
+    }
+  ]
+}

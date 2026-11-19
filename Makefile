@@ -1,11 +1,21 @@
-.PHONY: deploy dev install sitemap sunarc stamp brand sbis dayground publish-install-sh check-install-sh-served build-install-sh
+.PHONY: deploy render check dev install sitemap sunarc stamp brand sbis dayground publish-install-sh check-install-sh-served build-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
 deploy: sitemap sunarc
+	node i18n/update.mjs --check
 	node scripts/stamp-assets.mjs --check
-	node scripts/gen-dayground.mjs --check
+	node scripts/render-website.mjs --check
 	wrangler deploy
+
+render:
+	node scripts/render-website.mjs
+
+check:
+	node i18n/update.mjs --check
+	node scripts/stamp-assets.mjs --check
+	node scripts/render-website.mjs --check
+	node --test test/*.test.js
 
 dev:
 	wrangler dev
@@ -22,7 +32,9 @@ sunarc:
 # cached as immutable. Run after changing anything under public/static, then
 # commit the stamped pages; `make deploy` refuses a stale stamp.
 stamp:
+	node scripts/render-website.mjs
 	node scripts/stamp-assets.mjs
+	node scripts/render-website.mjs
 
 # The /brand downloads (public/brand/assets/) are generated from the brand
 # source and committed. This is an explicit step and `deploy` never runs it,
@@ -37,6 +49,7 @@ brand:
 #   make sbis BRAND_SRC=/abs/path/to/brand-source
 sbis:
 	node scripts/gen-sbis.mjs
+	node scripts/render-website.mjs
 
 # /brand/dayground's files (the engine as one module, its worked numbers, the page's
 # words as markdown and on the page) are generated from the services portal's engine

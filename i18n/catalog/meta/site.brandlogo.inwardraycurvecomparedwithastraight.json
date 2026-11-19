@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "brand/logo.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 204,
+  "source_revision": "fd6a9350e156e860c19dd9c54cff97a3a5897e4ee827abbf69d6124d8c9a8b64",
+  "risk": "routine",
+  "auto_merge": true
+}

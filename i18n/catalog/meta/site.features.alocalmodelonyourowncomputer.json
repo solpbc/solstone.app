@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 864,
+  "source_revision": "e1bd74763b896fad8df92c4cda43fc82b739aea38ccf70905062027162dd4e41",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "ChatGPT"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<a href=\"#confidential\">"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</a>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

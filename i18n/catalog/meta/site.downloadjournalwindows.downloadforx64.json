@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal-windows.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 64,
+  "source_revision": "ac557b9f55a6ce51cb555d6d1c3db18f5af5837221ebbea8930f637c16c62786",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal.html, download-macos.html, download-windows.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 500,
+  "source_revision": "0f401be52bf294b72a812a359e4ed5fcb2479fb3ad4170ccd2a289295838ba40",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<a href=\"/mobile\">"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "App Store"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "Google Play"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

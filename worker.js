@@ -1,3 +1,4 @@
+import { websiteText } from './i18n/website.mjs';
 import { RELEASE_PAGE_CONFIGS, parseAppcastItems, parseChangelogItems, parseGitHubReleaseItems, renderReleasesPage } from "./releases.js";
 
 const APPCAST_URL = "https://updates.solstone.app/solstone-macos/appcast.xml";
@@ -96,11 +97,11 @@ async function installerSize(url) {
 }
 
 function megabytes(size) {
-  return `about ${Math.round(size / 1e6)} MB`;
+  return websiteText('site.worker.aboutmb', { size: Math.round(size / 1e6) });
 }
 
 function gigabytes(size) {
-  return `about ${(size / 1e9).toFixed(1)} GB`;
+  return websiteText('site.worker.aboutgb', { size: (size / 1e9).toFixed(1) });
 }
 
 // A download page's size slot is an HTML comment, so the flat asset path
@@ -111,7 +112,7 @@ function gigabytes(size) {
 function renderSizedPage(html, sizeText) {
   return html
     .replace("<!--SIZE_FACT-->", sizeText ? ` · ${sizeText}` : "")
-    .replace("<!--SIZE_LEAD-->", sizeText ? `${sizeText}, and ` : "");
+    .replace("<!--SIZE_LEAD-->", sizeText ? websiteText('site.worker.sizelead', { size: sizeText }) + ' ' : "");
 }
 
 // The disk image that carries both mac apps is in neither app's appcast: each
@@ -153,7 +154,7 @@ async function latestMacBothImage() {
 // comment, so the flat asset path (served without this worker) and an
 // unreadable pointer both render the page with no size rather than a stale one.
 function renderMacBothPage(html, image) {
-  const size = image?.size ? `<span>about ${Math.round(image.size / 1e6)} MB</span>` : "";
+  const size = image?.size ? `<span>${megabytes(image.size)}</span>` : "";
   return html.replace("<!--SIZE_FACT-->", size);
 }
 
@@ -306,13 +307,13 @@ async function latestAndroidFacts() {
 // reading that is still true when the origin cannot be read, so the page never
 // has to choose between going blank and stating something it did not verify.
 function renderAndroidPage(html, facts) {
-  const megabytes = facts?.size ? `${(facts.size / 1e6).toFixed(2)} MB` : null;
+  const megabytes = facts?.size ? websiteText('site.worker.mb', { size: (facts.size / 1e6).toFixed(2) }) : null;
   const versionPath = facts ? facts.version : "&lt;version&gt;";
   const sumsUrl = `updates.solstone.app/solstone-android/release/${versionPath}/SHA256SUMS`;
   const digestBlock = facts?.sha256
     ? `<pre><code class="fingerprint">${facts.sha256}</code></pre>\n` +
-      `            <p>we publish it beside the file, at <code>${sumsUrl}</code>.</p>`
-    : `<p>we publish it beside the file, at <code>${sumsUrl}</code>. that is the copy to check against.</p>`;
+      `            <p>${websiteText('site.worker.androiddigest', { url: sumsUrl })}</p>`
+    : `<p>${websiteText('site.worker.androiddigestfallback', { url: sumsUrl })}</p>`;
   return html
     .replaceAll("{{VERSION}}", versionPath)
     .replaceAll("{{APK_NAME}}", facts ? facts.apkName : "solstone-android-&lt;version&gt;.apk")
@@ -320,8 +321,8 @@ function renderAndroidPage(html, facts) {
     .replaceAll(
       "{{VERSION_LINE}}",
       facts
-        ? `version ${facts.version}${megabytes ? ` &middot; ${megabytes}` : ""} &middot; for android 8.0 and later`
-        : "for android 8.0 and later",
+        ? (megabytes ? websiteText('site.worker.androidversionsized', { version: facts.version, size: megabytes }) : websiteText('site.worker.androidversion', { version: facts.version }))
+        : websiteText('site.worker.forandroid80andlater'),
     )
     .replaceAll("{{DIGEST_BLOCK}}", digestBlock);
 }
@@ -400,7 +401,7 @@ async function downloadIndexSlots() {
   fill(
     "mac-both-version",
     macBoth?.appVersion && macBoth?.journalVersion
-      ? `<span class="line">solstone app ${macBoth.appVersion}</span><span class="line">journal app ${macBoth.journalVersion}</span>`
+      ? `<span class="line">${websiteText('site.worker.macbothapp', { version: macBoth.appVersion })}</span><span class="line">${websiteText('site.worker.macbothjournal', { version: macBoth.journalVersion })}</span>`
       : null,
   );
   fill("mac-both-size", sizeCell(macBoth?.size));
@@ -503,7 +504,7 @@ async function route(request, env) {
     if (url.pathname === "/download/macos/latest" || url.pathname === "/download/macos.dmg") {
       const dmgUrl = await latestMacosDmgUrl();
       if (!dmgUrl) {
-        return new Response("Latest macOS download is temporarily unavailable. Try again shortly.", {
+        return new Response(websiteText('site.worker.downloadunavailablemacos'), {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
         });
@@ -525,7 +526,7 @@ async function route(request, env) {
     if (url.pathname === "/download/mac/latest") {
       const image = await latestMacBothImage();
       if (!image) {
-        return new Response("Latest mac download is temporarily unavailable. Try again shortly.", {
+        return new Response(websiteText('site.worker.downloadunavailablemacboth'), {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
         });
@@ -557,7 +558,7 @@ async function route(request, env) {
     if (url.pathname === "/download/journal/latest") {
       const dmgUrl = await latestJournalDmgUrl();
       if (!dmgUrl) {
-        return new Response("Latest journal download is temporarily unavailable. Try again shortly.", {
+        return new Response(websiteText('site.worker.downloadunavailablejournalmacos'), {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
         });
@@ -572,7 +573,7 @@ async function route(request, env) {
       const target = url.pathname === "/download/journal/windows/latest" ? JOURNAL_WIN_X64 : JOURNAL_WIN_ARM64;
       const setupUrl = await latestJournalWindowsSetupUrl(target);
       if (!setupUrl) {
-        return new Response("Latest journal download for windows is temporarily unavailable. Try again shortly.", {
+        return new Response(websiteText('site.worker.downloadunavailablejournalwindows'), {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
         });
@@ -604,7 +605,7 @@ async function route(request, env) {
     if (url.pathname === "/download/windows/latest" || url.pathname === "/download/windows.exe") {
       const setupUrl = await latestWindowsSetupUrl();
       if (!setupUrl) {
-        return new Response("Latest Windows download is temporarily unavailable. Try again shortly.", {
+        return new Response(websiteText('site.worker.downloadunavailablewindows'), {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
         });
@@ -628,7 +629,7 @@ async function route(request, env) {
     if (url.pathname === "/download/android/latest" || url.pathname === "/download/android.apk") {
       const release = await latestAndroidRelease();
       if (!release) {
-        return new Response("Latest Android download is temporarily unavailable. Try again shortly.", {
+        return new Response(websiteText('site.worker.downloadunavailableandroid'), {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
         });
@@ -639,7 +640,7 @@ async function route(request, env) {
     if (url.pathname === "/download/wear/latest") {
       const version = await releasePointerVersion(`${WEAR_ORIGIN_PREFIX}/latest`);
       if (!version) {
-        return new Response("the wear os download is temporarily unavailable. try again shortly.", {
+        return new Response(websiteText('site.worker.downloadunavailablewear'), {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
         });

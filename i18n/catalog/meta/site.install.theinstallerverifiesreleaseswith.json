@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1296,
+  "source_revision": "e3b6cb6d3ba5f525deaeb1881163a9a1731ed722a5accdc9fa45ffe4d313bfe0",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "minisign"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "OpenMP"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>sudo apt install libgomp1</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>sudo dnf install libgomp</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>sudo pacman -S gcc-libs</code>"
+    }
+  ]
+}

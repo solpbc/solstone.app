@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 928,
+  "source_revision": "c5803b42d01e4c63d52f5b0695e03d0dbe35ce2f47b374f6184d16e7523a3d03",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "android"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "Google Play"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<a href=\"/download/android#wear\">"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

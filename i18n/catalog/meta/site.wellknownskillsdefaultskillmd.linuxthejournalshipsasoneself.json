@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 924,
+  "source_revision": "5cae504b636c95e3cc87b47cc2d4571e0615b38cb15e19f6ade375f1151c23a7",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`solstone`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "OpenMP"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "`libgomp`"
+    }
+  ]
+}

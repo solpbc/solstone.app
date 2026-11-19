@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 308,
+  "source_revision": "8d8c20e13dc881c41f1c1cd8ba69bdb855e5ce40969c9f35829435320be8dbf1",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "svg"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "https://solstone.app/brand/assets/solstone/svg/mark.svg):"
+    }
+  ]
+}

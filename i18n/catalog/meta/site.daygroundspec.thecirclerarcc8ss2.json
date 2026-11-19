@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 624,
+  "source_revision": "da7da16febf50b0cb38ba00ea492d3ff1b2bdf883b6041fc366053e75d843a5b",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`Rarc = c² / (8s) + s / 2`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`O = M − n · (Rarc − s)`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`M + n · s`"
+    }
+  ]
+}

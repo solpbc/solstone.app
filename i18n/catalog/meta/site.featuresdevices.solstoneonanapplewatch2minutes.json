@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features.html, features/devices.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 260,
+  "source_revision": "7d37088e0ff6f8d29e7fe00382c3c1b817c84d98c6c43b2436c06c7202e65815",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "apple watch"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "404.html, download-android.html, download-journal.html, download-macos.html, download-windows.html, release-template",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 84,
+  "source_revision": "d8fc8d5b504eb8152d283d83099bcdf4b691a3f400108ba63c643d27ee04e47d",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "GitHub"
+    }
+  ]
+}

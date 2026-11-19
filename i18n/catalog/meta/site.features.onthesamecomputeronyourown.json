@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 528,
+  "source_revision": "c595300527147e43fe99f7c01948726933c22733895c5ac01d284251ac30e5c2",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone.me"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<a href=\"/install#agents\">"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

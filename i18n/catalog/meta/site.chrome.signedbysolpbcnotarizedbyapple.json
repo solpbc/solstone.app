@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal.html, download-mac.html, download-macos.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 152,
+  "source_revision": "7b5854ea99ffb0c7be5873e59039b06e19252a70cfb2badfdfa1c2df4205f810",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

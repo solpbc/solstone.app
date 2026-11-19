@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "brand/system.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 496,
+  "source_revision": "12578512e12185e1b23e8d79c1a38b989a02d32c656d67935e21fe5cd0646b8c",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<span class=\"chip\" style=\"background:#EFE4CF\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</span>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<br>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<span class=\"chip\" style=\"background:#E4D6BC\">"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "</span>"
+    }
+  ]
+}

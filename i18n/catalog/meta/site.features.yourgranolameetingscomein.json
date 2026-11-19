@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 404,
+  "source_revision": "320710dad1ea77846946e796667e9c3db45de3c78460e209094db8b0cdeb4984",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Granola"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<a class=\"anchor\" href=\"#granola\" aria-hidden=\"true\" tabindex=\"-1\">"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

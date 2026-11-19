@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 476,
+  "source_revision": "fd0f6bea5da1dac6364e39549b6aea84033bf4475fed4907cf396d43e04fa2f8",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>/mcp</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>http://127.0.0.1:7659/mcp</code>"
+    }
+  ]
+}

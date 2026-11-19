@@ -1,19 +1,21 @@
+import { websiteTemplate, websiteText } from './i18n/website.mjs';
+
 const MONTHS = {
-  jan: "january",
-  feb: "february",
-  mar: "march",
-  apr: "april",
-  may: "may",
-  jun: "june",
-  jul: "july",
-  aug: "august",
-  sep: "september",
-  oct: "october",
-  nov: "november",
-  dec: "december",
+  jan: websiteText('site.releases.monthjanuary'),
+  feb: websiteText('site.releases.monthfebruary'),
+  mar: websiteText('site.releases.monthmarch'),
+  apr: websiteText('site.releases.monthapril'),
+  may: websiteText('site.releases.monthmay'),
+  jun: websiteText('site.releases.monthjune'),
+  jul: websiteText('site.releases.monthjuly'),
+  aug: websiteText('site.releases.monthaugust'),
+  sep: websiteText('site.releases.monthseptember'),
+  oct: websiteText('site.releases.monthoctober'),
+  nov: websiteText('site.releases.monthnovember'),
+  dec: websiteText('site.releases.monthdecember'),
 };
 
-const PAGE_TEMPLATE = `<!DOCTYPE html>
+const PAGE_TEMPLATE = websiteTemplate(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -83,26 +85,26 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
     </div>
     <div class="page">
-        <a href="#main" class="skip-link">skip to content</a>
+        <a href="#main" class="skip-link">[[i18n:site.chrome.skiptocontent]]</a>
         <header class="site-header">
             <div class="bar">
-                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="solstone home" width="125" height="32"></a>
-                <nav class="site-nav" aria-label="main">
-                    <a href="/download">download</a>
-                    <a href="/features">features</a>
-                    <a href="https://github.com/solpbc">open source</a>
-                    <a href="https://support.solstone.app">support</a>
-                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="[[i18n:site.chrome.solstonehome]]" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="[[i18n:site.chrome.main]]">
+                    <a href="/download">[[i18n:site.chrome.download]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
                 </nav>
                 <div class="header-actions">
-                    <a class="btn btn-primary btn-sm" href="/install">get started</a>
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
                     <details class="site-menu">
-                        <summary>menu</summary>
-                        <nav aria-label="main">
-                            <a href="/download">download</a>
-                            <a href="/features">features</a>
-                            <a href="https://github.com/solpbc">open source</a>
-                            <a href="https://support.solstone.app">support</a>
+                        <summary>[[i18n:site.chrome.menu]]</summary>
+                        <nav aria-label="[[i18n:site.chrome.main]]">
+                            <a href="/download">[[i18n:site.chrome.download]]</a>
+                            <a href="/features">[[i18n:site.n404.features]]</a>
+                            <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                            <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
                         </nav>
                     </details>
                 </div>
@@ -121,196 +123,180 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
         {{streamSwitcher}}
         </div>
 
-        <section class="band wrap releases" aria-label="release history">
+        <section class="band wrap releases" aria-label="[[i18n:site.releasetemplate.releasehistory]]">
             <div class="band-inner">
             <!-- per-version <article> blocks here, newest first -->
             </div>
         </section>
 
         <div class="wrap">
-            <nav class="links rel-links" aria-label="more">
-                <a href="{{sourceUrl}}">source code on GitHub</a>
+            <nav class="links rel-links" aria-label="[[i18n:site.chrome.more]]">
+                <a href="{{sourceUrl}}">[[i18n:site.chrome.sourcecodeongithub]]</a>
             </nav>
         </div>
     </main>
         <footer class="site-footer">
             <div class="footer-row">
-                <nav aria-label="footer">
-                    <a href="/download">download</a>
-                    <a href="/mobile">mobile</a>
-                    <a href="/features">features</a>
-                    <a href="/integrate">integrate</a>
-                    <a href="https://services.solstone.app">services</a>
-                    <a href="https://solpbc.org/privacy">privacy</a>
-                    <a href="/releases">releases</a>
-                    <a href="https://trust.solstone.app">trust</a>
-                    <a href="https://support.solstone.app">support</a>
-                    <a href="/brand">brand</a>
+                <nav aria-label="[[i18n:site.chrome.footer]]">
+                    <a href="/download">[[i18n:site.chrome.download]]</a>
+                    <a href="/mobile">[[i18n:site.n404.mobile]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="/integrate">[[i18n:site.chrome.integrate]]</a>
+                    <a href="https://services.solstone.app">[[i18n:site.chrome.services]]</a>
+                    <a href="https://solpbc.org/privacy">[[i18n:site.chrome.privacy]]</a>
+                    <a href="/releases">[[i18n:site.chrome.releases]]</a>
+                    <a href="https://trust.solstone.app">[[i18n:site.chrome.trust]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a href="/brand">[[i18n:site.n404.brand]]</a>
                     <a href="https://solpbc.org">sol pbc</a>
                 </nav>
-                <p class="fine">© 2026 sol pbc · your journal is always private, only yours. solstone is a trademark of sol pbc.{{storeMarks}}</p>
+                <p class="fine">[[i18n:site.releasetemplate.n2026solpbcyourjournalisalways]]</p>
             </div>
         </footer>
     </div>
     <script src="/static/site.js?v=21a0ea4d62" defer></script>
     <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
 </body>
-</html>`;
+</html>`);
 
 const RELEASES_PLACEHOLDER = "            <!-- per-version <article> blocks here, newest first -->";
 
 export const RELEASE_PAGE_CONFIGS = {
   journal: {
-    pageTitle: "journal releases · solstone",
-    ogTitle: "journal releases · solstone",
-    metaDescription:
-      "what's new in the journal, in plain language. the journal is the memory. your journal is always private, only yours.",
+    pageTitle: websiteText('site.releases.journalreleasessolstone'),
+    ogTitle: websiteText('site.releases.journalreleasessolstone'),
+    metaDescription: websiteText('site.releases.whatsnewinthejournalin'),
     ogUrl: "https://solstone.app/releases",
     canonicalUrl: "https://solstone.app/releases",
     stream: "journal",
-    heading: "journal releases",
-    intro:
-      "what's new in the journal, newest first. the journal is the memory, on a computer you choose; these are the journal's own changes.",
-    primaryLink: { href: "/install", text: "get started" },
+    heading: websiteText('site.releases.journalreleases'),
+    intro: websiteText('site.releases.whatsnewinthejournalnewest'),
+    primaryLink: { href: "/install", text: websiteText('site.chrome.getstarted') },
     sourceUrl: "https://github.com/solpbc/solstone-journal",
     unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
-    unavailableLabel: "see journal releases on GitHub →",
-    articleTitle: (version) => `journal ${version}`,
+    unavailableLabel: websiteText('site.releases.seejournalreleasesongithub'),
+    articleTitle: (version) => websiteText('site.releases.articlejournal', { version }),
     linkifyBundledJournal: false,
   },
   macos: {
-    pageTitle: "mac app releases · solstone",
-    ogTitle: "mac app releases · solstone",
-    metaDescription:
-      "release notes for the solstone app for mac, in plain language. installer, menu bar, settings, and auto-update changes.",
+    pageTitle: websiteText('site.releases.macappreleasessolstone'),
+    ogTitle: websiteText('site.releases.macappreleasessolstone'),
+    metaDescription: websiteText('site.releases.releasenotesforthesolstoneappfor'),
     ogUrl: "https://solstone.app/releases/macos",
     canonicalUrl: "https://solstone.app/releases/macos",
     stream: "macos",
-    heading: "mac app releases",
-    intro:
-      "these are the mac app's own changes: installer, menu bar, settings, and auto-update. the solstone app runs on your mac.",
-    primaryLink: { href: "/download/macos", text: "download the solstone app for mac" },
+    heading: websiteText('site.releases.macappreleases'),
+    intro: websiteText('site.releases.thesearethemacappsown'),
+    primaryLink: { href: "/download/macos", text: websiteText('site.pagedownloadmacos.downloadthesolstoneappformac') },
     sourceUrl: "https://github.com/solpbc/solstone-macos",
     unavailableUrl: "https://github.com/solpbc/solstone-macos/releases",
-    unavailableLabel: "see mac app releases on GitHub →",
-    articleTitle: (version) => `the solstone app for mac ${version}`,
+    unavailableLabel: websiteText('site.releases.seemacappreleasesongithub'),
+    articleTitle: (version) => websiteText('site.releases.articlethesolstoneappformac', { version }),
     linkifyBundledJournal: true,
   },
   journalMacos: {
-    pageTitle: "journal app releases · solstone",
-    ogTitle: "journal app releases · solstone",
-    metaDescription:
-      "release notes for the journal on mac, in plain language. the journal as its own app: the memory, where everything the solstone app takes in goes.",
+    pageTitle: websiteText('site.releases.journalappreleasessolstone'),
+    ogTitle: websiteText('site.releases.journalappreleasessolstone'),
+    metaDescription: websiteText('site.releases.releasenotesforthejournalonmac'),
     ogUrl: "https://solstone.app/releases/journal-macos",
     canonicalUrl: "https://solstone.app/releases/journal-macos",
     stream: "journal-macos",
-    heading: "journal app releases",
-    intro:
-      "these are the journal's own changes on mac: your journal, its window, and its updates.",
-    primaryLink: { href: "/download/journal", text: "download the journal app for mac" },
+    heading: websiteText('site.releases.journalappreleases'),
+    intro: websiteText('site.releases.thesearethejournalsownchanges'),
+    primaryLink: { href: "/download/journal", text: websiteText('site.pagedownloadjournal.downloadthejournalappformac') },
     sourceUrl: "https://github.com/solpbc/solstone-journal/tree/main/platforms/macos",
     unavailableUrl: "https://github.com/solpbc/solstone-journal/releases",
-    unavailableLabel: "see journal app releases on GitHub →",
-    articleTitle: (version) => `the journal app for mac ${version}`,
+    unavailableLabel: websiteText('site.releases.seejournalappreleasesongithub'),
+    articleTitle: (version) => websiteText('site.releases.articlethejournalappformac', { version }),
     linkifyBundledJournal: true,
   },
   linux: {
-    pageTitle: "linux app releases · solstone",
-    ogTitle: "linux app releases · solstone",
-    metaDescription:
-      "release notes for the solstone linux app, in plain language. installation, systemd service, desktop integration, and sync changes.",
+    pageTitle: websiteText('site.releases.linuxappreleasessolstone'),
+    ogTitle: websiteText('site.releases.linuxappreleasessolstone'),
+    metaDescription: websiteText('site.releases.releasenotesforthesolstonelinuxapp'),
     ogUrl: "https://solstone.app/releases/linux",
     canonicalUrl: "https://solstone.app/releases/linux",
     stream: "linux",
-    heading: "linux app releases",
-    intro:
-      "these are the linux app's own changes: installation, systemd service, desktop integration, and how it reaches your journal. the solstone app runs on your linux desktop.",
-    primaryLink: { href: "/install#linux", text: "install the solstone app for linux" },
+    heading: websiteText('site.releases.linuxappreleases'),
+    intro: websiteText('site.releases.thesearethelinuxappsown'),
+    primaryLink: { href: "/install#linux", text: websiteText('site.releases.installthesolstoneappforlinux') },
     sourceUrl: "https://github.com/solpbc/solstone-linux",
     unavailableUrl: "https://github.com/solpbc/solstone-linux/releases",
-    unavailableLabel: "see linux app releases on GitHub →",
-    articleTitle: (version) => `the solstone app for linux ${version}`,
+    unavailableLabel: websiteText('site.releases.seelinuxappreleasesongithub'),
+    articleTitle: (version) => websiteText('site.releases.articlethesolstoneappforlinux', { version }),
     linkifyBundledJournal: true,
   },
   windows: {
-    pageTitle: "windows app releases · solstone",
-    ogTitle: "windows app releases · solstone",
-    metaDescription:
-      "release notes for the solstone windows app, in plain language. installer, tray, settings, and auto-update changes.",
+    pageTitle: websiteText('site.releases.windowsappreleasessolstone'),
+    ogTitle: websiteText('site.releases.windowsappreleasessolstone'),
+    metaDescription: websiteText('site.releases.releasenotesforthesolstonewindowsapp'),
     ogUrl: "https://solstone.app/releases/windows",
     canonicalUrl: "https://solstone.app/releases/windows",
     stream: "windows",
-    heading: "windows app releases",
-    intro:
-      "these are the windows app's own changes: installer, tray, settings, and auto-update. the solstone app runs on your windows PC.",
-    primaryLink: { href: "/download/windows", text: "download the solstone app for windows" },
+    heading: websiteText('site.releases.windowsappreleases'),
+    intro: websiteText('site.releases.thesearethewindowsappsown'),
+    primaryLink: { href: "/download/windows", text: websiteText('site.pagedownloadwindows.downloadthesolstoneappforwindows') },
     sourceUrl: "https://github.com/solpbc/solstone-windows",
     unavailableUrl: "https://github.com/solpbc/solstone-windows/releases",
-    unavailableLabel: "see windows app releases on GitHub →",
-    articleTitle: (version) => `the solstone app for windows ${version}`,
+    unavailableLabel: websiteText('site.releases.seewindowsappreleasesongithub'),
+    articleTitle: (version) => websiteText('site.releases.articlethesolstoneappforwindows', { version }),
     // The Windows observer is a pairing client, not a journal host — its notes
     // never say "updated the bundled solstone journal to X", so keep linkify off.
     linkifyBundledJournal: false,
   },
   android: {
-    pageTitle: "android app releases · solstone",
-    ogTitle: "android app releases · solstone",
-    metaDescription:
-      "release notes for the solstone android app, in plain language. pairing and sync changes.",
+    pageTitle: websiteText('site.releases.androidappreleasessolstone'),
+    ogTitle: websiteText('site.releases.androidappreleasessolstone'),
+    metaDescription: websiteText('site.releases.releasenotesforthesolstoneandroidapp'),
     ogUrl: "https://solstone.app/releases/android",
     canonicalUrl: "https://solstone.app/releases/android",
     stream: "android",
-    heading: "android app releases",
-    intro:
-      "these are the android app's own changes: its sources, pairing, and how it reaches your journal. the app is on Google Play. the signed copy from us doesn't update itself, so its download page is always where the current one is.",
+    heading: websiteText('site.releases.androidappreleases'),
+    introHtml: websiteText('site.releases.introandroid'),
     // Google Play is the first way in on Android, so the CTA is the store
     // listing. The signed APK on our own origin stays as the second way in, for
     // a phone without Google Play, and the intro links its download page.
-    introLink: { phrase: "its download page", href: "/download/android" },
-    primaryLink: { href: "https://play.google.com/store/apps/details?id=app.solstone.observer.phone", text: "Get it on Google Play", badge: "google-play" },
+    primaryLink: { href: "https://play.google.com/store/apps/details?id=app.solstone.observer.phone", text: websiteText('site.pageinstall.getitongoogleplay'), badge: "google-play" },
     sourceUrl: "https://github.com/solpbc/solstone-android",
     unavailableUrl: "https://github.com/solpbc/solstone-android/releases",
-    unavailableLabel: "see android app releases on GitHub →",
-    articleTitle: (version) => `the solstone app for android ${version}`,
+    unavailableLabel: websiteText('site.releases.seeandroidappreleasesongithub'),
+    articleTitle: (version) => websiteText('site.releases.articlethesolstoneappforandroid', { version }),
     // The Android app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
   wear: {
-    pageTitle: "wear os app releases · solstone",
-    ogTitle: "wear os app releases · solstone",
-    metaDescription: "release notes for the solstone app for wear os.",
+    pageTitle: websiteText('site.releases.wearosappreleasessolstone'),
+    ogTitle: websiteText('site.releases.wearosappreleasessolstone'),
+    metaDescription: websiteText('site.releases.releasenotesforthesolstoneappforx0be66cb8'),
     ogUrl: "https://solstone.app/releases/wear",
     canonicalUrl: "https://solstone.app/releases/wear",
     stream: "wear",
-    heading: "wear os app releases",
-    intro: "the watch app's own changes. it needs the solstone app on your android phone. the watch app isn't on Google Play yet, so get both directly from us. the direct copy does not update itself.",
-    introLink: { phrase: "directly from us", href: "/download/android#wear" },
-    primaryLink: { href: "/download/android#wear", text: "get the watch app →" },
+    heading: websiteText('site.releases.wearosappreleases'),
+    introHtml: websiteText('site.releases.introwear'),
+    primaryLink: { href: "/download/android#wear", text: websiteText('site.releases.getthewatchapp') },
     sourceUrl: "https://github.com/solpbc/solstone-android",
     unavailableUrl: "https://github.com/solpbc/solstone-android/releases?q=wear-v",
-    unavailableLabel: "see wear os app releases on GitHub →",
-    articleTitle: (version) => `the solstone app for wear os ${version}`,
+    unavailableLabel: websiteText('site.releases.seewearosappreleasesongithub'),
+    articleTitle: (version) => websiteText('site.releases.articlethesolstoneappforwearos', { version }),
     linkifyBundledJournal: false,
   },
   ios: {
-    pageTitle: "iphone app releases · solstone",
-    ogTitle: "iphone app releases · solstone",
-    metaDescription:
-      "release notes for the solstone app on iphone and apple watch, in plain language. pairing and sync changes.",
+    pageTitle: websiteText('site.releases.iphoneappreleasessolstone'),
+    ogTitle: websiteText('site.releases.iphoneappreleasessolstone'),
+    metaDescription: websiteText('site.releases.releasenotesforthesolstoneappon'),
     ogUrl: "https://solstone.app/releases/ios",
     canonicalUrl: "https://solstone.app/releases/ios",
     stream: "ios",
-    heading: "iphone app releases",
-    intro:
-      "these are the iphone app's own changes: pairing, the journal view, what is still waiting on your phone, and the apple watch. the app is on the App Store, where it's listed as solstone.app. new versions reach testers through TestFlight first, so the newest notes here can be ahead of what the App Store has.",
+    heading: websiteText('site.releases.iphoneappreleases'),
+    intro: websiteText('site.releases.thesearetheiphoneappsown'),
     // The App Store is the one public way in on iPhone, so the CTA is the store
     // listing. TestFlight builds are tagged here too, which is why the intro says
     // the newest notes can run ahead of the store.
-    primaryLink: { href: "https://apps.apple.com/app/id6776850664", text: "Download on the App Store", badge: "app-store" },
+    primaryLink: { href: "https://apps.apple.com/app/id6776850664", text: websiteText('site.pageinstall.downloadontheappstore'), badge: "app-store" },
     sourceUrl: "https://github.com/solpbc/solstone-swift",
     unavailableUrl: "https://github.com/solpbc/solstone-swift/releases",
-    unavailableLabel: "see iphone app releases on GitHub →",
-    articleTitle: (version) => `the solstone app for iphone ${version}`,
+    unavailableLabel: websiteText('site.releases.seeiphoneappreleasesongithub'),
+    articleTitle: (version) => websiteText('site.releases.articlethesolstoneappforiphone', { version }),
     // The iPhone app is a pairing client, not a journal host — keep linkify off.
     linkifyBundledJournal: false,
   },
@@ -528,15 +514,9 @@ function fillTemplate(template, config) {
     .replaceAll("{{sourceUrl}}", escapeHtml(config.sourceUrl));
 }
 
-// The intro is plain text; an optional introLink turns one exact phrase in it
-// into a link, so a stream can point at a second way in without a second CTA.
+// Intro HTML carries a cataloged link in the complete sentence.
 function renderIntro(config) {
-  const intro = escapeHtml(config.intro);
-  const link = config.introLink;
-  if (!link) return intro;
-  const phrase = escapeHtml(link.phrase);
-  if (!intro.includes(phrase)) throw new Error(`introLink phrase not in intro: ${link.phrase}`);
-  return intro.replace(phrase, `<a href="${escapeHtml(link.href)}">${phrase}</a>`);
+  return config.introHtml ?? escapeHtml(config.intro);
 }
 
 // A store listing is linked with the store's own official badge, unaltered, so
@@ -545,7 +525,7 @@ const STORE_BADGES = {
   "app-store": { src: "/static/badge-app-store.svg?v=a26fc5b383", width: 144 },
   "google-play": { src: "/static/badge-google-play.png?v=6e629c8fa7", width: 161 },
 };
-const STORE_MARKS = " Apple and the Apple logo are trademarks of Apple Inc., registered in the U.S. and other countries. App Store is a service mark of Apple Inc. Google Play and the Google Play logo are trademarks of Google LLC.";
+const STORE_MARKS = " " + websiteText('site.releases.storemarks');
 
 function renderPrimaryLink(link) {
   if (!link) return "";
@@ -571,16 +551,16 @@ function streamSwitcher(currentStream) {
   };
 
   return [
-    '<nav class="stream-switch" aria-label="release streams">',
-    '            <span class="ss-lead">release notes for:</span>',
-    pill("journal", "journal", "/releases", "ss-home"),
-    pill("macos", "mac app", "/releases/macos"),
-    pill("journal-macos", "journal app", "/releases/journal-macos"),
-    pill("windows", "windows app", "/releases/windows"),
-    pill("linux", "linux app", "/releases/linux"),
-    pill("android", "android app", "/releases/android"),
-    pill("wear", "wear os app", "/releases/wear"),
-    pill("ios", "iphone app", "/releases/ios"),
+    websiteTemplate(`<nav class="stream-switch" aria-label="[[i18n:site.releasestreams.releasestreams]]">`),
+    websiteTemplate(`            <span class="ss-lead">[[i18n:site.releasestreams.releasenotesfor]]</span>`),
+    pill("journal", websiteText('site.install.journal'), "/releases", "ss-home"),
+    pill("macos", websiteText('site.releasestreams.macapp'), "/releases/macos"),
+    pill("journal-macos", websiteText('site.install.journalapp'), "/releases/journal-macos"),
+    pill("windows", websiteText('site.releasestreams.windowsapp'), "/releases/windows"),
+    pill("linux", websiteText('site.releasestreams.linuxapp'), "/releases/linux"),
+    pill("android", websiteText('site.releasestreams.androidapp'), "/releases/android"),
+    pill("wear", websiteText('site.releasestreams.wearosapp'), "/releases/wear"),
+    pill("ios", websiteText('site.releasestreams.iphoneapp'), "/releases/ios"),
     "</nav>",
   ].join("\n");
 }
@@ -593,7 +573,7 @@ function streamSwitcher(currentStream) {
 function renderUnavailableBody(config) {
   const link = `<a href="${escapeHtml(config.unavailableUrl)}">${escapeHtml(config.unavailableLabel)}</a>`;
   if (config.emptyBody) return `<p>${escapeHtml(config.emptyBody)} ${link}</p>`;
-  return `<p>release notes are temporarily unavailable. ${link}</p>`;
+  return `<p>${websiteText('site.releases.unavailable', { link })}</p>`;
 }
 
 function renderArticle(item, config) {

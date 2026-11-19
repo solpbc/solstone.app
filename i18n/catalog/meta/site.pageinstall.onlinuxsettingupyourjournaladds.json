@@ -1,0 +1,63 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1512,
+  "source_revision": "002fdffa29f4ab035bea655d166adcfd3a7b6ceeb35aac6af2eb8c71b2cb09ab",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "Claude Code"
+    },
+    {
+      "name": "slot-6",
+      "kind": "mark-word",
+      "value": "Codex"
+    },
+    {
+      "name": "slot-7",
+      "kind": "mark-word",
+      "value": "Gemini CLI"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>solstone skills install</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>solstone skills list</code>"
+    }
+  ]
+}

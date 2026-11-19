@@ -1,0 +1,53 @@
+{
+  "description": "Website copy.",
+  "context": "download-android.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1864,
+  "source_revision": "9ed3ca5610a92a12caba46d2d8f69134c19903d0cbc8a0070f1ec99d6ba901e1",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<em>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</em>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "android"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "android"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "Google Play"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<a href=\"https://support.solstone.app\">"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "index.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 672,
+  "source_revision": "d6e3546763cef6550c5ef8ab019cdf880fdf7cad06bc1907635160b204d39a8e",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "iphone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "Obsidian"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "Safari"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "&#x27;"
+    }
+  ]
+}

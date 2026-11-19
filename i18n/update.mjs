@@ -32,7 +32,7 @@ function regenerate() {
   const compiler = process.env.I18N_COMPILER;
   if (!compiler) throw new Error('Set I18N_COMPILER to the pinned i18n-catalog binary.');
   const pin = JSON.parse(readFileSync(join(root, 'compiler.json'), 'utf8'));
-  const scratch = mkdtempSync(join(tmpdir(), 'account-catalog-'));
+  const scratch = mkdtempSync(join(tmpdir(), 'website-catalog-'));
   const staging = mkdtempSync(join(root, '.generated-'));
   try {
     const output = join(scratch, 'output');
@@ -40,10 +40,12 @@ function regenerate() {
     for (const target of pin.targets) args.push('--target', target);
     execFileSync(compiler, args, { stdio: 'inherit' });
     const esm = join(output, 'esm');
-    const locales = readdirSync(join(esm, pin.bundle)).filter((name) => name.endsWith('.ftl')).sort();
-    const expected = pin.locales.map((locale) => locale + '.ftl').sort();
-    if (JSON.stringify(locales) !== JSON.stringify(expected)) {
-      throw new Error(`Unexpected generated locales for ${pin.bundle}: ${locales.join(', ')}`);
+    for (const [bundle, admitted] of Object.entries(pin.bundles)) {
+      const locales = readdirSync(join(esm, bundle)).filter((name) => name.endsWith('.ftl')).sort();
+      const expected = admitted.map((locale) => locale + '.ftl').sort();
+      if (JSON.stringify(locales) !== JSON.stringify(expected)) {
+        throw new Error(`Unexpected generated locales for ${bundle}: ${locales.join(', ')}`);
+      }
     }
     const next = join(staging, 'next');
     mkdirSync(next);
@@ -72,7 +74,7 @@ switch (process.argv[2]) {
     break;
   case '--check':
     if (snapshot() !== readFileSync(manifest, 'utf8')) {
-      throw new Error('The generated account catalog is stale. See i18n/README.md.');
+      throw new Error('The generated catalog is stale. See i18n/README.md.');
     }
     break;
   default:

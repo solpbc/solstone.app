@@ -1,0 +1,88 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2380,
+  "source_revision": "ae0038db47559c5d7ec54a8c1fad30564854cba549388af5dd05c30af780c154",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-11",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-12",
+      "kind": "command",
+      "value": "<a href=\"https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md\">"
+    },
+    {
+      "name": "slot-13",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

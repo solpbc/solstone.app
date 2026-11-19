@@ -116,52 +116,52 @@ FIGS["numbers"] = (() => {
   let o = rect(0, 0, S, S, CREAM);
   for (const a of [18, 54, 90, 126, 162]) { const r = a * Math.PI / 180, L = S; o += `<path d="M${n(cx - Math.cos(r) * L)} ${n(cy + Math.sin(r) * L)}L${n(cx + Math.cos(r) * L)} ${n(cy - Math.sin(r) * L)}" stroke="${grey}" stroke-width="${n(hair)}" fill="none"/>`; }
   for (const r of [5.632, 6.5, 7.368, 9.118, 13.5, 13.5 * PHI, 13.5 * PHI * PHI]) o += `<circle cx="${cx}" cy="${cy}" r="${n(r * u)}" fill="none" stroke="${grey}" stroke-width="${n(hair)}"/>`;
-  return svg(S, S, clipRect(0, 0, S, S, o + markAt(cx, cy, M)), "the logo with the seven radii as circles and the five directions as lines through its center");
+  return svg(S, S, clipRect(0, 0, S, S, o + markAt(cx, cy, M)), "[[i18n:site.brandsystem.thelogowiththesevenradiias]]");
 })();
 FIGS["clear-screen"] = (() => {
   const S = 300, M = 150, R = M / 2 * (C.TIP_R + C.RING_R) / C.TIP_R;
-  return svg(S, S, rect(0, 0, S, S, C.SURFACE_CREAM) + `<circle cx="150" cy="150" r="${n(R)}" fill="none" stroke="rgba(26,26,26,.35)" stroke-width="1" stroke-dasharray="5 4"/>` + markAt(150, 150, M), "on a screen: the logo with a dashed circle one ring radius past its tips");
+  return svg(S, S, rect(0, 0, S, S, C.SURFACE_CREAM) + `<circle cx="150" cy="150" r="${n(R)}" fill="none" stroke="rgba(26,26,26,.35)" stroke-width="1" stroke-dasharray="5 4"/>` + markAt(150, 150, M), "[[i18n:site.brandsystem.onascreenthelogowitha]]");
 })();
-FIGS["clear-object"] = (() => { const half = 70, [mx, my] = INSTRUMENT.mark; return instrumentFig([mx - half, my - half, 2 * half, 2 * half], CREAM, INK, 300, "on an object: the solar instrument close up, its lines stopping just past the logo's tips"); })();
-FIGS["instrument-light"] = instrumentFig(instrumentBox, CREAM, INK, 640, "the solar instrument: ink lines on cream, the logo at the center of the sky");
-FIGS["instrument-ink"] = instrumentFig(instrumentBox, INK, CREAM, 640, "the solar instrument: cream lines on ink, the logo at the center of the sky");
+FIGS["clear-object"] = (() => { const half = 70, [mx, my] = INSTRUMENT.mark; return instrumentFig([mx - half, my - half, 2 * half, 2 * half], CREAM, INK, 300, "[[i18n:site.brandsystem.onanobjectthesolarinstrumentclose]]"); })();
+FIGS["instrument-light"] = instrumentFig(instrumentBox, CREAM, INK, 640, "[[i18n:site.brandsystem.thesolarinstrumentinklinesoncream]]");
+FIGS["instrument-ink"] = instrumentFig(instrumentBox, INK, CREAM, 640, "[[i18n:site.brandsystem.thesolarinstrumentcreamlinesonink]]");
 const fieldFig = (dose, label) => FIELD.render({ W: 600, H: 400, dose, ground: CREAM }).replace(/^<svg /, `<svg role="img" aria-label="${label}" `);
-FIGS["field-outside"] = fieldFig("construction", "the field at construction dose: ink outlines of thin and fat rhombs, no fill");
-FIGS["field-inside"] = fieldFig("full", "the field at full dose: the same rhombs, some filled gold and some orange");
+FIGS["field-outside"] = fieldFig("construction", "[[i18n:site.brandsystem.thefieldatconstructiondoseinkoutlines]]");
+FIGS["field-inside"] = fieldFig("full", "[[i18n:site.brandsystem.thefieldatfulldosethesame]]");
 // on an object the sun's size is set by eye; these start at 1.05 × the short side, as on the pocket cloth
-for (const [key, t, label] of [["frame-morning", MORNING, "morning: the logo comes in at the top left"], ["frame-midday", 0.5, "midday: the logo at the top of its arc"], ["frame-evening", EVENING, "evening: the logo goes down at the bottom right"]]) {
+for (const [key, t, label] of [["frame-morning", MORNING, "[[i18n:site.brandsystem.morningthelogocomesinatthe]]"], ["frame-midday", 0.5, "[[i18n:site.brandsystem.middaythelogoatthetopof]]"], ["frame-evening", EVENING, "[[i18n:site.brandsystem.eveningthelogogoesdownatthe]]"]]) {
   const w = 600, h = 400;
   FIGS[key] = svg(w, h, clipRect(0, 0, w, h, rect(0, 0, w, h, CREAM) + sunOn(0, 0, w, h, t, 1.05 * h)), label);
 }
 
 /* /brand/merch */
 const k12 = 9;
-FIGS["tee-instrument-light"] = fig(tee(CREAM, (x, y, k) => instrument(x + 4 * k, y + 3.5 * k, 12 * k, INK)), "a cream tee with the solar instrument large across the front, ink lines");
-FIGS["tee-instrument-ink"] = fig(tee(INK, (x, y, k) => instrument(x + 4 * k, y + 3.5 * k, 12 * k, CREAM)), "an ink tee with the solar instrument large across the front, cream lines");
+FIGS["tee-instrument-light"] = fig(tee(CREAM, (x, y, k) => instrument(x + 4 * k, y + 3.5 * k, 12 * k, INK)), "[[i18n:site.brandmerch.acreamteewiththesolarinstrument]]");
+FIGS["tee-instrument-ink"] = fig(tee(INK, (x, y, k) => instrument(x + 4 * k, y + 3.5 * k, 12 * k, CREAM)), "[[i18n:site.brandmerch.aninkteewiththesolarinstrument]]");
 for (const [key, t, ground, label] of [
-  ["tee-morning-light", MORNING, CREAM, "a cream tee: the logo comes in large over the wearer's right shoulder"],
-  ["tee-morning-ink", MORNING, INK, "an ink tee: the logo comes in large over the wearer's right shoulder"],
-  ["tee-evening-light", EVENING, CREAM, "a cream tee: the logo goes down large over the bottom right hem"],
-  ["tee-evening-ink", EVENING, INK, "an ink tee: the logo goes down large over the bottom right hem"],
+  ["tee-morning-light", MORNING, CREAM, "[[i18n:site.brandmerch.acreamteethelogocomesin]]"],
+  ["tee-morning-ink", MORNING, INK, "[[i18n:site.brandmerch.aninkteethelogocomesin]]"],
+  ["tee-evening-light", EVENING, CREAM, "[[i18n:site.brandmerch.acreamteethelogogoesdown]]"],
+  ["tee-evening-ink", EVENING, INK, "[[i18n:site.brandmerch.aninkteethelogogoesdown]]"],
 ]) FIGS[key] = fig(tee(ground, (x, y, k) => sunOn(x, y, 20 * k, 28 * k, t, 16 * k)), label);
-FIGS["tote-sunrise"] = fig(tote(CREAM, (x, y, k) => sunOn(x, y, 15 * k, 16 * k, MORNING, 11 * k)), "a cream tote: the logo comes in at the top left");
-FIGS["tote-sunset"] = fig(tote(CREAM, (x, y, k) => sunOn(x, y, 15 * k, 16 * k, EVENING, 11 * k)), "a cream tote: the logo goes down at the bottom right");
-FIGS["notebook-sunrise"] = fig(flat(5.5, 8.5, CREAM, (x, y, k) => sunOn(x, y, 5.5 * k, 8.5 * k, MORNING, 4.4 * k), 30), "a cream notebook cover: the logo comes in at the top left");
-FIGS["notebook-sunset"] = fig(flat(5.5, 8.5, CREAM, (x, y, k) => sunOn(x, y, 5.5 * k, 8.5 * k, EVENING, 4.4 * k), 30), "a cream notebook cover: the logo goes down at the bottom right");
-FIGS["notebook-inside"] = (() => { const k = 30, w = 11 * k, h = 8.5 * k; const f = FIELD.render({ W: w, H: h, dose: "full", ground: CREAM }).replace(/^<svg[^>]*>|<\/svg>$/g, ""); return svg(w, h, clipRect(0, 0, w, h, f, 0.12 * k) + `<path d="M${n(w / 2)} 0V${n(h)}" stroke="rgba(26,26,26,.18)" stroke-width="1"/>` + rect(0.5, 0.5, w - 1, h - 1, "none", ` rx="${n(0.12 * k)}"${OUTLINE}`), "a notebook's endpapers: the field at full dose across the spread"); })();
-FIGS["case-instrument"] = fig(flat(2.9, 5.9, CREAM, (x, y, k) => instrument(x + 0.2 * k, y + 2.55 * k, 2.5 * k, INK), 34, { rx: 0.42, camera: true }), "a cream phone case with the solar instrument on its lower half");
-FIGS["case-frame"] = fig(flat(2.9, 5.9, CREAM, (x, y, k) => sunOn(x, y, 2.9 * k, 5.9 * k, 0.28, PHI * 2.9 * k), 34, { rx: 0.42, camera: true }), "a cream phone case with the logo at 10:00, large and cropped by the edge");
-for (const [key, t, label] of [["mug-morning", MORNING, "the morning mug: the logo comes in at the top left"], ["mug-noon", 0.5, "the noon mug: the logo high in the middle"], ["mug-evening", EVENING, "the evening mug: the logo goes down at the bottom right"]]) FIGS[key] = fig(mug((x, y, w, h) => sunOn(x, y, w, h, t, 1.05 * w)), label);
-FIGS["cloth-round"] = fig(round(6, INK, (x, y, k) => instrument(x + 0.25 * k, y + 0.25 * k, 5.5 * k, CREAM)), "a round cloth on ink with the solar instrument in cream");
+FIGS["tote-sunrise"] = fig(tote(CREAM, (x, y, k) => sunOn(x, y, 15 * k, 16 * k, MORNING, 11 * k)), "[[i18n:site.brandmerch.acreamtotethelogocomesin]]");
+FIGS["tote-sunset"] = fig(tote(CREAM, (x, y, k) => sunOn(x, y, 15 * k, 16 * k, EVENING, 11 * k)), "[[i18n:site.brandmerch.acreamtotethelogogoesdown]]");
+FIGS["notebook-sunrise"] = fig(flat(5.5, 8.5, CREAM, (x, y, k) => sunOn(x, y, 5.5 * k, 8.5 * k, MORNING, 4.4 * k), 30), "[[i18n:site.brandmerch.acreamnotebookcoverthelogocomes]]");
+FIGS["notebook-sunset"] = fig(flat(5.5, 8.5, CREAM, (x, y, k) => sunOn(x, y, 5.5 * k, 8.5 * k, EVENING, 4.4 * k), 30), "[[i18n:site.brandmerch.acreamnotebookcoverthelogogoes]]");
+FIGS["notebook-inside"] = (() => { const k = 30, w = 11 * k, h = 8.5 * k; const f = FIELD.render({ W: w, H: h, dose: "full", ground: CREAM }).replace(/^<svg[^>]*>|<\/svg>$/g, ""); return svg(w, h, clipRect(0, 0, w, h, f, 0.12 * k) + `<path d="M${n(w / 2)} 0V${n(h)}" stroke="rgba(26,26,26,.18)" stroke-width="1"/>` + rect(0.5, 0.5, w - 1, h - 1, "none", ` rx="${n(0.12 * k)}"${OUTLINE}`), "[[i18n:site.brandmerch.anotebooksendpapersthefieldat]]"); })();
+FIGS["case-instrument"] = fig(flat(2.9, 5.9, CREAM, (x, y, k) => instrument(x + 0.2 * k, y + 2.55 * k, 2.5 * k, INK), 34, { rx: 0.42, camera: true }), "[[i18n:site.brandmerch.acreamphonecasewiththesolar]]");
+FIGS["case-frame"] = fig(flat(2.9, 5.9, CREAM, (x, y, k) => sunOn(x, y, 2.9 * k, 5.9 * k, 0.28, PHI * 2.9 * k), 34, { rx: 0.42, camera: true }), "[[i18n:site.brandmerch.acreamphonecasewiththelogo]]");
+for (const [key, t, label] of [["mug-morning", MORNING, "[[i18n:site.brandmerch.themorningmugthelogocomesin]]"], ["mug-noon", 0.5, "[[i18n:site.brandmerch.thenoonmugthelogohighin]]"], ["mug-evening", EVENING, "[[i18n:site.brandmerch.theeveningmugthelogogoesdown]]"]]) FIGS[key] = fig(mug((x, y, w, h) => sunOn(x, y, w, h, t, 1.05 * w)), label);
+FIGS["cloth-round"] = fig(round(6, INK, (x, y, k) => instrument(x + 0.25 * k, y + 0.25 * k, 5.5 * k, CREAM)), "[[i18n:site.brandmerch.aroundclothoninkwiththe]]");
 FIGS["cloth-pocket"] = (() => {
   const k = 50, W = 7, H = 5;
-  return fig(flat(W, H, CREAM, (x, y, kk) => { const wd = 2.5 * kk; return sunOn(x, y, W * kk, H * kk, 0.28, 1.05 * H * kk) + lockup(x + (W - 0.55) * kk - wd, y + (H - 0.7) * kk - lockupH(wd, true), wd, { wordOnly: true }); }, k, { rx: 0.08 }), "a cream pocket cloth: the logo comes in at the top left, the word solstone.app at the lower right");
+  return fig(flat(W, H, CREAM, (x, y, kk) => { const wd = 2.5 * kk; return sunOn(x, y, W * kk, H * kk, 0.28, 1.05 * H * kk) + lockup(x + (W - 0.55) * kk - wd, y + (H - 0.7) * kk - lockupH(wd, true), wd, { wordOnly: true }); }, k, { rx: 0.08 }), "[[i18n:site.brandmerch.acreampocketcloththelogocomes]]");
 })();
-for (const [key, ground, label] of [["cloth-square-light", CREAM, "a square cream cloth with the stacked lockup low on the right"], ["cloth-square-ink", INK, "a square ink cloth with the stacked lockup low on the right"]]) {
+for (const [key, ground, label] of [["cloth-square-light", CREAM, "[[i18n:site.brandmerch.asquarecreamclothwiththestacked]]"], ["cloth-square-ink", INK, "[[i18n:site.brandmerch.asquareinkclothwiththestacked]]"]]) {
   // the lockup as published, in full color on either ground (its orange word clears 7:1 on ink)
   FIGS[key] = fig(flat(5, 5, ground, (x, y, k) => { const wd = 2.09 * k; return lockup(x + (5 - 0.38) * k - wd, y + (5 - 0.37) * k - lockupH(wd), wd); }, 50, { rx: 0.05 }), label);
 }
-FIGS["hang-tag"] = fig(flat(2, 3.5, CREAM, (x, y, k) => { const wd = 1.0 * k; return lockup(x + (2 * k - wd) / 2, y + 0.58 * 3.5 * k - lockupH(wd) / 2, wd); }, 60, { rx: 0.1, hole: 0.35 }), "a cream hang tag: a plain string hole at the top, the stacked lockup below it");
+FIGS["hang-tag"] = fig(flat(2, 3.5, CREAM, (x, y, k) => { const wd = 1.0 * k; return lockup(x + (2 * k - wd) / 2, y + 0.58 * 3.5 * k - lockupH(wd) / 2, wd); }, 60, { rx: 0.1, hole: 0.35 }), "[[i18n:site.brandmerch.acreamhangtagaplainstring]]");
 
 FIGS["defs-system"] = instrumentDefs;
 FIGS["defs-merch"] = instrumentDefs;
@@ -173,7 +173,7 @@ const lean = (s) => s.replace(/<path d="([^"]+)"(?=[^>]*\bstroke=)/g, (_, d) => 
 for (const k of Object.keys(FIGS)) FIGS[k] = lean(FIGS[k]);
 
 // ── write them into the pages ────────────────────────────────────────────────
-const PAGES = ["public/brand/system.html", "public/brand/merch.html"];
+const PAGES = ["i18n/pages/brand/system.html", "i18n/pages/brand/merch.html"];
 let stale = 0;
 const used = new Set();
 for (const page of PAGES) {

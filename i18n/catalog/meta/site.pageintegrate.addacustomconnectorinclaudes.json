@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 352,
+  "source_revision": "cc023f0924df66a600127e94131aaa5c9d201853339c0958203f08243b1e59f3",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Claude"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone.me"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+# solstone
+
+> [[i18n:site.llmstxt.solstoneisapersonaljournalplatformthe]]
+
+[[i18n:site.llmstxt.oniphoneandipadiosoripados]]
+
+[[i18n:site.llmstxt.agentsconnecttoajournalfromthe]]
+
+[[i18n:site.llms.yourjournalholdstranscriptspeopleandprojects]]
+
+[[i18n:site.llms.theprojectismaintainedbysolpbc]]
+
+## [[i18n:site.llms.docs]]
+
+- [[i18n:site.llmstxt.getstartedhttpssolstoneappinstallevery]]
+- [[i18n:site.llmstxt.featureshttpssolstoneappfeatureswhatsolstone]]
+- [[i18n:site.llmstxt.integratehttpssolstoneappintegrateconnectingan]]
+- [[i18n:site.llmstxt.installguidehttpsgithubcomsolpbcsolstone]]
+- [[i18n:site.llmstxt.readmehttpsgithubcomsolpbcsolstonejournal]]
+- [[i18n:site.llmstxt.downloadshttpssolstoneappdownloadeverysolstone]]
+- [[i18n:site.llmstxt.brandhttpssolstoneappbrandthesolstone]]
+- [[i18n:site.llmstxt.brandsystemhttpssolstoneappbrandsystem]]
+- [[i18n:site.llmstxt.daygroundhttpssolstoneappbranddaygroundsolstone]]
+- [[i18n:site.llmstxt.journalstructurehttpsgithubcomsolpbcsolstone]]
+- [[i18n:site.llmstxt.aiprovidershttpsgithubcomsolpbcsolstone]]
+- [[i18n:site.llmstxt.webinterfacehttpsgithubcomsolpbcsolstone]]
+- [[i18n:site.llmstxt.troubleshootinghttpsgithubcomsolpbcsolstonejournal]]
+
+## [[i18n:site.llms.optional]]
+
+- [[i18n:site.llmstxt.agentruntimehttpsgithubcomsolpbcsolstone]]
+- [[i18n:site.llmstxt.messagebushttpsgithubcomsolpbcsolstone]]
+- [[i18n:site.llmstxt.appdevelopmenthttpsgithubcomsolpbcsolstone]]
+- [[i18n:site.llmstxt.roadmaphttpsgithubcomsolpbcsolstonejournal]]

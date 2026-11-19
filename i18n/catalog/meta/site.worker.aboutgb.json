@@ -1,0 +1,21 @@
+{
+  "description": "Website copy.",
+  "context": "worker",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [
+    {
+      "name": "size",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 60,
+  "source_revision": "7b9b19b38a56a84137e750f5e6ab6c0745dd94ffd196f1b1dfeaa544f6aa399e",
+  "risk": "routine",
+  "auto_merge": true
+}

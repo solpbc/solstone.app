@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download.html, features.html, features/devices.html, install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 20,
+  "source_revision": "a6901478f90b00cb33b7d221e9f6c2bccb6b826c06cd99cd364c1a6b2d8a3c0d",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "linux"
+    }
+  ]
+}

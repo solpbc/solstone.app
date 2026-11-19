@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "install.html, mobile.html, releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "cc8fb97bdbb48fd21cdf4413f8e597e58da77f2f7dbc316b6605bc260ec20293",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "App Store"
+    }
+  ]
+}

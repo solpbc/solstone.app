@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 248,
+  "source_revision": "b8f00a0a88022e9994945862142e47fb7008d2ee27663d024df84af0e0b70e6d",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`2 · asin(c / 2Rarc)`"
+    }
+  ]
+}

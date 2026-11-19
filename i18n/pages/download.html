@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[[i18n:site.pagedownload.downloadsolstone]]</title>
+    <meta name="description" content="[[i18n:site.pagedownload.everysolstonedownloadwithitsversionsize]]">
+    <meta property="og:title" content="[[i18n:site.pagedownload.downloadsolstone]]">
+    <meta property="og:description" content="[[i18n:site.pagedownload.everysolstonedownloadwithitsversionsize]]">
+    <meta property="og:url" content="https://solstone.app/download">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://solstone.app/static/share-card.png?v=d5755664ab">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="solstone">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://solstone.app/download">
+    <link rel="icon" type="image/svg+xml" href="/static/mark.svg?v=83c74a4665">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#FEFCF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#392E26" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="/static/Comfortaa-Variable.woff2?v=6c73b639fb" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin.woff2?v=4bfb027b31" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/inter-latin-bold.woff2?v=6f56409fd3" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
+    <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
+    <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; }
+        a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+        .band { margin-top: var(--band-gap); }
+        .band-inner { padding: clamp(18px, 4vw, 44px); }
+        h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 5vw, 52px); line-height: 1.1; color: var(--ink); }
+        .lede { margin-top: 14px; max-width: 40em; }
+        .after { margin-top: 24px; max-width: 46em; }
+        .after p + p { margin-top: 10px; }
+        code { font-family: var(--font-mono); font-size: 0.86em; overflow-wrap: anywhere; }
+
+        /* the artifact index: a table on wide screens, a stack of cards on narrow ones */
+        .artifacts-scroll { margin-top: 28px; overflow-x: auto; }
+        .artifacts { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 1.45; }
+        .artifacts th, .artifacts td { text-align: left; vertical-align: top; padding: 12px 10px; border-top: 1px solid var(--hairline); }
+        .artifacts thead th { font-size: 14px; font-weight: 600; color: var(--ink-soft); border-top: 0; border-bottom: 1px solid var(--hairline-2); padding-top: 0; white-space: nowrap; }
+        .artifacts tbody th { font-weight: 600; color: var(--ink); }
+        .artifacts th:first-child, .artifacts td:first-child { padding-left: 0; }
+        .artifacts th:last-child, .artifacts td:last-child { padding-right: 0; }
+        .artifacts .line { display: block; }
+        .artifacts .muted { font-size: 13.5px; line-height: 1.5; color: var(--ink-faint); }
+        .artifacts .none { color: var(--ink-faint); }
+        .artifacts .setup a { display: block; }
+        .artifacts .setup a + a { margin-top: 4px; }
+        @media (min-width: 1000px) {
+            .artifacts tbody th, .artifacts td[data-label="size"], .artifacts .setup a { white-space: nowrap; }
+        }
+        @media (min-width: 761px) and (max-width: 999px) {
+            .artifacts { font-size: 14px; }
+            .artifacts th, .artifacts td { padding: 10px 6px; }
+        }
+        .fingerprint { margin-top: 4px; }
+        .fingerprint summary { cursor: pointer; color: var(--ink-soft); overflow-wrap: anywhere; }
+        .fingerprint summary code { color: var(--ink); }
+        .fingerprint-full { display: block; margin-top: 6px; padding: 8px 10px; border-radius: var(--radius-sm, 9px); background: var(--cream-bright); border: 1px solid var(--hairline); color: var(--ink); overflow-wrap: anywhere; word-break: break-all; }
+
+        @media (max-width: 760px) {
+            .artifacts-scroll { overflow-x: visible; }
+            .artifacts, .artifacts tbody, .artifacts tr, .artifacts th, .artifacts td { display: block; width: 100%; }
+            .artifacts thead { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+            .artifacts tr { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--hairline-2); border-radius: 10px; background: var(--cream-bright); }
+            .artifacts tbody th, .artifacts td { border-top: 0; padding: 0; }
+            .artifacts tbody th { font-size: 18px; margin-bottom: 8px; }
+            .artifacts td { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 4px 12px; padding: 5px 0; }
+            .artifacts td::before { content: attr(data-label); color: var(--ink-soft); font-size: 14px; }
+        }
+        @media (max-width: 420px) {
+            .artifacts td { grid-template-columns: minmax(0, 1fr); gap: 0; }
+        }
+    </style>
+</head>
+<body class="sun both">
+    <div class="ground-sunrise" aria-hidden="true"></div>
+    <div class="sunarc" id="sunarc" aria-hidden="true">
+        <div class="sunarc-twilight"></div>
+        <div class="sunarc-glow"></div>
+        <div class="sunarc-sun"><svg viewBox="2.5 2.5 27 27" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#FFCC33" d="M16 2.5 Q17.057687783 5.007810543 18.589661566 7.257449068 A9.118033989 9.118033989 0 0 0 13.410338434 7.257449068 Q14.942312217 5.007810543 16 2.5 Z M23.935100906 5.078270576 Q23.316734245 7.728825204 23.233822722 10.449292599 A9.118033989 9.118033989 0 0 0 19.043662288 7.404962845 Q21.605359462 6.485438643 23.935100906 5.078270576 Z M28.83926297 11.828270576 Q26.781036911 13.609147511 25.114909466 15.761317696 A9.118033989 9.118033989 0 0 0 23.514410599 10.83548868 Q26.127349912 11.597305794 28.83926297 11.828270576 Z M28.83926297 20.171729424 Q26.127349912 20.402694206 23.514410599 21.16451132 A9.118033989 9.118033989 0 0 0 25.114909466 16.238682304 Q26.781036911 18.390852489 28.83926297 20.171729424 Z M23.935100906 26.921729424 Q21.605359462 25.514561357 19.043662288 24.595037155 A9.118033989 9.118033989 0 0 0 23.233822722 21.550707401 Q23.316734245 24.271174796 23.935100906 26.921729424 Z M16 29.5 Q14.942312217 26.992189457 13.410338434 24.742550932 A9.118033989 9.118033989 0 0 0 18.589661566 24.742550932 Q17.057687783 26.992189457 16 29.5 Z M8.064899094 26.921729424 Q8.683265755 24.271174796 8.766177278 21.550707401 A9.118033989 9.118033989 0 0 0 12.956337712 24.595037155 Q10.394640538 25.514561357 8.064899094 26.921729424 Z M3.16073703 20.171729424 Q5.218963089 18.390852489 6.885090534 16.238682304 A9.118033989 9.118033989 0 0 0 8.485589401 21.16451132 Q5.872650088 20.402694206 3.16073703 20.171729424 Z M3.16073703 11.828270576 Q5.872650088 11.597305794 8.485589401 10.83548868 A9.118033989 9.118033989 0 0 0 6.885090534 15.761317696 Q5.218963089 13.609147511 3.16073703 11.828270576 Z M8.064899094 5.078270576 Q10.394640538 6.485438643 12.956337712 7.404962845 A9.118033989 9.118033989 0 0 0 8.766177278 10.449292599 Q8.683265755 7.728825204 8.064899094 5.078270576 Z"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#E8913A" stroke-width="1.736067977"/></svg></div>
+    </div>
+    <div class="page">
+        <a href="#main" class="skip-link">[[i18n:site.chrome.skiptocontent]]</a>
+        <header class="site-header">
+            <div class="bar">
+                <a class="lockup" href="/"><img src="/static/lockup-solstone-horizontal.svg?v=4e45a9e870" alt="[[i18n:site.chrome.solstonehome]]" width="125" height="32"></a>
+                <nav class="site-nav" aria-label="[[i18n:site.chrome.main]]">
+                    <a href="/download" aria-current="page">[[i18n:site.chrome.download]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                </nav>
+                <div class="header-actions">
+                    <a class="btn btn-primary btn-sm" href="/install">[[i18n:site.chrome.getstarted]]</a>
+                    <details class="site-menu">
+                        <summary>[[i18n:site.chrome.menu]]</summary>
+                        <nav aria-label="[[i18n:site.chrome.main]]">
+                            <a href="/download" aria-current="page">[[i18n:site.chrome.download]]</a>
+                            <a href="/features">[[i18n:site.n404.features]]</a>
+                            <a href="https://github.com/solpbc">[[i18n:site.chrome.opensource]]</a>
+                            <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                        </nav>
+                    </details>
+                </div>
+            </div>
+        </header>
+
+        <main id="main" tabindex="-1">
+            <section class="band wrap" aria-labelledby="page-title">
+                <div class="band-inner">
+                    <h1 id="page-title">[[i18n:site.chrome.download]]</h1>
+                    <p class="lede">[[i18n:site.pagedownload.everysolstonedownloadwithitsversionsize2]]</p>
+                    <div class="artifacts-scroll">
+                        <table class="artifacts" role="table" aria-labelledby="page-title">
+                            <thead role="rowgroup">
+                                <tr role="row"><th scope="col" role="columnheader">[[i18n:site.pagedownload.product]]</th><th scope="col" role="columnheader">[[i18n:site.pagedownload.whatitdoes]]</th><th scope="col" role="columnheader">[[i18n:site.pagedownload.platform]]</th><th scope="col" role="columnheader">[[i18n:site.pagedownload.version]]</th><th scope="col" role="columnheader">[[i18n:site.pagedownload.architecture]]</th><th scope="col" role="columnheader">[[i18n:site.pagedownload.size]]</th><th scope="col" role="columnheader">[[i18n:site.pagedownload.checkit]]</th><th scope="col" role="columnheader">[[i18n:site.pagedownload.setup]]</th></tr>
+                            </thead>
+                            <tbody role="rowgroup">
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/macos">[[i18n:site.pagedownloadmac.thesolstoneapp]]</a></th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.download.takesinwhatyoushare]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.mac]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot macos-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div>[[i18n:site.download.applesiliconm1ornewermacos15]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><!--slot macos-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div><span class="line">[[i18n:site.pagedownload.signedbysolpbcnotarizedbyapple]]</span><!--slot macos-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#macos">[[i18n:site.chrome.setupsteps]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/journal">[[i18n:site.pagedownloadmac.thejournalapp]]</a></th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.pagedownload.keepsyourjournal]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.mac]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot journal-macos-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div>[[i18n:site.download.applesiliconm1ornewermacos15]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><!--slot journal-macos-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div><span class="line">[[i18n:site.pagedownload.signedbysolpbcnotarizedbyapple]]</span><!--slot journal-macos-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#macos">[[i18n:site.chrome.setupsteps]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/mac">[[i18n:site.pagedownload.bothmacapps]]</a></th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.pagedownload.onediskimagewithboth]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.mac]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot mac-both-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div>[[i18n:site.download.applesiliconm1ornewermacos15]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><!--slot mac-both-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div><span class="line">[[i18n:site.pagedownload.signedbysolpbcnotarizedbyapple]]</span><!--slot mac-both-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#macos">[[i18n:site.chrome.setupsteps]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/windows">[[i18n:site.pagedownloadmac.thesolstoneapp]]</a></th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.pagedownload.takesinwhatyoushare]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.windows]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot windows-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div>[[i18n:site.download.x64notyettestedonarm64]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><!--slot windows-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div>[[i18n:site.pagedownload.signedbysolpbc]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#windows">[[i18n:site.chrome.setupsteps]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/journal/windows">[[i18n:site.pagedownload.thejournal]]</a></th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.pagedownload.holdseverythingthesolstoneapptakesin]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.windows]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot journal-windows-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div>x64</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><!--slot journal-windows-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div><span class="line">[[i18n:site.pagedownload.signedbysolpbc]]</span><!--slot journal-windows-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#windows">[[i18n:site.chrome.setupsteps]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/journal/windows">[[i18n:site.pagedownload.thejournal]]</a></th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.pagedownload.holdseverythingthesolstoneapptakesin]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.windows]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot journal-windows-arm64-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div>[[i18n:site.download.arm64windows11]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><!--slot journal-windows-arm64-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div><span class="line">[[i18n:site.pagedownload.signedbysolpbc]]</span><!--slot journal-windows-arm64-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#windows">[[i18n:site.chrome.setupsteps]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader">[[i18n:site.pagedownload.thejournal]]</th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.pagedownload.holdseverythingthesolstoneapptakesin]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.linux]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot journal-linux-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div>[[i18n:site.pagedownload.x8664orarm64]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div>[[i18n:site.download.signedbysolpbcminisignandopenpgp]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#linux">[[i18n:site.chrome.setupsteps]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader">[[i18n:site.pagedownloadmac.thesolstoneapp]]</th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.download.takesinwhatyoushare]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.linux]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot linux-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div>[[i18n:site.pagedownload.x8664orarm64]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div>[[i18n:site.download.signedbysolpbcminisignandopenpgpx26b6f31f]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#linux">[[i18n:site.chrome.setupsteps]]</a><a href="https://github.com/solpbc/solstone-linux/blob/main/INSTALL.md">[[i18n:site.download.linuxappguide]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader"><a href="/download/android">[[i18n:site.pagedownloadmac.thesolstoneapp]]</a></th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.pagedownload.takesinwhatyoushare]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.androidfromus]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><!--slot android-version--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><!--slot android-size--><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div><span class="line">[[i18n:site.pagedownload.signedbysolpbc]]</span><!--slot android-check--><!--/slot--></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#android">[[i18n:site.chrome.setupsteps]]</a></div></td>
+                                </tr>
+                                <tr role="row">
+                                    <th scope="row" role="rowheader">[[i18n:site.pagedownloadmac.thesolstoneapp]]</th>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.whatitdoes]]"><div>[[i18n:site.pagedownload.takesinwhatyoushare]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.platform]]"><div>[[i18n:site.pagedownload.iphoneandipadappstoreandroidgoogle]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.version]]"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.architecture]]"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.size]]"><div><span class="none" aria-hidden="true">–</span><span class="visually-hidden">[[i18n:site.pagedownload.notshown]]</span></div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.checkit]]"><div>[[i18n:site.pagedownload.developershownassolpbc]]</div></td>
+                                    <td role="cell" data-label="[[i18n:site.pagedownload.setup]]" class="setup"><div><a href="/install#ios">[[i18n:site.pageinstall.iphoneandipad]]</a><a href="/install#android">[[i18n:site.pageinstall.android]]</a></div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="after">
+                        <p>[[i18n:site.download.checkitsourstrustsolstoneapp]]</p>
+                        <p>[[i18n:site.download.onyourphoneortabletsolstoneon]]</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="notice-wrap">
+                <p class="early-days">[[i18n:site.chrome.earlydaysonamaconwindows]]</p>
+            </div>
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-row">
+                <nav aria-label="[[i18n:site.chrome.footer]]">
+                    <a href="/download">[[i18n:site.chrome.download]]</a>
+                    <a href="/mobile">[[i18n:site.n404.mobile]]</a>
+                    <a href="/features">[[i18n:site.n404.features]]</a>
+                    <a href="/integrate">[[i18n:site.chrome.integrate]]</a>
+                    <a href="https://services.solstone.app">[[i18n:site.chrome.services]]</a>
+                    <a href="https://solpbc.org/privacy">[[i18n:site.chrome.privacy]]</a>
+                    <a href="/releases">[[i18n:site.chrome.releases]]</a>
+                    <a href="https://trust.solstone.app">[[i18n:site.chrome.trust]]</a>
+                    <a href="https://support.solstone.app">[[i18n:site.chrome.support]]</a>
+                    <a href="/brand">[[i18n:site.n404.brand]]</a>
+                    <a href="https://solpbc.org">sol pbc</a>
+                </nav>
+                <p class="fine">[[i18n:site.chrome.n2026solpbcyourjournalisalways]]</p>
+            </div>
+        </footer>
+    </div>
+    <script src="/static/site.js?v=21a0ea4d62" defer></script>
+    <script src="/static/sunarc.js?v=0366ca8ebc" defer></script>
+</body>
+</html>

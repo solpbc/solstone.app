@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "llms.txt",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 856,
+  "source_revision": "98d216b579013203b20c4675a2198bdb8fa2b12622c6ccb7b1aef3bf78ecdf2a",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1200,
+  "source_revision": "b5b9785967d4daf5411e268ae19c07fb00abcf9c243308d2356c02a2b68c3a8f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`θA = atan2(A − O)`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`θB = atan2(B − O)`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`Δ`"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "`P(t) = O + Rarc · (cos(θA + Δt), sin(θA + Δt))`"
+    }
+  ]
+}

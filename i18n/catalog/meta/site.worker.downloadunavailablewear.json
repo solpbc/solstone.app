@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "worker",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 268,
+  "source_revision": "c6742973c44fcd9f7069832eb5de600228a229e23605ad77b62a80fd7e416d6f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "wear os"
+    }
+  ]
+}

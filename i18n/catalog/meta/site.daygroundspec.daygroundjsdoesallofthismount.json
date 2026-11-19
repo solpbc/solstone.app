@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1376,
+  "source_revision": "c7e702ef6784b4a681f06179d97f263472c55d767183d4f3bcebe1b6261aee26",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`dayground.js`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`mount()`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`frame(date, width, height, appearance)`"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "`sunTimes(date)`"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "`NightSky`"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download-windows.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 432,
+  "source_revision": "a0479395e483f4834e467b8d7f84590d7901dd94112c3f150a3aa31f35530ae6",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

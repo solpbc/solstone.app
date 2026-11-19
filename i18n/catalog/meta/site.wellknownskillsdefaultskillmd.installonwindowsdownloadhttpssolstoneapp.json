@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1768,
+  "source_revision": "895d58a47789f5431e9fdfb430b952d8d38f888ab56cd29e68fc1a993d110f81",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "windows"
+    },
+    {
+      "name": "slot-2",
+      "kind": "url",
+      "value": "https://solstone.app/download/journal/windows/latest"
+    },
+    {
+      "name": "slot-3",
+      "kind": "url",
+      "value": "https://solstone.app/download/journal/windows/arm64/latest"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    }
+  ]
+}

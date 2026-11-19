@@ -88,6 +88,11 @@ cd scouts && npm run deploy
 There is **no GitHub Actions / CI** in this repo, by policy — every deploy is
 `wrangler deploy` run by an authenticated operator from a local machine.
 
+**Public site English copy** lives in [`i18n/catalog/`](i18n/catalog/).
+Edit the catalog for wording and [`i18n/pages/`](i18n/pages/) for layout.
+Regenerate the site and run `make check` before committing. The commands are
+in [`i18n/README.md`](i18n/README.md).
+
 ## 4. Security invariants — the account portal handles accounts and money
 
 These are not optional. A change that weakens one is wrong regardless of size.

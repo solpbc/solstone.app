@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "index.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 552,
+  "source_revision": "8faabaa9a69a47b3b46d1853213f209f65845dee3409d5d89d53bc2f7d1968bc",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "Claude Code"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "Codex"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "Gemini CLI"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download-macos.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 544,
+  "source_revision": "b5a4aa6def2b13b3cc4680674f3604eb60e68a7227974833229c62c2819fe2e0",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    }
+  ]
+}

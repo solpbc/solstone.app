@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "download.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 892,
+  "source_revision": "6824ba30e543e70c622011837bc07b9c139838354f93718e8449086da8b97fc8",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<a href=\"/install\">"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

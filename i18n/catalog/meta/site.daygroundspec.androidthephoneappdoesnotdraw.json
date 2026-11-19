@@ -1,0 +1,73 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 3024,
+  "source_revision": "1cd79456baa4b3e07ab989f3b439f86e7feff396ea68a5b22ae22a89e197444a",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "android"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "wear os"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`Canvas`"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "`withTransform { translate; scale }`"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "`Path`"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "`clipRect`"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "`LaunchedEffect`"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "`isSystemInDarkTheme()`"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "`FusedLocationProvider`"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "`LocationManager`"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "`ZoneId.systemDefault()`"
+    }
+  ]
+}

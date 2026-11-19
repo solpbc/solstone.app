@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal.html, releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 128,
+  "source_revision": "f7551868e20dc715c44db66aa793cbc2507371fcd975cb023d17369c2498e95d",
+  "risk": "routine",
+  "auto_merge": true
+}

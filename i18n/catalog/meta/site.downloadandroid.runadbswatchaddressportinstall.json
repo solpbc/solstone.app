@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "download-android.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 804,
+  "source_revision": "af9f933741f1790f8e9f34cc85b6215e8fe71987c0d439fd99155da09155a8c8",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>adb -s WATCH_ADDRESS:PORT install -r WATCH_APK</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>WATCH_ADDRESS:PORT</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>WATCH_APK</code>"
+    }
+  ]
+}

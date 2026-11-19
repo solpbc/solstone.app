@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1116,
+  "source_revision": "2fc231fc96d1686ce96cefdcc4925e02bbdadb0989b7204f09066ed821dada13",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "HTML"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "JSON"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "HTML"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>\\u</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>recall_memory</code>"
+    }
+  ]
+}

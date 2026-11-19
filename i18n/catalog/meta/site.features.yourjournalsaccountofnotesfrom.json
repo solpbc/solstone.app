@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 236,
+  "source_revision": "b029497b2b84934afff6583ffa978f7095f58b8dc5ed11a859dda95f49cd66ee",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "&#x27;"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Obsidian"
+    }
+  ]
+}

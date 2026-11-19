@@ -1847,6 +1847,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "account.passkeys.confirmremoval": {
+    resourceKey: "m6163636f756e742e706173736b6579732e636f6e6669726d72656d6f76616c",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "account.passkeys.devicename": {
     resourceKey: "m6163636f756e742e706173736b6579732e6465766963656e616d65",
     formatIntent: "text",
@@ -4996,6 +5002,12 @@ const MESSAGES = {
   },
   "account.signin.codesentto": {
     resourceKey: "m6163636f756e742e7369676e696e2e636f646573656e74746f",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "account.signin.confirmotherdevicessignout": {
+    resourceKey: "m6163636f756e742e7369676e696e2e636f6e6669726d6f74686572646576696365737369676e6f7574",
     formatIntent: "text",
     arguments: [
     ],

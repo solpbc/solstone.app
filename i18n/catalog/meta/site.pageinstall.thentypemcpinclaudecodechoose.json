@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 376,
+  "source_revision": "ee2caa309a5083c073db2c18eea0899c56a0752a816e3cb5fadf1a395b6df93d",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>/mcp</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Claude Code"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "</strong>"
+    }
+  ]
+}

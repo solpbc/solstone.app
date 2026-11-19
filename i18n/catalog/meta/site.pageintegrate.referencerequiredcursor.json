@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 216,
+  "source_revision": "ed301538493a6a819f248a17be497cd205a45782c85cb2d5013dd063055021e2",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>reference</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>cursor</code>"
+    }
+  ]
+}

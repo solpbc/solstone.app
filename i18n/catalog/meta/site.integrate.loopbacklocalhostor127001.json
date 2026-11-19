@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 952,
+  "source_revision": "d5b4b9114358b7e40524301bc64735341a70276a37b1a35fce4f15c46249017b",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>localhost</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>127.0.0.1</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<a href=\"https://github.com/solpbc/solstone-journal/blob/main/docs/MCP_OAUTH.md#redirects\">"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

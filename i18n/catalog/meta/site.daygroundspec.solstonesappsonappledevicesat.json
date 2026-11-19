@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 956,
+  "source_revision": "a4057c91346ad41daa1837a89fd89ed11c2f8e8f384b3fc02c6e0e9692224fca",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "iphone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "ipad"
+    }
+  ]
+}

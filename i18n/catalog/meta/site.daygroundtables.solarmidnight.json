@@ -1,0 +1,29 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-tables",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [
+    {
+      "name": "rise",
+      "type": "string"
+    },
+    {
+      "name": "set",
+      "type": "string"
+    },
+    {
+      "name": "midnight",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 220,
+  "source_revision": "8ed4cf5cadeb7eeb98c7ded2ac8e24b9db61edb6ba755f63aebe0ee369e98466",
+  "risk": "routine",
+  "auto_merge": true
+}

@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 776,
+  "source_revision": "d590326ef8e0e1c90def2a8e65c26ca7958c770ea123cbb9b952dcefd245cf3e",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>POST /token</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>authorization_code</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>refresh_token</code>"
+    }
+  ]
+}

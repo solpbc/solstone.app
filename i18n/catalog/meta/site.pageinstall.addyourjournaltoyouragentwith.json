@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 652,
+  "source_revision": "5b8e84bbe950ee9fd37446d9f43ef68a3ab7c4772588c39355a62aa46f6ad9a0",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>http://127.0.0.1:7659/mcp</code>"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "brand/merch.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1128,
+  "source_revision": "cef8e0343dd917cfe614273c41183a11bec7dbcaebe124e5bfaca0c3d2a181e1",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone.app"
+    }
+  ]
+}

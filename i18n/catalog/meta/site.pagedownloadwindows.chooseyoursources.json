@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "download-windows.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 76,
+  "source_revision": "bfa3b3e4a07c51dcc4161b968a513ac33b7daa9beb18bdc3b38d7c4af3ca64dd",
+  "risk": "routine",
+  "auto_merge": true
+}

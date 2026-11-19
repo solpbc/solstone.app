@@ -1,0 +1,48 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 688,
+  "source_revision": "5fc451645827ae779428c984af63ef4bd3108345f12a5199f0e380ee500bf60f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "Google Play"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<a href=\"/download/android#check\">"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

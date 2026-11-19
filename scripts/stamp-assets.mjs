@@ -20,9 +20,9 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const check = process.argv.includes("--check");
 const sources = [
-  ...readdirSync(resolve(root, "public")).filter((f) => f.endsWith(".html")).map((f) => `public/${f}`),
-  ...readdirSync(resolve(root, "public/brand")).filter((f) => f.endsWith(".html")).map((f) => `public/brand/${f}`),
-  ...readdirSync(resolve(root, "public/features")).filter((f) => f.endsWith(".html")).map((f) => `public/features/${f}`),
+  ...readdirSync(resolve(root, "i18n/pages")).filter((f) => f.endsWith(".html")).map((f) => `i18n/pages/${f}`),
+  ...readdirSync(resolve(root, "i18n/pages/brand")).filter((f) => f.endsWith(".html")).map((f) => `i18n/pages/brand/${f}`),
+  ...readdirSync(resolve(root, "i18n/pages/features")).filter((f) => f.endsWith(".html")).map((f) => `i18n/pages/features/${f}`),
   "releases.js",
 ];
 const REF = /\/static\/([A-Za-z0-9._/-]+\.(?:css|js|webp|svg|png|woff2))(?:\?v=[0-9a-f]*)?/g;

@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "llms.txt",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 504,
+  "source_revision": "354fafec05e3a9e5a6c9c2f88cb80ef2fea9d6237e5a17aa55c0bd975ebb6da9",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "https://github.com/solpbc/solstone-journal/blob/main/docs/CALLOSUM.md):"
+    }
+  ]
+}

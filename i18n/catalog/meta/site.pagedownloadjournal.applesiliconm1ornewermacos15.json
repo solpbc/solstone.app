@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "download-journal.html, download-macos.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 184,
+  "source_revision": "15f55215ca1d5e75a3c8d4cd58ee078a538c1fcbb262ce011fb8e7dbbaa3d277",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "macos"
+    }
+  ]
+}

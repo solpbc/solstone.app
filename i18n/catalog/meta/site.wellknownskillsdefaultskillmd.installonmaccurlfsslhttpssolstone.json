@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 932,
+  "source_revision": "411d9e4ffae6fb02eb959d8e5ee998d95b783eb38fde19d898265fa95257b419",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`curl -fsSL https://solstone.app/install.sh | sh -s -- --components journal`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`--components all`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`/Applications`"
+    }
+  ]
+}

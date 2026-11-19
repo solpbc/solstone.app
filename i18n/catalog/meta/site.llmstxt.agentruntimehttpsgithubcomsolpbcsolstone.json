@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "llms.txt",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 496,
+  "source_revision": "28e7e1199f96f1d448524ebc29c00e8077e212cdd622df0ff64f05e750affeb8",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "url",
+      "value": "https://github.com/solpbc/solstone-journal/blob/main/docs/CORTEX.md):"
+    }
+  ]
+}

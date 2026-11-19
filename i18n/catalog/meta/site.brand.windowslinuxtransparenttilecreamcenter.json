@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "brand.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 216,
+  "source_revision": "0f62d38063dc8f131917575df596815dbd9e907f8b86932fe790e5b9f0a1bc2f",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Windows"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Linux"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "&#8212;"
+    }
+  ]
+}

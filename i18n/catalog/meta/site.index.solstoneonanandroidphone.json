@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "features.html, features/devices.html, index.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 256,
+  "source_revision": "5da4da7264ce0ff0a2fb11df0ecee8cf7697d142ab936915d034604b22f55ad7",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "android"
+    }
+  ]
+}

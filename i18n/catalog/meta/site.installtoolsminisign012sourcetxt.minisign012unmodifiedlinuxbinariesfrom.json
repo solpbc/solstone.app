@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "install-tools/minisign/0.12/SOURCE.txt",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 264,
+  "source_revision": "271ef9bc6408ae5e0ac2b9ec749d2b089bd29c5ddb3d1c0f48adc7e47e34ee37",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Minisign"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Linux"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 852,
+  "source_revision": "80e7668514285ce911bd467d1250668a540a9186fb74cfcb824947d1b0cd9a62",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`A = (−R/√2, −R/√2)`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`B = (W + R/√2, H + R/√2)`"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "install.html, mobile.html, releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 84,
+  "source_revision": "6c453d79f0b393e8fa9f22d065bcaf86f39eab05036af7291ba17679c49d1169",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Google Play"
+    }
+  ]
+}

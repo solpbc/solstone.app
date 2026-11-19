@@ -1,0 +1,53 @@
+{
+  "description": "Website copy.",
+  "context": "install.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 920,
+  "source_revision": "cf3b8d5fb5fd656e131111c799862971a9eabd0a1155e7805b2cb00947a40523",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<a href=\"/download/journal#upgrading\">"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

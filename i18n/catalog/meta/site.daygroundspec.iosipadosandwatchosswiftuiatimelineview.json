@@ -1,0 +1,63 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2480,
+  "source_revision": "f313f32aaac2515191f77e79a74abfcbc8ff94a2153b404f4c25811bcb30a63d",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`TimelineView(.everyMinute)`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`Canvas`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`Path`"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "png"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "`Color.mix`"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "`@Environment(\\.colorScheme)`"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "`.preferredColorScheme`"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "`CLLocationManager`"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "`TimeZone.current.identifier`"
+    }
+  ]
+}

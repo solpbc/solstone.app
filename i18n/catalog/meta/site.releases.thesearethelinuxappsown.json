@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 672,
+  "source_revision": "68c0d9a70ac000e8ba8700b30fe56389686dfc650f4247eaed57f30329cac394",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "systemd"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "linux"
+    }
+  ]
+}

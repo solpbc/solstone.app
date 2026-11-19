@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 100,
+  "source_revision": "d8f3ea675511cdf7089723cd83283c2136bdc4dff0729c627e445e7f24682ad4",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Chrome"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Firefox"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "Safari"
+    }
+  ]
+}

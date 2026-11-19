@@ -1,0 +1,42 @@
+{
+  "description": "Website copy.",
+  "context": "worker",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [
+    {
+      "name": "version",
+      "type": "string"
+    },
+    {
+      "name": "size",
+      "type": "string"
+    }
+  ],
+  "format_intent": "text",
+  "max_length": 272,
+  "source_revision": "447b39b5ce4960f722a8218bd355d3976c645fe9d04c77f10501ec372af5e7bb",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "&middot;"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "&middot;"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "android"
+    }
+  ]
+}

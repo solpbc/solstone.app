@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1096,
+  "source_revision": "201beca92b426faa3fa821a3fafd407671cbc8a1e0358ea765bdcfd27d2b5a57",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone.me"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>token list</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>token revoke --label</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>permission show</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>clear</code>"
+    }
+  ]
+}

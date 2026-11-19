@@ -1,0 +1,48 @@
+{
+  "description": "Website copy.",
+  "context": "releases",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1224,
+  "source_revision": "655aec19519bb3bc168f614732b78328c2776e5d24b0e38a6d2545e14672b55d",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "iphone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "apple watch"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "App Store"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "solstone.app"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "TestFlight"
+    },
+    {
+      "name": "slot-6",
+      "kind": "mark-word",
+      "value": "App Store"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "download-windows.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1088,
+  "source_revision": "a9bb31cc915e9821c7201be77b980fe1e858ef3735496dd400aee0611362f9f0",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</strong>"
+    }
+  ]
+}

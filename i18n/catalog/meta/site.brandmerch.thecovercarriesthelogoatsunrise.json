@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "brand/merch.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 484,
+  "source_revision": "ba28a06ea6f976f7595be8e873c9871530f758728d4d1e5986c684b025bbe006",
+  "risk": "routine",
+  "auto_merge": true
+}

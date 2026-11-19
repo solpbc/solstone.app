@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 388,
+  "source_revision": "fa921eb8c78913369797b0f6ac9791b2901c854ad720dd46c30f4a2c713760f9",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`mix(night ground, true-dark ground, 1 − w)`"
+    }
+  ]
+}

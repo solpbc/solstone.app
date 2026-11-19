@@ -1,0 +1,14 @@
+[[i18n:site.installtoolsminisign012sourcetxt.minisign012unmodifiedlinuxbinariesfrom]]
+https://github.com/jedisct1/minisign/releases/tag/0.12
+
+[[i18n:site.installtoolsminisign012sourcetxt.releasesourcecommitb85e15d45ac9eab34e44596fd309f5b07db954]]
+[[i18n:site.installtoolsminisign012sourcetxt.releasearchiveminisign012linuxtar]]
+[[i18n:site.installtoolsminisign012sourcetxt.sha2569a599b48ba6eb7b1e80f12f36b94ceca7c00b7a5173c95c3efc88]]
+
+[[i18n:site.installtoolsminisign012sourcetxt.thearchivewasverifiedagainstminisign0]]
+[[i18n:site.installtoolsminisign012sourcetxt.theupstreamreleasekeyintheminisign]]
+[[i18n:site.installtoolsminisign012sourcetxt.rwqf6lrcga9i53mlyeco4izt51tgppvwucnsch1cbm0qtaln73y7gfo3]]
+
+[[i18n:site.installtoolsminisign012sourcetxt.theelfcompilermetadataidentifieszigbootstrap]]
+[[i18n:site.installtoolsminisign012sourcetxt.n1ad232c5a2e1ebbdad2cfbb86ad8fe7f73c7e4d4theexecutablesare]]
+[[i18n:site.installtoolsminisign012sourcetxt.andcontainlibsodiumlicensenoticesarein]]

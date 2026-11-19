@@ -1,0 +1,48 @@
+{
+  "description": "Website copy.",
+  "context": "features.html, features/custody.html, features/devices.html, features/evidence.html, install.html, integrate.html, mobile.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1216,
+  "source_revision": "5ac39900dbf4941b281f6a15f3137c4053e9330d22f281abff53e842f889a0fb",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "App Store"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "Google Play"
+    },
+    {
+      "name": "slot-6",
+      "kind": "mark-word",
+      "value": "Google Play"
+    }
+  ]
+}

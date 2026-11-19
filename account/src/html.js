@@ -2257,7 +2257,7 @@ export function renderSignInSessions({ rows, currentIdHash, now, menu }) {
   const hasOtherSessions = rows.some((row) => row.id_hash !== currentIdHash);
   const revokeOthers = hasOtherSessions
     ? `<div class="btn-row" style="margin-top:16px"><form method="post" action="/sign-in/sessions/revoke-others">
-  <button class="btn danger" type="submit" onclick="return confirm('sign out every other device?')">${htmlText('account.signin.signouteveryotherdevice')}</button>
+  <button class="btn danger" type="submit" onclick="return confirm(${escAttr(scriptText('account.signin.confirmotherdevicessignout', "'"))})">${htmlText('account.signin.signouteveryotherdevice')}</button>
 </form></div>`
     : '';
   const rowHtml = rows.map((row) => {
@@ -2304,7 +2304,7 @@ export function renderSignInPasskeys({ rows, enrollJsIncluded, menu }) {
     </form>
   </div>
   <div class="trail"><form method="post" action="${removeAction}">
-    <button class="btn danger" type="submit" onclick="return confirm('remove this passkey?')">${htmlText('account.passkeys.remove')}</button>
+    <button class="btn danger" type="submit" onclick="return confirm(${escAttr(scriptText('account.passkeys.confirmremoval', "'"))})">${htmlText('account.passkeys.remove')}</button>
   </form></div>
 </div>`;
   }).join('');

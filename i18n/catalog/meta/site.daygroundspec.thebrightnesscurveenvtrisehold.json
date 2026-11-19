@@ -1,0 +1,58 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1084,
+  "source_revision": "756e00e96f45303ac1dde170204c9fa5592f7aa88c9e59e44df2ec89f6cdb5b7",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`env(t)`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`sin(t/e · π/2)`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`t < e`"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "`1`"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "`e ≤ t ≤ 1 − e`"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "`sin((1 − t)/e · π/2)`"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "`t > 1 − e`"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "`α = peak · env(t) · (1 − night)`"
+    }
+  ]
+}

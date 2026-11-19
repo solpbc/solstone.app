@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "features.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 192,
+  "source_revision": "2ee25b62382af71d91a1dddd09ebb3a0e813ca375b15983d53f499e3554e9514",
+  "risk": "routine",
+  "auto_merge": true
+}

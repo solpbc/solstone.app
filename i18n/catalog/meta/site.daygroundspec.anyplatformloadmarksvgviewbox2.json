@@ -1,0 +1,63 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2508,
+  "source_revision": "7189687629a93859eae25b3f4051eb79d1f082aac09240cd78d1a9ff6c0e28af",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`mark.svg`"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`2.5 2.5 27 27`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`(16, 16)`"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "`Ø / 27`"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "`(W, H, m, rise, set, appearance)`"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "`calculateFrame`"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "`dayground.js`"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "`dayground.json`"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "`NightSky`"
+    }
+  ]
+}

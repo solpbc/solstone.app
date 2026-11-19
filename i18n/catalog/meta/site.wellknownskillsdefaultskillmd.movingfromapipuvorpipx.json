@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": ".well-known/skills/default/SKILL.md",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1448,
+  "source_revision": "8d9d42ef3e0d2d6a36cc0fc8220321141c5ac29a8a3349907d1ecc5495c68676",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "linux"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "`.deb`"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "`.rpm`"
+    }
+  ]
+}

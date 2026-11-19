@@ -1,0 +1,16 @@
+{
+  "description": "Website copy.",
+  "context": "download-mac.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 140,
+  "source_revision": "bbbc0fd98f723fcd2366172da733b3ad20b90ba2c09b4067a428465a384d1f29",
+  "risk": "routine",
+  "auto_merge": true
+}

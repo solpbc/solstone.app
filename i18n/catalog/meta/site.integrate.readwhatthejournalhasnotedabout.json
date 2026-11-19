@@ -1,0 +1,48 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1756,
+  "source_revision": "8c2a696f3b8e4b219d5375c3416a6eeb1509cc8758201bf3b696de70381c2e9a",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>photo.state</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>none</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>possible</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>suggested</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>confirmed</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>dismissed</code>"
+    }
+  ]
+}

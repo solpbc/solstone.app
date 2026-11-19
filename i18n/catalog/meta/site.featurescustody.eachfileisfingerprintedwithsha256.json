@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "features/custody.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1824,
+  "source_revision": "8f9ad12a510491ebaccad0d1455b82f7b11209a65a59c662a1657cd6fee90eaf",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "SHA-256"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>written</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>already_held</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>received_not_written</code>"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "description": "Website copy.",
+  "context": "brand.html, brand/dayground.html, brand/merch.html, brand/system.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 756,
+  "source_revision": "8aacbdb9374e2a920cc49a5b3aa72af2005bbd578b60148117708b869d9abbcd",
+  "risk": "legal",
+  "auto_merge": false,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "solstone"
+    },
+    {
+      "name": "slot-3",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-4",
+      "kind": "mark-word",
+      "value": "sol pbc"
+    },
+    {
+      "name": "slot-5",
+      "kind": "mark-word",
+      "value": "vit"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<a href=\"https://solpbc.org/brands/\">"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

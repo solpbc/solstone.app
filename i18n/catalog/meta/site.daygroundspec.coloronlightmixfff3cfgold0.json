@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "dayground-spec",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 908,
+  "source_revision": "2df5117bc0849cdc97d91d85c5cc0dd57d10a8ca176762036d73eda395c9f0b9",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "`mix(#FFF3CF, gold, 0.45 + 0.25 x)`"
+    }
+  ]
+}

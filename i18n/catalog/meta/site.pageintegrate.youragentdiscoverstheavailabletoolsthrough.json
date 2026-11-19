@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1352,
+  "source_revision": "d96f75bc6b3a8d717b0d445bc2e4e83515d4eebb95ddde6f9d17d249e496286b",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>tools/list</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>YYYYMMDD</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>YYYY-MM-DD</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>list_</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>limit</code>"
+    }
+  ]
+}

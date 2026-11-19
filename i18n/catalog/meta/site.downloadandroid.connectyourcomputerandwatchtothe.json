@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "download-android.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1204,
+  "source_revision": "d6725eae62b2ca0d8c04c8f731c7778a36f6341f2bc2b9baa0b289fdad72642b",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<a href=\"https://developer.android.com/training/wearables/get-started/debugging\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</a>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>adb</code>"
+    }
+  ]
+}

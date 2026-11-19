@@ -1,0 +1,48 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 3296,
+  "source_revision": "051de12e6684147a446295ca58b71ef11f458c16df5b18d7dfa018bb0dc5e0a5",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>untimed</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>list_activities</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>zone</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>fetch</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>list_activities</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>scheduled</code>"
+    }
+  ]
+}

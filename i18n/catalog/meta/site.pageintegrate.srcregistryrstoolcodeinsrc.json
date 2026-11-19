@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1116,
+  "source_revision": "b71610f300bf2df389ec9ec95af5775f3ad0b523a98f223064c8102beebb5f48",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<a href=\"https://github.com/solpbc/solstone-journal/blob/main/core/crates/solstone-core-mcp-endpoint/src/registry.rs\">"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "</a>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<a href=\"https://github.com/solpbc/solstone-journal/tree/main/core/crates/solstone-core-mcp-endpoint/src/tools\">"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "</a>"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 3740,
+  "source_revision": "03b559346b42835bd955fb10c2811ec9e15ec54317ba4c85d9913e06cb1e74b3",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<br>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<br>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<br>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<br>"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-12",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-13",
+      "kind": "command",
+      "value": "<br>"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "<strong>"
+    },
+    {
+      "name": "slot-15",
+      "kind": "command",
+      "value": "</strong>"
+    },
+    {
+      "name": "slot-16",
+      "kind": "mark-word",
+      "value": "Strava"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2528,
+  "source_revision": "fd8a2bd5e1d58ff3d29ee27b7e3d83d44f29a25da3a49f4877f71948a7621710",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>next_cursor</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>cursor</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>reference</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>span_reference</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>description_truncated: true</code>"
+    }
+  ]
+}
