@@ -10,7 +10,7 @@
   "arguments": [],
   "format_intent": "text",
   "max_length": 928,
-  "source_revision": "c5803b42d01e4c63d52f5b0695e03d0dbe35ce2f47b374f6184d16e7523a3d03",
+  "source_revision": "979be2bdfc10daa34117d82df2e866c17fff987a6e4300269f747758568b24ee",
   "risk": "routine",
   "auto_merge": true,
   "protected_slots": [

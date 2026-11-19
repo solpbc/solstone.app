@@ -14591,7 +14591,7 @@
     },
     {
       "id": "site.downloadandroid.thesolstoneappforwearosneeds",
-      "source": "6446e86379223f90ad2ac4c6ee21447a721871ecf51fd6bf359cd8a0f6b2744c",
+      "source": "294c660461bc9938e3631fcee459bf9ab2c89303f67312621bda983ec6c97b8e",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "69faa628d70c34aa4da6d45ef7d4eb7b7a02debfbb7963a24867a734e6e84193",
       "locales": []
@@ -22074,7 +22074,7 @@
     },
     {
       "id": "site.releases.introwear",
-      "source": "c5803b42d01e4c63d52f5b0695e03d0dbe35ce2f47b374f6184d16e7523a3d03",
+      "source": "979be2bdfc10daa34117d82df2e866c17fff987a6e4300269f747758568b24ee",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "d7197c82bfe250d6e478fe24f6afb9f04d7d5a5160ea4db907ac8d1a9ffb99e8",
       "locales": []

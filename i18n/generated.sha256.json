@@ -2085,7 +2085,7 @@
   "catalog/meta/site.downloadandroid.ongoingworkforegroundservicemicrophonelocationcamerame.json": "f8633211fca5e7c0574a0d06b3dac40fc83c897d800f47cfe9ade7b7a8cc2119",
   "catalog/meta/site.downloadandroid.runadbswatchaddressportinstall.json": "dd925d430d9a18ebf05b0edbad4e53e225ab00f35c68540cab4c5d2716572c52",
   "catalog/meta/site.downloadandroid.thentheinstallerasksoncemoreinstall.json": "fb428267d3cba28d8bab91cb689bede085591cdb1759ee17f56489fd97aa5b26",
-  "catalog/meta/site.downloadandroid.thesolstoneappforwearosneeds.json": "fa6aadc2f3e2afd4af4d72a5d29430ffe1adf6667955e13c496e98888d9a9ff7",
+  "catalog/meta/site.downloadandroid.thesolstoneappforwearosneeds.json": "1ed75371429a95325e70b4edddab7dd19bcac019b24c27b77bdae4855c73ae1b",
   "catalog/meta/site.downloadandroid.turnwirelessdebuggingandadbdebuggingback.json": "a8329361c8b6d71f82605caff1588e99de4d6d32ccd0dce9e5380c1edca8248b",
   "catalog/meta/site.downloadandroid.watchreleasenotes.json": "ed3724ea5faf8cbcdaee2de2542295b25ab8e1f6b72eaf6566309c9017a9ddd6",
   "catalog/meta/site.downloadandroid.wearoswatch.json": "fe48bb7128bbb357f53b85dbec44f7830da6845cb3708cbad04cd35fa6931b4e",
@@ -3154,7 +3154,7 @@
   "catalog/meta/site.releases.getthewatchapp.json": "deee07e143594757c670ae610f1c39484882a82c966a0a28aaba717f1d91f9e2",
   "catalog/meta/site.releases.installthesolstoneappforlinux.json": "5b64818c8557298c836e14c7383b2b38372855d0ec386faa00b13e576fe25328",
   "catalog/meta/site.releases.introandroid.json": "3d880ac06a9e877c103e7efb63f231016b7f5b957c131e6081064e5cd629ce18",
-  "catalog/meta/site.releases.introwear.json": "f207df04d19c250876f998af8800b47f241ea78eb4a9f74dcd4aa0bdbea17eec",
+  "catalog/meta/site.releases.introwear.json": "4e246c8d92bb8175ec695f5bb178848c8e6adec5bc1114c3c3e7fe36ff17b11e",
   "catalog/meta/site.releases.iphoneappreleases.json": "a6f5b46665bf5400065ef5f537554e88aa4006b7aa7df0dd210d75540bcc613e",
   "catalog/meta/site.releases.iphoneappreleasessolstone.json": "e01d6b04e91d6af18d4cf914c1f07f422f3879cce5e962afcfc3aeaf7f452bb8",
   "catalog/meta/site.releases.journalappreleases.json": "1d23fa000c226e91817b31ebd1e135a9880de8c8f29bcc3cfac5b58f41078438",
@@ -3254,8 +3254,8 @@
   "catalog/meta/site.worker.macbothjournal.json": "5cb6807ad2abe57bd3e4dff6060faded8e7246f2f6334dc4607983b53e0816ed",
   "catalog/meta/site.worker.mb.json": "2e768d3a0315e1cd8494e82d832abf09e32b200da4486814eae1d6b8c9fcdd7b",
   "catalog/meta/site.worker.sizelead.json": "902e00158525d1629edb8440950862dc183932aafed5224df49a85d80e51ac89",
-  "catalog/source-lock.json": "5bb27c21157e5d42628b5e00f478cd4c397d7bb3f3526b441087691ceb28b713",
-  "catalog/source/en-US.ftl": "c468c3c12e1554e1d4456fcc42a6d7b12a08a12ee4b19b6db867c7ecfd6d5cba",
+  "catalog/source-lock.json": "3c6c5b1ae3b140075049bf50bce53a995d614d60883013f66d77f6e479d8c50f",
+  "catalog/source/en-US.ftl": "549cea79decd9f81ffacb47262420b9b886f9a5418626b50762f1fef87fa4d36",
   "compiler.json": "314dae05a6adda1548bc5fa525d06fe2d9bfb2fc89c37ed262e9acbd71be0514",
   "generated/esm/account/api.mjs": "f50244d47186c9249367899283757fe0cfd4bfee54f7ea82e84c122817e8da96",
   "generated/esm/account/catalogs.mjs": "74bf08ffe2f6c798767eb4d216cafaba9d0fe7080ef2138dd3aea0b68e29c33c",
@@ -3281,5 +3281,5 @@
   "generated/esm/vendor/fluent-bundle/types.d.ts": "7dbe22a95e01379ba39df2bdafcedf70abd890f211078431baa51559d408944b",
   "generated/esm/vendor/fluent-bundle/types.js": "908ee4ad996d552cf7a8eefa56f7b8048002a82456c2fdd842c5a4bc8a1866e4",
   "generated/esm/website/api.mjs": "299f5ded94f6cc2f138159d431db395a4082b7ff2d66ea4bf9cea614a7b229d9",
-  "generated/esm/website/catalogs.mjs": "01d3c0c019a76f5a7b944e28110609d02e4efed46907695b347f4b0501333173"
+  "generated/esm/website/catalogs.mjs": "0fa4603a2dcb5e142e728fd9c5ee8c20acfad353de279ae0360c5eb70e30642a"
 }
