@@ -2575,7 +2575,7 @@
   "catalog/meta/site.index.theactivitypageinthejournals.json": "819eb0dd5ecccd8195aaf5a2edd7eecccefd4d75ec2a24e18d2186f6ab69bb8e",
   "catalog/meta/site.index.thejournalyouvealways.json": "00a5120405620b62ccc238e0356d74f7efcbc3c21269b3b8cd3e3e66fd95ba81",
   "catalog/meta/site.index.thesolstoneapponeachdevicefrom.json": "c6ebf6be75b70d52d4df01e8238e3fcc036020653fb8bdccdb84dea6b835beac",
-  "catalog/meta/site.index.thesolstonemenuona.json": "d441436ade1e404e83c6a267e0e4943237f42b22f4604af11dac34854278f98b",
+  "catalog/meta/site.index.thesolstonemenuona.json": "5cafe03c1f97be5154165fab63784bef79399ed9c9964bbbe7f3be609b3e15ae",
   "catalog/meta/site.index.thisafternoonromeoshowedthequeuesurviving.json": "938ed4afd31268d680df137120f9202ee0b67f37d033d46960c6b466c43bb875",
   "catalog/meta/site.index.todaysstandup930whenyou.json": "e076c3b461a51a9966d41dd0d5caaffd50308edbe4ad1f6095525840e4b8204e",
   "catalog/meta/site.index.twothingstohavereadyfortomorrow.json": "e6fd2efa9233ae122834fc8ebb6fa62de850047e22f135f06b8441d892863a9d",
@@ -3254,8 +3254,8 @@
   "catalog/meta/site.worker.macbothjournal.json": "5cb6807ad2abe57bd3e4dff6060faded8e7246f2f6334dc4607983b53e0816ed",
   "catalog/meta/site.worker.mb.json": "2e768d3a0315e1cd8494e82d832abf09e32b200da4486814eae1d6b8c9fcdd7b",
   "catalog/meta/site.worker.sizelead.json": "902e00158525d1629edb8440950862dc183932aafed5224df49a85d80e51ac89",
-  "catalog/source-lock.json": "b5ce228276d4f7adbcdfe3b8a28ccf389550d060c7b53f6058c3bc21c0d36f1d",
-  "catalog/source/en-US.ftl": "aedd0cd02148253cef8675f0b3717356d21bbc6bef431911a1db4edb5fcb5443",
+  "catalog/source-lock.json": "5bb27c21157e5d42628b5e00f478cd4c397d7bb3f3526b441087691ceb28b713",
+  "catalog/source/en-US.ftl": "c468c3c12e1554e1d4456fcc42a6d7b12a08a12ee4b19b6db867c7ecfd6d5cba",
   "compiler.json": "314dae05a6adda1548bc5fa525d06fe2d9bfb2fc89c37ed262e9acbd71be0514",
   "generated/esm/account/api.mjs": "f50244d47186c9249367899283757fe0cfd4bfee54f7ea82e84c122817e8da96",
   "generated/esm/account/catalogs.mjs": "74bf08ffe2f6c798767eb4d216cafaba9d0fe7080ef2138dd3aea0b68e29c33c",
@@ -3281,5 +3281,5 @@
   "generated/esm/vendor/fluent-bundle/types.d.ts": "7dbe22a95e01379ba39df2bdafcedf70abd890f211078431baa51559d408944b",
   "generated/esm/vendor/fluent-bundle/types.js": "908ee4ad996d552cf7a8eefa56f7b8048002a82456c2fdd842c5a4bc8a1866e4",
   "generated/esm/website/api.mjs": "299f5ded94f6cc2f138159d431db395a4082b7ff2d66ea4bf9cea614a7b229d9",
-  "generated/esm/website/catalogs.mjs": "8de7c2a4c5279300beb7e783f2d6c714094e567c2a82b0e764c4531197701686"
+  "generated/esm/website/catalogs.mjs": "01d3c0c019a76f5a7b944e28110609d02e4efed46907695b347f4b0501333173"
 }
