@@ -137,7 +137,7 @@
 .sf-qa details { margin-top: 12px; font-size: 15px; }
 .sf-qa summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 .sf-qa .sf-full { font-size: 15px; line-height: 1.55; color: var(--ink); max-height: 28em; overflow: auto; padding-right: 6px; }
-.sf-qa dd p + p, .sf-qa dd p + ul, .sf-qa .sf-full p + p, .sf-qa .sf-full ul + p, .sf-qa .sf-full p + ul { margin-top: 8px; }
+.sf-qa dd p + p, .sf-qa dd p + ul, .sf-qa dd ul + p, .sf-qa .sf-full p + p, .sf-qa .sf-full ul + p, .sf-qa .sf-full p + ul { margin-top: 8px; }
 .sf-qa ul { margin: 6px 0 0; padding-left: 1.2em; }
 .sf-qa li + li { margin-top: 4px; }
 .sf-qa .sf-h { font-weight: 600; margin-top: 14px; }
