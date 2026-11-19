@@ -5,10 +5,12 @@
 ### added
 
 - solstone.app/features shows what makes solstone different, with screens from a public demo journal, and lists every capability with where it runs today. it links to pages on how what happened stays apart from what was inferred, on how your devices sync with your journal, and on how each device handles your screen, sound, pairing and the rest.
+- each capability on solstone.app/features has its own link, the devices it works on link to where you get each app, and related capabilities and pages link to each other.
 - a "features" link takes the place of "mobile" in the top bar. the page for phones and tablets is still at solstone.app/mobile, linked from the download page.
 
 ### fixed
 
+- the evidence and custody pages under solstone.app/features no longer offer a link to an architecture page that doesn't exist.
 - the page for the solstone app on phones and tablets is now at solstone.app/mobile. the old /phone address still works.
 - the phone page says the solstone app for apple watch comes with the iphone app and needs watchos 26 or later.
 - on the home page, arrows beside each part of "how your journal works" move to the previous or next part, and each device under "what goes in" links to its download page.

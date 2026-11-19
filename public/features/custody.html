@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
     <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
-    <link rel="stylesheet" href="/static/features/features.css?v=9843d7fadc">
+    <link rel="stylesheet" href="/static/features/features.css?v=8f5075d7f6">
 </head>
 <body class="sun both">
     <div class="ground-sunrise" aria-hidden="true"></div>
@@ -66,7 +66,7 @@
                     <p class="crumb"><a href="/features">features</a> / privacy</p>
                     <h1>safe, secure sync between your devices and your journal</h1>
                     <p class="promise">what a solstone app takes in waits on that device until your journal confirms it holds each file. only then is the copy removed. anything your journal hasn't confirmed stays put and goes again later.</p>
-                    <div class="facts" style="margin-top:16px"><span class="status">available</span><span class="where">every solstone app</span></div>
+                    <div class="facts" style="margin-top:16px"><span class="status">available</span><span class="where"><a href="/download">every solstone app</a></span></div>
                 </div>
             </section>
 
@@ -163,7 +163,7 @@
                         <dt>iphone and ipad</dt><dd>a file your journal turned away is tried again later, not over and over on your battery.</dd>
                         <dt>apple watch</dt><dd>what the watch takes in stays on your wrist until it's safely on your phone and your phone has said so, and goes on to your journal under the same rule.</dd>
                         <dt>android</dt><dd>before anything goes, the solstone app for android checks it's still paired with the same journal, and a send that has started is never cancelled.</dd>
-                        <dt>every app</dt><dd>if you unpair or move to another journal, what's waiting goes to the journal you pair with next, once you confirm its mark.</dd>
+                        <dt>every app</dt><dd>if you unpair or move to another journal, what's waiting goes to the journal you pair with next, once you confirm <a href="/features#mark">its mark</a>.</dd>
                     </dl>
                     <p class="actions"><a class="btn-text" href="/features/devices">see each topic device by device →</a></p>
                 </div>
@@ -173,7 +173,6 @@
                 <div class="band-inner prose-col">
                     <h2 id="deeper-h">go deeper</h2>
                     <ul class="deeper">
-                        <li><a href="#tech">how solstone fits together</a><span class="what">the architecture, from a device to your journal</span></li>
                         <li><a href="https://github.com/solpbc/solstone-journal/blob/9476cd24f36aef03016d18d40bd7890df6ca3e71/core/crates/solstone-core-ingest-resolve/src/resolve.rs"><code>resolve.rs</code></a><span class="what">how your journal checks each file and chooses its answer</span></li>
                         <li><a href="https://github.com/solpbc/solstone-macos/blob/16c11a8d7f339153106a8a2a824e755a4c6d2baf/Sources/solstone/IngestAcknowledgment.swift"><code>IngestAcknowledgment.swift</code></a><span class="what">how the solstone app for mac reads the answers before it removes anything</span></li>
                         <li><a href="https://github.com/solpbc/solstone-swift/blob/4a4db49426eaf535ecfcaed937bec5aed82df3e9/Sources/Transfer/TransferEngine.swift"><code>TransferEngine.swift</code></a><span class="what">the same on iphone and ipad</span></li>

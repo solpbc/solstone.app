@@ -48,6 +48,14 @@
 .rows p { color: var(--ink-soft); font-size: 15.5px; line-height: 1.5; margin-top: 3px; }
 .rows .facts { margin-top: 0; align-content: start; justify-content: flex-start; }
 .rows li[hidden] { display: none; }
+.rows > li { scroll-margin-top: 24px; }
+.rows > li:target { background: var(--orange-wash); box-shadow: -14px 0 0 var(--orange-wash), 14px 0 0 var(--orange-wash); }
+.rows h3 .anchor { margin-left: 8px; color: var(--ink-faint); font-weight: 400; text-decoration: none; opacity: 0; }
+.rows > li:hover .anchor, .rows > li:target .anchor { opacity: 1; }
+@media (hover: none) { .rows h3 .anchor { opacity: 0.6; } }
+.where a { color: inherit; text-decoration: underline; text-decoration-color: var(--hairline-2); text-underline-offset: 2px; }
+.where a:hover { text-decoration-color: currentColor; }
+.dv figcaption a { color: inherit; }
 .group[hidden] { display: none; }
 @media (max-width: 760px) { .rows > li { grid-template-columns: 1fr; } }
 

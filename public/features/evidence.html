@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="/static/tokens.css?v=79869fc8a6">
     <link rel="stylesheet" href="/static/tokens-dark.css?v=df4fd231fe">
     <link rel="stylesheet" href="/static/site.css?v=8e347260e1">
-    <link rel="stylesheet" href="/static/features/features.css?v=9843d7fadc">
+    <link rel="stylesheet" href="/static/features/features.css?v=8f5075d7f6">
 </head>
 <body class="sun both">
     <div class="ground-sunrise" aria-hidden="true"></div>
@@ -65,8 +65,8 @@
                 <div class="band-inner prose-col">
                     <p class="crumb"><a href="/features">features</a> / remembering</p>
                     <h1>what happened is distinct from what was inferred</h1>
-                    <p class="promise">your journal keeps the audio, what it recognized, its summary and your corrections as separate things. a reading of your day adds to a memory and never rewrites what was said. a correction is yours, and you can take it back.</p>
-                    <div class="facts" style="margin-top:16px"><span class="status">available</span><span class="where">your journal</span></div>
+                    <p class="promise">your journal keeps the audio, what it recognized, its summary and your corrections as separate things. a reading of your day adds to a memory and never rewrites what was said. <a href="/features#not-right">a correction</a> is yours, and you can take it back.</p>
+                    <div class="facts" style="margin-top:16px"><span class="status">available</span><span class="where"><a href="/install">your journal</a></span></div>
                 </div>
             </section>
 
@@ -81,7 +81,7 @@
                             <div class="shots"><figure class="shot"><picture><source media="(max-width: 600px)" srcset="/static/features/clips/C1-a-phone.webp?v=2ea3dae806 2x"><img src="/static/features/clips/C1-a-desktop.webp?v=bd71c4373c" srcset="/static/features/clips/C1-a-desktop.webp?v=bd71c4373c 2x" alt="a meeting transcript: each line with the person who said it" width="820" height="624" loading="lazy" decoding="async"></picture><figcaption>6 december, 8:40. the words, as transcribed.</figcaption></figure></div>
                         </li>
                         <li>
-                            <div class="layer-name">who said it<span class="layer-by">your saved voice first, then who was invited, then voices you've named, and the journal's best guess only for what's left</span></div>
+                            <div class="layer-name">who said it<span class="layer-by"><a href="/features#who-spoke">your saved voice first</a>, then who was invited, then voices you've named, and the journal's best guess only for what's left</span></div>
                             <div class="shots"><figure class="shot"><picture><source media="(max-width: 600px)" srcset="/static/features/clips/C4-phone.webp?v=9a2654fbc2 2x"><img src="/static/features/clips/C4-desktop.webp?v=727eb47193" srcset="/static/features/clips/C4-desktop.webp?v=727eb47193 2x" alt="a call with each line attributed to a speaker" width="820" height="561" loading="lazy" decoding="async"></picture><figcaption>a call with his brother: two voices, each line with its own.</figcaption></figure></div>
                         </li>
                         <li>
@@ -117,7 +117,6 @@
                 <div class="band-inner prose-col">
                     <h2 id="deeper-h">go deeper</h2>
                     <ul class="deeper">
-                        <li><a href="#tech">how solstone fits together</a><span class="what">the architecture, from a device to your journal</span></li>
                         <li><a href="https://github.com/solpbc/solstone-journal/blob/9476cd24f36aef03016d18d40bd7890df6ca3e71/core/crates/solstone-core-import/src/text.rs"><code>text.rs</code></a><span class="what">how an imported transcript keeps its own words and times</span></li>
                         <li><a href="https://github.com/solpbc/solstone-journal/blob/9476cd24f36aef03016d18d40bd7890df6ca3e71/core/crates/solstone-core-speaker-resolve/src/layer3.rs"><code>layer3.rs</code></a> and <a href="https://github.com/solpbc/solstone-journal/blob/9476cd24f36aef03016d18d40bd7890df6ca3e71/core/crates/solstone-core-transcripts/src/who_spoke.rs"><code>who_spoke.rs</code></a><span class="what">who said what, and why your answer stays with its line</span></li>
                         <li><a href="https://github.com/solpbc/solstone-journal/blob/9476cd24f36aef03016d18d40bd7890df6ca3e71/core/crates/solstone-core-possible-names/src/lib.rs"><code>possible-names</code></a><span class="what">names kept beside the words</span></li>
