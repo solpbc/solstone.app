@@ -180,11 +180,11 @@
                     </div>
                     <div class="promise-row" data-row="notify" hidden>
                         <h2>notifications</h2>
-                        <p class="all-apps">push notifications are sealed on the way and opened on your phone. they're off until you turn them on.</p>
+                        <p class="all-apps">push notifications are encrypted on the way and opened on your phone. they're off until you turn them on.</p>
                         <ul class="os-grid">
                             <li><h3>mac</h3><p class="none">no push notifications.</p></li>
                             <li><h3>iphone and ipad</h3><p>encrypted, padded to one size and opened on the phone, by way of a hop sol pbc runs.</p></li>
-                            <li><h3>android</h3><p>encrypted, padded to one size and delivered through UnifiedPush, with no Google dependency.</p></li>
+                            <li><h3>android</h3><p>encrypted, padded to one size and delivered through your phone's push service.</p></li>
                             <li><h3>windows</h3><p>the app's own notices, shown on the PC.</p></li>
                             <li><h3>linux</h3><p class="none">no push notifications.</p></li>
                         </ul>
@@ -196,7 +196,7 @@
                             <li><h3>mac</h3><p>signed updates the app checks for itself.</p></li>
                             <li><h3>iphone and ipad</h3><p>the App Store.</p></li>
                             <li><h3>android</h3><p>Google Play, or a signed APK from solstone.app.</p></li>
-                            <li><h3>windows</h3><p>checked daily and installed at the next start, only with sol pbc's signature on the whole package. the check sends nothing about your PC.</p></li>
+                            <li><h3>windows</h3><p>checked daily and installed at the next start, only with sol pbc's signature on the whole package.</p></li>
                             <li><h3>linux</h3><p>signed packages (deb, rpm or a tarball), checked against a signed list.</p></li>
                         </ul>
                     </div>
@@ -220,7 +220,7 @@
                                     <tr><th scope="row">pausing</th><td>menu, shortcut; holds</td><td>Control Center, widget, Live Activity, Siri</td><td>notification, widget</td><td>tray, hotkey; holds</td><td>tray, command line, D-Bus; holds</td></tr>
                                     <tr><th scope="row">pairing</th><td>link, or same mac</td><td>code, paste, link</td><td>code, paste, link</td><td>link, or same PC</td><td>link, same computer, command line</td></tr>
                                     <tr><th scope="row">keeping keys</th><td>data protection keychain</td><td>keychain, this device only</td><td>android keystore</td><td>windows, for your account</td><td>a folder only your account can open</td></tr>
-                                    <tr><th scope="row">notifications</th><td class="none">none</td><td>sealed, opened on the phone</td><td>sealed, through UnifiedPush</td><td>local notices</td><td class="none">none</td></tr>
+                                    <tr><th scope="row">notifications</th><td class="none">none</td><td>encrypted, opened on the phone</td><td>encrypted, through your phone's push service</td><td>local notices</td><td class="none">none</td></tr>
                                     <tr><th scope="row">updates</th><td>signed, in the app</td><td>App Store</td><td>Google Play, or signed APK</td><td>daily, signed whole package</td><td>signed deb, rpm or tarball</td></tr>
                                 </tbody>
                             </table>

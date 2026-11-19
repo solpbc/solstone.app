@@ -10,6 +10,7 @@
 
 ### fixed
 
+- the devices page under solstone.app/features says android notifications arrive through your phone's push service.
 - the evidence and custody pages under solstone.app/features no longer offer a link to an architecture page that doesn't exist.
 - the page for the solstone app on phones and tablets is now at solstone.app/mobile. the old /phone address still works.
 - the phone page says the solstone app for apple watch comes with the iphone app and needs watchos 26 or later.
