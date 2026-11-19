@@ -1945,7 +1945,7 @@ macos_fetch_dmg() {
     command -v curl >/dev/null 2>&1 \
         || macos_refuse missing-fetch-tool "curl is required to install the mac apps"
     mfd_code=$(curl -q -s -S --connect-timeout 10 --max-time 120 --retry 0 --max-redirs 0 \
-        -w "%{http_code}" -D "$mfd_headers" -o /dev/null "$mfd_url" 2>/dev/null) || mfd_code="000"
+        -w "%{http_code}" -D "$mfd_headers" -o /dev/null "$mfd_url") || mfd_code="000"
     [ "$mfd_code" = "302" ] \
         || macos_refuse fetch-failed "HTTP status $mfd_code from $mfd_url"
     mfd_location=$(grep -i '^Location:' "$mfd_headers" | head -n 1 | awk '{print $2}' | tr -d '\r\n')
@@ -1962,7 +1962,7 @@ macos_fetch_dmg() {
     fi
     case "$mfd_location" in *'?'*|*'#'*|*'@'*) macos_refuse redirect-refused "The mac download redirect is malformed" ;; esac
     mfd_code=$(curl -q -s -S --connect-timeout 10 --speed-limit 1 --speed-time 120 --retry 1 --max-redirs 0 \
-        -w "%{http_code}" -o "$mfd_dest" "$mfd_location" 2>/dev/null) || mfd_code="000"
+        -w "%{http_code}" -o "$mfd_dest" "$mfd_location") || mfd_code="000"
     [ "$mfd_code" = "200" ] \
         || macos_refuse fetch-failed "HTTP status $mfd_code while downloading $MAC_COMPONENT_NAME"
     enforce_file_limit "$mfd_dest" 1073741824 "$MAC_COMPONENT_NAME disk image"
@@ -2457,7 +2457,7 @@ fetch_file_with_redirect_check() {
     if [ "$FETCH_TOOL" = "curl" ]; then
         # A stalled transfer times out, not a long one: journal packages are
         # hundreds of megabytes, so a whole-transfer cap fails slower links.
-        http_code=$(curl -q -s -S --connect-timeout 10 --speed-limit 1 --speed-time 120 --retry 2 --retry-delay 1 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$src_url" 2>/dev/null) || http_code="000"
+        http_code=$(curl -q -s -S --connect-timeout 10 --speed-limit 1 --speed-time 120 --retry 2 --retry-delay 1 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$src_url") || http_code="000"
         if [ "$http_code" = "200" ]; then
             rm -f "$hdr_file"
             if [ -n "$max_bytes" ]; then
@@ -2477,7 +2477,7 @@ fetch_file_with_redirect_check() {
                 report_exit "refusal" "redirect-refused" "Redirect scheme or authority change forbidden"
             fi
 
-            hop2_code=$(curl -q -s -S --connect-timeout 10 --speed-limit 1 --speed-time 120 --retry 2 --retry-delay 1 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$loc" 2>/dev/null) || hop2_code="000"
+            hop2_code=$(curl -q -s -S --connect-timeout 10 --speed-limit 1 --speed-time 120 --retry 2 --retry-delay 1 --max-redirs 0 -w "%{http_code}" -D "$hdr_file" -o "$dest_path" "$loc") || hop2_code="000"
             rm -f "$hdr_file"
             if [ "$hop2_code" = "200" ]; then
                 if [ -n "$max_bytes" ]; then
