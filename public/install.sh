@@ -5,7 +5,7 @@
 
 # Solstone POSIX Platform Installer
 
-INSTALLER_REVISION=22
+INSTALLER_REVISION=23
 EMBEDDED_MIN_INSTALLER_REVISION=20
 TEST_SEAM=0
 
@@ -306,7 +306,14 @@ package_manager_command() {
                     return 1
                     ;;
             esac
-            if [ "$pmc_extra" = "no-weak-deps" ]; then
+            if command -v zypper >/dev/null 2>&1 && ! command -v dnf >/dev/null 2>&1; then
+                # Only the individually verified local RPM is unsigned.
+                # Dependencies still use the repository's signature policy.
+                set -- zypper --non-interactive install --allow-unsigned-rpm
+                if [ "$pmc_extra" = no-weak-deps ]; then set -- "$@" --no-recommends; else set -- "$@" --recommends; fi
+                [ "$pmc_action" != reinstall ] || set -- "$@" --force
+                set -- "$@" "$pmc_path"
+            elif [ "$pmc_extra" = "no-weak-deps" ]; then
                 set -- dnf -y --setopt=localpkg_gpgcheck=False --setopt=install_weak_deps=False "$pmc_action" "$pmc_path"
             else
                 set -- dnf -y --setopt=localpkg_gpgcheck=False "$pmc_action" "$pmc_path"
@@ -399,6 +406,26 @@ handle_plan_pkg() {
     printf 'PLAN %s %s %s %s\n' "$hpp_type" "$hpp_action" "$hpp_path" "$plan_display"
 }
 
+# The profile uses AppArmor 4 syntax. Keep older parsers outside this path.
+activate_journal_profile() {
+    [ "$1:$2" = deb:solstone-linux ] || return 0
+    profile=/usr/share/solstone-linux/apparmor/solstone-linux-journal
+    active=/etc/apparmor.d/solstone-linux-journal
+    [ -f "$profile" ] && [ -x /usr/sbin/apparmor_parser ] &&
+        [ -f /etc/apparmor.d/abi/4.0 ] &&
+        [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" = 1 ] || return 0
+    # Respect an administrator's existing profile. An existing link must name
+    # the precise file installed by this package.
+    if [ -L "$active" ]; then
+        [ "$(readlink "$active")" = "$profile" ] || return 0
+    elif [ -e "$active" ]; then
+        return 0
+    else
+        ln -s "$profile" "$active" || return 1
+    fi
+    /usr/sbin/apparmor_parser -r "$active" >&2 || { echo "ERROR:journal-profile-load-failed"; return 1; }
+}
+
 handle_apply_pkg() {
     hap_type="$1"
     hap_path="$2"
@@ -438,6 +465,7 @@ handle_apply_pkg() {
         echo "ERROR:install-failed"
         return 1
     fi
+    activate_journal_profile "$hap_type" "$PKG_ARCHIVE_NAME" || return 1
     echo "OK"
 }
 
@@ -475,6 +503,7 @@ handle_install_pkg() {
         echo "ERROR:install-failed"
         return 1
     fi
+    activate_journal_profile "$hip_type" "$PKG_ARCHIVE_NAME" || return 1
     echo "OK"
 }
 
@@ -501,6 +530,18 @@ handle_remove_pkg() {
 
     if [ "$pkg_type" = "deb" ]; then
         if ! dpkg -r "$pkg_name" >&2; then echo "ERROR:remove-failed"; return 1; fi
+        profile=/usr/share/solstone-linux/apparmor/solstone-linux-journal
+        active=/etc/apparmor.d/solstone-linux-journal
+        if [ "$pkg_name" = solstone-linux ] && [ "$(readlink "$active" 2>/dev/null)" = "$profile" ]; then
+            # Delete only the registration made for our own package.
+            if [ -x /usr/sbin/apparmor_parser ] &&
+                grep -qF "solstone-linux-journal (" /sys/kernel/security/apparmor/profiles 2>/dev/null; then
+                /usr/sbin/apparmor_parser -R >&2 <<'PROFILE' || return 1
+profile solstone-linux-journal {}
+PROFILE
+            fi
+            rm -- "$active" || return 1
+        fi
         echo "OK"
     elif [ "$pkg_type" = "rpm" ]; then
         if ! rpm -e "$pkg_name" >&2; then echo "ERROR:remove-failed"; return 1; fi
@@ -4829,7 +4870,16 @@ package_receipt_records_nothing() {
 }
 
 package_route_tools() {
-    case "$PKG_VARIANT" in deb) printf '%s\n' "dpkg-deb dpkg-query apt-get" ;; rpm) printf '%s\n' "rpm dnf" ;; esac
+    case "$PKG_VARIANT" in
+        deb) printf '%s\n' "dpkg-deb dpkg-query apt-get" ;;
+        rpm)
+            if command -v zypper >/dev/null 2>&1 && ! command -v dnf >/dev/null 2>&1; then
+                printf '%s\n' "rpm zypper"
+            else
+                printf '%s\n' "rpm dnf"
+            fi
+            ;;
+    esac
 }
 
 package_query_tool() {
@@ -5567,6 +5617,35 @@ refuse_unloadable_desktop() {
     report_exit "refusal" "runtime-libraries-missing" "the solstone app can't start on this computer yet, because it needs libraries that aren't installed${rud_missing:+: $rud_missing}. install them with $rud_how and then run the same command again."
 }
 
+# A desktop upgrade can add a private viewer to an existing capture install.
+# Report optional host dependencies after inspecting this exact signed tree.
+journal_viewer_install_hint() {
+    jvi_exec=$1
+    [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] || return 0
+    [ -x "$jvi_exec" ] || return 0
+    jvi_status=0
+    "$jvi_exec" --check >/dev/null 2>&1 || jvi_status=$?
+    case "$jvi_status" in
+        0) return 0 ;;
+        3) printf '%s\n' "your journal will open in your browser. to use the journal window on this computer, install the solstone desktop system package with its AppArmor profile." >&2; return 0 ;;
+    esac
+    if command -v apt-get >/dev/null 2>&1; then
+        jvi_command="sudo apt install bubblewrap xdg-dbus-proxy libgtk-4-1 libsoup-3.0-0 libenchant-2-2 libhyphen0 libsecret-1-0 libharfbuzz-icu0 libwebpmux3 libwebpdemux2 libxslt1.1 libevdev2 libgudev-1.0-0 libgles2 libegl1 libatomic1 libwayland-server0 gstreamer1.0-gl gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav"
+    elif command -v zypper >/dev/null 2>&1; then
+        jvi_command="sudo zypper install bubblewrap xdg-dbus-proxy gstreamer-plugins-good gstreamer-plugins-bad 'libgtk-4.so.1()(64bit)' 'libsoup-3.0.so.0()(64bit)' 'libharfbuzz-icu.so.0()(64bit)' 'libwebpdemux.so.2()(64bit)' 'libwebpmux.so.3()(64bit)' 'libenchant-2.so.2()(64bit)' 'libhyphen.so.0()(64bit)' 'libsecret-1.so.0()(64bit)' 'libxslt.so.1()(64bit)' 'libEGL.so.1()(64bit)' 'libGLESv2.so.2()(64bit)' 'libevdev.so.2()(64bit)' 'libgudev-1.0.so.0()(64bit)' 'libgstgl-1.0.so.0()(64bit)' 'libwayland-server.so.0()(64bit)' 'libatomic.so.1()(64bit)'"
+    elif command -v dnf >/dev/null 2>&1; then
+        jvi_command="sudo dnf install bubblewrap xdg-dbus-proxy gstreamer1-plugins-good gstreamer1-plugins-bad-free 'libgtk-4.so.1()(64bit)' 'libsoup-3.0.so.0()(64bit)' 'libharfbuzz-icu.so.0()(64bit)' 'libwebpdemux.so.2()(64bit)' 'libwebpmux.so.3()(64bit)' 'libenchant-2.so.2()(64bit)' 'libhyphen.so.0()(64bit)' 'libsecret-1.so.0()(64bit)' 'libxslt.so.1()(64bit)' 'libEGL.so.1()(64bit)' 'libGLESv2.so.2()(64bit)' 'libevdev.so.2()(64bit)' 'libgudev-1.0.so.0()(64bit)' 'libgstgl-1.0.so.0()(64bit)' 'libwayland-server.so.0()(64bit)' 'libatomic.so.1()(64bit)'"
+        if [ -f /etc/fedora-release ]; then
+            jvi_command="$jvi_command gstreamer1-plugin-openh264"
+        fi
+    elif command -v pacman >/dev/null 2>&1; then
+        jvi_command="sudo pacman -S --needed gtk4 libsoup3 libwebp libxslt harfbuzz-icu enchant hyphen libsecret libglvnd mesa bubblewrap xdg-dbus-proxy libgudev libevdev gst-plugins-base gst-plugins-good gst-plugins-bad gst-libav"
+    else
+        return 0
+    fi
+    printf '%s\n' "your journal will open in your browser. to install the desktop libraries for its own window, run $jvi_command." >&2
+}
+
 run_tree_component() {
     manifest_dir="${SCRATCH_DIR}/manifest"
     for rti_component in $SELECTED_COMPONENTS; do
@@ -5759,7 +5838,10 @@ run_tree_component() {
             fi
             verify_sha256 "$exec_path" "$comp_exec_sha"
             chmod 0755 "$exec_path" || report_exit "refusal" "target-write-failed" "Could not make $comp_exec_name executable"
-            [ "$comp" != desktop ] || refuse_unloadable_desktop "$exec_path" "$comp_dest"
+            if [ "$comp" = desktop ]; then
+                refuse_unloadable_desktop "$exec_path" "$comp_dest"
+                journal_viewer_install_hint "${exec_path%/*}/solstone-linux-journal"
+            fi
 
             exec_relpath=${exec_path#"${comp_dest}/"}
             if [ -e "$comp_current" ] && [ ! -L "$comp_current" ]; then
