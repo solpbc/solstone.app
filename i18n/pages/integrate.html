@@ -166,7 +166,7 @@
                         <table class="tbl">
                             <tr><th>[[i18n:site.pageintegrate.policy]]</th><th>[[i18n:site.pageintegrate.yourchoices]]</th></tr>
                             <tr><td>[[i18n:site.pageintegrate.howmuchofyourjournal]]</td><td>[[i18n:site.integrate.yourwholejournaleverythingnowandanything]]</td></tr>
-                            <tr><td>[[i18n:site.pageintegrate.whatkindsofmaterial]]</td><td>[[i18n:site.integrate.anyoffivetranscriptswhatwassaid]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.whatkindsofmaterial]]</td><td>[[i18n:site.integrate.anyoftentranscriptswhatwassaid]]</td></tr>
                             <tr><td>[[i18n:site.pageintegrate.itsownnotes]]</td><td>[[i18n:site.pageintegrate.alwaysoneveryconnectioncansavenotes]]</td></tr>
                             <tr><td>[[i18n:site.pageintegrate.whereitconnectsfrom]]</td><td>[[i18n:site.pageintegrate.asignedinagentonlyworksat]]</td></tr>
                             <tr><td>[[i18n:site.pageintegrate.howlongitlasts]]</td><td>[[i18n:site.integrate.asignedinagentstays]]</td></tr>
@@ -207,21 +207,38 @@
                         <p class="small soft">[[i18n:site.pageintegrate.youragentdiscoverstheavailabletoolsthrough]]</p>
                         <table class="tbl">
                             <tr><th>[[i18n:site.pageintegrate.tool]]</th><th>[[i18n:site.pagedownload.whatitdoes]]</th><th>[[i18n:site.pageintegrate.needs]]</th><th>[[i18n:site.pageintegrate.inputs]]</th></tr>
-                            <tr><td><code>search</code></td><td>[[i18n:site.pageintegrate.searchwhatthisconnectionmayseescreen]]</td><td>[[i18n:site.integrate.transcriptsscreentextorbody]]</td><td><code>query</code>, <code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>category</code>, <code>facet</code>, <code>cursor</code></td></tr>
-                            <tr><td><code>fetch</code></td><td>[[i18n:site.pageintegrate.readthedocumentoractivityrecordbehind]]</td><td>[[i18n:site.integrate.transcriptsfacetsscreentextorbodyeach]]</td><td>[[i18n:site.pageintegrate.referencerequired]]</td></tr>
-                            <tr><td><code>list_transcripts</code></td><td>[[i18n:site.integrate.listtranscriptsegmentswiththeirtimessources]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td>[[i18n:site.integrate.daytimefromtimetohhmm]]</td></tr>
-                            <tr><td><code>get_transcript</code></td><td>[[i18n:site.integrate.readwhatwassaidinonesegment]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td>[[i18n:site.pageintegrate.referencerequiredcursor]]</td></tr>
-                            <tr><td><code>list_activities</code></td><td>[[i18n:site.integrate.listactivitiesbydayorinclusivedate]]</td><td>[[i18n:site.pageintegrate.facets]]</td><td><code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>facet</code>, <code>entity</code>, <code>cursor</code></td></tr>
-                            <tr><td><code>get_activity_sources</code></td><td>[[i18n:site.pageintegrate.readthesourcepassagesanactivityspans]]</td><td>[[i18n:site.integrate.facetswithtranscriptsorbody]]</td><td>[[i18n:site.pageintegrate.referencerequiredcursor]]</td></tr>
+                            <tr><td><code>search</code></td><td>[[i18n:site.pageintegrate.searchwhatthisconnectionmayseescreen]]</td><td>[[i18n:site.integrate.transcriptsscreentextorbody]]</td><td><code>query</code>, <code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>category</code>, <code>kind</code>, <code>person</code>, <code>place</code>, <code>activity</code>, <code>facet</code>, <code>cursor</code></td></tr>
+                            <tr><td><code>fetch</code></td><td>[[i18n:site.pageintegrate.readthedocumentoractivityrecordbehind]]</td><td>[[i18n:site.integrate.transcriptsfacetsscreentextorbodyeach]]</td><td><code>reference</code> / <code>references</code></td></tr>
+                            <tr><td><code>list_transcripts</code></td><td>[[i18n:site.integrate.listtranscriptsegmentswiththeirtimessources]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td>[[i18n:site.integrate.daydayfromdaytotimefromtimeto]]</td></tr>
+                            <tr><td><code>get_transcript</code></td><td>[[i18n:site.integrate.readwhatwassaidinonesegment]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td><code>reference</code> / <code>references</code>, <code>cursor</code>, <code>offset_ms</code>, <code>display</code></td></tr>
+                            <tr><td><code>list_activities</code></td><td>[[i18n:site.integrate.listactivitiesbydayorinclusivedate]]</td><td>[[i18n:site.pageintegrate.facets]]</td><td><code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>facet</code>, <code>entity</code>, <code>kind</code>, <code>person</code>, <code>place</code>, <code>activity</code>, <code>cursor</code></td></tr>
+                            <tr><td><code>get_activity_sources</code></td><td>[[i18n:site.pageintegrate.readthesourcepassagesanactivityspans]]</td><td>[[i18n:site.integrate.facetswithtranscriptsorbody]]</td><td><code>reference</code> / <code>references</code>, <code>cursor</code></td></tr>
                             <tr><td><code>list_entities</code></td><td>[[i18n:site.integrate.listthepeopleprojectsandotherentities]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td><code>facet</code>, <code>cursor</code></td></tr>
                             <tr><td><code>get_entity</code></td><td>[[i18n:site.integrate.readwhatthejournalhasnotedabout]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td>[[i18n:site.pageintegrate.referencerequired]]</td></tr>
                             <tr><td><code>list_facets</code></td><td>[[i18n:site.pageintegrate.listthefacetsthisconnectionmaysee]]</td><td>[[i18n:site.pageintegrate.nothing]]</td><td><code>cursor</code></td></tr>
-                            <tr><td><code>get_week</code></td><td>[[i18n:site.integrate.readaweekdrawnfrom]]</td><td>[[i18n:site.pageintegrate.yourwholejournalwithtranscriptsandfacets]]</td><td>[[i18n:site.integrate.weekanydayinityyyymmddor]]</td></tr>
+                            <tr><td><code>get_week</code></td><td>[[i18n:site.integrate.readaweekdrawnfrom]]</td><td>[[i18n:site.pageintegrate.yourwholejournalwithtranscriptsandfacets]]</td><td>[[i18n:site.integrate.weekanydayinityyyymmddor]], <code>include</code></td></tr>
                             <tr><td><code>save_memory</code></td><td>[[i18n:site.integrate.saveanoteoftheagents]]</td><td>[[i18n:site.pageintegrate.nothing]]</td><td>[[i18n:site.pageintegrate.contentoperationidbothrequired]]</td></tr>
                             <tr><td><code>suggest_correction</code></td><td>[[i18n:site.integrate.suggestacorrectiontoarecordingwhat]]</td><td>[[i18n:site.integrate.thetargetmustbesomethingthisconnection]]</td><td>[[i18n:site.integrate.kindtargetvaluebasisreasonoperationid]]</td></tr>
                             <tr><td><code>recall_memory</code></td><td>[[i18n:site.pageintegrate.readbackthisconnectionsownnotes]]</td><td>[[i18n:site.pageintegrate.nothing]]</td><td>[[i18n:site.pageintegrate.querydaydayfromdaytocontinuation]]</td></tr>
                         </table>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.whensearchoralistreturnsnext]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.fetchgettranscriptandgetactivitysourcesalso]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.searchlisttranscriptsandlistactivitiesshare]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.forexampletheparamsofafew]]</p>
+<pre># read three entries in one call
+{"name":"fetch","arguments":{"references":["&lt;reference&gt;","&lt;reference&gt;","&lt;reference&gt;"]}}
+
+# this week, with each day's body and places
+{"name":"get_week","arguments":{"include":["body","places"]}}
+
+# notes and documents from one week, without a query
+{"name":"search","arguments":{"kind":["notes","documents"],"day_from":"2026-11-15","day_to":"2026-11-21"}}
+
+# one body source's sleep on one day
+{"name":"list_transcripts","arguments":{"day":"2026-11-20","source":"&lt;source label&gt;","entry_kind":"sleep"}}
+
+# one moment in a screen recording, on one of several displays
+{"name":"get_transcript","arguments":{"reference":"&lt;segment reference&gt;","offset_ms":90000,"display":"&lt;display&gt;"}}</pre>
                         <p class="small">[[i18n:site.pageintegrate.journaltextinwhatthetoolsreturn]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.sometoolresultsincludealinkto]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.topointtoamomentina]]</p>
@@ -229,7 +246,9 @@
                         <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.eachtranscriptsegmentalsocarriessourcewhere]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.aplainlistleavesoutsegmentsthat]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.ahiddenactivityandwhatyourjournal]]</p>
-                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.anentityphotostaysundertheentities]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.picturesfromfetchandgettranscript]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.screenshotsneedscreentextandits]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.aprofilepicthephotoyourjournalshows]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.whenasourcepassagesaysuntimedthe]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.searchfindscalendareventsandanythingelse]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.theagentstooldescriptionsandinput]]</p>

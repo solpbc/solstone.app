@@ -9,8 +9,8 @@
   ],
   "arguments": [],
   "format_intent": "text",
-  "max_length": 348,
-  "source_revision": "f58339817159436a1c81ec726dfd5f1081cb0569bbd19c813137c24626b284a0",
+  "max_length": 524,
+  "source_revision": "ba392b02c19502be75a6dadedd97e85e962f6777e0064790591916530f03c4d5",
   "risk": "routine",
   "auto_merge": true
 }

@@ -1,0 +1,113 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 4748,
+  "source_revision": "a5558873f76419c06ceb0c0490ca940e21cb32e42fa9d71466cbe5eb93db78b4",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>screenshots</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>fetch</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>picture.state</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>not_allowed</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>reference</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>get_transcript</code>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<code>offset_ms</code>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>0</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>picture.state</code>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<code>choose_display</code>"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "<code>displays</code>"
+    },
+    {
+      "name": "slot-12",
+      "kind": "command",
+      "value": "<code>display</code>"
+    },
+    {
+      "name": "slot-13",
+      "kind": "command",
+      "value": "<code>offset_ms</code>"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "<code>picture</code>"
+    },
+    {
+      "name": "slot-15",
+      "kind": "command",
+      "value": "<code>description</code>"
+    },
+    {
+      "name": "slot-16",
+      "kind": "command",
+      "value": "<code>description_offset_ms</code>"
+    },
+    {
+      "name": "slot-17",
+      "kind": "command",
+      "value": "<code>segment_description</code>"
+    },
+    {
+      "name": "slot-18",
+      "kind": "command",
+      "value": "<code>picture.state</code>"
+    },
+    {
+      "name": "slot-19",
+      "kind": "command",
+      "value": "<code>not_kept</code>"
+    }
+  ]
+}

@@ -9,25 +9,25 @@
   ],
   "arguments": [],
   "format_intent": "text",
-  "max_length": 912,
-  "source_revision": "9a84b9edbc7b0861a12715094dfedbc70b9b1784d6b7db306e9272e546b1463d",
+  "max_length": 1540,
+  "source_revision": "3ce173f0b91243afd80e0653dbb78bd9a2965dd9baef059d04cb12ff9432132e",
   "risk": "routine",
   "auto_merge": true,
   "protected_slots": [
     {
       "name": "slot-1",
       "kind": "command",
-      "value": "<code>image</code>"
+      "value": "<code>profile_pics</code>"
     },
     {
       "name": "slot-2",
       "kind": "command",
-      "value": "<code>content</code>"
+      "value": "<code>image</code>"
     },
     {
       "name": "slot-3",
-      "kind": "mark-word",
-      "value": "JSON"
+      "kind": "command",
+      "value": "<code>content</code>"
     },
     {
       "name": "slot-4",
@@ -36,6 +36,11 @@
     },
     {
       "name": "slot-5",
+      "kind": "mark-word",
+      "value": "JSON"
+    },
+    {
+      "name": "slot-6",
       "kind": "command",
       "value": "<code>structuredContent</code>"
     }

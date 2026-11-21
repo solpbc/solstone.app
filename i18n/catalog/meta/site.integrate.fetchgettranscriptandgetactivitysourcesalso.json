@@ -1,0 +1,88 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2980,
+  "source_revision": "60a2de7081664894af15189a4a48e363eb7e19fdd288778ab1f2ee365647d0ea",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>fetch</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>get_transcript</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>get_activity_sources</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>references</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>cursor</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>reference</code>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<code>get_week</code>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>include</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>body</code>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<code>places</code>"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "<code>photos</code>"
+    },
+    {
+      "name": "slot-12",
+      "kind": "command",
+      "value": "<code>notes</code>"
+    },
+    {
+      "name": "slot-13",
+      "kind": "command",
+      "value": "<code>entities</code>"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "<code>entities</code>"
+    }
+  ]
+}

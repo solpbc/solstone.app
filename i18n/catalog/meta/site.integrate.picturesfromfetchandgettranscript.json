@@ -1,0 +1,68 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 2460,
+  "source_revision": "0b58a744f3ba75bc3576f8e2a61e5ef0b79dcc3692059e0cab83f91d3590d36a",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>fetch</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>get_transcript</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>image</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>content</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>fetch</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>picture.state</code>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<code>attached</code>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>not_kept</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>image_content_index</code>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<code>content</code>"
+    }
+  ]
+}

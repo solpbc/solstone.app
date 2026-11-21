@@ -9,20 +9,20 @@
   ],
   "arguments": [],
   "format_intent": "text",
-  "max_length": 216,
-  "source_revision": "ed301538493a6a819f248a17be497cd205a45782c85cb2d5013dd063055021e2",
+  "max_length": 316,
+  "source_revision": "22fbe0bf2eabe8ebbb1efd10f9adedfe330f3107f0593f75faa62ab6c2657585",
   "risk": "routine",
   "auto_merge": true,
   "protected_slots": [
     {
       "name": "slot-1",
       "kind": "command",
-      "value": "<code>reference</code>"
+      "value": "<code>params</code>"
     },
     {
       "name": "slot-2",
       "kind": "command",
-      "value": "<code>cursor</code>"
+      "value": "<code>tools/call</code>"
     }
   ]
 }

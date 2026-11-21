@@ -7739,14 +7739,8 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.integrate.anentityphotostaysundertheentities": {
-    resourceKey: "m736974652e696e746567726174652e616e656e7469747970686f746f7374617973756e646572746865656e746974696573",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.integrate.anyoffivetranscriptswhatwassaid": {
-    resourceKey: "m736974652e696e746567726174652e616e796f66666976657472616e736372697074737768617477617373616964",
+  "site.integrate.anyoftentranscriptswhatwassaid": {
+    resourceKey: "m736974652e696e746567726174652e616e796f6674656e7472616e736372697074737768617477617373616964",
     formatIntent: "text",
     arguments: [
     ],
@@ -7757,14 +7751,20 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.integrate.aprofilepicthephotoyourjournalshows": {
+    resourceKey: "m736974652e696e746567726174652e6170726f66696c6570696374686570686f746f796f75726a6f75726e616c73686f7773",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.integrate.asignedinagentstays": {
     resourceKey: "m736974652e696e746567726174652e617369676e6564696e6167656e747374617973",
     formatIntent: "text",
     arguments: [
     ],
   },
-  "site.integrate.daytimefromtimetohhmm": {
-    resourceKey: "m736974652e696e746567726174652e64617974696d6566726f6d74696d65746f68686d6d",
+  "site.integrate.daydayfromdaytotimefromtimeto": {
+    resourceKey: "m736974652e696e746567726174652e64617964617966726f6d646179746f74696d6566726f6d74696d65746f",
     formatIntent: "text",
     arguments: [
     ],
@@ -7777,6 +7777,18 @@ const MESSAGES = {
   },
   "site.integrate.facetswithtranscriptsorbody": {
     resourceKey: "m736974652e696e746567726174652e666163657473776974687472616e736372697074736f72626f6479",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.fetchgettranscriptandgetactivitysourcesalso": {
+    resourceKey: "m736974652e696e746567726174652e66657463686765747472616e736372697074616e646765746163746976697479736f7572636573616c736f",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.forexampletheparamsofafew": {
+    resourceKey: "m736974652e696e746567726174652e666f726578616d706c65746865706172616d736f6661666577",
     formatIntent: "text",
     arguments: [
     ],
@@ -7853,6 +7865,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.integrate.picturesfromfetchandgettranscript": {
+    resourceKey: "m736974652e696e746567726174652e706963747572657366726f6d6665746368616e646765747472616e736372697074",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.integrate.postregisterdynamicclientregistrationora": {
     resourceKey: "m736974652e696e746567726174652e706f7374726567697374657264796e616d6963636c69656e74726567697374726174696f6e6f7261",
     formatIntent: "text",
@@ -7885,6 +7903,18 @@ const MESSAGES = {
   },
   "site.integrate.saveanoteoftheagents": {
     resourceKey: "m736974652e696e746567726174652e73617665616e6f74656f667468656167656e7473",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.screenshotsneedscreentextandits": {
+    resourceKey: "m736974652e696e746567726174652e73637265656e73686f74736e65656473637265656e74657874616e64697473",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.searchlisttranscriptsandlistactivitiesshare": {
+    resourceKey: "m736974652e696e746567726174652e7365617263686c6973747472616e73637269707473616e646c697374616374697669746965737368617265",
     formatIntent: "text",
     arguments: [
     ],
@@ -10495,12 +10525,6 @@ const MESSAGES = {
   },
   "site.pageintegrate.referencerequired": {
     resourceKey: "m736974652e70616765696e746567726174652e7265666572656e63657265717569726564",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.pageintegrate.referencerequiredcursor": {
-    resourceKey: "m736974652e70616765696e746567726174652e7265666572656e63657265717569726564637572736f72",
     formatIntent: "text",
     arguments: [
     ],

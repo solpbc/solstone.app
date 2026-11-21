@@ -9,90 +9,75 @@
   ],
   "arguments": [],
   "format_intent": "text",
-  "max_length": 3740,
-  "source_revision": "03b559346b42835bd955fb10c2811ec9e15ec54317ba4c85d9913e06cb1e74b3",
+  "max_length": 1148,
+  "source_revision": "22c248ab3a9d25a270514c42c265e0555a2c9c5b887913f8563043b0d22da1a4",
   "risk": "routine",
   "auto_merge": true,
   "protected_slots": [
     {
       "name": "slot-1",
       "kind": "command",
-      "value": "<br>"
+      "value": "<code>day</code>"
     },
     {
       "name": "slot-2",
       "kind": "command",
-      "value": "<strong>"
+      "value": "<code>day_from</code>"
     },
     {
       "name": "slot-3",
       "kind": "command",
-      "value": "</strong>"
+      "value": "<code>day_to</code>"
     },
     {
       "name": "slot-4",
       "kind": "command",
-      "value": "<br>"
+      "value": "<code>time_from</code>"
     },
     {
       "name": "slot-5",
       "kind": "command",
-      "value": "<strong>"
+      "value": "<code>time_to</code>"
     },
     {
       "name": "slot-6",
       "kind": "command",
-      "value": "</strong>"
+      "value": "<code>facet</code>"
     },
     {
       "name": "slot-7",
       "kind": "command",
-      "value": "<br>"
+      "value": "<code>source</code>"
     },
     {
       "name": "slot-8",
       "kind": "command",
-      "value": "<strong>"
+      "value": "<code>entry_kind</code>"
     },
     {
       "name": "slot-9",
       "kind": "command",
-      "value": "</strong>"
+      "value": "<code>kind</code>"
     },
     {
       "name": "slot-10",
       "kind": "command",
-      "value": "<br>"
+      "value": "<code>person</code>"
     },
     {
       "name": "slot-11",
       "kind": "command",
-      "value": "<strong>"
+      "value": "<code>place</code>"
     },
     {
       "name": "slot-12",
       "kind": "command",
-      "value": "</strong>"
+      "value": "<code>activity</code>"
     },
     {
       "name": "slot-13",
       "kind": "command",
-      "value": "<br>"
-    },
-    {
-      "name": "slot-14",
-      "kind": "command",
-      "value": "<strong>"
-    },
-    {
-      "name": "slot-15",
-      "kind": "command",
-      "value": "</strong>"
-    },
-    {
-      "name": "slot-16",
-      "kind": "mark-word",
-      "value": "Strava"
+      "value": "<code>cursor</code>"
     }
   ]
 }

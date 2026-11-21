@@ -18454,17 +18454,10 @@
       "locales": []
     },
     {
-      "id": "site.integrate.anentityphotostaysundertheentities",
-      "source": "9a84b9edbc7b0861a12715094dfedbc70b9b1784d6b7db306e9272e546b1463d",
+      "id": "site.integrate.anyoftentranscriptswhatwassaid",
+      "source": "efb90c96e499d0c3c4987c29d0294718c07133aec772d086d78a052b7935342d",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "4a578d22ec3341f4bcf0efcaf2250f3daf391d2935c00b1b05f1cb8f3cbd7419",
-      "locales": []
-    },
-    {
-      "id": "site.integrate.anyoffivetranscriptswhatwassaid",
-      "source": "03b559346b42835bd955fb10c2811ec9e15ec54317ba4c85d9913e06cb1e74b3",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "47cba9f1421899b59a7d86ce76d39a8c14d504d918ce01f52107f0beb27bb077",
+      "protected": "f452ebfbf57c3563177abcbab54b6b75fd614b7c37282e0c02b044f38ee9e9ec",
       "locales": []
     },
     {
@@ -18475,6 +18468,13 @@
       "locales": []
     },
     {
+      "id": "site.integrate.aprofilepicthephotoyourjournalshows",
+      "source": "3ce173f0b91243afd80e0653dbb78bd9a2965dd9baef059d04cb12ff9432132e",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "50c0b40f0ee84826e23ff50fdabf39b80c530dce62a5f7682a93447f978fd4ca",
+      "locales": []
+    },
+    {
       "id": "site.integrate.asignedinagentstays",
       "source": "c62b5f3850fce3eeb74ea744c43a477bba2036de16830d0ff00fcea7b6d04c2b",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -18482,10 +18482,10 @@
       "locales": []
     },
     {
-      "id": "site.integrate.daytimefromtimetohhmm",
-      "source": "73629545cf6b156407f4187f6588751e585aed2e01314656f1a634c31ac42b7d",
+      "id": "site.integrate.daydayfromdaytotimefromtimeto",
+      "source": "22c248ab3a9d25a270514c42c265e0555a2c9c5b887913f8563043b0d22da1a4",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "95530b4cd27cb59425c7173cedd0bf622c323afd27f9e7702e20829245defd56",
+      "protected": "da063dad51c66733fa78dff852f537b98cbec1bfe67f8c06e3c71792f0f7e74d",
       "locales": []
     },
     {
@@ -18500,6 +18500,20 @@
       "source": "f2336c4fffec4803085fa1f02c16bf5922dbfe0bd6d0d39cbdc6322f244c3c4c",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
+      "id": "site.integrate.fetchgettranscriptandgetactivitysourcesalso",
+      "source": "60a2de7081664894af15189a4a48e363eb7e19fdd288778ab1f2ee365647d0ea",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "cb5486631ecb30985db58abe819f19586b966585e18b5556c9a37ccd200d8237",
+      "locales": []
+    },
+    {
+      "id": "site.integrate.forexampletheparamsofafew",
+      "source": "22fbe0bf2eabe8ebbb1efd10f9adedfe330f3107f0593f75faa62ab6c2657585",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "90e89a5996d8e70188143a759b50e4a3e04d5618532d11ce06090d98d3fe970b",
       "locales": []
     },
     {
@@ -18587,6 +18601,13 @@
       "locales": []
     },
     {
+      "id": "site.integrate.picturesfromfetchandgettranscript",
+      "source": "0b58a744f3ba75bc3576f8e2a61e5ef0b79dcc3692059e0cab83f91d3590d36a",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "8f678b1876c9f90627541f44283fd2f65a1b73a516b14a6ed3860adee59f573c",
+      "locales": []
+    },
+    {
       "id": "site.integrate.postregisterdynamicclientregistrationora",
       "source": "5d40175dcfd5ac3f122765ee7b2b3767387436e158155e36dafa2fa1f07f7331",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -18616,7 +18637,7 @@
     },
     {
       "id": "site.integrate.readwhatwassaidinonesegment",
-      "source": "0fb40442e4fafbd9ee126cd979b01c393529ef697ed9f59ae47381d7a8f7c962",
+      "source": "c3864cb4c57e0154791f548373ae9dd82f4f1e7f07e5f609349f38e0d055ffb4",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "8cd881c61a7bfc61090bb843ef440636a92518c455bf1dbab1922e5c124f695d",
       "locales": []
@@ -18626,6 +18647,20 @@
       "source": "40b4c9e35858f4a30236978883eb9280c5e05a8008040b91cd5e3eae99f2dd46",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "1ca523e48ceaab3dd10d8fdca76c031d2b4cb45c8b6578a75abd457bd4051ea6",
+      "locales": []
+    },
+    {
+      "id": "site.integrate.screenshotsneedscreentextandits",
+      "source": "a5558873f76419c06ceb0c0490ca940e21cb32e42fa9d71466cbe5eb93db78b4",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "5336c07a5b5564cfdf503383fa18e0ba53b61800e5b932c38c0b6efb97fdea53",
+      "locales": []
+    },
+    {
+      "id": "site.integrate.searchlisttranscriptsandlistactivitiesshare",
+      "source": "311331a0aaf0c840ad01a7f88b82374d4463d34471cb65ee0128bbba572bcfc0",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "8eecfdd186307726b6eaa28350e4e0006cfcee8bc3b1a08ecdccf74ba0fc60b6",
       "locales": []
     },
     {
@@ -18651,7 +18686,7 @@
     },
     {
       "id": "site.integrate.suggestacorrectiontoarecordingwhat",
-      "source": "4150f384decc2b13fe6570f688430c434dbf99ac1025d4bb458f297acba5d3d1",
+      "source": "20a55c92d7b644a76a7615b80372d5b95e0ac1873f9bd2627300855a99c523c2",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
@@ -18665,7 +18700,7 @@
     },
     {
       "id": "site.integrate.theapprovalformpreselectsallfivekinds",
-      "source": "5935d601f0b25809d8b0004f1ba78f91d8078ae048de05f95c623d835bd4c7c1",
+      "source": "78dc67722cf57dd01143b1c7cfe958f93df5abd79d71084f2005ed65db9e0e6d",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
@@ -18693,21 +18728,21 @@
     },
     {
       "id": "site.integrate.transcriptsfacetsscreentextorbodyeach",
-      "source": "f58339817159436a1c81ec726dfd5f1081cb0569bbd19c813137c24626b284a0",
+      "source": "ba392b02c19502be75a6dadedd97e85e962f6777e0064790591916530f03c4d5",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
     },
     {
       "id": "site.integrate.transcriptsorbodyeachsegmentstillneeds",
-      "source": "67892095e878b9569b3188a5bff51f928f4776acfad543c99c8f38b65c46c7b1",
+      "source": "5fc00e15a0362b18ec10745fdd011d15cb10e08ace02a53c2cb18d33df02335e",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
     },
     {
       "id": "site.integrate.transcriptsscreentextorbody",
-      "source": "f913aee7f339daffe9dccdceb12847f936ffe9c9fd93834056e311d55fa231cc",
+      "source": "4930a8d109e411ad10a0c6079cd7a739a6c95fc9c330a81cc3c61d1f8f6e7e15",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
@@ -18742,7 +18777,7 @@
     },
     {
       "id": "site.integrate.youragentcansuggestacorrectionwhen",
-      "source": "df021b8efb0dc90fe95034c9b784179b7de3a86a4bdebc9cc9fc3cba0c2fd914",
+      "source": "5aecf12dfb786f23df4ba86920f6a98b0c50081ab06280e7538729a62d2ba6b7",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
@@ -21640,7 +21675,7 @@
     },
     {
       "id": "site.pageintegrate.readthedocumentoractivityrecordbehind",
-      "source": "60dede1c9f9d78db6e44bc0ac80cb56872a9494cdc881314a31d507a17ffe93b",
+      "source": "114accfbd947dfc9ca67b7523515043bb0316b3f895177f6eed79fc11d18dc16",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
@@ -21671,13 +21706,6 @@
       "source": "695be1d1bda5f506664ac29434e1b71e0577ae08ef5b79c5354cafefe2c036b8",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "32d4a36899d69c5363ee7d89fef0ddb25a0eff1aa2705b68e86378d694216661",
-      "locales": []
-    },
-    {
-      "id": "site.pageintegrate.referencerequiredcursor",
-      "source": "ed301538493a6a819f248a17be497cd205a45782c85cb2d5013dd063055021e2",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "13c7b46c43c16396b25ebd0f49038ac5d2f507f0b5a20ec4b2113052bd288b10",
       "locales": []
     },
     {
