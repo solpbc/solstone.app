@@ -7793,6 +7793,18 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.integrate.forphotosincludelistsupto50aday": {
+    resourceKey: "m736974652e696e746567726174652e666f7270686f746f73696e636c7564656c697374737570746f353061646179",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.getweekwithdayfromanddaytoreadsa": {
+    resourceKey: "m736974652e696e746567726174652e6765747765656b7769746864617966726f6d616e64646179746f726561647361",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.integrate.itshouldfindtheoauthsignin": {
     resourceKey: "m736974652e696e746567726174652e697473686f756c6466696e647468656f617574687369676e696e",
     formatIntent: "text",

@@ -1,0 +1,43 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 920,
+  "source_revision": "7b60e21ca3620de03a7d294c3d2ab20e865058cff66abe5c073a89579982dcf1",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>get_week</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>day_from</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>day_to</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>next_cursor</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>cursor</code>"
+    }
+  ]
+}

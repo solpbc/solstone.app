@@ -18517,6 +18517,20 @@
       "locales": []
     },
     {
+      "id": "site.integrate.forphotosincludelistsupto50aday",
+      "source": "0b56c8e59497458699a4f7274609758bea98460f2572a231bb2975c57c50dba1",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "83083559238baee60bd3ee2fe1e721412676fd0173935cda9a6336a376108d43",
+      "locales": []
+    },
+    {
+      "id": "site.integrate.getweekwithdayfromanddaytoreadsa",
+      "source": "7b60e21ca3620de03a7d294c3d2ab20e865058cff66abe5c073a89579982dcf1",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "43ea509a2dcc2077b6ff7b002b7dcf4f53aac9ff8f353d68e23838c386a508bc",
+      "locales": []
+    },
+    {
       "id": "site.integrate.itshouldfindtheoauthsignin",
       "source": "a939490f1908f48eb6f2d55d178449ed9f439bc5d81c3b258ecc66f0271af103",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -18623,7 +18637,7 @@
     },
     {
       "id": "site.integrate.readaweekdrawnfrom",
-      "source": "df0bb1455370570a11a2bae55e5d575e1e572fa0efc98cabfb331d827fa8b965",
+      "source": "d3f543371f3874d995fb01589afa882bd2bff3ae53e652876ff96218c0ed2279",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "b099ff05b528d86d53514e2ef0b8077fc75d206ac31b15311bbd104af4f99a56",
       "locales": []
