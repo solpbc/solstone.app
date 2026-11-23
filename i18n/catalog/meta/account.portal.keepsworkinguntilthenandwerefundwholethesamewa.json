@@ -28,6 +28,6 @@
   "format_intent": "text",
   "max_length": 456,
   "source_revision": "2c7cb50cf10dc64369fe22c4bcc0ed39b53e62a21481511e6046adfaadcddd2d",
-  "risk": "payment",
+  "risk": "legal",
   "auto_merge": false
 }

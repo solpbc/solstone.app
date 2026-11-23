@@ -11,8 +11,8 @@
   "format_intent": "text",
   "max_length": 100,
   "source_revision": "96e3bde32a3345338ce49b3d4b607bb75e479838a29f5e15fb5cd22c693116d8",
-  "risk": "legal",
-  "auto_merge": false,
+  "risk": "account",
+  "auto_merge": true,
   "protected_slots": [
     {
       "name": "slot-1",

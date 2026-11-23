@@ -3,8 +3,10 @@
 Edit English messages in [the catalog](catalog/source/en-US.ftl). Each message
 has a sidecar in `catalog/meta/` with its context, arguments and review class.
 Follow the compiler's `tools/i18n/README.md` when adding or retiring a message
-or refreshing its source revision. Keep legal, statutory, payment and consent
-messages in English until their translations are approved.
+or refreshing its source revision. Keep `legal` and `statutory` messages in
+their source text until their translations are approved. Translate `consent`
+and `payment` messages through the normal catalog workflow with human review;
+their sidecars keep `auto_merge: false`.
 
 For changes to the public site, edit layouts in [pages](pages/). A
 `[[i18n:message.id]]` marker reads the corresponding message. Keep IDs, URLs
