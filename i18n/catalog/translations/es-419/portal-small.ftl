@@ -888,7 +888,7 @@ account.scout.keptfornothing = nada se conserva
 
 account.scout.nbspscoutaccessisapprovedforthissignin = { $slot-1 }el acceso de scout está aprobado para este acceso
 
-account.scout.nocontentisretainednohumanreviewsitnothingisus = no se retiene ningún contenido · ningún humano lo revisa · no se usa nada para entrenar
+account.scout.nocontentisretainednohumanreviewsitnothingisus = no se retiene contenido · ninguna persona lo revisa · nada se usa para entrenar
 
 account.scout.pending = pendiente
 
@@ -1056,7 +1056,7 @@ account.services.noanalyticsandnotrackingsignin = no hay analítica y no hay ras
 
 account.services.noanalyticsnobehavioralprofilingandno = no hay analítica, no hay perfilado de comportamiento y no hay ningún tercero en la ruta salvo el servicio push de tu teléfono y, para iphone, { $slot-1 }, en cuya red se ejecuta nuestro salto. las notificaciones nunca se convierten en una forma de vigilarte.
 
-account.services.nocontentisretainednohumanreviews = no se retiene ningún contenido · ningún humano lo revisa · no se usa nada para entrenar
+account.services.nocontentisretainednohumanreviews = no se retiene contenido · ninguna persona lo revisa · nada se usa para entrenar
 
 account.services.nocontentisretainednohumanreviews2 = no se retiene ningún contenido · ningún humano lo revisa · no se usa nada para entrenar.
 
@@ -1298,7 +1298,7 @@ account.services.yourjournalmustverifyservicebeforeanything3 = tu diario debe ve
 
 account.services.yourjournalmustverifytheservicebeforeanythingi = tu diario debe verificar el servicio antes de que se envíe algo. si no puede verificar, no envía.
 
-account.services.yourjournalsagentsappworkswith = la app de agentes de tu diario funciona con tu propia ruta o con { $slot-1 }; { $slot-2 } es la dirección, y la app de agentes es donde gestionas qué se conecta.
+account.services.yourjournalsagentsappworkswith = la app de agentes de tu diario funciona con tu propia ruta o con { $slot-1 }; { $slot-2 } es la dirección, y la app de agentes es donde administras lo que se conecta.
 
 account.services.yourjournalstaysondeviceitruns = tu diario permanece en el dispositivo en el que se ejecuta. las huellas de voz y los perfiles de hablante se calculan en tu dispositivo y nunca salen. nada va a ningún proveedor de IA de terceros.
 

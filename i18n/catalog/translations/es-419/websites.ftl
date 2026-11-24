@@ -38,15 +38,15 @@ site.brand.daygroundthelogoasatimeof = dayground: el logo como fondo según la h
 
 site.brand.dodont = sí { $slot-1 } no
 
-site.brand.dontboxed = no: en recuadro
+site.brand.dontboxed = no: en un recuadro
 
 site.brand.dontmodifythelogosnorecoloring = no modifiques los logos — no cambies el color (excepto la regla de accesibilidad de arriba), no los estires, no los rotes ni agregues efectos
 
-site.brand.dontrecolored = no: recoloreado
+site.brand.dontrecolored = no: con otro color
 
-site.brand.dontrotated = no: rotado
+site.brand.dontrotated = no: con giro
 
-site.brand.dontshadowed = no: sombreado
+site.brand.dontshadowed = no: con sombra
 
 site.brand.dontstretched = no: estirado
 
@@ -96,7 +96,7 @@ site.brand.lockupsolstonehorizontalwhite = lockup-{ $slot-1 }-horizontal-white
 
 site.brand.logoswordmarks = logos { $slot-1 } marcas denominativas
 
-site.brand.mark = símbolo
+site.brand.mark = marca
 
 site.brand.markblack = símbolo, negro
 
@@ -932,7 +932,7 @@ site.chrome.earlydaysonamaconwindows = { $slot-1 }primeros días.{ $slot-2 } en 
 
 site.chrome.footer = pie de página
 
-site.chrome.getstarted = comenzar
+site.chrome.getstarted = empezar
 
 site.chrome.integrate = integrar
 
@@ -954,7 +954,7 @@ site.chrome.phone = teléfono
 
 site.chrome.privacy = privacidad
 
-site.chrome.releases = versiones
+site.chrome.releases = lanzamientos
 
 site.chrome.services = servicios
 
@@ -1014,7 +1014,7 @@ site.custodybrowser.thephonechecksitsowncopiesagain = el teléfono revisa sus pr
 
 site.custodybrowser.whereyouwere1405to14 = dónde estabas, 14:05 a 14:10
 
-site.custodybrowser.withnoanswernothingisremovedeverything = sin respuesta, no se quita nada. todo espera en el teléfono y va cuando se puede alcanzar tu diario.
+site.custodybrowser.withnoanswernothingisremovedeverything = sin respuesta, no se quita nada. todo espera en el teléfono y va cuando se puede conectar con tu diario.
 
 site.custodybrowser.written = escrito
 
@@ -1692,9 +1692,9 @@ site.features.privacybuiltin = privacidad integrada
 
 site.features.quotessaidbyyouinaweek = citas dichas por ti en una semana
 
-site.features.reachyourjournalfromanywhereonany = llega a tu diario desde cualquier lugar, en cualquier dispositivo
+site.features.reachyourjournalfromanywhereonany = conecta con tu diario desde cualquier lugar, en cualquier dispositivo
 
-site.features.reachyourjournalfromanywhereonanyxfeca493e = llega a tu diario desde cualquier lugar, en cualquier dispositivo{ $slot-1 }#{ $slot-2 }
+site.features.reachyourjournalfromanywhereonanyxfeca493e = conecta con tu diario desde cualquier lugar, en cualquier dispositivo{ $slot-1 }#{ $slot-2 }
 
 site.features.readthemdeletethemandtheystay = léelos, elimínalos, y siguen eliminados.
 
@@ -2258,7 +2258,7 @@ site.featuresdevices.theappsownnoticesshownon = los avisos propios de la app, mo
 
 site.featuresdevices.theappstore = el { $slot-1 }.
 
-site.featuresdevices.thekeyadeviceusestoreach = la clave que un dispositivo usa para llegar a tu diario nunca sale de él.
+site.featuresdevices.thekeyadeviceusestoreach = la clave que un dispositivo usa para conectar con tu diario nunca sale de él.
 
 site.featuresdevices.themicrophone = el micrófono.
 
@@ -2568,7 +2568,7 @@ site.installtoolsminisign012sourcetxt.theelfcompilermetadataidentifieszigbootstr
 
 site.installtoolsminisign012sourcetxt.theupstreamreleasekeyintheminisign = la clave de publicación de origen en el README de { $slot-1 }:
 
-site.integrate.ahiddenactivityandwhatyourjournal = una actividad oculta y lo que tu diario escribió para ella, como su historia, quedan fuera de la búsqueda, y un agente no puede alcanzarlas. los resultados de búsqueda marcan las actividades con Historias y reflexiones semanales como { $slot-1 }. lee sus pasajes de origen antes de tratar un resumen como palabras de alguien. dejar un recuerdo o una cita fuera de la página de la semana deja su fuente disponible para las otras herramientas.
+site.integrate.ahiddenactivityandwhatyourjournal = una actividad oculta y lo que tu diario escribió para ella, como su historia, quedan fuera de la búsqueda, y un agente no puede llegar a ellas. los resultados de búsqueda marcan las actividades con Historias y reflexiones semanales como { $slot-1 }. lee sus pasajes de origen antes de tratar un resumen como palabras de alguien. dejar un recuerdo o una cita fuera de la página de la semana deja su fuente disponible para las otras herramientas.
 
 site.integrate.anyoftentranscriptswhatwassaid = cualquiera de estas:{ $slot-1 }{ $slot-2 }transcripciones{ $slot-3 }: lo que se dijo en tus grabaciones e importaciones, como texto. nunca el audio ni las imágenes de la pantalla mismas. el texto de pantalla y el cuerpo tienen sus propios permisos.{ $slot-4 }{ $slot-5 }entidades{ $slot-6 }: las personas, los lugares y los proyectos que tu diario conoce, y lo que ha anotado sobre ellos. su opción { $slot-7 }fotos de perfil{ $slot-8 } agrega la foto que tu diario muestra para una persona.{ $slot-9 }{ $slot-10 }resúmenes{ $slot-11 }, concedidos como facetas: nombres y descripciones de facetas, y las actividades, los eventos y los resúmenes archivados en ellas.{ $slot-12 }{ $slot-13 }texto de pantalla{ $slot-14 }: texto reconocido de tus pantallas o mostrado en tu terminal, con la hora en que apareció. esto dice lo que estaba visible, no lo que leíste, escribiste o hiciste. enmascarar contraseñas y otros secretos es un mejor esfuerzo; tus reglas de redacción no aplican. su opción { $slot-15 }incluir capturas de pantalla{ $slot-16 } deja que el agente vea tus capturas de pantalla y pida una imagen de tu pantalla en un momento, mientras tu diario todavía tiene la grabación.{ $slot-17 }{ $slot-18 }cuerpo{ $slot-19 }: mediciones, sueño, entrenamientos, sesiones de atención plena y lo que registraste, como comida o síntomas, importados de apps y dispositivos como Apple Health, Oura o { $slot-20 }, con sus valores y cualquier nota que escribiste en ellos.{ $slot-21 }{ $slot-22 }notas{ $slot-23 }: notas que importas, resaltados y notas guardadas por otros agentes.{ $slot-24 }{ $slot-25 }documentos{ $slot-26 }: texto de documentos importados, como PDF y archivos de Word.{ $slot-27 }{ $slot-28 }calendario{ $slot-29 }: eventos de calendarios que conectaste o importaste.{ $slot-30 }{ $slot-31 }lugares{ $slot-32 }: nombres de lugares y horas del historial de ubicación de tu diario.{ $slot-33 }{ $slot-34 }fotos{ $slot-35 }: fotos que importas, tanto las imágenes como lo que tu diario describió en ellas.
 
@@ -2682,7 +2682,7 @@ site.llms.yourjournalholdstranscriptspeopleandprojects = tu diario guarda transc
 
 site.llmstxt.agentruntimehttpsgithubcomsolpbcsolstone = [Runtime de agentes]({ $slot-1 } cómo funcionan las plantillas de agentes del diario
 
-site.llmstxt.agentsconnecttoajournalfromthe = los agentes se conectan a un diario desde la misma computadora por MCP (Streamable HTTP) en { $slot-1 } en mac, { $slot-2 } y { $slot-3 }. el propietario vincula cada uno en la app de agentes del diario. en { $slot-4 }, { $slot-5 } lo abre en la computadora del diario. en un mac o en { $slot-6 }, el propietario elige abrir tu diario en la app del diario y luego abre agentes. ahí: conectar un agente, en esta computadora, crear un código de vinculación y luego agregar el diario al agente. para { $slot-7 } eso es { $slot-8 }, y luego autenticar desde { $slot-9 }. por esta conexión, un agente puede buscar y leer el diario y guardar ahí notas propias; no puede agregar, cambiar ni eliminar nada más. en { $slot-10 }, la configuración inicial del diario agrega un skill de { $slot-11 } solo donde { $slot-12 }, { $slot-13 } o { $slot-14 } ya está configurado. después de configurar otro agente, ejecuta { $slot-15 } para agregarlo ahí también. un agente en otro lugar alcanza el diario por el wifi o la VPN del propietario una vez que el propietario lo activa, o desde cualquier lugar a través de { $slot-16 }, una dirección que opera { $slot-17 } ({ $slot-18 } o un túnel propio del propietario.
+site.llmstxt.agentsconnecttoajournalfromthe = los agentes se conectan a un diario desde la misma computadora por MCP (Streamable HTTP) en { $slot-1 } en mac, { $slot-2 } y { $slot-3 }. el propietario vincula cada uno en la app de agentes del diario. en { $slot-4 }, { $slot-5 } lo abre en la computadora del diario. en un mac o en { $slot-6 }, el propietario elige abrir tu diario en la app del diario y luego abre agentes. ahí: conectar un agente, en esta computadora, crear un código de vinculación y luego agregar el diario al agente. para { $slot-7 } eso es { $slot-8 }, y luego autenticar desde { $slot-9 }. por esta conexión, un agente puede buscar y leer el diario y guardar ahí notas propias; no puede agregar, cambiar ni eliminar nada más. en { $slot-10 }, la configuración inicial del diario agrega un skill de { $slot-11 } solo donde { $slot-12 }, { $slot-13 } o { $slot-14 } ya está configurado. después de configurar otro agente, ejecuta { $slot-15 } para agregarlo ahí también. un agente en otro lugar conecta con el diario por el wifi o la VPN del propietario una vez que el propietario lo activa, o desde cualquier lugar a través de { $slot-16 }, una dirección que opera { $slot-17 } ({ $slot-18 } o un túnel propio del propietario.
 
 site.llmstxt.aiprovidershttpsgithubcomsolpbcsolstone = [Proveedores de IA]({ $slot-1 } configuración del proveedor
 
@@ -2784,7 +2784,7 @@ site.pagedownload.platform = plataforma
 
 site.pagedownload.product = producto
 
-site.pagedownload.setup = preparación
+site.pagedownload.setup = configuración
 
 site.pagedownload.signedbysolpbc = firmado por { $slot-1 }
 
@@ -3594,7 +3594,7 @@ site.releases.androidappreleases = versiones de la app de { $slot-1 }
 
 site.releases.androidappreleasessolstone = versiones de la app de { $slot-1 } · { $slot-2 }
 
-site.releases.articlejournal = diario { $version }
+site.releases.articlejournal = journal { $version }
 
 site.releases.articlethejournalappformac = la app del diario para mac { $version }
 
@@ -3614,7 +3614,7 @@ site.releases.getthewatchapp = obtener la app del reloj →
 
 site.releases.installthesolstoneappforlinux = instalar la app de { $slot-1 } para { $slot-2 }
 
-site.releases.introandroid = estos son los cambios propios de la app de { $slot-1 }: sus fuentes, la vinculación y cómo llega a tu diario. la app está en { $slot-3 }. la copia firmada que viene de nosotros no se actualiza sola, así que { $slot-5 }su página de descarga{ $slot-6 } es siempre donde está la actual.
+site.releases.introandroid = estos son los cambios propios de la app de { $slot-1 }: sus fuentes, la vinculación y cómo conecta con tu diario. la app está en { $slot-3 }. la copia firmada que viene de nosotros no se actualiza sola, así que { $slot-5 }su página de descarga{ $slot-6 } es siempre donde está la actual.
 
 site.releases.introwear = los cambios propios de la app del reloj. necesita la app de { $slot-2 } en tu teléfono { $slot-3 }. consigue las dos desde { $slot-5 } o descarga las dos { $slot-6 }directamente desde nosotros{ $slot-7 }. una copia de Play y una copia directa no pueden conectarse. tu teléfono necesita los servicios de { $slot-5 } para conectarse al reloj. la copia directa no se actualiza sola.
 
@@ -3698,7 +3698,7 @@ site.releases.thesearetheiphoneappsown = estos son los cambios propios de la app
 
 site.releases.thesearethejournalsownchanges = estos son los cambios propios del diario en mac: tu diario, su ventana y sus actualizaciones.
 
-site.releases.thesearethelinuxappsown = estos son los cambios propios de la app de { $slot-1 }: la instalación, el servicio de { $slot-2 }, la integración con el escritorio y cómo llega a tu diario. la app de { $slot-3 } corre en tu escritorio { $slot-4 }.
+site.releases.thesearethelinuxappsown = estos son los cambios propios de la app de { $slot-1 }: la instalación, el servicio de { $slot-2 }, la integración con el escritorio y cómo conecta con tu diario. la app de { $slot-3 } corre en tu escritorio { $slot-4 }.
 
 site.releases.thesearethemacappsown = estos son los cambios propios de la app para mac: el instalador, la barra de menús, la configuración y la actualización automática. la app de { $slot-1 } corre en tu mac.
 
