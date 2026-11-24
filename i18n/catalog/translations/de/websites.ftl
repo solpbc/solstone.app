@@ -96,7 +96,7 @@ site.brand.lockupsolstonehorizontalwhite = lockup-{ $slot-1 }-horizontal-white
 
 site.brand.logoswordmarks = Logos { $slot-1 } Wortmarken
 
-site.brand.mark = Signet
+site.brand.mark = mark
 
 site.brand.markblack = Signet, schwarz
 
@@ -1940,7 +1940,7 @@ site.features.yourwatchhandsoffwithcare = deine Uhr übergibt mit Sorgfalt{ $slo
 
 site.featuresbrowser.capabilities = Fähigkeiten
 
-site.featuresbrowser.showing = zeige
+site.featuresbrowser.showing = zeigt
 
 site.featuresbrowser.showing1capability = zeige 1 Fähigkeit
 
@@ -3340,7 +3340,7 @@ site.pageinstall.yourownmodel = dein eigenes Modell
 
 site.pageintegrate.addacustomconnectorinclaudes = einen eigenen Connector in den Einstellungen von { $slot-1 } hinzufügen, mit deiner { $slot-2 }-Adresse oder der Adresse deiner eigenen Domain
 
-site.pageintegrate.addanhttpserverattheaddress = einen HTTP-Server unter der Adresse hinzufügen
+site.pageintegrate.addanhttpserverattheaddress = HTTP-Server unter der Adresse hinzufügen
 
 site.pageintegrate.addit = es hinzufügen
 
@@ -3388,7 +3388,7 @@ site.pageintegrate.claudeontheweb = { $slot-1 } im Web
 
 site.pageintegrate.codex = { $slot-1 }
 
-site.pageintegrate.connectanagent = einen Agenten verbinden
+site.pageintegrate.connectanagent = Agenten verbinden
 
 site.pageintegrate.connectanagenttoyoursolstonejournal = einen Agenten über MCP mit deinem { $slot-1 }-Journal verbinden oder eine Integration darauf bauen: die Werkzeuge, die es anbietet, was du selbst steuerst, und wo der Quelltext liegt.
 

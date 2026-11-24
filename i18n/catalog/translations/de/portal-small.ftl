@@ -66,7 +66,7 @@ account.billing.seeservices = Dienste anzeigen
 
 account.billing.servicesyoupaysolpbcforwhat = die Dienste, für die du { $slot-1 } bezahlst, was jeder kostet und wann er sich verlängert.
 
-account.billing.stopped = beendet
+account.billing.stopped = gestoppt
 
 account.billing.stoppedon2 = beendet am { $date }
 
@@ -903,7 +903,7 @@ account.scout.testerprogram = · Testprogramm
 
 account.scout.yourjournaldoesthechecking = dein Journal prüft
 
-account.scout.yourjournalmustverifytheservicebeforeanythingi = dein Journal muss den Dienst überprüfen, bevor etwas gesendet wird. wenn es das nicht überprüfen kann, sendet es nicht.
+account.scout.yourjournalmustverifytheservicebeforeanythingi = dein Journal muss den Dienst überprüfen, bevor etwas gesendet wird. wenn es ihn nicht überprüfen kann, sendet es nicht.
 
 account.scout.yourservices = deine Dienste
 
@@ -1007,7 +1007,7 @@ account.services.hardware = die Hardware
 
 account.services.helpshapesolstone = hilf mit, solstone zu formen
 
-account.services.howitworks = wie es funktioniert
+account.services.howitworks = so funktioniert es
 
 account.services.ifyourerestoringajournalreturntoitandstartther = wenn du ein Journal wiederherstellst, geh dorthin zurück und starte die Wiederherstellung erneut. du gibst deinen Wiederherstellungsschlüssel noch einmal ein.
 
@@ -1285,13 +1285,13 @@ account.services.yourjournalgetsanaddressontheinternetanagentsr = dein Journal b
 
 account.services.yourjournalisencryptedonyourdevice = dein Journal wird auf deinem Gerät mit einem Schlüssel verschlüsselt, den nur du hältst. wer die Kopie speichert, sieht immer nur einen unlesbaren Blob.
 
-account.services.yourjournalmustverifyservicebeforeanything = dein Journal muss den Dienst überprüfen, bevor etwas gesendet wird. wenn es das nicht kann, sendet es nicht.
+account.services.yourjournalmustverifyservicebeforeanything = dein Journal muss den Dienst überprüfen, bevor etwas gesendet wird. wenn es ihn nicht überprüfen kann, sendet es nicht.
 
 account.services.yourjournalmustverifyservicebeforeanything3 = dein Journal muss den Dienst überprüfen, bevor etwas gesendet wird; wenn es das nicht kann, sendet es nicht.
 
-account.services.yourjournalmustverifytheservicebeforeanythingi = dein Journal muss den Dienst überprüfen, bevor etwas gesendet wird. wenn es das nicht kann, sendet es nicht.
+account.services.yourjournalmustverifytheservicebeforeanythingi = dein Journal muss den Dienst überprüfen, bevor etwas gesendet wird. wenn es ihn nicht überprüfen kann, sendet es nicht.
 
-account.services.yourjournalsagentsappworkswith = die Agenten-App deines Journals arbeitet mit deinem eigenen Weg oder mit { $slot-1 }; { $slot-2 } ist die Adresse, und in der Agenten-App verwaltest du, was sich verbindet.
+account.services.yourjournalsagentsappworkswith = die Agenten-App deines Journals funktioniert mit deiner eigenen Route oder mit { $slot-1 }; { $slot-2 } ist die Adresse, und in der Agenten-App verwaltest du, was sich verbindet.
 
 account.services.yourjournalstaysondeviceitruns = dein Journal bleibt auf dem Gerät, auf dem es läuft. Stimmabdrücke und Sprecherprofile werden auf deinem Gerät berechnet und verlassen es nie. nichts geht an einen Drittanbieter für KI.
 
@@ -1847,7 +1847,7 @@ account.transparency.retiredtransientscoutenablecodes = stillgelegte vorübergeh
 
 account.transparency.revoked2 = entzogen { $date }
 
-account.transparency.revoked3 = entzogen
+account.transparency.revoked3 = widerrufen
 
 account.transparency.rotated = rotiert
 
