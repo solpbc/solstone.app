@@ -2380,7 +2380,7 @@ site.index.anotefromthefounder = eine Notiz vom Gründer
 
 site.index.applewatch = { $slot-1 }
 
-site.index.awatercolorportraitofjeremie = ein Aquarellporträt von Jeremie Miller, lächelnd, mit weißer Brille
+site.index.awatercolorportraitofjeremie = ein Aquarellporträt von jeremie miller, lächelnd, mit weißer Brille
 
 site.index.checkitsours = prüfen, ob es von uns ist
 
@@ -2394,7 +2394,7 @@ site.index.istybaltstillagainstworkingwiththe = Ist Tybalt noch dagegen, mit den
 
 site.index.itsearlysowhen = es ist früh, wenn du also an eine raue Kante stößt, { $slot-1 }sag es mir{ $slot-2 }.
 
-site.index.jeremiemiller = Jeremie Miller
+site.index.jeremiemiller = jeremie miller
 
 site.index.mondaykickoffyouraisedhisquestionfor = { $slot-1 }Montag-Auftakt:{ $slot-2 } Du hast seine Frage für ihn vorgebracht: wenn Mesh Routing ausfällt, hören die Inspektoren auf zu arbeiten? Romeo sagte, die Frage sei fair, und schlug eine Warteschlange auf dem Gerät vor. Du sagtest { $slot-3 }Ich glaube, Tybalt kann damit leben. Er wird{ $slot-4 }s aber sehen wollen{ $slot-5 } (Aufnahme).
 
