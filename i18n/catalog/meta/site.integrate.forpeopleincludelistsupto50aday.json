@@ -1,0 +1,98 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1712,
+  "source_revision": "8ebaa08e26350e391a0811d44795c9db5749bb3134d1e6ce3eb0ec2d516d08ac",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>include</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>more</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>people</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>in_photo_days</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>in_photo_activities</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>co_occurrence</code>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<code>in_photo</code>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>on_screen</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>list_entities</code>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<code>facets</code>"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "<code>facet_references</code>"
+    },
+    {
+      "name": "slot-12",
+      "kind": "command",
+      "value": "<code>facet</code>"
+    },
+    {
+      "name": "slot-13",
+      "kind": "command",
+      "value": "<code>get_entity</code>"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "<code>references</code>"
+    },
+    {
+      "name": "slot-15",
+      "kind": "command",
+      "value": "<code>image_content_index</code>"
+    },
+    {
+      "name": "slot-16",
+      "kind": "command",
+      "value": "<code>image</code>"
+    }
+  ]
+}

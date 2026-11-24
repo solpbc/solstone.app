@@ -44575,6 +44575,99 @@
       "selector": null
     },
     {
+      "id": "site.integrate.forpeopleincludelistsupto50aday",
+      "resource": "m736974652e696e746567726174652e666f7270656f706c65696e636c7564656c697374737570746f353061646179",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>include</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>more</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>people</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>in_photo_days</code>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "<code>in_photo_activities</code>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<code>co_occurrence</code>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "command",
+          "value": "<code>in_photo</code>"
+        },
+        {
+          "name": "slot-8",
+          "kind": "command",
+          "value": "<code>on_screen</code>"
+        },
+        {
+          "name": "slot-9",
+          "kind": "command",
+          "value": "<code>list_entities</code>"
+        },
+        {
+          "name": "slot-10",
+          "kind": "command",
+          "value": "<code>facets</code>"
+        },
+        {
+          "name": "slot-11",
+          "kind": "command",
+          "value": "<code>facet_references</code>"
+        },
+        {
+          "name": "slot-12",
+          "kind": "command",
+          "value": "<code>facet</code>"
+        },
+        {
+          "name": "slot-13",
+          "kind": "command",
+          "value": "<code>get_entity</code>"
+        },
+        {
+          "name": "slot-14",
+          "kind": "command",
+          "value": "<code>references</code>"
+        },
+        {
+          "name": "slot-15",
+          "kind": "command",
+          "value": "<code>image_content_index</code>"
+        },
+        {
+          "name": "slot-16",
+          "kind": "command",
+          "value": "<code>image</code>"
+        }
+      ],
+      "selector": null
+    },
+    {
       "id": "site.integrate.forphotosincludelistsupto50aday",
       "resource": "m736974652e696e746567726174652e666f7270686f746f73696e636c7564656c697374737570746f353061646179",
       "namespace": "site.integrate",
@@ -44653,6 +44746,54 @@
           "name": "slot-14",
           "kind": "command",
           "value": "<code>thumb</code>"
+        }
+      ],
+      "selector": null
+    },
+    {
+      "id": "site.integrate.forplacesincludelistsupto50aday",
+      "resource": "m736974652e696e746567726174652e666f72706c61636573696e636c7564656c697374737570746f353061646179",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>include</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>reference</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>fetch</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>get_week</code>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "<code>search</code>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<code>kind</code>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "command",
+          "value": "<code>places_precision</code>"
         }
       ],
       "selector": null
@@ -45016,6 +45157,39 @@
           "name": "slot-10",
           "kind": "command",
           "value": "<code>content</code>"
+        }
+      ],
+      "selector": null
+    },
+    {
+      "id": "site.integrate.placeshasthreedetaillevels",
+      "resource": "m736974652e696e746567726174652e706c61636573686173746872656564657461696c6c6576656c73",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>solstone journal mcp permission set --places-precision</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>full</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>approx</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>names</code>"
         }
       ],
       "selector": null
@@ -53553,7 +53727,7 @@
       "resource": "m736974652e70616765696e746567726174652e7265666572656e63657265717569726564",
       "namespace": "site.pageintegrate",
       "owner": "website",
-      "tombstone": false,
+      "tombstone": true,
       "replacement": null,
       "format_intent": "text",
       "arguments": [],

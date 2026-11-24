@@ -174,6 +174,7 @@
                         </table>
 
                         <p class="small">[[i18n:site.integrate.theapprovalformpreselectsallfivekinds]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.placeshasthreedetaillevels]]</p>
 
                         <h3>[[i18n:site.integrate.suggestions]]</h3>
                         <p class="small">[[i18n:site.integrate.youragentcansuggestacorrectionwhen]]</p>
@@ -214,7 +215,7 @@
                             <tr><td><code>list_activities</code></td><td>[[i18n:site.integrate.listactivitiesbydayorinclusivedate]]</td><td>[[i18n:site.pageintegrate.facets]]</td><td><code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>facet</code>, <code>entity</code>, <code>kind</code>, <code>person</code>, <code>place</code>, <code>activity</code>, <code>cursor</code></td></tr>
                             <tr><td><code>get_activity_sources</code></td><td>[[i18n:site.pageintegrate.readthesourcepassagesanactivityspans]]</td><td>[[i18n:site.integrate.facetswithtranscriptsorbody]]</td><td><code>reference</code> / <code>references</code>, <code>cursor</code></td></tr>
                             <tr><td><code>list_entities</code></td><td>[[i18n:site.integrate.listthepeopleprojectsandotherentities]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td><code>facet</code>, <code>cursor</code></td></tr>
-                            <tr><td><code>get_entity</code></td><td>[[i18n:site.integrate.readwhatthejournalhasnotedabout]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td>[[i18n:site.pageintegrate.referencerequired]]</td></tr>
+                            <tr><td><code>get_entity</code></td><td>[[i18n:site.integrate.readwhatthejournalhasnotedabout]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td><code>reference</code> / <code>references</code></td></tr>
                             <tr><td><code>list_facets</code></td><td>[[i18n:site.pageintegrate.listthefacetsthisconnectionmaysee]]</td><td>[[i18n:site.pageintegrate.nothing]]</td><td><code>cursor</code></td></tr>
                             <tr><td><code>get_week</code></td><td>[[i18n:site.integrate.readaweekdrawnfrom]]</td><td>[[i18n:site.pageintegrate.yourwholejournalwithtranscriptsandfacets]]</td><td>[[i18n:site.integrate.weekanydayinityyyymmddor]] / <code>day_from</code> / <code>day_to</code>, <code>cursor</code>, <code>include</code></td></tr>
                             <tr><td><code>save_memory</code></td><td>[[i18n:site.integrate.saveanoteoftheagents]]</td><td>[[i18n:site.pageintegrate.nothing]]</td><td>[[i18n:site.pageintegrate.contentoperationidbothrequired]]</td></tr>
@@ -234,6 +235,15 @@
 
 # october, one row per day, with each day's photos
 {"name":"get_week","arguments":{"day_from":"2026-10-01","day_to":"2026-10-31","include":["photos"]}}
+
+# who you were with in october, and who with whom
+{"name":"get_week","arguments":{"day_from":"2026-10-01","day_to":"2026-10-31","include":["entities"]}}
+
+# three people and their profile pics in one call
+{"name":"get_entity","arguments":{"references":["&lt;entity reference&gt;","&lt;entity reference&gt;","&lt;entity reference&gt;"]}}
+
+# one day's places in full
+{"name":"fetch","arguments":{"reference":"&lt;places reference&gt;"}}
 
 # small copies of three photos for a contact sheet
 {"name":"fetch","arguments":{"references":["&lt;photo reference&gt;","&lt;photo reference&gt;","&lt;photo reference&gt;"],"size":"thumb"}}
@@ -255,6 +265,8 @@
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.ahiddenactivityandwhatyourjournal]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.picturesfromfetchandgettranscript]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.forphotosincludelistsupto50aday]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.forplacesincludelistsupto50aday]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.forpeopleincludelistsupto50aday]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.screenshotsneedscreentextandits]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.aprofilepicthephotoyourjournalshows]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.whenasourcepassagesaysuntimedthe]]</p>

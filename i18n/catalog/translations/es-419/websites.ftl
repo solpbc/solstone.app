@@ -3502,7 +3502,6 @@ site.pageintegrate.readthesourcepassagesanactivityspans = lee los pasajes de ori
 
 site.pageintegrate.redirects = redirecciones
 
-site.pageintegrate.referencerequired = { $slot-1 } (obligatorio)
 
 site.pageintegrate.registration = registro
 

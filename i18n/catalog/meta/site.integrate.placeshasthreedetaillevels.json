@@ -1,0 +1,38 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1044,
+  "source_revision": "e10132a9ccc3dc047248edc4d8f73cd794b692227ce5e8535b2b5ac576037d36",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>solstone journal mcp permission set --places-precision</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>full</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>approx</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>names</code>"
+    }
+  ]
+}

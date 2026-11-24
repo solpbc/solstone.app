@@ -7793,8 +7793,20 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.integrate.forpeopleincludelistsupto50aday": {
+    resourceKey: "m736974652e696e746567726174652e666f7270656f706c65696e636c7564656c697374737570746f353061646179",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.integrate.forphotosincludelistsupto50aday": {
     resourceKey: "m736974652e696e746567726174652e666f7270686f746f73696e636c7564656c697374737570746f353061646179",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.forplacesincludelistsupto50aday": {
+    resourceKey: "m736974652e696e746567726174652e666f72706c61636573696e636c7564656c697374737570746f353061646179",
     formatIntent: "text",
     arguments: [
     ],
@@ -7879,6 +7891,12 @@ const MESSAGES = {
   },
   "site.integrate.picturesfromfetchandgettranscript": {
     resourceKey: "m736974652e696e746567726174652e706963747572657366726f6d6665746368616e646765747472616e736372697074",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.placeshasthreedetaillevels": {
+    resourceKey: "m736974652e696e746567726174652e706c61636573686173746872656564657461696c6c6576656c73",
     formatIntent: "text",
     arguments: [
     ],
@@ -10531,12 +10549,6 @@ const MESSAGES = {
   },
   "site.pageintegrate.redirects": {
     resourceKey: "m736974652e70616765696e746567726174652e726564697265637473",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.pageintegrate.referencerequired": {
-    resourceKey: "m736974652e70616765696e746567726174652e7265666572656e63657265717569726564",
     formatIntent: "text",
     arguments: [
     ],
