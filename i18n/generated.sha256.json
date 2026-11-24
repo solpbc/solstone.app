@@ -3267,7 +3267,7 @@
   "catalog/source/en-US.ftl": "8d28655e00cacb2c44153c4cc7aded188b022f1123ed6e5642fda198307530f1",
   "catalog/translations/es-419/portal-small.ftl": "6629a61f970ef1f38a7a124b4d86b220f7507552b3964da80fb41c2e875f4fbb",
   "catalog/translations/es-419/websites.ftl": "b5917c79e1faac5fc01294c6c7bfac5ad6bf56809037edead585acddfc6f5190",
-  "compiler.json": "2866d08175da953d3c5485a284be74dd5564172fb1d662e41805c45ecdd00700",
+  "compiler.json": "0027d8eb93a637ad9ee08287ba13458a6fea86810ad78ebe01c6c54f28a3ca1a",
   "generated/esm/account/api.mjs": "1ae42e266a58be8b4767326b7b9a160887d130a7ff95c0db499853977cb66dd3",
   "generated/esm/account/catalogs.mjs": "eec9228832e66d9591ae938fd8dd65ad8298dd38732236222ed97b64982dae7f",
   "generated/esm/vendor/fluent-bundle/LICENSE": "5db2b182453ff32ed40f7da63589c9667a3f8bd8b16b1471b152caae56f77e45",
