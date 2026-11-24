@@ -3836,12 +3836,6 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "account.services.encryptedbackup2": {
-    resourceKey: "m6163636f756e742e73657276696365732e656e637279707465646261636b757032",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
   "account.services.encryptedbackup3": {
     resourceKey: "m6163636f756e742e73657276696365732e656e637279707465646261636b757033",
     formatIntent: "text",

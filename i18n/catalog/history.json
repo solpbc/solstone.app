@@ -9897,7 +9897,7 @@
       "resource": "m6163636f756e742e73657276696365732e656e637279707465646261636b757032",
       "namespace": "account.services",
       "owner": "account",
-      "tombstone": false,
+      "tombstone": true,
       "replacement": null,
       "format_intent": "text",
       "arguments": [],

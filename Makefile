@@ -1,4 +1,4 @@
-.PHONY: deploy render check dev install sitemap sunarc stamp brand sbis dayground publish-install-sh check-install-sh-served build-install-sh
+.PHONY: deploy render render-dev i18n-dev check dev install sitemap sunarc stamp brand sbis dayground publish-install-sh check-install-sh-served build-install-sh
 
 # `deploy` regenerates the sitemap first so <lastmod> can never drift from the
 # pages' real last-modified dates (see scripts/gen-sitemap.mjs).
@@ -10,6 +10,12 @@ deploy: sitemap sunarc
 
 render:
 	node scripts/render-website.mjs
+
+i18n-dev:
+	node i18n/update.mjs --write-dev
+
+render-dev: i18n-dev
+	node scripts/render-website.mjs --out .dev-site
 
 check:
 	node i18n/update.mjs --check

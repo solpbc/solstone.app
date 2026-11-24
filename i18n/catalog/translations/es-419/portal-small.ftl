@@ -996,8 +996,6 @@ account.services.enabled2 = se activó el { $date }
 
 account.services.encryptedbackup = copia de seguridad cifrada
 
-account.services.encryptedbackup2 = encrypted-backup
-
 account.services.encryptedbackup3 = copia de seguridad cifrada
 
 account.services.encryptedbeforeitleaves = cifrada antes de salir

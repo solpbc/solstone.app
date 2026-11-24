@@ -634,7 +634,6 @@ account.services.coveredsince2 = covered since { $date }
 account.services.datatransparency = data transparency
 account.services.enabled2 = enabled { $date }
 account.services.encryptedbackup = encrypted backup
-account.services.encryptedbackup2 = encrypted-backup
 account.services.encryptedbackup3 = encrypted backup
 account.services.encryptedbeforeitleaves = encrypted before it leaves
 account.services.firstturnedon = first turned on

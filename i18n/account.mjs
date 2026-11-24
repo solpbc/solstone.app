@@ -1,7 +1,34 @@
 import { cardinal, render } from './generated/esm/account/api.mjs';
+import { CATALOGS } from './generated/esm/account/catalogs.mjs';
 
-const LOCALE = 'en-US';
-const OPTIONS = { useIsolating: LOCALE !== 'en-US' };
+const SOURCE_LOCALE = 'en-US';
+const PACKAGED = Object.keys(CATALOGS);
+
+function resolveActiveLocale() {
+  const requested = typeof process !== 'undefined' ? process.env?.SOLSTONE_LOCALE : undefined;
+  if (requested) {
+    const lower = requested.trim().toLowerCase();
+    const exact = PACKAGED.find((loc) => loc.toLowerCase() === lower);
+    if (exact) return exact;
+    const primary = lower.split('-')[0];
+    const byPrimary = PACKAGED.find((loc) => loc.toLowerCase().split('-')[0] === primary);
+    if (byPrimary) return byPrimary;
+  }
+  const nonSource = PACKAGED.filter((loc) => loc !== SOURCE_LOCALE);
+  if (nonSource.length === 1) return nonSource[0];
+  return SOURCE_LOCALE;
+}
+
+const LOCALE = resolveActiveLocale();
+const OPTIONS = { useIsolating: LOCALE !== SOURCE_LOCALE };
+
+export function accountLocale() {
+  return LOCALE;
+}
+
+export function htmlLang() {
+  return LOCALE === SOURCE_LOCALE ? 'en' : LOCALE;
+}
 
 export function t(id, values = {}) {
   return render(LOCALE, id, Object.entries(values).map(([name, value]) => [name, String(value)]), OPTIONS);

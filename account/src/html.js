@@ -1,4 +1,4 @@
-import { attrText, countText, htmlText, scriptText, t, termsText } from '../../i18n/account.mjs';
+import { attrText, countText, htmlLang, htmlText, scriptText, t, termsText } from '../../i18n/account.mjs';
 
 // Page renderers for the served portal.css design system and same-origin brand assets.
 
@@ -116,7 +116,7 @@ function beat(ic, t, d) {
 
 export function layout({ title, body, afterMain = '', showFooter = true, mainClass = '', deletionActive = false }) {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${htmlLang()}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -460,7 +460,7 @@ export function renderEnableSpbRestoreConsent({ csrf, nonce, candidates, error =
     </div>
   </form>
 </div>
-${restorePolicyFooter(t('account.services.encryptedbackup2'))}`,
+${restorePolicyFooter('encrypted-backup')}`,
   });
 }
 

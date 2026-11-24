@@ -28,23 +28,37 @@ function snapshot() {
   return JSON.stringify(Object.fromEntries(hashes), null, 2) + '\n';
 }
 
-function regenerate() {
+function regenerate(channel = null) {
   const compiler = process.env.I18N_COMPILER;
   if (!compiler) throw new Error('Set I18N_COMPILER to the pinned i18n-catalog binary.');
   const pin = JSON.parse(readFileSync(join(root, 'compiler.json'), 'utf8'));
+  const targetChannel = channel || pin.channel;
+  if (targetChannel !== 'production' && targetChannel !== 'development') {
+    throw new Error(`Unsupported channel: ${targetChannel}`);
+  }
   const scratch = mkdtempSync(join(tmpdir(), 'website-catalog-'));
   const staging = mkdtempSync(join(root, '.generated-'));
   try {
     const output = join(scratch, 'output');
-    const args = ['targets', join(root, 'catalog'), '--channel', pin.channel, '--out', output];
+    const args = ['targets', join(root, 'catalog'), '--channel', targetChannel];
+    if (targetChannel === 'development') args.push('--fallback-stale');
+    args.push('--out', output);
     for (const target of pin.targets) args.push('--target', target);
     execFileSync(compiler, args, { stdio: 'inherit' });
     const esm = join(output, 'esm');
     for (const [bundle, admitted] of Object.entries(pin.bundles)) {
       const locales = readdirSync(join(esm, bundle)).filter((name) => name.endsWith('.ftl')).sort();
       const expected = admitted.map((locale) => locale + '.ftl').sort();
-      if (JSON.stringify(locales) !== JSON.stringify(expected)) {
-        throw new Error(`Unexpected generated locales for ${bundle}: ${locales.join(', ')}`);
+      if (targetChannel === 'production') {
+        if (JSON.stringify(locales) !== JSON.stringify(expected)) {
+          throw new Error(`Unexpected generated locales for ${bundle}: ${locales.join(', ')}`);
+        }
+      } else {
+        for (const req of expected) {
+          if (!locales.includes(req)) {
+            throw new Error(`Missing required locale ${req} for ${bundle}: ${locales.join(', ')}`);
+          }
+        }
       }
     }
     const next = join(staging, 'next');
@@ -61,7 +75,9 @@ function regenerate() {
       if (existsSync(previous)) renameSync(previous, generated);
       throw error;
     }
-    writeFileSync(manifest, snapshot());
+    if (targetChannel === 'production') {
+      writeFileSync(manifest, snapshot());
+    }
   } finally {
     rmSync(staging, { recursive: true, force: true });
     rmSync(scratch, { recursive: true, force: true });
@@ -69,8 +85,14 @@ function regenerate() {
 }
 
 switch (process.argv[2]) {
-  case '--write':
-    regenerate();
+  case '--write': {
+    const chIdx = process.argv.indexOf('--channel');
+    const channel = chIdx >= 0 ? process.argv[chIdx + 1] : null;
+    regenerate(channel);
+    break;
+  }
+  case '--write-dev':
+    regenerate('development');
     break;
   case '--check':
     if (snapshot() !== readFileSync(manifest, 'utf8')) {
@@ -78,5 +100,5 @@ switch (process.argv[2]) {
     }
     break;
   default:
-    throw new Error('Usage: node i18n/update.mjs --check | --write');
+    throw new Error('Usage: node i18n/update.mjs --check | --write [--channel production|development] | --write-dev');
 }
