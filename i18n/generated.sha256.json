@@ -3262,7 +3262,7 @@
   "catalog/meta/site.worker.sizelead.json": "902e00158525d1629edb8440950862dc183932aafed5224df49a85d80e51ac89",
   "catalog/source-lock.json": "b923ead71a85ed8e17f1d7e5f05c1fe62a5d9b77743e2e5622f4d104b6aef04d",
   "catalog/source/en-US.ftl": "2347e9d2457e51eee3fa59b5da3cad9931f76db45c60c80b7b19c6e520f12662",
-  "compiler.json": "314dae05a6adda1548bc5fa525d06fe2d9bfb2fc89c37ed262e9acbd71be0514",
+  "compiler.json": "2866d08175da953d3c5485a284be74dd5564172fb1d662e41805c45ecdd00700",
   "generated/esm/account/api.mjs": "f50244d47186c9249367899283757fe0cfd4bfee54f7ea82e84c122817e8da96",
   "generated/esm/account/catalogs.mjs": "74bf08ffe2f6c798767eb4d216cafaba9d0fe7080ef2138dd3aea0b68e29c33c",
   "generated/esm/vendor/fluent-bundle/LICENSE": "5db2b182453ff32ed40f7da63589c9667a3f8bd8b16b1471b152caae56f77e45",
