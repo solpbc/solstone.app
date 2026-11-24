@@ -4717,6 +4717,18 @@
       "selector": null
     },
     {
+      "id": "account.portal.cancelcontinue",
+      "resource": "m6163636f756e742e706f7274616c2e63616e63656c636f6e74696e7565",
+      "namespace": "account.portal",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
+      "selector": null
+    },
+    {
       "id": "account.portal.cancelforaseriousreasonsuchassomethingwedidwro",
       "resource": "m6163636f756e742e706f7274616c2e63616e63656c666f7261736572696f7573726561736f6e737563686173736f6d657468696e67776564696477726f",
       "namespace": "account.portal",
@@ -6751,6 +6763,18 @@
           "value": " "
         }
       ],
+      "selector": null
+    },
+    {
+      "id": "account.portal.turnonterms",
+      "resource": "m6163636f756e742e706f7274616c2e7475726e6f6e7465726d73",
+      "namespace": "account.portal",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
       "selector": null
     },
     {

@@ -24,6 +24,6 @@
   "format_intent": "text",
   "max_length": 136,
   "source_revision": "8692945b4b4ed5600f9f5184f09a4fe89a79acd6ff6c8fce31c88fa59b2dbdc2",
-  "risk": "legal",
+  "risk": "payment",
   "auto_merge": false
 }

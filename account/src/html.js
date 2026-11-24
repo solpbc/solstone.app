@@ -265,7 +265,7 @@ function turnOnLead(service, instance = '') {
 // alias), and the privacy-policy anchor for what sol pbc keeps.
 function turnOnFooter({ paid, policyAnchor }) {
   const subscriptionClause = paid ? t('account.portal.turningitoffdoesntcancelasubscription') : '';
-  return `<p class="disclosure">${htmlText('account.portal.youcanturnitofffromthejournalanytime')}${subscriptionClause} ${htmlText('account.portal.byturningthisonyouagreetothe')} <a href="/terms">${htmlText('account.portal.terms')}</a>${htmlText('account.portal.whatsolpbckeepsisinthe')} <a href="https://solpbc.org/privacy#${policyAnchor}">${htmlText('account.portal.privacypolicy')}</a>.</p>`;
+  return `<p class="disclosure">${htmlText('account.portal.youcanturnitofffromthejournalanytime')}${subscriptionClause} ${htmlText('account.portal.byturningthisonyouagreetothe')} <a href="/terms">${htmlText('account.portal.turnonterms')}</a>${htmlText('account.portal.whatsolpbckeepsisinthe')} <a href="https://solpbc.org/privacy#${policyAnchor}">${htmlText('account.portal.privacypolicy')}</a>.</p>`;
 }
 
 function restorePolicyFooter(policyAnchor) {
@@ -2963,7 +2963,7 @@ const CANCEL_WORDS = {
   keepsRenewed: (service, months, amount) => t('account.portal.keepsworkinguntilthenandwerefundwholethesamewa', { service, months, monthsLabel: monthsWord(months), amount }),
   endsToday: t('account.portal.itendstodaywellansweryourreasonandwhetherweref'),
   endsTodayRefund: (amount) => t('account.portal.werefundthewholemonthslefteitherway', { amount }),
-  next: t('account.portal.continue'),
+  next: t('account.portal.cancelcontinue'),
   summary: (d) => [
     t('account.portal.yourecancelingevery', { serviceName: d.serviceName, price: d.price, interval: d.interval }),
     d.reason != null ? t('account.portal.foraseriousreason', { reason: d.reason }) : '',

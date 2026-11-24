@@ -2249,6 +2249,13 @@
       "locales": []
     },
     {
+      "id": "account.portal.cancelcontinue",
+      "source": "cacd477d0f0714ce579bdb1040df9a4afc7d8a6776827adef662c920b61a4b6f",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
       "id": "account.portal.cancelforaseriousreasonsuchassomethingwedidwro",
       "source": "5ccad6d0eaff139be50ab2174df652473e83e733a0d32e9ea1cde5d8352325ab",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -3233,6 +3240,13 @@
       "source": "55139770c2952ed17cedf18ccd6faacd0967b88c36fbdcd87da22dcf1b93c4ac",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "da9340c3811dddc082ba99c88e2175e57701202db66238b32b4512ce84d8822b",
+      "locales": []
+    },
+    {
+      "id": "account.portal.turnonterms",
+      "source": "3e02668db34bcad92b3c72d49869d996de5541400af2ef360fe3ed6709724936",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
     },
     {

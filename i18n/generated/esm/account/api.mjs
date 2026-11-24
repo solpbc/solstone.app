@@ -1987,6 +1987,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "account.portal.cancelcontinue": {
+    resourceKey: "m6163636f756e742e706f7274616c2e63616e63656c636f6e74696e7565",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "account.portal.cancelforaseriousreasonsuchassomethingwedidwro": {
     resourceKey: "m6163636f756e742e706f7274616c2e63616e63656c666f7261736572696f7573726561736f6e737563686173736f6d657468696e67776564696477726f",
     formatIntent: "text",
@@ -2861,6 +2867,12 @@ const MESSAGES = {
   },
   "account.portal.turningitoffdoesntcancelasubscription": {
     resourceKey: "m6163636f756e742e706f7274616c2e7475726e696e6769746f6666646f65736e7463616e63656c61737562736372697074696f6e",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "account.portal.turnonterms": {
+    resourceKey: "m6163636f756e742e706f7274616c2e7475726e6f6e7465726d73",
     formatIntent: "text",
     arguments: [
     ],
