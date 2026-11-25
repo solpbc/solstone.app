@@ -102,7 +102,7 @@ account.credentialchange.passkeyverificationcouldnotstart = పాస్‌క�
 
 account.deletion.averifiedemailisrequiredtocontinue = కొనసాగడానికి ధృవీకరించిన ఈమెయిల్ తప్పనిసరి
 
-account.deletion.back = వెనక్కి
+account.deletion.back = వెనుకకు
 
 account.deletion.closemysignin = నా సైన్-ఇన్ మూసివేయండి
 
@@ -542,7 +542,7 @@ account.passkeys.yoursignin = మీ సైన్-ఇన్
 
 account.portal.accountreplaced = సైన్-ఇన్ భర్తీ అయింది
 
-account.portal.active = సక్రియం
+account.portal.active = యాక్టివ్
 
 account.portal.addressispubliconceitsissued = చిరునామా జారీ అయిన వెంటనే బహిరంగం అవుతుంది, శాశ్వతంగా బహిరంగంగానే ఉంటుంది, మీరు దీన్ని ఆఫ్ చేసినా, రద్దు చేసినా లేదా మీ సైన్-ఇన్ మూసివేసినా తర్వాత కూడా. ఇది ఎనిమిది యాదృచ్ఛిక అక్షరాలు, ఇందులో మీది ఏమీ లేదు.
 
@@ -558,7 +558,7 @@ account.portal.asoffturn = ఆఫ్‌గా, మార్చండి
 
 account.portal.audio = ఆడియో
 
-account.portal.back = వెనక్కి
+account.portal.back = వెనుకకు
 
 account.portal.bytes2 = { $value1 } బైట్లు
 
@@ -851,7 +851,7 @@ account.portal.youcanturnitofffromthejournalanytime = మీరు దీన్�
 
 account.portal.youneverhavepayusyourjournal = మీరు మాకు ఎప్పుడూ చెల్లించాల్సిన అవసరం లేదు. మీ జర్నల్ మీ సొంత కంప్యూటర్‌లో లోకల్ మోడల్‌తో, లేదా మీ సొంత మోడల్‌తో, ఆలోచించగలదు, మరియు రెండు విధాలా { $slot-1 } ఆ దారిలో ఉండదు. సబ్‌స్క్రిప్షన్ అనేది { $slot-2 } మీ కోసం నడిపే కాన్ఫిడెన్షియల్ హార్డ్‌వేర్ కోసం మాత్రమే.
 
-account.portal.yourjournalisalwaysprivateonlyyours = మీ జర్నల్ ఎప్పుడూ గోప్యం, మీది మాత్రమే.
+account.portal.yourjournalisalwaysprivateonlyyours = మీ జర్నల్ ఎప్పుడూ ప్రైవేట్, మీదే.
 
 account.portal.yourjournalneedsanupdatebeforeit = మీ { $slot-1 } చిరునామాను ఉపయోగించే ముందు మీ జర్నల్‌కు అప్‌డేట్ కావాలి. అది నడిచే కంప్యూటర్‌లో మీ జర్నల్‌ను అప్‌డేట్ చేయండి, మీ చిరునామా దానంతట అదే ఆన్ అవుతుంది.
 
@@ -863,7 +863,7 @@ account.portal.yourservicesstopassoonasyou = మీరు నిర్ధార�
 
 account.portal.yoursignin = మీ సైన్-ఇన్
 
-account.push.youhavenewnotification = మీకు ఒక కొత్త నోటిఫికేషన్ ఉంది.
+account.push.youhavenewnotification = మీకు కొత్త నోటిఫికేషన్ ఉంది.
 
 account.renewal.plusanysalestax = ఏదైనా అమ్మకపు పన్నుతో పాటు
 
@@ -1425,7 +1425,7 @@ account.support.checkagain = మళ్ళీ సరిచూడండి
 
 account.support.closeandremovedetails = మూసివేసి వివరాలు తీసివేయండి
 
-account.support.closed2 = మూసివేయబడింది
+account.support.closed2 = మూసి ఉంది
 
 account.support.closedrequest = మూసివేసిన అభ్యర్థన
 
@@ -1599,7 +1599,7 @@ account.supportforms.yourversionsaretoolongkeepthem = మీ వెర్షన�
 
 account.supportforms.yourversionsaretoolongkeepthemunder8192bytes = మీ వెర్షన్‌లు చాలా పొడవుగా ఉన్నాయి. వాటిని 8192 బైట్లు లోపు ఉంచండి.
 
-account.transparency.active = సక్రియం
+account.transparency.active = యాక్టివ్
 
 account.transparency.added = · చేర్చబడింది
 
@@ -1847,7 +1847,7 @@ account.transparency.retiredtransientscoutenablecodes = రిటైర్ అ�
 
 account.transparency.revoked2 = రివోక్ అయింది { $date }
 
-account.transparency.revoked3 = రివోక్ అయింది
+account.transparency.revoked3 = ఉపసంహరించబడింది
 
 account.transparency.rotated = రొటేట్ అయింది
 
@@ -1967,4 +1967,4 @@ account.transparency.yoursupportpage = మీ సపోర్ట్ పేజీ
 
 account.transparency.yoursupportrequestsareheldbythesupportservicew = మీ సపోర్ట్ అభ్యర్థనలను సపోర్ట్ సేవ ఉంచుతుంది, ఆ సేవను { $slot-1 } విడిగా నడుపుతుంది, మరియు చూపిస్తుంది పై
 
-account.withdrawal.back = వెనక్కి
+account.withdrawal.back = వెనుకకు

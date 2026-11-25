@@ -266,7 +266,7 @@ site.branddayground.noon = మధ్యాహ్నం
 
 site.branddayground.now = ఇప్పుడు
 
-site.branddayground.place = స్థలం
+site.branddayground.place = ప్రదేశం
 
 site.branddayground.playadayin20seconds = 20 సెకన్లలో ఒక రోజు ఆడండి
 
@@ -798,7 +798,7 @@ site.brandsystem.hardwareandengravingneveranink = హార్డ్‌వేర
 
 site.brandsystem.headinginterbold28px001 = { $slot-1 }హెడ్డింగ్{ $slot-2 } · Inter Bold, 28 px, −0.01 em
 
-site.brandsystem.howitworks = అది ఎలా పనిచేస్తుంది
+site.brandsystem.howitworks = ఎలా పని చేస్తుంది
 
 site.brandsystem.howthelogoitselfisbuilt = లోగో ఎలా నిర్మించబడిందో
 
@@ -932,7 +932,7 @@ site.chrome.earlydaysonamaconwindows = { $slot-1 }తొలి రోజుల�
 
 site.chrome.footer = ఫుటర్
 
-site.chrome.getstarted = ప్రారంభించండి
+site.chrome.getstarted = మొదలుపెట్టండి
 
 site.chrome.integrate = ఇంటిగ్రేట్
 
@@ -954,7 +954,7 @@ site.chrome.phone = ఫోన్
 
 site.chrome.privacy = గోప్యత
 
-site.chrome.releases = విడుదలలు
+site.chrome.releases = రిలీజ్‌లు
 
 site.chrome.services = సేవలు
 
@@ -1958,7 +1958,7 @@ site.featurescustody.aquickcheckthatafilelooks = ఫైల్ మారలేద
 
 site.featurescustody.areportoneveryfile = ప్రతి ఫైల్‌పై ఒక నివేదిక
 
-site.featurescustody.available = అందుబాటులో
+site.featurescustody.available = అందుబాటులో ఉంది
 
 site.featurescustody.beforeanythinggoesthesolstoneappfor = ఏదైనా వెళ్లే ముందు, { $slot-2 } కోసం { $slot-1 } యాప్ అది ఇంకా అదే జర్నల్‌తో పెయిర్ అయి ఉందో సరిచూస్తుంది, మరియు మొదలైన పంపకం ఎప్పుడూ రద్దు కాదు.
 
@@ -2496,7 +2496,7 @@ site.install.ifyouinstalledonlyonepackagerun = ఒక ప్యాకేజీ �
 
 site.install.iosoripados26orlaterfree = ios లేదా ipados 26 లేదా తర్వాత. { $slot-1 } లో ఉచితం, అక్కడ { $slot-2 } గా జాబితాలో ఉంది.
 
-site.install.journal = జర్నల్
+site.install.journal =journal
 
 site.install.journalanddesktopappx8664intel = జర్నల్ మరియు డెస్క్‌టాప్ యాప్: x86_64 (intel లేదా amd) లేదా arm64. మీ దగ్గర ఏది ఉందో తెలియదా? { $slot-1 } x86_64‌ను ప్రింట్ చేస్తుంది, arm64‌పై aarch64. మరేదైనా సపోర్ట్ లేదు.
 
@@ -2786,7 +2786,7 @@ site.pagedownload.notshown = చూపించలేదు
 
 site.pagedownload.onediskimagewithboth = రెండూ ఉన్న ఒక డిస్క్ ఇమేజ్
 
-site.pagedownload.platform = ప్లాట్‌ఫాం
+site.pagedownload.platform = ప్లాట్‌ఫామ్
 
 site.pagedownload.product = ఉత్పత్తి
 
@@ -3332,7 +3332,7 @@ site.pageinstall.yourbrowseropensyourjournalspage = మీ బ్రౌజర్
 
 site.pageinstall.yourdesktopaskswhichscreentoshare = మీ స్క్రీన్‌ను మూలంగా ఆన్ చేసినప్పుడు, ఏ స్క్రీన్ పంచుకోవాలో మీ డెస్క్‌టాప్ అడుగుతుంది.
 
-site.pageinstall.yourjournalsagentsappworkswith = మీ జర్నల్ ఏజెంట్‌ల యాప్ మీ సొంత రూట్‌తో లేదా { $slot-1 } తో పని చేస్తుంది; చిరునామా { $slot-2 }, కనెక్ట్ అయ్యేదాన్ని మీరు నిర్వహించేది ఏజెంట్‌ల యాప్.
+site.pageinstall.yourjournalsagentsappworkswith = మీ జర్నల్ ఏజెంట్‌ల యాప్ మీ సొంత మార్గంతో లేదా { $slot-1 } వద్ద పని చేస్తుంది; { $slot-2 } అనేది చిరునామా, ఏమి కలుస్తుందో మీరు నిర్వహించేది ఏజెంట్‌ల యాప్.
 
 site.pageinstall.yourjournalworksfromyourcomputeralone = మీ జర్నల్ మీ కంప్యూటర్ నుండి మాత్రమే పని చేస్తుంది, కాబట్టి దీన్ని దాటవచ్చు. మీ { $slot-1 }, { $slot-2 } లేదా { $slot-3 } ఫోన్‌ను జోడించాలంటే, దాని స్టోర్ నుండి { $slot-4 } యాప్‌ను పొందండి, తర్వాత దాన్ని మీ mac, { $slot-5 } లేదా { $slot-6 } కంప్యూటర్‌లోని జర్నల్‌తో పెయిరింగ్ చేయండి: మీ జర్నల్‌లో, { $slot-7 }నెట్‌వర్క్{ $slot-8 } తెరిచి { $slot-9 }ఒక పరికరాన్ని పెయిరింగ్ చేయండి{ $slot-10 } ఎంచుకోండి.
 
@@ -3358,7 +3358,7 @@ site.pageintegrate.anapporagentotherpeopleinstall = ఇతర వ్యక్త
 
 site.pageintegrate.anyothermcpclient = మరే ఇతర MCP క్లయింట్
 
-site.pageintegrate.anywhereatyourowndomain = ఎక్కడైనా, మీ సొంత డొమైన్‌లో
+site.pageintegrate.anywhereatyourowndomain = ఎక్కడైనా, మీ సొంత డొమైన్ వద్ద
 
 site.pageintegrate.anywherethroughsolstoneme = ఎక్కడైనా, { $slot-1 } ద్వారా
 
@@ -3464,7 +3464,7 @@ site.pageintegrate.n8charactersoneuse10minutesone = 8 అక్షరాలు �
 
 site.pageintegrate.needs = అవసరం
 
-site.pageintegrate.nothing = ఏమీ లేదు
+site.pageintegrate.nothing = ఏమీ
 
 site.pageintegrate.oauth21hostedbythejournal = జర్నల్ హోస్ట్ చేసే OAuth 2.1 (PKCE S256), లేదా స్క్రిప్ట్ కోసం మీరు సృష్టించే కీ
 
@@ -3550,7 +3550,7 @@ site.pageintegrate.tokens = టోకెన్‌లు
 
 site.pageintegrate.tool = టూల్
 
-site.pageintegrate.tools = టూల్‌లు
+site.pageintegrate.tools = టూల్స్
 
 site.pageintegrate.transcripttimesusetherecordingdevices = ట్రాన్స్క్రిప్ట్ సమయాలు రికార్డింగ్ పరికరం గడియారాన్ని వాడతాయి. అది చెప్పిన UTC ఆఫ్‌సెట్ మీ జర్నల్ ఆఫ్‌సెట్‌కు భిన్నంగా ఉంటే, { $slot-1 } ఆఫ్‌సెట్‌ను ఇస్తుంది, అందుబాటులో ఉంటే జోన్ పేరును కూడా. ఫీల్డ్ లేకపోవడం అంటే ఆఫ్‌సెట్‌లు సరిపోతాయి, లేదా రికార్డింగ్‌కు వాడదగిన జోన్ సమాచారం లేదు. మూలం లింక్‌లు అదే సమాచారాన్ని మోస్తాయి.
 
