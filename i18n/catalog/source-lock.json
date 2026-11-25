@@ -59126,7 +59126,7 @@
     },
     {
       "id": "site.features.chatgptclaudeandgeminiexportsevernoteaudio",
-      "source": "396e102f1c1f7bd5b1f45c07f3765b1a4c79d2c1a81843602a08ad31e13cc180",
+      "source": "0fea0e3c35e76716e42af8adb88067403dbc52c9618719ca03a54162364c44aa",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "444547a9d05f0e386ad294f512b72da1901b09a1e9bda97621615a357cd93946",
       "locales": [
@@ -60022,7 +60022,7 @@
     },
     {
       "id": "site.features.foreachagentchoosewhatitmay",
-      "source": "83cd0603e251de953e14b398894dbe619396ba0681d2eb6aef09bcbaa096045d",
+      "source": "e493a8902840a1fedde6cb639969c263dc8099e57f9e6c28b3f0db1233e6c7ae",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "61cdcd8c49d450defda29dd3232ab56bdd6c8b581d7a0fed6ab407bb89ba4bd7",
       "locales": [
@@ -69718,7 +69718,7 @@
     },
     {
       "id": "site.featuresdevices.signedpackagesdebrpmoratarball",
-      "source": "89e58344a6128735037f1af1d3222001cdc205be591caa7b9903f2e88a6de397",
+      "source": "c5d39172f06f7269de100c29e7d3d40c6a194b0827a26dafbbe6c4b43bd720f1",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": [
