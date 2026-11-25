@@ -69321,6 +69321,13 @@
       ]
     },
     {
+      "id": "site.integrate.cycleandpregnancyneedsbodyandits",
+      "source": "9e266cd2dd3de6b30977232b00a3c0d5d579841c888a4521727aa898fec55d06",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "75a55f83083a2689e5c1fcf6d7bf26c177a1db47d214d7e748cf7fba91231564",
+      "locales": []
+    },
+    {
       "id": "site.integrate.daydayfromdaytotimefromtimeto",
       "source": "22c248ab3a9d25a270514c42c265e0555a2c9c5b887913f8563043b0d22da1a4",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -70805,6 +70812,13 @@
           "protected": "627149fb81a8363e92b3ebee24dee31bca7a594d17d5f2f2f869f64f27e41c12"
         }
       ]
+    },
+    {
+      "id": "site.integrate.workoutcoordinatesfollowplacesdetaillevel",
+      "source": "c62df6be0e40465d355e285f71b955a5d2bde644972ddf789c84375bfbffdefc",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "dab1a0ebfae64a300601ee097882bb3e5f0859c499d0f3b6853e7ccaf6f76b73",
+      "locales": []
     },
     {
       "id": "site.integrate.youragentcansuggestacorrectionwhen",

@@ -7763,6 +7763,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.integrate.cycleandpregnancyneedsbodyandits": {
+    resourceKey: "m736974652e696e746567726174652e6379636c65616e64707265676e616e63796e65656473626f6479616e64697473",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.integrate.daydayfromdaytotimefromtimeto": {
     resourceKey: "m736974652e696e746567726174652e64617964617966726f6d646179746f74696d6566726f6d74696d65746f",
     formatIntent: "text",
@@ -8041,6 +8047,12 @@ const MESSAGES = {
   },
   "site.integrate.whensearchoralistreturnsnext": {
     resourceKey: "m736974652e696e746567726174652e7768656e7365617263686f72616c69737472657475726e736e657874",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.workoutcoordinatesfollowplacesdetaillevel": {
+    resourceKey: "m736974652e696e746567726174652e776f726b6f7574636f6f7264696e61746573666f6c6c6f77706c6163657364657461696c6c6576656c",
     formatIntent: "text",
     arguments: [
     ],

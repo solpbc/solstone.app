@@ -1,0 +1,33 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 600,
+  "source_revision": "9e266cd2dd3de6b30977232b00a3c0d5d579841c888a4521727aa898fec55d06",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Garmin"
+    },
+    {
+      "name": "slot-2",
+      "kind": "mark-word",
+      "value": "Apple Health"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>womens_health</code>"
+    }
+  ]
+}

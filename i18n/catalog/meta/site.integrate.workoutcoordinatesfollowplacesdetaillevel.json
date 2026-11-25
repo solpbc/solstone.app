@@ -1,0 +1,23 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 600,
+  "source_revision": "c62df6be0e40465d355e285f71b955a5d2bde644972ddf789c84375bfbffdefc",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "mark-word",
+      "value": "Garmin"
+    }
+  ]
+}

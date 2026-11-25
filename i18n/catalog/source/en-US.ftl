@@ -3277,3 +3277,5 @@ site.worker.macbothapp = { $slot-1 } app { $version }
 site.worker.macbothjournal = journal app { $version }
 site.worker.mb = { $size } MB
 site.worker.sizelead = { $size }, and
+site.integrate.cycleandpregnancyneedsbodyandits = cycle and pregnancy entries (menstrual cycle, fertility, pregnancy and related logs from { $slot-1 } or { $slot-2 }) stay withheld under a plain body grant. they need body and its cycle and pregnancy option, granted as { $slot-3 }. existing body connections keep them withheld until you turn that option on.
+site.integrate.workoutcoordinatesfollowplacesdetaillevel = workout start and end coordinates imported from { $slot-1 } follow the connection's places detail level: exact locations shares exact coordinates, ~1 km areas shares roughly 1 km grid cells, and names only or no places leaves coordinates out while keeping workout names, place names and exercise stats.
