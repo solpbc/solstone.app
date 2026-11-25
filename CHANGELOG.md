@@ -10,6 +10,7 @@
 
 ### fixed
 
+- ten screens on solstone.app/features are retaken from the newest journal release.
 - solstone.app/features lists the kinds of material you can let an agent read, the Telegram, Slack, Fireflies and Whisper files you can import, and, on its devices page, how a linux install gets updates.
 - the devices page under solstone.app/features says android notifications arrive through your phone's push service.
 - the evidence and custody pages under solstone.app/features no longer offer a link to an architecture page that doesn't exist.
