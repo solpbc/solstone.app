@@ -2910,7 +2910,7 @@
   "catalog/meta/site.pageindex.whatyouget.json": "81257f315b2e80c94b5c5dae99749ee30c9ae27bdfb05391cae0c335a86af199",
   "catalog/meta/site.pageindex.whatyouragentsget.json": "a3a877af9da5a40d5dac4e75e8a56e7968290dfc9f1eff5d8c47a8d5829fa1b1",
   "catalog/meta/site.pageindex.youdonthavetotakeour.json": "ebb4d94c4f415c49f1ef99275a58b4dcda20a12880288fd01bef3d186515b358",
-  "catalog/meta/site.pageindex.yourjournalkeepstheoriginalsinopen.json": "748642f6c57628782d14213a50641c8b3a3f8990c57165eca4fa7314a9249396",
+  "catalog/meta/site.pageindex.yourjournalkeepstheoriginalsinopen.json": "cbcfdcd28243e8a13d4a796906e68c571cadb454519c9e9f244f9726933b595a",
   "catalog/meta/site.pageindex.yourmeetingstranscribed.json": "0ddf0cd58888de5db762e7616bbc6377011c3cd6a575d755c5f225607950cef4",
   "catalog/meta/site.pageindex.yoursbystructure.json": "0b87737a97f2f612c0507d9c2b255614f83cad544f6e9be1641148469dd0eff7",
   "catalog/meta/site.pageindex.yoursbystructureandopensource.json": "afab84cd22c26109c37906a7f766d8d34ebb0e790e3d4b2bd391dce86333da77",
@@ -3265,8 +3265,8 @@
   "catalog/meta/site.worker.macbothjournal.json": "5cb6807ad2abe57bd3e4dff6060faded8e7246f2f6334dc4607983b53e0816ed",
   "catalog/meta/site.worker.mb.json": "2e768d3a0315e1cd8494e82d832abf09e32b200da4486814eae1d6b8c9fcdd7b",
   "catalog/meta/site.worker.sizelead.json": "902e00158525d1629edb8440950862dc183932aafed5224df49a85d80e51ac89",
-  "catalog/source-lock.json": "613029c2067608283602f05e38a91d15a1ce402f80a22ebbc17c2bc022b8f338",
-  "catalog/source/en-US.ftl": "70b5bc1f290145d35e079dfb2e7376a15cfdfe49c087e1eebfce76f8c8a4be85",
+  "catalog/source-lock.json": "e9dfd45b5a84b2614e25679e0a54e62982ad58458c24d058bac9a72485802d98",
+  "catalog/source/en-US.ftl": "9112b4bab5af0a35ec7eb443d2d271108d10f5276f83fb1bc8bb8f428be04035",
   "catalog/translations/de/portal-small.ftl": "6000bdc1c3a575432c5418b7c2b15cdb08819d1c5cfc6c67584838aadafc0658",
   "catalog/translations/de/websites.ftl": "a57965571b8cdd081f26f0b5251da59e07cc7d3c79921467239d6a591d48c612",
   "catalog/translations/es-419/portal-small.ftl": "6629a61f970ef1f38a7a124b4d86b220f7507552b3964da80fb41c2e875f4fbb",
@@ -3300,5 +3300,5 @@
   "generated/esm/vendor/fluent-bundle/types.d.ts": "7dbe22a95e01379ba39df2bdafcedf70abd890f211078431baa51559d408944b",
   "generated/esm/vendor/fluent-bundle/types.js": "908ee4ad996d552cf7a8eefa56f7b8048002a82456c2fdd842c5a4bc8a1866e4",
   "generated/esm/website/api.mjs": "6d34c6e96085bcde6658a6013f74a78330404b5a9d900116816db1b49b0cb239",
-  "generated/esm/website/catalogs.mjs": "35d123c5d625155b96f1e7c35795e0fa16bd0d8dc828371963287dd840a82315"
+  "generated/esm/website/catalogs.mjs": "777ae8751daf059ffe75ce9d39305a1688e8e826ff59ac3772456bb9adb066a2"
 }
