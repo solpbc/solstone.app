@@ -378,7 +378,7 @@ account.enable.whatitdoesforyourjournal = che cosa fa per il tuo diario
 
 account.enable.whatleavesyourdevice = che cosa esce dal tuo dispositivo
 
-account.enable.youchoosewhatitmayseeyour = scegli che cosa può vedere: tutto il tuo diario, o solo le faccette che scegli. attraverso questa connessione, il tuo agente può cercare e leggere il tuo diario e tenere lì le proprie note. non può aggiungere, cambiare o eliminare nient'altro.
+account.enable.youchoosewhatitmayseeyour = scegli che cosa può vedere: tutto il tuo diario, o solo le facette che scegli. attraverso questa connessione, il tuo agente può cercare e leggere il tuo diario e tenere lì le proprie note. non può aggiungere, cambiare o eliminare nient'altro.
 
 account.enable.yourjournalmustverifybeforeitsends = il tuo diario deve verificare prima di inviare
 
@@ -640,7 +640,7 @@ account.portal.ifyourjournalstillshows = se il tuo diario mostra ancora
 
 account.portal.itsonefilewhatsheld = è un file di ciò che è tenuto per il tuo accesso. ti invieremo un codice via email per confermare che sei tu, e ti faremo confermare anche con la tua passkey, se ne hai una.
 
-account.portal.iunderstand = capisco
+account.portal.iunderstand = ho capito
 
 account.portal.journal = diario
 
@@ -888,7 +888,7 @@ account.scout.keptfornothing = non si conserva niente
 
 account.scout.nbspscoutaccessisapprovedforthissignin = { $slot-1 }l'accesso scout è approvato per questo accesso
 
-account.scout.nocontentisretainednohumanreviewsitnothingisus = nessun contenuto viene conservato · nessun umano lo rivede · niente viene usato per addestrare
+account.scout.nocontentisretainednohumanreviewsitnothingisus = nessun contenuto è conservato · nessun umano lo rivede · niente è usato per addestrare
 
 account.scout.pending = in sospeso
 
@@ -1018,7 +1018,7 @@ account.services.ifyourerestoringajournalreturntoitandstartther = se stai ripris
 
 account.services.ifyourjournalcantverifyservice = se il tuo diario non può verificare il servizio, la trascrizione resta in attesa sul tuo dispositivo. non va mai da nessun'altra parte e non ripiega mai in silenzio.
 
-account.services.iunderstand = capisco
+account.services.iunderstand = ho capito
 
 account.services.keepanencryptedcopyyourjournalsomewhere = conserva una copia cifrata del tuo diario in un posto sicuro. solo tu puoi leggerla.
 
@@ -1054,7 +1054,7 @@ account.services.noanalyticsandnotrackingsignin = niente analitiche e niente tra
 
 account.services.noanalyticsnobehavioralprofilingandno = niente analitiche, niente profilazione comportamentale, e nessuna terza parte nel percorso tranne il servizio push del tuo telefono e, per iphone, { $slot-1 }, sulla cui rete gira il nostro hop. le notifiche non diventano mai un modo per osservarti.
 
-account.services.nocontentisretainednohumanreviews = nessun contenuto viene conservato · nessun umano lo rivede · niente viene usato per addestrare
+account.services.nocontentisretainednohumanreviews = nessun contenuto è conservato · nessun umano lo rivede · niente è usato per addestrare
 
 account.services.nocontentisretainednohumanreviews2 = nessun contenuto viene conservato · nessun umano lo rivede · niente viene usato per addestrare.
 
@@ -1266,7 +1266,7 @@ account.services.whereyoumanageit = dove lo gestisci
 
 account.services.year = / anno
 
-account.services.youchoosewhatitmayseeyourwholejournaloronlythe = scegli che cosa può vedere: tutto il tuo diario, o solo le faccette che scegli. attraverso questa connessione, il tuo agente può cercare e leggere il tuo diario e tenere lì le proprie note. non può aggiungere, cambiare o eliminare nient'altro.
+account.services.youchoosewhatitmayseeyourwholejournaloronlythe = scegli che cosa può vedere: tutto il tuo diario, o solo le facette che scegli. attraverso questa connessione, il tuo agente può cercare e leggere il tuo diario e tenere lì le proprie note. non può aggiungere, cambiare o eliminare nient'altro.
 
 account.services.yougetshortheadsuponyour = ricevi un breve avviso sul telefono o sul portatile, mai il contenuto stesso.
 
@@ -1296,7 +1296,7 @@ account.services.yourjournalmustverifyservicebeforeanything3 = il tuo diario dev
 
 account.services.yourjournalmustverifytheservicebeforeanythingi = il tuo diario deve verificare il servizio prima che venga inviato qualcosa. se non può verificare, non invia.
 
-account.services.yourjournalsagentsappworkswith = l'app degli agenti del tuo diario funziona con un tuo percorso o con { $slot-1 }; { $slot-2 } è l'indirizzo, e l'app degli agenti è dove gestisci che cosa si connette.
+account.services.yourjournalsagentsappworkswith = l'app agenti del tuo diario funziona con un percorso tuo o con { $slot-1 }; { $slot-2 } è l'indirizzo, e l'app agenti è dove gestisci ciò che si connette.
 
 account.services.yourjournalstaysondeviceitruns = il tuo diario resta sul dispositivo su cui gira. le impronte vocali e i profili dei parlanti sono calcolati sul tuo dispositivo e non escono mai. non va niente a nessun fornitore di IA di terze parti.
 
