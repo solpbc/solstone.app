@@ -9,8 +9,8 @@
   ],
   "arguments": [],
   "format_intent": "text",
-  "max_length": 1900,
-  "source_revision": "67ddbd7c9ddcae5f791a071e3d60d79fe817cbc4ba71eb658715151b53950e80",
+  "max_length": 2940,
+  "source_revision": "56d80bc58c9cc9a8968320240c8070ffc2068622ec050809f6073d270ecddee8",
   "risk": "routine",
   "auto_merge": true,
   "protected_slots": [
@@ -22,27 +22,37 @@
     {
       "name": "slot-2",
       "kind": "command",
-      "value": "&#x27;"
+      "value": "</strong>"
     },
     {
       "name": "slot-3",
       "kind": "command",
-      "value": "</strong>"
+      "value": "<span class=\"sf-cite\">"
     },
     {
       "name": "slot-4",
       "kind": "command",
-      "value": "&quot;"
+      "value": "</span>"
     },
     {
       "name": "slot-5",
       "kind": "command",
-      "value": "&quot;"
+      "value": "<span class=\"sf-cite\">"
     },
     {
       "name": "slot-6",
       "kind": "command",
-      "value": "&#x27;"
+      "value": "</span>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<span class=\"sf-cite\">"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "</span>"
     }
   ]
 }

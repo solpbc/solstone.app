@@ -2370,9 +2370,7 @@ site.featuresevidence.yourcorrectionyou = మీ సవరణ{ $slot-1 }మీ�
 
 site.featuresevidence.yourjournalkeepstheaudiowhatit = మీ జర్నల్ ఆడియోను, అది గుర్తించిందాన్ని, తన సారాంశాన్ని మరియు మీ సవరణలను వేరు వేరు వాటిగా ఉంచుతుంది. మీ రోజు యొక్క ఒక చదువు ఒక జ్ఞాపకానికి చేరుస్తుంది, చెప్పబడిందాన్ని ఎప్పుడూ తిరిగి రాయదు. { $slot-1 }సవరణ{ $slot-2 } మీది, మీరు దాన్ని వెనక్కి తీసుకోవచ్చు.
 
-site.index.adaysactivitiesinthejournal = జర్నల్‌లో ఒక రోజు{ $slot-1 } కార్యకలాపాలు, నాన్న{ $slot-2 } 60వ పుట్టినరోజు కోసం గమనికల ముసాయిదా దాని సారాంశానికి తెరవబడి
 
-site.index.ademojournalsetinamodern = ఆధునిక షేక్స్‌పియర్ ప్రపంచంలో పెట్టిన డెమో జర్నల్.
 
 site.index.alwayslocal = ఎప్పుడూ లోకల్
 
@@ -2384,21 +2382,17 @@ site.index.awatercolorportraitofjeremie = jeremie miller వాటర్‌క�
 
 site.index.checkitsours = అది మాదని సరిచూడండి
 
-site.index.howhisstancechanged = అతని వైఖరి ఎలా మారింది:
 
 site.index.howyourjournalworks = మీ జర్నల్ ఎలా పని చేస్తుంది
 
 site.index.howyourjournalworksin = మీ జర్నల్ ఎలా పని చేస్తుంది, మూడు భాగాల్లో
 
-site.index.istybaltstillagainstworkingwiththe = Tybalt ఇంకా Montagues తో కలిసి పని చేయడానికి వ్యతిరేకమేనా?
 
 site.index.itsearlysowhen = ఇంకా తొందర, కాబట్టి కఠినమైన అంచు తగిలితే, { $slot-1 }నాకు చెప్పండి{ $slot-2 }.
 
 site.index.jeremiemiller = jeremie miller
 
-site.index.mondaykickoffyouraisedhisquestionfor = { $slot-1 }సోమవారం కికాఫ్:{ $slot-2 } మీరు అతని ప్రశ్నను అతని కోసం లేవనెత్తారు: Mesh Routing ఆగిపోతే, ఇన్‌స్పెక్టర్‌లు పని చేయడం ఆగుతారా? Romeo ప్రశ్న న్యాయమైనదని అన్నాడు, పరికరంపై ఒక క్యూ ప్రతిపాదించాడు. మీరు అన్నారు { $slot-3 }Tybalt దానితో ఒప్పుకోగలడని నాకు అనిపిస్తోంది. అయినా అతను{ $slot-4 } దాన్ని చూడాలనుకుంటాడు{ $slot-5 } (రికార్డింగ్).
 
-site.index.mondaymorningnov16inyourplanning = { $slot-1 }సోమవారం ఉదయం (నవంబర్ 16):{ $slot-2 } మీ ప్లానింగ్ నోట్‌లో, Tybalt { $slot-3 }శుక్రవారం దేనికైనా Montague‌పై ఆధారపడటం గురించి సణుగుతున్నాడు{ $slot-4 } అని మీరు చెప్పారు (రికార్డింగ్).
 
 site.index.n100opensource = 100% ఓపెన్ సోర్స్
 
@@ -2410,7 +2404,6 @@ site.index.n3youragents = { $slot-1 }3.{ $slot-2 }మీ ఏజెంట్‌�
 
 site.index.nextpart = తర్వాతి భాగం
 
-site.index.nooneownstheairplanemodetest = ఎయిర్‌ప్లేన్ మోడ్ పరీక్షకు ఇంకా ఎవరూ బాధ్యులు కాదు. మీ స్పెక్ ఇంకా { $slot-1 }Owner TBD.{ $slot-2 } అని చెబుతోంది.
 
 site.index.oneachofyourown = మీ సొంత పరికరాల్లో ఒక్కోదానిలో, మీ జర్నల్ కోసం { $slot-1 } యాప్ ఏమి స్వీకరిస్తుందో మీరు ఎంచుకుంటారు, మరియు కావలసినప్పుడు దాన్ని పాజ్ చేయవచ్చు.
 
@@ -2440,7 +2433,6 @@ site.index.solstonethejournalyouve = { $slot-1 } · మీరు ఎప్పు
 
 site.index.solstonethejournalyouve2 = { $slot-1 }: మీరు ఎప్పుడూ కోరుకున్న జర్నల్, మీ కోసం ఉంచబడింది
 
-site.index.theactivitypageinthejournals = జర్నల్{ $slot-1 }s ఏజెంట్‌ల యాప్‌లోని కార్యకలాపం పేజీ, { $slot-2 } నుండి 11 అభ్యర్థనలు, అన్నీ అందించబడ్డాయి, search, list_entities, get_entity, fetch మరియు get_transcript వాడి
 
 site.index.thejournalyouvealways = మీరు ఎప్పుడూ కోరుకున్న జర్నల్, మీ కోసం ఉంచబడింది.
 
@@ -2448,19 +2440,14 @@ site.index.thesolstoneapponeachdevicefrom = ప్రతి పరికరం�
 
 site.index.thesolstonemenuona = mac లో { $slot-1 } మెనూ: కనెక్ట్ అయి ఉంది, తాజాగా ఉంది, పాజ్ చేయండి, సెట్టింగ్‌లు తెరవండి, జర్నల్ తెరవండి, { $slot-2 } గురించి, అప్‌డేట్‌లు సరిచూడండి, { $slot-3 } నుండి నిష్క్రమించండి
 
-site.index.thisafternoonromeoshowedthequeuesurviving = { $slot-1 }ఈ మధ్యాహ్నం:{ $slot-2 } క్యూ ఒక గంట ఆఫ్‌లైన్‌లో నిలిచిందని Romeo చూపించాడు. Romeo{ $slot-3 }s మాటల్లో, అది{ $slot-4 }s { $slot-5 }ఒక గంట అయింది, ఇంకా 167{ $slot-6 }, Tybalt అడిగిన వారం వైపు (రికార్డింగ్).
 
-site.index.todaysstandup930whenyou = { $slot-1 }ఈ రోజు{ $slot-2 }s స్టాండప్ (9:30):{ $slot-3 } ఆయన Mesh Routing ఆందోళన గురించి మీరు అడిగినప్పుడు, ఆయన { $slot-4 }ఇంకా ఆందోళనగా ఉంది, అవును.{ $slot-5 } అన్నాడు. క్యూ గురించి మీరు వివరించిన తర్వాత, ఆయన { $slot-6 }అది నిజానికి సరైన సమాధానం{ $slot-7 }{ $slot-8 } అని, మరియు { $slot-9 }అది ఒక వారం ఎయిర్‌ప్లేన్ మోడ్‌లో నిలిస్తే, నాకు సంతృప్తి.{ $slot-10 }{ $slot-11 } అని అన్నాడు. తర్వాత ఆయన మిమ్మల్ని ఇలా సరిదిద్దాడు: { $slot-12 }షరతుతో సంతృప్తి. షరతును కూడా రాయండి{ $slot-13 } (రికార్డింగ్). ట్రాన్స్క్రిప్ట్ మాట్లాడిన వారికి పేర్లు పెట్టకుండా సంఖ్యలు పెడుతుంది. మీరు { $slot-15 }Tybalt{ $slot-16 } అని అన్నప్పుడు సమాధానం ఇచ్చే గొంతును ఆయనదిగా తీసుకుంటున్నాను{ $slot-14 }.
 
-site.index.twothingstohavereadyfortomorrow = రేపు 10‌కు సిద్ధంగా ఉంచాల్సిన రెండు విషయాలు:
 
-site.index.tybaltisntagainstworkingwithmontague = Tybalt Montague‌తో పని చేయడానికి వ్యతిరేకం కాదు{ $slot-1 }. ఆయన దాని గురించి ఇంకా జాగ్రత్తగా ఉన్నాడు{ $slot-2 }, ఇప్పుడు ఆ జాగ్రత్త అప్‌టైమ్ గురించి కాదు, ఫీల్డ్ వెర్షనింగ్ గురించి.
 
 site.index.weaskedclaudecodethisonceand = మేము { $slot-1 } ను ఒకసారి అడిగాం, అది డెమో జర్నల్ నుండి పని చేసింది. సమాధానం వచ్చినట్టే చూపించబడింది, అది అడిగిన దాని సొంత నమోదు జర్నల్{ $slot-2 }s‌లో నమోదు అయింది.
 
 site.index.whatgoesin = లోపలికి వెళ్ళేది
 
-site.index.whatsstillopenyouemailedtybalt = { $slot-1 }ఇంకా తెరిచి ఉన్నది{ $slot-2 }:{ $slot-3 } మీరు Tybalt‌కు వెర్షనింగ్ ఒప్పందం ఈమెయిల్ చేశారు: తనిఖీ నమోదు Capulet‌ది, రూటింగ్ ఎన్వలప్ Montague‌ది, ఏ మార్పుకైనా ఇరువైపుల అనుమతి ఉండాలి. ఆయన ఇలా రాశాడు: { $slot-4 }నా ఆందోళన వాళ్ళు మమ్మల్ని నెమ్మదిస్తారేమో. రేపు 10‌కు మాట్లాడవచ్చా?{ $slot-5 } (ఈమెయిల్). కాబట్టి అప్‌టైమ్ ఆందోళన ఎక్కువగా పరిష్కారమైంది, వారం పొడవున్న ఎయిర్‌ప్లేన్ మోడ్ పరీక్ష మిగిలి ఉంది. ఆయన కొత్త ఆందోళన ఏమిటంటే స్కీమా మార్పులకు Montague{ $slot-6 }s అనుమతి కావాలంటే Capulet నెమ్మదిస్తుంది.
 
 site.index.whatyourjournalrecorded = మీ జర్నల్ నమోదు చేసింది
 
@@ -2472,7 +2459,6 @@ site.index.yourdigitallifeshouldbelong = మీ డిజిటల్ జీవ�
 
 site.index.yourowndevicesdothe = ఉంచేది మీ సొంత పరికరాలే. మీ స్క్రీన్ నుండి, మీ ఆడియో నుండి, మీరు వెళ్ళే స్థలాల వరకు, ఏమి పంచుకోవాలో మీరు ఎంచుకుంటారు, అదంతా మీ ప్రైవేట్ జర్నల్‌లోకి వెళ్తుంది, హోస్ట్ చేసేది మీరే.
 
-site.index.yoursyncnotessaytotellhim = తనిఖీ నమోదులకు మాత్రమే ఒప్పందం వర్తిస్తుందని ఆయనకు చెప్పమని మీ సింక్ నోట్స్ చెబుతున్నాయి.
 
 site.install.addthesignedrepositoryforyourdistribution = మీ డిస్ట్రిబ్యూషన్ కోసం సంతకం చేసిన రిపోజిటరీని జోడించండి. { $slot-1 } ప్యాకేజీ మీ జర్నల్ ({ $slot-2 })ను మరియు డెస్క్‌టాప్ యాప్ ({ $slot-3 })ను రెండింటినీ ఇన్‌స్టాల్ చేస్తుంది. ఒకటే కావాలంటే, బదులుగా { $slot-4 } లేదా { $slot-5 } ఇన్‌స్టాల్ చేయండి.
 

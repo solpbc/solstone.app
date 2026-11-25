@@ -7139,14 +7139,8 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.index.adaysactivitiesinthejournal": {
-    resourceKey: "m736974652e696e6465782e616461797361637469766974696573696e7468656a6f75726e616c",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.index.ademojournalsetinamodern": {
-    resourceKey: "m736974652e696e6465782e6164656d6f6a6f75726e616c736574696e616d6f6465726e",
+  "site.index.adaysactivitieswiththeafternoonofthe": {
+    resourceKey: "m736974652e696e6465782e6164617973616374697669746965737769746874686561667465726e6f6f6e6f66746865",
     formatIntent: "text",
     arguments: [
     ],
@@ -7169,6 +7163,18 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.index.augustwasthewarmeststretchof": {
+    resourceKey: "m736974652e696e6465782e6175677573747761737468657761726d657374737472657463686f66",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.autumnandwinterbacktoletters": {
+    resourceKey: "m736974652e696e6465782e617574756d6e616e6477696e7465726261636b746f6c657474657273",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.index.awatercolorportraitofjeremie": {
     resourceKey: "m736974652e696e6465782e617761746572636f6c6f72706f7274726169746f666a6572656d6965",
     formatIntent: "text",
@@ -7181,8 +7187,14 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.index.howhisstancechanged": {
-    resourceKey: "m736974652e696e6465782e686f776869737374616e63656368616e676564",
+  "site.index.howtheyearwent": {
+    resourceKey: "m736974652e696e6465782e686f777468657965617277656e74",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.howwerethingsbetweenanneandme": {
+    resourceKey: "m736974652e696e6465782e686f77776572657468696e67736265747765656e616e6e65616e646d65",
     formatIntent: "text",
     arguments: [
     ],
@@ -7199,12 +7211,6 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.index.istybaltstillagainstworkingwiththe": {
-    resourceKey: "m736974652e696e6465782e6973747962616c747374696c6c616761696e7374776f726b696e6777697468746865",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
   "site.index.itsearlysowhen": {
     resourceKey: "m736974652e696e6465782e6974736561726c79736f7768656e",
     formatIntent: "text",
@@ -7213,18 +7219,6 @@ const MESSAGES = {
   },
   "site.index.jeremiemiller": {
     resourceKey: "m736974652e696e6465782e6a6572656d69656d696c6c6572",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.index.mondaykickoffyouraisedhisquestionfor": {
-    resourceKey: "m736974652e696e6465782e6d6f6e6461796b69636b6f6666796f757261697365646869737175657374696f6e666f72",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.index.mondaymorningnov16inyourplanning": {
-    resourceKey: "m736974652e696e6465782e6d6f6e6461796d6f726e696e676e6f763136696e796f7572706c616e6e696e67",
     formatIntent: "text",
     arguments: [
     ],
@@ -7259,12 +7253,6 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.index.nooneownstheairplanemodetest": {
-    resourceKey: "m736974652e696e6465782e6e6f6f6e656f776e73746865616972706c616e656d6f646574657374",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
   "site.index.oneachofyourown": {
     resourceKey: "m736974652e696e6465782e6f6e656163686f66796f75726f776e",
     formatIntent: "text",
@@ -7291,6 +7279,12 @@ const MESSAGES = {
   },
   "site.index.readthecode": {
     resourceKey: "m736974652e696e6465782e72656164746865636f6465",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.shortanswersteadyandaffectionate": {
+    resourceKey: "m736974652e696e6465782e73686f7274616e73776572737465616479616e64616666656374696f6e617465",
     formatIntent: "text",
     arguments: [
     ],
@@ -7349,8 +7343,26 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.index.theactivitypageinthejournals": {
-    resourceKey: "m736974652e696e6465782e746865616374697669747970616765696e7468656a6f75726e616c73",
+  "site.index.sotherewasnofightshewaspatient": {
+    resourceKey: "m736974652e696e6465782e736f74686572657761736e6f666967687473686577617370617469656e74",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.springvisitlatemarchtoapril8": {
+    resourceKey: "m736974652e696e6465782e737072696e6776697369746c6174656d61726368746f617072696c38",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.summerthefirethenyouwalkedhome": {
+    resourceKey: "m736974652e696e6465782e73756d6d6572746865666972657468656e796f7577616c6b6564686f6d65",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.theactivitypagewithclaudecodesfourteen": {
+    resourceKey: "m736974652e696e6465782e74686561637469766974797061676577697468636c61756465636f646573666f75727465656e",
     formatIntent: "text",
     arguments: [
     ],
@@ -7373,26 +7385,8 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.index.thisafternoonromeoshowedthequeuesurviving": {
-    resourceKey: "m736974652e696e6465782e7468697361667465726e6f6f6e726f6d656f73686f7765647468657175657565737572766976696e67",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.index.todaysstandup930whenyou": {
-    resourceKey: "m736974652e696e6465782e746f646179737374616e6475703933307768656e796f75",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.index.twothingstohavereadyfortomorrow": {
-    resourceKey: "m736974652e696e6465782e74776f7468696e6773746f686176657265616479666f72746f6d6f72726f77",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.index.tybaltisntagainstworkingwithmontague": {
-    resourceKey: "m736974652e696e6465782e747962616c7469736e74616761696e7374776f726b696e67776974686d6f6e7461677565",
+  "site.index.thewholeansweraasitcameback": {
+    resourceKey: "m736974652e696e6465782e74686577686f6c65616e73776572616173697463616d656261636b",
     formatIntent: "text",
     arguments: [
     ],
@@ -7409,14 +7403,32 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.index.whatsstillopenyouemailedtybalt": {
-    resourceKey: "m736974652e696e6465782e77686174737374696c6c6f70656e796f75656d61696c6564747962616c74",
+  "site.index.whatyourjournalrecorded": {
+    resourceKey: "m736974652e696e6465782e77686174796f75726a6f75726e616c7265636f72646564",
     formatIntent: "text",
     arguments: [
     ],
   },
-  "site.index.whatyourjournalrecorded": {
-    resourceKey: "m736974652e696e6465782e77686174796f75726a6f75726e616c7265636f72646564",
+  "site.index.whereitstoodatyearsend": {
+    resourceKey: "m736974652e696e6465782e7768657265697473746f6f6461747965617273656e64",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.whethertheaugustletteractually": {
+    resourceKey: "m736974652e696e6465782e776865746865727468656175677573746c657474657261637475616c6c79",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.whetherthedecemberonewasever": {
+    resourceKey: "m736974652e696e6465782e77686574686572746865646563656d6265726f6e6577617365766572",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.index.winterlettersonlyherletterscame": {
+    resourceKey: "m736974652e696e6465782e77696e7465726c6574746572736f6e6c796865726c65747465727363616d65",
     formatIntent: "text",
     arguments: [
     ],
@@ -7433,6 +7445,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.index.yourdecember30draftfinallysays": {
+    resourceKey: "m736974652e696e6465782e796f7572646563656d6265723330647261667466696e616c6c7973617973",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.index.yourdigitallifeshouldbelong": {
     resourceKey: "m736974652e696e6465782e796f75726469676974616c6c69666573686f756c6462656c6f6e67",
     formatIntent: "text",
@@ -7441,12 +7459,6 @@ const MESSAGES = {
   },
   "site.index.yourowndevicesdothe": {
     resourceKey: "m736974652e696e6465782e796f75726f776e64657669636573646f746865",
-    formatIntent: "text",
-    arguments: [
-    ],
-  },
-  "site.index.yoursyncnotessaytotellhim": {
-    resourceKey: "m736974652e696e6465782e796f757273796e636e6f746573736179746f74656c6c68696d",
     formatIntent: "text",
     arguments: [
     ],

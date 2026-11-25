@@ -71861,68 +71861,11 @@
       ]
     },
     {
-      "id": "site.index.adaysactivitiesinthejournal",
-      "source": "8c09897f82f88735cac48bc2cd7121937e16d066c7cb6c08487c832932919848",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "8c09897f82f88735cac48bc2cd7121937e16d066c7cb6c08487c832932919848",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb"
-        },
-        {
-          "locale": "es-419",
-          "source": "8c09897f82f88735cac48bc2cd7121937e16d066c7cb6c08487c832932919848",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb"
-        },
-        {
-          "locale": "it",
-          "source": "8c09897f82f88735cac48bc2cd7121937e16d066c7cb6c08487c832932919848",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb"
-        },
-        {
-          "locale": "te",
-          "source": "8c09897f82f88735cac48bc2cd7121937e16d066c7cb6c08487c832932919848",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb"
-        }
-      ]
-    },
-    {
-      "id": "site.index.ademojournalsetinamodern",
-      "source": "cf1af85610c4773da162afaed4650d257e13161f81e516b779dfa7107391d9d9",
+      "id": "site.index.adaysactivitieswiththeafternoonofthe",
+      "source": "dd88c5523737ba8d4cfcaeb7e6dae3f31b4ca7ac26dbdc29b67401b6a580868c",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "cf1af85610c4773da162afaed4650d257e13161f81e516b779dfa7107391d9d9",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "es-419",
-          "source": "cf1af85610c4773da162afaed4650d257e13161f81e516b779dfa7107391d9d9",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "it",
-          "source": "cf1af85610c4773da162afaed4650d257e13161f81e516b779dfa7107391d9d9",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "te",
-          "source": "cf1af85610c4773da162afaed4650d257e13161f81e516b779dfa7107391d9d9",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        }
-      ]
+      "locales": []
     },
     {
       "id": "site.index.alwayslocal",
@@ -72021,6 +71964,20 @@
       ]
     },
     {
+      "id": "site.index.augustwasthewarmeststretchof",
+      "source": "56d80bc58c9cc9a8968320240c8070ffc2068622ec050809f6073d270ecddee8",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "00f79b6a2d92ca2ef515277ae471b58e77d8ef969812b858c8894b9ac276922f",
+      "locales": []
+    },
+    {
+      "id": "site.index.autumnandwinterbacktoletters",
+      "source": "08575fc5b6e1b7ea0156907555913889d97485f445b396fd9fdeb9762daedf3e",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "f68b85ebc1d4ee684d0abf3d53672dfb5629da621cb867e8874270fe65dedf72",
+      "locales": []
+    },
+    {
       "id": "site.index.awatercolorportraitofjeremie",
       "source": "445b19b0aa6d223616008bfc1899b500efdf7ebdfaad6961ea883bcdc991095b",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -72085,36 +72042,18 @@
       ]
     },
     {
-      "id": "site.index.howhisstancechanged",
-      "source": "0604d6c4f966a9b78c764bdff92508ef31259eba85340b20c5f83b833b4306ca",
+      "id": "site.index.howtheyearwent",
+      "source": "bc379e42dc59e0a3865cb7f500ee17d043de1c7de4f6ae2fb011c006bb8360b5",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "0604d6c4f966a9b78c764bdff92508ef31259eba85340b20c5f83b833b4306ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "es-419",
-          "source": "0604d6c4f966a9b78c764bdff92508ef31259eba85340b20c5f83b833b4306ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "it",
-          "source": "0604d6c4f966a9b78c764bdff92508ef31259eba85340b20c5f83b833b4306ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "te",
-          "source": "0604d6c4f966a9b78c764bdff92508ef31259eba85340b20c5f83b833b4306ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        }
-      ]
+      "locales": []
+    },
+    {
+      "id": "site.index.howwerethingsbetweenanneandme",
+      "source": "88b656248a852569f084f2b92b4711d0cd5949ccd74523c5bf022329ac946c3c",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
     },
     {
       "id": "site.index.howyourjournalworks",
@@ -72181,38 +72120,6 @@
       ]
     },
     {
-      "id": "site.index.istybaltstillagainstworkingwiththe",
-      "source": "d99c88e9ecc86d30bbc7e49cd002526116b2edb03ccf644f0ced62d5877c0759",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "d99c88e9ecc86d30bbc7e49cd002526116b2edb03ccf644f0ced62d5877c0759",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "es-419",
-          "source": "d99c88e9ecc86d30bbc7e49cd002526116b2edb03ccf644f0ced62d5877c0759",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "it",
-          "source": "d99c88e9ecc86d30bbc7e49cd002526116b2edb03ccf644f0ced62d5877c0759",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "te",
-          "source": "d99c88e9ecc86d30bbc7e49cd002526116b2edb03ccf644f0ced62d5877c0759",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        }
-      ]
-    },
-    {
       "id": "site.index.itsearlysowhen",
       "source": "6943d0d19a449f31e379eb30580aa8aa4b91b6b605d7f5f20715538e9374cf16",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -72273,70 +72180,6 @@
           "source": "827c68e0922b376e3ba443d6e27f8158869a48dbbabd042ec33e5809cb54a4a6",
           "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
           "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        }
-      ]
-    },
-    {
-      "id": "site.index.mondaykickoffyouraisedhisquestionfor",
-      "source": "5d0d5335f85ad92fb4edfe647cb171188b16446928b347e4c6e7407f916f53ca",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "a2576ec474d033c8d9c7d7b08b85bf8da6a4022952e49d0ffb2add3830cad97e",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "5d0d5335f85ad92fb4edfe647cb171188b16446928b347e4c6e7407f916f53ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "a2576ec474d033c8d9c7d7b08b85bf8da6a4022952e49d0ffb2add3830cad97e"
-        },
-        {
-          "locale": "es-419",
-          "source": "5d0d5335f85ad92fb4edfe647cb171188b16446928b347e4c6e7407f916f53ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "a2576ec474d033c8d9c7d7b08b85bf8da6a4022952e49d0ffb2add3830cad97e"
-        },
-        {
-          "locale": "it",
-          "source": "5d0d5335f85ad92fb4edfe647cb171188b16446928b347e4c6e7407f916f53ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "a2576ec474d033c8d9c7d7b08b85bf8da6a4022952e49d0ffb2add3830cad97e"
-        },
-        {
-          "locale": "te",
-          "source": "5d0d5335f85ad92fb4edfe647cb171188b16446928b347e4c6e7407f916f53ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "a2576ec474d033c8d9c7d7b08b85bf8da6a4022952e49d0ffb2add3830cad97e"
-        }
-      ]
-    },
-    {
-      "id": "site.index.mondaymorningnov16inyourplanning",
-      "source": "d914ab2de5ca5c0dd397201c5212fc0f4594f1658a720d2f21265520eaae9e72",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "7959e92f4ca1371b411414497610ab2dbf4a1c6666f10f89a91491cfc585d65e",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "d914ab2de5ca5c0dd397201c5212fc0f4594f1658a720d2f21265520eaae9e72",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "7959e92f4ca1371b411414497610ab2dbf4a1c6666f10f89a91491cfc585d65e"
-        },
-        {
-          "locale": "es-419",
-          "source": "d914ab2de5ca5c0dd397201c5212fc0f4594f1658a720d2f21265520eaae9e72",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "7959e92f4ca1371b411414497610ab2dbf4a1c6666f10f89a91491cfc585d65e"
-        },
-        {
-          "locale": "it",
-          "source": "d914ab2de5ca5c0dd397201c5212fc0f4594f1658a720d2f21265520eaae9e72",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "7959e92f4ca1371b411414497610ab2dbf4a1c6666f10f89a91491cfc585d65e"
-        },
-        {
-          "locale": "te",
-          "source": "d914ab2de5ca5c0dd397201c5212fc0f4594f1658a720d2f21265520eaae9e72",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "7959e92f4ca1371b411414497610ab2dbf4a1c6666f10f89a91491cfc585d65e"
         }
       ]
     },
@@ -72501,38 +72344,6 @@
       ]
     },
     {
-      "id": "site.index.nooneownstheairplanemodetest",
-      "source": "0a9a99136765bb99be60f9378744e5d121365689dca4a6f6840e6ac71e26a6a2",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "594e742d7e4c47fb33e2406dffcc12ffbf191aa325fafcf744aec7b2b6590f5c",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "0a9a99136765bb99be60f9378744e5d121365689dca4a6f6840e6ac71e26a6a2",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "594e742d7e4c47fb33e2406dffcc12ffbf191aa325fafcf744aec7b2b6590f5c"
-        },
-        {
-          "locale": "es-419",
-          "source": "0a9a99136765bb99be60f9378744e5d121365689dca4a6f6840e6ac71e26a6a2",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "594e742d7e4c47fb33e2406dffcc12ffbf191aa325fafcf744aec7b2b6590f5c"
-        },
-        {
-          "locale": "it",
-          "source": "0a9a99136765bb99be60f9378744e5d121365689dca4a6f6840e6ac71e26a6a2",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "594e742d7e4c47fb33e2406dffcc12ffbf191aa325fafcf744aec7b2b6590f5c"
-        },
-        {
-          "locale": "te",
-          "source": "0a9a99136765bb99be60f9378744e5d121365689dca4a6f6840e6ac71e26a6a2",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "594e742d7e4c47fb33e2406dffcc12ffbf191aa325fafcf744aec7b2b6590f5c"
-        }
-      ]
-    },
-    {
       "id": "site.index.oneachofyourown",
       "source": "6d8c979645e0e0b2e10cbdcd5938306dc1ea72bba90f3cbad591beb80af07282",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -72691,6 +72502,13 @@
           "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
         }
       ]
+    },
+    {
+      "id": "site.index.shortanswersteadyandaffectionate",
+      "source": "c2c7bbf861b3090fa2d32a51c65cd4502c98ebded5c701cedfc025202a800d3a",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
     },
     {
       "id": "site.index.solpbcacompanyofone",
@@ -72981,36 +72799,32 @@
       ]
     },
     {
-      "id": "site.index.theactivitypageinthejournals",
-      "source": "2804fedc435cc1a44fa397bde553f02dd23a5257b38ac6cc75b4f90119e4f8ca",
+      "id": "site.index.sotherewasnofightshewaspatient",
+      "source": "ba335566d1a61883a0d7f471e991ae1febd854c179975558d4643fe9c15b8078",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "232e2eaff3d2de114547a07909ba4a424bcd263bc4c68022686ac5d12cf1bb8d",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "2804fedc435cc1a44fa397bde553f02dd23a5257b38ac6cc75b4f90119e4f8ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "232e2eaff3d2de114547a07909ba4a424bcd263bc4c68022686ac5d12cf1bb8d"
-        },
-        {
-          "locale": "es-419",
-          "source": "2804fedc435cc1a44fa397bde553f02dd23a5257b38ac6cc75b4f90119e4f8ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "232e2eaff3d2de114547a07909ba4a424bcd263bc4c68022686ac5d12cf1bb8d"
-        },
-        {
-          "locale": "it",
-          "source": "2804fedc435cc1a44fa397bde553f02dd23a5257b38ac6cc75b4f90119e4f8ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "232e2eaff3d2de114547a07909ba4a424bcd263bc4c68022686ac5d12cf1bb8d"
-        },
-        {
-          "locale": "te",
-          "source": "2804fedc435cc1a44fa397bde553f02dd23a5257b38ac6cc75b4f90119e4f8ca",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "232e2eaff3d2de114547a07909ba4a424bcd263bc4c68022686ac5d12cf1bb8d"
-        }
-      ]
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
+      "id": "site.index.springvisitlatemarchtoapril8",
+      "source": "0f37d297d3a57efb2fbdeae0f53572055663cce3d5ef0576ebcb615cf7eb15b8",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "3474ccb84adf87741d8f1d55b334b0def30893c5a7e53154b6975ede1de03010",
+      "locales": []
+    },
+    {
+      "id": "site.index.summerthefirethenyouwalkedhome",
+      "source": "10e172f3cab6f9ef2830fa5abd0ec39def0ae3ed0358ef5c18e1e4a60fbc900a",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "f68b85ebc1d4ee684d0abf3d53672dfb5629da621cb867e8874270fe65dedf72",
+      "locales": []
+    },
+    {
+      "id": "site.index.theactivitypagewithclaudecodesfourteen",
+      "source": "af2d3ae535ece72d51acdcb23b9b73a40c9d9a87693962f2e0dd0ef86ca545aa",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
     },
     {
       "id": "site.index.thejournalyouvealways",
@@ -73109,132 +72923,11 @@
       ]
     },
     {
-      "id": "site.index.thisafternoonromeoshowedthequeuesurviving",
-      "source": "c9db84d336ee958808050250408cc8d3cde35fcd86abf3d037bc650ad4061dd4",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "6ac366cc065f8780964975cd12e28d553a5f0bc9997fa9580b200fdb240568ca",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "c9db84d336ee958808050250408cc8d3cde35fcd86abf3d037bc650ad4061dd4",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "6ac366cc065f8780964975cd12e28d553a5f0bc9997fa9580b200fdb240568ca"
-        },
-        {
-          "locale": "es-419",
-          "source": "c9db84d336ee958808050250408cc8d3cde35fcd86abf3d037bc650ad4061dd4",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "6ac366cc065f8780964975cd12e28d553a5f0bc9997fa9580b200fdb240568ca"
-        },
-        {
-          "locale": "it",
-          "source": "c9db84d336ee958808050250408cc8d3cde35fcd86abf3d037bc650ad4061dd4",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "6ac366cc065f8780964975cd12e28d553a5f0bc9997fa9580b200fdb240568ca"
-        },
-        {
-          "locale": "te",
-          "source": "c9db84d336ee958808050250408cc8d3cde35fcd86abf3d037bc650ad4061dd4",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "6ac366cc065f8780964975cd12e28d553a5f0bc9997fa9580b200fdb240568ca"
-        }
-      ]
-    },
-    {
-      "id": "site.index.todaysstandup930whenyou",
-      "source": "2c0bc0933af3ab0412a0c5e894aa66b87eed6e3c95ee6edaf6b93964206a7b94",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "0643e0eedc4cb26b11cb6bc7dba08e6cbadf046e3a97000265ce31c6fa50b142",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "2c0bc0933af3ab0412a0c5e894aa66b87eed6e3c95ee6edaf6b93964206a7b94",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "0643e0eedc4cb26b11cb6bc7dba08e6cbadf046e3a97000265ce31c6fa50b142"
-        },
-        {
-          "locale": "es-419",
-          "source": "2c0bc0933af3ab0412a0c5e894aa66b87eed6e3c95ee6edaf6b93964206a7b94",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "0643e0eedc4cb26b11cb6bc7dba08e6cbadf046e3a97000265ce31c6fa50b142"
-        },
-        {
-          "locale": "it",
-          "source": "2c0bc0933af3ab0412a0c5e894aa66b87eed6e3c95ee6edaf6b93964206a7b94",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "0643e0eedc4cb26b11cb6bc7dba08e6cbadf046e3a97000265ce31c6fa50b142"
-        },
-        {
-          "locale": "te",
-          "source": "2c0bc0933af3ab0412a0c5e894aa66b87eed6e3c95ee6edaf6b93964206a7b94",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "0643e0eedc4cb26b11cb6bc7dba08e6cbadf046e3a97000265ce31c6fa50b142"
-        }
-      ]
-    },
-    {
-      "id": "site.index.twothingstohavereadyfortomorrow",
-      "source": "7fe1eac65be39400cb9cd9ce5199927077f33c8d2c5b00a8842557368fa1da3b",
+      "id": "site.index.thewholeansweraasitcameback",
+      "source": "e0759cd4dbf7add069495aa68a97ab84cd34be96b8b0e3552376ae82e7724ecd",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "7fe1eac65be39400cb9cd9ce5199927077f33c8d2c5b00a8842557368fa1da3b",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "es-419",
-          "source": "7fe1eac65be39400cb9cd9ce5199927077f33c8d2c5b00a8842557368fa1da3b",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "it",
-          "source": "7fe1eac65be39400cb9cd9ce5199927077f33c8d2c5b00a8842557368fa1da3b",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "te",
-          "source": "7fe1eac65be39400cb9cd9ce5199927077f33c8d2c5b00a8842557368fa1da3b",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        }
-      ]
-    },
-    {
-      "id": "site.index.tybaltisntagainstworkingwithmontague",
-      "source": "3a648fb513f34fa7a1b4ddc8ff43432fae41011f7b5aa14468ecdeaa5d601d03",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "3a648fb513f34fa7a1b4ddc8ff43432fae41011f7b5aa14468ecdeaa5d601d03",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb"
-        },
-        {
-          "locale": "es-419",
-          "source": "3a648fb513f34fa7a1b4ddc8ff43432fae41011f7b5aa14468ecdeaa5d601d03",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb"
-        },
-        {
-          "locale": "it",
-          "source": "3a648fb513f34fa7a1b4ddc8ff43432fae41011f7b5aa14468ecdeaa5d601d03",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb"
-        },
-        {
-          "locale": "te",
-          "source": "3a648fb513f34fa7a1b4ddc8ff43432fae41011f7b5aa14468ecdeaa5d601d03",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "843723831a4caf3aa011634f4df269342ace7ae8695c7a5b7bc564308b518cbb"
-        }
-      ]
+      "locales": []
     },
     {
       "id": "site.index.weaskedclaudecodethisonceand",
@@ -73301,38 +72994,6 @@
       ]
     },
     {
-      "id": "site.index.whatsstillopenyouemailedtybalt",
-      "source": "67ddbd7c9ddcae5f791a071e3d60d79fe817cbc4ba71eb658715151b53950e80",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "85d89ccd16157d797fa2c66c703465930cc08f6fb2099f946f41ab541d25c28b",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "67ddbd7c9ddcae5f791a071e3d60d79fe817cbc4ba71eb658715151b53950e80",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "85d89ccd16157d797fa2c66c703465930cc08f6fb2099f946f41ab541d25c28b"
-        },
-        {
-          "locale": "es-419",
-          "source": "67ddbd7c9ddcae5f791a071e3d60d79fe817cbc4ba71eb658715151b53950e80",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "85d89ccd16157d797fa2c66c703465930cc08f6fb2099f946f41ab541d25c28b"
-        },
-        {
-          "locale": "it",
-          "source": "67ddbd7c9ddcae5f791a071e3d60d79fe817cbc4ba71eb658715151b53950e80",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "85d89ccd16157d797fa2c66c703465930cc08f6fb2099f946f41ab541d25c28b"
-        },
-        {
-          "locale": "te",
-          "source": "67ddbd7c9ddcae5f791a071e3d60d79fe817cbc4ba71eb658715151b53950e80",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "85d89ccd16157d797fa2c66c703465930cc08f6fb2099f946f41ab541d25c28b"
-        }
-      ]
-    },
-    {
       "id": "site.index.whatyourjournalrecorded",
       "source": "f0d910b82a648f21b2c625c7ab56aa7ea4b4907536e50dd0670a11b130d48bac",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -73363,6 +73024,34 @@
           "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
         }
       ]
+    },
+    {
+      "id": "site.index.whereitstoodatyearsend",
+      "source": "ec375f0380bcc576bfe6176201c78a7b3153cb06a70a1ae2a55084cee2c752a9",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
+      "id": "site.index.whethertheaugustletteractually",
+      "source": "961d23f1d7a194cb368d147dffb83622f94405d5269c6ff945248359e5b0aebd",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
+      "id": "site.index.whetherthedecemberonewasever",
+      "source": "7d35d57436790e98707bf23bc0ce93ae269d71e4849464572e40d86aa09a0929",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
+      "id": "site.index.winterlettersonlyherletterscame",
+      "source": "bbeef4716b4070ed708177b2a2bddc1ae51ed66b40b4d33fd4f906a11b7ff421",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "3474ccb84adf87741d8f1d55b334b0def30893c5a7e53154b6975ede1de03010",
+      "locales": []
     },
     {
       "id": "site.index.youcansafelyletan",
@@ -73429,6 +73118,13 @@
       ]
     },
     {
+      "id": "site.index.yourdecember30draftfinallysays",
+      "source": "97ae451fe8889a2f928f079d5c101c45c60365c8412c433df9e32a5c52f995de",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "182985ee02168a217ea116a745854feca96be216354b2a41b39276c478e6731a",
+      "locales": []
+    },
+    {
       "id": "site.index.yourdigitallifeshouldbelong",
       "source": "abbdf849b47941270bfe1aa9f8893e3255d877fb9d3e149257e89ba1138cafd0",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -73487,38 +73183,6 @@
         {
           "locale": "te",
           "source": "dffdb4e92b48119067fb2ce73b9c23979fd8e441f592aac01bcac19ee7e7dcbf",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        }
-      ]
-    },
-    {
-      "id": "site.index.yoursyncnotessaytotellhim",
-      "source": "b3896c36c070ad4d08d21155d0d7b99cc13d0e7d20579ca067b9e88e6f156eec",
-      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "b3896c36c070ad4d08d21155d0d7b99cc13d0e7d20579ca067b9e88e6f156eec",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "es-419",
-          "source": "b3896c36c070ad4d08d21155d0d7b99cc13d0e7d20579ca067b9e88e6f156eec",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "it",
-          "source": "b3896c36c070ad4d08d21155d0d7b99cc13d0e7d20579ca067b9e88e6f156eec",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
-        },
-        {
-          "locale": "te",
-          "source": "b3896c36c070ad4d08d21155d0d7b99cc13d0e7d20579ca067b9e88e6f156eec",
           "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
           "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
         }

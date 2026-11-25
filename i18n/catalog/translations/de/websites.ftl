@@ -2370,9 +2370,7 @@ site.featuresevidence.yourcorrectionyou = deine Korrektur{ $slot-1 }du{ $slot-2 
 
 site.featuresevidence.yourjournalkeepstheaudiowhatit = dein Journal behält das Audio, das Erkannte, seine Zusammenfassung und deine Korrekturen als getrennte Dinge. eine Lesart deines Tages ergänzt eine Erinnerung und schreibt nie um, was gesagt wurde. { $slot-1 }eine Korrektur{ $slot-2 } gehört dir, und du kannst sie zurücknehmen.
 
-site.index.adaysactivitiesinthejournal = so zeigt{ $slot-1 }s das Journal die Aktivitäten eines Tages, mit dem Entwurf der Notizen zum 60. Geburtstag von Papa, geöffnet bei der Zusammenfassung, so wie{ $slot-2 }s dasteht
 
-site.index.ademojournalsetinamodern = ein Demo-Journal, angesiedelt in einer modernen Shakespeare-Welt.
 
 site.index.alwayslocal = immer lokal
 
@@ -2384,21 +2382,17 @@ site.index.awatercolorportraitofjeremie = ein Aquarellporträt von jeremie mille
 
 site.index.checkitsours = prüfen, ob es von uns ist
 
-site.index.howhisstancechanged = Wie sich seine Haltung geändert hat:
 
 site.index.howyourjournalworks = wie dein Journal funktioniert
 
 site.index.howyourjournalworksin = wie dein Journal funktioniert, in drei Teilen
 
-site.index.istybaltstillagainstworkingwiththe = Ist Tybalt noch dagegen, mit den Montagues zu arbeiten?
 
 site.index.itsearlysowhen = es ist früh, wenn du also an eine raue Kante stößt, { $slot-1 }sag es mir{ $slot-2 }.
 
 site.index.jeremiemiller = jeremie miller
 
-site.index.mondaykickoffyouraisedhisquestionfor = { $slot-1 }Montag-Auftakt:{ $slot-2 } Du hast seine Frage für ihn vorgebracht: wenn Mesh Routing ausfällt, hören die Inspektoren auf zu arbeiten? Romeo sagte, die Frage sei fair, und schlug eine Warteschlange auf dem Gerät vor. Du sagtest { $slot-3 }Ich glaube, Tybalt kann damit leben. Er wird{ $slot-4 }s aber sehen wollen{ $slot-5 } (Aufnahme).
 
-site.index.mondaymorningnov16inyourplanning = { $slot-1 }Montagmorgen (16. Nov.):{ $slot-2 } In deiner Planungsnotiz hast du gesagt, Tybalt { $slot-3 }habe am Freitag gemurrt, für irgendetwas von Montague abzuhängen{ $slot-4 } (Aufnahme).
 
 site.index.n100opensource = 100 % quelloffen
 
@@ -2410,7 +2404,6 @@ site.index.n3youragents = { $slot-1 }3.{ $slot-2 }deine Agenten
 
 site.index.nextpart = nächster Teil
 
-site.index.nooneownstheairplanemodetest = Den Flugmodus-Test hat noch niemand. Deine Spezifikation sagt noch { $slot-1 }Zuständig: noch offen.{ $slot-2 }
 
 site.index.oneachofyourown = auf jedem deiner eigenen Geräte wählst du, was die { $slot-1 }-App für dein Journal entgegennimmt, und du kannst es jederzeit pausieren.
 
@@ -2440,7 +2433,6 @@ site.index.solstonethejournalyouve = { $slot-1 } · das Journal, das du dir imme
 
 site.index.solstonethejournalyouve2 = { $slot-1 }: das Journal, das du dir immer gewünscht hast, für dich behalten
 
-site.index.theactivitypageinthejournals = die Seite Aktivität in der Agenten-App des Journals{ $slot-1 }, mit elf Anfragen von { $slot-2 }, alle beantwortet, mit search, list_entities, get_entity, fetch und get_transcript
 
 site.index.thejournalyouvealways = das Journal, das du dir immer gewünscht hast, für dich behalten.
 
@@ -2448,19 +2440,14 @@ site.index.thesolstoneapponeachdevicefrom = die { $slot-1 }-App auf jedem Gerät
 
 site.index.thesolstonemenuona = das { $slot-1 }-Menü auf einem Mac: verbunden, auf dem neuesten Stand, pausieren, Einstellungen öffnen, Journal öffnen, über { $slot-2 }, nach Aktualisierungen suchen, { $slot-3 } beenden
 
-site.index.thisafternoonromeoshowedthequeuesurviving = { $slot-1 }Heute Nachmittag:{ $slot-2 } Romeo hat gezeigt, dass die Warteschlange eine Stunde offline übersteht. In Romeo{ $slot-3 }s Worten ist{ $slot-4 }s { $slot-5 }Eine Stunde geschafft, noch 167{ $slot-6 } auf die Woche hin, die Tybalt verlangt hat (Aufnahme).
 
-site.index.todaysstandup930whenyou = { $slot-1 }Standup von heut{ $slot-2 } (9:30):{ $slot-3 } Als du ihn nach seiner Sorge zu Mesh Routing gefragt hast, sagte er { $slot-4 }Immer noch besorgt, ja.{ $slot-5 } Nachdem du die Warteschlange erklärt hattest, sagte er { $slot-6 }das trifft{ $slot-7 }s eigentlich, die richtige Antwort{ $slot-8 } und { $slot-9 }wenn es eine Woche Flugmodus übersteht, geht{ $slot-10 }s für mich in Ordnung{ $slot-11 }. Dann hat er dich korrigiert auf { $slot-12 }bedingt zufrieden. Schreib die Bedingung auch auf{ $slot-13 } (Aufnahme). Das Transkript nummeriert die sprechenden Personen, statt sie zu nennen. Ich nehm{ $slot-14 } die Stimme, die antwortet, wenn du { $slot-15 }Tybalt{ $slot-16 } sagst, als die seine.
 
-site.index.twothingstohavereadyfortomorrow = Zwei Dinge, die morgen um 10 bereitliegen sollen:
 
-site.index.tybaltisntagainstworkingwithmontague = Tybalt lehnt{ $slot-1 }s nicht ab, mit Montague zu arbeiten. Er bleibt vorsichtig, und jetzt geht{ $slot-2 }s um die Versionierung im Feld statt um die Verfügbarkeit.
 
 site.index.weaskedclaudecodethisonceand = wir haben { $slot-1 } das einmal gefragt, und es hat aus dem Demo-Journal gearbeitet. die Antwort ist so gezeigt, wie sie zurückkam, und dazu gibt{ $slot-2 }s den eigenen Datensatz des Journals über das, was es gefragt hat.
 
 site.index.whatgoesin = was eingeht
 
-site.index.whatsstillopenyouemailedtybalt = { $slot-1 }Was gibt{ $slot-2 }s noch Offenes:{ $slot-3 } Du hast Tybalt die Vereinbarung zur Versionierung per E-Mail geschickt: Capulet gehört der Inspektionsdatensatz, Montague der Routing-Umschlag, und beide Seiten müssen jeder Änderung zustimmen. Er hat zurückgeschrieben: { $slot-4 }meine Sorge ist, dass sie uns ausbremsen. können wir morgen um 10 reden?{ $slot-5 } (E-Mail). Die Sorge um die Verfügbarkeit ist also weitgehend erledigt, noch offen ist der einwöchige Flugmodus-Test. Seine neue Sorge ist, dass Montague{ $slot-6 }s Freigabe für Schemaänderungen Capulet ausbremst.
 
 site.index.whatyourjournalrecorded = was dein Journal festgehalten hat
 
@@ -2472,7 +2459,6 @@ site.index.yourdigitallifeshouldbelong = dein digitales Leben sollte dir gehöre
 
 site.index.yourowndevicesdothe = das Behalten tun deine eigenen Geräte. du wählst, was du teilst, von deinem Bildschirm und deinem Audio bis zu den Orten, an die du gehst, und alles davon geht in dein privates Journal, nur von dir gehostet.
 
-site.index.yoursyncnotessaytotellhim = Deine Notizen zum Abgleich sagen, du sollst ihm sagen, dass die Vereinbarung nur Inspektionsdatensätze umfasst.
 
 site.install.addthesignedrepositoryforyourdistribution = füge das signierte Repository für deine Distribution hinzu. das Paket { $slot-1 } installiert sowohl dein Journal ({ $slot-2 }) als auch die Desktop-App ({ $slot-3 }). für nur eines installiere stattdessen { $slot-4 } oder { $slot-5 }.
 

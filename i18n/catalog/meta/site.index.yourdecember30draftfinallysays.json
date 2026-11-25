@@ -9,20 +9,20 @@
   ],
   "arguments": [],
   "format_intent": "text",
-  "max_length": 672,
-  "source_revision": "2804fedc435cc1a44fa397bde553f02dd23a5257b38ac6cc75b4f90119e4f8ca",
+  "max_length": 1100,
+  "source_revision": "97ae451fe8889a2f928f079d5c101c45c60365c8412c433df9e32a5c52f995de",
   "risk": "routine",
   "auto_merge": true,
   "protected_slots": [
     {
       "name": "slot-1",
       "kind": "command",
-      "value": "&#x27;"
+      "value": "<span class=\"sf-cite\">"
     },
     {
       "name": "slot-2",
-      "kind": "mark-word",
-      "value": "Claude Code"
+      "kind": "command",
+      "value": "</span>"
     }
   ]
 }

@@ -142,6 +142,8 @@
 .sf-qa li + li { margin-top: 4px; }
 .sf-qa .sf-h { font-weight: 600; margin-top: 14px; }
 .sf-qa code { font-size: 0.9em; }
+/* a link in the agent's answer pointed into the demo journal and can't open for a reader: its label stays, marked as a citation */
+.sf-qa .sf-cite { text-decoration: underline dotted; text-decoration-color: var(--ink-faint); text-underline-offset: 3px; }
 .sf-record h4 { font-size: 15px; font-weight: 600; color: var(--ink-soft); margin: 0 0 10px; }
 .sf-empty-slot { margin-top: 14px; font-size: 14px; color: var(--ink-faint); }
 

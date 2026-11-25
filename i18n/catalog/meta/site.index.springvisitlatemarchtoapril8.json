@@ -9,8 +9,8 @@
   ],
   "arguments": [],
   "format_intent": "text",
-  "max_length": 804,
-  "source_revision": "c9db84d336ee958808050250408cc8d3cde35fcd86abf3d037bc650ad4061dd4",
+  "max_length": 2008,
+  "source_revision": "0f37d297d3a57efb2fbdeae0f53572055663cce3d5ef0576ebcb615cf7eb15b8",
   "risk": "routine",
   "auto_merge": true,
   "protected_slots": [
@@ -27,22 +27,22 @@
     {
       "name": "slot-3",
       "kind": "command",
-      "value": "&#x27;"
+      "value": "<span class=\"sf-cite\">"
     },
     {
       "name": "slot-4",
       "kind": "command",
-      "value": "&#x27;"
+      "value": "</span>"
     },
     {
       "name": "slot-5",
       "kind": "command",
-      "value": "&quot;"
+      "value": "<span class=\"sf-cite\">"
     },
     {
       "name": "slot-6",
       "kind": "command",
-      "value": "&quot;"
+      "value": "</span>"
     }
   ]
 }

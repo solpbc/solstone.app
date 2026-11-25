@@ -2370,9 +2370,7 @@ site.featuresevidence.yourcorrectionyou = la tua correzione{ $slot-1 }tu{ $slot-
 
 site.featuresevidence.yourjournalkeepstheaudiowhatit = il tuo diario tiene l'audio, ciò che ha riconosciuto, il suo riepilogo e le tue correzioni come cose separate. una lettura della tua giornata si aggiunge a un ricordo e non riscrive mai ciò che è stato detto. { $slot-1 }una correzione{ $slot-2 } è tua, e puoi ritirarla.
 
-site.index.adaysactivitiesinthejournal = le attività di un giorno{ $slot-1 } nel diario, con la stesura delle note per il 60° compleanno di papà{ $slot-2 } aperta sul suo riepilogo
 
-site.index.ademojournalsetinamodern = un diario demo ambientato in un mondo shakespeariano moderno.
 
 site.index.alwayslocal = sempre in locale
 
@@ -2384,21 +2382,17 @@ site.index.awatercolorportraitofjeremie = un ritratto ad acquerello di jeremie m
 
 site.index.checkitsours = controlla che sia nostro
 
-site.index.howhisstancechanged = Come è cambiata la sua presa di posizione:
 
 site.index.howyourjournalworks = come funziona il tuo diario
 
 site.index.howyourjournalworksin = come funziona il tuo diario, in tre parti
 
-site.index.istybaltstillagainstworkingwiththe = Tybalt è ancora contrario a lavorare con i Montague?
 
 site.index.itsearlysowhen = è presto, quindi quando incontri un punto ruvido, { $slot-1 }dimmi{ $slot-2 }.
 
 site.index.jeremiemiller = jeremie miller
 
-site.index.mondaykickoffyouraisedhisquestionfor = { $slot-1 }Avvio di lunedì:{ $slot-2 } Hai sollevato tu la sua domanda al posto suo: se Mesh Routing va giù, gli ispettori smettono di lavorare? Romeo ha detto che la domanda era giusta e ha proposto una coda sul dispositivo. Hai detto { $slot-3 }Credo che Tybalt possa accettarlo. Vorrà però un{ $slot-4 }occhiata{ $slot-5 } (registrazione).
 
-site.index.mondaymorningnov16inyourplanning = { $slot-1 }Lunedì mattina (16 novembre):{ $slot-2 } Nella tua nota di pianificazione, hai detto che Tybalt { $slot-3 }venerdì brontolava sul dipendere da Montague per qualsiasi cosa{ $slot-4 } (registrazione).
 
 site.index.n100opensource = 100% open source
 
@@ -2410,7 +2404,6 @@ site.index.n3youragents = { $slot-1 }3.{ $slot-2 }i tuoi agenti
 
 site.index.nextpart = parte successiva
 
-site.index.nooneownstheairplanemodetest = Nessuno ha ancora in carico il test della modalità aereo. La tua specifica dice ancora { $slot-1 }Titolare da definire.{ $slot-2 }
 
 site.index.oneachofyourown = su ciascuno dei tuoi dispositivi, scegli cosa l'app di { $slot-1 } prende per il tuo diario, e puoi metterla in pausa quando vuoi.
 
@@ -2440,7 +2433,6 @@ site.index.solstonethejournalyouve = { $slot-1 } · il diario che hai sempre vol
 
 site.index.solstonethejournalyouve2 = { $slot-1 }: il diario che hai sempre voluto, tenuto per te
 
-site.index.theactivitypageinthejournals = la pagina delle attività nell'app agenti del diario{ $slot-1 }, con undici richieste da { $slot-2 }, tutte servite, con uso di search, list_entities, get_entity, fetch e get_transcript
 
 site.index.thejournalyouvealways = il diario che hai sempre voluto, tenuto per te.
 
@@ -2448,19 +2440,14 @@ site.index.thesolstoneapponeachdevicefrom = l'app di { $slot-1 } su ogni disposi
 
 site.index.thesolstonemenuona = il menu di { $slot-1 } su un mac: connesso, in pari, pausa, apri impostazioni, apri journal, informazioni su { $slot-2 }, cerca aggiornamenti, esci da { $slot-3 }
 
-site.index.thisafternoonromeoshowedthequeuesurviving = { $slot-1 }Questo pomeriggio:{ $slot-2 } Romeo ha mostrato la coda che regge un'ora non in linea. Come l{ $slot-3 }ha detto Romeo, è { $slot-5 }Un{ $slot-4 }ora passata, ne restano 167{ $slot-6 } verso la settimana che Tybalt ha chiesto (registrazione).
 
-site.index.todaysstandup930whenyou = { $slot-1 }Standup d{ $slot-2 }oggi (9:30):{ $slot-3 } Quando gli hai chiesto della sua preoccupazione su Mesh Routing, ha detto { $slot-4 }Ancora preoccupato, sì.{ $slot-5 } Dopo che gli hai spiegato la coda, ha detto { $slot-6 }è l{ $slot-7 }effettiva risposta giusta{ $slot-8 } e { $slot-9 }se sopravvive a un{ $slot-10 }intera settimana di modalità aereo, sono soddisfatto.{ $slot-11 } Poi ti ha corretto in { $slot-12 }soddisfatto con una condizione. Scrivi anche la condizione{ $slot-13 } (registrazione). Il verbale numera i parlanti invece di nominarli. L{ $slot-14 }interpreto come sua la voce che risponde quando dici { $slot-15 }Tybalt{ $slot-16 }.
 
-site.index.twothingstohavereadyfortomorrow = Due cose da avere pronte per domani alle 10:
 
-site.index.tybaltisntagainstworkingwithmontague = Non c{ $slot-1 }è un rifiuto di Tybalt a lavorare con Montague. È ancora cauto al riguardo, e ora la cautela riguarda il versionamento sul campo piuttosto che l{ $slot-2 }uptime.
 
 site.index.weaskedclaudecodethisonceand = lo abbiamo chiesto una volta a { $slot-1 }, e ha lavorato dal diario demo. la risposta è mostrata come è tornata, e il registro proprio del diario{ $slot-2 } di ciò che ha chiesto è stato registrato.
 
 site.index.whatgoesin = cosa entra
 
-site.index.whatsstillopenyouemailedtybalt = { $slot-1 }Cos{ $slot-2 }è ancora aperto:{ $slot-3 } Hai mandato a Tybalt l'accordo di versionamento: il registro di ispezione è di Capulet, la busta di routing è di Montague, ed entrambe le parti devono approvare ogni modifica. Ha risposto: { $slot-4 }la mia preoccupazione è che ci rallentino. possiamo parlare domani alle 10?{ $slot-5 } (email). Quindi la preoccupazione sulla disponibilità è in gran parte risolta, in attesa del test di una settimana in modalità aereo. La sua nuova preoccupazione è che dover avere l{ $slot-6 }approvazione di Montague per le modifiche allo schema rallenterà Capulet.
 
 site.index.whatyourjournalrecorded = ciò che il tuo diario ha registrato
 
@@ -2472,7 +2459,6 @@ site.index.yourdigitallifeshouldbelong = la tua vita digitale dovrebbe appartene
 
 site.index.yourowndevicesdothe = sono i tuoi dispositivi a tenere. scegli cosa condividere, dallo schermo e dall'audio fino ai luoghi dove vai, e tutto va nel tuo diario privato, ospitato solo da te.
 
-site.index.yoursyncnotessaytotellhim = Le tue note di sincronizzazione dicono di dirgli che l'accordo copre solo i registri di ispezione.
 
 site.install.addthesignedrepositoryforyourdistribution = aggiungi il repository firmato per la tua distribuzione. il pacchetto { $slot-1 } installa sia il tuo diario ({ $slot-2 }) sia l'app desktop ({ $slot-3 }). per uno solo, installa { $slot-4 } o { $slot-5 }.
 
