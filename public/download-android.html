@@ -226,6 +226,10 @@ sha256sum -c SHA256SUMS</code></pre>
                         <td>so the app can remind you, after you restart your phone, that audio, camera or location is waiting because you left it on. opening the app starts it again.</td>
                     </tr>
                     <tr>
+                        <td>send a large import<span class="sysname">RUN_USER_INITIATED_JOBS</span></td>
+                        <td>so a large file you import can keep sending to your journal while you are in another app, with a notification that shows its progress and lets you cancel it. android 14 and later uses it.</td>
+                    </tr>
+                    <tr>
                         <td>keep the phone awake<span class="sysname">WAKE_LOCK</span></td>
                         <td>to finish a piece of work rather than leave it half done when the screen goes off. this one comes from AndroidX's background-work library, not from our code.</td>
                     </tr>

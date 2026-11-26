@@ -4421,6 +4421,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.downloadandroid.sendlargeimportsrunuserinitiatedjobs": {
+    resourceKey: "m736974652e646f776e6c6f6164616e64726f69642e73656e646c61726765696d706f72747372756e75736572696e697469617465646a6f6273",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.downloadandroid.thentheinstallerasksoncemoreinstall": {
     resourceKey: "m736974652e646f776e6c6f6164616e64726f69642e7468656e746865696e7374616c6c657261736b736f6e63656d6f7265696e7374616c6c",
     formatIntent: "text",
@@ -8587,6 +8593,12 @@ const MESSAGES = {
   },
   "site.pagedownloadandroid.playprotect": {
     resourceKey: "m736974652e70616765646f776e6c6f6164616e64726f69642e706c617970726f74656374",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.pagedownloadandroid.soalargefileyouimportcan": {
+    resourceKey: "m736974652e70616765646f776e6c6f6164616e64726f69642e736f616c6172676566696c65796f75696d706f727463616e",
     formatIntent: "text",
     arguments: [
     ],

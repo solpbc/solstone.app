@@ -34122,6 +34122,29 @@
       "selector": null
     },
     {
+      "id": "site.downloadandroid.sendlargeimportsrunuserinitiatedjobs",
+      "resource": "m736974652e646f776e6c6f6164616e64726f69642e73656e646c61726765696d706f72747372756e75736572696e697469617465646a6f6273",
+      "namespace": "site.downloadandroid",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<span class=\"sysname\">"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "</span>"
+        }
+      ],
+      "selector": null
+    },
+    {
       "id": "site.downloadandroid.thentheinstallerasksoncemoreinstall",
       "resource": "m736974652e646f776e6c6f6164616e64726f69642e7468656e746865696e7374616c6c657261736b736f6e63656d6f7265696e7374616c6c",
       "namespace": "site.downloadandroid",
@@ -48176,6 +48199,18 @@
     {
       "id": "site.pagedownloadandroid.playprotect",
       "resource": "m736974652e70616765646f776e6c6f6164616e64726f69642e706c617970726f74656374",
+      "namespace": "site.pagedownloadandroid",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
+      "selector": null
+    },
+    {
+      "id": "site.pagedownloadandroid.soalargefileyouimportcan",
+      "resource": "m736974652e70616765646f776e6c6f6164616e64726f69642e736f616c6172676566696c65796f75696d706f727463616e",
       "namespace": "site.pagedownloadandroid",
       "owner": "website",
       "tombstone": false,
