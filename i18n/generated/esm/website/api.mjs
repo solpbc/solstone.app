@@ -7805,6 +7805,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.integrate.forbodyincludegiveseachdaywhatyourjournalholds": {
+    resourceKey: "m736974652e696e746567726174652e666f72626f6479696e636c75646567697665736561636864617977686174796f75726a6f75726e616c686f6c6473",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.integrate.forexampletheparamsofafew": {
     resourceKey: "m736974652e696e746567726174652e666f726578616d706c65746865706172616d736f6661666577",
     formatIntent: "text",

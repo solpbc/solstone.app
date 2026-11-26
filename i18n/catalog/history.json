@@ -44928,6 +44928,64 @@
       "selector": null
     },
     {
+      "id": "site.integrate.forbodyincludegiveseachdaywhatyourjournalholds",
+      "resource": "m736974652e696e746567726174652e666f72626f6479696e636c75646567697665736561636864617977686174796f75726a6f75726e616c686f6c6473",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>include</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>movement</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>nights</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>stages_seconds</code>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "<code>readings</code>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<code>fetch</code>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "mark-word",
+          "value": "Apple Health"
+        },
+        {
+          "name": "slot-8",
+          "kind": "mark-word",
+          "value": "Garmin"
+        },
+        {
+          "name": "slot-9",
+          "kind": "mark-word",
+          "value": "Oura"
+        }
+      ],
+      "selector": null
+    },
+    {
       "id": "site.integrate.forexampletheparamsofafew",
       "resource": "m736974652e696e746567726174652e666f726578616d706c65746865706172616d736f6661666577",
       "namespace": "site.integrate",
