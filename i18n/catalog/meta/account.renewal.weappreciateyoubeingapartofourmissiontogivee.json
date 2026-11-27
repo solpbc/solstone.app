@@ -1,0 +1,16 @@
+{
+  "description": "Account portal message.",
+  "context": "renewal-notices.js: THANKS_BODY",
+  "surfaces": [
+    "account"
+  ],
+  "bundles": [
+    "account"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 412,
+  "source_revision": "48a474e8b6c6a8b354ab05254d0c47f547acbacc951fd006b6a785ac24e10b41",
+  "risk": "consent",
+  "auto_merge": false
+}

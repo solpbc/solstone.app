@@ -3167,6 +3167,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "account.renewal.foundersolpbc": {
+    resourceKey: "m6163636f756e742e72656e6577616c2e666f756e646572736f6c706263",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "account.renewal.fromsignedinasprimaryemailandthisconfirmationi": {
     resourceKey: "m6163636f756e742e72656e6577616c2e66726f6d7369676e6564696e61737072696d617279656d61696c616e6474686973636f6e6669726d6174696f6e69",
     formatIntent: "text",
@@ -3193,6 +3199,12 @@ const MESSAGES = {
   },
   "account.renewal.itrenewsonitsownattheendofeachintervalservicer": {
     resourceKey: "m6163636f756e742e72656e6577616c2e697472656e6577736f6e6974736f776e6174746865656e646f6665616368696e74657276616c7365727669636572",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "account.renewal.jer": {
+    resourceKey: "m6163636f756e742e72656e6577616c2e6a6572",
     formatIntent: "text",
     arguments: [
     ],
@@ -3287,6 +3299,18 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "account.renewal.thankyouforyourservicesubscription": {
+    resourceKey: "m6163636f756e742e72656e6577616c2e7468616e6b796f75666f72796f757273657276696365737562736372697074696f6e",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "account.renewal.thankyoufromjer": {
+    resourceKey: "m6163636f756e742e72656e6577616c2e7468616e6b796f7566726f6d6a6572",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "account.renewal.theplanservicepriceeveryinterval": {
     resourceKey: "m6163636f756e742e72656e6577616c2e746865706c616e7365727669636570726963656576657279696e74657276616c",
     formatIntent: "text",
@@ -3313,6 +3337,12 @@ const MESSAGES = {
   },
   "account.renewal.tocancelbycancelbydatesigninatservicessolstone": {
     resourceKey: "m6163636f756e742e72656e6577616c2e746f63616e63656c627963616e63656c6279646174657369676e696e61747365727669636573736f6c73746f6e65",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "account.renewal.weappreciateyoubeingapartofourmissiontogivee": {
+    resourceKey: "m6163636f756e742e72656e6577616c2e776561707072656369617465796f756265696e6761706172746f666f75726d697373696f6e746f6769766565",
     formatIntent: "text",
     arguments: [
     ],
@@ -3397,6 +3427,12 @@ const MESSAGES = {
   },
   "account.renewal.youresubscribedtoserviceandthisisthewrittencon": {
     resourceKey: "m6163636f756e742e72656e6577616c2e796f75726573756273637269626564746f73657276696365616e647468697369737468657772697474656e636f6e",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "account.renewal.yourjournalisalwaysprivateonlyyours": {
+    resourceKey: "m6163636f756e742e72656e6577616c2e796f75726a6f75726e616c6973616c77617973707269766174656f6e6c79796f757273",
     formatIntent: "text",
     arguments: [
     ],
@@ -7460,6 +7496,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "account.transparency.renewalconfirmation": {
+    resourceKey: "m6163636f756e742e7472616e73706172656e63792e72656e6577616c636f6e6669726d6174696f6e",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "account.transparency.renewalnoticessentyou": {
     resourceKey: "m6163636f756e742e7472616e73706172656e63792e72656e6577616c6e6f746963657373656e74796f75",
     formatIntent: "text",
@@ -7745,6 +7787,12 @@ const MESSAGES = {
   },
   "account.transparency.terminalcompletionstate": {
     resourceKey: "m6163636f756e742e7472616e73706172656e63792e7465726d696e616c636f6d706c6574696f6e7374617465",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "account.transparency.thankyounote": {
+    resourceKey: "m6163636f756e742e7472616e73706172656e63792e7468616e6b796f756e6f7465",
     formatIntent: "text",
     arguments: [
     ],

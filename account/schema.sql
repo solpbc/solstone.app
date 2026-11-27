@@ -497,18 +497,19 @@ CREATE INDEX IF NOT EXISTS idx_spb_sweep_audit_account_id ON spb_sweep_audit(acc
 
 CREATE TABLE IF NOT EXISTS renewal_notices (
   account_id TEXT NOT NULL,
-  kind TEXT NOT NULL CHECK (kind IN ('ack', 'reminder', 'oneoff', 'cooling_off', 'early_reminder')),
+  kind TEXT NOT NULL CHECK (kind IN ('ack', 'reminder', 'oneoff', 'cooling_off', 'early_reminder', 'thanks')),
   service TEXT NOT NULL CHECK (
     (kind = 'oneoff' AND service = '')
-    OR (kind IN ('ack', 'reminder', 'cooling_off', 'early_reminder') AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted'))
+    OR (kind IN ('ack', 'reminder', 'cooling_off', 'early_reminder', 'thanks') AND service IN ('spl_hosted', 'spb_hosted', 'sme_hosted', 'spp_hosted'))
   ),
   renewal_at INTEGER NOT NULL CHECK (
     (kind IN ('reminder', 'cooling_off', 'early_reminder') AND renewal_at > 0)
-    OR (kind IN ('ack', 'oneoff') AND renewal_at = 0)
+    OR (kind IN ('ack', 'oneoff', 'thanks') AND renewal_at = 0)
   ),
   content_key TEXT NOT NULL CHECK (
     (kind IN ('reminder', 'cooling_off', 'early_reminder') AND content_key = '')
     OR (kind = 'ack' AND (content_key = '' OR (substr(content_key, 1, 4) = 'sub_' AND length(content_key) > 4)))
+    OR (kind = 'thanks' AND substr(content_key, 1, 4) = 'sub_' AND length(content_key) > 4)
     OR (kind = 'oneoff' AND length(content_key) = 64)
   ),
   subject TEXT NOT NULL,
@@ -517,6 +518,9 @@ CREATE TABLE IF NOT EXISTS renewal_notices (
   PRIMARY KEY (account_id, kind, service, renewal_at, content_key),
   FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS renewal_notices_thanks_once
+  ON renewal_notices (account_id) WHERE kind = 'thanks';
 
 -- Opaque at-most-once claim: peppered digest plus claim time, no account, no Stripe id, no expiry.
 CREATE TABLE IF NOT EXISTS subscription_created_claims (

@@ -2157,6 +2157,34 @@ export async function hasRenewalAck(db, accountId, service, { subscriptionRef, s
   return Boolean(row);
 }
 
+// When this subscription's written confirmation was claimed, in ms, or null if no confirmation
+// names it.
+export async function renewalAckClaimedAt(db, accountId, service, subscriptionRef) {
+  const row = await db
+    .prepare(
+      `SELECT created_at FROM renewal_notices
+       WHERE account_id = ? AND kind = 'ack' AND service = ? AND renewal_at = 0 AND content_key = ?`
+    )
+    .bind(accountId, service, subscriptionRef)
+    .first();
+  return row ? row.created_at : null;
+}
+
+// Whether the sign-in's own notices already rule out a first-purchase thank-you: the note has
+// been sent, or a written confirmation went out for some other subscription (or before
+// confirmations named one), so this is not the first purchase.
+export async function thanksNoteRuledOut(db, accountId, subscriptionRef) {
+  const row = await db
+    .prepare(
+      `SELECT 1 FROM renewal_notices
+       WHERE account_id = ? AND (kind = 'thanks' OR (kind = 'ack' AND content_key != ?))
+       LIMIT 1`
+    )
+    .bind(accountId, subscriptionRef)
+    .first();
+  return Boolean(row);
+}
+
 export async function selectRenewalCandidatePage(db, { afterAccountId = '', afterService = '', limit = 100 }) {
   const { results } = await db
     .prepare(

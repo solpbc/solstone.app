@@ -1702,7 +1702,7 @@ const TRANSPARENCY_SERVICE_NAMES = {
   sme_hosted: 'solstone.me',
 };
 const TRANSPARENCY_SOURCE_NAMES = { comp: t('account.portal.freeasscout'), stripe: t('account.transparency.paid'), apple: t('account.portal.paidthroughappstore'), google: t('account.portal.paidthroughgoogleplay') };
-const TRANSPARENCY_NOTICE_KINDS = { ack: t('account.transparency.confirmation'), catch_up: t('account.portal.catchupnotice'), reminder: t('account.portal.renewalreminder'), oneoff: t('account.portal.oneoffnotice') };
+const TRANSPARENCY_NOTICE_KINDS = { ack: t('account.transparency.confirmation'), catch_up: t('account.portal.catchupnotice'), reminder: t('account.portal.renewalreminder'), early_reminder: t('account.portal.renewalreminder'), cooling_off: t('account.transparency.renewalconfirmation'), oneoff: t('account.portal.oneoffnotice'), thanks: t('account.transparency.thankyounote') };
 const TRANSPARENCY_ACTORS = { owner: t('account.transparency.you'), operator: 'sol pbc', service: t('account.transparency.solstoneservices') };
 // The refusals recorded against a sign-in; the others happen before the journal is identified.
 const TRANSPARENCY_REFUSALS = { refused_entitlement: t('account.portal.refusedservicewasnton'), refused_scope: t('account.portal.refusednotanallowedkindaccess') };

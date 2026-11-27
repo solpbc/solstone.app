@@ -7591,6 +7591,24 @@
       "selector": null
     },
     {
+      "id": "account.renewal.foundersolpbc",
+      "resource": "m6163636f756e742e72656e6577616c2e666f756e646572736f6c706263",
+      "namespace": "account.renewal",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "mark-word",
+          "value": "sol pbc"
+        }
+      ],
+      "selector": null
+    },
+    {
       "id": "account.renewal.fromsignedinasprimaryemailandthisconfirmationi",
       "resource": "m6163636f756e742e72656e6577616c2e66726f6d7369676e6564696e61737072696d617279656d61696c616e6474686973636f6e6669726d6174696f6e69",
       "namespace": "account.renewal",
@@ -7733,6 +7751,18 @@
           "value": "[/MONTHLY]"
         }
       ],
+      "selector": null
+    },
+    {
+      "id": "account.renewal.jer",
+      "resource": "m6163636f756e742e72656e6577616c2e6a6572",
+      "namespace": "account.renewal",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
       "selector": null
     },
     {
@@ -8086,6 +8116,36 @@
       "selector": null
     },
     {
+      "id": "account.renewal.thankyouforyourservicesubscription",
+      "resource": "m6163636f756e742e72656e6577616c2e7468616e6b796f75666f72796f757273657276696365737562736372697074696f6e",
+      "namespace": "account.renewal",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "{{service}}"
+        }
+      ],
+      "selector": null
+    },
+    {
+      "id": "account.renewal.thankyoufromjer",
+      "resource": "m6163636f756e742e72656e6577616c2e7468616e6b796f7566726f6d6a6572",
+      "namespace": "account.renewal",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
+      "selector": null
+    },
+    {
       "id": "account.renewal.theplanservicepriceeveryinterval",
       "resource": "m6163636f756e742e72656e6577616c2e746865706c616e7365727669636570726963656576657279696e74657276616c",
       "namespace": "account.renewal",
@@ -8313,6 +8373,18 @@
           "value": "support@solstone.app"
         }
       ],
+      "selector": null
+    },
+    {
+      "id": "account.renewal.weappreciateyoubeingapartofourmissiontogivee",
+      "resource": "m6163636f756e742e72656e6577616c2e776561707072656369617465796f756265696e6761706172746f666f75726d697373696f6e746f6769766565",
+      "namespace": "account.renewal",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
       "selector": null
     },
     {
@@ -8862,6 +8934,18 @@
           "value": "sol pbc"
         }
       ],
+      "selector": null
+    },
+    {
+      "id": "account.renewal.yourjournalisalwaysprivateonlyyours",
+      "resource": "m6163636f756e742e72656e6577616c2e796f75726a6f75726e616c6973616c77617973707269766174656f6e6c79796f757273",
+      "namespace": "account.renewal",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
       "selector": null
     },
     {
@@ -19920,6 +20004,18 @@
       "selector": null
     },
     {
+      "id": "account.transparency.renewalconfirmation",
+      "resource": "m6163636f756e742e7472616e73706172656e63792e72656e6577616c636f6e6669726d6174696f6e",
+      "namespace": "account.transparency",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
+      "selector": null
+    },
+    {
       "id": "account.transparency.renewalnoticessentyou",
       "resource": "m6163636f756e742e7472616e73706172656e63792e72656e6577616c6e6f746963657373656e74796f75",
       "namespace": "account.transparency",
@@ -20530,6 +20626,18 @@
     {
       "id": "account.transparency.terminalcompletionstate",
       "resource": "m6163636f756e742e7472616e73706172656e63792e7465726d696e616c636f6d706c6574696f6e7374617465",
+      "namespace": "account.transparency",
+      "owner": "account",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [],
+      "selector": null
+    },
+    {
+      "id": "account.transparency.thankyounote",
+      "resource": "m6163636f756e742e7472616e73706172656e63792e7468616e6b796f756e6f7465",
       "namespace": "account.transparency",
       "owner": "account",
       "tombstone": false,

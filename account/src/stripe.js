@@ -211,8 +211,9 @@ export async function cancelSubscriptionNow(env, subscriptionId, { idempotencyKe
   });
 }
 
-// Every subscription on a customer, whatever its status. Used only by the sign-in deletion
-// hold, which pauses and later resumes collection on each one.
+// Every subscription on a customer, whatever its status, newest first. The sign-in deletion hold
+// pauses and later resumes collection on each one; the first-purchase thank-you reads whether an
+// earlier one was ever started.
 export async function listCustomerSubscriptions(env, stripeCustomerId) {
   const query = new URLSearchParams({ customer: stripeCustomerId, status: 'all', limit: '100' });
   const list = await stripeRequest(env, `/subscriptions?${query}`, { method: 'GET' });

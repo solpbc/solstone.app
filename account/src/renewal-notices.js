@@ -8,16 +8,18 @@ import {
   getDashboardData,
   getEntitlement,
   hasRenewalAck,
+  renewalAckClaimedAt,
   selectRenewalCandidatePage,
   selectRenewalCatchUpCandidatePage,
   selectRenewalOneOffCandidatePage,
+  thanksNoteRuledOut,
 } from './db.js';
 import { sendRenewalNoticeEmail } from './email.js';
 import { SPL_HOSTED_SERVICE } from './relay-grant.js';
 import { SME_HOSTED_SERVICE } from './sme-entitlement.js';
 import { SPB_HOSTED_SERVICE } from './spb-entitlement.js';
 import { SPP_HOSTED_SERVICE } from './spp-entitlement.js';
-import { getSubscription, listPaidSubscriptionInvoices, subscriptionPeriodEnd } from './stripe.js';
+import { getSubscription, listCustomerSubscriptions, listPaidSubscriptionInvoices, subscriptionPeriodEnd } from './stripe.js';
 import { invoicePaidAt, renewalInvoice, renewalStart, serviceMonthStart } from './renewed-year.js';
 import { KEY_FACTS_EMAIL_HEADING, keyFactsLines, resolveBranches } from './rules-words.js';
 import { placeholder, subscriptionRulesOn } from './subscription-rules.js';
@@ -121,6 +123,16 @@ const TERMS_SECTIONS = Object.freeze({
   [SPP_HOSTED_SERVICE]: '13',
   [SME_HOSTED_SERVICE]: '14',
 });
+
+// The note from jer that follows a sign-in's first paid purchase, once ever, after the written
+// confirmation. It asks for nothing and offers nothing: no link, and nothing to reply to.
+const THANKS_SUBJECT = t('account.renewal.thankyoufromjer');
+const THANKS_PARAGRAPHS = [
+  t('account.renewal.thankyouforyourservicesubscription'),
+  t('account.renewal.weappreciateyoubeingapartofourmissiontogivee'),
+  t('account.renewal.yourjournalisalwaysprivateonlyyours'),
+  `${t('account.renewal.jer')}\n${t('account.renewal.foundersolpbc')}`,
+];
 
 // Fills {{name}} from values and renders; null if a value it needs is missing or a slot is left.
 function renderFilled(subjectTemplate, bodyTemplate, values) {
@@ -471,6 +483,19 @@ export function renderOneOffHtml(body) {
   return `<!DOCTYPE html>\n<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">\n  ${paragraphs}\n</body></html>`;
 }
 
+// The thank-you note in plain text and plain HTML; a line break inside a paragraph is kept.
+export function renderThanksNote({ service }) {
+  const serviceName = SERVICE_HUMAN_NAMES[service];
+  if (!serviceName) return null;
+  const paragraphs = THANKS_PARAGRAPHS.map((paragraph) => paragraph.replaceAll('{{service}}', serviceName));
+  const html = paragraphs.map((paragraph) => `<p>${paragraph.split('\n').map(esc).join('<br>')}</p>`).join('\n  ');
+  return {
+    subject: THANKS_SUBJECT,
+    text: paragraphs.join('\n\n'),
+    html: `<!DOCTYPE html>\n<html><body style="font-family: system-ui, -apple-system, sans-serif; color: #222; max-width: 520px; margin: 0 auto; padding: 24px;">\n  ${html}\n</body></html>`,
+  };
+}
+
 // A peppered ref, never the raw id: every console line is Logpush-retained for 90 days
 // and outlives an owner's deletion (same scheme as admin.js, 2026-09-12).
 function accountRef(env, accountId) {
@@ -524,6 +549,7 @@ export async function resolvePrimaryAddress(env, accountId) {
 
 export async function maybeSendSubscriptionAck(env, { accountId, tag, status, sourceRef, subscription = null }) {
   if (status !== 'active') return;
+  const nowMs = Date.now();
   const hostedService = TAG_TO_HOSTED_SERVICE[tag];
   if (!hostedService) return;
   if (typeof sourceRef !== 'string' || sourceRef.trim() === '') return;
@@ -547,6 +573,15 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
     const parsed = validateSubscription(sub);
     if (!parsed || sub.id !== sourceRef) {
       await logSkip(env, { kind: 'ack', accountId, service: hostedService, reason: 'stripe_unusable' });
+      return;
+    }
+
+    // Confirmed already: a later event for the same purchase retries a thank-you whose send failed.
+    const ackClaimedAt = await renewalAckClaimedAt(env.DB, accountId, hostedService, sourceRef);
+    if (ackClaimedAt != null) {
+      if (nowMs - ackClaimedAt >= THANKS_SETTLE_MS) {
+        await maybeSendFirstPurchaseThanks(env, { accountId, service: hostedService, sub, parsed, ackClaimedAt, nowMs });
+      }
       return;
     }
 
@@ -591,7 +626,7 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
       contentKey: sourceRef,
       subject: rendered.subject,
       body: rendered.text,
-      nowMs: Date.now(),
+      nowMs,
     });
     if (!claimed) return;
 
@@ -616,8 +651,62 @@ export async function maybeSendSubscriptionAck(env, { accountId, tag, status, so
     }
 
     await logSent(env, { kind: 'ack', accountId, service: hostedService });
+    await maybeSendFirstPurchaseThanks(env, { accountId, service: hostedService, sub, parsed, ackClaimedAt: nowMs, address, nowMs });
   } catch {
     // catch own errors so caller always finishes cleanly
+  }
+}
+
+// The thank-you follows its confirmation within the hour or not at all. A renewal's confirmation
+// went out at purchase, and so did that of every purchase made before the note existed.
+const THANKS_FOLLOW_MS = 60 * 60 * 1000;
+// A later event retries the note only once the confirmation has had time to go, so the note
+// never arrives first.
+const THANKS_SETTLE_MS = 60 * 1000;
+// A confirmation that reaches an older subscription late is not a first purchase.
+const THANKS_PURCHASE_WINDOW_SECONDS = 7 * 86400;
+
+// Whether `sub` is the first subscription its Stripe customer ever started. A sign-in's paid
+// purchases all go through its one customer. A subscription whose first payment never went
+// through (incomplete) was never bought, and the earlier of two started together wins.
+async function isFirstStartedSubscription(env, sub) {
+  if (typeof sub.customer !== 'string' || !sub.customer || !Number.isInteger(sub.created)) return false;
+  const all = await listCustomerSubscriptions(env, sub.customer);
+  return !all.some((other) => other?.id !== sub.id
+    && other?.status !== 'incomplete'
+    && other?.status !== 'incomplete_expired'
+    && (!Number.isInteger(other?.created) || other.created < sub.created || (other.created === sub.created && other.id < sub.id)));
+}
+
+// After a written confirmation: the note from jer, sent once per sign-in, ever, and only when this
+// subscription is the sign-in's first paid purchase. A scout's free service never reaches here.
+async function maybeSendFirstPurchaseThanks(env, { accountId, service, sub, parsed, ackClaimedAt, address = null, nowMs }) {
+  if (nowMs - ackClaimedAt > THANKS_FOLLOW_MS) return;
+  if (Math.floor(nowMs / 1000) - parsed.startDate > THANKS_PURCHASE_WINDOW_SECONDS) return;
+  try {
+    if (await thanksNoteRuledOut(env.DB, accountId, sub.id)) return;
+    if (await getActiveDeletionForAccount(env.DB, accountId)) {
+      await logSkip(env, { kind: 'thanks', accountId, service, reason: 'deletion' });
+      return;
+    }
+    const to = address || await resolvePrimaryAddress(env, accountId);
+    if (!to) {
+      await logSkip(env, { kind: 'thanks', accountId, service, reason: 'no_email' });
+      return;
+    }
+    let first;
+    try {
+      first = await isFirstStartedSubscription(env, sub);
+    } catch {
+      await logSkip(env, { kind: 'thanks', accountId, service, reason: 'stripe_unusable' });
+      return;
+    }
+    if (!first) return;
+    const rendered = renderThanksNote({ service });
+    if (!rendered) return;
+    await claimAndSend(env, { accountId, kind: 'thanks', service, renewalAt: 0, contentKey: sub.id, rendered, address: to, nowMs });
+  } catch {
+    // The confirmation has gone; nothing here may undo it.
   }
 }
 
@@ -741,13 +830,13 @@ export async function runRenewalReminders(env, nowMs = Date.now()) {
 }
 
 // Claim, then send; a failed send gives the claim back so a later run retries it.
-async function claimAndSend(env, { accountId, kind, service, renewalAt, rendered, address, nowMs }) {
+async function claimAndSend(env, { accountId, kind, service, renewalAt, contentKey = '', rendered, address, nowMs }) {
   const claimed = await claimRenewalNotice(env.DB, {
     accountId,
     kind,
     service,
     renewalAt,
-    contentKey: '',
+    contentKey,
     subject: rendered.subject,
     body: rendered.text,
     nowMs,
@@ -763,7 +852,7 @@ async function claimAndSend(env, { accountId, kind, service, renewalAt, rendered
       html: rendered.html,
     });
   } catch {
-    await deleteRenewalNotice(env.DB, { accountId, kind, service, renewalAt, contentKey: '' });
+    await deleteRenewalNotice(env.DB, { accountId, kind, service, renewalAt, contentKey });
     await logSendFailed(env, { kind, accountId, service, renewalAt });
     return;
   }

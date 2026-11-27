@@ -14229,6 +14229,13 @@
       "locales": []
     },
     {
+      "id": "account.renewal.foundersolpbc",
+      "source": "eeaa93580f6894f88419cff883f966ad7cda093eb3791e577f4e26002acd1ba8",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "6ad99b2ea347fee1e1ea69d542357811c5ad0150418ad4aa45455ed090ea2bfd",
+      "locales": []
+    },
+    {
       "id": "account.renewal.fromsignedinasprimaryemailandthisconfirmationi",
       "source": "69809a39cbb8aba824f4dfcea60a1ec7cfcd2913d42f628932d638c6343b17d1",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -14261,6 +14268,13 @@
       "source": "4ae1f1b5866368981983dab14764bbf0ea446da0bc54aad2c22bd8896d743380",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "1690019e79a66dc22380152f3f5e1fd5f70564bf1d808b6f95b8d303595a2754",
+      "locales": []
+    },
+    {
+      "id": "account.renewal.jer",
+      "source": "9f5d8eb2639dcd74c43295946d8a5bf43a44fe746aa9ac910399d0124cd339f5",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
     },
     {
@@ -14419,6 +14433,20 @@
       ]
     },
     {
+      "id": "account.renewal.thankyouforyourservicesubscription",
+      "source": "703c5ae9368908e5e1a2367bd8e90d86d360aa294648c19ba9d4017f16374932",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "9016d48093c0fb24e9be96a45b9b928ec6ad06f0ff2ddfd6474c44101490dca7",
+      "locales": []
+    },
+    {
+      "id": "account.renewal.thankyoufromjer",
+      "source": "e35248aac97bd12a0a76fbd6e49eb69910049ee838f1120dde079de1bcb30343",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
       "id": "account.renewal.theplanservicepriceeveryinterval",
       "source": "aee48f0841817e48a294d4e9383be0ecd2af2b4c658e3bea7cf84cd47e35ecd7",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -14451,6 +14479,13 @@
       "source": "eb414b8a1e4b5eae08af0b45ba9517e6c9aa08453731cf8867e1fe33ce244d32",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "6cb6434e46c30b73f03a3c636d7bfa61ee55dba7079b5dae0efe3a8bdfbf2a86",
+      "locales": []
+    },
+    {
+      "id": "account.renewal.weappreciateyoubeingapartofourmissiontogivee",
+      "source": "48a474e8b6c6a8b354ab05254d0c47f547acbacc951fd006b6a785ac24e10b41",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
     },
     {
@@ -14549,6 +14584,13 @@
       "source": "2443b6796146e9f7f1f11b8b680671b4bf630c0fad3f5a0227ff4583d808dc4d",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "4c84cb3c8690768a9285120a58e4561ace31990566a917db2aab171a626fa16c",
+      "locales": []
+    },
+    {
+      "id": "account.renewal.yourjournalisalwaysprivateonlyyours",
+      "source": "4bf0c70d1505e1f0f130b95842c3cab7b27d1db88f3fbb1d29a641728b4a1b0c",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": []
     },
     {
@@ -30927,6 +30969,13 @@
       ]
     },
     {
+      "id": "account.transparency.renewalconfirmation",
+      "source": "1d4b783ee7538dca3c1a667aba567358eff84ca87614813a7e136a4a5f9716e2",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
+    },
+    {
       "id": "account.transparency.renewalnoticessentyou",
       "source": "43f31d18541c4127ba24de0bc1e43430993b9031d427bfd40c77d0cca44a882c",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -32461,6 +32510,13 @@
           "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
         }
       ]
+    },
+    {
+      "id": "account.transparency.thankyounote",
+      "source": "9df633a457fe54b7cdf3323afc22c51246ecfc7ac08a4ecbbdde65ed7cb0a83a",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "locales": []
     },
     {
       "id": "account.transparency.timestamplastcapacityalertwithnoaccount",
