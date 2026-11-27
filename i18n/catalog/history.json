@@ -44347,8 +44347,8 @@
       "resource": "m736974652e696e746567726174652e616e796f6674656e7472616e736372697074737768617477617373616964",
       "namespace": "site.integrate",
       "owner": "website",
-      "tombstone": false,
-      "replacement": null,
+      "tombstone": true,
+      "replacement": "site.integrate.anyofthesekindstranscriptsmessagestransactions",
       "format_intent": "text",
       "arguments": [],
       "protected_slots": [
@@ -44531,6 +44531,234 @@
       "selector": null
     },
     {
+      "id": "site.integrate.anyofthesekindstranscriptsmessagestransactions",
+      "resource": "m736974652e696e746567726174652e616e796f6674686573656b696e64737472616e736372697074736d657373616765737472616e73616374696f6e73",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-8",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-9",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-10",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-11",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-12",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-13",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-14",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-15",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-16",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-17",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-18",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-19",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-20",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-21",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-22",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-23",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-24",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-25",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-26",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-27",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-28",
+          "kind": "mark-word",
+          "value": "Strava"
+        },
+        {
+          "name": "slot-29",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-30",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-31",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-32",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-33",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-34",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-35",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-36",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-37",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-38",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-39",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-40",
+          "kind": "command",
+          "value": "</strong>"
+        },
+        {
+          "name": "slot-41",
+          "kind": "command",
+          "value": "<br>"
+        },
+        {
+          "name": "slot-42",
+          "kind": "command",
+          "value": "<strong>"
+        },
+        {
+          "name": "slot-43",
+          "kind": "command",
+          "value": "</strong>"
+        }
+      ],
+      "selector": null
+    },
+    {
       "id": "site.integrate.aplainlistleavesoutsegmentsthat",
       "resource": "m736974652e696e746567726174652e61706c61696e6c6973746c65617665736f75747365676d656e747374686174",
       "namespace": "site.integrate",
@@ -44671,6 +44899,124 @@
       "format_intent": "text",
       "arguments": [],
       "protected_slots": [],
+      "selector": null
+    },
+    {
+      "id": "site.integrate.audioclipsneedtranscriptsandits",
+      "resource": "m736974652e696e746567726174652e617564696f636c6970736e6565647472616e73637269707473616e64697473",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>audio_media</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>list_transcripts</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>get_transcript</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>has_audio: true</code>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "<code>reference</code>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<code>get_transcript</code>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "command",
+          "value": "<code>audio: true</code>"
+        },
+        {
+          "name": "slot-8",
+          "kind": "command",
+          "value": "<code>audio_start_ms</code>"
+        },
+        {
+          "name": "slot-9",
+          "kind": "command",
+          "value": "<code>audio_duration_ms</code>"
+        },
+        {
+          "name": "slot-10",
+          "kind": "command",
+          "value": "<code>audio</code>"
+        },
+        {
+          "name": "slot-11",
+          "kind": "command",
+          "value": "<code>content</code>"
+        },
+        {
+          "name": "slot-12",
+          "kind": "command",
+          "value": "<code>audio.audio_content_index</code>"
+        },
+        {
+          "name": "slot-13",
+          "kind": "command",
+          "value": "<code>audio.data_base64</code>"
+        },
+        {
+          "name": "slot-14",
+          "kind": "command",
+          "value": "<code>audio_encoding: \"base64\"</code>"
+        },
+        {
+          "name": "slot-15",
+          "kind": "command",
+          "value": "<code>audio.next_start_ms</code>"
+        },
+        {
+          "name": "slot-16",
+          "kind": "command",
+          "value": "<code>audio_start_ms</code>"
+        },
+        {
+          "name": "slot-17",
+          "kind": "command",
+          "value": "<code>choose_track</code>"
+        },
+        {
+          "name": "slot-18",
+          "kind": "command",
+          "value": "<code>audio.tracks</code>"
+        },
+        {
+          "name": "slot-19",
+          "kind": "command",
+          "value": "<code>audio_track</code>"
+        },
+        {
+          "name": "slot-20",
+          "kind": "command",
+          "value": "<code>audio.state</code>"
+        },
+        {
+          "name": "slot-21",
+          "kind": "command",
+          "value": "<code>not_kept</code>"
+        }
+      ],
       "selector": null
     },
     {
@@ -44851,6 +45197,34 @@
           "name": "slot-3",
           "kind": "command",
           "value": "<code>invalid_grant</code>"
+        }
+      ],
+      "selector": null
+    },
+    {
+      "id": "site.integrate.experiencesareyourjournalsthirdpersonaccounts",
+      "resource": "m736974652e696e746567726174652e657870657269656e636573617265796f75726a6f75726e616c737468697264706572736f6e6163636f756e7473",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>search</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>fetch</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>get_week</code>"
         }
       ],
       "selector": null
@@ -45553,6 +45927,69 @@
       "format_intent": "text",
       "arguments": [],
       "protected_slots": [],
+      "selector": null
+    },
+    {
+      "id": "site.integrate.peopleyoucorrespondedwithinmessagesoremail",
+      "resource": "m736974652e696e746567726174652e70656f706c65796f75636f72726573706f6e64656477697468696e6d657373616765736f72656d61696c",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>get_week</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>corresponded_days</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>corresponded_activities</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>days</code>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "<code>activities</code>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<code>co_occurrence</code>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "command",
+          "value": "<code>list_activities</code>"
+        },
+        {
+          "name": "slot-8",
+          "kind": "command",
+          "value": "<code>get_week</code>"
+        },
+        {
+          "name": "slot-9",
+          "kind": "command",
+          "value": "<code>corresponded</code>"
+        },
+        {
+          "name": "slot-10",
+          "kind": "command",
+          "value": "<code>person</code>"
+        }
+      ],
       "selector": null
     },
     {

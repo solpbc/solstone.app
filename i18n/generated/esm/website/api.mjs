@@ -7757,8 +7757,8 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.integrate.anyoftentranscriptswhatwassaid": {
-    resourceKey: "m736974652e696e746567726174652e616e796f6674656e7472616e736372697074737768617477617373616964",
+  "site.integrate.anyofthesekindstranscriptsmessagestransactions": {
+    resourceKey: "m736974652e696e746567726174652e616e796f6674686573656b696e64737472616e736372697074736d657373616765737472616e73616374696f6e73",
     formatIntent: "text",
     arguments: [
     ],
@@ -7781,6 +7781,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.integrate.audioclipsneedtranscriptsandits": {
+    resourceKey: "m736974652e696e746567726174652e617564696f636c6970736e6565647472616e73637269707473616e64697473",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.integrate.cycleandpregnancyneedsbodyandits": {
     resourceKey: "m736974652e696e746567726174652e6379636c65616e64707265676e616e63796e65656473626f6479616e64697473",
     formatIntent: "text",
@@ -7795,6 +7801,12 @@ const MESSAGES = {
   },
   "site.integrate.designforitregisterand": {
     resourceKey: "m736974652e696e746567726174652e64657369676e666f7269747265676973746572616e64",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.experiencesareyourjournalsthirdpersonaccounts": {
+    resourceKey: "m736974652e696e746567726174652e657870657269656e636573617265796f75726a6f75726e616c737468697264706572736f6e6163636f756e7473",
     formatIntent: "text",
     arguments: [
     ],
@@ -7915,6 +7927,12 @@ const MESSAGES = {
   },
   "site.integrate.onlytheagentsownnotesand": {
     resourceKey: "m736974652e696e746567726174652e6f6e6c797468656167656e74736f776e6e6f746573616e64",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.peopleyoucorrespondedwithinmessagesoremail": {
+    resourceKey: "m736974652e696e746567726174652e70656f706c65796f75636f72726573706f6e64656477697468696e6d657373616765736f72656d61696c",
     formatIntent: "text",
     arguments: [
     ],

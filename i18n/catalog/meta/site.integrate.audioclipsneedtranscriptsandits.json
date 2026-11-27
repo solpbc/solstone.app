@@ -1,0 +1,123 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1300,
+  "source_revision": "28df0b565ececd7431ff0b669af43263ba2c553a64aab048ba557c5693953cf5",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>audio_media</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>list_transcripts</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>get_transcript</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>has_audio: true</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>reference</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>get_transcript</code>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<code>audio: true</code>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>audio_start_ms</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>audio_duration_ms</code>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<code>audio</code>"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "<code>content</code>"
+    },
+    {
+      "name": "slot-12",
+      "kind": "command",
+      "value": "<code>audio.audio_content_index</code>"
+    },
+    {
+      "name": "slot-13",
+      "kind": "command",
+      "value": "<code>audio.data_base64</code>"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "<code>audio_encoding: \"base64\"</code>"
+    },
+    {
+      "name": "slot-15",
+      "kind": "command",
+      "value": "<code>audio.next_start_ms</code>"
+    },
+    {
+      "name": "slot-16",
+      "kind": "command",
+      "value": "<code>audio_start_ms</code>"
+    },
+    {
+      "name": "slot-17",
+      "kind": "command",
+      "value": "<code>choose_track</code>"
+    },
+    {
+      "name": "slot-18",
+      "kind": "command",
+      "value": "<code>audio.tracks</code>"
+    },
+    {
+      "name": "slot-19",
+      "kind": "command",
+      "value": "<code>audio_track</code>"
+    },
+    {
+      "name": "slot-20",
+      "kind": "command",
+      "value": "<code>audio.state</code>"
+    },
+    {
+      "name": "slot-21",
+      "kind": "command",
+      "value": "<code>not_kept</code>"
+    }
+  ]
+}

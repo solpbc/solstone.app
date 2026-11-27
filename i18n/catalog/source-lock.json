@@ -74732,36 +74732,11 @@
       ]
     },
     {
-      "id": "site.integrate.anyoftentranscriptswhatwassaid",
-      "source": "a58c281da25054d0e07123268c6e44e1e2a8ff7ad56fc9842ac02b9df76def57",
+      "id": "site.integrate.anyofthesekindstranscriptsmessagestransactions",
+      "source": "cca61bddd8eccb10d6a97369a307c02ff28724a8ce1ae746851b54ba41e051d7",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "f452ebfbf57c3563177abcbab54b6b75fd614b7c37282e0c02b044f38ee9e9ec",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "a58c281da25054d0e07123268c6e44e1e2a8ff7ad56fc9842ac02b9df76def57",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "f452ebfbf57c3563177abcbab54b6b75fd614b7c37282e0c02b044f38ee9e9ec"
-        },
-        {
-          "locale": "es-419",
-          "source": "efb90c96e499d0c3c4987c29d0294718c07133aec772d086d78a052b7935342d",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "f452ebfbf57c3563177abcbab54b6b75fd614b7c37282e0c02b044f38ee9e9ec"
-        },
-        {
-          "locale": "it",
-          "source": "a58c281da25054d0e07123268c6e44e1e2a8ff7ad56fc9842ac02b9df76def57",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "f452ebfbf57c3563177abcbab54b6b75fd614b7c37282e0c02b044f38ee9e9ec"
-        },
-        {
-          "locale": "te",
-          "source": "a58c281da25054d0e07123268c6e44e1e2a8ff7ad56fc9842ac02b9df76def57",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "f452ebfbf57c3563177abcbab54b6b75fd614b7c37282e0c02b044f38ee9e9ec"
-        }
-      ]
+      "protected": "14b09f4f556213ab094b6ab80d2912fcab9d85a430dda8172e9d917f9f2c69cb",
+      "locales": []
     },
     {
       "id": "site.integrate.aplainlistleavesoutsegmentsthat",
@@ -74860,6 +74835,13 @@
       ]
     },
     {
+      "id": "site.integrate.audioclipsneedtranscriptsandits",
+      "source": "28df0b565ececd7431ff0b669af43263ba2c553a64aab048ba557c5693953cf5",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "fc8357c911795a645c39df9a3dfbcf5a64406811457cbdf926b0a0d53ea2970a",
+      "locales": []
+    },
+    {
       "id": "site.integrate.cycleandpregnancyneedsbodyandits",
       "source": "9e266cd2dd3de6b30977232b00a3c0d5d579841c888a4521727aa898fec55d06",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -74929,6 +74911,13 @@
           "protected": "1a2b8c1436ac2b94b1a02fbde4a41b2a7c6c5584092fcb5e5d4652a63ada409e"
         }
       ]
+    },
+    {
+      "id": "site.integrate.experiencesareyourjournalsthirdpersonaccounts",
+      "source": "c428a2715ed1a0b80aeaa16c2854c558de1aa5377ee71dbe6065c68af691abc6",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "2d647f805d4355a126808bbffa019cbe82ec94e7c8576bc92333ceb7084c7078",
+      "locales": []
     },
     {
       "id": "site.integrate.facetswithtranscriptsorbody",
@@ -75093,7 +75082,7 @@
     },
     {
       "id": "site.integrate.forplacesincludelistsupto50aday",
-      "source": "c37564eb4eb2a804688dd13306b41f80fc4c95161f902467a871b50e6a0dbea6",
+      "source": "3c7053d5b4b6ec7d57909d54d2fa8c1cf00878f55733cc17c1748a5b94a4e98c",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "2c17f4104d526acfc348507c65f004e1f025f3639da72b37ff21309fc1f17e92",
       "locales": [
@@ -75534,6 +75523,13 @@
       ]
     },
     {
+      "id": "site.integrate.peopleyoucorrespondedwithinmessagesoremail",
+      "source": "28ab4d6c2d1c3e04b7dc7e13f58db636db1632509ff4c581df42cb7594a8b989",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "cfffca3bd8d98c327e6293707b534065a6d13ccb0e50df849a702bf7172a4510",
+      "locales": []
+    },
+    {
       "id": "site.integrate.picturesfromfetchandgettranscript",
       "source": "0b58a744f3ba75bc3576f8e2a61e5ef0b79dcc3692059e0cab83f91d3590d36a",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
@@ -75721,7 +75717,7 @@
     },
     {
       "id": "site.integrate.readwhatwassaidinonesegment",
-      "source": "c3864cb4c57e0154791f548373ae9dd82f4f1e7f07e5f609349f38e0d055ffb4",
+      "source": "b90fb6a54569d7a67edb0bc512234b6aa4d5391b373495442b89b6a044bb059c",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "8cd881c61a7bfc61090bb843ef440636a92518c455bf1dbab1922e5c124f695d",
       "locales": [
@@ -76009,7 +76005,7 @@
     },
     {
       "id": "site.integrate.theapprovalformpreselectsallfivekinds",
-      "source": "88118050cfacd7d63aa81a0631ccfc33165866654db7b16b354639506231b6b5",
+      "source": "7cf486ff5b095f1d6350956ab176810627ce1c4efe5593ae9ad5332db1838512",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": [
@@ -76137,7 +76133,7 @@
     },
     {
       "id": "site.integrate.transcriptsfacetsscreentextorbodyeach",
-      "source": "a124300e6633800b8b8584b5c917c7ae0554cd3c07e68e339847dc639f139e9a",
+      "source": "e716ad5ba97f10daacec996e4ac8b2b2610922a88e8b3af3ecefadb25f26a60b",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": [
@@ -76169,7 +76165,7 @@
     },
     {
       "id": "site.integrate.transcriptsorbodyeachsegmentstillneeds",
-      "source": "324336f08b79b23198210386f27014445707e508b743608ae38cb62d64b07d7f",
+      "source": "16b087ab6dc2cdfae433bc2b45b9b6d3c785f1ce2ef1c231c482382c79f33abf",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": [
@@ -76201,7 +76197,7 @@
     },
     {
       "id": "site.integrate.transcriptsscreentextorbody",
-      "source": "ba9e297db1f7010ffb182101b8709242642fe237ee8c7c48b84be34544b49349",
+      "source": "490660399316c65d4a14eb3625400e8794b0d93edfa243070ea6e75188bc951c",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": [
@@ -89943,7 +89939,7 @@
     },
     {
       "id": "site.pageintegrate.searchwhatthisconnectionmayseescreen",
-      "source": "4aa41f7df89f6237ad12cdfd7cd2ac92ccbb42e567eca27b805f6a688768f93f",
+      "source": "b6610ef1aeb25f1b4936e6c4c887bc442ba43999ac11e1d390525532f4567ae6",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
       "locales": [

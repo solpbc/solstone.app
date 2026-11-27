@@ -166,7 +166,7 @@
                         <table class="tbl">
                             <tr><th>[[i18n:site.pageintegrate.policy]]</th><th>[[i18n:site.pageintegrate.yourchoices]]</th></tr>
                             <tr><td>[[i18n:site.pageintegrate.howmuchofyourjournal]]</td><td>[[i18n:site.integrate.yourwholejournaleverythingnowandanything]]</td></tr>
-                            <tr><td>[[i18n:site.pageintegrate.whatkindsofmaterial]]</td><td>[[i18n:site.integrate.anyoftentranscriptswhatwassaid]]</td></tr>
+                            <tr><td>[[i18n:site.pageintegrate.whatkindsofmaterial]]</td><td>[[i18n:site.integrate.anyofthesekindstranscriptsmessagestransactions]]</td></tr>
                             <tr><td>[[i18n:site.pageintegrate.itsownnotes]]</td><td>[[i18n:site.pageintegrate.alwaysoneveryconnectioncansavenotes]]</td></tr>
                             <tr><td>[[i18n:site.pageintegrate.whereitconnectsfrom]]</td><td>[[i18n:site.pageintegrate.asignedinagentonlyworksat]]</td></tr>
                             <tr><td>[[i18n:site.pageintegrate.howlongitlasts]]</td><td>[[i18n:site.integrate.asignedinagentstays]]</td></tr>
@@ -213,7 +213,7 @@
                             <tr><td><code>search</code></td><td>[[i18n:site.pageintegrate.searchwhatthisconnectionmayseescreen]]</td><td>[[i18n:site.integrate.transcriptsscreentextorbody]]</td><td><code>query</code>, <code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>category</code>, <code>kind</code>, <code>person</code>, <code>place</code>, <code>activity</code>, <code>facet</code>, <code>cursor</code></td></tr>
                             <tr><td><code>fetch</code></td><td>[[i18n:site.pageintegrate.readthedocumentoractivityrecordbehind]]</td><td>[[i18n:site.integrate.transcriptsfacetsscreentextorbodyeach]]</td><td><code>reference</code> / <code>references</code>, <code>size</code></td></tr>
                             <tr><td><code>list_transcripts</code></td><td>[[i18n:site.integrate.listtranscriptsegmentswiththeirtimessources]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td>[[i18n:site.integrate.daydayfromdaytotimefromtimeto]]</td></tr>
-                            <tr><td><code>get_transcript</code></td><td>[[i18n:site.integrate.readwhatwassaidinonesegment]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td><code>reference</code> / <code>references</code>, <code>cursor</code>, <code>offset_ms</code>, <code>display</code></td></tr>
+                            <tr><td><code>get_transcript</code></td><td>[[i18n:site.integrate.readwhatwassaidinonesegment]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td><code>reference</code> / <code>references</code>, <code>cursor</code>, <code>offset_ms</code>, <code>display</code>, <code>audio</code>, <code>audio_start_ms</code>, <code>audio_duration_ms</code>, <code>audio_track</code>, <code>audio_encoding</code></td></tr>
                             <tr><td><code>list_activities</code></td><td>[[i18n:site.integrate.listactivitiesbydayorinclusivedate]]</td><td>[[i18n:site.pageintegrate.facets]]</td><td><code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>facet</code>, <code>entity</code>, <code>kind</code>, <code>person</code>, <code>place</code>, <code>activity</code>, <code>cursor</code></td></tr>
                             <tr><td><code>get_activity_sources</code></td><td>[[i18n:site.pageintegrate.readthesourcepassagesanactivityspans]]</td><td>[[i18n:site.integrate.facetswithtranscriptsorbody]]</td><td><code>reference</code> / <code>references</code>, <code>cursor</code></td></tr>
                             <tr><td><code>list_entities</code></td><td>[[i18n:site.integrate.listthepeopleprojectsandotherentities]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td><code>facet</code>, <code>cursor</code></td></tr>
@@ -227,6 +227,7 @@
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.whensearchoralistreturnsnext]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.fetchgettranscriptandgetactivitysourcesalso]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.getweekwithdayfromanddaytoreadsa]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.experiencesareyourjournalsthirdpersonaccounts]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.searchlisttranscriptsandlistactivitiesshare]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.forexampletheparamsofafew]]</p>
 <pre># read three entries in one call
@@ -257,7 +258,10 @@
 {"name":"list_transcripts","arguments":{"day":"2026-11-20","source":"&lt;source label&gt;","entry_kind":"sleep"}}
 
 # one moment in a screen recording, on one of several displays
-{"name":"get_transcript","arguments":{"reference":"&lt;segment reference&gt;","offset_ms":90000,"display":"&lt;display&gt;"}}</pre>
+{"name":"get_transcript","arguments":{"reference":"&lt;segment reference&gt;","offset_ms":90000,"display":"&lt;display&gt;"}}
+
+# 30 seconds of a segment's audio, starting one minute in
+{"name":"get_transcript","arguments":{"reference":"&lt;segment reference&gt;","audio":true,"audio_start_ms":60000}}</pre>
                         <p class="small">[[i18n:site.pageintegrate.journaltextinwhatthetoolsreturn]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.sometoolresultsincludealinkto]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.topointtoamomentina]]</p>
@@ -269,8 +273,10 @@
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.forphotosincludelistsupto50aday]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.forplacesincludelistsupto50aday]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.forpeopleincludelistsupto50aday]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.peopleyoucorrespondedwithinmessagesoremail]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.forbodyincludegiveseachdaywhatyourjournalholds]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.screenshotsneedscreentextandits]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.audioclipsneedtranscriptsandits]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.aprofilepicthephotoyourjournalshows]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.whenasourcepassagesaysuntimedthe]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.pageintegrate.searchfindscalendareventsandanythingelse]]</p>

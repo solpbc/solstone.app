@@ -1,0 +1,68 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 700,
+  "source_revision": "28ab4d6c2d1c3e04b7dc7e13f58db636db1632509ff4c581df42cb7594a8b989",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>get_week</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>corresponded_days</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>corresponded_activities</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>days</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>activities</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>co_occurrence</code>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<code>list_activities</code>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>get_week</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>corresponded</code>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<code>person</code>"
+    }
+  ]
+}
