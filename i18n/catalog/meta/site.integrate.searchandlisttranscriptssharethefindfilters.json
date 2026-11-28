@@ -9,8 +9,8 @@
   ],
   "arguments": [],
   "format_intent": "text",
-  "max_length": 3540,
-  "source_revision": "311331a0aaf0c840ad01a7f88b82374d4463d34471cb65ee0128bbba572bcfc0",
+  "max_length": 900,
+  "source_revision": "bfda122e4ec8b798796d756e0ce8a8cb373c0ffaf4ea10291a26f008d044a7cc",
   "risk": "routine",
   "auto_merge": true,
   "protected_slots": [
@@ -27,85 +27,80 @@
     {
       "name": "slot-3",
       "kind": "command",
-      "value": "<code>list_activities</code>"
+      "value": "<code>kind</code>"
     },
     {
       "name": "slot-4",
       "kind": "command",
-      "value": "<code>kind</code>"
+      "value": "<code>person</code>"
     },
     {
       "name": "slot-5",
       "kind": "command",
-      "value": "<code>person</code>"
+      "value": "<code>place</code>"
     },
     {
       "name": "slot-6",
       "kind": "command",
-      "value": "<code>place</code>"
+      "value": "<code>activity</code>"
     },
     {
       "name": "slot-7",
       "kind": "command",
-      "value": "<code>activity</code>"
+      "value": "<code>kind</code>"
     },
     {
       "name": "slot-8",
       "kind": "command",
-      "value": "<code>kind</code>"
+      "value": "<code>notes</code>"
     },
     {
       "name": "slot-9",
       "kind": "command",
-      "value": "<code>notes</code>"
+      "value": "<code>calendar</code>"
     },
     {
       "name": "slot-10",
       "kind": "command",
-      "value": "<code>calendar</code>"
+      "value": "<code>person</code>"
     },
     {
       "name": "slot-11",
       "kind": "command",
-      "value": "<code>person</code>"
+      "value": "<code>activity</code>"
     },
     {
       "name": "slot-12",
       "kind": "command",
-      "value": "<code>activity</code>"
+      "value": "<code>place</code>"
     },
     {
       "name": "slot-13",
       "kind": "command",
-      "value": "<code>place</code>"
+      "value": "<code>fetch</code>"
     },
     {
       "name": "slot-14",
       "kind": "command",
-      "value": "<code>fetch</code>"
+      "value": "<code>facet</code>"
     },
     {
       "name": "slot-15",
       "kind": "command",
-      "value": "<code>facet</code>"
+      "value": "<code>entry_kind</code>"
     },
     {
       "name": "slot-16",
       "kind": "command",
-      "value": "<code>entry_kind</code>"
+      "value": "<code>list_transcripts</code>"
     },
     {
       "name": "slot-17",
       "kind": "command",
-      "value": "<code>list_transcripts</code>"
-    },
-    {
-      "name": "slot-18",
-      "kind": "command",
       "value": "<code>day</code>"
     },
     {
-      "name": "slot-19",
+      "name": "slot-18",
       "kind": "command",
       "value": "<code>source</code>"
     }

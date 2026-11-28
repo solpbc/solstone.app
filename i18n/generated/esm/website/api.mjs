@@ -7883,6 +7883,12 @@ const MESSAGES = {
     arguments: [
     ],
   },
+  "site.integrate.listactivitiesfiltersitsownrows": {
+    resourceKey: "m736974652e696e746567726174652e6c6973746163746976697469657366696c746572736974736f776e726f7773",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
   "site.integrate.listthepeopleprojectsandotherentities": {
     resourceKey: "m736974652e696e746567726174652e6c69737474686570656f706c6570726f6a65637473616e646f74686572656e746974696573",
     formatIntent: "text",
@@ -7991,8 +7997,8 @@ const MESSAGES = {
     arguments: [
     ],
   },
-  "site.integrate.searchlisttranscriptsandlistactivitiesshare": {
-    resourceKey: "m736974652e696e746567726174652e7365617263686c6973747472616e73637269707473616e646c697374616374697669746965737368617265",
+  "site.integrate.searchandlisttranscriptssharethefindfilters": {
+    resourceKey: "m736974652e696e746567726174652e736561726368616e646c6973747472616e73637269707473736861726574686566696e6466696c74657273",
     formatIntent: "text",
     arguments: [
     ],
@@ -8041,6 +8047,12 @@ const MESSAGES = {
   },
   "site.integrate.thetargetmustbesomethingthisconnection": {
     resourceKey: "m736974652e696e746567726174652e7468657461726765746d7573746265736f6d657468696e6774686973636f6e6e656374696f6e",
+    formatIntent: "text",
+    arguments: [
+    ],
+  },
+  "site.integrate.tocountamonthorayearinonecall": {
+    resourceKey: "m736974652e696e746567726174652e746f636f756e74616d6f6e74686f726179656172696e6f6e6563616c6c",
     formatIntent: "text",
     arguments: [
     ],

@@ -45861,6 +45861,99 @@
       "selector": null
     },
     {
+      "id": "site.integrate.listactivitiesfiltersitsownrows",
+      "resource": "m736974652e696e746567726174652e6c6973746163746976697469657366696c746572736974736f776e726f7773",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>list_activities</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>kind</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>place</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>person</code>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "<code>entity</code>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<code>roles</code>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "command",
+          "value": "<code>attendee</code>"
+        },
+        {
+          "name": "slot-8",
+          "kind": "command",
+          "value": "<code>heard</code>"
+        },
+        {
+          "name": "slot-9",
+          "kind": "command",
+          "value": "<code>corresponded</code>"
+        },
+        {
+          "name": "slot-10",
+          "kind": "command",
+          "value": "<code>in_photo</code>"
+        },
+        {
+          "name": "slot-11",
+          "kind": "command",
+          "value": "<code>mentioned</code>"
+        },
+        {
+          "name": "slot-12",
+          "kind": "command",
+          "value": "<code>on_screen</code>"
+        },
+        {
+          "name": "slot-13",
+          "kind": "command",
+          "value": "<code>activity</code>"
+        },
+        {
+          "name": "slot-14",
+          "kind": "command",
+          "value": "<code>compact</code>"
+        },
+        {
+          "name": "slot-15",
+          "kind": "command",
+          "value": "<code>sources_unreadable</code>"
+        },
+        {
+          "name": "slot-16",
+          "kind": "command",
+          "value": "<code>get_activity_sources</code>"
+        }
+      ],
+      "selector": null
+    },
+    {
       "id": "site.integrate.listthepeopleprojectsandotherentities",
       "resource": "m736974652e696e746567726174652e6c69737474686570656f706c6570726f6a65637473616e646f74686572656e746974696573",
       "namespace": "site.integrate",
@@ -46463,12 +46556,115 @@
       "selector": null
     },
     {
-      "id": "site.integrate.searchlisttranscriptsandlistactivitiesshare",
-      "resource": "m736974652e696e746567726174652e7365617263686c6973747472616e73637269707473616e646c697374616374697669746965737368617265",
+      "id": "site.integrate.searchandlisttranscriptssharethefindfilters",
+      "resource": "m736974652e696e746567726174652e736561726368616e646c6973747472616e73637269707473736861726574686566696e6466696c74657273",
       "namespace": "site.integrate",
       "owner": "website",
       "tombstone": false,
       "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>search</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>list_transcripts</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>kind</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>person</code>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "<code>place</code>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<code>activity</code>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "command",
+          "value": "<code>kind</code>"
+        },
+        {
+          "name": "slot-8",
+          "kind": "command",
+          "value": "<code>notes</code>"
+        },
+        {
+          "name": "slot-9",
+          "kind": "command",
+          "value": "<code>calendar</code>"
+        },
+        {
+          "name": "slot-10",
+          "kind": "command",
+          "value": "<code>person</code>"
+        },
+        {
+          "name": "slot-11",
+          "kind": "command",
+          "value": "<code>activity</code>"
+        },
+        {
+          "name": "slot-12",
+          "kind": "command",
+          "value": "<code>place</code>"
+        },
+        {
+          "name": "slot-13",
+          "kind": "command",
+          "value": "<code>fetch</code>"
+        },
+        {
+          "name": "slot-14",
+          "kind": "command",
+          "value": "<code>facet</code>"
+        },
+        {
+          "name": "slot-15",
+          "kind": "command",
+          "value": "<code>entry_kind</code>"
+        },
+        {
+          "name": "slot-16",
+          "kind": "command",
+          "value": "<code>list_transcripts</code>"
+        },
+        {
+          "name": "slot-17",
+          "kind": "command",
+          "value": "<code>day</code>"
+        },
+        {
+          "name": "slot-18",
+          "kind": "command",
+          "value": "<code>source</code>"
+        }
+      ],
+      "selector": null
+    },
+    {
+      "id": "site.integrate.searchlisttranscriptsandlistactivitiesshare",
+      "resource": "m736974652e696e746567726174652e7365617263686c6973747472616e73637269707473616e646c697374616374697669746965737368617265",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": true,
+      "replacement": "site.integrate.searchandlisttranscriptssharethefindfilters",
       "format_intent": "text",
       "arguments": [],
       "protected_slots": [
@@ -46680,6 +46876,134 @@
       "format_intent": "text",
       "arguments": [],
       "protected_slots": [],
+      "selector": null
+    },
+    {
+      "id": "site.integrate.tocountamonthorayearinonecall",
+      "resource": "m736974652e696e746567726174652e746f636f756e74616d6f6e74686f726179656172696e6f6e6563616c6c",
+      "namespace": "site.integrate",
+      "owner": "website",
+      "tombstone": false,
+      "replacement": null,
+      "format_intent": "text",
+      "arguments": [],
+      "protected_slots": [
+        {
+          "name": "slot-1",
+          "kind": "command",
+          "value": "<code>list_transcripts</code>"
+        },
+        {
+          "name": "slot-2",
+          "kind": "command",
+          "value": "<code>summary</code>"
+        },
+        {
+          "name": "slot-3",
+          "kind": "command",
+          "value": "<code>list_activities</code>"
+        },
+        {
+          "name": "slot-4",
+          "kind": "command",
+          "value": "<code>group_by</code>"
+        },
+        {
+          "name": "slot-5",
+          "kind": "command",
+          "value": "<code>month</code>"
+        },
+        {
+          "name": "slot-6",
+          "kind": "command",
+          "value": "<code>day</code>"
+        },
+        {
+          "name": "slot-7",
+          "kind": "command",
+          "value": "<code>facet</code>"
+        },
+        {
+          "name": "slot-8",
+          "kind": "command",
+          "value": "<code>activity</code>"
+        },
+        {
+          "name": "slot-9",
+          "kind": "command",
+          "value": "<code>person</code>"
+        },
+        {
+          "name": "slot-10",
+          "kind": "command",
+          "value": "<code>groups_count</code>"
+        },
+        {
+          "name": "slot-11",
+          "kind": "command",
+          "value": "<code>total</code>"
+        },
+        {
+          "name": "slot-12",
+          "kind": "command",
+          "value": "<code>truncated</code>"
+        },
+        {
+          "name": "slot-13",
+          "kind": "command",
+          "value": "<code>groups_total</code>"
+        },
+        {
+          "name": "slot-14",
+          "kind": "command",
+          "value": "<code>attendee</code>"
+        },
+        {
+          "name": "slot-15",
+          "kind": "command",
+          "value": "<code>heard</code>"
+        },
+        {
+          "name": "slot-16",
+          "kind": "command",
+          "value": "<code>roles</code>"
+        },
+        {
+          "name": "slot-17",
+          "kind": "command",
+          "value": "<code>group_by</code>"
+        },
+        {
+          "name": "slot-18",
+          "kind": "command",
+          "value": "<code>limit</code>"
+        },
+        {
+          "name": "slot-19",
+          "kind": "command",
+          "value": "<code>cursor</code>"
+        },
+        {
+          "name": "slot-20",
+          "kind": "command",
+          "value": "<code>compact</code>"
+        },
+        {
+          "name": "slot-21",
+          "kind": "command",
+          "value": "<code>get_week</code>"
+        },
+        {
+          "name": "slot-22",
+          "kind": "command",
+          "value": "<code>include</code>"
+        },
+        {
+          "name": "slot-23",
+          "kind": "command",
+          "value": "<code>body_totals</code>"
+        }
+      ],
       "selector": null
     },
     {

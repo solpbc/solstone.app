@@ -75138,7 +75138,7 @@
     },
     {
       "id": "site.integrate.forplacesincludelistsupto50aday",
-      "source": "3c7053d5b4b6ec7d57909d54d2fa8c1cf00878f55733cc17c1748a5b94a4e98c",
+      "source": "d20b65ab58f5b6a2880b184aa8f7c8266e187b85319d3c47b70d01c4edb0585b",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "2c17f4104d526acfc348507c65f004e1f025f3639da72b37ff21309fc1f17e92",
       "locales": [
@@ -75292,7 +75292,7 @@
     },
     {
       "id": "site.integrate.listactivitiesbydayorinclusivedate",
-      "source": "29e9687e39de58df0275e5719a892a5fe09f19f6655cbdd29ad15205324c763e",
+      "source": "832dac219ae6451f4e93bd62fa00a6c11d71111ebdc2decc2a548761a08ee17e",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
       "protected": "273ffaac012b162ad1ff68ffd9cbf0f21a586d14dce522c74ab0abecae178134",
       "locales": [
@@ -75321,6 +75321,13 @@
           "protected": "273ffaac012b162ad1ff68ffd9cbf0f21a586d14dce522c74ab0abecae178134"
         }
       ]
+    },
+    {
+      "id": "site.integrate.listactivitiesfiltersitsownrows",
+      "source": "19e39a62e7c39250ce27ec021313d03883a07fe00f8a1ecd34084c3e118fb518",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "d441744a1fe670b53306d9b0f78c8b43c5aaaa170b0f0ba8b0e221bab2c7de28",
+      "locales": []
     },
     {
       "id": "site.integrate.listthepeopleprojectsandotherentities",
@@ -75868,36 +75875,11 @@
       ]
     },
     {
-      "id": "site.integrate.searchlisttranscriptsandlistactivitiesshare",
-      "source": "311331a0aaf0c840ad01a7f88b82374d4463d34471cb65ee0128bbba572bcfc0",
+      "id": "site.integrate.searchandlisttranscriptssharethefindfilters",
+      "source": "bfda122e4ec8b798796d756e0ce8a8cb373c0ffaf4ea10291a26f008d044a7cc",
       "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-      "protected": "8eecfdd186307726b6eaa28350e4e0006cfcee8bc3b1a08ecdccf74ba0fc60b6",
-      "locales": [
-        {
-          "locale": "de",
-          "source": "311331a0aaf0c840ad01a7f88b82374d4463d34471cb65ee0128bbba572bcfc0",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "8eecfdd186307726b6eaa28350e4e0006cfcee8bc3b1a08ecdccf74ba0fc60b6"
-        },
-        {
-          "locale": "es-419",
-          "source": "311331a0aaf0c840ad01a7f88b82374d4463d34471cb65ee0128bbba572bcfc0",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "8eecfdd186307726b6eaa28350e4e0006cfcee8bc3b1a08ecdccf74ba0fc60b6"
-        },
-        {
-          "locale": "it",
-          "source": "311331a0aaf0c840ad01a7f88b82374d4463d34471cb65ee0128bbba572bcfc0",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "8eecfdd186307726b6eaa28350e4e0006cfcee8bc3b1a08ecdccf74ba0fc60b6"
-        },
-        {
-          "locale": "te",
-          "source": "311331a0aaf0c840ad01a7f88b82374d4463d34471cb65ee0128bbba572bcfc0",
-          "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
-          "protected": "8eecfdd186307726b6eaa28350e4e0006cfcee8bc3b1a08ecdccf74ba0fc60b6"
-        }
-      ]
+      "protected": "fd33dba111362be42393874398af959ef899affc65b0ebfa4807c0dad3a6338d",
+      "locales": []
     },
     {
       "id": "site.integrate.signin",
@@ -76154,6 +76136,13 @@
           "protected": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
         }
       ]
+    },
+    {
+      "id": "site.integrate.tocountamonthorayearinonecall",
+      "source": "71128f2c48ea93124bd4aa4cabced8b7cbf4ecc3ffccbb1c3dbb300779fb0f78",
+      "contract": "8a5ccf516e1ddd1e6845a51578bf3090e7732eef71f84117434e952b20202586",
+      "protected": "c708d7b8ebff11e7d30c7bc02b6a2d9dc0d885c6caec5d80396da36a14c6038f",
+      "locales": []
     },
     {
       "id": "site.integrate.topointtoamomentina",

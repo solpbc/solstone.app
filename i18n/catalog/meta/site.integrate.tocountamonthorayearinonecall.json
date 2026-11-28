@@ -1,0 +1,133 @@
+{
+  "description": "Website copy.",
+  "context": "integrate.html",
+  "surfaces": [
+    "website"
+  ],
+  "bundles": [
+    "website"
+  ],
+  "arguments": [],
+  "format_intent": "text",
+  "max_length": 1990,
+  "source_revision": "71128f2c48ea93124bd4aa4cabced8b7cbf4ecc3ffccbb1c3dbb300779fb0f78",
+  "risk": "routine",
+  "auto_merge": true,
+  "protected_slots": [
+    {
+      "name": "slot-1",
+      "kind": "command",
+      "value": "<code>list_transcripts</code>"
+    },
+    {
+      "name": "slot-2",
+      "kind": "command",
+      "value": "<code>summary</code>"
+    },
+    {
+      "name": "slot-3",
+      "kind": "command",
+      "value": "<code>list_activities</code>"
+    },
+    {
+      "name": "slot-4",
+      "kind": "command",
+      "value": "<code>group_by</code>"
+    },
+    {
+      "name": "slot-5",
+      "kind": "command",
+      "value": "<code>month</code>"
+    },
+    {
+      "name": "slot-6",
+      "kind": "command",
+      "value": "<code>day</code>"
+    },
+    {
+      "name": "slot-7",
+      "kind": "command",
+      "value": "<code>facet</code>"
+    },
+    {
+      "name": "slot-8",
+      "kind": "command",
+      "value": "<code>activity</code>"
+    },
+    {
+      "name": "slot-9",
+      "kind": "command",
+      "value": "<code>person</code>"
+    },
+    {
+      "name": "slot-10",
+      "kind": "command",
+      "value": "<code>groups_count</code>"
+    },
+    {
+      "name": "slot-11",
+      "kind": "command",
+      "value": "<code>total</code>"
+    },
+    {
+      "name": "slot-12",
+      "kind": "command",
+      "value": "<code>truncated</code>"
+    },
+    {
+      "name": "slot-13",
+      "kind": "command",
+      "value": "<code>groups_total</code>"
+    },
+    {
+      "name": "slot-14",
+      "kind": "command",
+      "value": "<code>attendee</code>"
+    },
+    {
+      "name": "slot-15",
+      "kind": "command",
+      "value": "<code>heard</code>"
+    },
+    {
+      "name": "slot-16",
+      "kind": "command",
+      "value": "<code>roles</code>"
+    },
+    {
+      "name": "slot-17",
+      "kind": "command",
+      "value": "<code>group_by</code>"
+    },
+    {
+      "name": "slot-18",
+      "kind": "command",
+      "value": "<code>limit</code>"
+    },
+    {
+      "name": "slot-19",
+      "kind": "command",
+      "value": "<code>cursor</code>"
+    },
+    {
+      "name": "slot-20",
+      "kind": "command",
+      "value": "<code>compact</code>"
+    },
+    {
+      "name": "slot-21",
+      "kind": "command",
+      "value": "<code>get_week</code>"
+    },
+    {
+      "name": "slot-22",
+      "kind": "command",
+      "value": "<code>include</code>"
+    },
+    {
+      "name": "slot-23",
+      "kind": "command",
+      "value": "<code>body_totals</code>"
+    }
+  ]
+}

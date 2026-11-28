@@ -212,9 +212,9 @@
                             <tr><th>[[i18n:site.pageintegrate.tool]]</th><th>[[i18n:site.pagedownload.whatitdoes]]</th><th>[[i18n:site.pageintegrate.needs]]</th><th>[[i18n:site.pageintegrate.inputs]]</th></tr>
                             <tr><td><code>search</code></td><td>[[i18n:site.pageintegrate.searchwhatthisconnectionmayseescreen]]</td><td>[[i18n:site.integrate.transcriptsscreentextorbody]]</td><td><code>query</code>, <code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>category</code>, <code>kind</code>, <code>person</code>, <code>place</code>, <code>activity</code>, <code>facet</code>, <code>cursor</code></td></tr>
                             <tr><td><code>fetch</code></td><td>[[i18n:site.pageintegrate.readthedocumentoractivityrecordbehind]]</td><td>[[i18n:site.integrate.transcriptsfacetsscreentextorbodyeach]]</td><td><code>reference</code> / <code>references</code>, <code>size</code></td></tr>
-                            <tr><td><code>list_transcripts</code></td><td>[[i18n:site.integrate.listtranscriptsegmentswiththeirtimessources]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td>[[i18n:site.integrate.daydayfromdaytotimefromtimeto]]</td></tr>
+                            <tr><td><code>list_transcripts</code></td><td>[[i18n:site.integrate.listtranscriptsegmentswiththeirtimessources]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td>[[i18n:site.integrate.daydayfromdaytotimefromtimeto]], <code>summary</code></td></tr>
                             <tr><td><code>get_transcript</code></td><td>[[i18n:site.integrate.readwhatwassaidinonesegment]]</td><td>[[i18n:site.integrate.transcriptsorbodyeachsegmentstillneeds]]</td><td><code>reference</code> / <code>references</code>, <code>cursor</code>, <code>offset_ms</code>, <code>display</code>, <code>audio</code>, <code>audio_start_ms</code>, <code>audio_duration_ms</code>, <code>audio_track</code>, <code>audio_encoding</code></td></tr>
-                            <tr><td><code>list_activities</code></td><td>[[i18n:site.integrate.listactivitiesbydayorinclusivedate]]</td><td>[[i18n:site.pageintegrate.facets]]</td><td><code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>facet</code>, <code>entity</code>, <code>kind</code>, <code>person</code>, <code>place</code>, <code>activity</code>, <code>cursor</code></td></tr>
+                            <tr><td><code>list_activities</code></td><td>[[i18n:site.integrate.listactivitiesbydayorinclusivedate]]</td><td>[[i18n:site.pageintegrate.facets]]</td><td><code>day</code> / <code>day_from</code> / <code>day_to</code>, <code>facet</code>, <code>entity</code>, <code>person</code>, <code>roles</code>, <code>activity</code>, <code>group_by</code>, <code>compact</code>, <code>cursor</code></td></tr>
                             <tr><td><code>get_activity_sources</code></td><td>[[i18n:site.pageintegrate.readthesourcepassagesanactivityspans]]</td><td>[[i18n:site.integrate.facetswithtranscriptsorbody]]</td><td><code>reference</code> / <code>references</code>, <code>cursor</code></td></tr>
                             <tr><td><code>list_entities</code></td><td>[[i18n:site.integrate.listthepeopleprojectsandotherentities]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td><code>facet</code>, <code>cursor</code></td></tr>
                             <tr><td><code>get_entity</code></td><td>[[i18n:site.integrate.readwhatthejournalhasnotedabout]]</td><td>[[i18n:site.pageintegrate.entities]]</td><td><code>reference</code> / <code>references</code></td></tr>
@@ -228,7 +228,9 @@
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.fetchgettranscriptandgetactivitysourcesalso]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.getweekwithdayfromanddaytoreadsa]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.experiencesareyourjournalsthirdpersonaccounts]]</p>
-                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.searchlisttranscriptsandlistactivitiesshare]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.searchandlisttranscriptssharethefindfilters]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.listactivitiesfiltersitsownrows]]</p>
+                        <p class="small" style="margin-top:12px">[[i18n:site.integrate.tocountamonthorayearinonecall]]</p>
                         <p class="small" style="margin-top:12px">[[i18n:site.integrate.forexampletheparamsofafew]]</p>
 <pre># read three entries in one call
 {"name":"fetch","arguments":{"references":["&lt;reference&gt;","&lt;reference&gt;","&lt;reference&gt;"]}}
@@ -253,6 +255,15 @@
 
 # notes and documents from one week, without a query
 {"name":"search","arguments":{"kind":["notes","documents"],"day_from":"2026-11-15","day_to":"2026-11-21"}}
+
+# how many of each kind this connection may read in 2026, month by month
+{"name":"list_transcripts","arguments":{"summary":true,"day_from":"2026-01-01","day_to":"2026-12-31"}}
+
+# activities in 2026, counted by month and type of activity
+{"name":"list_activities","arguments":{"day_from":"2026-01-01","day_to":"2026-12-31","group_by":["month","activity"]}}
+
+# body totals for 2026, for the year and each month
+{"name":"get_week","arguments":{"day_from":"2026-01-01","day_to":"2026-12-31","include":["body"]}}
 
 # one body source's sleep on one day
 {"name":"list_transcripts","arguments":{"day":"2026-11-20","source":"&lt;source label&gt;","entry_kind":"sleep"}}
